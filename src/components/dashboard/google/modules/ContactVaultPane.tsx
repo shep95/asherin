@@ -26,6 +26,7 @@ type Row = {
   subject_email: string | null;
   hop: number;
   via: string | null;
+  channel: string | null;
   status: string;
   relationship: any;
   summary: string | null;
@@ -81,6 +82,9 @@ function renderReport(row: Row, doc: any): string {
   L.push(`SUBJECT      : ${row.subject_name}`);
   if (row.subject_email) L.push(`ADDRESS      : ${row.subject_email}`);
   L.push(`HOP          : ${row.hop}${row.via ? ` (via ${row.via})` : ""}`);
+  L.push(`CHANNEL      : ${CHANNEL_LABEL[row.channel ?? ""] ?? "address book"}`);
+  const ids: string[] = Array.isArray(row.relationship?.identifiers) ? row.relationship.identifiers : [];
+  if (ids.length) L.push(`IDENTIFIERS  : ${ids.join(", ")}`);
   L.push(`CONFIDENCE   : ${row.confidence}/100`);
   L.push(`BUILT        : ${row.built_at ?? "—"}`);
   if (doc?.jurisdiction) L.push(`JURISDICTION : ${doc.jurisdiction}`);
@@ -134,6 +138,16 @@ function renderReport(row: Row, doc: any): string {
   L.push(`  Sweep time        : ${Math.round((m.elapsedMs ?? 0) / 1000)}s`);
   L.push(rule());
 
+  if (doc?.reverse) {
+    L.push("SECTION 6b — REVERSE-IDENTIFIER PASS");
+    L.push(`  Seed              : ${doc.reverse.identifier}`);
+    L.push(`  Facts recovered   : ${doc.reverse.factsAdded}`);
+    L.push(`  Hits              : ${doc.reverse.hits}`);
+    if (doc.reverse.timedOut) L.push("  Note              : pass hit its time budget");
+    if (doc.reverse.error) L.push(`  Note              : ${doc.reverse.error}`);
+    L.push(rule());
+  }
+
   L.push("SECTION 7 — NAMED GAPS");
   if (!doc?.gaps?.length) L.push("  none declared");
   for (const g of doc?.gaps ?? []) L.push(`  - ${g}`);
@@ -149,6 +163,15 @@ function renderReport(row: Row, doc: any): string {
 }
 
 const AUTOPILOT_KEY = "hoa.vault.autopilot";
+/** How often the sentinel re-checks every inbound channel while the pane is open. */
+const SENTINEL_INTERVAL_MS = 10 * 60_000;
+
+const CHANNEL_LABEL: Record<string, string> = {
+  inbound_mail: "inbound mail",
+  calendar: "calendar",
+  phone_book: "phone",
+  address_book: "address book",
+};
 
 const ContactVaultPane = () => {
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -226,6 +249,24 @@ const ContactVaultPane = () => {
         }
       }
       if (cancelled) return;
+
+      // Sentinel: watermark-driven watch over mail, calendar and phone cards.
+      // Runs on every mount, cold start or not — a contact that arrived while
+      // the tab was closed must not wait for a manual scan.
+      try {
+        const sent = await callVault<any>("vault_sentinel", { max: 40 });
+        if (cancelled) return;
+        if (sent.queued > 0) {
+          setAutoNote(`Sentinel found ${sent.queued} new contact(s) — building dossiers…`);
+          st = await load();
+        }
+      } catch (e) {
+        if (cancelled) return;
+        const msg = (e as Error).message;
+        if (!/tier_required/i.test(msg)) setAutoNote(msg.slice(0, 180));
+      }
+
+      if (cancelled) return;
       if ((st?.census?.queued ?? 0) > 0) setAutoDrain(true);
       else setAutoNote((n) => n ?? null);
     })();
@@ -266,6 +307,29 @@ const ContactVaultPane = () => {
     })();
     return () => { cancelled = true; };
   }, [autoDrain, hint, load]);
+
+  /**
+   * Standing watch. While the pane is open and autopilot is armed, re-poll the
+   * channels on a fixed interval. The server-side watermark makes each poll
+   * cheap and idempotent, and the drain is only re-armed when work appears.
+   */
+  useEffect(() => {
+    if (!autopilot) return;
+    let cancelled = false;
+    const id = window.setInterval(() => {
+      if (cancelled || autoDrain || document.hidden) return;
+      void (async () => {
+        try {
+          const sent = await callVault<any>("vault_sentinel", { max: 40 });
+          if (cancelled || !sent?.queued) return;
+          setAutoNote(`Sentinel found ${sent.queued} new contact(s) — building dossiers…`);
+          await load();
+          setAutoDrain(true);
+        } catch { /* transient — the next tick retries */ }
+      })();
+    }, SENTINEL_INTERVAL_MS);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [autopilot, autoDrain, load]);
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setBusy(key);
@@ -443,6 +507,9 @@ const ContactVaultPane = () => {
                       {r.summary ?? (r.via ? `via ${r.via}` : r.error_message ?? "awaiting sweep")}
                     </div>
                   </button>
+                  {r.channel && r.channel !== "address_book" && (
+                    <Badge>{CHANNEL_LABEL[r.channel] ?? r.channel}</Badge>
+                  )}
                   <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
                   {r.status === "ready" && <Badge>{r.confidence}/100</Badge>}
                   {r.status === "linked" && (
