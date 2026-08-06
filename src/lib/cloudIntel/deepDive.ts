@@ -939,23 +939,43 @@ export function deepDive(
   // Rule 2 applies to thin surfaces too: too little data to analyse is itself a
   // finding, not a reason to render nothing.
   if (findings.length === 0) {
+    // The baseline finding must describe the battery that actually ran. On a
+    // metadata surface only the structural detectors were eligible, and rates
+    // per day are the sync clock speaking, so both are phrased accordingly.
+    const isTemporal = spec.timestampsAreEvents !== false;
+    const ranNames = isTemporal
+      ? `volume, burst, novelty, dormancy, rhythm, clocked-entity, magnitude, concentration, long-tail, weekly pattern`
+      : `magnitude, concentration, long-tail`;
+    const ranCount = isTemporal ? "ten" : "three";
+
     findings.push({
       id: `${spec.module}-thin`,
       module: spec.module,
       severity: "baseline",
       title: `No structural deviation clears the significance bar on this surface`,
-      current: `${obs.length} ${spec.unitPlural} over ${Math.round(spanDays)}d`,
-      normal: `${round(obs.length / spanDays, 1)} ${spec.unitPlural}/day, evenly distributed`,
+      current: isTemporal
+        ? `${obs.length} ${spec.unitPlural} over ${Math.round(spanDays)}d`
+        : `${obs.length} ${spec.unitPlural} across ${byEntity.size} ${spec.entityNounPlural}`,
+      normal: isTemporal
+        ? `${round(obs.length / spanDays, 1)} ${spec.unitPlural}/day, evenly distributed`
+        : `an even spread across ${spec.entityNounPlural}`,
       deviation: "within coincidence",
       why: [
-        `All nine structural detectors ran and none produced an effect large enough, on a sample this deep, to beat coincidence as an explanation.`,
+        `All ${ranCount} eligible detectors ran and none produced an effect large enough, on a sample this deep, to beat coincidence as an explanation.`,
+        ...(isTemporal
+          ? []
+          : [
+              `Timing detectors were not eligible here: these records carry a sync timestamp rather than an event time, so any rhythm they appear to show would belong to the sync, not to you.`,
+            ]),
         obs.length < 30
           ? `With only ${obs.length} ${spec.unitPlural}, the sample is the binding constraint — real patterns of ordinary size cannot yet be distinguished from noise.`
           : `The sample is adequate, so this is a genuine negative: the surface is behaving consistently with its own history.`,
       ],
       basis: [
-        `${obs.length} ${spec.unitPlural} across ${byEntity.size} ${spec.entityNounPlural}, ${fmtDate(first)} to ${fmtDate(last)}.`,
-        `Detectors run: volume, burst, novelty, dormancy, rhythm, magnitude, concentration, long-tail, weekly pattern.`,
+        isTemporal
+          ? `${obs.length} ${spec.unitPlural} across ${byEntity.size} ${spec.entityNounPlural}, ${fmtDate(first)} to ${fmtDate(last)}.`
+          : `${obs.length} ${spec.unitPlural} across ${byEntity.size} ${spec.entityNounPlural}.`,
+        `Detectors run: ${ranNames}.`,
         `Reporting threshold is a null-hypothesis rejection of 35 or above; nothing here reached it.`,
       ],
       confidence: confidenceFrom(obs.length, 0.5),
@@ -966,6 +986,7 @@ export function deepDive(
           : `Treat this surface as nominal and spend attention on surfaces reporting active findings.`,
     });
   }
+
 
   return {
     findings: sortFindings(findings).slice(0, maxFindings),
