@@ -19,12 +19,52 @@ import { useGoogleOAuthCallback } from "@/hooks/useGoogleOAuthCallback";
  *  - Nothing is destructive without an explicit second confirmation.
  */
 
-const TIERS: Array<{ tier: number; label: string; grants: string }> = [
-  { tier: 1, label: "Identity", grants: "Name, email, profile only." },
-  { tier: 2, label: "Read", grants: "Mail, calendar, contacts, tasks and Drive file list — read-only." },
-  { tier: 3, label: "Comprehension", grants: "Adds activity, sleep and heart-rate signals for pattern analysis." },
-  { tier: 4, label: "Agency", grants: "Adds drafting into Gmail Drafts. Never sends." },
-  { tier: 5, label: "Delegated Send", grants: "Lets you approve a specific draft for sending. One draft at a time." },
+const TIERS: Array<{ tier: number; label: string; grants: string[] }> = [
+  {
+    tier: 1,
+    label: "Identity",
+    grants: [
+      "Name, email, profile only.",
+    ],
+  },
+  {
+    tier: 2,
+    label: "Read",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+    ],
+  },
+  {
+    tier: 3,
+    label: "Comprehension",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+    ],
+  },
+  {
+    tier: 4,
+    label: "Agency",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+      "Draft into Gmail Drafts. Never sends.",
+    ],
+  },
+  {
+    tier: 5,
+    label: "Delegated Send",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+      "Draft into Gmail Drafts.",
+      "Approve a specific draft for sending. One draft at a time.",
+    ],
+  },
 ];
 
 const TIER_LABEL: Record<number, string> = {
@@ -107,7 +147,13 @@ const GoogleAccountsSettings = () => {
               }`}
             >
               <div className="text-xs font-light text-foreground">Tier {t.tier} · {t.label}</div>
-              <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{t.grants}</p>
+              <ul className="mt-1 space-y-0.5">
+                {t.grants.map((g, i) => (
+                  <li key={i} className="text-[10px] font-extralight text-muted-foreground/60">
+                    {g}
+                  </li>
+                ))}
+              </ul>
             </button>
           ))}
         </div>
