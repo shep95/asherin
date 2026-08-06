@@ -97,6 +97,9 @@ const ConnectedAppsView = () => {
         </div>
       </div>
 
+      <DeepDivePanel spec={grantSpec} observations={grantObs} />
+
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-center">
