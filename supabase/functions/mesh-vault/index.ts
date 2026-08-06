@@ -32,8 +32,8 @@ const json = (body: unknown, status: number, cors: Record<string, string>) =>
   });
 
 /** Wall-clock guard: leave room to write results before the platform cuts us. */
-const RUN_BUDGET_MS = 95_000;
-const PER_SUBJECT_MS = 70_000;
+const RUN_BUDGET_MS = 140_000;
+const PER_SUBJECT_MS = 115_000;
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
