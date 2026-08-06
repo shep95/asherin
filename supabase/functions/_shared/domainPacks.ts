@@ -528,7 +528,7 @@ export function matchesHeader(rx: RegExp, header: string): boolean {
 function scorePack(pack: DomainPack, headers: string[], fileName: string, sampleText: string): number {
   if (pack.id === "generic") return 0.0001;
   let score = 0;
-  const headerBlob = headers.join(" | ");
+  const headerBlob = headers.join(" | ") + " | " + headers.map(tokeniseHeader).join(" | ");
   for (const rx of pack.signals) {
     if (rx.test(headerBlob)) score += 3;          // header hit — strongest signal
     else if (rx.test(sampleText)) score += 0.6;   // value hit — weaker, values lie
@@ -537,7 +537,7 @@ function scorePack(pack: DomainPack, headers: string[], fileName: string, sample
   // Field-level binding hits: a pack that can actually bind columns wins over
   // one that merely shares vocabulary.
   for (const f of pack.fields) {
-    if (headers.some((h) => f.match.test(h))) score += f.required ? 2.5 : 1.2;
+    if (headers.some((h) => matchesHeader(f.match, h))) score += f.required ? 2.5 : 1.2;
   }
   return score;
 }
