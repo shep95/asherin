@@ -362,6 +362,31 @@ export function foldCrossLinks(
 
 // ── utils ──────────────────────────────────────────────────────────────────
 
+/**
+ * Locality detector. Background-check pages write "Lives in Cape Coral, FL"
+ * next to relative lists, so the extractor can promote a city into the
+ * relative field. Two independent signals catch it: the label matches the
+ * jurisdiction the sweep itself resolved, or every token is a settlement word.
+ */
+const PLACE_WORD =
+  /^(north|south|east|west|new|old|port|cape|fort|ft|saint|st|lake|lakes|palm|palms|coral|springs?|beach|heights|park|ridge|harbor|harbour|grove|falls|valley|hills?|shores?|acres?|creek|river|bay|island|isles?|village|city|town|county|meadows?|estates?|gardens?|point|pointe|junction|station|center|centre|heights|plains?|forest|woods?|glen|vista|mesa|ranch|hollow|crossing|landing|bluff|summit|terrace|highlands?)$/i;
+
+export function isPlaceLike(
+  label: string,
+  intent?: { city?: string; county?: string; state?: string },
+): boolean {
+  const key = normKey(label);
+  if (!key) return true;
+  for (const j of [intent?.city, intent?.county, intent?.state]) {
+    if (j && normKey(j) && normKey(j) === key) return true;
+  }
+  const tokens = key.split(" ").filter(Boolean);
+  if (!tokens.length || tokens.length > 3) return false;
+  // "Cape Coral", "Lehigh Acres", "Fort Myers Beach" — every token settlement-ish.
+  const placeTokens = tokens.filter((t) => PLACE_WORD.test(t)).length;
+  return placeTokens >= 1 && placeTokens >= tokens.length - 1;
+}
+
 export function normKey(s: string): string {
   return (s ?? "").toUpperCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
 }
