@@ -634,24 +634,43 @@ export function extractEdges(results: SocialProbeResult[]): SocialEdge[] {
   return [...map.values()].sort((a, b) => b.weight - a.weight);
 }
 
-/** Posting-rhythm read. Returns null when the sample is too small to claim. */
-export function cadence(profile: SocialProfile): { perWeek: number; spanDays: number; peakHourUtc: number | null } | null {
+/**
+ * Posting-rhythm read. Returns null when the sample cannot support a claim.
+ *
+ * A weekly rate extrapolated from a two-day window is an invention, not a
+ * measurement — five posts in two busy days would read as 17/week and imply
+ * a tempo the subject may not keep. The engine therefore requires a span of
+ * at least three days and reports `confidence` so a thin sample is never
+ * presented with the same authority as a long one.
+ */
+export function cadence(
+  profile: SocialProfile,
+): { perWeek: number; spanDays: number; peakHourUtc: number | null; confidence: "low" | "moderate" | "high" } | null {
   const stamps = profile.posts
     .map((p) => (p.postedAt ? Date.parse(p.postedAt) : NaN))
     .filter((n) => Number.isFinite(n))
     .sort((a, b) => a - b);
-  if (stamps.length < 3) return null;
+  if (stamps.length < 4) return null;
+
   const spanDays = (stamps[stamps.length - 1] - stamps[0]) / 86400000;
-  if (spanDays < 1) return null;
+  if (spanDays < 3) return null;
+
   const hours = new Array(24).fill(0);
   for (const s of stamps) hours[new Date(s).getUTCHours()] += 1;
-  const peak = hours.indexOf(Math.max(...hours));
+  const max = Math.max(...hours);
+  // A flat distribution has no peak; naming one would fabricate a pattern.
+  const peak = max >= 2 && max > stamps.length / 12 ? hours.indexOf(max) : null;
+
+  const confidence = spanDays >= 21 && stamps.length >= 10 ? "high" : spanDays >= 7 ? "moderate" : "low";
+
   return {
     perWeek: Math.round(((stamps.length / spanDays) * 7) * 10) / 10,
     spanDays: Math.round(spanDays),
     peakHourUtc: peak,
+    confidence,
   };
 }
+
 
 /** Render a sweep for a text dossier or a model prompt. Losses stay visible. */
 export function formatSocialBrief(results: SocialProbeResult[]): string {
