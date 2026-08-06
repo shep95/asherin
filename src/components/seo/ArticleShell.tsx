@@ -10,6 +10,8 @@ import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 
 interface Props {
   eyebrow: string;
