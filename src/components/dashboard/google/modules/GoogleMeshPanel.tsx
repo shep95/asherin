@@ -139,7 +139,6 @@ const GoogleMeshPanel = () => {
     { id: "vault", label: "Contact Vault", icon: Archive },
     { id: "audit", label: "Agency Trail", icon: ShieldCheck },
   ];
-  ];
 
   return (
     <div className="space-y-5">
