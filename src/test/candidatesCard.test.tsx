@@ -32,7 +32,7 @@ describe("CandidatesCard", () => {
 
   it("parses the candidates fence as a known card", () => {
     const segs = parseChatCards("intro\n\n```card:candidates\n" + JSON.stringify(payload) + "\n```\n");
-    expect(segs.some((s: any) => s.kind === "card" && s.type === "candidates")).toBe(true);
+    expect(segs.some((s: any) => s.type === "card" && s.cardType === "candidates")).toBe(true);
   });
 
   it("renders every option with slots and proxied avatar", () => {
