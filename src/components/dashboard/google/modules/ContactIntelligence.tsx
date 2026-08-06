@@ -16,6 +16,11 @@ import {
   saveVault, loadVault, clearVault, vaultBytes, exportVaultText, downloadText,
   type VaultSnapshot,
 } from "./contactIntel/localVault";
+import {
+  pullRemote, pushRemote, fetchRemoteMeta, listDevices, touchDevice, deviceId,
+  type DeviceRow,
+} from "./contactIntel/remoteVault";
+
 
 // Depth of the sweep. The Gmail metadata read is the expensive leg, so the
 // window is declared once here and honored end to end rather than being
