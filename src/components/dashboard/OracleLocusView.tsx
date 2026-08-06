@@ -611,7 +611,7 @@ const OracleLocusView = () => {
                             <p className="text-[9px] text-muted-foreground mt-1">Error Radius</p>
                           </div>
                           <div className="rounded-xl bg-card/30 p-3 text-center">
-                            <p className="text-2xl font-extralight text-foreground">{result.identified_features.length}</p>
+                            <p className="text-2xl font-extralight text-foreground">{(result.identified_features || []).length}</p>
                             <p className="text-[9px] text-muted-foreground mt-1">Features Found</p>
                           </div>
                         </div>
@@ -798,7 +798,7 @@ const OracleLocusView = () => {
                       <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Analysis Rationale</p>
                         <div className="space-y-2">
-                          {result.rationale.map((r, i) => (
+                          {(result.rationale || []).map((r, i) => (
                             <div key={i} className="flex gap-3 items-start">
                               <span className="text-[9px] text-accent font-mono mt-0.5">{String(i + 1).padStart(2, "0")}</span>
                               <p className="text-xs font-light text-foreground/80 leading-relaxed">{r}</p>
@@ -808,11 +808,11 @@ const OracleLocusView = () => {
                       </div>
 
                       {/* Identified Features */}
-                      {result.identified_features.length > 0 && (
+                      {(result.identified_features || []).length > 0 && (
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Identified Features</p>
                           <div className="flex flex-wrap gap-2">
-                            {result.identified_features.map((f, i) => (
+                            {(result.identified_features || []).map((f, i) => (
                               <div key={i} className={`rounded-lg px-3 py-1.5 text-[10px] ${featureTypeColors[f.type] || featureTypeColors.default}`}>
                                 <span className="uppercase tracking-wider opacity-60">{f.type}</span>
                                 <span className="mx-1.5 opacity-30">·</span>
@@ -890,11 +890,11 @@ const OracleLocusView = () => {
                       )}
 
                       {/* Alternative Locations */}
-                      {result.potential_alternative_locations.length > 0 && (
+                      {(result.potential_alternative_locations || []).length > 0 && (
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
                           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Alternative Locations</p>
                           <div className="space-y-2">
-                            {result.potential_alternative_locations.map((alt, i) => (
+                            {(result.potential_alternative_locations || []).map((alt, i) => (
                               <div key={i} className="flex items-center justify-between rounded-xl bg-card/20 px-4 py-2.5">
                                 <span className="text-xs font-light text-foreground">{alt.region}</span>
                                 <span className="text-[10px] text-muted-foreground">{alt.confidence}%</span>
