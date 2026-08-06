@@ -12,18 +12,16 @@ initDorkGuard();
 // the origin the user is signed in on. When that happens the popup has no
 // session and must hand the authorization code straight back to its opener —
 // before the app mounts, so an auth guard can never redirect the code away.
-if (relayGoogleConsentIfPopup()) {
-  // The document is closing; rendering the app behind it would only flash UI.
-  throw new Error("__google_consent_relayed__");
+const relayed = relayGoogleConsentIfPopup();
+
+if (!relayed) {
+  // Register service worker for PWA
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+
+  createRoot(document.getElementById("root")!).render(<App />);
 }
-
-
-// Register service worker for PWA
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-}
-
-createRoot(document.getElementById("root")!).render(<App />);
 
