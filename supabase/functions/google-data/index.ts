@@ -306,8 +306,11 @@ function mergeResults(service: string, results: any[]): any {
 
   if (service === "gmail_inbox") {
     const allMessages = results.flatMap(r => (r.messages || []).map((m: any) => ({ ...m, _account: r._account_email })));
-    allMessages.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return { totalMessages: results.reduce((s, r) => s + (r.totalMessages || 0), 0), messages: allMessages.slice(0, 20) };
+    // Sort on the server clock, not the sender-controlled Date header, and do
+    // not truncate: the caller already declared its appetite via maxResults.
+    const at = (m: any) => m.internalDate ?? Date.parse(m.date || "") ?? 0;
+    allMessages.sort((a: any, b: any) => (at(b) || 0) - (at(a) || 0));
+    return { totalMessages: results.reduce((s, r) => s + (r.totalMessages || 0), 0), messages: allMessages };
   }
 
   if (service === "gmail_stats") {
@@ -326,9 +329,41 @@ function mergeResults(service: string, results: any[]): any {
   }
 
   if (service === "contacts") {
-    const allContacts = results.flatMap(r => (r.contacts || []).map((c: any) => ({ ...c, _account: r._account_email })));
-    return { totalContacts: allContacts.length, contacts: allContacts };
+    // The same human sitting in two address books is one human. Fold on the
+    // strongest available identifier and union their channels — never on name
+    // alone, which merges distinct people who happen to share one.
+    const byKey = new Map<string, any>();
+    let order = 0;
+    for (const r of results) {
+      for (const c of r.contacts || []) {
+        const keys = [
+          ...(c.emails || []).map((e: string) => `e:${e.toLowerCase().trim()}`),
+          ...(c.phones || []).map((p: string) => `p:${String(p).replace(/[^\d]/g, "").slice(-10)}`),
+        ].filter((k) => k.length > 3);
+        const key = keys[0] ?? `r:${c.resourceName || `${c.name}#${order}`}`;
+        const prior = byKey.get(key);
+        if (!prior) {
+          byKey.set(key, { ...c, _account: r._account_email, _accounts: [r._account_email], _order: order++ });
+        } else {
+          prior.emails = Array.from(new Set([...(prior.emails || []), ...(c.emails || [])]));
+          prior.phones = Array.from(new Set([...(prior.phones || []), ...(c.phones || [])]));
+          prior.photo = prior.photo || c.photo;
+          prior.organization = prior.organization || c.organization;
+          prior.jobTitle = prior.jobTitle || c.jobTitle;
+          prior.bio = prior.bio || c.bio;
+          prior.birthday = prior.birthday || c.birthday;
+          if (!prior._accounts.includes(r._account_email)) prior._accounts.push(r._account_email);
+        }
+      }
+    }
+    const allContacts = [...byKey.values()].sort((a, b) => a._order - b._order);
+    return {
+      totalContacts: allContacts.length,
+      rawTotal: results.reduce((s, r) => s + (r.totalContacts || 0), 0),
+      contacts: allContacts,
+    };
   }
+
 
   if (service === "drive_files") {
     const allFiles = results.flatMap(r => (r.files || []).map((f: any) => ({ ...f, _account: r._account_email })));
