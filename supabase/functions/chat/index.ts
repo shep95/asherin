@@ -1397,7 +1397,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         }
 
         if (!webSearchContext) {
-          const results = await searchDuckDuckGo(searchUserMsg.content);
+          const results = await searchDuckDuckGo(searchUserMsg.content, req.headers.get("Authorization"));
           if (results.length > 0) {
             webSearchContext = `\n\n## LIVE WEB SEARCH RESULTS (fallback index)\nThe following are real-time search results for the user's query. Use these to ground your response in current facts:\n\n${results.map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`).join("\n\n")}\n\nIMPORTANT: Cite these sources in your response using [Source Title](URL) format. Prioritize this live data over your training data for current events.`;
           }
