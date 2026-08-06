@@ -15,6 +15,9 @@ type SeoEntry = {
   title: string;
   description: string;
   ogType?: "website" | "article" | "product";
+  /** ISO date (YYYY-MM-DD) — required for editorial routes so Article JSON-LD is valid. */
+  datePublished?: string;
+  dateModified?: string;
   noindex?: boolean;
 };
 
@@ -438,6 +441,146 @@ const SEO: Record<string, SeoEntry> = {
     description: "Internal analytics surface for Asherin operators.",
     noindex: true,
   },
+  // --- Editorial satellites (previously falling back to the homepage head) ---
+  "/blog/ai-vulnerability-scanning-explained": {
+    title: "AI Vulnerability Scanning, Explained | Asherin",
+    description:
+      "How AI-assisted vulnerability scanning actually works: signal collection, exploit-path reasoning, false-positive suppression, and confidence scoring.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/vulnerability-chaining-explained": {
+    title: "Vulnerability Chaining, Explained | Asherin",
+    description:
+      "Single findings rarely matter. Vulnerability chaining shows how low-severity issues combine into a full compromise path — with worked examples.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-ai-predictive-forecasting-works": {
+    title: "How AI Predictive Forecasting Works | Asherin",
+    description:
+      "Inside AXRLEN-style forecasting: signal fusion, scenario branching, probability weighting, and why calibration matters more than confidence.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-aureon-uses-c-seo-research": {
+    title: "How Asherin Uses Conversational SEO Research",
+    description:
+      "The C-SEO research loop behind Asherin's content: entity clustering, answer-shaped pages, and measuring citations inside AI search engines.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/blog/how-we-make-aureon-sound-human": {
+    title: "How We Make Asherin Sound Human",
+    description:
+      "The editing doctrine behind Asherin's voice: cadence, specificity, refusal of filler, and the review passes every published page survives.",
+    ogType: "article",
+    datePublished: "2026-07-01",
+  },
+  "/blog/how-to-break-any-encryption-theory": {
+    title: "How To Break Any Encryption — A Theory | Asherin",
+    description:
+      "An Asherin R&D theory on encryption: side-channel observability, symbolic key structure, and where implementations leak long before math does.",
+    ogType: "article",
+    datePublished: "2026-07-12",
+  },
+  "/blog/code-narrative-quantum-collapse": {
+    title: "Code-to-Narrative & Quantum Candidate Collapse",
+    description:
+      "The Asherin build doctrine: convert prompts into narrative, hunt flaws across nine dimensions, then collapse candidates into one shipped answer.",
+    ogType: "article",
+    datePublished: "2026-07-01",
+  },
+  "/blog/the-truth-and-reality-of-wars": {
+    title: "The Truth and Reality of Wars | Asherin",
+    description:
+      "A structural read of modern conflict: incentive maps, resource clocks, and the exhaustion cycles that decide wars long before treaties do.",
+    ogType: "article",
+    datePublished: "2026-06-24",
+  },
+  "/blog/zaxin-tactical-ble-intelligence": {
+    title: "Zaxin — Tactical BLE Intelligence | Asherin",
+    description:
+      "Zaxin turns Bluetooth Low Energy noise into tactical intelligence: device fingerprinting, proximity tracking, and optical/AI overlay fusion.",
+    ogType: "article",
+    datePublished: "2026-06-26",
+  },
+  "/blog/uncensored-ai-text-generator-guide": {
+    title: "Uncensored AI Text Generator — Operator Guide",
+    description:
+      "A practical guide to uncensored AI text generation: model selection, key routing, refusal detection, and keeping long sessions coherent.",
+    ogType: "article",
+    datePublished: "2026-06-17",
+  },
+
+  // --- Glossary entries that were missing metadata ---
+  "/glossary/operator-stack": {
+    title: "Operator Stack — Definition | Asherin Glossary",
+    description:
+      "The operator stack: the tool chain an intelligence operator runs end-to-end — collection, validation, prediction, and delivery — defined precisely.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/zero-day-confidence-scoring": {
+    title: "Zero-Day Confidence Scoring — Definition",
+    description:
+      "Zero-day confidence scoring: how unverified vulnerability signals are weighted, ranked, and reported without overstating certainty.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/predictive-intelligence-ai": {
+    title: "Predictive Intelligence AI — Definition",
+    description:
+      "Predictive intelligence AI: forecasting events from live signals rather than summarizing the past, and the calibration test that separates the two.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/conversational-seo": {
+    title: "Conversational SEO (C-SEO) — Definition",
+    description:
+      "Conversational SEO: optimizing for citation inside AI answers instead of blue links — entity clarity, answer shape, and verifiable sourcing.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+
+  // --- Standalone public pages ---
+  "/symbols-of-the-bible": {
+    title: "Symbols of the Bible — Decoded Meanings",
+    description:
+      "Forty-plus Biblical stories decoded into their symbolic meaning: archetypes, patterns, and the inner reading behind the literal narrative.",
+    ogType: "article",
+    datePublished: "2026-07-10",
+  },
+  "/houseofasher/theories": {
+    title: "House of Asher — Theories | Asherin",
+    description:
+      "The House of Asher theories: the philosophical framework behind Asherin's predictive doctrine, from narrative collapse to temporal decay.",
+  },
+  "/zaxin/theories": {
+    title: "Zaxin Theories — Tactical Sensing Doctrine",
+    description:
+      "The theories behind Zaxin: BLE signal geometry, optical fusion, and the sensing doctrine driving Asherin's AR intelligence overlay.",
+  },
+  "/updates": {
+    title: "Updates — Asherin Release Log",
+    description:
+      "Every meaningful Asherin release: new intelligence modules, engine upgrades, and platform changes, logged as they ship.",
+  },
+  "/investors": {
+    title: "Investors — Asherin",
+    description:
+      "Asherin investor brief: platform scope, intelligence engines, revenue tiers, and the asset base behind the House of Asher valuation.",
+  },
+  "/valuation": {
+    title: "Valuation — Asherin Asset Model",
+    description:
+      "The Asherin valuation model: asset-based accounting of the intelligence engines, IP, and platform surfaces that make up the company.",
+  },
+  "/ziaassets": {
+    title: "ZIA Assets — Restricted",
+    description: "Restricted internal asset vault for Asherin operators.",
+    noindex: true,
+  },
   "/unsubscribe": {
     title: "Unsubscribe — Asherin",
     description: "Unsubscribe from Asherin notifications.",
@@ -548,18 +691,40 @@ function applySeo(entry: SeoEntry, path: string) {
     ld.type = "application/ld+json";
     document.head.appendChild(ld);
   }
-  ld.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: entry.title,
-    description: entry.description,
-    url: canonical,
-    isPartOf: {
-      "@type": "WebSite",
-      name: "Asherin",
-      url: ORIGIN,
-    },
-  });
+  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
+  ld.textContent = JSON.stringify(
+    isArticle
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: entry.title,
+          description: entry.description,
+          datePublished: entry.datePublished,
+          dateModified: entry.dateModified ?? entry.datePublished,
+          author: { "@type": "Person", name: "Asher Newton" },
+          publisher: {
+            "@type": "Organization",
+            name: "Asherin",
+            url: ORIGIN,
+            logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
+          },
+          image: DEFAULT_OG_IMAGE,
+          mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+          url: canonical,
+        }
+      : {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: entry.title,
+          description: entry.description,
+          url: canonical,
+          isPartOf: {
+            "@type": "WebSite",
+            name: "Asherin",
+            url: ORIGIN,
+          },
+        },
+  );
 
   if (entry.noindex) {
     upsertMeta('meta[name="robots"]', "content", "noindex,nofollow", () => {
