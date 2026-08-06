@@ -1064,3 +1064,75 @@ export async function sendExistingDraft(token: string, draftId: string): Promise
   );
   return { messageId: res.id, threadId: res.threadId };
 }
+
+// ── Calendar counterparties ────────────────────────────────────────────────
+
+export interface CalendarCounterparty {
+  email: string;
+  name: string;
+  events: number;
+  lastAt: string;
+  organizer: boolean;
+  locations: string[];
+}
+
+/**
+ * Everyone who shared a calendar event with the user, folded per address.
+ * Rooms and resource calendars are excluded — a conference room is not a
+ * counterparty. Failure degrades to an empty list so a missing calendar scope
+ * never breaks a sweep.
+ */
+export async function harvestCalendarPeople(
+  token: string,
+  days = 180,
+  selfEmails: string[] = [],
+): Promise<CalendarCounterparty[]> {
+  const now = Date.now();
+  const timeMin = new Date(now - days * 86400000).toISOString();
+  const timeMax = new Date(now + 60 * 86400000).toISOString();
+  const self = new Set(selfEmails.map((e) => e.toLowerCase()));
+  const agg = new Map<string, CalendarCounterparty>();
+
+  let data: any;
+  try {
+    data = await gfetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}` +
+        `&timeMax=${encodeURIComponent(timeMax)}&maxResults=250&singleEvents=true&orderBy=startTime`,
+      token,
+      undefined,
+      20_000,
+    );
+  } catch {
+    return [];
+  }
+
+  for (const e of data?.items ?? []) {
+    const at = e.start?.dateTime || e.start?.date;
+    const iso = at ? new Date(at).toISOString() : new Date().toISOString();
+    const loc = String(e.location ?? "").trim();
+    const organizerEmail = String(e.organizer?.email ?? "").toLowerCase();
+    const parties = [
+      ...(e.attendees ?? []),
+      ...(e.organizer?.email ? [{ email: e.organizer.email, displayName: e.organizer.displayName }] : []),
+    ];
+    for (const a of parties) {
+      const email = String(a?.email ?? "").toLowerCase().trim();
+      if (!email.includes("@") || self.has(email)) continue;
+      if (a?.resource === true || /resource\.calendar\.google\.com$/.test(email)) continue;
+      const name = String(a?.displayName ?? "").replace(/["']/g, "").trim() || email.split("@")[0];
+      const rec = agg.get(email) ?? {
+        email, name, events: 0, lastAt: iso,
+        organizer: email === organizerEmail, locations: [] as string[],
+      };
+      rec.events++;
+      if (email === organizerEmail) rec.organizer = true;
+      if (Date.parse(iso) > Date.parse(rec.lastAt)) rec.lastAt = iso;
+      if (name.length > rec.name.length) rec.name = name;
+      if (loc && !/^(https?:|zoom\.us|meet\.google)/i.test(loc) && !rec.locations.includes(loc)) {
+        rec.locations.push(loc);
+      }
+      agg.set(email, rec);
+    }
+  }
+  return [...agg.values()].sort((a, b) => b.events - a.events);
+}
