@@ -314,6 +314,47 @@ Deno.serve(async (req) => {
       qualityScore = 70;
     }
 
+    // === DOMAIN PACK PROFILING =========================================
+    // Ingest is not a financial sweep: classify the vertical, bind columns to
+    // real-world objects, register sensitivity/regulation, and emit the
+    // contract findings + collection gaps. Deterministic, evidence-cited.
+    let domainProfile: ReturnType<typeof buildDomainProfile> | null = null;
+    try {
+      domainProfile = buildDomainProfile({
+        fileName: dataset.file_name,
+        headers: csvHeaders.length ? csvHeaders : schema.map((c: any) => c.name),
+        sampleRows: csvRows.slice(0, 200),
+        rowCount,
+      });
+
+      // Contract findings surface in the same issue ledger the DQ tab reads,
+      // so governance problems are never a separate silo the operator misses.
+      for (const f of domainProfile.findings) {
+        issues.push({
+          type: f.severity === "critical" || f.severity === "high" ? "conflict" : "format",
+          description: `[${f.code}] ${f.message} — ${f.remediation}`,
+          rowCount: 0,
+          severity: f.severity === "critical" ? "high" : f.severity === "low" ? "low" : f.severity === "high" ? "high" : "medium",
+          autoFixAvailable: false,
+        });
+      }
+
+      // Sensitivity discovered by the pack engine overrides naive PII guessing.
+      const sensitiveByColumn = new Map(domainProfile.sensitiveFields.map((s) => [s.column, s]));
+      schema = schema.map((c: any) => {
+        const hit = sensitiveByColumn.get(c.name);
+        const bind = domainProfile!.bindings.find((b) => b.column === c.name);
+        return {
+          ...c,
+          isPII: c.isPII || !!hit,
+          sensitivity: hit?.cls ?? null,
+          ontology: bind ? `${bind.object}.${bind.property}` : null,
+        };
+      });
+    } catch (profileErr) {
+      console.error("Domain profiling failed (non-fatal):", profileErr);
+    }
+
     // Update the dataset with analysis results
     const { error: updateError } = await supabaseUser
       .from("asha_datasets")
@@ -324,10 +365,12 @@ Deno.serve(async (req) => {
         quality_score: qualityScore,
         schema,
         issues,
+        domain_profile: domainProfile as unknown as Record<string, unknown> | null,
       })
       .eq("id", datasetId);
 
     if (updateError) throw new Error("Failed to update dataset: " + updateError.message);
+
 
     // === AUTO-EXTRACT ENTITIES from CSV/JSON columns ===
     if (csvHeaders.length > 0 && csvRows.length > 0) {
