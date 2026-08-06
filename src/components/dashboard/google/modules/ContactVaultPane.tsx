@@ -416,8 +416,8 @@ const ContactVaultPane = () => {
         {rows === null && <div className="h-24 rounded-xl bg-foreground/[0.03] animate-pulse" aria-live="polite" />}
         {rows !== null && rows.length === 0 && !err && (
           <div className="text-xs font-extralight text-muted-foreground/70">
-            The vault is empty. Run <span className="text-foreground">Scan correspondence</span> to
-            rank the humans in your mail, then build their dossiers.
+            The vault is empty. Run <span className="text-foreground">Scan mail + contacts</span> to
+            rank the humans in your mail and address book, then build their dossiers.
           </div>
         )}
 
