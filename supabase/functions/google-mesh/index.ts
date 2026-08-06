@@ -11,7 +11,10 @@ import {
   adminClient, liveAccounts, harvestSentBodies, computeStylometry,
   harvestPlaces, foldPlaces, buildAttention, createDraft, audit,
   voiceInstruction, fenceUntrusted, gfetch, hasScope,
+  harvestHeaders, buildRelationships, harvestBodies, extractCommitments,
+  getDraft, sendExistingDraft,
 } from "../_shared/googleMesh.ts";
+
 
 const json = (body: unknown, status: number, cors: Record<string, string>) =>
   new Response(JSON.stringify(body), {
