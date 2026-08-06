@@ -561,22 +561,46 @@ const GoogleMeshPanel = () => {
           {digest && (
             <div className="space-y-3">
               <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
-                <Stat label="Overdue" value={digest.overdue?.length ?? 0} />
-                <Stat label="Due soon" value={digest.dueSoon?.length ?? 0} />
-                <Stat label="Going quiet" value={digest.dormant?.length ?? 0} />
-                <Stat label="Focus share" value={digest.attention?.ratio != null ? `${digest.attention.ratio}%` : "—"} />
+                <Stat label="Overdue" value={digest.obligations?.overdue?.length ?? 0} />
+                <Stat label="Due next" value={digest.obligations?.upcoming?.length ?? 0} />
+                <Stat label="Going quiet" value={digest.relationships?.decaying?.length ?? 0} />
+                <Stat label="Focus share" value={digest.attention?.focusShare != null ? `${digest.attention.focusShare}%` : "—"} />
               </div>
-              {(digest.lines ?? []).length === 0
-                ? <p className="text-xs font-extralight text-muted-foreground/60">Nothing needs your attention right now.</p>
-                : (
-                  <ul className="space-y-1.5" aria-live="polite">
-                    {(digest.lines ?? []).map((l: string, i: number) => (
-                      <li key={i} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2 text-xs font-extralight text-muted-foreground/80">
-                        {l}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+
+              <div className="grid gap-2 grid-cols-3">
+                <Stat label="Meetings (7d)" value={`${digest.attention?.meetingHours ?? 0}h`} />
+                <Stat label="Focus (7d)" value={`${digest.attention?.focusHours ?? 0}h`} />
+                <Stat label="Heaviest day" value={digest.attention?.heaviestDay ?? "—"} />
+              </div>
+
+              {[
+                { title: "Overdue promises", rows: (digest.obligations?.overdue ?? []).map((c: any) => `${c.text} → ${c.to || "—"}`) },
+                { title: "Coming due", rows: (digest.obligations?.upcoming ?? []).map((c: any) => `${c.text} · ${String(c.dueAt).slice(0, 10)}`) },
+                { title: "Waiting on you", rows: (digest.relationships?.awaitingYourReply ?? []).map((p: any) => `${p.name || p.email} · quiet ${p.dormantDays}d`) },
+                { title: "Relationships decaying", rows: (digest.relationships?.decaying ?? []).map((p: any) => `${p.name || p.email} · ${p.dormantDays}d silent`) },
+                { title: "Place rhythm", rows: (digest.places ?? []).slice(0, 6).map((p: any) => `${p.label} · ${p.visits} visits · last ${String(p.lastSeen).slice(0, 10)}`) },
+              ].map((block) => (
+                <div key={block.title}>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-extralight mb-1.5">
+                    {block.title}
+                  </div>
+                  {block.rows.length === 0 ? (
+                    <p className="text-xs font-extralight text-muted-foreground/50">Nothing here.</p>
+                  ) : (
+                    <ul className="space-y-1.5" aria-live="polite">
+                      {block.rows.map((l: string, i: number) => (
+                        <li key={i} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2 text-xs font-extralight text-muted-foreground/80">
+                          {l}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+
+              <p className="text-[10px] font-extralight text-muted-foreground/50">
+                Generated {new Date(digest.generatedAt).toLocaleString()} across {(digest.accounts ?? []).length} account(s).
+              </p>
             </div>
           )}
         </Shell>
