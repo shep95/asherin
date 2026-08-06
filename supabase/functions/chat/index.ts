@@ -1941,7 +1941,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext: webSearchContext + googleMeshContext,
+      webSearchContext + googleMeshContext,
       leaksContext,
       archiveContext,
       jurisdictionalContext,
