@@ -342,6 +342,18 @@ const ContactIntelligence = () => {
     [dossiers, summary, isConnected],
   );
   const volumeSeries = useMemo(() => correspondenceSeries(dossiers), [dossiers]);
+  // Organisation is the only grouping the corpus can prove, so it is the only
+  // one the lattice colours by.
+  const orgClusters = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const d of dossiers) {
+      if (d.total <= 0) continue;
+      const org = d.organization || "unaffiliated";
+      counts.set(org, (counts.get(org) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([o]) => o);
+  }, [dossiers]);
+
   const importancePop = useMemo(() => dossiers.map((d) => d.importance), [dossiers]);
   const cadencePop = useMemo(
     () => dossiers.map((d) => d.cadenceDays).filter((c): c is number => c != null),
