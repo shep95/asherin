@@ -34,14 +34,18 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-    const { image_base64, image_type } = await req.json();
+    const body = await req.json();
+    const { image_base64, image_type } = body as { image_base64?: string; image_type?: string };
     if (!image_base64) throw new Error("No image provided");
+
+    // STAGE 1 — STRIP: hard metadata extracted client-side, never fabricated here.
+    const exif: ExifHint | null = body && typeof body.exif === "object" ? (body.exif as ExifHint) : null;
 
     const mimeType = image_type || "image/jpeg";
 
-    const systemPrompt = `${GEOLOCATION_BRAIN}\n\nYou are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
+    const systemPrompt = `${GEOLOCATION_BRAIN}\n\n${renderExifBlock(exif)}\n${IMAGINE_EVIDENCE_PROTOCOL}\n\nYou are ORACLE-LOCUS, a highly advanced Geo-Intelligence Analyst AI operating at forensic-grade precision. Your primary function is to transform visual data (images) into precise, actionable geospatial intelligence using multi-layered feature extraction.
 
-Given a single image with no embedded metadata, determine its precise geographic coordinates (latitude, longitude) and provide a confidence score, an estimated error radius, and a detailed rationale.
+Determine the image's precise geographic coordinates (latitude, longitude) and provide a confidence score, an estimated error radius, and a detailed rationale — grounded in the cited observables demanded above.
 
 ═══════════════════════════════════════════════════════
 PHASE 1: ADVANCED FEATURE EXTRACTION & REPRESENTATION
