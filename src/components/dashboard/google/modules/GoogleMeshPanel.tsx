@@ -34,6 +34,30 @@ const TIER_LABEL: Record<number, string> = {
   1: "Identity", 2: "Read", 3: "Comprehension", 4: "Agency",
 };
 
+/** The consent ladder, in the user's language — not Google's scope strings. */
+const TIERS: Array<{ tier: number; label: string; grants: string }> = [
+  { tier: 1, label: "Identity", grants: "Who you are — name, email, profile." },
+  { tier: 2, label: "Read", grants: "Mail and calendar, read-only." },
+  { tier: 3, label: "Comprehension", grants: "Adds Drive, Photos and activity so Asherin can understand your patterns." },
+  { tier: 4, label: "Agency", grants: "Adds drafting into Gmail Drafts. Sending is never granted." },
+];
+
+/**
+ * Staged consent: authorize the *smallest* tier that unlocks what the user wants.
+ * Tiers are cumulative server-side, so upgrading never drops earlier access.
+ */
+async function authorizeTier(tier: number) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Sign in first.");
+  const { data, error } = await supabase.functions.invoke("google-oauth", {
+    body: { action: "get_auth_url", tier, redirect_uri: `${window.location.origin}/dashboard` },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.url) throw new Error("Google did not return an authorization URL.");
+  window.location.href = data.url;
+}
+
+
 async function callMesh<T = any>(action: string, extra: Record<string, unknown> = {}): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Sign in first.");
@@ -133,9 +157,40 @@ const GoogleMeshPanel = () => {
 
         {status && status.accounts.length === 0 && (
           <p className="text-xs font-extralight text-muted-foreground/60">
-            No connected Google account. Connect one above to activate the mesh.
+            No Google account connected yet. Pick the tier you're comfortable with below — you can raise it later.
           </p>
         )}
+
+        {/* Consent ladder — always available so a connected account can be upgraded */}
+        {status && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {TIERS.map((t) => {
+              const granted = (status.accounts[0]?.tier ?? 0) >= t.tier;
+              return (
+                <div key={t.tier} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2.5 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs font-light text-foreground">
+                      Tier {t.tier} · {t.label}
+                    </div>
+                    <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{t.grants}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={granted ? "ghost" : "outline"}
+                    className="text-[11px] font-extralight shrink-0"
+                    disabled={busy === `tier${t.tier}`}
+                    onClick={() => run(`tier${t.tier}`, async () => { await authorizeTier(t.tier); })}
+                  >
+                    {busy === `tier${t.tier}`
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : granted ? "Re-grant" : "Authorize"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
 
         {status && status.accounts.length > 0 && (
           <div className="grid gap-2 sm:grid-cols-2">
