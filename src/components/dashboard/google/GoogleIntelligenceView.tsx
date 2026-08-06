@@ -28,8 +28,9 @@ import ConnectedAppsView from "./modules/ConnectedAppsView";
 import YouTubeDataView from "./modules/YouTubeDataView";
 import SearchHistoryView from "./modules/SearchHistoryView";
 import ChromeDataView from "./modules/ChromeDataView";
+import GoogleMeshPanel from "./modules/GoogleMeshPanel";
 
-type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
+type GoogleModule = "overview" | "mesh" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
 interface ModuleDef {
   id: GoogleModule;
@@ -39,6 +40,7 @@ interface ModuleDef {
 }
 
 const nexusModules: ModuleDef[] = [
+  { id: "mesh", label: "Google Mesh", icon: Network, description: "Voiceprint, place cartography, attention ledger & ghostwriting — drafts only, never sends" },
   { id: "twin", label: "AI Twin", icon: Brain, description: "Your complete digital replica — predicts decisions, automates life" },
   { id: "location", label: "Location Prophet", icon: MapPin, description: "Predicts where you'll be next week with 95% accuracy" },
   { id: "email", label: "Email Assistant", icon: Mail, description: "Writes emails in YOUR voice, auto-prioritizes inbox" },
@@ -92,6 +94,7 @@ const GoogleIntelligenceView = () => {
 
   const renderModule = () => {
     switch (activeModule) {
+      case "mesh": return <GoogleMeshPanel />;
       case "location": return <LocationProphet />;
       case "email": case "gmail": return <EmailAssistant />;
       case "subscriptions": return <SubscriptionOracle />;
