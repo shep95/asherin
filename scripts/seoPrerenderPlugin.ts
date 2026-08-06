@@ -115,7 +115,7 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
     );
   }
 
-  html = html.replace("</head>", `  ${buildJsonLd(entry, canonical)}\n</head>`);
+  html = html.replace("</head>", `  ${buildJsonLd(path, entry)}\n</head>`);
   return html;
 }
 
