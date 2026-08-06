@@ -19,42 +19,50 @@ function banner(n: number, title: string): string[] {
   return [HR, `SECTION ${n} — ${title.toUpperCase()}`, HR, ""];
 }
 
-/** Renders a metric as a labelled row, or as its stated reason for absence. */
-function row(m: Metric, pad = 22): string[] {
-  const label = `  ${m.label}`.padEnd(pad, " ");
-  const cont = pad + 2;
-  if (m.value === null) {
-    return wrap(`${label}: NOT OBSERVABLE — ${m.unavailable ?? "no reason recorded."}`, cont);
-  }
-  const out = wrap(`${label}: ${m.value}`, cont);
-  if (m.read) out.push(...wrap(`${" ".repeat(pad - 18)}    ↳ ${m.read}`, pad - 12));
-  return out;
-}
-
 /**
- * Hard-wraps at the box width. Leading whitespace is part of the layout, not
- * a separator: splitting on plain spaces silently discarded it and collapsed
- * every indented row back to column zero, so the indent is captured first and
- * only the remainder is tokenised.
+ * Emits `prefix` verbatim — column alignment is part of the layout and must
+ * never be tokenised — then wraps only `body`, indenting continuations to the
+ * column where the body started.
  */
-function wrap(text: string, indent: number): string[] {
-  const lead = text.match(/^ */)?.[0] ?? "";
-  const words = text.slice(lead.length).split(/\s+/).filter(Boolean);
-  if (!words.length) return [text];
+function field(prefix: string, body: string): string[] {
+  const indent = prefix.length;
+  const words = body.split(/\s+/).filter(Boolean);
+  if (!words.length) return [prefix.trimEnd()];
   const lines: string[] = [];
-  let cur = lead;
+  let cur = prefix;
   for (const w of words) {
-    const candidate = cur.trimEnd() === lead.trimEnd() && cur.length === lead.length ? cur + w : `${cur} ${w}`;
-    if (candidate.length > W && cur.length > lead.length) {
+    if (cur.length > indent && cur.length + 1 + w.length > W) {
       lines.push(cur);
       cur = " ".repeat(indent) + w;
     } else {
-      cur = candidate;
+      cur = cur.length > indent ? `${cur} ${w}` : cur + w;
     }
   }
-  if (cur.trim()) lines.push(cur);
+  lines.push(cur);
   return lines;
 }
+
+/** Renders a metric as a labelled row, or as its stated reason for absence. */
+function row(m: Metric, pad = 22): string[] {
+  const prefix = `  ${m.label}`.padEnd(pad, " ") + ": ";
+  const out =
+    m.value === null
+      ? field(prefix, `NOT OBSERVABLE — ${m.unavailable ?? "no reason recorded."}`)
+      : field(prefix, m.value);
+  // The interpretation hangs beneath the value, visually subordinate to it,
+  // so a reader scanning figures can skip the prose without losing alignment.
+  if (m.value !== null && m.read) out.push(...field(" ".repeat(pad - 4) + "↳ ", m.read));
+  return out;
+}
+
+/** Wraps a free-prose block at the box width under a fixed left margin. */
+function wrap(text: string, indent: number): string[] {
+  const lead = text.match(/^ */)?.[0] ?? "";
+  return field(lead, text.slice(lead.length)).map((l, i) =>
+    i === 0 ? l : " ".repeat(Math.max(lead.length, indent)) + l.trimStart(),
+  );
+}
+
 
 
 export function renderContactReport(r: ContactReport, contactName: string): string {
