@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Users, Clock, Network, Zap, AlertTriangle, RefreshCw, Search,
   HardDrive, Download, Brain, Activity, MessageSquare, Trash2, ChevronDown, Cloud,
+  ScrollText, X,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,8 @@ import { median } from "@/lib/cloudIntel/logic";
 import FindingCard from "../intel/FindingCard";
 import { TrendStat } from "../intel/TrendStat";
 import RelationGraph from "../intel/RelationGraph";
+import { buildContactReport } from "@/lib/cloudIntel/contactReport";
+import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 
 
 
@@ -124,6 +127,11 @@ const ContactIntelligence = () => {
   const [query, setQuery] = useState("");
   const [tierFilter, setTierFilter] = useState<"all" | ContactDossier["tier"]>("all");
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // The deep report reads raw traffic, not the reduced dossier, so the sweep's
+  // corpus is held for the session. A vault-restored page has dossiers but no
+  // corpus; the report button says so rather than rendering a hollow report.
+  const [corpus, setCorpus] = useState<{ messages: RawMessage[]; own: string[] } | null>(null);
+  const [reportKey, setReportKey] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
   // Cross-device mirror posture: which endpoints feed the ledger and how fresh
   // the authoritative server copy is.
@@ -252,6 +260,7 @@ const ContactIntelligence = () => {
       if (!alive.current) return;
       setDossiers(built);
       setSummary(sum);
+      setCorpus({ messages, own: ownAddresses });
 
       setPhase("Writing to device vault…");
       // One timestamp for both writes so local and mirror agree exactly and the
@@ -319,6 +328,21 @@ const ContactIntelligence = () => {
     () => dossiers.flatMap((d) => d.signals.filter((s) => s.kind === "warn").map((s) => ({ name: d.name, ...s }))).slice(0, 12),
     [dossiers],
   );
+
+  // Built lazily for one contact at a time: the full-corpus pass is O(n) in
+  // messages and would be wasted work across a 1000-row roster.
+  const report = useMemo(() => {
+    if (!reportKey || !corpus) return null;
+    const d = dossiers.find((x) => x.key === reportKey);
+    if (!d) return null;
+    try {
+      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: corpus.own, peers: dossiers });
+      return { name: d.name, text: renderContactReport(r, d.name) };
+    } catch (e) {
+      console.error("[contact-intel] report build failed:", e);
+      return { name: d.name, text: "Report generation failed. The dossier is intact; the report layer is not." };
+    }
+  }, [reportKey, corpus, dossiers]);
 
   const onExport = () => {
     if (!summary) return;
@@ -872,6 +896,21 @@ const ContactIntelligence = () => {
                           </div>
                         )}
 
+                        <div className="pt-1 border-t border-border/10">
+                          <button
+                            onClick={() => setReportKey(d.key)}
+                            disabled={!corpus}
+                            className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-colors disabled:opacity-40"
+                          >
+                            <ScrollText className="h-3 w-3" /> Deep Intelligence Report
+                          </button>
+                          {!corpus && (
+                            <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1.5">
+                              The report reads raw traffic, which this session has not loaded. Run a deep sweep to enable it.
+                            </p>
+                          )}
+                        </div>
+
                         {d.signals.length > 0 && (
                           <ul className="space-y-1 pt-1 border-t border-border/10">
                             {d.signals.map((s, i) => (
@@ -900,6 +939,10 @@ const ContactIntelligence = () => {
           </>
         )}
       </div>
+
+      {report && (
+        <ReportViewer name={report.name} text={report.text} onClose={() => setReportKey(null)} />
+      )}
 
       <p className="text-[10px] font-extralight text-muted-foreground/40 flex items-start gap-1.5 px-1">
         <Activity className="h-3 w-3 shrink-0 mt-0.5" />
