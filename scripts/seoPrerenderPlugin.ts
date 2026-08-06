@@ -15,12 +15,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
-import {
-  DEFAULT_OG_IMAGE,
-  ORIGIN,
-  ROUTE_SEO,
-  type SeoEntry,
-} from "../src/lib/routeSeoData";
+import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
+import { buildRouteGraph } from "../src/lib/geo/schema";
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
 const MAX_PRERENDER_PAGES = 2000;
@@ -45,40 +41,13 @@ function metaPattern(attr: "name" | "property", key: string) {
   return new RegExp(`<meta[^>]*${attr}=["']${key}["'][^>]*>`, "i");
 }
 
-function buildJsonLd(entry: SeoEntry, canonical: string) {
-  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
-  const payload = isArticle
-    ? {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        headline: entry.title,
-        description: entry.description,
-        datePublished: entry.datePublished,
-        dateModified: entry.dateModified ?? entry.datePublished,
-        author: { "@type": "Person", name: "Asher Newton" },
-        publisher: {
-          "@type": "Organization",
-          name: "Asherin",
-          url: ORIGIN,
-          logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
-        },
-        image: DEFAULT_OG_IMAGE,
-        mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-        url: canonical,
-      }
-    : {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        name: entry.title,
-        description: entry.description,
-        url: canonical,
-        isPartOf: { "@type": "WebSite", name: "Asherin", url: ORIGIN },
-      };
+function buildJsonLd(path: string, entry: SeoEntry) {
   // </script> inside JSON would close the tag early; JSON-LD escapes it as <\/script>.
   return `<script type="application/ld+json" id="route-seo-jsonld">${JSON.stringify(
-    payload,
+    buildRouteGraph(path, entry),
   ).replace(/</g, "\\u003c")}</script>`;
 }
+
 
 function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   const canonical = `${ORIGIN}${path}`;
