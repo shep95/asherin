@@ -244,8 +244,12 @@ export async function buildDossier(
 
   const g = bundle.graph;
   const nodeById = new Map((g?.nodes ?? []).map((n) => [n.id, n]));
+  // A locality scraped out of a "lives in" line is a place, not a relative.
+  // Left unfiltered it becomes a hop-2 stub and then a phantom cross-link.
+  const keep = (n: { kind: string; label: string }) => !(n.kind === "person" && isPlaceLike(n.label, intent));
+
   const hop1: DossierHopNode[] = (g?.nodes ?? [])
-    .filter((n) => n.ring === 1)
+    .filter((n) => n.ring === 1 && keep(n))
     .slice(0, 24)
     .map((n) => ({
       label: n.label, kind: n.kind, confidence: n.confidence,
@@ -259,7 +263,7 @@ export async function buildDossier(
     if (to?.ring === 2 && from && !parentOf.has(to.id)) parentOf.set(to.id, from.label);
   }
   const hop2: DossierHopNode[] = (g?.nodes ?? [])
-    .filter((n) => n.ring === 2)
+    .filter((n) => n.ring === 2 && keep(n))
     .slice(0, 24)
     .map((n) => ({
       label: n.label, kind: n.kind, confidence: n.confidence,
