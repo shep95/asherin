@@ -27,6 +27,9 @@ export interface SocialPost {
   postedAt: string | null;
   likes: number | null;
   comments: number | null;
+  /** Reposts / retweets — amplification rather than direct engagement. */
+  shares?: number | null;
+
   /** Handles credited on the post — tags, coauthors, @mentions in the body. */
   linkedHandles: string[];
   /** Platform-supplied image description. Real alt text, not a guess. */
