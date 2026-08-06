@@ -429,11 +429,77 @@ export async function buildDossier(
     },
     gaps: [],
     jurisdiction: bundle.jurisdictionLabel ?? "",
+    channel: opts.channel ?? null,
+    reverse: null,
   };
+
+  // ── Reverse-identifier pass ───────────────────────────────────────────
+  // A hard identifier outranks a name. It runs only when the name sweep left
+  // the record thin, and only once, under its own clock, so a slow reverse
+  // lookup can never eat the caller's per-subject budget.
+  const ident = (opts.identifiers ?? []).map((s) => String(s).trim()).filter(Boolean);
+  const thin =
+    !identity[FIELD_LABEL.address]?.length ||
+    !identity[FIELD_LABEL.employer]?.length ||
+    hop1.length === 0;
+  const spent = Date.now() - started;
+  if (ident.length && thin && spent < 75_000) {
+    const budget = Math.max(10_000, Math.min(opts.reverseBudgetMs ?? 35_000, 45_000));
+    const id = ident[0];
+    try {
+      const rIntent = classifyIntent(`who owns the number ${id}${hint ? ` in ${hint}` : ""}`);
+      rIntent.kind = "person";
+      rIntent.subject = id;
+      rIntent.needsClarification = false;
+      const rev = await Promise.race([
+        runJurisdictionalSearch(rIntent),
+        new Promise<null>((res) => setTimeout(() => res(null), budget)),
+      ]);
+      if (rev) {
+        let added = 0;
+        for (const [kind, fields] of Object.entries(rev.fieldLedger?.confirmed ?? {})) {
+          if (!fields?.length) continue;
+          const label = FIELD_LABEL[kind] ?? kind;
+          const bucket = (identity[label] ??= []);
+          const have = new Set(bucket.map((f) => normKey(f.value)));
+          for (const f of fields.slice(0, 6)) {
+            const fact = factOf(f);
+            if (have.has(normKey(fact.value))) continue;
+            have.add(normKey(fact.value));
+            bucket.push(fact);
+            added++;
+          }
+        }
+        const known = new Set(doc.sources.map((s) => s.url));
+        for (const hits of Object.values(rev.buckets) as any[][]) {
+          for (const h of hits ?? []) {
+            if (!h?.url || known.has(h.url) || h.identityBand === "rejected") continue;
+            known.add(h.url);
+            doc.sources.push({ domain: h.domain, url: h.url, title: (h.title ?? "").slice(0, 160), bucket: h.bucket ?? "web" });
+          }
+        }
+        doc.sources = doc.sources.slice(0, 90);
+        doc.metrics.totalHits += rev.totalHits ?? 0;
+        doc.metrics.queriesRun += rev.queriesRun ?? 0;
+        doc.metrics.independentDomains = new Set(doc.sources.map((s) => s.domain)).size;
+        doc.reverse = { identifier: id, factsAdded: added, hits: rev.totalHits ?? 0 };
+      } else {
+        doc.reverse = { identifier: id, factsAdded: 0, hits: 0, timedOut: true };
+      }
+    } catch (e) {
+      // A failed reverse pass is a named absence, never a failed dossier.
+      doc.reverse = { identifier: id, factsAdded: 0, hits: 0, error: (e as Error).message.slice(0, 120) };
+    }
+  }
+
   doc.gaps = findGaps(doc, bundle);
+  if (ident.length && !doc.reverse) {
+    doc.gaps.push(`Reverse lookup on ${ident[0]} skipped — the name sweep already resolved the record.`);
+  }
 
   return { doc, summary: summarize(doc, relationship), confidence: scoreConfidence(doc) };
 }
+
 
 // ── Hop-3: cross-links across separate hop-1 dossiers ──────────────────────
 
