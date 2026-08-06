@@ -273,20 +273,64 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
 
 
   if (service === "drive_files") {
-    const pageSize = params?.pageSize || 20;
+    // A raw file list is inventory, not intelligence. Pull the fields the
+    // synthesis layer needs to score risk (who owns it, who it is shared with,
+    // when it was created vs. last touched, and a content hash for duplicate
+    // detection) and page until the ceiling so the corpus is representative.
+    const ceiling = Math.max(1, Math.min(1000, Number(params?.pageSize) || 100));
     const q = params?.q || "";
-    let url = `https://www.googleapis.com/drive/v3/files?pageSize=${pageSize}&fields=files(id,name,mimeType,modifiedTime,size,owners,shared)&orderBy=modifiedTime desc`;
-    if (q) url += `&q=${encodeURIComponent(q)}`;
-    const res = await fetch(url, { headers });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
+    const fields =
+      "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size,shared,starred,trashed,webViewLink,iconLink,md5Checksum,quotaBytesUsed,parents,owners(displayName,emailAddress),lastModifyingUser(displayName,emailAddress),sharingUser(displayName,emailAddress),permissions(id,type,role,emailAddress,domain),viewedByMeTime)";
+    const files: any[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 10 && files.length < ceiling; page++) {
+      const pageSize = Math.min(200, ceiling - files.length);
+      let url =
+        `https://www.googleapis.com/drive/v3/files?pageSize=${pageSize}` +
+        `&fields=${encodeURIComponent(fields)}&orderBy=modifiedTime desc` +
+        `&supportsAllDrives=true&includeItemsFromAllDrives=true`;
+      if (q) url += `&q=${encodeURIComponent(q)}`;
+      if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      files.push(...(data.files || []));
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
     return {
-      files: (data.files || []).map((f: any) => ({
-        id: f.id, name: f.name, mimeType: f.mimeType,
-        modifiedTime: f.modifiedTime, size: f.size, shared: f.shared,
-      })),
+      files: files.map((f: any) => {
+        const perms = f.permissions || [];
+        return {
+          id: f.id,
+          name: f.name,
+          mimeType: f.mimeType,
+          createdTime: f.createdTime || null,
+          modifiedTime: f.modifiedTime || null,
+          viewedByMeTime: f.viewedByMeTime || null,
+          size: f.size ?? f.quotaBytesUsed ?? null,
+          shared: !!f.shared,
+          starred: !!f.starred,
+          trashed: !!f.trashed,
+          webViewLink: f.webViewLink || null,
+          md5Checksum: f.md5Checksum || null,
+          owner: f.owners?.[0]?.emailAddress || null,
+          ownerName: f.owners?.[0]?.displayName || null,
+          lastModifiedBy: f.lastModifyingUser?.emailAddress || null,
+          sharedBy: f.sharingUser?.emailAddress || null,
+          // Exposure surface: `anyone` = public link, `domain` = org-wide.
+          isPublic: perms.some((p: any) => p.type === "anyone"),
+          isDomainWide: perms.some((p: any) => p.type === "domain"),
+          sharedWith: perms
+            .filter((p: any) => p.type === "user" && p.emailAddress)
+            .map((p: any) => ({ email: p.emailAddress, role: p.role })),
+          externalEditors: perms.filter((p: any) => p.role === "writer" || p.role === "owner").length,
+        };
+      }),
+      fetched: files.length,
     };
   }
+
 
   if (service === "fitness") {
     const now = Date.now();
