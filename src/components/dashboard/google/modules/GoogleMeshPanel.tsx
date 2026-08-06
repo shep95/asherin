@@ -136,7 +136,9 @@ const GoogleMeshPanel = () => {
     { id: "people", label: "Relationships", icon: Users },
     { id: "commit", label: "Commitments", icon: ListChecks },
     { id: "digest", label: "Daily Digest", icon: Sunrise },
+    { id: "vault", label: "Contact Vault", icon: Archive },
     { id: "audit", label: "Agency Trail", icon: ShieldCheck },
+  ];
   ];
 
   return (
