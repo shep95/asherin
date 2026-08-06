@@ -18,9 +18,9 @@ export type SeoEntry = {
 
 export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
-    title: "Asherin | Predictive Intelligence Platform for Operators",
+    title: "Asherin | Private AI Intelligence Platform for Analysts",
     description:
-      "Asherin is the predictive intelligence stack for analysts, traders, and operators. Forecast events, model timelines, and act before the wire.",
+      "Private AI platform for analysts, traders and researchers. Uncensored chat, live OSINT search, jurisdictional records, event forecasting, BYOK keys, no training on your data.",
   },
   "/pricing": {
     title: "Pricing | Asherin, Pro & Enterprise Plans",
