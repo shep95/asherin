@@ -384,13 +384,14 @@ const ContactIntelligence = () => {
     const d = dossiers.find((x) => x.key === reportKey);
     if (!d) return null;
     try {
-      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: corpus.own, peers: dossiers });
+      const own = corpus.own.length ? corpus.own : accounts.map((a) => a.google_email).filter(Boolean);
+      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers });
       return { name: d.name, text: renderContactReport(r, d.name) };
     } catch (e) {
       console.error("[contact-intel] report build failed:", e);
       return { name: d.name, text: "Report generation failed. The dossier is intact; the report layer is not." };
     }
-  }, [reportKey, corpus, dossiers]);
+  }, [reportKey, corpus, dossiers, accounts]);
 
   const onExport = () => {
     if (!summary) return;
@@ -556,6 +557,15 @@ const ContactIntelligence = () => {
               ? `${fmtBytes(vaultMeta.bytes)} held locally · last written ${new Date(vaultMeta.savedAt).toLocaleString()}`
               : "Nothing stored on this device yet — run a deep sweep."}
           </p>
+          {retention && (
+            <p className="text-[10px] font-extralight text-muted-foreground/50" aria-live="polite">
+              {retention.held.toLocaleString()} messages retained
+              {retention.added > 0 && ` · ${retention.added} merged this sweep`}
+              {retention.cursor
+                ? ` · resuming from ${new Date(retention.cursor).toLocaleString()} — sweeps fetch changes only`
+                : " · next sweep takes a full baseline"}
+            </p>
+          )}
         </div>
         <button
           onClick={onExport}
