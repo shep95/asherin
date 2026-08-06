@@ -7,6 +7,8 @@ import { Link } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
+import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
+
 import { isAdminEmail } from "@/lib/adminEmail";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 
