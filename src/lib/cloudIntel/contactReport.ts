@@ -784,7 +784,11 @@ export function buildContactReport({ dossier: d, messages, ownAddresses, peers =
   // Their best window is where THEIR traffic peaks, on the reasoning that a
   // correspondent is most reachable inside the band they already occupy.
   const bestDayIdx = inbound.length >= 6 ? inDays.indexOf(Math.max(...inDays)) : -1;
-  const worstDayIdx = inbound.length >= 8 ? inDays.indexOf(Math.min(...inDays.filter((_, i) => i !== 0 && i !== 6).length ? Math.min(...inDays.slice(1, 6)) : 0)) : -1;
+  // Quietest weekday (Sat/Sun excluded — weekend silence is structural, not
+  // a preference, and naming it as a dead window would be a false insight).
+  const weekdayCounts = inDays.slice(1, 6);
+  const quietWeekday = inbound.length >= 8 ? DAYS[1 + weekdayCounts.indexOf(Math.min(...weekdayCounts))] : null;
+
 
   const lever =
     !psychReady ? null
