@@ -18,6 +18,7 @@ import {
   ListCard,
   WarningCard,
 } from "@/components/chatCards/UniversalCards";
+import { CandidatesCard } from "@/components/chatCards/CandidatesCard";
 import type { CardSegment, UnknownCardSegment } from "@/lib/chatCards/parseChatCards";
 import { AlertCircle } from "lucide-react";
 
@@ -80,6 +81,7 @@ export default function ChatCardRenderer({ segment, source }: Props) {
     case "sources":    return <SourcesCard payload={payload} source={source} />;
     case "list":       return <ListCard payload={payload} source={source} />;
     case "warning":    return <WarningCard payload={payload} source={source} />;
+    case "candidates": return <CandidatesCard payload={payload} source={source} />;
     default:
       return null;
   }

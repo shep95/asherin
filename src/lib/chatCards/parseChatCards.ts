@@ -35,7 +35,9 @@ export type CardType =
   | "quote"
   | "sources"
   | "list"
-  | "warning";
+  | "warning"
+  // Identity-resolution rack (person sweeps)
+  | "candidates";
 
 export interface CardSegment {
   type: "card";
@@ -72,6 +74,7 @@ const KNOWN: ReadonlySet<CardType> = new Set([
   "sources",
   "list",
   "warning",
+  "candidates",
 ]);
 
 /** Split assistant `content` into ordered text / card segments. */
