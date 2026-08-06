@@ -384,16 +384,30 @@ function detectDormancy(spec: SurfaceSpec, obs: Observation[], recentDays: numbe
     const last = times[times.length - 1];
     if (last >= cut) continue;
 
+    // An entity must have been active ACROSS days before silence can mean
+    // anything. Without this, a single-day burst of 90 records yields a median
+    // gap measured in seconds, and any subsequent quiet reads as thousands of
+    // intervals overdue. A burst is not a rhythm, and only a rhythm can lapse.
+    const activeSpanDays = (last - times[0]) / DAY;
+    if (activeSpanDays < 7) continue;
+
     // Median gap defines what "regular" meant for this entity specifically.
     const gaps: number[] = [];
     for (let i = 1; i < times.length; i++) gaps.push((times[i] - times[i - 1]) / DAY);
     const cadence = median(gaps);
-    if (cadence <= 0) continue;
+    // A sub-daily median gap describes clustering within days, not a cadence
+    // between them; floor it at half a day so the comparison stays meaningful.
+    if (cadence < 0.5) continue;
 
     const silentFor = (now - last) / DAY;
-    if (silentFor > cadence * 3) dormant.push({ entity, count: rows.length, last, cadence });
+    // Absolute floor as well as the relative test: a twice-weekly entity that
+    // missed six days has not yet done anything a normal week would not explain.
+    if (silentFor > Math.max(cadence * 3, 7)) {
+      dormant.push({ entity, count: rows.length, last, cadence });
+    }
   }
   if (dormant.length === 0) return null;
+
 
   dormant.sort((a, b) => b.count - a.count);
   const conf = rejectNull(1.6, obs.length);
