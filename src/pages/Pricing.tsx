@@ -181,6 +181,11 @@ const Pricing = () => {
             confidence="high"
           />
 
+          {/* Extractable answer + sourced price figures for generative engines. */}
+          <GeoBlock className="mt-10" />
+
+
+
           {/* Plans — reuses SubscriptionPlans (single source of truth) */}
           <section aria-label="Subscription plans" className="mt-12">
             <SubscriptionPlans />
