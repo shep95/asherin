@@ -9,8 +9,8 @@
  * No DOM, no browser globals: this file is imported under Node during build.
  */
 
-import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO, type SeoEntry } from "@/lib/routeSeoData";
-import { getGeoPage, type GeoFaq, type GeoPage } from "@/lib/geo/geoContent";
+import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO, type SeoEntry } from "../routeSeoData";
+import { getGeoPage, type GeoFaq, type GeoPage } from "./geoContent";
 
 export const ORG_ID = `${ORIGIN}/#organization`;
 export const SITE_ID = `${ORIGIN}/#website`;
