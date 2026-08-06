@@ -31,6 +31,7 @@ import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
 import { parseChatCards } from "@/lib/chatCards/parseChatCards";
 import ChatCardRenderer from "@/components/chatCards/ChatCardRenderer";
+import { INTEL_SELECT_EVENT } from "@/components/chatCards/CandidatesCard";
 import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
 import MessageStatusIndicator from "./MessageStatusIndicator";
@@ -481,6 +482,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const elevenLabsVoice = useElevenLabsVoice({
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
   });
+
+  // Identity-resolution rack: confirming a candidate sends the server-authored
+  // confirmation prompt as a normal turn, so the enrichment sweep re-runs
+  // anchored to one person. Guarded against re-entry while a stream is live.
+  useEffect(() => {
+    const onIntelSelect = (e: Event) => {
+      const prompt = (e as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      if (!prompt || isStreaming) return;
+      onSendMessage(prompt.slice(0, 2000));
+    };
+    window.addEventListener(INTEL_SELECT_EVENT, onIntelSelect as EventListener);
+    return () => window.removeEventListener(INTEL_SELECT_EVENT, onIntelSelect as EventListener);
+  }, [onSendMessage, isStreaming]);
 
   // handleSend is now inside AdaptiveInputBar
 
