@@ -256,6 +256,10 @@ const ContactVaultPane = () => {
       try {
         const sent = await callVault<any>("vault_sentinel", { max: 40 });
         if (cancelled) return;
+        lastSweepRef.current = Date.now();
+        if (sent?.degraded) {
+          setAutoNote("Sentinel ran degraded — a channel did not respond; the window stays open.");
+        }
         if (sent.queued > 0) {
           setAutoNote(`Sentinel found ${sent.queued} new contact(s) — building dossiers…`);
           st = await load();
@@ -309,27 +313,50 @@ const ContactVaultPane = () => {
   }, [autoDrain, hint, load]);
 
   /**
-   * Standing watch. While the pane is open and autopilot is armed, re-poll the
-   * channels on a fixed interval. The server-side watermark makes each poll
-   * cheap and idempotent, and the drain is only re-armed when work appears.
+   * Standing watch. The interval itself must not depend on `autoDrain`, or
+   * every drain toggle tears the timer down and restarts the ten minutes —
+   * a long drain would then postpone the watch indefinitely. State the tick
+   * needs is read through refs, so the timer is installed once per autopilot
+   * toggle and never rebuilt by unrelated renders. A hidden tab is skipped,
+   * and the elapsed time is checked on return so a backgrounded tab catches
+   * up immediately instead of waiting out a fresh interval.
    */
+  const drainRef = useRef(autoDrain);
+  const lastSweepRef = useRef(Date.now());
+  useEffect(() => { drainRef.current = autoDrain; }, [autoDrain]);
+
   useEffect(() => {
     if (!autopilot) return;
     let cancelled = false;
-    const id = window.setInterval(() => {
-      if (cancelled || autoDrain || document.hidden) return;
-      void (async () => {
-        try {
-          const sent = await callVault<any>("vault_sentinel", { max: 40 });
-          if (cancelled || !sent?.queued) return;
-          setAutoNote(`Sentinel found ${sent.queued} new contact(s) — building dossiers…`);
-          await load();
-          setAutoDrain(true);
-        } catch { /* transient — the next tick retries */ }
-      })();
-    }, SENTINEL_INTERVAL_MS);
-    return () => { cancelled = true; window.clearInterval(id); };
-  }, [autopilot, autoDrain, load]);
+
+    const sweep = async () => {
+      if (cancelled || drainRef.current || document.hidden) return;
+      if (Date.now() - lastSweepRef.current < SENTINEL_INTERVAL_MS) return;
+      lastSweepRef.current = Date.now();
+      try {
+        const sent = await callVault<any>("vault_sentinel", { max: 40 });
+        if (cancelled) return;
+        if (sent?.degraded) {
+          // The watermark was held, so nothing is lost — say so rather than
+          // reporting a clean sweep that did not happen.
+          setAutoNote("Sentinel ran degraded — a channel did not respond; the window stays open.");
+        }
+        if (!sent?.queued) return;
+        setAutoNote(`Sentinel found ${sent.queued} new contact(s) — building dossiers…`);
+        await load();
+        setAutoDrain(true);
+      } catch { /* transient — the next tick retries */ }
+    };
+
+    const id = window.setInterval(() => { void sweep(); }, 60_000);
+    const onVisible = () => { if (!document.hidden) void sweep(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [autopilot, load]);
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setBusy(key);
