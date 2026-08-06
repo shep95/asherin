@@ -20,23 +20,29 @@ function banner(n: number, title: string): string[] {
 }
 
 /**
- * Emits `prefix` verbatim — column alignment is part of the layout and must
- * never be tokenised — then wraps only `body`, indenting continuations to the
- * column where the body started.
+ * Emits `prefix` verbatim — column alignment is layout, not content, so it is
+ * never tokenised — then wraps `body` at the box width, hanging continuation
+ * lines at `contIndent` (defaults to the column where the body began).
+ *
+ * The continuation indent must be applied while measuring, not afterwards:
+ * re-indenting finished lines pushes them past the box width, which is what
+ * produced ragged over-length prose in the risk and thread blocks.
  */
-function field(prefix: string, body: string): string[] {
-  const indent = prefix.length;
+function field(prefix: string, body: string, contIndent?: number): string[] {
+  const indent = Math.min(contIndent ?? prefix.length, W - 20);
   const words = body.split(/\s+/).filter(Boolean);
   if (!words.length) return [prefix.trimEnd()];
   const lines: string[] = [];
   let cur = prefix;
+  let atStart = true;
   for (const w of words) {
-    if (cur.length > indent && cur.length + 1 + w.length > W) {
+    if (!atStart && cur.length + 1 + w.length > W) {
       lines.push(cur);
       cur = " ".repeat(indent) + w;
     } else {
-      cur = cur.length > indent ? `${cur} ${w}` : cur + w;
+      cur = atStart ? cur + w : `${cur} ${w}`;
     }
+    atStart = false;
   }
   lines.push(cur);
   return lines;
@@ -58,10 +64,9 @@ function row(m: Metric, pad = 22): string[] {
 /** Wraps a free-prose block at the box width under a fixed left margin. */
 function wrap(text: string, indent: number): string[] {
   const lead = text.match(/^ */)?.[0] ?? "";
-  return field(lead, text.slice(lead.length)).map((l, i) =>
-    i === 0 ? l : " ".repeat(Math.max(lead.length, indent)) + l.trimStart(),
-  );
+  return field(lead, text.slice(lead.length), indent);
 }
+
 
 
 
