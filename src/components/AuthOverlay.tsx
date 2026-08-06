@@ -56,8 +56,18 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    // Google matches redirect_uri as an exact registered string. Only the bare
+    // origin is registered/allow-listed — appending a protected path such as
+    // /dashboard produces `Error 400: redirect_uri_mismatch`. The intended
+    // destination is carried in sessionStorage and applied once the session
+    // actually exists (AuthContext, on SIGNED_IN / INITIAL_SESSION).
+    try {
+      sessionStorage.setItem("asherin:post_auth_redirect", getRedirectPath());
+    } catch {
+      /* private mode — falls back to the default landing behaviour */
+    }
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}${getRedirectPath()}`,
+      redirect_uri: window.location.origin,
     });
     setGoogleLoading(false);
     if (error) {
