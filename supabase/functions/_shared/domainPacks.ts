@@ -558,10 +558,14 @@ export function buildDomainProfile(input: {
   const { pack, confidence, alternates } = classifyDomain(headers, fileName, sampleRows);
 
   // --- Ontology bindings -------------------------------------------------
+  // Headers in the wild are snake/camel/dotted. `\b` does not break on an
+  // underscore, so "patient_mrn" would never match /\bmrn\b/. Test the raw
+  // header AND a whitespace-tokenised form so every pack matcher behaves the
+  // same regardless of the source system's naming convention.
   const bindings: OntologyBinding[] = [];
   const boundColumns = new Set<string>();
   for (const field of pack.fields) {
-    const col = headers.find((h) => field.match.test(h) && !boundColumns.has(h));
+    const col = headers.find((h) => matchesHeader(field.match, h) && !boundColumns.has(h));
     if (!col) continue;
     boundColumns.add(col);
     bindings.push({ column: col, canonical: field.canonical, object: field.object, property: field.property, standard: field.standard });
@@ -571,8 +575,8 @@ export function buildDomainProfile(input: {
   // --- Sensitivity register (universal + pack) ---------------------------
   const sensitiveFields: SensitiveField[] = [];
   for (const h of headers) {
-    const hits = UNIVERSAL_SENSITIVITY.filter((d) => d.match.test(h));
-    const packField = pack.fields.find((f) => f.sensitivity && f.sensitivity !== "NONE" && f.match.test(h));
+    const hits = UNIVERSAL_SENSITIVITY.filter((d) => matchesHeader(d.match, h));
+    const packField = pack.fields.find((f) => f.sensitivity && f.sensitivity !== "NONE" && matchesHeader(f.match, h));
     const classes = new Set<SensitivityClass>(hits.map((x) => x.cls));
     if (packField?.sensitivity) classes.add(packField.sensitivity);
     for (const cls of classes) {
