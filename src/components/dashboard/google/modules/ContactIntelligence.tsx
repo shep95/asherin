@@ -36,6 +36,27 @@ const fmtAgo = (ms: number | null) => {
   return d <= 0 ? "today" : d === 1 ? "1d ago" : `${d}d ago`;
 };
 
+/** Minute-grain recency for sync stamps, where "3d ago" would hide the point. */
+const fmtWhen = (ms: number | null) => {
+  if (ms === null || !Number.isFinite(ms)) return "never";
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+};
+
+/** Countdown to a scheduled attempt. */
+const fmtIn = (ms: number | null) => {
+  if (ms === null || !Number.isFinite(ms)) return "—";
+  const s = Math.round((ms - Date.now()) / 1000);
+  if (s <= 0) return "due";
+  if (s < 90) return `in ${s}s`;
+  if (s < 5400) return `in ${Math.round(s / 60)}m`;
+  return `in ${Math.round(s / 3600)}h`;
+};
+
+
 /** A metric that has no evidence prints an em dash, never a fabricated zero. */
 const Metric = ({ label, value, suffix = "" }: { label: string; value: number | string | null; suffix?: string }) => (
   <div className="min-w-0">
