@@ -154,7 +154,8 @@ function spouseOf(text: string): string {
   ];
   for (const re of patterns) {
     const m = re.exec(window);
-    if (m) return m[1].trim();
+    // Trim any trailing sentence bleed ("Michael Newton. Works at ...").
+    if (m) return m[1].split(/\.\s+/)[0].replace(/[.,;:]+$/, "").trim();
   }
   return "";
 }

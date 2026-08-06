@@ -278,7 +278,13 @@ function employerHits(text: string): Hit[] {
   const re = /\b(?:[Ww]orks?\s+(?:at|for)|[Ee]mployed\s+(?:at|by)|[Ee]mployer|[Oo]ccupation|[Jj]ob\s*title|[Pp]osition)\b\s*:?\s*([A-Z][A-Za-z0-9&'.,\- ]{2,48})/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    const v = m[1].split(/\s{2,}|[|·•]/)[0].replace(/[,.]$/, "").trim();
+    // A sentence boundary ends the employer: "Lee Health. Lee County" is one
+    // employer plus unrelated prose, never a 20-character company name.
+    const v = m[1]
+      .split(/\s{2,}|[|·•]/)[0]
+      .split(/\.\s+/)[0]
+      .replace(/[,.;:]+$/, "")
+      .trim();
     if (v.length < 3) continue;
     out.push({ display: v, canonical: v.toUpperCase(), index: m.index });
   }
