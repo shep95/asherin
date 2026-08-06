@@ -705,7 +705,7 @@ export function correlate(userId: string, rows: LedgerRow[], nowMs = Date.now())
         severity: rhythm.anomalies.length >= 3 ? 4 : 2,
         title: `${rhythm.anomalies.length} action(s) outside every established working hour`,
         detail: rhythm.anomalies.slice(0, 8).map((a) =>
-          `• ${a.at.slice(0, 16).replace("T", " ")}Z (${CELL_LABEL(a.cell)}) — ${a.text}`).join("\n") +
+          `• ${a.at.slice(0, 16).replace("T", " ")}Z (${CELL_LABEL(a.cell)}) — ${a.subject}`).join("\n") +
           `\nTravel, a schedule change, or someone else on the account all look like this. It is a question, not a verdict.`,
         metric: { count: rhythm.anomalies.length, cells: [...new Set(rhythm.anomalies.map((a) => a.cell))] },
         evidence: rhythm.anomalies.slice(0, 8),
