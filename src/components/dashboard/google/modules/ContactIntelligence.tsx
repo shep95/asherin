@@ -414,15 +414,45 @@ const ContactIntelligence = () => {
         </div>
       </div>
 
-      {/* ── Stat band ──────────────────────────────────────────────── */}
+      {/* ── Stat band — level, motion, and population context ──────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-center">
-            <p className="text-xl font-extralight text-foreground tabular-nums">{loading && !summary ? "…" : s.value}</p>
-            <p className="text-[10px] font-light text-muted-foreground/60 mt-1">{s.label}</p>
-          </div>
-        ))}
+        <TrendStat
+          label="Identities"
+          value={summary ? summary.contactCount : "—"}
+          hint={summary ? `${summary.correspondentCount} carry live traffic · ${summary.bulkFiltered} bulk senders excluded` : "Awaiting first sweep"}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Active roster"
+          value={summary ? activeCount : "—"}
+          series={volumeSeries}
+          hint={summary ? `${Math.round((activeCount / Math.max(1, summary.contactCount)) * 100)}% of the address book is live` : undefined}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Messages read"
+          value={summary ? summary.messageCount : "—"}
+          population={importancePop}
+          hint={summary?.patterns.peakHour != null ? `Peak transmission ${summary.patterns.peakHour}:00 local` : "No timed traffic yet"}
+          loading={loading && !summary}
+        />
+        <TrendStat
+          label="Median cadence"
+          value={cadencePop.length ? `${Math.round(median(cadencePop))}d` : "—"}
+          population={cadencePop}
+          hint={cadencePop.length ? `Across ${cadencePop.length} relationships with a measurable rhythm` : "Not enough repeat contact to establish rhythm"}
+          loading={loading && !summary}
+        />
       </div>
+
+      {/* ── Synthesis ──────────────────────────────────────────────── */}
+      <section className="space-y-2">
+        <h3 className="text-[9px] tracking-[0.22em] text-muted-foreground/40 font-light">SYNTHESIS</h3>
+        {findings.map((f) => (
+          <FindingCard key={f.id} finding={f} defaultOpen={f.severity === "critical" || f.severity === "elevated"} />
+        ))}
+      </section>
+
 
       {/* ── Device vault ───────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 flex flex-wrap items-center gap-3">
