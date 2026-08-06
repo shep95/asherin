@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Brain, MapPin, Gauge, PenLine, ShieldCheck, Loader2,
-  RefreshCw, AlertTriangle, CheckCircle2, Lock,
+  RefreshCw, AlertTriangle, CheckCircle2, Lock, Users, ListChecks, Sunrise, Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,17 +21,17 @@ import { toast } from "sonner";
  * Every pane renders the full state quartet (idle / loading / empty / error).
  */
 
-type Pane = "voice" | "places" | "attention" | "write" | "audit";
+type Pane = "voice" | "places" | "attention" | "write" | "people" | "commit" | "digest" | "audit";
 
 interface MeshStatus {
-  accounts: Array<{ id: string; email: string; tier: number; canRead: boolean; canCompose: boolean }>;
+  accounts: Array<{ id: string; email: string; tier: number; canRead: boolean; canCompose: boolean; canSend?: boolean; isPrimary?: boolean }>;
   voiceprints: Array<{ google_email: string; sample_count: number; built_at: string; stylometry: any }>;
   placesIndexed: number;
   attentionThrough: string | null;
 }
 
 const TIER_LABEL: Record<number, string> = {
-  1: "Identity", 2: "Read", 3: "Comprehension", 4: "Agency",
+  1: "Identity", 2: "Read", 3: "Comprehension", 4: "Agency", 5: "Delegated Send",
 };
 
 /** The consent ladder, in the user's language — not Google's scope strings. */
@@ -40,6 +40,7 @@ const TIERS: Array<{ tier: number; label: string; grants: string }> = [
   { tier: 2, label: "Read", grants: "Mail and calendar, read-only." },
   { tier: 3, label: "Comprehension", grants: "Adds Drive, Photos and activity so Asherin can understand your patterns." },
   { tier: 4, label: "Agency", grants: "Adds drafting into Gmail Drafts. Sending is never granted." },
+  { tier: 5, label: "Delegated Send", grants: "Lets you approve one specific draft for sending. Never autonomous." },
 ];
 
 /**
@@ -92,6 +93,10 @@ const GoogleMeshPanel = () => {
   const [places, setPlaces] = useState<any[] | null>(null);
   const [attention, setAttention] = useState<any | null>(null);
   const [audit, setAudit] = useState<any[] | null>(null);
+  const [people, setPeople] = useState<any | null>(null);
+  const [commits, setCommits] = useState<any | null>(null);
+  const [digest, setDigest] = useState<any | null>(null);
+  const [sendConfirm, setSendConfirm] = useState("");
 
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
@@ -119,12 +124,16 @@ const GoogleMeshPanel = () => {
   const vp = status?.voiceprints?.[0];
   const sp = vp?.stylometry ?? null;
   const composeReady = !!status?.accounts?.some((a) => a.canCompose);
+  const sendReady = !!status?.accounts?.some((a) => a.canSend);
 
   const panes: Array<{ id: Pane; label: string; icon: React.ElementType }> = [
     { id: "voice", label: "Voiceprint", icon: Brain },
     { id: "places", label: "Cartography", icon: MapPin },
     { id: "attention", label: "Attention", icon: Gauge },
     { id: "write", label: "Ghostwriter", icon: PenLine },
+    { id: "people", label: "Relationships", icon: Users },
+    { id: "commit", label: "Commitments", icon: ListChecks },
+    { id: "digest", label: "Daily Digest", icon: Sunrise },
     { id: "audit", label: "Agency Trail", icon: ShieldCheck },
   ];
 
@@ -393,6 +402,205 @@ const GoogleMeshPanel = () => {
               </div>
               <div className="text-xs font-light text-foreground">{draft.subject}</div>
               <pre className="whitespace-pre-wrap text-xs font-extralight text-muted-foreground/80 leading-relaxed">{draft.draft}</pre>
+
+              {draft.created && draft.draftId && (
+                <div className="pt-2 border-t border-border/20 space-y-2">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-extralight">
+                    Delegated send · two-phase
+                  </div>
+                  {!sendReady ? (
+                    <p className="text-[11px] font-extralight text-muted-foreground/60 flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5" /> Tier 5 not granted. Authorize Delegated Send above to enable this.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] font-extralight text-muted-foreground/60">
+                        Type <span className="text-foreground">SEND</span> to release this exact draft. Nothing else is sent.
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={sendConfirm}
+                          onChange={(e) => setSendConfirm(e.target.value)}
+                          placeholder="SEND"
+                          aria-label="Type SEND to confirm"
+                          className="text-xs font-extralight max-w-[140px]"
+                        />
+                        <Button
+                          size="sm" variant="destructive" className="text-xs font-extralight"
+                          disabled={busy === "send" || sendConfirm.trim().toUpperCase() !== "SEND"}
+                          onClick={() => run("send", async () => {
+                            const r = await callMesh("send_draft", {
+                              draft_id: draft.draftId, confirm: sendConfirm.trim().toUpperCase(),
+                            });
+                            setSendConfirm("");
+                            setDraft(null);
+                            toast.success(`Sent · ${r.messageId ?? draft.draftId}`);
+                          })}
+                        >
+                          {busy === "send"
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                            : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                          Send now
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </Shell>
+      )}
+
+      {/* RELATIONSHIPS — metadata only, never message bodies */}
+      {pane === "people" && (
+        <Shell>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-light tracking-wide text-foreground">Relationship Ledger</h4>
+            <Button size="sm" variant="outline" className="text-xs font-extralight" disabled={busy === "people"}
+              onClick={() => run("people", async () => { setPeople(await callMesh("relationship_graph", { days: 180 })); })}>
+              {busy === "people" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Users className="h-3.5 w-3.5 mr-1.5" />}
+              Map 180 days
+            </Button>
+          </div>
+          {!people && (
+            <p className="text-xs font-extralight text-muted-foreground/60">
+              Headers only — who you exchange with, how often, how fast you answer. No message content is read.
+            </p>
+          )}
+          {people && (
+            <>
+              <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
+                <Stat label="Messages" value={people.messagesAnalyzed} />
+                <Stat label="People" value={people.people?.length ?? 0} />
+                <Stat label="Inner circle" value={people.inner ?? 0} />
+                <Stat label="Going quiet" value={people.dormant?.length ?? 0} />
+              </div>
+              {people.people?.length === 0 && (
+                <p className="text-xs font-extralight text-muted-foreground/60">No correspondence in the window.</p>
+              )}
+              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+                {(people.people ?? []).map((p: any) => (
+                  <div key={p.email} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-light text-foreground truncate">{p.name || p.email}</div>
+                      <div className="text-[10px] font-extralight text-muted-foreground/60 truncate">
+                        {p.sent}↑ / {p.received}↓ · reciprocity {p.reciprocity}
+                        {p.medianReplyHours != null ? ` · replies ~${p.medianReplyHours}h` : ""}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-extralight text-muted-foreground/70 whitespace-nowrap">
+                      {p.dormant ? `quiet ${p.dormantDays}d` : p.tier}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Shell>
+      )}
+
+      {/* COMMITMENTS */}
+      {pane === "commit" && (
+        <Shell>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-light tracking-wide text-foreground">Commitment Engine</h4>
+            <Button size="sm" variant="outline" className="text-xs font-extralight" disabled={busy === "commit"}
+              onClick={() => run("commit", async () => { setCommits(await callMesh("commitments", { days: 45 })); })}>
+              {busy === "commit" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <ListChecks className="h-3.5 w-3.5 mr-1.5" />}
+              Scan 45 days
+            </Button>
+          </div>
+          {!commits && (
+            <p className="text-xs font-extralight text-muted-foreground/60">
+              Extracts promises you made in your own sent mail. Deadlines resolve against when you wrote them, not today.
+            </p>
+          )}
+          {commits && (
+            <>
+              <div className="grid gap-2 grid-cols-3">
+                <Stat label="Found" value={commits.commitments?.length ?? 0} />
+                <Stat label="Overdue" value={commits.overdue ?? 0} />
+                <Stat label="Due ≤3d" value={commits.dueSoon ?? 0} />
+              </div>
+              {commits.commitments?.length === 0 && (
+                <p className="text-xs font-extralight text-muted-foreground/60">No explicit promises detected in the window.</p>
+              )}
+              <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+                {(commits.commitments ?? []).map((c: any, i: number) => (
+                  <div key={`${c.messageId}-${i}`} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2">
+                    <div className="text-xs font-light text-foreground">{c.text}</div>
+                    <div className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">
+                      to {c.to || "—"} · {c.dueAt ? `due ${String(c.dueAt).slice(0, 10)}` : "no explicit date"}
+                      {c.overdue ? " · ⚠ overdue" : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Shell>
+      )}
+
+      {/* DAILY DIGEST */}
+      {pane === "digest" && (
+        <Shell>
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-light tracking-wide text-foreground">Daily Digest</h4>
+            <Button size="sm" variant="outline" className="text-xs font-extralight" disabled={busy === "digest"}
+              onClick={() => run("digest", async () => { setDigest(await callMesh("daily_digest", {})); })}>
+              {busy === "digest" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Sunrise className="h-3.5 w-3.5 mr-1.5" />}
+              Build briefing
+            </Button>
+          </div>
+          {!digest && (
+            <p className="text-xs font-extralight text-muted-foreground/60">
+              Fuses attention load, place rhythm, obligations and decaying relationships into one read.
+            </p>
+          )}
+          {digest && (
+            <div className="space-y-3">
+              <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
+                <Stat label="Overdue" value={digest.obligations?.overdue?.length ?? 0} />
+                <Stat label="Due next" value={digest.obligations?.upcoming?.length ?? 0} />
+                <Stat label="Going quiet" value={digest.relationships?.decaying?.length ?? 0} />
+                <Stat label="Focus share" value={digest.attention?.focusShare != null ? `${digest.attention.focusShare}%` : "—"} />
+              </div>
+
+              <div className="grid gap-2 grid-cols-3">
+                <Stat label="Meetings (7d)" value={`${digest.attention?.meetingHours ?? 0}h`} />
+                <Stat label="Focus (7d)" value={`${digest.attention?.focusHours ?? 0}h`} />
+                <Stat label="Heaviest day" value={digest.attention?.heaviestDay ?? "—"} />
+              </div>
+
+              {[
+                { title: "Overdue promises", rows: (digest.obligations?.overdue ?? []).map((c: any) => `${c.text} → ${c.to || "—"}`) },
+                { title: "Coming due", rows: (digest.obligations?.upcoming ?? []).map((c: any) => `${c.text} · ${String(c.dueAt).slice(0, 10)}`) },
+                { title: "Waiting on you", rows: (digest.relationships?.awaitingYourReply ?? []).map((p: any) => `${p.name || p.email} · quiet ${p.dormantDays}d`) },
+                { title: "Relationships decaying", rows: (digest.relationships?.decaying ?? []).map((p: any) => `${p.name || p.email} · ${p.dormantDays}d silent`) },
+                { title: "Place rhythm", rows: (digest.places ?? []).slice(0, 6).map((p: any) => `${p.label} · ${p.visits} visits · last ${String(p.lastSeen).slice(0, 10)}`) },
+              ].map((block) => (
+                <div key={block.title}>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-extralight mb-1.5">
+                    {block.title}
+                  </div>
+                  {block.rows.length === 0 ? (
+                    <p className="text-xs font-extralight text-muted-foreground/50">Nothing here.</p>
+                  ) : (
+                    <ul className="space-y-1.5" aria-live="polite">
+                      {block.rows.map((l: string, i: number) => (
+                        <li key={i} className="rounded-xl border border-border/20 bg-background/30 px-3 py-2 text-xs font-extralight text-muted-foreground/80">
+                          {l}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+
+              <p className="text-[10px] font-extralight text-muted-foreground/50">
+                Generated {new Date(digest.generatedAt).toLocaleString()} across {(digest.accounts ?? []).length} account(s).
+              </p>
             </div>
           )}
         </Shell>

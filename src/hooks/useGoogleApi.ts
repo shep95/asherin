@@ -11,6 +11,7 @@ interface GoogleAccount {
   last_sync_at: string | null;
   data_points_count: number;
   is_primary: boolean;
+  consent_tier?: number | null;
 }
 
 export function useGoogleApi() {
@@ -60,11 +61,12 @@ export function useGoogleApi() {
   }, [callOAuth]);
 
   // [Finding #1/#5] Store state for CSRF validation on callback
-  const connectGoogle = useCallback(async () => {
+  const connectGoogle = useCallback(async (tier: number = 3) => {
     setLoading(true);
     try {
       const data = await callOAuth("get_auth_url", {
         redirect_uri: `${window.location.origin}/dashboard`,
+        tier,
       });
       if (data.url) {
         // Store state for validation on return

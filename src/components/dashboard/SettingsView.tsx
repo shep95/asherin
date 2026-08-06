@@ -7,6 +7,8 @@ import { Link } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
+import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
+
 import { isAdminEmail } from "@/lib/adminEmail";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 
@@ -713,6 +715,9 @@ const SettingsView = () => {
 
         {/* GitHub Integration */}
         <GitHubSettings />
+
+        {/* Google — multi-account cloud intelligence */}
+        <GoogleAccountsSettings />
 
         {/* Privacy */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
