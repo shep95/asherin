@@ -19,12 +19,52 @@ import { useGoogleOAuthCallback } from "@/hooks/useGoogleOAuthCallback";
  *  - Nothing is destructive without an explicit second confirmation.
  */
 
-const TIERS: Array<{ tier: number; label: string; grants: string }> = [
-  { tier: 1, label: "Identity", grants: "Name, email, profile only." },
-  { tier: 2, label: "Read", grants: "Mail, calendar, contacts, tasks and Drive file list — read-only." },
-  { tier: 3, label: "Comprehension", grants: "Adds activity, sleep and heart-rate signals for pattern analysis." },
-  { tier: 4, label: "Agency", grants: "Adds drafting into Gmail Drafts. Never sends." },
-  { tier: 5, label: "Delegated Send", grants: "Lets you approve a specific draft for sending. One draft at a time." },
+const TIERS: Array<{ tier: number; label: string; grants: string[] }> = [
+  {
+    tier: 1,
+    label: "Identity",
+    grants: [
+      "Name, email, profile only.",
+    ],
+  },
+  {
+    tier: 2,
+    label: "Read",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+    ],
+  },
+  {
+    tier: 3,
+    label: "Comprehension",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+    ],
+  },
+  {
+    tier: 4,
+    label: "Agency",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+      "Draft into Gmail Drafts. Never sends.",
+    ],
+  },
+  {
+    tier: 5,
+    label: "Delegated Send",
+    grants: [
+      "Name, email, profile.",
+      "Mail, calendar, contacts, tasks and Drive file list — read-only.",
+      "Activity, sleep and heart-rate signals for pattern analysis.",
+      "Draft into Gmail Drafts.",
+      "Approve a specific draft for sending. One draft at a time.",
+    ],
+  },
 ];
 
 const TIER_LABEL: Record<number, string> = {
