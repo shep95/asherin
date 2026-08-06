@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
