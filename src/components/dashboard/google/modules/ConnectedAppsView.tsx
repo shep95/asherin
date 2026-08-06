@@ -66,6 +66,8 @@ const ConnectedAppsView = () => {
         unitPlural: "grants",
         entityNoun: "permission",
         entityNounPlural: "permissions",
+        // Grants all carry the account's sync time, never a moment of consent.
+        timestampsAreEvents: false,
         expectation:
           "Every live permission traces to an account you actively use and a capability you asked for.",
         reviewAction: "Revoke this permission from the Google account security page if it is not in use.",
