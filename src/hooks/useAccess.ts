@@ -5,16 +5,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
 
+// Maximum Intelligence ($399/mo Asherin Pro) — strictly above PRO_VIEWS. These
+// surfaces read the operator's own connected accounts, so they are withheld
+// from the free trial as well: only a live maximum-tier subscription (or an
+// admin) opens them.
+const MAXIMUM_VIEWS: DashboardView[] = ["google"];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
   "teams", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "tracker",
-  "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
+  "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon",
 ];
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
+
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
