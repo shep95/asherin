@@ -28,6 +28,20 @@ const FETCH_TIMEOUT_MS = 12_000;
 /** Search fan-out is slower than a page fetch; 13s round trips are normal. */
 const SEARCH_TIMEOUT_MS = 35_000;
 
+/**
+ * Hedge phrasing in the answer block. Mirrors HEDGE_PATTERNS in
+ * src/lib/geo/geoContent.ts — duplicated because Deno cannot import from src/.
+ * Keep the two lists in step when either changes.
+ */
+const HEDGE_PATTERNS: RegExp[] = [
+  /\b(?:may|might|could|can)\s+(?:help|assist|enable|allow|provide|improve|support)\b/i,
+  /\b(?:aims?|seeks?|strives?|hopes?)\s+to\b/i,
+  /\b(?:designed|intended|meant)\s+to\b/i,
+  /\b(?:potentially|possibly|arguably|generally|typically|often|usually|somewhat)\b/i,
+  /\b(?:one of the|among the)\s+(?:best|leading|top|most)\b/i,
+  /\bwe believe\b|\bit is thought\b|\bsome say\b/i,
+];
+
 interface RouteScore {
   route: string;
   url: string;
@@ -37,6 +51,28 @@ interface RouteScore {
   checks: { id: string; label: string; pass: boolean; detail: string }[];
 }
 
+/**
+ * Selection vs absorption.
+ *
+ * Retrieval (`found`, `rank`) is selection: the engine fetched the page.
+ * Absorption is what fraction of the page's own distinctive language survives
+ * into the synthesised answer. Perplexity-class engines select and cite;
+ * ChatGPT-class engines absorb and often do not cite, so a selection-only
+ * metric under-reports the second entirely.
+ */
+interface AbsorptionResult {
+  /** null when the absorption stage did not run (no model key, or not selected). */
+  ran: boolean;
+  reason?: string;
+  /** Model named asherin.com or Asherin in the synthesised answer. */
+  attributed: boolean;
+  /** Share of the page's distinctive trigrams present in the answer, 0-1. */
+  coverage: number;
+  /** Page figures (prices, counts) that survived into the answer. */
+  liftedFigures: string[];
+  answerExcerpt: string;
+}
+
 interface CitationResult {
   prompt: string;
   found: boolean;
@@ -44,6 +80,7 @@ interface CitationResult {
   matchedUrl: string | null;
   totalResults: number;
   competitors: string[];
+  absorption: AbsorptionResult;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = FETCH_TIMEOUT_MS) {
