@@ -475,7 +475,17 @@ async function measureAbsorption(
   };
 }
 
-async function probePrompt(prompt: string, withAbsorption: boolean): Promise<CitationResult> {
+/**
+ * `counterfactualUrl` measures absorption for a page that was *not* selected.
+ * It answers "if the engine had our page, would our language survive?", which
+ * is the only way to separate a retrieval problem from a phrasing problem
+ * before indexing catches up. Absent it, absorption requires real selection.
+ */
+async function probePrompt(
+  prompt: string,
+  withAbsorption: boolean,
+  counterfactualUrl?: string,
+): Promise<CitationResult> {
   let results = await searchOnce("zophiel-search", { query: prompt, mode: "web", page: 1 });
   if (results.length === 0) {
     results = await searchOnce("ddg-search", { query: prompt, numResults: 10 });
@@ -495,11 +505,15 @@ async function probePrompt(prompt: string, withAbsorption: boolean): Promise<Cit
   let absorption: AbsorptionResult;
   if (!withAbsorption) {
     absorption = NO_ABSORPTION("absorption stage not requested");
-  } else if (!matchedUrl) {
+  } else if (!matchedUrl && !counterfactualUrl) {
     // Not selected, so there is nothing to absorb. Reported, not silently zero.
     absorption = NO_ABSORPTION("not selected — absorption requires retrieval first");
   } else {
-    absorption = await measureAbsorption(prompt, matchedUrl, results);
+    const target = matchedUrl ?? counterfactualUrl!;
+    const measured = await measureAbsorption(prompt, target, results);
+    absorption = matchedUrl
+      ? measured
+      : { ...measured, reason: `counterfactual against ${target}` };
   }
 
   return {
@@ -558,12 +572,22 @@ serve(async (req) => {
     // Absorption costs a model call per selected prompt, so it is opt-in and
     // the batch narrows to 2 at a time when it is on.
     const withAbsorption = body?.absorption === true;
+    // Only same-origin counterfactual targets: never let a caller point the
+    // fetcher at an arbitrary host (SSRF).
+    const rawCf = typeof body?.counterfactualUrl === "string" ? body.counterfactualUrl : "";
+    let counterfactualUrl: string | undefined;
+    if (rawCf) {
+      try {
+        const u = new URL(rawCf, ORIGIN);
+        if (u.origin === ORIGIN) counterfactualUrl = u.toString();
+      } catch { /* ignore malformed override */ }
+    }
     const stride = withAbsorption ? 2 : 3;
 
     const results: CitationResult[] = [];
     for (let i = 0; i < cleanPrompts.length; i += stride) {
       const batch = await Promise.all(
-        cleanPrompts.slice(i, i + stride).map((p) => probePrompt(p, withAbsorption)),
+        cleanPrompts.slice(i, i + stride).map((p) => probePrompt(p, withAbsorption, counterfactualUrl)),
       );
       results.push(...batch);
     }
