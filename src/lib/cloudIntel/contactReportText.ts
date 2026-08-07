@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { ContactReport, Metric } from "./contactReport";
+import type { OsintAnnex } from "./contactOsint";
 
 const W = 74;
 const HR = "━".repeat(W);
