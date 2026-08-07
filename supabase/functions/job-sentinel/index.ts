@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
       if (capped.length) {
         // Dedupe index makes re-running the sweep idempotent rather than duplicative.
         const { data: rows } = await sb.from("job_leads")
-          .upsert(capped, { onConflict: "user_id,md5(lower(coalesce(url, title || coalesce(company,''))))", ignoreDuplicates: true })
+          .upsert(capped, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
           .select("id");
         inserted = rows?.length ?? 0;
       }
