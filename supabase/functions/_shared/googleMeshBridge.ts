@@ -19,13 +19,26 @@ import {
   harvestPlaces, foldPlaces, buildAttention,
 } from "./googleMesh.ts";
 
-const FIRST_PERSON = /\b(my|mine|i|me|i'm|i've)\b/i;
+const FIRST_PERSON = /\b(my|mine|i|me|i'm|i've|our|us|we)\b/i;
 
-const MAIL_CUES = /\b(email|emails|inbox|gmail|mail|message from|wrote to me|sent me|unread)\b/i;
-const SCHEDULE_CUES = /\b(calendar|schedule|meeting|meetings|agenda|appointment|next week|today|tomorrow|busy)\b/i;
-const PLACE_CUES = /\b(where (have|did|do) i|places i|locations|travel|been to|visited|location pattern)\b/i;
+// An operator rarely types "show me MY recent emails" — they type "any recent
+// emails". Requiring an explicit possessive made the inward sensor array
+// unreachable in normal speech, and the outward identity engine then parsed
+// "Any Recent Emails" as a person's name and web-searched it. Implicit
+// ownership is therefore recognised: an interrogative/imperative lead-in
+// against a concrete Google surface noun is a first-person turn.
+const IMPLICIT_SELF =
+  /(^|[\s,.;:!?—-])(any|show|list|check|read|pull|scan|search|find|fetch|get|open|latest|recent|newest|last|whats?|what's|who|when|summari[sz]e|catch me up|anything)\b/i;
+
+const MAIL_CUES = /\b(e-?mails?|inbox|gmail|mailbox|mail|correspondence|message from|messages from|wrote to me|sent me|unread|threads?)\b/i;
+const SCHEDULE_CUES = /\b(calendar|schedule|meeting|meetings|agenda|appointment|appointments|next week|today|tomorrow|busy)\b/i;
+const PLACE_CUES = /\b(where (have|did|do) i|places i|locations|travel|been to|visited|location pattern|timeline|maps history)\b/i;
 const SELF_CUES = /\b(who am i|about me|my (voice|writing|style|patterns|habits|life|routine)|how do i write|profile me)\b/i;
 const ATTENTION_CUES = /\b(focus|focused|screen ?time|attention|burnout|productivity|deep work|how busy)\b/i;
+
+// An explicit reference to the mesh itself is always inward-facing, whatever
+// the surrounding phrasing.
+const MESH_CUES = /\b(cloud intelligence mesh|google (account|accounts|intel|intelligence|data)|my mesh|connected accounts)\b/i;
 
 export interface MeshIntent {
   active: boolean;
@@ -36,17 +49,23 @@ export interface MeshIntent {
   identity: boolean;
 }
 
-/** Conservative classifier — first person AND a concrete surface cue. */
+/**
+ * Conservative classifier — a concrete Google-surface cue AND evidence the
+ * subject is the operator, either explicit ("my inbox") or implicit
+ * ("any recent emails"). A bare noun with neither ("email marketing tips")
+ * still does not reach anybody's mailbox.
+ */
 export function classifyMeshIntent(text: string): MeshIntent {
   const t = String(text ?? "");
-  const first = FIRST_PERSON.test(t);
+  const owned = FIRST_PERSON.test(t) || IMPLICIT_SELF.test(t) || MESH_CUES.test(t);
   const identity = SELF_CUES.test(t);
-  const mail = first && MAIL_CUES.test(t);
-  const schedule = first && SCHEDULE_CUES.test(t);
-  const places = PLACE_CUES.test(t);
-  const attention = first && ATTENTION_CUES.test(t);
+  const mail = owned && MAIL_CUES.test(t);
+  const schedule = owned && SCHEDULE_CUES.test(t);
+  const places = PLACE_CUES.test(t) || (owned && /\bmaps? history\b/i.test(t));
+  const attention = owned && ATTENTION_CUES.test(t);
   return { active: identity || mail || schedule || places || attention, mail, schedule, places, attention, identity };
 }
+
 
 /** Extract a Gmail query from natural language, defaulting to recent inbox. */
 function toGmailQuery(text: string): string {
