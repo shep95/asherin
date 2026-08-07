@@ -183,6 +183,33 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
       pass: hasCorroboration,
       detail: hasCorroboration ? "citation/corroboration found" : "none",
     },
+    // --- Gatekeeper factors, Ansal University / Sprinklr (arXiv:2605.25517) ---
+    {
+      id: "price",
+      label: "Explicit price published on the page (gatekeeper factor)",
+      pass: hasPrice,
+      detail: hasPrice ? "price literal found" : "no currency figure in the block",
+    },
+    {
+      id: "comparison",
+      label: "Head-to-head comparison against a named alternative",
+      pass: comparisonRows > 0,
+      detail: comparisonRows ? `${comparisonRows} rows` : "none",
+    },
+    {
+      id: "confidence",
+      label: "Answer block is declarative (no hedging)",
+      pass: hedges.length === 0,
+      detail: hedges.length ? `hedged: ${hedges.join("; ")}` : "declarative",
+    },
+    {
+      id: "institutional",
+      label: "At least one government, academic, standards or press source",
+      pass: institutionalRefs > 0,
+      detail: institutionalRefs
+        ? `${institutionalRefs} institutional refs`
+        : "vendor/first-party only",
+    },
   ];
 
   return {
