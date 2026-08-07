@@ -293,21 +293,39 @@ function toAnnex(
   meta: { status: OsintStatus; blocker: string | null; confidence: number; name: string; email: string | null },
 ): OsintAnnex {
   const facts: OsintFact[] = [];
-  for (const [field, list] of Object.entries(doc.identity ?? {})) {
-    for (const f of list ?? []) {
-      const { grade, note } = gradeCredibility(f.independentDomains ?? 0, Boolean(f.authoritative));
-      facts.push({
-        field,
-        value: f.value,
-        credibility: grade,
-        credibilityNote: note,
-        independentDomains: f.independentDomains ?? 0,
-        authoritative: Boolean(f.authoritative),
-        sources: (f.sources ?? []).slice(0, 4),
-      });
+  const ingest = (src: Record<string, WireFact[]> | undefined, band: OsintFact["band"]) => {
+    for (const [field, list] of Object.entries(src ?? {})) {
+      for (const f of list ?? []) {
+        const { grade, note } = gradeCredibility(f.independentDomains ?? 0, Boolean(f.authoritative));
+        // A candidate can never grade better than "possibly true": corroboration
+        // across domains raises how often a claim is repeated, not whether the
+        // claim is about this person.
+        const credibility: Credibility = band === "candidate" ? (Math.max(grade, 3) as Credibility) : grade;
+        facts.push({
+          field,
+          value: f.value,
+          band,
+          credibility,
+          credibilityNote:
+            band === "candidate"
+              ? `${note} Identity match is POSSIBLE, not strong — corroborate before acting.`
+              : note,
+          independentDomains: f.independentDomains ?? 0,
+          authoritative: Boolean(f.authoritative),
+          sources: (f.sources ?? []).slice(0, 4),
+        });
+      }
     }
-  }
-  facts.sort((a, b) => a.credibility - b.credibility || b.independentDomains - a.independentDomains);
+  };
+  ingest(doc.identity, "confirmed");
+  ingest(doc.candidates, "candidate");
+  // Confirmed always outranks candidate regardless of grade — band is the
+  // primary sort key so the reader never meets an unverified value first.
+  facts.sort((a, b) =>
+    (a.band === b.band ? 0 : a.band === "confirmed" ? -1 : 1) ||
+    a.credibility - b.credibility ||
+    b.independentDomains - a.independentDomains);
+
 
   const associations: OsintAssociation[] = [
     ...(doc.hop1 ?? []).map((n) => ({ ...n, hop: 1 as const })),
