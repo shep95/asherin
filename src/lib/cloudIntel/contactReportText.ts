@@ -196,11 +196,19 @@ export function renderContactReport(r: ContactReport, contactName: string, annex
   L.push("╔" + "═".repeat(W) + "╗");
   L.push("║  ASHERIN — CONTACT INTELLIGENCE REPORT".padEnd(W + 1) + "║");
   L.push("║  Classification: Personal / Eyes Only".padEnd(W + 1) + "║");
+  L.push("║  Handling: Do not forward. Derived from your own accounts and".padEnd(W + 1) + "║");
+  L.push("║            open sources. Not a consumer report; not for use in".padEnd(W + 1) + "║");
+  L.push("║            hiring, credit, housing or insurance decisions.".padEnd(W + 1) + "║");
+  L.push("║  Standards: Judgments per ICD 203; sourcing per ICD 206 with".padEnd(W + 1) + "║");
+  L.push("║            Admiralty reliability/credibility grading.".padEnd(W + 1) + "║");
   L.push(`║  Subject: ${contactName}`.padEnd(W + 1) + "║");
   L.push(`║  Generated: ${stamp} UTC`.padEnd(W + 1) + "║");
   L.push(`║  Window: ${r.windowDays ?? "—"} days | ${r.messagesAnalyzed} messages analysed | confidence ${r.confidence}%`.padEnd(W + 1) + "║");
   L.push("╚" + "═".repeat(W) + "╝");
   L.push("");
+
+  if (annex) L.push(...blufBlock(annex));
+
 
   if (r.insufficient) {
     L.push("⚠ INSUFFICIENT CORPUS");
