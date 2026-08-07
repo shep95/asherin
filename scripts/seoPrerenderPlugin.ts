@@ -17,7 +17,7 @@ import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
-import { getGeoPage } from "../src/lib/geo/geoContent";
+import { effectiveUpdated, getGeoPage } from "../src/lib/geo/geoContent";
 
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
@@ -146,6 +146,34 @@ function injectGeoBody(html: string, path: string) {
     )
     .join("");
 
+  const attributes = (geo.attributes ?? [])
+    .map(
+      (a) =>
+        `<div data-geo-attribute="${escapeAttr(a.name)}"><dt>${esc(a.name)}</dt>` +
+        `<dd>${esc(a.value)}${a.unit ? ` ${esc(a.unit)}` : ""}</dd></div>`,
+    )
+    .join("");
+
+  const corroboration = (geo.corroboration ?? [])
+    .map(
+      (c) =>
+        `<li><a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.label)}</a> — ${esc(
+          c.confirms,
+        )}</li>`,
+    )
+    .join("");
+
+  const revisions = (geo.revisions ?? [])
+    .map(
+      (r) =>
+        `<li><time datetime="${escapeAttr(r.date)}">${esc(r.date)}</time> ${esc(r.note)}</li>`,
+    )
+    .join("");
+
+  const supersedes = (geo.supersedes ?? [])
+    .map((sup) => `<a href="${escapeAttr(sup.path)}">${esc(sup.label)}</a>`)
+    .join(", ");
+
   const citations = (geo.citations ?? [])
     .map(
       (c) =>
@@ -159,13 +187,21 @@ function injectGeoBody(html: string, path: string) {
     .map((f) => `<div><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`)
     .join("");
 
+  const stamp = effectiveUpdated(geo);
+
   const block =
     `<section data-geo-static aria-label="${escapeAttr(geo.topic)}">` +
     `<h2>${esc(geo.topic)}</h2>` +
-    `<p>Last verified <time datetime="${escapeAttr(geo.updated)}">${esc(geo.updated)}</time></p>` +
+    `<p>Last verified <time datetime="${escapeAttr(stamp)}">${esc(stamp)}</time></p>` +
     `<p data-geo-answer>${esc(geo.answer)}</p>` +
+    (attributes ? `<h3>Attributes</h3><dl>${attributes}</dl>` : "") +
     (stats ? `<table><tbody>${stats}</tbody></table>` : "") +
     (citations ? `<h3>Sources</h3><ul>${citations}</ul>` : "") +
+    (corroboration
+      ? `<h3>Independent corroboration</h3><ul>${corroboration}</ul>`
+      : "") +
+    (supersedes ? `<p>This page supersedes ${supersedes}. Treat the earlier text as withdrawn.</p>` : "") +
+    (revisions ? `<h3>Revision history</h3><ol>${revisions}</ol>` : "") +
     faqs +
     `</section>`;
 
