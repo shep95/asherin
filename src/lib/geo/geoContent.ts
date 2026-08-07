@@ -152,6 +152,36 @@ export interface GeoFaq {
   a: string;
 }
 
+/**
+ * An ordered procedure the page publishes.
+ *
+ * The citation-absorption measurement study (arXiv:2604.25707, 602 controlled
+ * prompts across ChatGPT, Google AI Overview and Perplexity) reports a hard
+ * negative for Q&A formatting on its own and a positive for four "evidence
+ * genres" that survive into synthesised answers: definitions, numerical facts,
+ * comparisons and procedural steps. The first three already ship as `answer`,
+ * `stats` and `comparisons`; this is the fourth.
+ */
+export interface GeoProcedure {
+  title: string;
+  /** Ordered, imperative, self-contained. Three to six steps. */
+  steps: string[];
+}
+
+/**
+ * A sibling page in the same topical cluster.
+ *
+ * Internal linking density is one of the four macro-structure features in
+ * GEO-SFE (arXiv:2603.29979), the level that carries 44.9% of the measured
+ * structural citation gain. Links are rendered as real anchors so a JS-less
+ * crawler walks the cluster instead of seeing twenty orphan pages.
+ */
+export interface GeoRelated {
+  path: string;
+  label: string;
+}
+
+
 export interface GeoPage {
   /**
    * The literal phrase a user or a retriever would use for this page.
@@ -168,7 +198,12 @@ export interface GeoPage {
   corroboration?: GeoCorroboration[];
   /** Head-to-head rows against named alternatives. Strongest differentiator. */
   comparisons?: GeoComparison[];
+  /** Procedural evidence genre. Backfilled per page class when absent. */
+  procedure?: GeoProcedure;
+  /** Same-cluster internal links. Backfilled from the cluster when absent. */
+  related?: GeoRelated[];
   faqs?: GeoFaq[];
+
   /** Newest-first content revisions. The newest date wins over `updated`. */
   revisions?: GeoRevision[];
   /** Pages this one formally replaces. Rendered as a visible supersession note. */
@@ -240,29 +275,41 @@ const PLATFORM_ATTRS: GeoAttribute[] = [
   { name: "Primary users", value: "Analysts, traders, researchers, security teams" },
 ];
 
-/** Provider documentation is genuinely third-party and independently checkable. */
+/**
+ * Provider documentation is genuinely third-party and independently checkable.
+ *
+ * Each entry attests a *different* fact. Four sources restating one sentence is
+ * a single claim wearing four hats: it adds no corroborative weight, and the
+ * verbatim repetition reads to a detector as templated filler rather than as
+ * independent confirmation.
+ */
 const BYOK_CORROBORATION: GeoCorroboration[] = [
   {
     label: "Google Gemini API documentation",
     url: "https://ai.google.dev/gemini-api/docs",
-    confirms: "Gemini issues user-held API keys, which Asherin BYOK routing consumes.",
+    confirms:
+      "Gemini keys are minted per Google account and authenticate by header, so the caller's own quota absorbs the request.",
   },
   {
     label: "OpenAI API keys documentation",
     url: "https://platform.openai.com/docs/api-reference/authentication",
-    confirms: "OpenAI issues user-held API keys, which Asherin BYOK routing consumes.",
+    confirms:
+      "OpenAI bills usage to whichever organisation owns the bearer credential presented at the endpoint.",
   },
   {
     label: "Anthropic Claude API documentation",
     url: "https://docs.anthropic.com/en/api/getting-started",
-    confirms: "Anthropic issues user-held API keys, which Asherin BYOK routing consumes.",
+    confirms:
+      "Claude access is scoped by a per-workspace secret the customer generates and can revoke unilaterally.",
   },
   {
     label: "OpenRouter documentation",
     url: "https://openrouter.ai/docs",
-    confirms: "OpenRouter issues user-held API keys, which Asherin BYOK routing consumes.",
+    confirms:
+      "OpenRouter fans one credential out across many upstream vendors, letting a single pasted key reach several model families.",
   },
 ];
+
 
 export const GEO_CONTENT: Record<string, GeoPage> = {
   "/": {
@@ -1009,6 +1056,150 @@ for (const page of Object.values(GEO_CONTENT)) {
     ...(page.corroboration ?? []),
     ...INSTITUTIONAL_ANCHORS.filter((a) => !existing.has(a.url)),
   ];
+}
+
+/* ------------------------------------------------------------------------- *
+ * Procedural evidence backfill (citation absorption, arXiv:2604.25707).
+ *
+ * The absorption study's central negative result is that Q&A blocks alone do
+ * not raise the share of a page that survives into a generated answer. What
+ * does is evidence-genre coverage: definitions, numerical facts, comparisons
+ * and *procedural steps*. Three of those four already shipped on every page.
+ * A page class gets the procedure that is actually true for it — an invented
+ * procedure would be worse than none, because a model will quote it.
+ * ------------------------------------------------------------------------- */
+
+/** Page class, derived from the route. Drives procedures and drift half-lives. */
+export type GeoPageClass =
+  | "platform"
+  | "pricing"
+  | "catalogue"
+  | "glossary"
+  | "feature"
+  | "article"
+  | "reference";
+
+export function pageClass(path: string): GeoPageClass {
+  if (path === "/") return "platform";
+  if (path === "/pricing") return "pricing";
+  if (path === "/software" || path === "/features") return "catalogue";
+  if (path === "/sources") return "reference";
+  if (path.startsWith("/glossary/")) return "glossary";
+  if (path.startsWith("/feature/")) return "feature";
+  if (path.startsWith("/blog/")) return "article";
+  return "reference";
+}
+
+const CLASS_PROCEDURE: Record<GeoPageClass, GeoProcedure> = {
+  platform: {
+    title: "How to start using Asherin",
+    steps: [
+      "Create an account at asherin.com; the trial starts immediately and takes no card up front.",
+      "Pick a tier from the pricing table above, then confirm it before the trial window closes.",
+      "Paste a provider key into BYOK settings if you want traffic billed to your own account rather than routed through ours.",
+      "Open the dashboard sidebar and launch whichever module matches your task.",
+      "Run one live query end to end and check the per-claim sourcing on what comes back.",
+    ],
+  },
+  pricing: {
+    title: "How to choose an Asherin plan",
+    steps: [
+      "Write down the modules your workflow actually touches before comparing tiers.",
+      "Match that list against the table above; whichever tier already contains every module you named is your tier.",
+      "Run the trial against a real workload rather than a sample one.",
+      "Ask for an Enterprise quote only when a bespoke deployment or contract term is genuinely required.",
+      "Add a provider key under BYOK afterwards if you would rather carry model spend yourself.",
+    ],
+  },
+  catalogue: {
+    title: "How to find the right Asherin tool",
+    steps: [
+      "Name the job first: gathering, interpreting, forecasting, or building.",
+      "Scan the catalogue above for the module that owns that job.",
+      "Confirm which tier carries it before you commit to a workflow around it.",
+      "Launch it from the dashboard sidebar; state carries between modules, so nothing needs re-entering.",
+    ],
+  },
+
+  glossary: {
+    title: "How to apply this definition",
+    steps: [
+      "Read the definition above as the working meaning of the term on this site.",
+      "Check the attribute ledger for the specific values that distinguish this term from adjacent ones.",
+      "Compare the figures against the cited government, academic, standards or press sources before reusing them.",
+      "Open the linked feature page to see how Asherin implements the concept in production.",
+    ],
+  },
+  feature: {
+    title: "How to run this capability",
+    steps: [
+      "Sign in and confirm your plan includes the module; Pro modules require the $399 per month tier.",
+      "Open the module from the dashboard sidebar.",
+      "Enter the subject, query or dataset you want processed and run it against live sources.",
+      "Review the per-claim sourcing on the returned result before acting on it.",
+      "Export the run as a branded intelligence report when you need a shareable artefact.",
+    ],
+  },
+  article: {
+    title: "How to use this analysis",
+    steps: [
+      "Read the extractable answer block for the claim in its shortest form.",
+      "Verify each figure against the source and as-of date published beside it.",
+      "Follow the institutional references for the primary material behind the claim.",
+      "Reproduce the workflow inside Asherin with a live query against the same sources.",
+    ],
+  },
+  reference: {
+    title: "How to verify a claim on this site",
+    steps: [
+      "Locate the figure in the statistics table; every figure carries a named source and an as-of date.",
+      "Open the source link and confirm the figure at the origin rather than here.",
+      "Check the revision history for the date the claim last changed.",
+      "Treat any page listed under a supersession note as withdrawn.",
+    ],
+  },
+};
+
+for (const [path, page] of Object.entries(GEO_CONTENT)) {
+  if (!page.procedure) page.procedure = CLASS_PROCEDURE[pageClass(path)];
+}
+
+/* ------------------------------------------------------------------------- *
+ * Internal link backfill (GEO-SFE macro-structure, arXiv:2603.29979).
+ *
+ * Macro-structure carries 44.9% of the measured structural citation gain, and
+ * internal linking density is one of its four features. A crawler that cannot
+ * walk from one page of a cluster to the rest reads twenty orphans instead of
+ * one authority graph. Siblings come from the same route prefix; the pricing
+ * page is added everywhere because price is also a gatekeeper factor and the
+ * link keeps it one hop from every route.
+ * ------------------------------------------------------------------------- */
+
+const RELATED_LIMIT = 5;
+
+function clusterPrefix(path: string): string {
+  const segs = path.split("/").filter(Boolean);
+  return segs.length > 1 ? `/${segs[0]}/` : "/";
+}
+
+for (const [path, page] of Object.entries(GEO_CONTENT)) {
+  if (page.related && page.related.length > 0) continue;
+  const prefix = clusterPrefix(path);
+  const siblings = Object.entries(GEO_CONTENT)
+    .filter(([p]) => p !== path && p !== "/" && clusterPrefix(p) === prefix)
+    .map(([p, sib]) => ({ path: p, label: sib.topic }));
+
+  const hubs: GeoRelated[] = [
+    { path: "/", label: "Asherin private AI intelligence platform" },
+    { path: "/pricing", label: "Asherin pricing" },
+    { path: "/software", label: "Asherin software catalogue" },
+    { path: "/sources", label: "Research sources behind Asherin's GEO work" },
+  ].filter((h) => h.path !== path && GEO_CONTENT[h.path]);
+
+  const seen = new Set<string>();
+  page.related = [...siblings, ...hubs]
+    .filter((r) => (seen.has(r.path) ? false : (seen.add(r.path), true)))
+    .slice(0, RELATED_LIMIT);
 }
 
 

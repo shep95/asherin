@@ -1,20 +1,31 @@
 /**
- * GeoBlock — Priority 1 + 2 rendered surface.
+ * GeoBlock — the rendered GEO surface.
  *
  * Renders, in one liftable unit:
  *   1. A 40-60 word self-contained answer paragraph  (`data-geo-answer`)
- *   2. A statistic table where every number carries its source and as-of date
- *   3. External citations, when the page makes a claim it did not originate
- *   4. A visible "Last verified" stamp
- *   5. An optional FAQ list, which also ships as FAQPage JSON-LD from RouteSeo
+ *   2. Flat categorical attributes
+ *   3. A statistic table where every number carries its source and as-of date
+ *   4. Head-to-head comparisons against named alternatives
+ *   5. An ordered procedure
+ *   6. Citations and independent corroboration, tagged by institutional class
+ *   7. A visible "Last verified" stamp and revision history
+ *   8. An FAQ list, which also ships as FAQPage JSON-LD from RouteSeo
+ *   9. Links to sibling pages in the same topical cluster
+ *
+ * Every one of those is wrapped in a `Chunk`: a `<section>` carrying a stable
+ * `id`, a `data-geo-chunk` name and a visible heading. Web-retrieval-aware
+ * chunking (arXiv:2604.04936) finds that retrievers score heading-delimited,
+ * individually addressable units far better than one undifferentiated wall of
+ * text, because a chunk that survives splitting still carries the heading that
+ * says what it is. The stable `id` additionally gives every unit its own
+ * fragment URL, so a citation can point at the figures rather than the page.
  *
  * The block is keyed off the current pathname, so mounting it inside a shared
  * page shell automatically covers every route that has GEO content. Pages
  * without an entry render nothing (no empty scaffolding, no layout shift).
  */
-import { useMemo } from "react";
-import { useLocation } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { useMemo, type ReactNode } from "react";
+import { useLocation, Link } from "react-router-dom";
 import {
   getGeoPage,
   answerWordCount,
@@ -40,6 +51,39 @@ const dateLabel = (iso: string) => {
     timeZone: "UTC",
   });
 };
+
+/**
+ * An individually addressable retrieval unit.
+ *
+ * `id` is stable and derived from the chunk name rather than from content, so
+ * a fragment link keeps resolving after the copy inside it is edited.
+ */
+const Chunk = ({
+  name,
+  title,
+  children,
+  className = "mt-6",
+}: {
+  name: string;
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) => (
+  <section
+    id={`geo-${name}`}
+    data-geo-chunk={name}
+    aria-labelledby={`geo-${name}-heading`}
+    className={className}
+  >
+    <h3
+      id={`geo-${name}-heading`}
+      className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70"
+    >
+      {title}
+    </h3>
+    {children}
+  </section>
+);
 
 /**
  * Institutional class of a reference, published rather than inferred.
@@ -87,6 +131,8 @@ const GeoBlock = ({ path, className = "" }: Props) => {
 
       {/* The extractable unit. Self-contained: no pronoun points off-block. */}
       <p
+        id="geo-answer"
+        data-geo-chunk="answer"
         data-geo-answer
         data-word-count={words}
         className="text-base font-extralight leading-[1.8] text-foreground/90"
@@ -95,10 +141,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
       </p>
 
       {geo.attributes && geo.attributes.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Attributes
-          </h3>
+        <Chunk name="attributes" title="Attributes">
           {/* Flat, categorical facts. A model that cannot find these states
               them wrong instead of omitting them, so they are published
               explicitly rather than left to inference. */}
@@ -117,98 +160,114 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </div>
             ))}
           </dl>
-        </div>
+        </Chunk>
       )}
 
       {geo.stats.length > 0 && (
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
-            <caption className="sr-only">
-              Key figures for {geo.topic}, each with its source and verification date
-            </caption>
-            <thead>
-              <tr className="border-b border-border/30 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-                <th scope="col" className="py-2 pr-4 font-normal">Metric</th>
-                <th scope="col" className="py-2 pr-4 font-normal">Value</th>
-                <th scope="col" className="py-2 font-normal">Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {geo.stats.map((s) => (
-                <tr key={s.label} className="border-b border-border/15 align-top">
-                  <th scope="row" className="py-3 pr-4 font-extralight text-muted-foreground">
-                    {s.label}
-                  </th>
-                  <td className="py-3 pr-4 font-light text-foreground">{s.value}</td>
-                  <td className="py-3 font-extralight text-muted-foreground">
-                    {s.sourceUrl ? (
-                      <a
-                        href={s.sourceUrl}
-                        className="underline decoration-border hover:text-foreground"
-                        rel="noopener"
-                      >
-                        {s.source}
-                      </a>
-                    ) : (
-                      s.source
-                    )}
-                    <span className="block text-[10px] text-muted-foreground/60">
-                      as of <time dateTime={s.asOf}>{dateLabel(s.asOf)}</time>
-                    </span>
-                  </td>
+        <Chunk name="figures" title="Key figures">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <caption className="sr-only">
+                Key figures for {geo.topic}, each with its source and verification date
+              </caption>
+              <thead>
+                <tr className="border-b border-border/30 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                  <th scope="col" className="py-2 pr-4 font-normal">Metric</th>
+                  <th scope="col" className="py-2 pr-4 font-normal">Value</th>
+                  <th scope="col" className="py-2 font-normal">Source</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {geo.stats.map((s) => (
+                  <tr key={s.label} className="border-b border-border/15 align-top">
+                    <th scope="row" className="py-3 pr-4 font-extralight text-muted-foreground">
+                      {s.label}
+                    </th>
+                    <td className="py-3 pr-4 font-light text-foreground">{s.value}</td>
+                    <td className="py-3 font-extralight text-muted-foreground">
+                      {s.sourceUrl ? (
+                        <a
+                          href={s.sourceUrl}
+                          className="underline decoration-border hover:text-foreground"
+                          rel="noopener"
+                        >
+                          {s.source}
+                        </a>
+                      ) : (
+                        s.source
+                      )}
+                      <span className="block text-[10px] text-muted-foreground/60">
+                        as of <time dateTime={s.asOf}>{dateLabel(s.asOf)}</time>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Chunk>
       )}
 
       {geo.comparisons && geo.comparisons.length > 0 && (
-        <div className="mt-6 overflow-x-auto">
-          <h3 className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Compared with named alternatives
-          </h3>
+        <Chunk name="comparisons" title="Compared with named alternatives">
           {/* Explicit head-to-head rows. An engine answering "X vs Asherin"
               reads this table rather than synthesising one from adjectives. */}
-          <table className="w-full border-collapse text-left text-xs">
-            <caption className="sr-only">
-              {geo.topic} compared against named alternatives on published figures
-            </caption>
-            <thead>
-              <tr className="border-b border-border/30 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-                <th scope="col" className="py-2 pr-4 font-normal">Alternative</th>
-                <th scope="col" className="py-2 pr-4 font-normal">Dimension</th>
-                <th scope="col" className="py-2 pr-4 font-normal">Asherin</th>
-                <th scope="col" className="py-2 font-normal">Alternative</th>
-              </tr>
-            </thead>
-            <tbody>
-              {geo.comparisons.map((c) => (
-                <tr
-                  key={`${c.versus}-${c.dimension}`}
-                  data-geo-comparison={c.versus}
-                  className="border-b border-border/15 align-top"
-                >
-                  <th scope="row" className="py-3 pr-4 font-light text-foreground">
-                    {c.versus}
-                  </th>
-                  <td className="py-3 pr-4 font-extralight text-muted-foreground">
-                    {c.dimension}
-                  </td>
-                  <td className="py-3 pr-4 font-light text-foreground">{c.asherin}</td>
-                  <td className="py-3 font-extralight text-muted-foreground">{c.other}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <caption className="sr-only">
+                {geo.topic} compared against named alternatives on published figures
+              </caption>
+              <thead>
+                <tr className="border-b border-border/30 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                  <th scope="col" className="py-2 pr-4 font-normal">Alternative</th>
+                  <th scope="col" className="py-2 pr-4 font-normal">Dimension</th>
+                  <th scope="col" className="py-2 pr-4 font-normal">Asherin</th>
+                  <th scope="col" className="py-2 font-normal">Alternative</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {geo.comparisons.map((c) => (
+                  <tr
+                    key={`${c.versus}-${c.dimension}`}
+                    data-geo-comparison={c.versus}
+                    className="border-b border-border/15 align-top"
+                  >
+                    <th scope="row" className="py-3 pr-4 font-light text-foreground">
+                      {c.versus}
+                    </th>
+                    <td className="py-3 pr-4 font-extralight text-muted-foreground">
+                      {c.dimension}
+                    </td>
+                    <td className="py-3 pr-4 font-light text-foreground">{c.asherin}</td>
+                    <td className="py-3 font-extralight text-muted-foreground">{c.other}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Chunk>
+      )}
+
+      {geo.procedure && geo.procedure.steps.length > 0 && (
+        <Chunk name="procedure" title={geo.procedure.title}>
+          {/* Procedural steps are the fourth evidence genre in the absorption
+              study (arXiv:2604.25707): ordered, imperative and self-contained,
+              so a step survives being lifted away from its neighbours. */}
+          <ol className="space-y-2 text-sm font-extralight leading-[1.75] text-muted-foreground">
+            {geo.procedure.steps.map((s, i) => (
+              <li key={s} data-geo-step={i + 1} className="flex gap-3">
+                <span className="shrink-0 tabular-nums text-muted-foreground/60">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        </Chunk>
       )}
 
       {geo.citations && geo.citations.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Sources
-          </h3>
+        <Chunk name="sources" title="Sources">
           <ul className="space-y-1.5 text-xs font-extralight text-muted-foreground">
             {geo.citations.map((c) => (
               <li key={c.url}>
@@ -228,14 +287,11 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </li>
             ))}
           </ul>
-        </div>
+        </Chunk>
       )}
 
       {geo.corroboration && geo.corroboration.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Independent corroboration
-          </h3>
+        <Chunk name="corroboration" title="Independent corroboration">
           <ul className="space-y-1.5 text-xs font-extralight text-muted-foreground">
             {geo.corroboration.map((c) => (
               <li key={c.url}>
@@ -252,7 +308,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </li>
             ))}
           </ul>
-        </div>
+        </Chunk>
       )}
 
       {geo.supersedes && geo.supersedes.length > 0 && (
@@ -271,10 +327,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
       )}
 
       {geo.revisions && geo.revisions.length > 0 && (
-        <div className="mt-6">
-          <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Revision history
-          </h3>
+        <Chunk name="revisions" title="Revision history">
           <ol className="space-y-1 text-xs font-extralight text-muted-foreground">
             {geo.revisions.map((r) => (
               <li key={`${r.date}-${r.note}`} className="flex gap-3">
@@ -285,14 +338,11 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </li>
             ))}
           </ol>
-        </div>
+        </Chunk>
       )}
 
       {geo.faqs && geo.faqs.length > 0 && (
-        <div className="mt-8">
-          <h3 className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
-            Common questions
-          </h3>
+        <Chunk name="questions" title="Common questions" className="mt-8">
           <dl className="space-y-4">
             {geo.faqs.map((f) => (
               <div key={f.q}>
@@ -303,7 +353,28 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </div>
             ))}
           </dl>
-        </div>
+        </Chunk>
+      )}
+
+      {geo.related && geo.related.length > 0 && (
+        <Chunk name="related" title="Related pages" className="mt-8">
+          {/* Real anchors, not router-only handlers: internal link density is
+              the heaviest macro-structure feature in GEO-SFE, and a crawler
+              that does not execute JS must still be able to walk the cluster. */}
+          <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-extralight text-muted-foreground">
+            {geo.related.map((r) => (
+              <li key={r.path}>
+                <Link
+                  to={r.path}
+                  data-geo-related={r.path}
+                  className="underline decoration-border hover:text-foreground"
+                >
+                  {r.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Chunk>
       )}
     </section>
   );
