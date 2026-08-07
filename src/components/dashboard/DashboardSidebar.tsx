@@ -79,6 +79,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "axrlen": Brain,
   "zerlal": Shield,
   "bulwark": ShieldCheck,
+  "geo-audit": Gauge,
   "zaxin": Layers,
   "zacoon": Ghost,
   "google": Globe,
