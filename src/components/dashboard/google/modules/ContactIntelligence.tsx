@@ -30,6 +30,7 @@ import RelationGraph from "../intel/RelationGraph";
 import ReportViewer from "./contactIntel/ReportViewer";
 import { buildContactReport } from "@/lib/cloudIntel/contactReport";
 import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
+import { collectContactOsint, emptyAnnex, type OsintAnnex } from "@/lib/cloudIntel/contactOsint";
 
 
 
@@ -410,19 +411,56 @@ const ContactIntelligence = () => {
 
   // Built lazily for one contact at a time: the full-corpus pass is O(n) in
   // messages and would be wasted work across a 1000-row roster.
-  const report = useMemo(() => {
+  const baseReport = useMemo(() => {
     if (!reportKey || !corpus) return null;
     const d = dossiers.find((x) => x.key === reportKey);
     if (!d) return null;
     try {
       const own = corpus.own.length ? corpus.own : accounts.map((a) => a.google_email).filter(Boolean);
-      const r = buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers });
-      return { name: d.name, text: renderContactReport(r, d.name) };
+      return { name: d.name, email: d.emails[0] ?? null, r: buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers }) };
     } catch (e) {
       console.error("[contact-intel] report build failed:", e);
-      return { name: d.name, text: "Report generation failed. The dossier is intact; the report layer is not." };
+      return null;
     }
   }, [reportKey, corpus, dossiers, accounts]);
+
+  // The open-source leg runs against the network and can take a minute, so it
+  // never blocks the metadata report from rendering. The report is shown
+  // immediately with the annex marked in-flight, then re-rendered once
+  // collection lands. Keyed by subject so a stale response from a previously
+  // opened contact can never be painted onto the current one.
+  const [annex, setAnnex] = useState<{ key: string; value: OsintAnnex | null }>({ key: "", value: null });
+  const [annexLoading, setAnnexLoading] = useState(false);
+
+  useEffect(() => {
+    if (!reportKey || !baseReport) { setAnnexLoading(false); return; }
+    let cancelled = false;
+    setAnnexLoading(true);
+    setAnnex({ key: reportKey, value: null });
+    collectContactOsint({ name: baseReport.name, email: baseReport.email })
+      .then((a) => { if (!cancelled) setAnnex({ key: reportKey, value: a }); })
+      .finally(() => { if (!cancelled) setAnnexLoading(false); });
+    return () => { cancelled = true; };
+    // baseReport identity changes with the corpus; the subject is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportKey]);
+
+  const report = useMemo(() => {
+    if (!reportKey) return null;
+    if (!baseReport) {
+      return corpus
+        ? { name: "Unknown", text: "Report generation failed. The dossier is intact; the report layer is not." }
+        : null;
+    }
+    const live = annex.key === reportKey ? annex.value : null;
+    const pending: OsintAnnex | null = live
+      ? live
+      : annexLoading
+        ? emptyAnnex("building", "Open-source sweep in progress — this section will fill in when collection returns.", baseReport.name, baseReport.email)
+        : null;
+    return { name: baseReport.name, text: renderContactReport(baseReport.r, baseReport.name, pending) };
+  }, [reportKey, baseReport, annex, annexLoading, corpus]);
+
 
   const onExport = () => {
     if (!summary) return;

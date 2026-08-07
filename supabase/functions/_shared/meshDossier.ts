@@ -228,7 +228,17 @@ export interface MeshDossierDoc {
   version: 2;
   subject: { name: string; email: string | null; domainHint: string | null };
   builtAt: string;
+  /** STRONG-band fields only: the subject was positively matched in the document. */
   identity: Record<string, DossierFact[]>;
+  /**
+   * POSSIBLE-band fields. These are extracted from documents that mention the
+   * name but did not clear strong identity matching. Publishing them as
+   * confirmed would be fabrication; withholding them entirely was the reason
+   * dossiers on real people came back empty while sixty sources sat unread.
+   * They ship in their own compartment, never merged into `identity`, and are
+   * capped at "possibly true" no matter how many domains repeat them.
+   */
+  candidates: Record<string, DossierFact[]>;
   hop1: DossierHopNode[];
   hop2: DossierHopNode[];
   hop3: Array<{ node: string; viaA: string; viaB: string; strength: number }>;
@@ -305,7 +315,12 @@ function findGaps(doc: MeshDossierDoc, bundle: IntelBundle): string[] {
   for (const k of ["address", "employer", "entity", "phone"]) {
     if (doc.identity[FIELD_LABEL[k]]?.length) continue;
     if (GRAPH_EQUIV[k] && graphKinds.has(GRAPH_EQUIV[k])) continue;
-    gaps.push(`No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`);
+    const cand = doc.candidates?.[FIELD_LABEL[k]]?.length ?? 0;
+    gaps.push(
+      cand
+        ? `No ${FIELD_LABEL[k].toLowerCase()} CONFIRMED to this subject; ${cand} candidate value(s) carried unverified — corroborate before use.`
+        : `No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`,
+    );
   }
   if (!doc.hop1.length) gaps.push("No hop-1 associates surfaced — the subject has a thin public record.");
   if (!doc.hop2.length) gaps.push("Hop-2 expansion returned nothing; hop-3 cross-links are therefore n/a.");
@@ -368,13 +383,28 @@ export async function buildDossier(
   const bundle = await runJurisdictionalSearch(intent);
 
   const identity: Record<string, DossierFact[]> = {};
+  const candidates: Record<string, DossierFact[]> = {};
   const ledger = bundle.fieldLedger;
   if (ledger) {
     for (const [kind, fields] of Object.entries(ledger.confirmed)) {
       if (!fields?.length) continue;
       identity[FIELD_LABEL[kind] ?? kind] = fields.slice(0, 8).map(factOf);
     }
+    // The candidate ledger is where every real subject's record actually lives
+    // when the strong-match gate is strict. It is carried, not discarded, and
+    // never allowed to shadow a confirmed value for the same field family.
+    for (const [kind, fields] of Object.entries(ledger.candidate)) {
+      if (!fields?.length) continue;
+      const label = FIELD_LABEL[kind] ?? kind;
+      const taken = new Set((identity[label] ?? []).map((f) => f.value.toLowerCase()));
+      const rows = fields
+        .filter((f) => !taken.has(String((f as { display?: string }).display ?? "").toLowerCase()))
+        .slice(0, 8)
+        .map(factOf);
+      if (rows.length) candidates[label] = rows;
+    }
   }
+
 
   const g = bundle.graph;
   const nodeById = new Map((g?.nodes ?? []).map((n) => [n.id, n]));
@@ -424,6 +454,7 @@ export async function buildDossier(
     subject: { name, email, domainHint: email ? email.split("@")[1] ?? null : null },
     builtAt: new Date().toISOString(),
     identity,
+    candidates,
     hop1,
     hop2,
     hop3: (g?.crossLinks ?? []).slice(0, 20),

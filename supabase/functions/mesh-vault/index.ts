@@ -138,6 +138,108 @@ Deno.serve(async (req) => {
       return json({ queued: data }, 200, cors);
     }
 
+    // ── FOR CONTACT ──────────────────────────────────────────────────────
+    // On-demand open-source sweep for ONE named correspondent, used by the
+    // contact intelligence report. The report cannot wait for the background
+    // queue to reach a subject — the operator is looking at that person right
+    // now — so this path reads the cached dossier when it is inside its
+    // half-life and builds synchronously when it is not.
+    //
+    // Idempotent by (user_id, subject_key): a subject already in the vault is
+    // refreshed in place, never duplicated under a second key.
+    if (action === "vault_for_contact") {
+      const rawEmail = String(body.email ?? "").trim().toLowerCase().slice(0, 254);
+      const email = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(rawEmail) ? rawEmail : null;
+      const name = String(body.name ?? "").trim().slice(0, 120);
+      if (!email && !name) return json({ error: "subject_required" }, 400, cors);
+
+      // Half-life of a dossier. Public records move slowly; a fortnight-old
+      // sweep is still intelligence, and re-running it would burn the budget
+      // that a never-swept subject needs.
+      const maxAgeMs = Math.min(Math.max(Number(body.max_age_days) || 14, 1), 180) * 86400000;
+      const force = body.force === true;
+
+      let row: Record<string, any> | null = null;
+      if (email) {
+        const { data } = await sb.from("mesh_dossiers")
+          .select("*").eq("user_id", userId).eq("subject_email", email).limit(1);
+        row = data?.[0] ?? null;
+      }
+      if (!row && name) {
+        const { data } = await sb.from("mesh_dossiers")
+          .select("*").eq("user_id", userId).eq("subject_key", `contact:${normKey(name).toLowerCase()}`).limit(1);
+        row = data?.[0] ?? null;
+      }
+
+      const builtMs = row?.built_at ? Date.parse(row.built_at) : NaN;
+      const fresh = Number.isFinite(builtMs) && Date.now() - builtMs < maxAgeMs;
+      if (row && row.status === "ready" && fresh && !force) {
+        return json({
+          status: "ready", source: "cache", dossier: row.dossier,
+          summary: row.summary, confidence: Number(row.confidence ?? 0),
+          builtAt: row.built_at,
+        }, 200, cors);
+      }
+      if (row && row.status === "building" && !force) {
+        return json({ status: "building", dossier: row.dossier ?? null, message: "A sweep for this subject is already in flight." }, 200, cors);
+      }
+      if (body.build === false) {
+        return json({
+          status: row?.status ?? "absent", dossier: row?.dossier ?? null,
+          message: row ? "Cached dossier is stale; refresh not requested." : "No dossier on file for this subject.",
+        }, 200, cors);
+      }
+
+      const subjectKey = row?.subject_key ?? (email ?? `contact:${normKey(name).toLowerCase()}`);
+      const rel = (row?.relationship ?? null) as any;
+      const identifiers = [
+        ...(Array.isArray(body.identifiers) ? body.identifiers : []),
+        ...(Array.isArray(rel?.identifiers) ? rel.identifiers : []),
+        ...(Array.isArray(rel?.phones) ? rel.phones : []),
+      ].map((s: unknown) => String(s).slice(0, 60)).filter(Boolean).slice(0, 3);
+      const hint = String(rel?.locationHint || body.location_hint || "").slice(0, 80);
+
+      await sb.from("mesh_dossiers").upsert({
+        user_id: userId,
+        subject_key: subjectKey,
+        subject_email: email,
+        subject_name: name || email || "unknown",
+        hop: row?.hop ?? 1,
+        status: "building",
+        relationship: rel ?? { source: "contact_report", channel: "address_book" },
+        priority: row?.priority ?? 50,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id,subject_key" });
+
+      try {
+        const { doc, summary, confidence } = await withTimeout(
+          buildDossier(name || email!, email, rel && rel.email ? rel : null, {
+            locationHint: hint,
+            identifiers,
+            channel: rel?.channel ?? "address_book",
+          }),
+          PER_SUBJECT_MS,
+        );
+
+        const builtAt = new Date().toISOString();
+        await sb.from("mesh_dossiers").update({
+          status: "ready", dossier: doc as unknown as Record<string, unknown>,
+          summary, confidence, error_message: null, built_at: builtAt,
+        }).eq("user_id", userId).eq("subject_key", subjectKey);
+
+        if ((row?.hop ?? 1) === 1) await persistHopTwo(sb, userId, name || email!, doc);
+
+        return json({ status: "ready", source: "fresh", dossier: doc, summary, confidence, builtAt }, 200, cors);
+      } catch (e) {
+        const msg = (e as Error).message.slice(0, 300);
+        await sb.from("mesh_dossiers").update({ status: "failed", error_message: msg })
+          .eq("user_id", userId).eq("subject_key", subjectKey);
+        // The previously stored dossier, if any, is still the best product on
+        // hand — returning it with the failure stated beats returning nothing.
+        return json({ status: "failed", dossier: row?.dossier ?? null, message: msg }, 200, cors);
+      }
+    }
+
     // ── ENQUEUE ──────────────────────────────────────────────────────────
     if (action === "vault_enqueue") {
       const accounts = await liveAccounts(sb, userId, body.account_id ?? null);

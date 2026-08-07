@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { ContactReport, Metric } from "./contactReport";
+import type { OsintAnnex } from "./contactOsint";
 
 const W = 74;
 const HR = "━".repeat(W);
@@ -70,18 +71,144 @@ function wrap(text: string, indent: number): string[] {
 
 
 
-export function renderContactReport(r: ContactReport, contactName: string): string {
+/**
+ * BLUF — Bottom Line Up Front. A reader who stops after twelve lines must
+ * still leave with the judgments; burying them under ten sections of method
+ * is how reports get skimmed and misread. Likelihood and confidence are
+ * printed as separate columns because they answer different questions: how
+ * probable the statement is, versus how good the evidence behind it is.
+ */
+function blufBlock(a: OsintAnnex): string[] {
+  const L: string[] = [];
+  L.push(HR);
+  L.push("BLUF — BOTTOM LINE UP FRONT");
+  L.push(HR);
+  L.push("");
+
+  if (a.status !== "ready") {
+    L.push(...wrap(`  OPEN-SOURCE COLLECTION DID NOT COMPLETE — ${a.blocker ?? "no reason recorded."}`, 2));
+    L.push("");
+    L.push(...wrap("  Everything below this line is derived from your own correspondence only. Treat the absence of public findings as an unfilled collection requirement, not as a clean record.", 2));
+    L.push("");
+    return L;
+  }
+
+  if (!a.keyJudgments.length) {
+    L.push("  No judgment met the evidentiary floor for publication.");
+    L.push("");
+    return L;
+  }
+
+  a.keyJudgments.forEach((j, i) => {
+    L.push(...field(`  KJ-${String(i + 1).padStart(2, "0")}  `, `We assess it is ${j.likelihood.toUpperCase()} that ${j.text}`, 8));
+    L.push(...field("        Confidence: ", `${j.confidence} — ${j.basis}`, 8));
+    L.push("");
+  });
+
+  L.push(...wrap(`  Collection confidence ${a.collectionConfidence}% · ${a.metrics.documentsParsed} documents parsed across ${a.metrics.queriesRun} queries · ${a.metrics.independentDomains} independent domains · ${a.metrics.authoritativeSources} authoritative sources · jurisdiction ${a.jurisdiction}.`, 2));
+  L.push("");
+  return L;
+}
+
+/** Open-source identity, every value carried with its Admiralty credibility. */
+function osintSections(a: OsintAnnex, startAt: number): string[] {
+  const L: string[] = [];
+  let n = startAt;
+
+  L.push(...banner(n++, "Open-source identity (ICD 206 sourced)"));
+  if (a.status !== "ready") {
+    L.push(...wrap(`  NOT COLLECTED — ${a.blocker ?? "collection did not run."}`, 2));
+    L.push("");
+  } else if (!a.facts.length) {
+    L.push(...wrap("  NO IDENTITY FIELD SURVIVED MATCHING. Documents were collected but none could be tied to this subject with enough specificity to publish. A common name with a low personal footprint produces exactly this signature.", 2));
+    L.push("");
+  } else {
+    L.push("  Credibility scale: 1 confirmed · 2 probably true · 3 possibly true");
+    L.push("                     4 doubtful · 5 improbable · 6 cannot be judged");
+    L.push("");
+    for (const f of a.facts) {
+      L.push(...field(`  ${f.field.toUpperCase()}${f.band === "candidate" ? " [CANDIDATE — UNVERIFIED]" : ""} — `, f.value, 4));
+      L.push(...field("    ├─ Credibility: ", `${f.credibility} — ${f.credibilityNote}`, 8));
+      L.push(...field("    └─ Sources:     ", f.sources.map((s) => s.domain).join(", ") || "none recorded", 8));
+      L.push("");
+    }
+  }
+
+  L.push(...banner(n++, "Association ring"));
+  if (!a.associations.length) {
+    L.push("  No public association survived corroboration.");
+    L.push("");
+  } else {
+    for (const s of a.associations) {
+      L.push(...field(`  [HOP ${s.hop}] `, `${s.label} — ${s.kind}${s.via ? ` (via ${s.via})` : ""}`, 10));
+      L.push(...field("          ", `${s.independentDomains} independent domain${s.independentDomains === 1 ? "" : "s"} · ${s.sources.map((x) => x.domain).join(", ") || "no domain recorded"}`, 10));
+    }
+    L.push("");
+  }
+  if (a.crossLinks.length) {
+    L.push("  THIRD-RING CROSS-LINKS (entities reachable by two separate paths):");
+    for (const c of a.crossLinks.slice(0, 12)) {
+      L.push(...field("    • ", `${c.node} — via ${c.viaA} and ${c.viaB} (strength ${c.strength})`, 6));
+    }
+    L.push("");
+  }
+
+  L.push(...banner(n++, "Source register (Admiralty reliability)"));
+  if (!a.sources.length) {
+    L.push("  No source was retained.");
+    L.push("");
+  } else {
+    L.push("  Reliability scale: A completely reliable · B usually reliable");
+    L.push("                     C fairly reliable · D not usually reliable");
+    L.push("                     E unreliable · F reliability cannot be judged");
+    L.push("");
+    a.sources.forEach((s, i) => {
+      L.push(...field(`  [${String(i + 1).padStart(2, "0")}] (${s.reliability}) `, s.title || s.domain, 8));
+      L.push(...field("       ", `${s.url}`, 7));
+      L.push(...field("       ", `${s.bucket} · ${s.reliabilityNote}`, 7));
+    });
+    L.push("");
+  }
+
+  L.push(...banner(n++, "Intelligence gaps & collection requirements"));
+  const gaps = a.status === "ready" ? a.gaps : [a.blocker ?? "Open-source collection did not run."];
+  if (!gaps.length) {
+    L.push("  No gap was recorded by the collection engine. This is itself a weak");
+    L.push("  signal — treat any unlisted field as uncollected rather than clean.");
+  }
+  for (const g of gaps) L.push(...field("  ○ ", g, 4));
+  L.push("");
+  if (a.reverse) {
+    L.push(...field("  REVERSE PASS: ", `${a.reverse.identifier} → ${a.reverse.hits} hits, ${a.reverse.factsAdded} facts added${a.reverse.timedOut ? " (timed out)" : ""}${a.reverse.error ? ` (${a.reverse.error})` : ""}`, 4));
+    L.push("");
+  }
+  L.push(...wrap("  ANALYTIC CAVEAT: open-source findings describe what is publicly asserted about the subject, not what is true of them. Nothing here is verified against a primary identity document, and a name collision remains the standing failure mode of every field above.", 2));
+  L.push("");
+
+  return L;
+}
+
+export function renderContactReport(r: ContactReport, contactName: string, annex?: OsintAnnex | null): string {
+
   const L: string[] = [];
   const stamp = new Date(r.generatedAt).toISOString().replace("T", " ").slice(0, 16);
 
   L.push("╔" + "═".repeat(W) + "╗");
   L.push("║  ASHERIN — CONTACT INTELLIGENCE REPORT".padEnd(W + 1) + "║");
   L.push("║  Classification: Personal / Eyes Only".padEnd(W + 1) + "║");
+  L.push("║  Handling: Do not forward. Derived from your own accounts and".padEnd(W + 1) + "║");
+  L.push("║            open sources. Not a consumer report; not for use in".padEnd(W + 1) + "║");
+  L.push("║            hiring, credit, housing or insurance decisions.".padEnd(W + 1) + "║");
+  L.push("║  Standards: Judgments per ICD 203; sourcing per ICD 206 with".padEnd(W + 1) + "║");
+  L.push("║            Admiralty reliability/credibility grading.".padEnd(W + 1) + "║");
   L.push(`║  Subject: ${contactName}`.padEnd(W + 1) + "║");
   L.push(`║  Generated: ${stamp} UTC`.padEnd(W + 1) + "║");
   L.push(`║  Window: ${r.windowDays ?? "—"} days | ${r.messagesAnalyzed} messages analysed | confidence ${r.confidence}%`.padEnd(W + 1) + "║");
   L.push("╚" + "═".repeat(W) + "╝");
   L.push("");
+
+  if (annex) L.push(...blufBlock(annex));
+
 
   if (r.insufficient) {
     L.push("⚠ INSUFFICIENT CORPUS");
@@ -206,16 +333,25 @@ export function renderContactReport(r: ContactReport, contactName: string): stri
     L.push("");
   }
 
+  if (annex) L.push(...osintSections(annex, 11));
+
   L.push(HR);
   L.push("  CHANNELS WITH NO DATA SOURCE");
   for (const c of r.unavailableChannels) L.push(...field("  • ", c, 4));
   L.push("");
   L.push(`  Confidence: ${r.confidence}% | Data points: ${r.messagesAnalyzed} | Generated: ${stamp} UTC`);
+  if (annex) {
+    L.push(
+      `  Open-source: ${annex.status.toUpperCase()} | ${annex.metrics.documentsParsed} documents | ` +
+      `${annex.sources.length} sources retained | collection confidence ${annex.collectionConfidence}%`,
+    );
+  }
   L.push(HR);
-  L.push("  ASHERIN INTELLIGENCE / CONTACT REPORT v1.0");
-  L.push("  LATTICE MODULE — CONTACT ANALYSIS ENGINE");
+  L.push("  ASHERIN INTELLIGENCE / CONTACT REPORT v2.0 (OSINT-FUSED)");
+  L.push("  LATTICE MODULE — CONTACT ANALYSIS ENGINE + ZOPHIEL COLLECTION");
   L.push("  Eyes Only / Auto-generated from connected data sources");
   L.push("  #houseofasher  #zia");
+
   L.push(HR);
 
   return L.join("\n");
