@@ -2104,7 +2104,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext + socialContext + googleMeshContext + meshVaultContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
+      webSearchContext + socialContext + googleMeshContext + meshVaultContext + resumeContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
       leaksContext,
       archiveContext,
       jurisdictionalContext,
