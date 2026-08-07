@@ -307,10 +307,17 @@ async function auditRoute(route: string): Promise<RouteScore> {
  * scrape return an empty set from server egress; ddg-search stays as a fallback
  * so a Firecrawl outage degrades the probe instead of failing it.
  */
+interface SearchHit {
+  url?: string;
+  title?: string;
+  snippet?: string;
+  content?: string;
+}
+
 async function searchOnce(
   fn: string,
   body: Record<string, unknown>,
-): Promise<{ url?: string }[]> {
+): Promise<SearchHit[]> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   try {
@@ -374,7 +381,7 @@ const NO_ABSORPTION = (reason: string): AbsorptionResult => ({
 async function measureAbsorption(
   prompt: string,
   pageUrl: string,
-  snippets: { url?: string; title?: string; snippet?: string; content?: string }[],
+  snippets: SearchHit[],
 ): Promise<AbsorptionResult> {
   const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
   if (!geminiKey) return NO_ABSORPTION("no platform model key configured");
@@ -386,9 +393,7 @@ async function measureAbsorption(
     });
     if (!res.ok) return NO_ABSORPTION(`page fetch returned ${res.status}`);
     const html = await res.text();
-    const block = textBetween(html, /<section[^>]*data-geo-static[\s\S]*?<\/section>/i)
-      ?? html.match(/<section[^>]*data-geo-static[\s\S]*?<\/section>/i)?.[0]
-      ?? "";
+    const block = html.match(/<section[^>]*data-geo-static[\s\S]*?<\/section>/i)?.[0] ?? "";
     pageText = (block || html)
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
