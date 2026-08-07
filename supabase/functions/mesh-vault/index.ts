@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
         }, 200, cors);
       }
 
-      const subjectKey = row?.subject_key ?? (email ? `contact:${email}` : `contact:${normKey(name).toLowerCase()}`);
+      const subjectKey = row?.subject_key ?? (email ?? `contact:${normKey(name).toLowerCase()}`);
       const rel = (row?.relationship ?? null) as any;
       const identifiers = [
         ...(Array.isArray(body.identifiers) ? body.identifiers : []),
