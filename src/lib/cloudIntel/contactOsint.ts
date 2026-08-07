@@ -55,6 +55,7 @@ interface WireDoc {
   subject?: { name?: string; email?: string | null; domainHint?: string | null };
   builtAt?: string;
   identity?: Record<string, WireFact[]>;
+  candidates?: Record<string, WireFact[]>;
   hop1?: WireNode[];
   hop2?: WireNode[];
   hop3?: Array<{ node: string; viaA: string; viaB: string; strength: number }>;
