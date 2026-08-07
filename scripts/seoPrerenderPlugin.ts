@@ -116,8 +116,63 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   }
 
   html = html.replace("</head>", `  ${buildJsonLd(path, entry)}\n</head>`);
+  html = injectGeoBody(html, path);
   return html;
 }
+
+/**
+ * GeoBlock renders client-side, so a crawler that does not execute JS would see
+ * the head metadata but none of the extractable answer or sourced statistics.
+ * Mirror that block as static markup *inside* #root: React's createRoot render
+ * discards the container's children on mount, so the live app is untouched
+ * while JS-less fetchers get the full absorption unit.
+ */
+function injectGeoBody(html: string, path: string) {
+  const geo = getGeoPage(path);
+  if (!geo) return html;
+
+  const esc = (v: string) =>
+    v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const stats = (geo.stats ?? [])
+    .map(
+      (s) =>
+        `<tr><th scope="row">${esc(s.label)}</th><td>${esc(s.value)}</td>` +
+        `<td>${esc(s.source)}<span>as of <time datetime="${esc(s.asOf)}">${esc(
+          s.asOf,
+        )}</time></span></td></tr>`,
+    )
+    .join("");
+
+  const citations = (geo.citations ?? [])
+    .map(
+      (c) =>
+        `<li><a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.title)}</a> (${esc(
+          c.publisher,
+        )}, ${c.year})</li>`,
+    )
+    .join("");
+
+  const faqs = (geo.faqs ?? [])
+    .map((f) => `<div><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`)
+    .join("");
+
+  const block =
+    `<section data-geo-static aria-label="${escapeAttr(geo.topic)}">` +
+    `<h2>${esc(geo.topic)}</h2>` +
+    `<p>Last verified <time datetime="${escapeAttr(geo.updated)}">${esc(geo.updated)}</time></p>` +
+    `<p data-geo-answer>${esc(geo.answer)}</p>` +
+    (stats ? `<table><tbody>${stats}</tbody></table>` : "") +
+    (citations ? `<h3>Sources</h3><ul>${citations}</ul>` : "") +
+    faqs +
+    `</section>`;
+
+  // Anchor on the mount node so the markup is replaced at hydration time.
+  return html.includes('<div id="root"></div>')
+    ? html.replace('<div id="root"></div>', `<div id="root">${block}</div>`)
+    : html;
+}
+
 
 export function seoPrerenderPlugin(): Plugin {
   return {
