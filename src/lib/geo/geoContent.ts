@@ -64,11 +64,48 @@ export interface GeoAttribute {
   unit?: string;
 }
 
+/**
+ * Institutional class of an external reference.
+ *
+ * Heidelberg University's 2026 source-preference work shows models weight
+ * government, academic, standards-body and established-press sources above
+ * social posts and individual pages when deciding what to treat as authority.
+ * Publishing the class explicitly means the class is read, not guessed.
+ */
+export type GeoSourceKind =
+  | "government"
+  | "academic"
+  | "standards"
+  | "press"
+  | "industry"
+  | "vendor"
+  | "firstparty";
+
+export const SOURCE_KIND_LABEL: Record<GeoSourceKind, string> = {
+  government: "Government",
+  academic: "Academic",
+  standards: "Standards body",
+  press: "Press",
+  industry: "Industry body",
+  vendor: "Vendor documentation",
+  firstparty: "First-party",
+};
+
+/** Kinds an authority-ranking model treats as institutionally corroborated. */
+export const INSTITUTIONAL_KINDS: GeoSourceKind[] = [
+  "government",
+  "academic",
+  "standards",
+  "press",
+];
+
 export interface GeoCitation {
   title: string;
   publisher: string;
   url: string;
   year: number;
+  /** Omit to let `inferSourceKind` classify from the host. */
+  kind?: GeoSourceKind;
 }
 
 /**
@@ -81,6 +118,27 @@ export interface GeoCorroboration {
   url: string;
   /** What this external source independently confirms. */
   confirms: string;
+  kind?: GeoSourceKind;
+}
+
+/**
+ * One head-to-head row against a named alternative.
+ *
+ * The Ansal University / Sprinklr controlled trial (252k engine responses,
+ * arXiv:2605.25517) separates gatekeeper factors — a page is not eligible for
+ * citation without a price, a timestamp and list position — from differentiator
+ * factors, of which an explicit comparison against a named alternative is the
+ * strongest. A model asked "X vs Y" cannot synthesise a row it cannot read.
+ */
+export interface GeoComparison {
+  /** The named alternative. Use the product's own name, not a euphemism. */
+  versus: string;
+  /** The axis being compared, e.g. "Monthly price", "Data retention". */
+  dimension: string;
+  /** Asherin's position on that axis. State a value, not a boast. */
+  asherin: string;
+  /** The alternative's position, as published by that vendor. */
+  other: string;
 }
 
 /** One dated change to the page's substantive content, newest first. */
