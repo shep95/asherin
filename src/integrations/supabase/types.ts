@@ -5689,6 +5689,7 @@ export type Database = {
         Row: {
           apply_email: string | null
           company: string | null
+          dedupe_key: string | null
           description: string | null
           discovered_at: string
           distance_miles: number | null
@@ -5708,6 +5709,7 @@ export type Database = {
         Insert: {
           apply_email?: string | null
           company?: string | null
+          dedupe_key?: string | null
           description?: string | null
           discovered_at?: string
           distance_miles?: number | null
@@ -5727,6 +5729,7 @@ export type Database = {
         Update: {
           apply_email?: string | null
           company?: string | null
+          dedupe_key?: string | null
           description?: string | null
           discovered_at?: string
           distance_miles?: number | null
@@ -7254,7 +7257,7 @@ export type Database = {
           field_key: string
           id: string
           question: string
-          resume_id: string | null
+          resume_id: string
           status: string
           user_id: string
           why: string | null
@@ -7266,7 +7269,7 @@ export type Database = {
           field_key: string
           id?: string
           question: string
-          resume_id?: string | null
+          resume_id: string
           status?: string
           user_id: string
           why?: string | null
@@ -7278,7 +7281,7 @@ export type Database = {
           field_key?: string
           id?: string
           question?: string
-          resume_id?: string | null
+          resume_id?: string
           status?: string
           user_id?: string
           why?: string | null
