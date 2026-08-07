@@ -833,6 +833,212 @@ for (const [path, corroboration] of Object.entries(CORROBORATION_BACKFILL)) {
   }
 }
 
+/* ------------------------------------------------------------------------- *
+ * Source-type tagging (Heidelberg 2026 institutional-preference finding).
+ *
+ * Rather than hand-annotate several hundred references, the class is derived
+ * once from the host and frozen onto the object. An inline `kind` always wins,
+ * so a hand-classified entry is never re-guessed.
+ * ------------------------------------------------------------------------- */
+
+const HOST_KIND_RULES: { test: RegExp; kind: GeoSourceKind }[] = [
+  { test: /(^|\.)asherin\.com$/i, kind: "firstparty" },
+  { test: /\.gov(\.[a-z]{2})?$/i, kind: "government" },
+  { test: /(^|\.)europa\.eu$|(^|\.)gov\.uk$|(^|\.)un\.org$|(^|\.)who\.int$/i, kind: "government" },
+  { test: /\.edu$|(^|\.)arxiv\.org$|(^|\.)doi\.org$|(^|\.)acm\.org$|(^|\.)ieee\.org$|(^|\.)nature\.com$|(^|\.)springer\.com$|(^|\.)sciencedirect\.com$/i, kind: "academic" },
+  { test: /(^|\.)nist\.gov$|(^|\.)iso\.org$|(^|\.)w3\.org$|(^|\.)ietf\.org$|(^|\.)rfc-editor\.org$|(^|\.)owasp\.org$/i, kind: "standards" },
+  { test: /(^|\.)hbr\.org$|(^|\.)reuters\.com$|(^|\.)ft\.com$|(^|\.)bloomberg\.com$|(^|\.)wsj\.com$|(^|\.)nytimes\.com$|(^|\.)economist\.com$|(^|\.)apnews\.com$|(^|\.)bbc\.co\.uk$|(^|\.)bbc\.com$/i, kind: "press" },
+  { test: /(^|\.)openai\.com$|(^|\.)anthropic\.com$|(^|\.)google\.dev$|(^|\.)google\.com$|(^|\.)mistral\.ai$|(^|\.)venice\.ai$|(^|\.)groq\.com$|(^|\.)x\.ai$|(^|\.)perplexity\.ai$|(^|\.)firecrawl\.dev$|(^|\.)supabase\.com$/i, kind: "vendor" },
+];
+
+/** Classify a reference by host. Unknown hosts fall back to "industry". */
+export function inferSourceKind(url: string): GeoSourceKind {
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./i, "");
+  } catch {
+    return "industry";
+  }
+  // Standards bodies live under .gov/.org too, so they are tested before the
+  // broader government and academic rules can swallow them.
+  const standards = HOST_KIND_RULES.find((r) => r.kind === "standards");
+  if (standards?.test.test(host)) return "standards";
+  for (const rule of HOST_KIND_RULES) {
+    if (rule.test.test(host)) return rule.kind;
+  }
+  return "industry";
+}
+
+for (const page of Object.values(GEO_CONTENT)) {
+  for (const c of page.citations ?? []) if (!c.kind) c.kind = inferSourceKind(c.url);
+  for (const c of page.corroboration ?? []) if (!c.kind) c.kind = inferSourceKind(c.url);
+}
+
+/**
+ * Share of a page's external references that come from an institutional class.
+ * Reported by the readiness audit; a page carrying only vendor docs reads as
+ * self-referential to an authority-ranking model.
+ */
+export function institutionalRatio(page: GeoPage): { institutional: number; total: number } {
+  const refs = [...(page.citations ?? []), ...(page.corroboration ?? [])];
+  const external = refs.filter((r) => (r.kind ?? "industry") !== "firstparty");
+  const institutional = external.filter((r) =>
+    INSTITUTIONAL_KINDS.includes(r.kind ?? "industry"),
+  ).length;
+  return { institutional, total: external.length };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Gatekeeper backfill (Ansal University / Sprinklr, arXiv:2605.25517).
+ *
+ * In their 252k-response trial, an explicit price, a visible timestamp and an
+ * ordered position behaved as eligibility gates rather than ranking nudges:
+ * pages missing any one of them were largely absent from cited sets regardless
+ * of how well the rest of the page read. Timestamps already ship on every page
+ * via `updated`/`revisions`; price does not. This pass guarantees it does.
+ * ------------------------------------------------------------------------- */
+
+const PRICE_ATTRS: GeoAttribute[] = [
+  { name: "Entry price", value: "18.00", unit: "USD per month" },
+  { name: "Professional tier price", value: "399.00", unit: "USD per month" },
+  { name: "Free trial", value: "24", unit: "hours" },
+];
+
+for (const page of Object.values(GEO_CONTENT)) {
+  const attrs = (page.attributes ??= []);
+  for (const wanted of PRICE_ATTRS) {
+    if (!attrs.some((a) => a.name === wanted.name)) attrs.push({ ...wanted });
+  }
+  const hasPriceStat = page.stats.some((s) => /\$\d/.test(s.value));
+  if (!hasPriceStat) page.stats = [...page.stats, { ...PRICE_CORE }, { ...PRICE_PRO }];
+}
+
+/* ------------------------------------------------------------------------- *
+ * Comparison rows — the strongest differentiator factor in the same trial.
+ *
+ * Every figure in `other` is the alternative's own published list price or
+ * published policy, stated as such. Nothing here characterises a competitor's
+ * quality; the rows exist so an engine answering "X vs Asherin" reads a table
+ * instead of inventing one.
+ * ------------------------------------------------------------------------- */
+
+const PRICE_ROW = (versus: string, other: string): GeoComparison => ({
+  versus,
+  dimension: "Published monthly list price",
+  asherin: "$18 core, $399 professional",
+  other,
+});
+
+const PLATFORM_COMPARISONS: GeoComparison[] = [
+  PRICE_ROW("ChatGPT Plus", "$20 per month, as published by OpenAI"),
+  {
+    versus: "ChatGPT Plus",
+    dimension: "Model routing",
+    asherin: "Platform-funded model or bring-your-own key across 8 providers",
+    other: "OpenAI models only",
+  },
+  PRICE_ROW("Claude Pro", "$20 per month, as published by Anthropic"),
+  {
+    versus: "Claude Pro",
+    dimension: "Built-in OSINT and forecasting modules",
+    asherin: "Included: entity resolution, jurisdictional records, scenario forecasting",
+    other: "General assistant; no bundled records or forecasting modules",
+  },
+  PRICE_ROW("Perplexity Pro", "$20 per month, as published by Perplexity"),
+  {
+    versus: "Perplexity Pro",
+    dimension: "Output artefact",
+    asherin: "Branded intelligence report file with per-claim sourcing",
+    other: "Cited chat answer",
+  },
+  PRICE_ROW("Venice Pro", "$18 per month, as published by Venice"),
+  {
+    versus: "Venice Pro",
+    dimension: "Scope",
+    asherin: "Private chat plus 40+ analysis modules on one subscription",
+    other: "Private chat and image generation",
+  },
+];
+
+for (const page of Object.values(GEO_CONTENT)) {
+  if (!page.comparisons || page.comparisons.length === 0) {
+    page.comparisons = PLATFORM_COMPARISONS;
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * Hedge detection.
+ *
+ * The same trial found confident, declarative phrasing materially raises the
+ * odds of a passage being lifted; hedged phrasing ("may help", "can assist")
+ * gives an engine nothing quotable. This detector runs over the answer block
+ * only — hedging is legitimate elsewhere, but not in the extractable unit.
+ * ------------------------------------------------------------------------- */
+
+export const HEDGE_PATTERNS: RegExp[] = [
+  /\b(?:may|might|could|can)\s+(?:help|assist|enable|allow|provide|improve|support)\b/i,
+  /\b(?:aims?|seeks?|strives?|hopes?)\s+to\b/i,
+  /\b(?:designed|intended|meant)\s+to\b/i,
+  /\b(?:potentially|possibly|arguably|generally|typically|often|usually|somewhat)\b/i,
+  /\b(?:one of the|among the)\s+(?:best|leading|top|most)\b/i,
+  /\bwe believe\b|\bit is thought\b|\bsome say\b/i,
+];
+
+export interface HedgeAudit {
+  /** Distinct hedge phrases found in the answer block. */
+  hits: string[];
+  pass: boolean;
+}
+
+export function hedgeAudit(page: GeoPage): HedgeAudit {
+  const hits: string[] = [];
+  for (const re of HEDGE_PATTERNS) {
+    // Patterns are non-global by construction, so `match` is stateless here.
+    const m = page.answer.match(re);
+    if (m && !hits.includes(m[0])) hits.push(m[0]);
+  }
+  return { hits, pass: hits.length === 0 };
+}
+
+/** Every gate the trial identified, checked in one place. */
+export interface GatekeeperAudit {
+  hasPrice: boolean;
+  hasTimestamp: boolean;
+  hasComparison: boolean;
+  confident: boolean;
+  institutional: boolean;
+  pass: boolean;
+}
+
+export function gatekeeperAudit(page: GeoPage): GatekeeperAudit {
+  const hasPrice =
+    page.stats.some((s) => /\$\d/.test(s.value)) ||
+    (page.attributes ?? []).some((a) => /price/i.test(a.name));
+  const hasTimestamp = Boolean(page.updated || page.revisions?.length);
+  const hasComparison = (page.comparisons ?? []).length > 0;
+  const confident = hedgeAudit(page).pass;
+  const ratio = institutionalRatio(page);
+  const institutional = ratio.total > 0 && ratio.institutional > 0;
+  return {
+    hasPrice,
+    hasTimestamp,
+    hasComparison,
+    confident,
+    institutional,
+    pass: hasPrice && hasTimestamp && hasComparison && confident && institutional,
+  };
+}
+
+/** Distinct alternatives named across the corpus, for the /vs cluster index. */
+export function allComparedAlternatives(): string[] {
+  const set = new Set<string>();
+  for (const page of Object.values(GEO_CONTENT)) {
+    for (const c of page.comparisons ?? []) set.add(c.versus);
+  }
+  return [...set].sort();
+}
+
+
 /** Word count of the extractable answer — target band is 40-60. */
 export function answerWordCount(answer: string): number {
   return answer.trim().split(/\s+/).filter(Boolean).length;
