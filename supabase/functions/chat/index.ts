@@ -1536,7 +1536,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       // re-derive it if that pass failed, so both layers agree on the turn type.
       const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
 
-      if (!isDefensiveSecurityAuditRequest && intent.kind !== "none") {
+      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && intent.kind !== "none") {
         isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
 
