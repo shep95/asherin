@@ -22,6 +22,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
               <Link to="/forums" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Forums</Link>
               <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
               <Link to="/updates" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Updates</Link>
+              <Link to="/sources" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Sources</Link>
               <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
               <Link to="/privacy" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
             </div>

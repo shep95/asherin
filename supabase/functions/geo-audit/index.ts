@@ -86,6 +86,14 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
     textBetween(html, /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i) ?? "";
   const types = collectJsonLdTypes(html);
   const statRows = (html.match(/as of <time/gi) || []).length;
+  const attrRows = (html.match(/data-geo-attribute=/gi) || []).length;
+  const hasCorroboration = /Independent corroboration/i.test(html) || /"citation"/.test(html);
+  // Lead-sentence contract: short, literal, anchored (UIUC/IISc retriever-bias study).
+  const leadSentence = (() => {
+    const m = answerText.match(/^[\s\S]*?[.!?](?=\s+[A-Z"(])/);
+    return (m ? m[0] : answerText).trim();
+  })();
+  const leadWords = leadSentence ? leadSentence.split(/\s+/).filter(Boolean).length : 0;
   const hasFreshness = /Last verified/i.test(html) || /"dateModified"/.test(html);
   const canonical =
     textBetween(html, /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i) ?? "";
@@ -156,6 +164,24 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
       label: "Canonical self-references this route",
       pass: canonical === `${ORIGIN}${route}` || canonical === `${ORIGIN}${route}/`,
       detail: canonical || "missing",
+    },
+    {
+      id: "attributes",
+      label: "Attribute ledger published (machine-readable entity facts)",
+      pass: attrRows >= 3,
+      detail: `${attrRows} attributes`,
+    },
+    {
+      id: "lead-brevity",
+      label: "Lead sentence under 25 words (retriever brevity bias)",
+      pass: leadWords > 0 && leadWords <= 25,
+      detail: leadWords ? `${leadWords} words` : "no answer block",
+    },
+    {
+      id: "corroboration",
+      label: "Third-party corroboration or citation graph present",
+      pass: hasCorroboration,
+      detail: hasCorroboration ? "citation/corroboration found" : "none",
     },
   ];
 

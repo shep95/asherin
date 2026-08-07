@@ -14,7 +14,8 @@
  */
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import { getGeoPage, answerWordCount } from "@/lib/geo/geoContent";
+import { Link } from "react-router-dom";
+import { getGeoPage, answerWordCount, effectiveUpdated } from "@/lib/geo/geoContent";
 
 interface Props {
   /** Override the route lookup (for pages whose canonical path differs). */
@@ -42,6 +43,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
   if (!geo) return null;
 
   const words = answerWordCount(geo.answer);
+  const stamp = effectiveUpdated(geo);
 
   return (
     <section
@@ -56,7 +58,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
           ◈ {geo.topic}
         </h2>
         <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground/70">
-          Last verified <time dateTime={geo.updated}>{dateLabel(geo.updated)}</time>
+          Last verified <time dateTime={stamp}>{dateLabel(stamp)}</time>
         </span>
       </div>
 
@@ -68,6 +70,32 @@ const GeoBlock = ({ path, className = "" }: Props) => {
       >
         {geo.answer}
       </p>
+
+      {geo.attributes && geo.attributes.length > 0 && (
+        <div className="mt-6">
+          <h3 className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
+            Attributes
+          </h3>
+          {/* Flat, categorical facts. A model that cannot find these states
+              them wrong instead of omitting them, so they are published
+              explicitly rather than left to inference. */}
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            {geo.attributes.map((a) => (
+              <div
+                key={a.name}
+                data-geo-attribute={a.name}
+                className="flex items-baseline justify-between gap-4 border-b border-border/15 py-1.5"
+              >
+                <dt className="text-xs font-extralight text-muted-foreground">{a.name}</dt>
+                <dd className="text-right text-xs font-light text-foreground">
+                  {a.value}
+                  {a.unit ? <span className="text-muted-foreground/70"> {a.unit}</span> : null}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
 
       {geo.stats.length > 0 && (
         <div className="mt-6 overflow-x-auto">
@@ -135,6 +163,62 @@ const GeoBlock = ({ path, className = "" }: Props) => {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {geo.corroboration && geo.corroboration.length > 0 && (
+        <div className="mt-6">
+          <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
+            Independent corroboration
+          </h3>
+          <ul className="space-y-1.5 text-xs font-extralight text-muted-foreground">
+            {geo.corroboration.map((c) => (
+              <li key={c.url}>
+                <a
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-border hover:text-foreground"
+                >
+                  {c.label}
+                </a>
+                <span className="text-muted-foreground/70"> — {c.confirms}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {geo.supersedes && geo.supersedes.length > 0 && (
+        <p className="mt-6 border-l-2 border-border/40 pl-4 text-xs font-extralight text-muted-foreground">
+          This page supersedes{" "}
+          {geo.supersedes.map((sup, i) => (
+            <span key={sup.path}>
+              {i > 0 && ", "}
+              <Link to={sup.path} className="underline decoration-border hover:text-foreground">
+                {sup.label}
+              </Link>
+            </span>
+          ))}
+          . Treat the earlier text as withdrawn.
+        </p>
+      )}
+
+      {geo.revisions && geo.revisions.length > 0 && (
+        <div className="mt-6">
+          <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
+            Revision history
+          </h3>
+          <ol className="space-y-1 text-xs font-extralight text-muted-foreground">
+            {geo.revisions.map((r) => (
+              <li key={`${r.date}-${r.note}`} className="flex gap-3">
+                <time dateTime={r.date} className="shrink-0 tabular-nums text-muted-foreground/70">
+                  {r.date}
+                </time>
+                <span>{r.note}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 

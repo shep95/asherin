@@ -10,7 +10,35 @@
  */
 
 import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO, type SeoEntry } from "../routeSeoData";
-import { getGeoPage, type GeoFaq, type GeoPage } from "./geoContent";
+import {
+  effectiveUpdated,
+  getGeoPage,
+  type GeoAttribute,
+  type GeoFaq,
+  type GeoPage,
+} from "./geoContent";
+
+/**
+ * Independently verifiable web presences for the Asherin entity.
+ *
+ * `sameAs` is a corroboration signal: Harvard Business Review's 2026 study of
+ * AI brand surfacing found models favour entities they can triangulate across
+ * third parties. Only add URLs that genuinely resolve to this organisation —
+ * an unresolvable sameAs is worse than an absent one.
+ */
+export const ORG_SAME_AS: string[] = [
+  "https://www.asherin.com",
+];
+
+/** GeoAttribute -> schema.org PropertyValue. */
+function toPropertyValues(attrs: GeoAttribute[]): Json[] {
+  return attrs.map((a) => ({
+    "@type": "PropertyValue",
+    name: a.name,
+    value: a.value,
+    ...(a.unit ? { unitText: a.unit } : {}),
+  }));
+}
 
 export const ORG_ID = `${ORIGIN}/#organization`;
 export const SITE_ID = `${ORIGIN}/#website`;
@@ -26,6 +54,7 @@ export function buildOrganization(): Json {
     url: ORIGIN,
     logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
     founder: { "@type": "Person", name: "Asher Newton" },
+    ...(ORG_SAME_AS.length ? { sameAs: ORG_SAME_AS } : {}),
     description:
       "Asherin is a private AI intelligence platform combining uncensored chat, OSINT search, jurisdictional records, and event forecasting.",
   };
@@ -66,6 +95,18 @@ export function buildSoftwareApplication(): Json {
       "Bring-your-own-key model routing",
       "Encrypted operator workspace",
     ],
+    // Attribute ledger: models that cannot find a stated category, price model,
+    // or data policy will invent one. Publishing them removes the guess.
+    additionalProperty: toPropertyValues([
+      { name: "Product category", value: "AI intelligence platform" },
+      { name: "Deployment model", value: "Hosted web application" },
+      { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
+      { name: "Free trial", value: "24", unit: "hours" },
+      { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
+      { name: "Supported BYOK providers", value: "8" },
+      { name: "Training on user conversations", value: "No" },
+      { name: "Primary users", value: "Analysts, traders, researchers, security teams" },
+    ]),
     offers: [
       {
         "@type": "Offer",
@@ -136,7 +177,35 @@ export function buildFaqPage(pathname: string, faqs: GeoFaq[]): Json {
 function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json {
   const canonical = `${ORIGIN}${pathname}`;
   const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
-  const dateModified = geo?.updated ?? entry.dateModified ?? entry.datePublished;
+  // The newest revision wins: a superseded date keeps stale text alive in
+  // retrieval long after the page itself has moved on.
+  const dateModified = geo
+    ? effectiveUpdated(geo)
+    : entry.dateModified ?? entry.datePublished;
+
+  /** External references, so the claim graph is traversable, not just stated. */
+  const citation = [
+    ...(geo?.citations ?? []).map((c) => ({
+      "@type": "CreativeWork",
+      name: c.title,
+      url: c.url,
+      publisher: { "@type": "Organization", name: c.publisher },
+      datePublished: String(c.year),
+    })),
+    ...(geo?.corroboration ?? []).map((c) => ({
+      "@type": "WebPage",
+      name: c.label,
+      url: c.url,
+      description: c.confirms,
+    })),
+  ];
+
+  const supersedes = (geo?.supersedes ?? []).map((s) => ({
+    "@type": "WebPage",
+    "@id": `${ORIGIN}${s.path}#page`,
+    url: `${ORIGIN}${s.path}`,
+    name: s.label,
+  }));
 
   const base: Json = {
     "@id": `${canonical}#page`,
@@ -148,6 +217,14 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
     publisher: { "@id": ORG_ID },
     inLanguage: "en-US",
     ...(dateModified ? { dateModified } : {}),
+    // sdDatePublished states when the *structured data* was last confirmed,
+    // which is what a retriever needs to rank two versions of the same claim.
+    ...(dateModified ? { sdDatePublished: dateModified } : {}),
+    ...(citation.length ? { citation } : {}),
+    ...(supersedes.length ? { replacee: supersedes } : {}),
+    ...(geo?.attributes?.length
+      ? { additionalProperty: toPropertyValues(geo.attributes) }
+      : {}),
   };
 
   if (isArticle) {
@@ -158,6 +235,7 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
       author: { "@type": "Person", name: "Asher Newton" },
       image: DEFAULT_OG_IMAGE,
       mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+      ...(geo ? { abstract: geo.answer, about: { "@type": "Thing", name: geo.topic } } : {}),
     };
   }
 
@@ -177,6 +255,7 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
       : {}),
   };
 }
+
 
 /**
  * Full @graph for a route: main entity + breadcrumbs + FAQ + (on product
