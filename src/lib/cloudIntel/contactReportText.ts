@@ -127,7 +127,7 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push("                     4 doubtful · 5 improbable · 6 cannot be judged");
     L.push("");
     for (const f of a.facts) {
-      L.push(...field(`  ${f.field.toUpperCase()} — `, f.value, 4));
+      L.push(...field(`  ${f.field.toUpperCase()}${f.band === "candidate" ? " [CANDIDATE — UNVERIFIED]" : ""} — `, f.value, 4));
       L.push(...field("    ├─ Credibility: ", `${f.credibility} — ${f.credibilityNote}`, 8));
       L.push(...field("    └─ Sources:     ", f.sources.map((s) => s.domain).join(", ") || "none recorded", 8));
       L.push("");
