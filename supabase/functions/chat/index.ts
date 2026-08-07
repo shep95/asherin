@@ -2390,7 +2390,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
         }
 
         if (response && !response.ok) {
-          const errText = await response.text();
+          const errText = await response.text().catch(() => lastTransientBody);
           console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
           byokFailed = true;
           byokFailStatus = response.status;
@@ -2405,6 +2405,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
           } else {
             byokFailReason = `${byokProvider} returned ${response.status}.`;
           }
+          // A transient status that survived the ladder is a busy upstream, not
+          // an unreachable one — keep the real status so the client asks for a
+          // resend instead of blaming the key.
           response = null;
         }
       } catch (e) {
