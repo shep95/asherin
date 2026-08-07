@@ -17,6 +17,8 @@ import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
+import { getGeoPage } from "../src/lib/geo/geoContent";
+
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
 const MAX_PRERENDER_PAGES = 2000;
