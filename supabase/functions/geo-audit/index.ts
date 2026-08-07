@@ -25,6 +25,8 @@ const ORIGIN = "https://asherin.com";
 const MAX_ROUTES = 25;
 const MAX_PROMPTS = 10;
 const FETCH_TIMEOUT_MS = 12_000;
+/** Search fan-out is slower than a page fetch; 13s round trips are normal. */
+const SEARCH_TIMEOUT_MS = 35_000;
 
 interface RouteScore {
   route: string;
@@ -44,9 +46,9 @@ interface CitationResult {
   competitors: string[];
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}) {
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } finally {
@@ -218,7 +220,7 @@ async function searchOnce(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-    });
+    }, SEARCH_TIMEOUT_MS);
     if (!res.ok) return [];
     const data = await res.json().catch(() => ({}));
     return Array.isArray(data?.results) ? data.results : [];
