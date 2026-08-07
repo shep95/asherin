@@ -120,11 +120,17 @@ export interface VaultBundle {
   devices: Array<{ label: string; platform: string | null; lastSeen: string }>;
   settings: Record<string, any> | null;
   built: string[];
+  /** Sweeps still running server-side when the chat budget expired. */
+  inFlight: string[];
   notFound: string[];
   elapsedMs: number;
 }
 
-const BUILD_BUDGET_MS = 55_000;
+// The vault's own sweep ceiling is 115s; a chat turn cannot hold that long
+// without breaching the edge limit, so the bridge waits 70s and then hands the
+// job off. The mesh-vault invocation is a separate request and keeps running
+// after this abort, so the dossier still lands — it is simply read next turn.
+const BUILD_BUDGET_MS = 70_000;
 
 async function fetchSubject(
   sb: SupabaseClient,
@@ -164,7 +170,7 @@ export async function runVaultPull(
 
     const bundle: VaultBundle = {
       subjects: [], roster: [], counts: { ready: 0, queued: 0, building: 0, failed: 0, total: 0 },
-      devices: [], settings: null, built: [], notFound: [], elapsedMs: 0,
+      devices: [], settings: null, built: [], inFlight: [], notFound: [], elapsedMs: 0,
     };
 
     // Named subjects first — this is the question that actually matters.
@@ -207,8 +213,18 @@ export async function runVaultPull(
         } else {
           console.error("[meshVaultBridge] build failed", res.status, (await res.text()).slice(0, 200));
         }
+        // A 200 with status "building" means another sweep already owns this
+        // subject — same handoff, not a miss.
+        if (res.ok && !bundle.built.includes(target) && !bundle.inFlight.includes(target)) {
+          bundle.inFlight.push(target);
+          bundle.notFound = bundle.notFound.filter((x) => x !== target);
+        }
       } catch (e) {
-        console.error("[meshVaultBridge] build aborted:", (e as Error).message);
+        // Abort is the expected outcome for a deep sweep, not a failure: the
+        // collection continues server-side and the row flips to ready.
+        bundle.inFlight.push(target);
+        bundle.notFound = bundle.notFound.filter((x) => x !== target);
+        console.error("[meshVaultBridge] build handed off:", (e as Error).message);
       }
     }
 
@@ -239,7 +255,7 @@ export async function runVaultPull(
 
     bundle.elapsedMs = Date.now() - started;
     const empty = !bundle.subjects.length && !bundle.roster.length && !bundle.devices.length
-      && !bundle.notFound.length && !bundle.counts.total;
+      && !bundle.notFound.length && !bundle.inFlight.length && !bundle.counts.total;
     return empty ? null : bundle;
   } catch (e) {
     console.error("[meshVaultBridge]", (e as Error).message);
@@ -292,6 +308,11 @@ export function formatVaultContext(b: VaultBundle | null): string {
     if ((doc.gaps ?? []).length) L.push(`INTELLIGENCE GAPS: ${doc.gaps.slice(0, 6).join(" · ")}`);
   }
 
+  if (b.inFlight.length) {
+    L.push(
+      `\n### SWEEP IN FLIGHT\nA full Mesh sweep on ${b.inFlight.join(", ")} was launched during this turn and is still collecting server-side. Tell the operator the dossier is building now and will be readable in about a minute by asking for that subject again — do NOT answer from general knowledge in the meantime.`,
+    );
+  }
   if (b.built.length) L.push(`\nBuilt on demand during this turn: ${b.built.join(", ")}.`);
   if (b.notFound.length) {
     L.push(
