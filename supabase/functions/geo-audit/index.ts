@@ -288,7 +288,7 @@ async function auditRoute(route: string): Promise<RouteScore> {
       url: `${ORIGIN}${route}`,
       status: 0,
       score: 0,
-      maxScore: 15,
+      maxScore: 18,
       checks: [
         {
           id: "reachable",
