@@ -331,7 +331,146 @@ async function searchOnce(
   }
 }
 
-async function probePrompt(prompt: string): Promise<CitationResult> {
+const STOPWORDS = new Set(
+  "the a an and or of to in for on with is are be as by at from that this it its our your you we".split(" "),
+);
+
+/** Content trigrams, stopword-stripped, so scoring rewards distinctive phrasing. */
+function trigrams(text: string): string[] {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9$.\s-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !STOPWORDS.has(w));
+  const out: string[] = [];
+  for (let i = 0; i + 2 < words.length; i++) out.push(words.slice(i, i + 3).join(" "));
+  return out;
+}
+
+/** Currency and percentage literals — the units an engine lifts verbatim. */
+function figures(text: string): string[] {
+  return [...new Set(text.match(/\$\s?[\d,.]+|\b\d+(?:\.\d+)?\s?%/g) ?? [])].map((f) =>
+    f.replace(/\s/g, ""),
+  );
+}
+
+const NO_ABSORPTION = (reason: string): AbsorptionResult => ({
+  ran: false,
+  reason,
+  attributed: false,
+  coverage: 0,
+  liftedFigures: [],
+  answerExcerpt: "",
+});
+
+/**
+ * Stage two: synthesise an answer from the retrieved set the way a generative
+ * engine would, then measure how much of our own page survived into it.
+ *
+ * This is deliberately grounded on the *same* retrieved snippets the selection
+ * stage produced — no extra retrieval, no model browsing — so the number
+ * isolates absorption from selection instead of conflating the two.
+ */
+async function measureAbsorption(
+  prompt: string,
+  pageUrl: string,
+  snippets: { url?: string; title?: string; snippet?: string; content?: string }[],
+): Promise<AbsorptionResult> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+  if (!geminiKey) return NO_ABSORPTION("no platform model key configured");
+
+  let pageText = "";
+  try {
+    const res = await fetchWithTimeout(pageUrl, {
+      headers: { "User-Agent": "AsherinGeoAudit/1.0 (+https://asherin.com)", Accept: "text/html" },
+    });
+    if (!res.ok) return NO_ABSORPTION(`page fetch returned ${res.status}`);
+    const html = await res.text();
+    const block = textBetween(html, /<section[^>]*data-geo-static[\s\S]*?<\/section>/i)
+      ?? html.match(/<section[^>]*data-geo-static[\s\S]*?<\/section>/i)?.[0]
+      ?? "";
+    pageText = (block || html)
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 6000);
+  } catch (e) {
+    return NO_ABSORPTION(e instanceof Error ? e.message : "page fetch failed");
+  }
+  if (pageText.length < 80) return NO_ABSORPTION("page carried no extractable text");
+
+  const context = snippets
+    .slice(0, 8)
+    .map(
+      (s, i) =>
+        `[${i + 1}] ${s.title ?? ""}\nURL: ${s.url ?? ""}\n${(s.snippet ?? s.content ?? "").slice(0, 700)}`,
+    )
+    .join("\n\n");
+
+  let answer = "";
+  try {
+    const res = await fetchWithTimeout(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text:
+                    `Answer the question using only the numbered sources below. ` +
+                    `Write 120-180 words. Include concrete figures where the sources give them. ` +
+                    `Name the organisation behind any claim you use.\n\n` +
+                    `Question: ${prompt}\n\nSources:\n${context}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+        }),
+      },
+      30_000,
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`absorption model call failed [${res.status}]: ${body.slice(0, 300)}`);
+      return NO_ABSORPTION(`model returned ${res.status}`);
+    }
+    const data = await res.json();
+    answer = (data?.candidates?.[0]?.content?.parts ?? [])
+      .map((p: { text?: string }) => p.text ?? "")
+      .join(" ")
+      .trim();
+  } catch (e) {
+    return NO_ABSORPTION(e instanceof Error ? e.message : "model call failed");
+  }
+  if (!answer) return NO_ABSORPTION("model returned an empty answer");
+
+  const answerLower = answer.toLowerCase();
+  const pageGrams = [...new Set(trigrams(pageText))];
+  const answerGrams = new Set(trigrams(answer));
+  const hits = pageGrams.filter((g) => answerGrams.has(g)).length;
+  const coverage = pageGrams.length ? hits / pageGrams.length : 0;
+  const answerFigures = new Set(figures(answer));
+  const liftedFigures = figures(pageText).filter((f) => answerFigures.has(f));
+
+  return {
+    ran: true,
+    attributed: answerLower.includes("asherin"),
+    // Trigram overlap against a 6k-char page is small by construction; the
+    // useful signal is movement over time and across prompts, not the absolute.
+    coverage: Number(coverage.toFixed(4)),
+    liftedFigures,
+    answerExcerpt: answer.slice(0, 400),
+  };
+}
+
+async function probePrompt(prompt: string, withAbsorption: boolean): Promise<CitationResult> {
   let results = await searchOnce("zophiel-search", { query: prompt, mode: "web", page: 1 });
   if (results.length === 0) {
     results = await searchOnce("ddg-search", { query: prompt, numResults: 10 });
@@ -346,14 +485,26 @@ async function probePrompt(prompt: string): Promise<CitationResult> {
     }
   });
   const idx = hosts.findIndex((h) => h === "asherin.com");
+  const matchedUrl = idx >= 0 ? (results[idx].url ?? null) : null;
+
+  let absorption: AbsorptionResult;
+  if (!withAbsorption) {
+    absorption = NO_ABSORPTION("absorption stage not requested");
+  } else if (!matchedUrl) {
+    // Not selected, so there is nothing to absorb. Reported, not silently zero.
+    absorption = NO_ABSORPTION("not selected — absorption requires retrieval first");
+  } else {
+    absorption = await measureAbsorption(prompt, matchedUrl, results);
+  }
 
   return {
     prompt,
     found: idx >= 0,
     rank: idx >= 0 ? idx + 1 : null,
-    matchedUrl: idx >= 0 ? (results[idx].url ?? null) : null,
+    matchedUrl,
     totalResults: results.length,
     competitors: [...new Set(hosts.filter(Boolean))].slice(0, 8),
+    absorption,
   };
 }
 
