@@ -331,6 +331,17 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
   };
 }
 
+/**
+ * The check-list length, derived rather than typed.
+ *
+ * The unreachable-route branch below has to report a denominator without ever
+ * running the checks. Hard-coding it means every new check silently makes the
+ * two paths disagree, so it is computed once by scoring an empty document.
+ */
+const MAX_ROUTE_SCORE = scoreRoute("/", 0, "").checks.length;
+
+
+
 async function auditRoute(route: string): Promise<RouteScore> {
   try {
     const res = await fetchWithTimeout(`${ORIGIN}${route}`, {
