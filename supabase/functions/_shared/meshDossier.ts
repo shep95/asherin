@@ -228,7 +228,17 @@ export interface MeshDossierDoc {
   version: 2;
   subject: { name: string; email: string | null; domainHint: string | null };
   builtAt: string;
+  /** STRONG-band fields only: the subject was positively matched in the document. */
   identity: Record<string, DossierFact[]>;
+  /**
+   * POSSIBLE-band fields. These are extracted from documents that mention the
+   * name but did not clear strong identity matching. Publishing them as
+   * confirmed would be fabrication; withholding them entirely was the reason
+   * dossiers on real people came back empty while sixty sources sat unread.
+   * They ship in their own compartment, never merged into `identity`, and are
+   * capped at "possibly true" no matter how many domains repeat them.
+   */
+  candidates: Record<string, DossierFact[]>;
   hop1: DossierHopNode[];
   hop2: DossierHopNode[];
   hop3: Array<{ node: string; viaA: string; viaB: string; strength: number }>;
