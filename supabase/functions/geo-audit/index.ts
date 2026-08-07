@@ -28,6 +28,20 @@ const FETCH_TIMEOUT_MS = 12_000;
 /** Search fan-out is slower than a page fetch; 13s round trips are normal. */
 const SEARCH_TIMEOUT_MS = 35_000;
 
+/**
+ * Hedge phrasing in the answer block. Mirrors HEDGE_PATTERNS in
+ * src/lib/geo/geoContent.ts — duplicated because Deno cannot import from src/.
+ * Keep the two lists in step when either changes.
+ */
+const HEDGE_PATTERNS: RegExp[] = [
+  /\b(?:may|might|could|can)\s+(?:help|assist|enable|allow|provide|improve|support)\b/i,
+  /\b(?:aims?|seeks?|strives?|hopes?)\s+to\b/i,
+  /\b(?:designed|intended|meant)\s+to\b/i,
+  /\b(?:potentially|possibly|arguably|generally|typically|often|usually|somewhat)\b/i,
+  /\b(?:one of the|among the)\s+(?:best|leading|top|most)\b/i,
+  /\bwe believe\b|\bit is thought\b|\bsome say\b/i,
+];
+
 interface RouteScore {
   route: string;
   url: string;
@@ -37,6 +51,28 @@ interface RouteScore {
   checks: { id: string; label: string; pass: boolean; detail: string }[];
 }
 
+/**
+ * Selection vs absorption.
+ *
+ * Retrieval (`found`, `rank`) is selection: the engine fetched the page.
+ * Absorption is what fraction of the page's own distinctive language survives
+ * into the synthesised answer. Perplexity-class engines select and cite;
+ * ChatGPT-class engines absorb and often do not cite, so a selection-only
+ * metric under-reports the second entirely.
+ */
+interface AbsorptionResult {
+  /** null when the absorption stage did not run (no model key, or not selected). */
+  ran: boolean;
+  reason?: string;
+  /** Model named asherin.com or Asherin in the synthesised answer. */
+  attributed: boolean;
+  /** Share of the page's distinctive trigrams present in the answer, 0-1. */
+  coverage: number;
+  /** Page figures (prices, counts) that survived into the answer. */
+  liftedFigures: string[];
+  answerExcerpt: string;
+}
+
 interface CitationResult {
   prompt: string;
   found: boolean;
@@ -44,6 +80,7 @@ interface CitationResult {
   matchedUrl: string | null;
   totalResults: number;
   competitors: string[];
+  absorption: AbsorptionResult;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -97,6 +134,18 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
   const hasFreshness = /Last verified/i.test(html) || /"dateModified"/.test(html);
   const canonical =
     textBetween(html, /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i) ?? "";
+
+  // Gatekeeper factors from the Ansal/Sprinklr controlled trial: a page missing
+  // a price, a comparison or confident phrasing is largely ineligible for
+  // citation regardless of how well the rest of it reads.
+  const hasPrice = /\$\s?\d/.test(html) || /data-geo-attribute="[^"]*[Pp]rice/.test(html);
+  const comparisonRows = (html.match(/data-geo-comparison=/gi) || []).length;
+  const institutionalRefs = (
+    html.match(/data-geo-source-kind="(?:government|academic|standards|press)"/gi) || []
+  ).length;
+  const hedges = HEDGE_PATTERNS.map((re) => answerText.match(re)?.[0])
+    .filter((v): v is string => Boolean(v));
+
 
   const checks = [
     {
@@ -183,6 +232,33 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
       pass: hasCorroboration,
       detail: hasCorroboration ? "citation/corroboration found" : "none",
     },
+    // --- Gatekeeper factors, Ansal University / Sprinklr (arXiv:2605.25517) ---
+    {
+      id: "price",
+      label: "Explicit price published on the page (gatekeeper factor)",
+      pass: hasPrice,
+      detail: hasPrice ? "price literal found" : "no currency figure in the block",
+    },
+    {
+      id: "comparison",
+      label: "Head-to-head comparison against a named alternative",
+      pass: comparisonRows > 0,
+      detail: comparisonRows ? `${comparisonRows} rows` : "none",
+    },
+    {
+      id: "confidence",
+      label: "Answer block is declarative (no hedging)",
+      pass: hedges.length === 0,
+      detail: hedges.length ? `hedged: ${hedges.join("; ")}` : "declarative",
+    },
+    {
+      id: "institutional",
+      label: "At least one government, academic, standards or press source",
+      pass: institutionalRefs > 0,
+      detail: institutionalRefs
+        ? `${institutionalRefs} institutional refs`
+        : "vendor/first-party only",
+    },
   ];
 
   return {
@@ -212,7 +288,7 @@ async function auditRoute(route: string): Promise<RouteScore> {
       url: `${ORIGIN}${route}`,
       status: 0,
       score: 0,
-      maxScore: 11,
+      maxScore: 18,
       checks: [
         {
           id: "reachable",
@@ -231,10 +307,17 @@ async function auditRoute(route: string): Promise<RouteScore> {
  * scrape return an empty set from server egress; ddg-search stays as a fallback
  * so a Firecrawl outage degrades the probe instead of failing it.
  */
+interface SearchHit {
+  url?: string;
+  title?: string;
+  snippet?: string;
+  content?: string;
+}
+
 async function searchOnce(
   fn: string,
   body: Record<string, unknown>,
-): Promise<{ url?: string }[]> {
+): Promise<SearchHit[]> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   try {
@@ -255,7 +338,154 @@ async function searchOnce(
   }
 }
 
-async function probePrompt(prompt: string): Promise<CitationResult> {
+const STOPWORDS = new Set(
+  "the a an and or of to in for on with is are be as by at from that this it its our your you we".split(" "),
+);
+
+/** Content trigrams, stopword-stripped, so scoring rewards distinctive phrasing. */
+function trigrams(text: string): string[] {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9$.\s-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !STOPWORDS.has(w));
+  const out: string[] = [];
+  for (let i = 0; i + 2 < words.length; i++) out.push(words.slice(i, i + 3).join(" "));
+  return out;
+}
+
+/** Currency and percentage literals — the units an engine lifts verbatim. */
+function figures(text: string): string[] {
+  return [...new Set(text.match(/\$\s?[\d,.]+|\b\d+(?:\.\d+)?\s?%/g) ?? [])].map((f) =>
+    f.replace(/\s/g, ""),
+  );
+}
+
+const NO_ABSORPTION = (reason: string): AbsorptionResult => ({
+  ran: false,
+  reason,
+  attributed: false,
+  coverage: 0,
+  liftedFigures: [],
+  answerExcerpt: "",
+});
+
+/**
+ * Stage two: synthesise an answer from the retrieved set the way a generative
+ * engine would, then measure how much of our own page survived into it.
+ *
+ * This is deliberately grounded on the *same* retrieved snippets the selection
+ * stage produced — no extra retrieval, no model browsing — so the number
+ * isolates absorption from selection instead of conflating the two.
+ */
+async function measureAbsorption(
+  prompt: string,
+  pageUrl: string,
+  snippets: SearchHit[],
+): Promise<AbsorptionResult> {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
+  if (!geminiKey) return NO_ABSORPTION("no platform model key configured");
+
+  let pageText = "";
+  try {
+    const res = await fetchWithTimeout(pageUrl, {
+      headers: { "User-Agent": "AsherinGeoAudit/1.0 (+https://asherin.com)", Accept: "text/html" },
+    });
+    if (!res.ok) return NO_ABSORPTION(`page fetch returned ${res.status}`);
+    const html = await res.text();
+    const block = html.match(/<section[^>]*data-geo-static[\s\S]*?<\/section>/i)?.[0] ?? "";
+    pageText = (block || html)
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 6000);
+  } catch (e) {
+    return NO_ABSORPTION(e instanceof Error ? e.message : "page fetch failed");
+  }
+  if (pageText.length < 80) return NO_ABSORPTION("page carried no extractable text");
+
+  const context = snippets
+    .slice(0, 8)
+    .map(
+      (s, i) =>
+        `[${i + 1}] ${s.title ?? ""}\nURL: ${s.url ?? ""}\n${(s.snippet ?? s.content ?? "").slice(0, 700)}`,
+    )
+    .join("\n\n");
+
+  let answer = "";
+  try {
+    const res = await fetchWithTimeout(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiKey },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text:
+                    `Answer the question using only the numbered sources below. ` +
+                    `Write 120-180 words. Include concrete figures where the sources give them. ` +
+                    `Name the organisation behind any claim you use.\n\n` +
+                    `Question: ${prompt}\n\nSources:\n${context}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+        }),
+      },
+      30_000,
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`absorption model call failed [${res.status}]: ${body.slice(0, 300)}`);
+      return NO_ABSORPTION(`model returned ${res.status}`);
+    }
+    const data = await res.json();
+    answer = (data?.candidates?.[0]?.content?.parts ?? [])
+      .map((p: { text?: string }) => p.text ?? "")
+      .join(" ")
+      .trim();
+  } catch (e) {
+    return NO_ABSORPTION(e instanceof Error ? e.message : "model call failed");
+  }
+  if (!answer) return NO_ABSORPTION("model returned an empty answer");
+
+  const answerLower = answer.toLowerCase();
+  const pageGrams = [...new Set(trigrams(pageText))];
+  const answerGrams = new Set(trigrams(answer));
+  const hits = pageGrams.filter((g) => answerGrams.has(g)).length;
+  const coverage = pageGrams.length ? hits / pageGrams.length : 0;
+  const answerFigures = new Set(figures(answer));
+  const liftedFigures = figures(pageText).filter((f) => answerFigures.has(f));
+
+  return {
+    ran: true,
+    attributed: answerLower.includes("asherin"),
+    // Trigram overlap against a 6k-char page is small by construction; the
+    // useful signal is movement over time and across prompts, not the absolute.
+    coverage: Number(coverage.toFixed(4)),
+    liftedFigures,
+    answerExcerpt: answer.slice(0, 400),
+  };
+}
+
+/**
+ * `counterfactualUrl` measures absorption for a page that was *not* selected.
+ * It answers "if the engine had our page, would our language survive?", which
+ * is the only way to separate a retrieval problem from a phrasing problem
+ * before indexing catches up. Absent it, absorption requires real selection.
+ */
+async function probePrompt(
+  prompt: string,
+  withAbsorption: boolean,
+  counterfactualUrl?: string,
+): Promise<CitationResult> {
   let results = await searchOnce("zophiel-search", { query: prompt, mode: "web", page: 1 });
   if (results.length === 0) {
     results = await searchOnce("ddg-search", { query: prompt, numResults: 10 });
@@ -270,14 +500,33 @@ async function probePrompt(prompt: string): Promise<CitationResult> {
     }
   });
   const idx = hosts.findIndex((h) => h === "asherin.com");
+  const matchedUrl = idx >= 0 ? (results[idx].url ?? null) : null;
+
+  let absorption: AbsorptionResult;
+  if (!withAbsorption) {
+    absorption = NO_ABSORPTION("absorption stage not requested");
+  } else if (!matchedUrl && !counterfactualUrl) {
+    // Not selected, so there is nothing to absorb. Reported, not silently zero.
+    absorption = NO_ABSORPTION("not selected — absorption requires retrieval first");
+  } else {
+    const target = matchedUrl ?? counterfactualUrl!;
+    const measured = await measureAbsorption(prompt, target, results);
+    // Only annotate a *successful* counterfactual: overwriting `reason` on a
+    // failed run would hide why the measurement did not happen.
+    absorption =
+      matchedUrl || !measured.ran
+        ? measured
+        : { ...measured, reason: `counterfactual against ${target}` };
+  }
 
   return {
     prompt,
     found: idx >= 0,
     rank: idx >= 0 ? idx + 1 : null,
-    matchedUrl: idx >= 0 ? (results[idx].url ?? null) : null,
+    matchedUrl,
     totalResults: results.length,
     competitors: [...new Set(hosts.filter(Boolean))].slice(0, 8),
+    absorption,
   };
 }
 
@@ -323,12 +572,48 @@ serve(async (req) => {
       .slice(0, MAX_PROMPTS);
     if (cleanPrompts.length === 0) return json({ error: "No prompts supplied" }, 400);
 
+    // Absorption costs a model call per selected prompt, so it is opt-in and
+    // the batch narrows to 2 at a time when it is on.
+    const withAbsorption = body?.absorption === true;
+    // Only same-origin counterfactual targets: never let a caller point the
+    // fetcher at an arbitrary host (SSRF).
+    const rawCf = typeof body?.counterfactualUrl === "string" ? body.counterfactualUrl : "";
+    let counterfactualUrl: string | undefined;
+    if (rawCf) {
+      try {
+        const u = new URL(rawCf, ORIGIN);
+        if (u.origin === ORIGIN) counterfactualUrl = u.toString();
+      } catch { /* ignore malformed override */ }
+    }
+    const stride = withAbsorption ? 2 : 3;
+
     const results: CitationResult[] = [];
-    for (let i = 0; i < cleanPrompts.length; i += 3) {
-      const batch = await Promise.all(cleanPrompts.slice(i, i + 3).map(probePrompt));
+    for (let i = 0; i < cleanPrompts.length; i += stride) {
+      const batch = await Promise.all(
+        cleanPrompts.slice(i, i + stride).map((p) => probePrompt(p, withAbsorption, counterfactualUrl)),
+      );
       results.push(...batch);
     }
-    return json({ mode, ranAt: new Date().toISOString(), results });
+    const measured = results.filter((r) => r.absorption.ran);
+    return json({
+      mode,
+      ranAt: new Date().toISOString(),
+      results,
+      // Selection and absorption reported separately: a page can be retrieved
+      // often and absorbed rarely, and the fix for each is different.
+      summary: {
+        selectionRate: results.length
+          ? Number((results.filter((r) => r.found).length / results.length).toFixed(3))
+          : 0,
+        absorptionMeasured: measured.length,
+        attributionRate: measured.length
+          ? Number((measured.filter((r) => r.absorption.attributed).length / measured.length).toFixed(3))
+          : null,
+        meanCoverage: measured.length
+          ? Number((measured.reduce((s, r) => s + r.absorption.coverage, 0) / measured.length).toFixed(4))
+          : null,
+      },
+    });
   } catch (e) {
     console.error("geo-audit error", e);
     return new Response(

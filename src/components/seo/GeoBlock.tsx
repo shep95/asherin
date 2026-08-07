@@ -15,7 +15,13 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { getGeoPage, answerWordCount, effectiveUpdated } from "@/lib/geo/geoContent";
+import {
+  getGeoPage,
+  answerWordCount,
+  effectiveUpdated,
+  SOURCE_KIND_LABEL,
+  type GeoSourceKind,
+} from "@/lib/geo/geoContent";
 
 interface Props {
   /** Override the route lookup (for pages whose canonical path differs). */
@@ -33,6 +39,23 @@ const dateLabel = (iso: string) => {
     day: "numeric",
     timeZone: "UTC",
   });
+};
+
+/**
+ * Institutional class of a reference, published rather than inferred.
+ * Rendered inline before the link so the class travels with the citation in
+ * any extracted passage, not just in the JSON-LD a text-only reader skips.
+ */
+const SourceKindTag = ({ kind }: { kind?: GeoSourceKind }) => {
+  if (!kind) return null;
+  return (
+    <span
+      data-geo-source-kind={kind}
+      className="mr-2 inline-block rounded-sm border border-border/30 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70"
+    >
+      {SOURCE_KIND_LABEL[kind]}
+    </span>
+  );
 };
 
 const GeoBlock = ({ path, className = "" }: Props) => {
@@ -140,6 +163,47 @@ const GeoBlock = ({ path, className = "" }: Props) => {
         </div>
       )}
 
+      {geo.comparisons && geo.comparisons.length > 0 && (
+        <div className="mt-6 overflow-x-auto">
+          <h3 className="mb-3 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
+            Compared with named alternatives
+          </h3>
+          {/* Explicit head-to-head rows. An engine answering "X vs Asherin"
+              reads this table rather than synthesising one from adjectives. */}
+          <table className="w-full border-collapse text-left text-xs">
+            <caption className="sr-only">
+              {geo.topic} compared against named alternatives on published figures
+            </caption>
+            <thead>
+              <tr className="border-b border-border/30 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                <th scope="col" className="py-2 pr-4 font-normal">Alternative</th>
+                <th scope="col" className="py-2 pr-4 font-normal">Dimension</th>
+                <th scope="col" className="py-2 pr-4 font-normal">Asherin</th>
+                <th scope="col" className="py-2 font-normal">Alternative</th>
+              </tr>
+            </thead>
+            <tbody>
+              {geo.comparisons.map((c) => (
+                <tr
+                  key={`${c.versus}-${c.dimension}`}
+                  data-geo-comparison={c.versus}
+                  className="border-b border-border/15 align-top"
+                >
+                  <th scope="row" className="py-3 pr-4 font-light text-foreground">
+                    {c.versus}
+                  </th>
+                  <td className="py-3 pr-4 font-extralight text-muted-foreground">
+                    {c.dimension}
+                  </td>
+                  <td className="py-3 pr-4 font-light text-foreground">{c.asherin}</td>
+                  <td className="py-3 font-extralight text-muted-foreground">{c.other}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {geo.citations && geo.citations.length > 0 && (
         <div className="mt-6">
           <h3 className="mb-2 text-[10px] font-medium tracking-[0.25em] uppercase text-foreground/70">
@@ -148,6 +212,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
           <ul className="space-y-1.5 text-xs font-extralight text-muted-foreground">
             {geo.citations.map((c) => (
               <li key={c.url}>
+                <SourceKindTag kind={c.kind} />
                 <a
                   href={c.url}
                   target="_blank"
@@ -174,6 +239,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
           <ul className="space-y-1.5 text-xs font-extralight text-muted-foreground">
             {geo.corroboration.map((c) => (
               <li key={c.url}>
+                <SourceKindTag kind={c.kind} />
                 <a
                   href={c.url}
                   target="_blank"

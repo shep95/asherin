@@ -31,6 +31,19 @@ interface RouteScore {
   maxScore: number;
   checks: RouteCheck[];
 }
+/**
+ * Selection is "the engine fetched the page". Absorption is "the engine's
+ * answer carries the page's own language and figures". They move independently,
+ * so the table reports them as separate columns rather than one blended score.
+ */
+interface AbsorptionResult {
+  ran: boolean;
+  reason?: string;
+  attributed: boolean;
+  coverage: number;
+  liftedFigures: string[];
+  answerExcerpt: string;
+}
 interface CitationResult {
   prompt: string;
   found: boolean;
@@ -38,6 +51,13 @@ interface CitationResult {
   matchedUrl: string | null;
   totalResults: number;
   competitors: string[];
+  absorption: AbsorptionResult;
+}
+interface ProbeSummary {
+  selectionRate: number;
+  absorptionMeasured: number;
+  attributionRate: number | null;
+  meanCoverage: number | null;
 }
 
 const DEFAULT_PROMPTS = [
@@ -77,6 +97,9 @@ const GeoAuditView = () => {
   const [citations, setCitations] = useState<CitationResult[] | null>(null);
   const [probeLoading, setProbeLoading] = useState(false);
   const [probeError, setProbeError] = useState<string | null>(null);
+  const [withAbsorption, setWithAbsorption] = useState(true);
+  const [probeSummary, setProbeSummary] = useState<ProbeSummary | null>(null);
+  const [openPrompt, setOpenPrompt] = useState<string | null>(null);
   const [ranAt, setRanAt] = useState<string | null>(null);
 
   const runReadiness = useCallback(async () => {
@@ -114,17 +137,19 @@ const GeoAuditView = () => {
     setProbeError(null);
     try {
       const { data, error } = await supabase.functions.invoke("geo-audit", {
-        body: { mode: "citation", prompts },
+        body: { mode: "citation", prompts, absorption: withAbsorption },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setCitations(data.results ?? []);
+      setProbeSummary(data.summary ?? null);
+      setRanAt(data.ranAt ?? null);
     } catch (e) {
       setProbeError(e instanceof Error ? e.message : "Probe failed");
     } finally {
       setProbeLoading(false);
     }
-  }, [promptText]);
+  }, [promptText, withAbsorption]);
 
   const totals = useMemo(() => {
     if (!routeScores?.length) return null;
@@ -281,6 +306,15 @@ const GeoAuditView = () => {
           <h2 className="text-sm font-light tracking-[0.15em] uppercase text-foreground">
             Retrieval probe
           </h2>
+          <label className="flex items-center gap-2 text-[11px] font-light text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={withAbsorption}
+              onChange={(e) => setWithAbsorption(e.target.checked)}
+              className="h-3.5 w-3.5 accent-current"
+            />
+            Measure absorption (slower)
+          </label>
           <button
             onClick={runProbe}
             disabled={probeLoading}
@@ -329,6 +363,7 @@ const GeoAuditView = () => {
                   <th scope="col" className="py-2 pr-3 font-normal">Prompt</th>
                   <th scope="col" className="py-2 pr-3 font-normal">Retrieved</th>
                   <th scope="col" className="py-2 pr-3 font-normal">Rank</th>
+                  <th scope="col" className="py-2 pr-3 font-normal">Absorbed</th>
                   <th scope="col" className="py-2 font-normal">Domains competing</th>
                 </tr>
               </thead>
@@ -347,13 +382,65 @@ const GeoAuditView = () => {
                       {c.rank ?? "—"}
                       <span className="text-muted-foreground/50"> / {c.totalResults}</span>
                     </td>
+                    <td className="py-2.5 pr-3">
+                      {c.absorption.ran ? (
+                        <button
+                          onClick={() => setOpenPrompt(openPrompt === c.prompt ? null : c.prompt)}
+                          aria-expanded={openPrompt === c.prompt}
+                          className="text-left font-mono text-[11px] text-foreground underline-offset-2 hover:underline"
+                        >
+                          {c.absorption.attributed ? "named" : "unnamed"}
+                          <span className="text-muted-foreground/60">
+                            {" "}
+                            · {(c.absorption.coverage * 100).toFixed(1)}%
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="font-extralight text-muted-foreground/60">
+                          {c.absorption.reason ?? "not measured"}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 font-extralight text-muted-foreground/80">
                       {c.competitors.join(", ") || "none returned"}
                     </td>
                   </tr>
                 ))}
+                {citations
+                  .filter((c) => c.absorption.ran && openPrompt === c.prompt)
+                  .map((c) => (
+                    <tr key={`${c.prompt}-detail`} className="border-b border-border/15 bg-background/30">
+                      <td colSpan={5} className="px-1 py-3">
+                        <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Synthesised answer excerpt
+                        </p>
+                        <p className="max-w-3xl font-extralight leading-relaxed text-muted-foreground">
+                          {c.absorption.answerExcerpt}
+                        </p>
+                        <p className="mt-2 font-mono text-[11px] text-muted-foreground/70">
+                          Figures lifted from the page:{" "}
+                          {c.absorption.liftedFigures.join(", ") || "none"}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
+            {probeSummary && (
+              <p className="mt-3 font-mono text-[11px] text-muted-foreground/80">
+                Selection {(probeSummary.selectionRate * 100).toFixed(0)}%
+                {probeSummary.absorptionMeasured > 0 && (
+                  <>
+                    {" · "}absorption measured on {probeSummary.absorptionMeasured} prompt
+                    {probeSummary.absorptionMeasured === 1 ? "" : "s"}
+                    {probeSummary.attributionRate !== null &&
+                      ` · named in ${(probeSummary.attributionRate * 100).toFixed(0)}%`}
+                    {probeSummary.meanCoverage !== null &&
+                      ` · mean phrase coverage ${(probeSummary.meanCoverage * 100).toFixed(1)}%`}
+                  </>
+                )}
+              </p>
+            )}
             {citations.every((c) => !c.found) && (
               <p className="mt-3 text-xs font-extralight text-muted-foreground">
                 Not retrieved for any prompt yet. Retrieval follows indexing, which lags publishing

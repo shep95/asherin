@@ -17,7 +17,12 @@ import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
-import { effectiveUpdated, getGeoPage } from "../src/lib/geo/geoContent";
+import {
+  effectiveUpdated,
+  getGeoPage,
+  SOURCE_KIND_LABEL,
+  type GeoSourceKind,
+} from "../src/lib/geo/geoContent";
 
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
@@ -154,12 +159,24 @@ function injectGeoBody(html: string, path: string) {
     )
     .join("");
 
+  // The institutional class travels in the visible text, not only the JSON-LD,
+  // so a text-only extractor keeps the government/academic/press signal.
+  const kindTag = (kind?: string) => (kind ? `<span data-geo-source-kind="${escapeAttr(kind)}">${esc(SOURCE_KIND_LABEL[kind as GeoSourceKind] ?? kind)}</span> ` : "");
+
   const corroboration = (geo.corroboration ?? [])
     .map(
       (c) =>
-        `<li><a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.label)}</a> — ${esc(
+        `<li>${kindTag(c.kind)}<a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.label)}</a> — ${esc(
           c.confirms,
         )}</li>`,
+    )
+    .join("");
+
+  const comparisons = (geo.comparisons ?? [])
+    .map(
+      (c) =>
+        `<tr data-geo-comparison="${escapeAttr(c.versus)}"><th scope="row">${esc(c.versus)}</th>` +
+        `<td>${esc(c.dimension)}</td><td>${esc(c.asherin)}</td><td>${esc(c.other)}</td></tr>`,
     )
     .join("");
 
@@ -177,7 +194,7 @@ function injectGeoBody(html: string, path: string) {
   const citations = (geo.citations ?? [])
     .map(
       (c) =>
-        `<li><a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.title)}</a> (${esc(
+        `<li>${kindTag(c.kind)}<a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.title)}</a> (${esc(
           c.publisher,
         )}, ${c.year})</li>`,
     )
@@ -196,6 +213,11 @@ function injectGeoBody(html: string, path: string) {
     `<p data-geo-answer>${esc(geo.answer)}</p>` +
     (attributes ? `<h3>Attributes</h3><dl>${attributes}</dl>` : "") +
     (stats ? `<table><tbody>${stats}</tbody></table>` : "") +
+    (comparisons
+      ? `<h3>Compared with named alternatives</h3><table><thead><tr>` +
+        `<th>Alternative</th><th>Dimension</th><th>Asherin</th><th>Alternative</th>` +
+        `</tr></thead><tbody>${comparisons}</tbody></table>`
+      : "") +
     (citations ? `<h3>Sources</h3><ul>${citations}</ul>` : "") +
     (corroboration
       ? `<h3>Independent corroboration</h3><ul>${corroboration}</ul>`

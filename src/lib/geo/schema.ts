@@ -13,6 +13,7 @@ import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO, type SeoEntry } from "../routeSeoD
 import {
   effectiveUpdated,
   getGeoPage,
+  SOURCE_KIND_LABEL,
   type GeoAttribute,
   type GeoFaq,
   type GeoPage,
@@ -183,7 +184,11 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
     ? effectiveUpdated(geo)
     : entry.dateModified ?? entry.datePublished;
 
-  /** External references, so the claim graph is traversable, not just stated. */
+  /**
+   * External references, so the claim graph is traversable, not just stated.
+   * `genre` carries the institutional class (government / academic / standards
+   * / press), which is the axis authority-ranking models weigh sources on.
+   */
   const citation = [
     ...(geo?.citations ?? []).map((c) => ({
       "@type": "CreativeWork",
@@ -191,14 +196,28 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
       url: c.url,
       publisher: { "@type": "Organization", name: c.publisher },
       datePublished: String(c.year),
+      ...(c.kind ? { genre: SOURCE_KIND_LABEL[c.kind] } : {}),
     })),
     ...(geo?.corroboration ?? []).map((c) => ({
       "@type": "WebPage",
       name: c.label,
       url: c.url,
       description: c.confirms,
+      ...(c.kind ? { genre: SOURCE_KIND_LABEL[c.kind] } : {}),
     })),
   ];
+
+  /**
+   * Comparison rows as flat properties. schema.org has no head-to-head type,
+   * and a PropertyValue is read by every consumer that already reads the
+   * attribute ledger, so the rows land in the same place as the other facts.
+   */
+  const comparisonProps = (geo?.comparisons ?? []).map((c) => ({
+    "@type": "PropertyValue",
+    name: `vs ${c.versus} — ${c.dimension}`,
+    value: `Asherin: ${c.asherin}. ${c.versus}: ${c.other}.`,
+  }));
+
 
   const supersedes = (geo?.supersedes ?? []).map((s) => ({
     "@type": "WebPage",
@@ -222,8 +241,13 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
     ...(dateModified ? { sdDatePublished: dateModified } : {}),
     ...(citation.length ? { citation } : {}),
     ...(supersedes.length ? { replacee: supersedes } : {}),
-    ...(geo?.attributes?.length
-      ? { additionalProperty: toPropertyValues(geo.attributes) }
+    ...(geo?.attributes?.length || comparisonProps.length
+      ? {
+          additionalProperty: [
+            ...toPropertyValues(geo?.attributes ?? []),
+            ...comparisonProps,
+          ],
+        }
       : {}),
   };
 
