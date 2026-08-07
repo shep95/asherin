@@ -694,6 +694,85 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
   },
 };
 
+/**
+ * Corroboration backfill.
+ *
+ * The HBR 2026 finding is that a model surfaces an entity it can triangulate
+ * across parties with no stake in the claim. Product and glossary pages assert
+ * capabilities that rest on documented third-party behaviour, so each is given
+ * the upstream document that independently confirms the mechanism. Applied
+ * after the literal so a single reference list stays authoritative and no route
+ * silently drifts out of coverage.
+ */
+const OSINT_CORROBORATION: GeoCorroboration[] = [
+  {
+    label: "SEC EDGAR full-text search",
+    url: "https://efts.sec.gov/LATEST/search-index?q=",
+    confirms: "US filings are publicly queryable, which is what OSINT sweeps read.",
+  },
+  {
+    label: "UK Companies House public data API",
+    url: "https://developer.company-information.service.gov.uk/",
+    confirms: "UK corporate registry records are published for programmatic retrieval.",
+  },
+  {
+    label: "OpenCorporates open company data",
+    url: "https://opencorporates.com/",
+    confirms: "Cross-jurisdiction company records exist as an independent public dataset.",
+  },
+];
+
+const FORECAST_CORROBORATION: GeoCorroboration[] = [
+  {
+    label: "Brier score, National Weather Service verification",
+    url: "https://www.weather.gov/media/erh/ta2011-01.pdf",
+    confirms: "Probabilistic forecasts are scored by calibration, the method used here.",
+  },
+  {
+    label: "Tetlock, Good Judgment Project findings",
+    url: "https://goodjudgment.com/about/",
+    confirms: "Falsifiable, dated forecasts outperform narrative prediction.",
+  },
+];
+
+const DATA_CORROBORATION: GeoCorroboration[] = [
+  {
+    label: "HL7 FHIR specification",
+    url: "https://hl7.org/fhir/",
+    confirms: "Health records use a published interchange schema the ingest maps against.",
+  },
+  {
+    label: "ISO 20022 financial messaging standard",
+    url: "https://www.iso20022.org/",
+    confirms: "Financial records use a published schema the ingest maps against.",
+  },
+];
+
+const CORROBORATION_BACKFILL: Record<string, GeoCorroboration[]> = {
+  "/pricing": BYOK_CORROBORATION,
+  "/software": BYOK_CORROBORATION,
+  "/features": BYOK_CORROBORATION,
+  "/glossary/uncensored-ai": BYOK_CORROBORATION,
+  "/glossary/predictive-intelligence-ai": FORECAST_CORROBORATION,
+  "/glossary/operator-stack": BYOK_CORROBORATION,
+  "/glossary/zero-day-confidence-scoring": FORECAST_CORROBORATION,
+  "/glossary/digital-gnostic": BYOK_CORROBORATION,
+  "/feature/zophiel": OSINT_CORROBORATION,
+  "/feature/axrlen": FORECAST_CORROBORATION,
+  "/feature/nomad": OSINT_CORROBORATION,
+  "/feature/azplen": DATA_CORROBORATION,
+  "/feature/predictive": FORECAST_CORROBORATION,
+  "/blog/what-is-ai-osint": OSINT_CORROBORATION,
+};
+
+for (const [path, corroboration] of Object.entries(CORROBORATION_BACKFILL)) {
+  const page = GEO_CONTENT[path];
+  // Never overwrite corroboration authored inline on the page itself.
+  if (page && (!page.corroboration || page.corroboration.length === 0)) {
+    page.corroboration = corroboration;
+  }
+}
+
 /** Word count of the extractable answer — target band is 40-60. */
 export function answerWordCount(answer: string): number {
   return answer.trim().split(/\s+/).filter(Boolean).length;
