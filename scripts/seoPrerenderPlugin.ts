@@ -17,7 +17,12 @@ import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
-import { effectiveUpdated, getGeoPage } from "../src/lib/geo/geoContent";
+import {
+  effectiveUpdated,
+  getGeoPage,
+  SOURCE_KIND_LABEL,
+  type GeoSourceKind,
+} from "../src/lib/geo/geoContent";
 
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
