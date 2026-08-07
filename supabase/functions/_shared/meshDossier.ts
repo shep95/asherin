@@ -449,6 +449,7 @@ export async function buildDossier(
     subject: { name, email, domainHint: email ? email.split("@")[1] ?? null : null },
     builtAt: new Date().toISOString(),
     identity,
+    candidates,
     hop1,
     hop2,
     hop3: (g?.crossLinks ?? []).slice(0, 20),
