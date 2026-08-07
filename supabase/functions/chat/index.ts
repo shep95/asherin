@@ -1325,6 +1325,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // verified signed-in user with connected accounts. Anything less returns
     // null and the turn proceeds exactly as before.
     let googleMeshContext = "";
+    // An inward Google turn ("any recent emails") must not be re-read as an
+    // outward identity lookup — that is exactly how "Any Recent Emails" ended
+    // up being web-searched as if it were a person.
+    let meshOwnsTurn = false;
     try {
       const lastUserForMesh = [...messages].reverse().find((m: any) => m.role === "user");
       const meshQ = String(lastUserForMesh?.content || "");
@@ -1332,17 +1336,24 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         await import("../_shared/googleMeshBridge.ts");
       const meshIntent = classifyMeshIntent(meshQ);
       if (meshIntent.active && authHeader) {
+        meshOwnsTurn = true;
         const meshBundle = await runGoogleMesh(authHeader, meshQ, meshIntent);
         googleMeshContext = formatMeshContext(meshBundle);
         if (meshBundle) {
           console.log(
             `[chat] Google Mesh: accounts=${meshBundle.accounts.length}, mail=${meshBundle.mail.length}, events=${meshBundle.events.length}, places=${meshBundle.places.length}, ${meshBundle.elapsedMs}ms`,
           );
+        } else {
+          // No verified caller or no connected account — the outward engine is
+          // still the better answer than silence.
+          meshOwnsTurn = false;
+          console.log("[chat] Google Mesh: intent active but no live accounts");
         }
       }
     } catch (e) {
       console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
     }
+
 
     // ── Cloud Intelligence Mesh vault: the persisted dossier ledger ───────
     // The live Mesh answers "what is happening in my accounts". The vault
@@ -1566,7 +1577,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       // re-derive it if that pass failed, so both layers agree on the turn type.
       const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
 
-      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && intent.kind !== "none") {
+      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && !meshOwnsTurn && intent.kind !== "none") {
         isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
 
