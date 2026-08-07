@@ -15,7 +15,13 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { getGeoPage, answerWordCount, effectiveUpdated } from "@/lib/geo/geoContent";
+import {
+  getGeoPage,
+  answerWordCount,
+  effectiveUpdated,
+  SOURCE_KIND_LABEL,
+  type GeoSourceKind,
+} from "@/lib/geo/geoContent";
 
 interface Props {
   /** Override the route lookup (for pages whose canonical path differs). */
@@ -33,6 +39,23 @@ const dateLabel = (iso: string) => {
     day: "numeric",
     timeZone: "UTC",
   });
+};
+
+/**
+ * Institutional class of a reference, published rather than inferred.
+ * Rendered inline before the link so the class travels with the citation in
+ * any extracted passage, not just in the JSON-LD a text-only reader skips.
+ */
+const SourceKindTag = ({ kind }: { kind?: GeoSourceKind }) => {
+  if (!kind) return null;
+  return (
+    <span
+      data-geo-source-kind={kind}
+      className="mr-2 inline-block rounded-sm border border-border/30 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70"
+    >
+      {SOURCE_KIND_LABEL[kind]}
+    </span>
+  );
 };
 
 const GeoBlock = ({ path, className = "" }: Props) => {
