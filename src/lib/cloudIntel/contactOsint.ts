@@ -86,12 +86,19 @@ export interface OsintSource {
 export interface OsintFact {
   field: string;
   value: string;
+  /**
+   * `confirmed` — the subject was positively matched inside the source
+   * document. `candidate` — the document names the subject but did not clear
+   * strong identity matching, so the value is reported and never relied on.
+   */
+  band: "confirmed" | "candidate";
   credibility: Credibility;
   credibilityNote: string;
   independentDomains: number;
   authoritative: boolean;
   sources: Array<{ domain: string; url: string }>;
 }
+
 
 export interface OsintAssociation {
   label: string;
