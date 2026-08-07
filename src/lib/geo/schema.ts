@@ -241,8 +241,13 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
     ...(dateModified ? { sdDatePublished: dateModified } : {}),
     ...(citation.length ? { citation } : {}),
     ...(supersedes.length ? { replacee: supersedes } : {}),
-    ...(geo?.attributes?.length
-      ? { additionalProperty: toPropertyValues(geo.attributes) }
+    ...(geo?.attributes?.length || comparisonProps.length
+      ? {
+          additionalProperty: [
+            ...toPropertyValues(geo?.attributes ?? []),
+            ...comparisonProps,
+          ],
+        }
       : {}),
   };
 
