@@ -436,7 +436,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Conversational SEO",
     topic: "Conversational SEO",
     answer:
-      "Conversational SEO, also called generative engine optimization, is the practice of structuring a page so a language model can lift a complete answer out of it. Peer-reviewed work reports that adding citations, quotations, and statistics to a page can raise its visibility in generative engine answers by up to 40 percent.",
+      "Conversational SEO is the practice of structuring a page so a language model can lift a complete answer out of it. It is also called generative engine optimization. Peer-reviewed work reports that adding citations, quotations, and statistics to a page can raise its visibility in generative engine answers by up to 40 percent.",
     attributes: [
       { name: "Term type", value: "Technical definition" },
       { name: "Also known as", value: "Generative engine optimization (GEO)" },
@@ -659,7 +659,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "AI OSINT",
     topic: "AI OSINT",
     answer:
-      "AI OSINT is open-source intelligence work where a language model plans the collection, runs retrieval across public sources, resolves which candidate identity a result belongs to, and assembles findings with per-claim provenance. The model does the correlation, the sources stay public, and every claim traces back to a URL.",
+      "AI OSINT is open-source intelligence work directed by a language model. The model plans the collection, retrieves across public sources, resolves which candidate identity each result belongs to, and assembles findings with per-claim provenance. The sources stay public and auditable, so every claim traces back to a URL.",
     attributes: [
       { name: "Term type", value: "Technical definition" },
       { name: "Collection phases", value: "4 (plan, retrieve, resolve identity, enrich)" },
