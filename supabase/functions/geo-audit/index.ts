@@ -98,6 +98,18 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
   const canonical =
     textBetween(html, /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i) ?? "";
 
+  // Gatekeeper factors from the Ansal/Sprinklr controlled trial: a page missing
+  // a price, a comparison or confident phrasing is largely ineligible for
+  // citation regardless of how well the rest of it reads.
+  const hasPrice = /\$\s?\d/.test(html) || /data-geo-attribute="[^"]*[Pp]rice/.test(html);
+  const comparisonRows = (html.match(/data-geo-comparison=/gi) || []).length;
+  const institutionalRefs = (
+    html.match(/data-geo-source-kind="(?:government|academic|standards|press)"/gi) || []
+  ).length;
+  const hedges = HEDGE_PATTERNS.map((re) => answerText.match(re)?.[0])
+    .filter((v): v is string => Boolean(v));
+
+
   const checks = [
     {
       id: "reachable",
