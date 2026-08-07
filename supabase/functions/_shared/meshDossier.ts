@@ -315,7 +315,12 @@ function findGaps(doc: MeshDossierDoc, bundle: IntelBundle): string[] {
   for (const k of ["address", "employer", "entity", "phone"]) {
     if (doc.identity[FIELD_LABEL[k]]?.length) continue;
     if (GRAPH_EQUIV[k] && graphKinds.has(GRAPH_EQUIV[k])) continue;
-    gaps.push(`No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`);
+    const cand = doc.candidates?.[FIELD_LABEL[k]]?.length ?? 0;
+    gaps.push(
+      cand
+        ? `No ${FIELD_LABEL[k].toLowerCase()} CONFIRMED to this subject; ${cand} candidate value(s) carried unverified — corroborate before use.`
+        : `No ${FIELD_LABEL[k].toLowerCase()} resolved to this subject.`,
+    );
   }
   if (!doc.hop1.length) gaps.push("No hop-1 associates surfaced — the subject has a thin public record.");
   if (!doc.hop2.length) gaps.push("Hop-2 expansion returned nothing; hop-3 cross-links are therefore n/a.");
