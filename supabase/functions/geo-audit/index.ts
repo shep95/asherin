@@ -197,26 +197,44 @@ async function auditRoute(route: string): Promise<RouteScore> {
   }
 }
 
-async function probePrompt(prompt: string): Promise<CitationResult> {
+/**
+ * Retrieval is measured against the same engine the product uses. zophiel-search
+ * is Firecrawl-backed and survives the bot blocks that make a bare DuckDuckGo
+ * scrape return an empty set from server egress; ddg-search stays as a fallback
+ * so a Firecrawl outage degrades the probe instead of failing it.
+ */
+async function searchOnce(
+  fn: string,
+  body: Record<string, unknown>,
+): Promise<{ url?: string }[]> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const res = await fetchWithTimeout(`${supabaseUrl}/functions/v1/ddg-search`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRole}`,
-      apikey: serviceRole,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query: prompt, numResults: 10 }),
-  });
-
-  if (!res.ok) {
-    return { prompt, found: false, rank: null, matchedUrl: null, totalResults: 0, competitors: [] };
+  try {
+    const res = await fetchWithTimeout(`${supabaseUrl}/functions/v1/${fn}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceRole}`,
+        apikey: serviceRole,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => ({}));
+    return Array.isArray(data?.results) ? data.results : [];
+  } catch {
+    return [];
   }
+}
 
-  const data = await res.json().catch(() => ({ results: [] }));
-  const results: { url?: string }[] = Array.isArray(data?.results) ? data.results : [];
+async function probePrompt(prompt: string): Promise<CitationResult> {
+  let results = await searchOnce("zophiel-search", { query: prompt, mode: "web", page: 1 });
+  if (results.length === 0) {
+    results = await searchOnce("ddg-search", { query: prompt, numResults: 10 });
+  }
+  results = results.slice(0, 15);
   const hosts = results.map((r) => {
+
     try {
       return new URL(r.url ?? "").hostname.replace(/^www\./, "");
     } catch {
