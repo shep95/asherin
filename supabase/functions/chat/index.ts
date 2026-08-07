@@ -1371,7 +1371,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           // so the outward engine stays available to answer that case.
           if (vaultBundle.subjects.length) vaultOwnsTurn = true;
           console.log(
-            `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
+            `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, inflight=${vaultBundle.inFlight.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
           );
         }
       }
