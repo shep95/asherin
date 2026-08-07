@@ -30,6 +30,7 @@ const HouseOfAsherTheories = lazy(() => import("./pages/HouseOfAsherTheories"));
 const Hosrad = lazy(() => import("./pages/Hosrad"));
 const Investors = lazy(() => import("./pages/Investors"));
 const Valuation = lazy(() => import("./pages/Valuation"));
+const Sources = lazy(() => import("./pages/Sources"));
 const Ziaassets = lazy(() => import("./pages/Ziaassets"));
 const AsherinGov = lazy(() => import("./pages/AsherinGov"));
 const AsherinGovDashboard = lazy(() => import("./pages/AsherinGovDashboard"));
@@ -171,6 +172,7 @@ const App = () => (
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />
             <Route path="/valuation" element={<Valuation />} />
+            <Route path="/sources" element={<Sources />} />
             <Route path="/asherin.gov" element={<AsherinGov />} />
             <Route path="/asherin-gov" element={<AsherinGov />} />
             <Route path="/asherin.gov/dashboard" element={<AsherinGovDashboard />} />

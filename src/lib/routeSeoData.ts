@@ -31,6 +31,11 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     title: "Terms of Service | Asherin",
     description: "Asherin's Terms of Service. Read the rules of engagement for using the platform.",
   },
+  "/sources": {
+    title: "Sources & References | Asherin",
+    description:
+      "Every research paper, third-party document and first-party figure Asherin cites, each with the date it was last verified.",
+  },
   "/software": {
     title: "Software | Every Asherin Tool | Asherin",
     description:

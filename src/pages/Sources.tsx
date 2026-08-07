@@ -174,8 +174,8 @@ const Sources = () => {
 
         <p className="mt-12 text-xs font-extralight leading-relaxed text-muted-foreground">
           Found something out of date?{" "}
-          <Link to="/contact" className="underline decoration-border hover:text-foreground">
-            Tell us
+          <Link to="/forums" className="underline decoration-border hover:text-foreground">
+            Raise it in the forums
           </Link>{" "}
           and the figure will be re-verified or withdrawn.
         </p>
