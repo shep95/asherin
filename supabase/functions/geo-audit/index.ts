@@ -146,6 +146,31 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
   const hedges = HEDGE_PATTERNS.map((re) => answerText.match(re)?.[0])
     .filter((v): v is string => Boolean(v));
 
+  // --- Structural features, GEO-SFE (arXiv:2603.29979) -------------------
+  // Scored off the served HTML rather than off the content model, because the
+  // model can declare a procedure that the renderer never emits. The audit's
+  // job is to see what a retriever sees.
+  const chunks = [...html.matchAll(/data-geo-chunk="([^"]+)"/gi)].map((m) => m[1]);
+  const chunkSet = new Set(chunks);
+  // Every chunk needs its own fragment target, or a retriever can only cite
+  // the page. Counting ids that sit on chunk elements, not ids in general.
+  const anchoredChunks = (html.match(/id="geo-[a-z-]+"[^>]*data-geo-chunk=/gi) || []).length +
+    (html.match(/data-geo-chunk="[^"]+"[^>]*id="geo-[a-z-]+"/gi) || []).length;
+  const procedureSteps = (html.match(/data-geo-step=/gi) || []).length;
+  const relatedLinks = (html.match(/data-geo-related=/gi) || []).length;
+
+  // Evidence genres (arXiv:2604.25707). Absorption needs at least three of the
+  // four; a page carrying one genre gets selected but not quoted.
+  const genres = {
+    definition: /\b(?:is|are|means|refers to)\b/i.test(answerText),
+    numeric: statRows > 0 || /\d/.test(answerText),
+    comparison: comparisonRows > 0,
+    procedural: procedureSteps > 0,
+  };
+  const genreCount = Object.values(genres).filter(Boolean).length;
+
+
+
 
   const checks = [
     {
@@ -259,7 +284,42 @@ function scoreRoute(route: string, status: number, html: string): RouteScore {
         ? `${institutionalRefs} institutional refs`
         : "vendor/first-party only",
     },
+    // --- Structural + evidential factors ---------------------------------
+    {
+      id: "chunking",
+      label: "Content splits into named, heading-led retrieval chunks",
+      pass: chunkSet.size >= 4,
+      detail: chunkSet.size ? `${chunkSet.size} chunks: ${[...chunkSet].join(", ")}` : "none",
+    },
+    {
+      id: "chunk-anchors",
+      label: "Every chunk carries a stable fragment id",
+      pass: chunks.length > 0 && anchoredChunks >= chunks.length,
+      detail: `${anchoredChunks}/${chunks.length} anchored`,
+    },
+    {
+      id: "procedure",
+      label: "Ordered procedural steps published (fourth evidence genre)",
+      pass: procedureSteps >= 3,
+      detail: procedureSteps ? `${procedureSteps} steps` : "none",
+    },
+    {
+      id: "internal-links",
+      label: "Page links into its topical cluster (macro structure)",
+      pass: relatedLinks >= 2,
+      detail: relatedLinks ? `${relatedLinks} related links` : "orphan page",
+    },
+    {
+      id: "evidence-genres",
+      label: "At least three of four evidence genres present",
+      pass: genreCount >= 3,
+      detail: `${genreCount}/4 — ${Object.entries(genres)
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .join(", ") || "none"}`,
+    },
   ];
+
 
   return {
     route,
@@ -288,7 +348,7 @@ async function auditRoute(route: string): Promise<RouteScore> {
       url: `${ORIGIN}${route}`,
       status: 0,
       score: 0,
-      maxScore: 18,
+      maxScore: MAX_ROUTE_SCORE,
       checks: [
         {
           id: "reachable",
