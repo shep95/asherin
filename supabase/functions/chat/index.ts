@@ -1344,6 +1344,33 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
     }
 
+    // ── Cloud Intelligence Mesh vault: the persisted dossier ledger ───────
+    // The live Mesh answers "what is happening in my accounts". The vault
+    // answers "what do we already know about the human on the other end".
+    // Fires only on a vault-shaped turn for a verified caller, reads through
+    // that caller's own token (RLS is the boundary), and will run at most one
+    // bounded on-demand sweep when the operator explicitly asked for one.
+    let meshVaultContext = "";
+    try {
+      const lastUserForVault = [...messages].reverse().find((m: any) => m.role === "user");
+      const vq = String(lastUserForVault?.content || "");
+      const { classifyVaultIntent, runVaultPull, formatVaultContext } =
+        await import("../_shared/meshVaultBridge.ts");
+      const vaultIntent = classifyVaultIntent(vq);
+      if (vaultIntent.active && authHeader) {
+        const vaultBundle = await runVaultPull(authHeader, vaultIntent);
+        meshVaultContext = formatVaultContext(vaultBundle);
+        if (vaultBundle) {
+          console.log(
+            `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
+    }
+
+
     // ── Google Substrate: the indexed ledger ─────────────────────────────
     // Pull, never push. The Mesh calls Google live; the Substrate reads what
     // was already harvested — milliseconds instead of seconds, and it can see
