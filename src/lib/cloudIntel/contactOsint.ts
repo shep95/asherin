@@ -237,11 +237,23 @@ function confidenceFor(best: Credibility, corroborating: number): KeyJudgment["c
 function synthesizeJudgments(facts: OsintFact[], assoc: OsintAssociation[], metrics: OsintAnnex["metrics"]): KeyJudgment[] {
   const out: KeyJudgment[] = [];
   const byField = new Map<string, OsintFact[]>();
-  for (const f of facts) {
+  // Judgments rest on confirmed matches only. Candidate values are reported in
+  // the body of the annex but are never allowed to carry a judgment.
+  for (const f of facts.filter((x) => x.band === "confirmed")) {
     const arr = byField.get(f.field) ?? [];
     arr.push(f);
     byField.set(f.field, arr);
   }
+  const candidateCount = facts.filter((x) => x.band === "candidate").length;
+  if (candidateCount) {
+    out.push({
+      likelihood: "roughly even chance",
+      confidence: "Low",
+      text: `${candidateCount} identity value${candidateCount === 1 ? "" : "s"} extracted from documents naming the subject did not clear strong identity matching and are carried as candidates only.`,
+      basis: "Possible-band extraction; name present in source but insufficient corroborating identifiers to bind the value to this subject.",
+    });
+  }
+
 
   for (const [field, group] of byField) {
     const best = group.reduce((a, b) => (b.credibility < a.credibility ? b : a));
