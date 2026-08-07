@@ -5628,6 +5628,168 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          cover_letter: string | null
+          created_at: string
+          error: string | null
+          id: string
+          lead_id: string | null
+          method: string
+          resume_id: string | null
+          sent_to: string | null
+          status: string
+          tailored_resume: string | null
+          user_id: string
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          method?: string
+          resume_id?: string | null
+          sent_to?: string | null
+          status?: string
+          tailored_resume?: string | null
+          user_id: string
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          lead_id?: string | null
+          method?: string
+          resume_id?: string | null
+          sent_to?: string | null
+          status?: string
+          tailored_resume?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "job_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "user_resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_leads: {
+        Row: {
+          apply_email: string | null
+          company: string | null
+          dedupe_key: string | null
+          description: string | null
+          discovered_at: string
+          distance_miles: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          location: string | null
+          match_reasons: Json
+          match_score: number
+          source: string
+          status: string
+          title: string
+          url: string | null
+          user_id: string
+          walkable: boolean
+        }
+        Insert: {
+          apply_email?: string | null
+          company?: string | null
+          dedupe_key?: string | null
+          description?: string | null
+          discovered_at?: string
+          distance_miles?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location?: string | null
+          match_reasons?: Json
+          match_score?: number
+          source: string
+          status?: string
+          title: string
+          url?: string | null
+          user_id: string
+          walkable?: boolean
+        }
+        Update: {
+          apply_email?: string | null
+          company?: string | null
+          dedupe_key?: string | null
+          description?: string | null
+          discovered_at?: string
+          distance_miles?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location?: string | null
+          match_reasons?: Json
+          match_score?: number
+          source?: string
+          status?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+          walkable?: boolean
+        }
+        Relationships: []
+      }
+      job_sentinel_settings: {
+        Row: {
+          autonomous: boolean
+          enabled: boolean
+          home_label: string | null
+          home_lat: number | null
+          home_lng: number | null
+          keywords: string[]
+          last_run_at: string | null
+          radius_miles: number
+          updated_at: string
+          user_id: string
+          walk_radius_miles: number
+        }
+        Insert: {
+          autonomous?: boolean
+          enabled?: boolean
+          home_label?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          keywords?: string[]
+          last_run_at?: string | null
+          radius_miles?: number
+          updated_at?: string
+          user_id: string
+          walk_radius_miles?: number
+        }
+        Update: {
+          autonomous?: boolean
+          enabled?: boolean
+          home_label?: string | null
+          home_lat?: number | null
+          home_lng?: number | null
+          keywords?: string[]
+          last_run_at?: string | null
+          radius_miles?: number
+          updated_at?: string
+          user_id?: string
+          walk_radius_miles?: number
+        }
+        Relationships: []
+      }
       lavba_bot_state: {
         Row: {
           available_capital: number | null
@@ -7087,6 +7249,94 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_gaps: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          created_at: string
+          field_key: string
+          id: string
+          question: string
+          resume_id: string
+          status: string
+          user_id: string
+          why: string | null
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          field_key: string
+          id?: string
+          question: string
+          resume_id: string
+          status?: string
+          user_id: string
+          why?: string | null
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          field_key?: string
+          id?: string
+          question?: string
+          resume_id?: string
+          status?: string
+          user_id?: string
+          why?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_gaps_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "user_resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_versions: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          raw_text: string
+          resume_id: string
+          structured: Json
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          raw_text?: string
+          resume_id: string
+          structured?: Json
+          user_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          raw_text?: string
+          resume_id?: string
+          structured?: Json
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "user_resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_participants: {
         Row: {
           cursor_state: Json | null
@@ -8477,6 +8727,48 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_resumes: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          psychology: Json
+          raw_text: string
+          source_filename: string | null
+          structured: Json
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          psychology?: Json
+          raw_text?: string
+          source_filename?: string | null
+          structured?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          psychology?: Json
+          raw_text?: string
+          source_filename?: string | null
+          structured?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
         }
         Relationships: []
       }

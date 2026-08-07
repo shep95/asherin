@@ -1379,6 +1379,36 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
     }
 
+    // ── Resume & Job Operator ledger ─────────────────────────────────────
+    // The operator's own resume, open gap questions, job leads and dispatch
+    // history. Read-only, RLS-scoped, and deliberately narrow: a generic
+    // "write me a resume" turn must not pull this person's private document.
+    let resumeContext = "";
+    try {
+      const lastUserForResume = [...messages].reverse().find((m: any) => m.role === "user");
+      const rq = String(lastUserForResume?.content || "");
+      const { classifyResumeIntent, runResumePull, formatResumeContext } =
+        await import("../_shared/resumeBridge.ts");
+      const rIntent = classifyResumeIntent(rq);
+      if (rIntent.active && authHeader) {
+        const rBundle = await runResumePull(authHeader, rIntent);
+        resumeContext = formatResumeContext(rBundle, rIntent);
+        if (rBundle) {
+          // A resume turn is inward-facing; the outward identity engine has
+          // nothing to add and would otherwise treat the operator's own name
+          // as a lookup target.
+          if (rBundle.resume) vaultOwnsTurn = true;
+          console.log(
+            `[chat] Resume bridge: resume=${rBundle.resume ? "yes" : "none"}, gaps=${rBundle.gaps.length}, leads=${rBundle.leadCounts.total}, walkable=${rBundle.leadCounts.walkable}, apps=${rBundle.applications.length}, ${rBundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Resume bridge failed:", (e as Error).message);
+    }
+
+
+
 
 
     // ── Google Substrate: the indexed ledger ─────────────────────────────
@@ -2074,7 +2104,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext + socialContext + googleMeshContext + meshVaultContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
+      webSearchContext + socialContext + googleMeshContext + meshVaultContext + resumeContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
       leaksContext,
       archiveContext,
       jurisdictionalContext,
