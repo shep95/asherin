@@ -177,7 +177,35 @@ export function buildFaqPage(pathname: string, faqs: GeoFaq[]): Json {
 function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json {
   const canonical = `${ORIGIN}${pathname}`;
   const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
-  const dateModified = geo?.updated ?? entry.dateModified ?? entry.datePublished;
+  // The newest revision wins: a superseded date keeps stale text alive in
+  // retrieval long after the page itself has moved on.
+  const dateModified = geo
+    ? effectiveUpdated(geo)
+    : entry.dateModified ?? entry.datePublished;
+
+  /** External references, so the claim graph is traversable, not just stated. */
+  const citation = [
+    ...(geo?.citations ?? []).map((c) => ({
+      "@type": "CreativeWork",
+      name: c.title,
+      url: c.url,
+      publisher: { "@type": "Organization", name: c.publisher },
+      datePublished: String(c.year),
+    })),
+    ...(geo?.corroboration ?? []).map((c) => ({
+      "@type": "WebPage",
+      name: c.label,
+      url: c.url,
+      description: c.confirms,
+    })),
+  ];
+
+  const supersedes = (geo?.supersedes ?? []).map((s) => ({
+    "@type": "WebPage",
+    "@id": `${ORIGIN}${s.path}#page`,
+    url: `${ORIGIN}${s.path}`,
+    name: s.label,
+  }));
 
   const base: Json = {
     "@id": `${canonical}#page`,
@@ -189,6 +217,14 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
     publisher: { "@id": ORG_ID },
     inLanguage: "en-US",
     ...(dateModified ? { dateModified } : {}),
+    // sdDatePublished states when the *structured data* was last confirmed,
+    // which is what a retriever needs to rank two versions of the same claim.
+    ...(dateModified ? { sdDatePublished: dateModified } : {}),
+    ...(citation.length ? { citation } : {}),
+    ...(supersedes.length ? { replacee: supersedes } : {}),
+    ...(geo?.attributes?.length
+      ? { additionalProperty: toPropertyValues(geo.attributes) }
+      : {}),
   };
 
   if (isArticle) {
@@ -199,6 +235,7 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
       author: { "@type": "Person", name: "Asher Newton" },
       image: DEFAULT_OG_IMAGE,
       mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+      ...(geo ? { abstract: geo.answer, about: { "@type": "Thing", name: geo.topic } } : {}),
     };
   }
 
@@ -218,6 +255,7 @@ function buildMainEntity(pathname: string, entry: SeoEntry, geo?: GeoPage): Json
       : {}),
   };
 }
+
 
 /**
  * Full @graph for a route: main entity + breadcrumbs + FAQ + (on product
