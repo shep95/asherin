@@ -1344,6 +1344,43 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
     }
 
+    // ── Cloud Intelligence Mesh vault: the persisted dossier ledger ───────
+    // The live Mesh answers "what is happening in my accounts". The vault
+    // answers "what do we already know about the human on the other end".
+    // Fires only on a vault-shaped turn for a verified caller, reads through
+    // that caller's own token (RLS is the boundary), and will run at most one
+    // bounded on-demand sweep when the operator explicitly asked for one.
+    let meshVaultContext = "";
+    // An inward vault turn ("my vault", "my devices", "who emailed me") must
+    // not be re-read as an outward identity lookup: the jurisdictional engine
+    // would parse the operator's own phrasing as a person's name and answer a
+    // question nobody asked. When the vault owns the turn, that path stands down.
+    let vaultOwnsTurn = false;
+    try {
+      const lastUserForVault = [...messages].reverse().find((m: any) => m.role === "user");
+      const vq = String(lastUserForVault?.content || "");
+      const { classifyVaultIntent, runVaultPull, formatVaultContext } =
+        await import("../_shared/meshVaultBridge.ts");
+      const vaultIntent = classifyVaultIntent(vq);
+      if (vaultIntent.active && authHeader) {
+        vaultOwnsTurn = vaultIntent.roster || vaultIntent.devices;
+        const vaultBundle = await runVaultPull(authHeader, vaultIntent);
+        meshVaultContext = formatVaultContext(vaultBundle);
+        if (vaultBundle) {
+          // A vault hit is authoritative for this subject; a vault miss is not,
+          // so the outward engine stays available to answer that case.
+          if (vaultBundle.subjects.length) vaultOwnsTurn = true;
+          console.log(
+            `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, inflight=${vaultBundle.inFlight.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
+    }
+
+
+
     // ── Google Substrate: the indexed ledger ─────────────────────────────
     // Pull, never push. The Mesh calls Google live; the Substrate reads what
     // was already harvested — milliseconds instead of seconds, and it can see
@@ -1499,7 +1536,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       // re-derive it if that pass failed, so both layers agree on the turn type.
       const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
 
-      if (!isDefensiveSecurityAuditRequest && intent.kind !== "none") {
+      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && intent.kind !== "none") {
         isIntelTurn = true;
         console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
 
@@ -2037,7 +2074,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
-      webSearchContext + socialContext + googleMeshContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
+      webSearchContext + socialContext + googleMeshContext + meshVaultContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
       leaksContext,
       archiveContext,
       jurisdictionalContext,
@@ -2280,6 +2317,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const TRANSIENT_STATUS = new Set([429, 500, 502, 503, 504]);
     const TRANSIENT_ATTEMPTS = 3;
 
+    // The retry ladder drains the body of each rejected attempt to free the
+    // socket. The last attempt's body is therefore already gone by the time the
+    // error handler wants to read it, which previously threw "Body already
+    // consumed" and turned a precise upstream error into a generic 503 with an
+    // empty stream. The peeked text is kept here so the handler always has it.
+    let lastTransientBody = "";
     async function callWithTransientRetry(
       fn: () => Promise<Response>,
       label: string,
@@ -2291,6 +2334,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
         // Quota exhaustion is terminal — retrying only burns the deadline.
         const peek = await res.clone().text().catch(() => "");
+        lastTransientBody = peek;
         if (res.status === 429 && /insufficient_quota|exceeded.*quota|billing/i.test(peek)) {
           return res;
         }
@@ -2303,6 +2347,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
       return last ?? await fn();
     }
+
 
 
 
@@ -2345,7 +2390,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
         }
 
         if (response && !response.ok) {
-          const errText = await response.text();
+          const errText = await response.text().catch(() => lastTransientBody);
           console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
           byokFailed = true;
           byokFailStatus = response.status;
@@ -2360,6 +2405,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
           } else {
             byokFailReason = `${byokProvider} returned ${response.status}.`;
           }
+          // A transient status that survived the ladder is a busy upstream, not
+          // an unreachable one — keep the real status so the client asks for a
+          // resend instead of blaming the key.
           response = null;
         }
       } catch (e) {
