@@ -30,7 +30,7 @@ const FIRST_PERSON = /\b(my|mine|i|me|i'm|i've|our|us|we)\b/i;
 const IMPLICIT_SELF =
   /(^|[\s,.;:!?—-])(any|show|list|check|read|pull|scan|search|find|fetch|get|open|latest|recent|newest|last|whats?|what's|who|when|summari[sz]e|catch me up|anything)\b/i;
 
-const MAIL_CUES = /\b(e-?mails?|inbox|gmail|mailbox|mail|correspondence|message from|messages from|wrote to me|sent me|unread|threads?)\b/i;
+const MAIL_CUES = /\b(e-?mails?|inbox|gmail|mailbox|mail|correspondence|message from|messages from|wrote to me|sent me|unread|threads?|convos?|conversations?)\b/i;
 const SCHEDULE_CUES = /\b(calendar|schedule|meeting|meetings|agenda|appointment|appointments|next week|today|tomorrow|busy)\b/i;
 const PLACE_CUES = /\b(where (have|did|do) i|places i|locations|travel|been to|visited|location pattern|timeline|maps history)\b/i;
 const SELF_CUES = /\b(who am i|about me|my (voice|writing|style|patterns|habits|life|routine)|how do i write|profile me)\b/i;
