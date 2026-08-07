@@ -166,6 +166,8 @@ export interface GeoPage {
   stats: GeoStat[];
   citations?: GeoCitation[];
   corroboration?: GeoCorroboration[];
+  /** Head-to-head rows against named alternatives. Strongest differentiator. */
+  comparisons?: GeoComparison[];
   faqs?: GeoFaq[];
   /** Newest-first content revisions. The newest date wins over `updated`. */
   revisions?: GeoRevision[];
