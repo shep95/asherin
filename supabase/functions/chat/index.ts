@@ -1351,6 +1351,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // that caller's own token (RLS is the boundary), and will run at most one
     // bounded on-demand sweep when the operator explicitly asked for one.
     let meshVaultContext = "";
+    // An inward vault turn ("my vault", "my devices", "who emailed me") must
+    // not be re-read as an outward identity lookup: the jurisdictional engine
+    // would parse the operator's own phrasing as a person's name and answer a
+    // question nobody asked. When the vault owns the turn, that path stands down.
+    let vaultOwnsTurn = false;
     try {
       const lastUserForVault = [...messages].reverse().find((m: any) => m.role === "user");
       const vq = String(lastUserForVault?.content || "");
@@ -1358,9 +1363,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         await import("../_shared/meshVaultBridge.ts");
       const vaultIntent = classifyVaultIntent(vq);
       if (vaultIntent.active && authHeader) {
+        vaultOwnsTurn = vaultIntent.roster || vaultIntent.devices;
         const vaultBundle = await runVaultPull(authHeader, vaultIntent);
         meshVaultContext = formatVaultContext(vaultBundle);
         if (vaultBundle) {
+          // A vault hit is authoritative for this subject; a vault miss is not,
+          // so the outward engine stays available to answer that case.
+          if (vaultBundle.subjects.length) vaultOwnsTurn = true;
           console.log(
             `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
           );
@@ -1369,6 +1378,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     } catch (e) {
       console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
     }
+
 
 
     // ── Google Substrate: the indexed ledger ─────────────────────────────
