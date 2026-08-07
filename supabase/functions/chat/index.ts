@@ -2317,6 +2317,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const TRANSIENT_STATUS = new Set([429, 500, 502, 503, 504]);
     const TRANSIENT_ATTEMPTS = 3;
 
+    // The retry ladder drains the body of each rejected attempt to free the
+    // socket. The last attempt's body is therefore already gone by the time the
+    // error handler wants to read it, which previously threw "Body already
+    // consumed" and turned a precise upstream error into a generic 503 with an
+    // empty stream. The peeked text is kept here so the handler always has it.
+    let lastTransientBody = "";
     async function callWithTransientRetry(
       fn: () => Promise<Response>,
       label: string,
@@ -2328,6 +2334,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
         // Quota exhaustion is terminal — retrying only burns the deadline.
         const peek = await res.clone().text().catch(() => "");
+        lastTransientBody = peek;
         if (res.status === 429 && /insufficient_quota|exceeded.*quota|billing/i.test(peek)) {
           return res;
         }
@@ -2340,6 +2347,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
       return last ?? await fn();
     }
+
 
 
 
