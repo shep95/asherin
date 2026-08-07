@@ -7,7 +7,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2, PanelLeftClose, PanelLeftOpen, Ghost, Calculator,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2, PanelLeftClose, PanelLeftOpen, Ghost, Calculator, Gauge,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -79,6 +79,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "axrlen": Brain,
   "zerlal": Shield,
   "bulwark": ShieldCheck,
+  "geo-audit": Gauge,
   "zaxin": Layers,
   "zacoon": Ghost,
   "google": Globe,

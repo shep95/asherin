@@ -18,6 +18,8 @@ import SubscriptionPlans from "@/components/SubscriptionPlans";
 import SiteFooter from "@/components/SiteFooter";
 import LiveDemoStrip from "@/components/landing/LiveDemoStrip";
 import TrustBand from "@/components/landing/TrustBand";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 
 
@@ -406,6 +408,15 @@ const Index = () => {
         <LiveDemoStrip />
       </ScrollSection>
       <ScrollSection><TrustBand /></ScrollSection>
+
+      {/* Extractable answer + sourced figures for generative engines. */}
+      <ScrollSection>
+        <div className="relative z-10 mx-auto max-w-3xl px-6 pb-8">
+          <GeoBlock />
+        </div>
+      </ScrollSection>
+
+
 
       <ScrollSection>
       <div className="relative z-10 px-6 py-28 sm:py-40 overflow-hidden">

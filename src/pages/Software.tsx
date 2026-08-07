@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -612,6 +613,12 @@ const Software = () => {
               ships in <strong className="text-foreground">Asherin Pro ($399/month)</strong>.
             </p>
           </section>
+
+          {/* Extractable answer + sourced figures for generative engines. */}
+          <div className="mx-auto max-w-3xl">
+            <GeoBlock />
+          </div>
+
 
           {/* RAD spotlight */}
           <section className="rounded-3xl border border-foreground/25 bg-foreground/[0.04] backdrop-blur-sm p-8 sm:p-10">

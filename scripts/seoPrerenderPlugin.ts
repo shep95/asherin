@@ -15,12 +15,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
-import {
-  DEFAULT_OG_IMAGE,
-  ORIGIN,
-  ROUTE_SEO,
-  type SeoEntry,
-} from "../src/lib/routeSeoData";
+import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
+import { buildRouteGraph } from "../src/lib/geo/schema";
+import { getGeoPage } from "../src/lib/geo/geoContent";
+
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
 const MAX_PRERENDER_PAGES = 2000;
@@ -45,40 +43,13 @@ function metaPattern(attr: "name" | "property", key: string) {
   return new RegExp(`<meta[^>]*${attr}=["']${key}["'][^>]*>`, "i");
 }
 
-function buildJsonLd(entry: SeoEntry, canonical: string) {
-  const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
-  const payload = isArticle
-    ? {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        headline: entry.title,
-        description: entry.description,
-        datePublished: entry.datePublished,
-        dateModified: entry.dateModified ?? entry.datePublished,
-        author: { "@type": "Person", name: "Asher Newton" },
-        publisher: {
-          "@type": "Organization",
-          name: "Asherin",
-          url: ORIGIN,
-          logo: { "@type": "ImageObject", url: `${ORIGIN}/favicon.png` },
-        },
-        image: DEFAULT_OG_IMAGE,
-        mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-        url: canonical,
-      }
-    : {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        name: entry.title,
-        description: entry.description,
-        url: canonical,
-        isPartOf: { "@type": "WebSite", name: "Asherin", url: ORIGIN },
-      };
+function buildJsonLd(path: string, entry: SeoEntry) {
   // </script> inside JSON would close the tag early; JSON-LD escapes it as <\/script>.
   return `<script type="application/ld+json" id="route-seo-jsonld">${JSON.stringify(
-    payload,
+    buildRouteGraph(path, entry),
   ).replace(/</g, "\\u003c")}</script>`;
 }
+
 
 function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   const canonical = `${ORIGIN}${path}`;
@@ -146,9 +117,64 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
     );
   }
 
-  html = html.replace("</head>", `  ${buildJsonLd(entry, canonical)}\n</head>`);
+  html = html.replace("</head>", `  ${buildJsonLd(path, entry)}\n</head>`);
+  html = injectGeoBody(html, path);
   return html;
 }
+
+/**
+ * GeoBlock renders client-side, so a crawler that does not execute JS would see
+ * the head metadata but none of the extractable answer or sourced statistics.
+ * Mirror that block as static markup *inside* #root: React's createRoot render
+ * discards the container's children on mount, so the live app is untouched
+ * while JS-less fetchers get the full absorption unit.
+ */
+function injectGeoBody(html: string, path: string) {
+  const geo = getGeoPage(path);
+  if (!geo) return html;
+
+  const esc = (v: string) =>
+    v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const stats = (geo.stats ?? [])
+    .map(
+      (s) =>
+        `<tr><th scope="row">${esc(s.label)}</th><td>${esc(s.value)}</td>` +
+        `<td>${esc(s.source)}<span>as of <time datetime="${esc(s.asOf)}">${esc(
+          s.asOf,
+        )}</time></span></td></tr>`,
+    )
+    .join("");
+
+  const citations = (geo.citations ?? [])
+    .map(
+      (c) =>
+        `<li><a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.title)}</a> (${esc(
+          c.publisher,
+        )}, ${c.year})</li>`,
+    )
+    .join("");
+
+  const faqs = (geo.faqs ?? [])
+    .map((f) => `<div><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`)
+    .join("");
+
+  const block =
+    `<section data-geo-static aria-label="${escapeAttr(geo.topic)}">` +
+    `<h2>${esc(geo.topic)}</h2>` +
+    `<p>Last verified <time datetime="${escapeAttr(geo.updated)}">${esc(geo.updated)}</time></p>` +
+    `<p data-geo-answer>${esc(geo.answer)}</p>` +
+    (stats ? `<table><tbody>${stats}</tbody></table>` : "") +
+    (citations ? `<h3>Sources</h3><ul>${citations}</ul>` : "") +
+    faqs +
+    `</section>`;
+
+  // Anchor on the mount node so the markup is replaced at hydration time.
+  return html.includes('<div id="root"></div>')
+    ? html.replace('<div id="root"></div>', `<div id="root">${block}</div>`)
+    : html;
+}
+
 
 export function seoPrerenderPlugin(): Plugin {
   return {

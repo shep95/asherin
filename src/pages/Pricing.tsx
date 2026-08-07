@@ -14,6 +14,8 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
+import GeoBlock from "@/components/seo/GeoBlock";
+
 import SiteFooter from "@/components/SiteFooter";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
@@ -178,6 +180,11 @@ const Pricing = () => {
             relevanceSignal="Operators, analysts, and teams evaluating Asherin need authoritative, scannable pricing facts to compare against ChatGPT, Claude, Gemini, and sovereign AI alternatives."
             confidence="high"
           />
+
+          {/* Extractable answer + sourced price figures for generative engines. */}
+          <GeoBlock className="mt-10" />
+
+
 
           {/* Plans — reuses SubscriptionPlans (single source of truth) */}
           <section aria-label="Subscription plans" className="mt-12">
