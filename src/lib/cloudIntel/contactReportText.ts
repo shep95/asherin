@@ -333,16 +333,25 @@ export function renderContactReport(r: ContactReport, contactName: string, annex
     L.push("");
   }
 
+  if (annex) L.push(...osintSections(annex, 11));
+
   L.push(HR);
   L.push("  CHANNELS WITH NO DATA SOURCE");
   for (const c of r.unavailableChannels) L.push(...field("  • ", c, 4));
   L.push("");
   L.push(`  Confidence: ${r.confidence}% | Data points: ${r.messagesAnalyzed} | Generated: ${stamp} UTC`);
+  if (annex) {
+    L.push(
+      `  Open-source: ${annex.status.toUpperCase()} | ${annex.metrics.documentsParsed} documents | ` +
+      `${annex.sources.length} sources retained | collection confidence ${annex.collectionConfidence}%`,
+    );
+  }
   L.push(HR);
-  L.push("  ASHERIN INTELLIGENCE / CONTACT REPORT v1.0");
-  L.push("  LATTICE MODULE — CONTACT ANALYSIS ENGINE");
+  L.push("  ASHERIN INTELLIGENCE / CONTACT REPORT v2.0 (OSINT-FUSED)");
+  L.push("  LATTICE MODULE — CONTACT ANALYSIS ENGINE + ZOPHIEL COLLECTION");
   L.push("  Eyes Only / Auto-generated from connected data sources");
   L.push("  #houseofasher  #zia");
+
   L.push(HR);
 
   return L.join("\n");
