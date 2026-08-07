@@ -555,12 +555,38 @@ serve(async (req) => {
       .slice(0, MAX_PROMPTS);
     if (cleanPrompts.length === 0) return json({ error: "No prompts supplied" }, 400);
 
+    // Absorption costs a model call per selected prompt, so it is opt-in and
+    // the batch narrows to 2 at a time when it is on.
+    const withAbsorption = body?.absorption === true;
+    const stride = withAbsorption ? 2 : 3;
+
     const results: CitationResult[] = [];
-    for (let i = 0; i < cleanPrompts.length; i += 3) {
-      const batch = await Promise.all(cleanPrompts.slice(i, i + 3).map(probePrompt));
+    for (let i = 0; i < cleanPrompts.length; i += stride) {
+      const batch = await Promise.all(
+        cleanPrompts.slice(i, i + stride).map((p) => probePrompt(p, withAbsorption)),
+      );
       results.push(...batch);
     }
-    return json({ mode, ranAt: new Date().toISOString(), results });
+    const measured = results.filter((r) => r.absorption.ran);
+    return json({
+      mode,
+      ranAt: new Date().toISOString(),
+      results,
+      // Selection and absorption reported separately: a page can be retrieved
+      // often and absorbed rarely, and the fix for each is different.
+      summary: {
+        selectionRate: results.length
+          ? Number((results.filter((r) => r.found).length / results.length).toFixed(3))
+          : 0,
+        absorptionMeasured: measured.length,
+        attributionRate: measured.length
+          ? Number((measured.filter((r) => r.absorption.attributed).length / measured.length).toFixed(3))
+          : null,
+        meanCoverage: measured.length
+          ? Number((measured.reduce((s, r) => s + r.absorption.coverage, 0) / measured.length).toFixed(4))
+          : null,
+      },
+    });
   } catch (e) {
     console.error("geo-audit error", e);
     return new Response(
