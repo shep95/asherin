@@ -511,9 +511,12 @@ async function probePrompt(
   } else {
     const target = matchedUrl ?? counterfactualUrl!;
     const measured = await measureAbsorption(prompt, target, results);
-    absorption = matchedUrl
-      ? measured
-      : { ...measured, reason: `counterfactual against ${target}` };
+    // Only annotate a *successful* counterfactual: overwriting `reason` on a
+    // failed run would hide why the measurement did not happen.
+    absorption =
+      matchedUrl || !measured.ran
+        ? measured
+        : { ...measured, reason: `counterfactual against ${target}` };
   }
 
   return {
