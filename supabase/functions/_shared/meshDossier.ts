@@ -378,13 +378,28 @@ export async function buildDossier(
   const bundle = await runJurisdictionalSearch(intent);
 
   const identity: Record<string, DossierFact[]> = {};
+  const candidates: Record<string, DossierFact[]> = {};
   const ledger = bundle.fieldLedger;
   if (ledger) {
     for (const [kind, fields] of Object.entries(ledger.confirmed)) {
       if (!fields?.length) continue;
       identity[FIELD_LABEL[kind] ?? kind] = fields.slice(0, 8).map(factOf);
     }
+    // The candidate ledger is where every real subject's record actually lives
+    // when the strong-match gate is strict. It is carried, not discarded, and
+    // never allowed to shadow a confirmed value for the same field family.
+    for (const [kind, fields] of Object.entries(ledger.candidate)) {
+      if (!fields?.length) continue;
+      const label = FIELD_LABEL[kind] ?? kind;
+      const taken = new Set((identity[label] ?? []).map((f) => f.value.toLowerCase()));
+      const rows = fields
+        .filter((f) => !taken.has(String((f as { display?: string }).display ?? "").toLowerCase()))
+        .slice(0, 8)
+        .map(factOf);
+      if (rows.length) candidates[label] = rows;
+    }
   }
+
 
   const g = bundle.graph;
   const nodeById = new Map((g?.nodes ?? []).map((n) => [n.id, n]));
