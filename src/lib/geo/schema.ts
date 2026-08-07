@@ -13,6 +13,7 @@ import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO, type SeoEntry } from "../routeSeoD
 import {
   effectiveUpdated,
   getGeoPage,
+  SOURCE_KIND_LABEL,
   type GeoAttribute,
   type GeoFaq,
   type GeoPage,
