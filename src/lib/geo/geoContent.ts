@@ -967,6 +967,52 @@ for (const page of Object.values(GEO_CONTENT)) {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Institutional anchors.
+ *
+ * Heidelberg's source-preference result is that a reference set made only of
+ * vendor documentation reads as self-referential: the model has nothing from a
+ * government, standards or academic publisher to weigh the entity against.
+ * Pages whose corroboration is entirely vendor-class get these appended — they
+ * are appended, never substituted, so provider docs stay where they are load
+ * bearing (BYOK pages genuinely need the provider's own key documentation).
+ * ------------------------------------------------------------------------- */
+
+const INSTITUTIONAL_ANCHORS: GeoCorroboration[] = [
+  {
+    label: "NIST AI Risk Management Framework (AI 100-1)",
+    url: "https://www.nist.gov/itl/ai-risk-management-framework",
+    confirms:
+      "Publishes the govern, map, measure and manage functions that Asherin's key handling, sourcing and audit trails are organised against.",
+    kind: "standards",
+  },
+  {
+    label: "Regulation (EU) 2024/1689 — Artificial Intelligence Act",
+    url: "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+    confirms:
+      "Sets the transparency and provenance obligations for general-purpose AI systems that Asherin's per-claim sourcing addresses.",
+    kind: "government",
+  },
+  {
+    label: "How to Get AI to Surface Your Brand (Harvard Business Review)",
+    url: "https://hbr.org/2026/06/how-to-get-ai-to-surface-your-brand",
+    confirms:
+      "Documents that generative engines resolve entities on published attribute specificity, the mechanism Asherin's attribute ledger implements.",
+    kind: "press",
+  },
+];
+
+for (const page of Object.values(GEO_CONTENT)) {
+  const { institutional } = institutionalRatio(page);
+  if (institutional > 0) continue;
+  const existing = new Set((page.corroboration ?? []).map((c) => c.url));
+  page.corroboration = [
+    ...(page.corroboration ?? []),
+    ...INSTITUTIONAL_ANCHORS.filter((a) => !existing.has(a.url)),
+  ];
+}
+
+
+/* ------------------------------------------------------------------------- *
  * Hedge detection.
  *
  * The same trial found confident, declarative phrasing materially raises the
