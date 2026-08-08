@@ -99,6 +99,11 @@ let areaTimer: number | null = null;
 let watchdogTimer: number | null = null;
 let netTimer: number | null = null;
 let tradeTimer: number | null = null;
+/** Fleet heartbeat: keeps this device's battery/link fresh on the roster even
+ *  when it is sitting still and geolocation emits nothing new. */
+let meshTimer: number | null = null;
+const MESH_MS = 2 * 60_000;
+
 let lastRadioAttempt = 0;
 let booted = false;
 let geoEnabled = true;
