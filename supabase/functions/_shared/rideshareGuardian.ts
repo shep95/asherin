@@ -329,6 +329,41 @@ export function enforceDoctrine(raw: unknown, fast: PhaseResult): PhaseResult {
 
   const flags = Array.isArray(o.flags) ? o.flags.filter((f: any) => f && f.detail && f.evidence) : [];
 
+  /** A dossier row without a stated source is hearsay; it is dropped, not shown. */
+  const sourced = (arr: unknown, cap = 12): any[] =>
+    Array.isArray(arr)
+      ? arr.filter((r: any) => r && typeof r === "object" && String(r.source || r.evidence || "").trim()).slice(0, cap)
+      : [];
+
+  const rawProfile = (o.subject_profile && typeof o.subject_profile === "object" ? o.subject_profile : {}) as Record<string, any>;
+  const subject_profile = {
+    resolved_name: String(rawProfile.resolved_name || ""),
+    aliases: Array.isArray(rawProfile.aliases) ? rawProfile.aliases.filter((s: unknown) => typeof s === "string").slice(0, 8) : [],
+    approximate_age: String(rawProfile.approximate_age || ""),
+    home_locality: String(rawProfile.home_locality || ""),
+    prior_localities: Array.isArray(rawProfile.prior_localities)
+      ? rawProfile.prior_localities.filter((s: unknown) => typeof s === "string").slice(0, 8) : [],
+    phones: sourced(rawProfile.phones, 6),
+    emails: sourced(rawProfile.emails, 6),
+    employment_history: sourced(rawProfile.employment_history),
+    licences: sourced(rawProfile.licences),
+    vehicle_records: sourced(rawProfile.vehicle_records),
+    // Criminal history is the highest-harm field on the page: an unbound
+    // record is another human's life and is discarded outright.
+    criminal_record: sourced(rawProfile.criminal_record).filter((r: any) => r.binding !== "unbound"),
+    civil_record: sourced(rawProfile.civil_record),
+  };
+  const unboundRecords = Array.isArray(rawProfile.criminal_record)
+    ? rawProfile.criminal_record.filter((r: any) => r?.binding === "unbound").length
+    : 0;
+
+  const rawRep = (o.reputation && typeof o.reputation === "object" ? o.reputation : {}) as Record<string, any>;
+  const reputation = {
+    summary: String(rawRep.summary || ""),
+    ratings: sourced(rawRep.ratings, 6),
+    public_comments: sourced(rawRep.public_comments, 8),
+  };
+
   return {
     verdict,
     confidence: identity,
@@ -344,6 +379,14 @@ export function enforceDoctrine(raw: unknown, fast: PhaseResult): PhaseResult {
       candidates: Array.isArray(o.candidates) ? o.candidates.slice(0, 6) : [],
       flags,
       fast_flags: fastFlags,
+      subject_profile,
+      unbound_records_dropped: unboundRecords,
+      relationships: Array.isArray(o.relationships)
+        ? o.relationships.filter((r: any) => r && r.name && r.evidence).slice(0, 20) : [],
+      three_hop: Array.isArray(o.three_hop)
+        ? o.three_hop.filter((r: any) => r && r.path && r.basis).slice(0, 12) : [],
+      reputation,
+      gaps: Array.isArray(o.gaps) ? o.gaps.filter((s: unknown) => typeof s === "string").slice(0, 12) : [],
       vehicle_check: String(o.vehicle_check || ""),
       recommended_action: String(o.recommended_action || "Verify the plate and driver photo against the app before you get in."),
       narrative: String(o.narrative || ""),
@@ -351,6 +394,7 @@ export function enforceDoctrine(raw: unknown, fast: PhaseResult): PhaseResult {
     },
   };
 }
+
 
 /** Plain-text report body, House of Asher register. */
 export function reportText(ride: RideInput, deep: PhaseResult): string {
