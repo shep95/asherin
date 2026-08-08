@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
-  Download, Archive, ChevronDown, Sparkle,
+  Download, Archive, ChevronDown, Sparkle, History, X,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { exportJSON } from "@/lib/exportEngine";
@@ -10,11 +11,13 @@ import GhostRecordPanel from "./ghost/GhostRecordPanel";
 import GhostGraph from "./ghost/GhostGraph";
 import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
+import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import {
   projectRecords, suggestFromIndex,
-  type GhostSearchResponse, type GhostSearchResult, type SearchScope,
+  type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
 } from "./ghost/searchFormat";
 import { SEVERITY_STYLE, type GhostRecord } from "./ghost/types";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ASHERIN GHOST ENGINE
@@ -51,6 +54,8 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 const CAPTURE_KEY = "ghost_engine_capture";
 const SCOPE_KEY = "ghost_engine_scope";
 const RECENT_KEY = "ghost_engine_recent";
+const RAIL_KEY = "ghost_engine_rail";
+
 
 const STARTERS = [
   "asherin.com",
@@ -73,7 +78,15 @@ const GhostEngineView = () => {
   const [selected, setSelected] = useState<GhostRecord | null>(null);
   const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) === "1");
   const [bufferNonce, setBufferNonce] = useState(0);
+  // The HISTORY rail is a sibling surface, not a dropdown: it refetches when a
+  // run completes, and it can push an archived run back into the result pane.
+  const [historyNonce, setHistoryNonce] = useState(0);
+  const [railOpen, setRailOpen] = useState<boolean>(
+    () => localStorage.getItem(RAIL_KEY) !== "0",
+  );
+  const [replay, setReplay] = useState<GhostHistoryRun | null>(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
+
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 8); } catch { return []; }
   });
@@ -91,14 +104,17 @@ const GhostEngineView = () => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    const timer = setTimeout(() => controller.abort(), 90_000);
+    const timer = setTimeout(() => controller.abort(), 180_000);
 
     setLoading(true);
     setSuggestOpen(false);
     setSelected(null);
+    setReplay(null);
     try {
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
-        body: { action: "search", scope: useScope, query: q, limit: 12, capture },
+        // No client-side aperture. The probe budget is the engine's to spend;
+        // sending 12 was what capped a full-spectrum lookup at a page of links.
+        body: { action: "search", scope: useScope, query: q, capture },
       });
 
       if (controller.signal.aborted) return;
@@ -120,6 +136,8 @@ const GhostEngineView = () => {
       setData(payload);
       setDetails(false);
       setTab(payload.index?.anomalies.length ? "anomalies" : "records");
+      // A completed run is a new history row; the rail must reflect it.
+      setHistoryNonce((n) => n + 1);
       if (payload.error) toast({ title: "No targets resolved", description: payload.error });
 
       if (payload.buffer) {
@@ -143,7 +161,7 @@ const GhostEngineView = () => {
       if (!controller.signal.aborted) {
         toast({ title: "Search failed", description: (e as Error).message, variant: "destructive" });
       } else {
-        toast({ title: "Search timed out", description: "The probe exceeded 90 seconds.", variant: "destructive" });
+        toast({ title: "Search timed out", description: "The fan-out exceeded 180 seconds.", variant: "destructive" });
       }
     } finally {
       clearTimeout(timer);
@@ -151,14 +169,19 @@ const GhostEngineView = () => {
     }
   }, [loading, capture, scope]);
 
+
   const index = data?.index ?? null;
 
   // The projection is authoritative when the backend supplies it; otherwise it
-  // is rebuilt locally so an older response still renders a list.
+  // is rebuilt locally so an older response still renders a list. An archived
+  // run opened from the HISTORY rail overrides both — the operator is reading
+  // what the engine saw *then*, and the banner says so.
   const results: GhostSearchResult[] = useMemo(() => {
+    if (replay) return replay.results ?? [];
     if (data?.results?.length) return data.results;
     return index ? projectRecords(index) : [];
-  }, [data, index]);
+  }, [replay, data, index]);
+
 
   const suggestions = useMemo(() => {
     if (data?.suggestions?.length) return data.suggestions;
@@ -200,8 +223,26 @@ const GhostEngineView = () => {
     if (query.trim() && data) run(query, s);
   };
 
+  const toggleRail = () => setRailOpen((o) => {
+    localStorage.setItem(RAIL_KEY, o ? "0" : "1");
+    return !o;
+  });
+
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full overflow-hidden">
+      {/* ── HISTORY rail — the persistent half of the dual sidebar ────── */}
+      {railOpen && (
+        <aside className="hidden w-64 shrink-0 border-r border-border/15 bg-foreground/[0.015] lg:flex lg:flex-col">
+          <GhostHistoryRail
+            nonce={historyNonce}
+            activeKey={data?.identity?.key}
+            onReplay={(q) => { setQuery(q); void run(q); }}
+            onOpenRun={(r) => { setReplay(r); setQuery(r.query); }}
+          />
+        </aside>
+      )}
+
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       {/* ── Search bar ───────────────────────────────────────────────── */}
       <div className="shrink-0 border-b border-border/15 px-5 py-4">
         <div className="mx-auto max-w-3xl">
@@ -211,7 +252,16 @@ const GhostEngineView = () => {
             <span className="rounded border border-border/25 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50">
               {capture ? "Metadata + buffer" : "Metadata only"}
             </span>
+            <button
+              onClick={toggleRail}
+              aria-pressed={railOpen}
+              className="ml-auto hidden items-center gap-1.5 rounded border border-border/20 px-2 py-1 text-[10px] text-muted-foreground/60 transition-colors hover:text-foreground lg:flex"
+            >
+              <History className="h-3 w-3" />
+              {railOpen ? "Hide history" : "History"}
+            </button>
           </div>
+
 
           <div className="relative">
             <form
@@ -315,7 +365,7 @@ const GhostEngineView = () => {
       {/* ── Body ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto max-w-3xl">
-          {!data && !loading && (
+          {!data && !replay && !loading && (
             <div className="mt-14 text-center">
               <Ghost className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
               <p className="text-sm font-light text-muted-foreground/70">Ask the catalog. Then pull the book.</p>
@@ -358,24 +408,63 @@ const GhostEngineView = () => {
             </div>
           )}
 
-          {!loading && data && (
+          {!loading && (data || replay) && (
             <>
+              {/* An archived run is not a live one; the surface must never
+                  let the operator confuse the two. */}
+              {replay && (
+                <div className="mb-5 flex items-start gap-2 rounded-lg border border-border/20 bg-foreground/[0.04] px-3 py-2">
+                  <History className="mt-0.5 h-3.5 w-3.5 shrink-0 text-foreground/60" />
+                  <div className="min-w-0 flex-1 text-[11px] leading-relaxed text-muted-foreground/70">
+                    <span className="text-foreground/85">Archived intercept</span> — “{replay.query}”, run{" "}
+                    {new Date(replay.created_at).toLocaleString()}. {replay.probed} shells probed of{" "}
+                    {replay.leads_found} leads. This is what the engine saw then, not now.
+                  </div>
+                  <button
+                    onClick={() => void run(replay.query)}
+                    className="shrink-0 rounded border border-border/25 px-2 py-1 text-[10px] text-foreground/75 transition-colors hover:bg-foreground/5"
+                  >
+                    Re-intercept
+                  </button>
+                  <button
+                    onClick={() => setReplay(null)}
+                    aria-label="Close archived run"
+                    className="shrink-0 rounded p-1 text-muted-foreground/45 transition-colors hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {/* Harvest telemetry — the aperture, stated plainly. */}
+              {!replay && data?.harvest && (
+                <p className="mb-4 text-[10.5px] text-muted-foreground/45">
+                  {data.identity ? `${data.identity.kind} selector · ` : ""}
+                  {data.harvest.legs} discovery leg{data.harvest.legs === 1 ? "" : "s"} ·{" "}
+                  {data.harvest.leads} lead{data.harvest.leads === 1 ? "" : "s"} harvested ·{" "}
+                  {data.harvest.probed} probed · {data.harvest.unprobed} surfaced unprobed
+                </p>
+              )}
+
               {results.length > 0 ? (
                 <GhostSearchResults
                   results={results}
-                  suggestions={suggestions}
-                  elapsedMs={data.elapsedMs}
-                  scanned={data.scanned}
+                  suggestions={replay ? [] : suggestions}
+                  elapsedMs={replay ? replay.elapsed_ms : (data?.elapsedMs ?? 0)}
+                  scanned={replay ? replay.probed : data?.scanned}
                   onOpenRecord={(id) => { const r = recordById.get(id); if (r) setSelected(r); }}
                   onSuggest={(s) => { setQuery(s); run(s); }}
                 />
               ) : (
                 <p className="py-10 text-center text-xs text-muted-foreground/55">
-                  {data.error || (scope === "buffer"
-                    ? "No retained body contains those terms. Run a search with Retain armed first."
-                    : "No public target resolved for that query.")}
+                  {replay
+                    ? "That archived run recorded no results."
+                    : data?.error || (scope === "buffer"
+                      ? "No retained body contains those terms. Run a search with Retain armed first."
+                      : "No public target resolved for that query.")}
                 </p>
               )}
+
 
               {/* ── Forensic depth, folded away until asked for ───────── */}
               <div className="mt-10 border-t border-border/10 pt-4">
@@ -577,10 +666,12 @@ const GhostEngineView = () => {
           )}
         </div>
       </div>
+      </div>
 
       {selected && <GhostRecordPanel record={selected} onClose={() => setSelected(null)} />}
     </div>
   );
+
 };
 
 export default GhostEngineView;

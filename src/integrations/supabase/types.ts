@@ -4471,6 +4471,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ghost_entity_history: {
+        Row: {
+          anomalies: number
+          created_at: string
+          elapsed_ms: number
+          entity_key: string
+          entity_kind: string
+          entity_label: string
+          id: string
+          leads_found: number
+          probed: number
+          query: string
+          results: Json
+          scope: string
+          summary: Json
+          user_id: string
+        }
+        Insert: {
+          anomalies?: number
+          created_at?: string
+          elapsed_ms?: number
+          entity_key: string
+          entity_kind: string
+          entity_label: string
+          id?: string
+          leads_found?: number
+          probed?: number
+          query: string
+          results?: Json
+          scope?: string
+          summary?: Json
+          user_id: string
+        }
+        Update: {
+          anomalies?: number
+          created_at?: string
+          elapsed_ms?: number
+          entity_key?: string
+          entity_kind?: string
+          entity_label?: string
+          id?: string
+          leads_found?: number
+          probed?: number
+          query?: string
+          results?: Json
+          scope?: string
+          summary?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       ghost_sessions: {
         Row: {
           captured_at: string

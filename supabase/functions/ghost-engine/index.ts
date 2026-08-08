@@ -34,13 +34,24 @@ import {
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
 import { runGhostLedger } from "../_shared/ghostLedger.ts";
+import {
+  classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
+} from "../_shared/ghostHarvest.ts";
 
 
-const MAX_TARGETS = 24;
-const CONCURRENCY = 6;
+// The probe budget and the harvest aperture are two different numbers. The
+// harvest is wide — it collects every URL the fan-out surfaces. The probe is
+// deep but bounded, because a full metadata extraction costs a round trip.
+// Leads beyond the probe budget are still reported; they are simply reported
+// as surface intelligence rather than as forensic shells.
+const MAX_PROBE = 96;
+const CONCURRENCY = 12;
+const HARVEST_CAP = 400;
 const BUCKET = "ghost-buffer";
 
-type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge" | "ledger";
+type Action =
+  | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
+  | "purge" | "ledger" | "history" | "historyDetail" | "forget";
 
 interface GhostRequest {
   action?: Action;
@@ -77,32 +88,34 @@ function asUrl(raw: string): string | null {
   } catch { return null; }
 }
 
-/** Discovery pass — the open index tells us which doors to knock on. */
-async function discover(query: string, limit: number, authHeader: string | null): Promise<string[]> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const bearer = serviceRole || (authHeader || "").replace(/^Bearer\s+/i, "");
-  if (!supabaseUrl || !bearer) return [];
+/**
+ * Discovery pass — one selector, many angles.
+ *
+ * The prior implementation asked a single scraper a single question and kept
+ * up to a dozen links. For anything that is an *entity* rather than a phrase —
+ * a name, an email, a phone number — that returns nothing, because the open
+ * index only concedes an entity exists when it is asked in the vocabulary the
+ * indexers used. The fan-out does that asking.
+ */
+async function discoverWide(
+  identity: SelectorIdentity,
+  authHeader: string | null,
+): Promise<{ leads: HarvestLead[]; legs: number }> {
   try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/ddg-search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
-      body: JSON.stringify({ query, numResults: limit }),
+    const { legs, leads } = await harvestLeads(identity, authHeader, {
+      concurrency: 5,
+      legTimeoutMs: 12_000,
+      maxLeads: HARVEST_CAP,
     });
-    if (!res.ok) {
-      console.error(`[ghost-engine] discovery failed [${res.status}]: ${await res.text()}`);
-      return [];
-    }
-    const json = await res.json();
-    const urls: string[] = (json.results || [])
-      .map((r: { url: string }) => isPublicHttpUrl(r.url))
-      .filter(Boolean);
-    return [...new Set(urls)].slice(0, limit);
+    // A lead is only useful if it is a public HTTP target we are allowed to open.
+    const usable = leads.filter((l) => isPublicHttpUrl(l.url));
+    return { leads: usable, legs: legs.length };
   } catch (e) {
-    console.error("[ghost-engine] discovery error:", (e as Error).message);
-    return [];
+    console.error("[ghost-engine] harvest error:", (e as Error).message);
+    return { leads: [], legs: 0 };
   }
 }
+
 
 /** Service-role client — the buffer is written on the operator's behalf. */
 function serviceClient(): SupabaseClient | null {
@@ -164,7 +177,13 @@ function tokenize(q: string): string[] {
 
 interface SearchResult {
   id: string;
-  source: "web" | "buffer";
+  /**
+   * INTERCEPT layers:
+   *   web    — a shell the engine actually opened and carved metadata from
+   *   lead   — a surfaced target the probe budget did not reach; still evidence
+   *   buffer — a retained body already on the shelf
+   */
+  source: "web" | "lead" | "buffer";
   title: string;
   url: string;
   host: string;
@@ -173,7 +192,36 @@ interface SearchResult {
   score: number;
   session_id?: string;
   entity_id?: string;
+  /** For `lead` results — which fan-out leg surfaced the URL. */
+  via?: string;
+  /** Distinct engines/legs that independently returned this URL. */
+  corroboration?: number;
 }
+
+function leadResult(l: HarvestLead): SearchResult {
+  let host = "";
+  try { host = new URL(l.url).hostname.replace(/^www\./, ""); } catch { /* noop */ }
+  const badges = [
+    "unprobed",
+    l.engine || "",
+    l.via ? `via ${l.via}` : "",
+    l.corroboration > 1 ? `x${l.corroboration}` : "",
+  ].filter(Boolean);
+  return {
+    id: `lead:${l.url}`,
+    source: "lead",
+    title: l.title || host || l.url,
+    url: l.url,
+    host,
+    snippet: l.snippet || "Surfaced by the harvest; not probed this round.",
+    badges,
+    // Leads rank below probed shells but above unreachable ones.
+    score: 5 + Math.min(l.corroboration, 8) * 2,
+    via: l.via,
+    corroboration: l.corroboration,
+  };
+}
+
 
 function bufferResult(h: {
   session_id: string; url: string; host: string; source_type: string;
@@ -198,8 +246,13 @@ function bufferResult(h: {
   };
 }
 
-/** Fold a metadata shell into the flat result shape the search list renders. */
-function webResult(r: GhostRecord, anomalyCount: number): SearchResult {
+/**
+ * Fold a metadata shell into the flat result shape the search list renders.
+ * When the harvest supplied a title/snippet for this URL, that human-readable
+ * context is preferred for the headline and appended to the forensic facts —
+ * a bare hostname told the operator nothing about *why* the hit matched.
+ */
+function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): SearchResult {
   const badges = [
     r.status ? String(r.status) : "unreachable",
     (r.source_type || "").split(";")[0],
@@ -208,6 +261,8 @@ function webResult(r: GhostRecord, anomalyCount: number): SearchResult {
     r.geo_source === "exif" ? "EXIF GPS" : "",
     r.author ? `author: ${r.author}` : "",
     r.software || "",
+    lead?.via ? `via ${lead.via}` : "",
+    lead && lead.corroboration > 1 ? `x${lead.corroboration}` : "",
     anomalyCount ? `${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"}` : "",
   ].filter(Boolean);
 
@@ -227,20 +282,31 @@ function webResult(r: GhostRecord, anomalyCount: number): SearchResult {
     (r.status && r.status < 400 ? 20 : 0) +
     (r.author ? 30 : 0) + (r.device_id ? 25 : 0) + (r.software ? 12 : 0) +
     (r.geo_lat != null ? 25 : 0) + (r.created_at ? 10 : 0) +
-    anomalyCount * 18 + Math.min(facts.length, 6) * 3;
+    anomalyCount * 18 + Math.min(facts.length, 6) * 3 +
+    Math.min(lead?.corroboration ?? 0, 8) * 2;
+
+  const forensic = facts.join(" · ");
+  const context = (lead?.snippet || "").trim();
+  const snippet = context && forensic
+    ? `${context} — ${forensic}`
+    : context || forensic ||
+      "Shell reachable, nothing embedded — the publisher strips metadata on upload.";
 
   return {
     id: `web:${r.entity_id}`,
     source: "web",
-    title: r.host || r.url,
+    title: lead?.title || r.host || r.url,
     url: r.url,
     host: r.host,
-    snippet: facts.join(" · ") || "Shell reachable, nothing embedded — the publisher strips metadata on upload.",
+    snippet,
     badges,
     score,
     entity_id: r.entity_id,
+    via: lead?.via,
+    corroboration: lead?.corroboration,
   };
 }
+
 
 /** Related searches, derived from the facets the sweep already produced. */
 function suggestFromFacets(facets: { field: string; value: string; count: number }[]): string[] {
@@ -289,6 +355,81 @@ Deno.serve(async (req) => {
   // buffer's finitude is enforced on the request path, not by a cron that may
   // not have run.
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
+
+  // ── HISTORY — the second half of the dual sidebar ──────────────────────────
+  // INTERCEPT is what the engine is pulling right now. HISTORY is what it has
+  // ever pulled on this entity. They are different questions and they get
+  // different surfaces; collapsing them was why a repeat lookup looked like a
+  // first lookup.
+  if (action === "history" || action === "historyDetail" || action === "forget") {
+    if (!sb || !userId) return json({ error: "History unavailable for this session" }, 503);
+
+    if (action === "forget") {
+      const key = String(body.query || "").trim();
+      const del = sb.from("ghost_entity_history").delete().eq("user_id", userId);
+      const { error } = key ? await del.eq("entity_key", key) : await del;
+      if (error) return json({ error: "Could not clear history", details: error.message }, 500);
+      return json({ action: "forget", entity_key: key || null, cleared: true });
+    }
+
+    if (action === "historyDetail") {
+      const key = String(body.query || "").trim();
+      if (!key) return json({ error: "entity key is required" }, 400);
+      const { data, error } = await sb
+        .from("ghost_entity_history")
+        .select("id,entity_key,entity_kind,entity_label,query,scope,leads_found,probed,anomalies,elapsed_ms,results,summary,created_at")
+        .eq("user_id", userId)
+        .eq("entity_key", key)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return json({ error: "History read failed", details: error.message }, 500);
+      return json({ action: "historyDetail", entity_key: key, runs: data || [] });
+    }
+
+    const { data, error } = await sb
+      .from("ghost_entity_history")
+      .select("id,entity_key,entity_kind,entity_label,query,scope,leads_found,probed,anomalies,elapsed_ms,created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) return json({ error: "History read failed", details: error.message }, 500);
+
+    // Collapse runs into entities. The rail lists WHO was looked up, not how
+    // many times a query string was retyped.
+    const byEntity = new Map<string, {
+      entity_key: string; entity_kind: string; entity_label: string;
+      runs: number; last_seen: string; first_seen: string;
+      total_leads: number; total_anomalies: number; queries: string[];
+    }>();
+    for (const r of data || []) {
+      const e = byEntity.get(r.entity_key);
+      if (e) {
+        e.runs += 1;
+        e.first_seen = r.created_at;
+        e.total_leads += r.leads_found || 0;
+        e.total_anomalies += r.anomalies || 0;
+        if (!e.queries.includes(r.query) && e.queries.length < 6) e.queries.push(r.query);
+      } else {
+        byEntity.set(r.entity_key, {
+          entity_key: r.entity_key,
+          entity_kind: r.entity_kind,
+          entity_label: r.entity_label,
+          runs: 1,
+          last_seen: r.created_at,
+          first_seen: r.created_at,
+          total_leads: r.leads_found || 0,
+          total_anomalies: r.anomalies || 0,
+          queries: [r.query],
+        });
+      }
+    }
+    return json({
+      action: "history",
+      entities: [...byEntity.values()].sort((a, b) => b.last_seen.localeCompare(a.last_seen)),
+      runs: data || [],
+    });
+  }
+
 
   // ── LEDGER — Cloud Intelligence fused into the Ghost Engine ────────────────
   // The operator's own correspondence nominates the targets; Ghost probes the
@@ -388,10 +529,12 @@ Deno.serve(async (req) => {
     return json({ error: `Unknown action: ${action}` }, 400);
   }
 
-  // ── Sweep ──────────────────────────────────────────────────────────────────
+  // ── Sweep / INTERCEPT ──────────────────────────────────────────────────────
   const query = String(body.query ?? "").trim().slice(0, 400);
-  const explicit = Array.isArray(body.urls) ? body.urls.slice(0, MAX_TARGETS) : [];
-  const limit = Math.min(Math.max(Number(body.limit) || 12, 1), MAX_TARGETS);
+  const explicit = Array.isArray(body.urls) ? body.urls.slice(0, MAX_PROBE) : [];
+  // `limit` is now the PROBE budget, not the harvest aperture. The harvest is
+  // uncapped relative to it — every lead the fan-out surfaces is reported.
+  const probeBudget = Math.min(Math.max(Number(body.limit) || 48, 1), MAX_PROBE);
   if (!query && explicit.length === 0) return json({ error: "query or urls is required" }, 400);
 
   const started = Date.now();
@@ -399,12 +542,21 @@ Deno.serve(async (req) => {
 
   let targets: string[] = explicit.map(asUrl).filter(Boolean) as string[];
   let mode: "sweep" | "target" = targets.length ? "target" : (body.mode ?? "sweep");
-  const direct = query ? asUrl(query) : null;
+  const identity = classifySelector(query || targets[0] || "");
+  // `asUrl` will happily coerce "someone@gmail.com" into a host, which then
+  // probes the provider's login page and reports it as intelligence about the
+  // person. Only a selector the classifier calls a *domain* is a direct target.
+  const direct = query && identity.kind === "domain" ? asUrl(query) : null;
+
+
+  let harvest: HarvestLead[] = [];
+  let legCount = 0;
 
   if (!targets.length && direct) {
     mode = "target";
     const u = new URL(direct);
-    // A single door tells you little; the host's standard surfaces tell you a lot.
+    // A single door tells you little; the host's standard surfaces tell you a
+    // lot — and the fan-out then tells you who else is talking about the host.
     targets = [...new Set([
       direct,
       `${u.origin}/`,
@@ -412,20 +564,44 @@ Deno.serve(async (req) => {
       `${u.origin}/sitemap.xml`,
       `${u.origin}/.well-known/security.txt`,
     ])];
+    const wide = await discoverWide(identity, req.headers.get("Authorization"));
+    harvest = wide.leads;
+    legCount = wide.legs;
+    const seen = new Set(targets);
+    for (const l of harvest) {
+      if (targets.length >= probeBudget) break;
+      if (seen.has(l.url)) continue;
+      seen.add(l.url);
+      targets.push(l.url);
+    }
   } else if (!targets.length) {
-    targets = await discover(query, limit, req.headers.get("Authorization"));
+    const wide = await discoverWide(identity, req.headers.get("Authorization"));
+    harvest = wide.leads;
+    legCount = wide.legs;
+    targets = harvest.slice(0, probeBudget).map((l) => l.url);
     if (!targets.length) {
       return json({
-        query, mode, targets: [], index: null, elapsedMs: Date.now() - started,
-        error: "No public targets resolved for this query.",
+        query, mode, targets: [], index: null, results: [], suggestions: [],
+        harvest: { leads: 0, legs: legCount, probed: 0, unprobed: 0 },
+        identity,
+        elapsedMs: Date.now() - started,
+        error:
+          "The fan-out ran but no public target came back. Every discovery leg " +
+          "returned empty — usually an upstream engine outage or a selector no " +
+          "open index carries. Try a narrower spelling or add a known domain.",
       });
     }
   }
 
-  targets = targets.slice(0, MAX_TARGETS);
-  console.log(`[ghost-engine] ${mode} · ${targets.length} targets · capture=${capture} · caller=${access.reason}`);
+  targets = targets.slice(0, probeBudget);
+  const leadByUrl = new Map(harvest.map((l) => [l.url, l]));
+  console.log(
+    `[ghost-engine] ${mode} · selector=${identity.kind} · legs=${legCount} · ` +
+    `harvest=${harvest.length} · probing=${targets.length} · capture=${capture} · caller=${access.reason}`,
+  );
 
   const records = (await pool(targets, CONCURRENCY, (t: string) => extractGhostRecord(t, capture))) as GhostRecord[];
+
 
   // ── Buffer write — payload leaves the record and lands on the shelf ────────
   let buffered = 0;
@@ -470,16 +646,23 @@ Deno.serve(async (req) => {
 
   // ── Search projection ──────────────────────────────────────────────────────
   // The card catalog stays intact for the power tabs; this is the flat, ranked
-  // list the front door renders. Buffer hits are merged in the same list so the
-  // operator never has to know which layer answered.
+  // list the front door renders. Three layers merge here: retained bodies,
+  // probed shells, and — new — every unprobed lead the harvest surfaced, so the
+  // aperture the operator sees equals the aperture the engine actually opened.
   let results: SearchResult[] | undefined;
   let suggestions: string[] | undefined;
+  const probedUrls = new Set(records.map((r) => r.url));
+  const unprobed = harvest.filter((l) => !probedUrls.has(l.url));
+
   if (searchMode) {
     const anomalyByEntity = new Map<string, number>();
     for (const a of index.anomalies) {
       if (a.entity_id) anomalyByEntity.set(a.entity_id, (anomalyByEntity.get(a.entity_id) ?? 0) + 1);
     }
-    results = records.map((r) => webResult(r, anomalyByEntity.get(r.entity_id) ?? 0));
+    results = records.map((r) =>
+      webResult(r, anomalyByEntity.get(r.entity_id) ?? 0, leadByUrl.get(r.url))
+    );
+    results = [...results, ...unprobed.map(leadResult)];
 
     if (scope === "all" && sb && userId && query) {
       try {
@@ -494,12 +677,50 @@ Deno.serve(async (req) => {
     suggestions = suggestFromFacets(index.facets);
   }
 
+  const elapsedMs = Date.now() - started;
+  const harvestSummary = {
+    leads: harvest.length,
+    legs: legCount,
+    probed: records.length,
+    unprobed: unprobed.length,
+  };
+
+  // ── History write ──────────────────────────────────────────────────────────
+  // A lookup that leaves no trace cannot be compared against tomorrow's. The
+  // snapshot is best-effort: a history failure must never fail the search.
+  if (sb && userId && query && identity.key) {
+    try {
+      await sb.from("ghost_entity_history").insert({
+        user_id: userId,
+        entity_key: identity.key,
+        entity_kind: identity.kind,
+        entity_label: identity.label || query,
+        query,
+        scope: searchMode ? scope : "web",
+        leads_found: harvest.length,
+        probed: records.length,
+        anomalies: index.anomalies.length,
+        elapsed_ms: elapsedMs,
+        results: (results ?? []).slice(0, 120),
+        summary: {
+          legs: legCount,
+          hosts: [...new Set(records.map((r) => r.host).filter(Boolean))].slice(0, 60),
+          facets: index.facets.slice(0, 24),
+        },
+      });
+    } catch (e) {
+      console.error("[ghost-engine] history write failed:", (e as Error).message);
+    }
+  }
+
   return json({
     action: searchMode ? "search" : "sweep",
     scope: searchMode ? scope : undefined,
     query: query || targets[0],
     mode,
-    elapsedMs: Date.now() - started,
+    identity,
+    harvest: harvestSummary,
+    elapsedMs,
     tier: access.reason,
     index,
     results,
@@ -514,4 +735,5 @@ Deno.serve(async (req) => {
       : null,
   });
 });
+
 
