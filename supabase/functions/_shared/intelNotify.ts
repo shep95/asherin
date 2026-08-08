@@ -384,7 +384,16 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
               reportUrl: out.notificationId
                 ? `https://asherin.com/report/${out.notificationId}`
                 : `https://asherin.com${url}`,
-              generatedAt: new Date().toUTCString(),
+              generatedAt: product.generatedAt,
+              // Serial is derived from the inbox row id once it exists, so the
+              // number printed in the email is the same number the dossier
+              // page derives for itself. Only when the inbox write failed does
+              // it fall back to the idempotency key.
+              banner: product.banner,
+              reportNumber: out.notificationId
+                ? icReportNumber(kind, out.notificationId, generatedAt)
+                : product.reportNumber,
+              confidence: product.confidence ?? "",
               // Optional enrichment. Only emitted when the caller supplied it,
               // so every existing module's email renders byte-identically.
               ...(typeof notice.imageUrl === "string" && /^https?:\/\//.test(notice.imageUrl)
