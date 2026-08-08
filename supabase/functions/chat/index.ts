@@ -1945,16 +1945,12 @@ ${fullText}
         const SUPABASE_URL3 = Deno.env.get("SUPABASE_URL") || "";
         const SERVICE_ROLE3 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const romePath = `${SUPABASE_URL3}/storage/v1/object/library/483b8000-cc19-43f7-9598-3825393562e8/project_rome.txt`;
-        const romeResp = await fetch(romePath, {
-          headers: { Authorization: `Bearer ${SERVICE_ROLE3}` },
-        });
-        if (romeResp.ok) {
-          const romeText = await romeResp.text();
+        const romeText = await loadBrain(romePath, SERVICE_ROLE3);
+        if (romeText) {
           // Truncate to 80K chars to fit context window alongside other brains
           const MAX_WAR_CHARS = 80000;
-          const truncatedRome = romeText.length > MAX_WAR_CHARS
-            ? romeText.slice(0, MAX_WAR_CHARS) + `\n\n[... Truncated at ${MAX_WAR_CHARS} characters.]`
-            : romeText;
+          const truncatedRome = clampBrain(romeText, MAX_WAR_CHARS);
+
           warStrategyBrainContent = `
 
 ## ═══════════════════════════════════════════════════════════════════
