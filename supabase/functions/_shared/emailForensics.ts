@@ -436,7 +436,7 @@ export function analyzeMessage(msg: AnalyzeInput): MessageForensics {
   // meant the operator's own receiving MTA (mx.google.com) matched first and
   // every message on earth came back as "Google Workspace" — a fingerprint of
   // the mailbox, not of the sender.
-  const originSide = hops.slice(0, 2).map((h) => h.from || "").join(" ");
+  const originSide = hops[0]?.from || "";
   const infraText = [
     originSide, messageIdDomain || "", dkimDomain || "", returnPathDomain || "",
     one(H, "x-ses-outgoing") || "", one(H, "x-mailgun-sid") ? "mailgun" : "", one(H, "x-sg-eid") ? "sendgrid" : "",
