@@ -72,9 +72,9 @@ const VEHICLE_RE =
 
 const NAME_PATTERNS: RegExp[] = [
   // "You rode with Jordan" / "Thanks for riding with Jordan"
-  /(?:you rode with|thanks for riding with|riding with|ride with)\s+([A-Z][a-zA-Z'’-]{1,20}(?:\s[A-Z][a-zA-Z'’-]{1,20})?)/,
+  /(?:you rode with|thanks for riding with|riding with|ride with)\s+([A-Z][a-zA-Z'’-]{1,20}(?:\s[A-Z][a-zA-Z'’-]{1,20})?)/i,
   // "Jordan is arriving now" / "Jordan is on the way"
-  /\b([A-Z][a-zA-Z'’-]{1,20})\s+is\s+(?:arriving|on the way|nearby|almost there)/,
+  /\b([A-Z][a-zA-Z'’-]{1,20})\s+is\s+(?:arriving|on the way|nearby|almost there)/i,
   // Receipt block: "Driver: Jordan M."
   /\bdriver\s*[:\-]\s*([A-Z][a-zA-Z'’.-]{1,20}(?:\s[A-Z][a-zA-Z'’.-]{1,20})?)/i,
   // Lyft: "Your driver Jordan"
@@ -114,7 +114,7 @@ function pickCity(text: string): string | null {
   // Receipts carry the operating line, e.g. "Uber Technologies in Chicago, IL".
   // The first regex hit is often the whole phrase, so every candidate is tried
   // and the corporate prefix is trimmed off rather than failing the field.
-  const withState = text.matchAll(/([A-Za-z .'-]{2,40}),\s*([A-Z]{2})\b(?!\s*\d)/g);
+  const withState = text.matchAll(/([A-Za-z .'-]{2,40}),\s*([A-Z]{2})\b(?:\s+\d{5}(?:-\d{4})?)?/g);
   for (const m of withState) {
     const tail = m[1].trim().split(/\s+(?:in|at|near)\s+/i).pop()!.trim();
     if (!tail || tail.length < 2 || CITY_NOISE.test(tail)) continue;
@@ -200,7 +200,7 @@ export function parseRideEmail(msg: {
     kind,
     subject,
     gaps,
-    excerpt: text.slice(0, 3000),
+    excerpt: text.slice(0, 800),
   };
 }
 
