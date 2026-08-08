@@ -212,7 +212,7 @@ export default function IntelAlertCenter() {
       ref={panelRef}
       role="dialog"
       aria-label="Intelligence alerts"
-      className="fixed right-4 top-16 z-[95] w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl"
+      className="fixed right-3 bottom-16 z-[95] w-[min(26rem,calc(100vw-1.5rem))] max-h-[70vh] overflow-hidden rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl"
     >
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
@@ -401,7 +401,8 @@ export default function IntelAlertCenter() {
         aria-label={unread ? `Intelligence alerts, ${unread} unread` : "Intelligence alerts"}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="fixed right-4 top-4 z-[94] flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:bg-black/70 hover:text-white"
+        className="fixed right-3 bottom-4 z-[94] flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/50 backdrop-blur-md opacity-60 transition-all hover:opacity-100 hover:bg-black/70 hover:text-white focus-visible:opacity-100"
+        style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <Bell className="h-4 w-4" />
         {unread > 0 && (
