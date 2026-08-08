@@ -168,7 +168,7 @@ const SelfLocationLayer = ({ fix, trail, fences, onRemoveFence }: Props) => {
                 <div className="opacity-50 text-[10px]">Fix {new Date(fix.ts).toLocaleTimeString()} · device sensor, stored locally</div>
               </div>
             </Popup>
-          </CircleMarker>
+          </Marker>
         </>
       )}
     </>
