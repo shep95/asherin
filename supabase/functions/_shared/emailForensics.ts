@@ -314,6 +314,12 @@ const ESP_SIGNATURES: Array<[RegExp, string]> = [
   [/mailjet\.com/i, "Mailjet"],
   [/elasticemail/i, "Elastic Email"],
   [/smtp2go/i, "SMTP2GO"],
+  // Shared-hosting and VPS relays. Not inherently hostile, but a "personal"
+  // or brand-claiming message emitted straight off a rented box is a shape
+  // the operator should see named rather than left blank.
+  [/hostinger|hostgator|bluehost|godaddy|secureserver\.net|namecheap|siteground|dreamhost|ionos|1and1/i, "Shared web host relay"],
+  [/digitalocean|linode|vultr|hetzner|contabo|ovh\.net|ovhcloud|scaleway|upcloud/i, "VPS / cloud relay"],
+  [/amazonaws\.com|azure|googleusercontent|compute\.internal/i, "Cloud compute relay"],
 ];
 
 const MAILER_SIGNATURES: Array<[RegExp, string]> = [
