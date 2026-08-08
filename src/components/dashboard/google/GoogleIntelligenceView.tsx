@@ -23,6 +23,7 @@ import ContentIntelligence from "./modules/ContentIntelligence";
 import LifePredictions from "./modules/LifePredictions";
 import AutomationSuite from "./modules/AutomationSuite";
 import SecurityIntelligence from "./modules/SecurityIntelligence";
+import EmailForensics from "./modules/EmailForensics";
 import ScenarioEngine from "./modules/ScenarioEngine";
 import ConnectedAppsView from "./modules/ConnectedAppsView";
 import YouTubeDataView from "./modules/YouTubeDataView";
@@ -40,7 +41,7 @@ import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "postmark" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 /** A directorate is an analytic function, not a product category. */
@@ -90,6 +91,7 @@ const nexusModules: ModuleDef[] = [
   { id: "guardian", codename: "GUARDIAN", label: "Rideshare & Message Guardian", icon: ShieldAlert, mandate: "Background assessment of the assigned rideshare driver before boarding, plus forensic read of pasted phone-message threads — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "sentinel", codename: "SENTINEL", label: "Bluetooth & Area Sentinel", icon: Radar, mandate: "Logs nearby Bluetooth radios, flags the ones recurring across separate times and places as a following pattern, and warns on entry into areas with reported crime or documented group activity — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "security", codename: "BULWARK", label: "Exposure & Threat", icon: Shield, mandate: "Breach exposure, phishing pressure, credential threat chaining and file audit", directorate: "COUNTERINTEL" },
+  { id: "postmark", codename: "POSTMARK", label: "Envelope Forensics", icon: Fingerprint, mandate: "Header-only read of every inbound message: relay chain, authentication verdicts, origin network and geography, composing client and sender local time", directorate: "COUNTERINTEL" },
   { id: "automation", codename: "RELAY", label: "Standing Orders", icon: Zap, mandate: "Conditional handling rules — triage, scheduling and location triggers", directorate: "COUNTERINTEL" },
 ];
 
@@ -169,6 +171,7 @@ const GoogleIntelligenceView = () => {
       case "predictions": return <LifePredictions />;
       case "automation": return <AutomationSuite />;
       case "security": return <SecurityIntelligence />;
+      case "postmark": return <EmailForensics />;
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
       case "messages": return <PhoneMessages />;
