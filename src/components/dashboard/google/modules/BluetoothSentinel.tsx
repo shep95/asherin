@@ -6,6 +6,7 @@ import { pickOne, listPaired } from "@/components/dashboard/zaxin/core/scanner";
 import {
   subscribeSentinel, getSentinelState, armSentinel, disarmSentinel, flushSentinel,
   checkAreaNow, grantRadioPermission, ingestAdvert, invalidateSentinelSettings,
+  runTradecraftSweep,
   type SentinelState,
 } from "@/lib/sentinel/alwaysOn";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
