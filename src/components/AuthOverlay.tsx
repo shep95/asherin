@@ -173,8 +173,24 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
             <form onSubmit={handleAuth} className="space-y-4">
               {!isLogin && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Name</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-xl border border-border/40 bg-background/50 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
+                  <label htmlFor="signup-name" className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Name</label>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={() => setNameTouched(true)}
+                    placeholder="Your name"
+                    maxLength={50}
+                    aria-invalid={nameError ? true : undefined}
+                    aria-describedby={nameError ? "signup-name-error" : undefined}
+                    className={`w-full rounded-xl border bg-background/50 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors ${nameError ? "border-destructive/60 focus:border-destructive" : "border-border/40 focus:border-foreground/30"}`}
+                  />
+                  {nameError && (
+                    <p id="signup-name-error" role="alert" className="mt-1.5 text-xs font-extralight text-destructive">
+                      {nameError}
+                    </p>
+                  )}
                 </div>
               )}
               <div>
