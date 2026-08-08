@@ -21,6 +21,8 @@
 //                  evidence even if the shell probe later fails.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { filterLeads } from "./ghostFilter.ts";
+
 export type SelectorKind = "email" | "phone" | "domain" | "name" | "handle" | "freeform";
 
 export interface SelectorIdentity {
@@ -112,7 +114,7 @@ export const isFreemail = (domain: string) => FREEMAIL.has(domain.toLowerCase())
  * piece of the entity: the address, the digits, the surname, the host.
  * Freeform queries keep everything — there is no entity to be wrong about.
  */
-function selectorTokens(id: SelectorIdentity): string[] {
+export function selectorTokens(id: SelectorIdentity): string[] {
   switch (id.kind) {
     case "email": {
       const { local, domain } = id.parts;
@@ -308,17 +310,33 @@ export interface HarvestOptions {
   concurrency?: number;
   legTimeoutMs?: number;
   maxLeads?: number;
+  /** Zophiel web filter — suppress reference/farm/commerce/container noise. */
+  noiseFilter?: boolean;
+  /** Score floor for the noise filter. Higher is stricter. */
+  filterFloor?: number;
+}
+
+export interface HarvestReport {
+  legs: HarvestLeg[];
+  leads: HarvestLead[];
+  /** Leads the noise filter suppressed — kept so the UI can reveal them. */
+  suppressed: HarvestLead[];
+  filter: { applied: boolean; raw: number; kept: number; dropped: number; reasons: Record<string, number> };
 }
 
 export async function harvestLeads(
   id: SelectorIdentity,
   authHeader: string | null,
   opts: HarvestOptions = {},
-): Promise<{ legs: HarvestLeg[]; leads: HarvestLead[] }> {
+): Promise<HarvestReport> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const bearer = serviceRole || (authHeader || "").replace(/^Bearer\s+/i, "");
-  if (!supabaseUrl || !bearer) return { legs: [], leads: [] };
+  const empty: HarvestReport = {
+    legs: [], leads: [], suppressed: [],
+    filter: { applied: false, raw: 0, kept: 0, dropped: 0, reasons: {} },
+  };
+  if (!supabaseUrl || !bearer) return empty;
 
   const concurrency = opts.concurrency ?? 4;
   const legTimeoutMs = opts.legTimeoutMs ?? 12_000;
@@ -368,12 +386,50 @@ export async function harvestLeads(
   // preview is not absence from the page.
   const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens)$/;
   const relevant = all.filter((l) => LITERAL_LEGS.test(l.via) || leadIsRelevant(l, tokens, id));
+
+  // ── Zophiel web filter ────────────────────────────────────────────────────
+  // Relevance says "this page mentions the entity". The filter says "and it is
+  // worth an operator's attention" — reference corpora, content farms, shop
+  // listings, search containers and mirrored duplicates are cut here.
+  let leads = relevant;
+  let suppressed: HarvestLead[] = [];
+  let report = { applied: false, raw: all.length, kept: relevant.length, dropped: 0, reasons: {} as Record<string, number> };
+
+  if (opts.noiseFilter !== false) {
+    const pinnedHosts = [
+      id.kind === "domain" ? id.parts.host : "",
+      id.kind === "email" && !isFreemail(id.parts.domain) ? id.parts.domain : "",
+    ].filter(Boolean);
+    const verdict = filterLeads(relevant, {
+      tokens,
+      pinnedHosts,
+      floor: opts.filterFloor ?? 0,
+    });
+    // A filter that empties the board has failed at its job. When the cut
+    // leaves nothing, fall back to the unfiltered set rather than telling the
+    // operator their entity does not exist.
+    if (verdict.kept.length > 0) {
+      leads = verdict.kept;
+      suppressed = verdict.dropped;
+      report = {
+        applied: true,
+        raw: all.length,
+        kept: verdict.kept.length,
+        dropped: verdict.dropped.length,
+        reasons: verdict.reasons,
+      };
+    } else {
+      report = { ...report, applied: false, reasons: { "filter would have emptied the board": verdict.dropped.length } };
+    }
+  }
+
   // Corroboration first — a URL two independent legs both surfaced is a
   // stronger claim than one a single scraper coughed up.
-  const leads = relevant.sort((a, b) => b.corroboration - a.corroboration);
+  leads = [...leads].sort((a, b) => b.corroboration - a.corroboration);
   console.log(
-    `[ghostHarvest] ${id.kind} · legs=${legs.length} · raw=${all.length} · kept=${leads.length}`,
+    `[ghostHarvest] ${id.kind} · legs=${legs.length} · raw=${all.length} · relevant=${relevant.length} · ` +
+    `kept=${leads.length} · filtered=${report.dropped}`,
   );
-  return { legs, leads };
-
+  return { legs, leads, suppressed, filter: report };
 }
+

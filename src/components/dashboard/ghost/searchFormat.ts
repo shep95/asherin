@@ -39,11 +39,21 @@ export interface GhostIdentity {
   parts: Record<string, string>;
 }
 
+export interface GhostFilterReport {
+  applied: boolean;
+  raw: number;
+  kept: number;
+  dropped: number;
+  reasons: Record<string, number>;
+}
+
 export interface GhostHarvestSummary {
   leads: number;
   legs: number;
   probed: number;
   unprobed: number;
+  /** Zophiel web filter accounting for this run. */
+  filter?: GhostFilterReport;
 }
 
 /** One past lookup of one entity. */
