@@ -206,8 +206,19 @@ function injectGeoBody(html: string, path: string) {
 
   const stamp = effectiveUpdated(geo);
 
+  // Visually clipped, never display:none. The markup stays in the served HTML
+  // byte-for-byte for JS-less fetchers and text extractors, but it occupies a
+  // 1x1 clipped box so it cannot paint a flash of unstyled text (or shift
+  // layout) in the window between first paint and React's first commit.
+  // Inline styles are used deliberately: the stylesheet has not parsed yet at
+  // the moment this markup would otherwise become visible.
+  const CLIP =
+    "position:absolute;width:1px;height:1px;padding:0;margin:-1px;" +
+    "overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);" +
+    "white-space:nowrap;border:0;pointer-events:none;";
+
   const block =
-    `<section data-geo-static aria-label="${escapeAttr(geo.topic)}">` +
+    `<section data-geo-static aria-hidden="true" style="${CLIP}" aria-label="${escapeAttr(geo.topic)}">` +
     `<h2>${esc(geo.topic)}</h2>` +
     `<p>Last verified <time datetime="${escapeAttr(stamp)}">${esc(stamp)}</time></p>` +
     `<p data-geo-answer>${esc(geo.answer)}</p>` +
