@@ -1,3 +1,6 @@
+import { isNativeApp } from "@/lib/native/nativeRuntime";
+import { startNativeScan, listNativeBonded } from "@/lib/native/nativeBle";
+
 // Scanner brain — wraps Web Bluetooth into a uniform sweep stream.
 //
 // Reality check baked into this module:
@@ -10,7 +13,11 @@
 //
 // We never claim "scanning" if we can only do the picker.
 
-export type ScanMode = "continuous" | "picker" | "unsupported";
+//  • native: the Asherin companion app (Capacitor). Holds the radio while
+//    backgrounded and while the screen is off — the only mode that samples the
+//    hours a stalking pattern actually happens in.
+
+export type ScanMode = "native" | "continuous" | "picker" | "unsupported";
 
 export interface RawAdvert {
   id: string;
@@ -48,6 +55,7 @@ function decodeManufacturer(map: any): string | null {
 }
 
 export function detectScanMode(): ScanMode {
+  if (isNativeApp()) return "native";
   if (typeof navigator === "undefined" || !("bluetooth" in (navigator as any))) return "unsupported";
   const bt = (navigator as any).bluetooth;
   if (typeof bt?.requestLEScan === "function") return "continuous";
@@ -61,12 +69,21 @@ export interface ScannerHandle {
 
 export async function startScan(onAdvert: (a: RawAdvert) => void): Promise<ScannerHandle> {
   const mode = detectScanMode();
+
+  // Native companion: the radio keeps running when the app leaves the screen,
+  // so this branch is preferred whenever it exists.
+  if (mode === "native") {
+    const handle = await startNativeScan((a) => onAdvert({ ...a }));
+    return { mode, stop: handle.stop };
+  }
+
   if (mode === "unsupported") {
     throw new Error(
-      "Web Bluetooth is not available. Use Chrome on Android, or the Bluefy browser on iOS.",
+      "Web Bluetooth is not available. Install the Asherin companion app, or use Chrome on Android.",
     );
   }
   const bt = (navigator as any).bluetooth;
+
 
   if (mode === "continuous") {
     const handler = (event: any) => {
@@ -120,8 +137,9 @@ export async function pickOne(onAdvert: (a: RawAdvert) => void): Promise<void> {
   });
 }
 
-/** Pull cached/paired devices already permitted in this origin. */
+/** Pull paired/bonded devices already known to this origin or to the OS. */
 export async function listPaired(): Promise<RawAdvert[]> {
+  if (isNativeApp()) return listNativeBonded();
   const bt = (navigator as any)?.bluetooth;
   if (!bt || typeof bt.getDevices !== "function") return [];
   try {
