@@ -69,10 +69,27 @@ interface Angle { label: string; query: string }
  * The angles are ordered by rider-safety value, because the wall clock, not the
  * source list, is what actually limits a sweep. If the budget runs out at angle
  * four, the four that ran are the four that mattered most.
+ *
+ * `resolvedName` is the plate-anchored full name when the pivot cleared the
+ * identity floor. Running a court-record query on a bare first name is not
+ * collection, it is noise generation — so when only a first name exists the
+ * identity-bound angles are dropped entirely and their absence is reported.
  */
-function collectionPlan(ride: RideInput): Angle[] {
-  const name = ride.driver_name!;
+function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
+  const raw = (ride.driver_name || "").trim();
+  const name = resolvedName || raw;
+  const bound = Boolean(resolvedName) || raw.split(/\s+/).length > 1;
   const where = ride.city ? ` in ${ride.city}` : "";
+  if (!name) return [];
+
+  if (!bound) {
+    // First-name-only and the pivot did not resolve a surname. Only angles that
+    // can survive an unbound identity are worth the wall clock.
+    return [
+      { label: "Reputation & complaints", query: `${name}${where} uber lyft driver reviews complaints rating passenger` },
+    ];
+  }
+
   const angles: Angle[] = [
     { label: "Identity & residence", query: `who is ${name}${where} address phone email background` },
     { label: "Court & criminal record", query: `${name}${where} court records criminal charges arrest case docket` },
@@ -87,39 +104,62 @@ function collectionPlan(ride: RideInput): Angle[] {
   return angles;
 }
 
-export interface CollectionResult { context: string; note: string; hits: number; angles: string[] }
+export interface CollectionResult {
+  context: string;
+  note: string;
+  hits: number;
+  angles: string[];
+  candidates: WeightedCandidate[];
+  residual: number;
+  resolved_name: string | null;
+}
 
 /**
  * Run the plan with bounded concurrency and a hard wall-clock budget.
- * Angles resolve independently; a rejected angle contributes an explicit
- * "returned nothing" line so the model can distinguish "searched and empty"
- * from "never searched" — the difference between THIN and a false CLEAR.
+ *
+ * Order matters: the plate pivot runs FIRST because its output changes the
+ * plan. A resolved surname turns six vague first-name queries into six bound
+ * ones; an unresolved plate collapses the plan to the single angle that still
+ * means something. Angles resolve independently and each carries its own
+ * timeout, so a source that hangs costs its slice of the budget and nothing
+ * more — the previous failure mode was one 68-second identity search eating the
+ * whole sweep and the request with it.
  */
 export async function collectDossier(
   ride: RideInput,
   budgetMs = 55_000,
 ): Promise<CollectionResult> {
-  if (!ride.driver_name) {
-    return {
-      context: "",
-      note: "No driver name captured — no public-record collection was attempted.",
-      hits: 0,
-      angles: [],
-    };
-  }
-
-  const plan = collectionPlan(ride);
   const started = Date.now();
   const blocks: string[] = [];
   const ran: string[] = [];
   let hits = 0;
   let jurisdiction = "";
 
+  // ── Phase A: plate-anchored pivot (fast, always attempted) ───────────────
+  const pivot = await plateAnchoredIdentity(ride, Math.min(18_000, Math.floor(budgetMs * 0.3)));
+  blocks.push(pivot.block);
+  hits += pivot.evidence.hits.length;
+
+  if (!ride.driver_name && !pivot.bestFullName) {
+    return {
+      context: blocks.join("\n\n"),
+      note: `No driver name captured. ${pivot.evidence.note}`,
+      hits,
+      angles: [],
+      candidates: pivot.candidates,
+      residual: pivot.residual,
+      resolved_name: null,
+    };
+  }
+
+  // ── Phase B: identity collection, re-seeded by the pivot ─────────────────
+  const plan = collectionPlan(ride, pivot.bestFullName);
   const queue = [...plan];
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
-      if (Date.now() - started > budgetMs) return;
+      const remaining = budgetMs - (Date.now() - started);
+      if (remaining < 6_000) return;
       const angle = queue.shift();
       if (!angle) return;
       try {
@@ -128,7 +168,16 @@ export async function collectDossier(
           blocks.push(`### ${angle.label}\n(query could not be resolved to a jurisdiction)`);
           continue;
         }
-        const bundle = await runJurisdictionalSearch(intent);
+        // Per-angle cap: no single source may consume the shared budget.
+        const bundle = await withTimeout(
+          runJurisdictionalSearch(intent),
+          Math.min(remaining - 2_000, 30_000),
+          null as Awaited<ReturnType<typeof runJurisdictionalSearch>> | null,
+        );
+        if (!bundle) {
+          blocks.push(`### ${angle.label}\n(collection timed out inside its slice of the budget)`);
+          continue;
+        }
         hits += bundle.totalHits ?? 0;
         jurisdiction ||= bundle.jurisdictionLabel || "";
         const body = formatIntelContext(bundle).trim();
@@ -143,13 +192,23 @@ export async function collectDossier(
   await Promise.allSettled(workers);
 
   const skipped = plan.length - ran.length;
+  const pivotNote = pivot.bestFullName
+    ? `Plate pivot resolved "${pivot.bestFullName}" at ${(pivot.candidates[0].posterior * 100).toFixed(0)}% posterior and re-seeded the identity collection.`
+    : pivot.candidates.length
+      ? `Plate pivot produced ${pivot.candidates.length} weighted surname candidate(s), best ${(pivot.candidates[0].posterior * 100).toFixed(0)}% — below the 55% floor, so identity-bound angles were withheld.`
+      : `Plate pivot resolved no surname; identity-bound angles were withheld as unbindable.`;
+
   return {
     context: blocks.join("\n\n"),
-    note: `Ran ${ran.length}/${plan.length} collection angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits,
     angles: ran,
+    candidates: pivot.candidates,
+    residual: pivot.residual,
+    resolved_name: pivot.bestFullName,
   };
 }
+
 
 // ── Delivery ───────────────────────────────────────────────────────────────
 
