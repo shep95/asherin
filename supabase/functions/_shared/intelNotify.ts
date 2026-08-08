@@ -182,14 +182,19 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
     sections,
     findings,
     idempotency_key: idem,
+    // Recorded at write time so the inbox row is never left claiming zero
+    // channels when the inbox itself is one of them.
+    channels_delivered: ["in_app"],
   };
 
   try {
     // The idempotency index is PARTIAL (idempotency_key IS NOT NULL), so
     // PostgREST cannot infer it for ON CONFLICT. Read-then-write explicitly.
+    // A repeat under the same key is the SAME alert by contract. Rewriting the
+    // row would let a thinner retry payload erase the evidence the first pass
+    // collected, so an existing row is adopted, never overwritten.
     let { data, error } = priorId
-      ? await sb.from("intel_notifications")
-          .update(row).eq("id", priorId).select("id").single()
+      ? { data: { id: priorId }, error: null as { code?: string } | null }
       : await sb.from("intel_notifications").insert(row).select("id").single();
 
     // Two sweeps finishing at once both saw "no prior row" and both inserted.
