@@ -230,6 +230,14 @@ const App = () => (
               element={<BlogHowToBreakAnyEncryptionTheory />}
             />
             <Route
+              path="/report/:id"
+              element={
+                <ProtectedRoute>
+                  <IntelligenceReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/asher-dashboard"
               element={
                 <ProtectedRoute>
