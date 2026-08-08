@@ -23,7 +23,7 @@ import { notifyIntel } from "../_shared/intelNotify.ts";
 import {
   fingerprint, classifyKind, displayNameFor, estimateDistance, metersToFeet,
   placeKey, assessRecurrence, inferSelf, parseJsonLoose, reverseGeocode,
-  BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt,
+  BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
   type AdvertInput, type DeviceKind,
 } from "../_shared/bleSentinel.ts";
 
@@ -383,12 +383,10 @@ Deno.serve(async (req) => {
           let key;
           try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
           const label = (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
-          const research = await collect([
-            { label: "Reported crime", query: `crime rate recent incidents ${label}` },
-            { label: "Police & news reporting", query: `police reports shooting robbery assault news ${label}` },
-            { label: "Documented group activity", query: `gang activity territory documented ${label}` },
-            { label: "Community safety reporting", query: `is ${label} safe at night neighborhood safety reports` },
-          ], 35_000);
+          // Geography is collected from the open web, not the identity stack:
+          // the jurisdictional sweep resolves PEOPLE and returns nothing usable
+          // for "is this block safe", which silently produced UNKNOWN verdicts.
+          const research = await collectAreaEvidence(label);
           const raw = await callByokJsonWithRetry(cfgFrom(key), GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
             temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2,
           });
