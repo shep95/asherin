@@ -57,7 +57,7 @@ interface Brief {
   generatedAt: string;
 }
 
-const SOURCES = ["all", "gmail", "calendar", "drive", "contacts", "tasks"] as const;
+const SOURCES = ["all", "gmail", "sms", "calendar", "drive", "contacts", "tasks"] as const;
 
 const severityLabel = (s: number) =>
   s >= 5 ? "CRITICAL" : s >= 4 ? "HIGH" : s >= 3 ? "ELEVATED" : s >= 2 ? "NOTED" : "BASELINE";
