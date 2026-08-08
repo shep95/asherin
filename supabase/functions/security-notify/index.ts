@@ -284,9 +284,19 @@ Deno.serve(async (req) => {
               proxy: actor.proxy,
               hosting: actor.hosting,
               userAgent: ua || actor.device || null,
-              browser: actor.browser,
-              os: actor.os,
-              deviceType: actor.deviceType,
+              // Live enrichment parses a raw header; on the reconstruction
+              // path there is no header, only the session's stored label. Fall
+              // back to that label's own components so the report names a real
+              // device class instead of "Unknown browser / Unknown OS".
+              browser: actor.browser && !/unknown/i.test(actor.browser)
+                ? actor.browser
+                : (ua.match(/—\s*([^/]+?)\s*\//)?.[1]?.trim() ?? null),
+              os: actor.os && !/unknown/i.test(actor.os)
+                ? actor.os
+                : (ua.split("/").slice(1).join("/").trim() || null),
+              deviceType: actor.deviceType && !/unknown/i.test(actor.deviceType)
+                ? actor.deviceType
+                : (ua.split("—")[0]?.trim() || null),
               occurredAt,
               actorTimezone: actor.timezone ?? null,
               mechanism,
