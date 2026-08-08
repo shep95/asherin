@@ -648,6 +648,13 @@ Deno.serve(async (req) => {
   }
 
   const match = await crossMatch(subject, frames);
+  // Silence is not evidence: if the gate discarded frames, the report says so
+  // rather than letting a thin gallery look like a thin internet.
+  if (rejected > 0) {
+    match.reasoning =
+      `${match.reasoning} ${rejected} harvested image${rejected === 1 ? " was" : "s were"} discarded by the face gate ` +
+      `(no comparable human face — artwork, logo, product or scene).`.trim();
+  }
 
   await sb
     .from("intel_notifications")
