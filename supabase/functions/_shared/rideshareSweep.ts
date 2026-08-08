@@ -282,6 +282,14 @@ export async function collectDossier(
   });
   await Promise.allSettled(workers);
 
+  const zophiel = await zophielPromise.catch(() => ({
+    block: "",
+    hits: 0,
+    note: "Zophiel engine layer failed and was dropped from the dossier.",
+  }));
+  if (zophiel.block) blocks.push(zophiel.block);
+  hits += zophiel.hits;
+
   const skipped = plan.length - ran.length;
   const registryNote = pivot.registry.records.length
     ? `Regulator register bound plate ${ride.plate} to "${pivot.registry.records[0].raw_name}" (${pivot.registry.records[0].source}).`
