@@ -1867,10 +1867,97 @@ const IntelligenceMapModule = () => {
               </button>
             )}
           </div>
-          <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-            Live · OSM · Nominatim · REST Countries · Open-Meteo · Overpass · Sunrise-Sunset
+          {sidebar.collapsed && (
+            <button
+              onClick={toggleSidebar}
+              aria-label="Open layer tree"
+              className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          )}
+          <div className="flex items-center gap-1 rounded-xl border border-border/30 bg-card/85 px-1.5 py-1.5 backdrop-blur-md">
+            {([
+              { id: "directions" as const, label: "Directions", Icon: Navigation2 },
+              { id: "places" as const, label: "Explore nearby", Icon: Utensils },
+              { id: "jobs" as const, label: "Hiring nearby", Icon: Briefcase },
+            ]).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => { setTool((t) => (t === id ? null : id)); if (id !== "directions") setSeedDest(null); }}
+                aria-pressed={tool === id}
+                title={label}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                  tool === id ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                <span className="hidden lg:inline">{label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => (cameras.length ? setCameras([]) : loadCameras({ center: mapCenter(), radiusM: 4000 }))}
+              aria-pressed={cameras.length > 0}
+              title="Live street cameras"
+              disabled={cameraBusy}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors disabled:opacity-50 ${
+                cameras.length ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+              }`}
+            >
+              {cameraBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" /> : <CameraIcon className="h-3.5 w-3.5" strokeWidth={1.6} />}
+              <span className="hidden lg:inline">Cameras{cameras.length ? ` · ${cameras.length}` : ""}</span>
+            </button>
+          </div>
+          <div className="ml-auto hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
+            Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · DOT CCTV
           </div>
         </div>
+
+        {/* TOOL PANELS */}
+        <div className="pointer-events-none absolute right-3 top-16 z-[1000] flex flex-col items-end gap-2">
+          <div className="pointer-events-auto">
+            <DirectionsPanel
+              open={tool === "directions"}
+              onClose={() => { setTool(null); setSeedDest(null); setRouteLayer({ routes: [], activeId: null, highlight: null }); }}
+              units={units}
+              onUnitsChange={changeUnits}
+              myFix={track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : null}
+              onRequestMyLocation={() => track.start?.()}
+              seedDestination={seedDest}
+              geocode={geocodeEndpoint}
+              onRoutes={handleRoutes}
+              onCameras={setCameras}
+              onFitPath={(path) => {
+                if (path.length > 1 && mapRef.current) {
+                  mapRef.current.fitBounds(L.latLngBounds(path.map((p) => [p.lat, p.lng] as [number, number])), { padding: [60, 60], maxZoom: 16 });
+                }
+              }}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <PlacesNearbyPanel
+              open={tool === "places"}
+              onClose={() => { setTool(null); setPlacePins([]); }}
+              center={mapCenter()}
+              units={units}
+              onResults={setPlacePins}
+              onFocus={(p) => flyTo(p.lat, p.lng, 18)}
+              onRoute={(p) => openDirectionsTo({ label: p.name, lat: p.lat, lng: p.lng })}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <JobsNearbyPanel
+              open={tool === "jobs"}
+              onClose={() => { setTool(null); setJobPins([]); }}
+              center={mapCenter()}
+              units={units}
+              onResults={setJobPins}
+              onFocus={(j) => { if (j.lat !== undefined && j.lng !== undefined) flyTo(j.lat, j.lng, 17); }}
+              onRoute={(j) => { if (j.lat !== undefined && j.lng !== undefined) openDirectionsTo({ label: j.employer, lat: j.lat, lng: j.lng }); }}
+            />
+          </div>
+        </div>
+
 
         {/* SEARCH RESULTS */}
         {searchResults.length > 0 && (
