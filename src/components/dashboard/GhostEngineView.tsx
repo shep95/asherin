@@ -14,6 +14,7 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
+import { IdentifierSweepPanel, type IdentifierSweepReport } from "./ghost/IdentifierSweepPanel";
 import { DeepTimePanel, type TimeMachineReport } from "./ghost/DeepTimePanel";
 import {
   projectRecords, suggestFromIndex,
@@ -57,7 +58,7 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 
 /** ORIGIN and DEEP TIME are not scopes — they are different questions, so they
  *  get their own verbs rather than being folded into the intercept scope knob. */
-type GhostMode = "intercept" | "origin" | "deeptime";
+type GhostMode = "intercept" | "origin" | "deeptime" | "identifier";
 const MODE_KEY = "ghost_engine_mode";
 
 
@@ -108,10 +109,13 @@ const GhostEngineView = () => {
   // engines, three surfaces.
   const [mode, setMode] = useState<GhostMode>(() => {
     const saved = localStorage.getItem(MODE_KEY);
-    return saved === "origin" || saved === "deeptime" ? saved : "intercept";
+    return saved === "origin" || saved === "deeptime" || saved === "identifier"
+      ? saved
+      : "intercept";
   });
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
+  const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -162,6 +166,36 @@ const GhostEngineView = () => {
         if (trace?.errors.length) {
           toast({ title: "Trace incomplete", description: trace.errors[0] });
         }
+        setRecent((prev) => {
+          const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
+          localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+          return next;
+        });
+        return;
+      }
+
+      // ── IDENTIFIER path ──────────────────────────────────────────────────
+      // The engine opens every candidate itself and only counts a page once
+      // the identifier is actually on it, so this leg is slower than intercept
+      // by design — the wait buys confirmation instead of a list of maybes.
+      if (mode === "identifier") {
+        setSweep(null);
+        const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+          body: { action: "identifier", query: q },
+        });
+        if (controller.signal.aborted) return;
+        if (error) {
+          const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          toast({
+            title: /403|Pro/.test(detail) ? "Identifier sweep is an Asherin Pro surface" : "Sweep failed",
+            description: detail.slice(0, 240) || error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        const report = (res as { report?: IdentifierSweepReport })?.report ?? null;
+        setSweep(report);
+        setData(null);
         setRecent((prev) => {
           const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
           localStorage.setItem(RECENT_KEY, JSON.stringify(next));
