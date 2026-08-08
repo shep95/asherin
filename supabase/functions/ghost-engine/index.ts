@@ -47,7 +47,7 @@ import {
 // deep but bounded, because a full metadata extraction costs a round trip.
 // Leads beyond the probe budget are still reported; they are simply reported
 // as surface intelligence rather than as forensic shells.
-const MAX_PROBE = 96;
+const MAX_PROBE = 48;
 const CONCURRENCY = 8;
 const HARVEST_CAP = 400;
 const BUCKET = "ghost-buffer";
@@ -611,7 +611,7 @@ Deno.serve(async (req) => {
   const explicit = Array.isArray(body.urls) ? body.urls.slice(0, MAX_PROBE) : [];
   // `limit` is now the PROBE budget, not the harvest aperture. The harvest is
   // uncapped relative to it — every lead the fan-out surfaces is reported.
-  const probeBudget = Math.min(Math.max(Number(body.limit) || 48, 1), MAX_PROBE);
+  const probeBudget = Math.min(Math.max(Number(body.limit) || 32, 1), MAX_PROBE);
   if (!query && explicit.length === 0) return json({ error: "query or urls is required" }, 400);
 
   const started = Date.now();
