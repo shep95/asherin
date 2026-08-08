@@ -63,6 +63,12 @@ export interface IntelNotice {
   skipEmail?: boolean;
   /** Set when the caller's own module preference has push muted. */
   skipPush?: boolean;
+  /**
+   * Lock-screen safe one-liner. Push notifications render on a locked device
+   * and are handed to a third-party push service, so anything sensitive in
+   * `body` must not go out that way. Defaults to `body` when omitted.
+   */
+  pushBody?: string;
 }
 
 export interface IntelDelivery {
@@ -131,6 +137,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   const severity: IntelSeverity = isSeverity(notice.severity) ? notice.severity : "info";
   const title = clamp(notice.title, 140) || "Intelligence report ready";
   const body = clamp(notice.body, 600);
+  const pushBody = clamp(notice.pushBody, 180) || body.slice(0, 180);
   const kind = clamp(notice.kind, 40) || "intel";
   const source = clamp(notice.source, 60) || "Asherin Intelligence";
   const subjectName = clamp(notice.subjectName, 120) || null;
@@ -249,7 +256,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
               { endpoint: s.endpoint, p256dh: s.p256dh, auth_key: s.auth_key },
               {
                 title: `${source} · ${title}`.slice(0, 120),
-                body,
+                body: pushBody,
                 tag: `intel-${kind}-${out.notificationId ?? idem ?? Date.now()}`,
                 url,
                 verdict: severity === "critical" ? "AVOID" : severity === "notable" ? "WATCH" : "",

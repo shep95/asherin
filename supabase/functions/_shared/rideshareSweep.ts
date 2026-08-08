@@ -190,10 +190,29 @@ export async function deliver(
     idempotencyKey: `rideshare:${rideId}:${p.phase ?? "deep"}`,
     skipEmail: true,
     skipPush: !settings.push_enabled,
+    // Lock screens are read by whoever is standing next to the rider.
+    pushBody: `${phase.headline}. Open Asherin for the assessment.`,
   });
   for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
 
   if (settings.email_enabled && userEmail) {
+    // The email is an ALERT, not the dossier.
+    //
+    // Mail is stored in plaintext on servers the rider does not control, is
+    // forwarded and screenshotted, and — for autopilot users — lands in the
+    // very mailbox the trips are harvested from. A named private individual's
+    // resolved identity, candidate matches and evidence links sitting there
+    // forever is the largest liability in this chain, and it is also the one
+    // that would make the product indefensible if that mailbox is breached.
+    // So the mail carries only what the rider needs on the curb with a phone
+    // in their hand: the verdict, what car to expect, and what to do. The
+    // dossier stays behind the session, one tap away.
+    const flagList = Array.isArray(p.flags) ? p.flags : [];
+    const worst = flagList.some((f: any) => String(f?.severity).toLowerCase() === "high")
+      ? "high"
+      : flagList.length
+        ? "moderate"
+        : "none";
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
         method: "POST",
@@ -205,19 +224,13 @@ export async function deliver(
           templateData: {
             verdict: phase.verdict,
             headline: phase.headline,
-            driverName: ride.driver_name || "not captured",
             plate: ride.plate || "not captured",
             vehicle: ride.vehicle || "not captured",
-            city: ride.city || "not captured",
             platform: ride.platform,
-            identityConfidence: phase.confidence,
-            narrative: p.narrative || "",
             recommendedAction: p.recommended_action || "",
-            vehicleCheck: p.vehicle_check || "",
-            limits: p.limits || "",
-            flags: p.flags || [],
-            candidates: p.candidates || [],
-            reportUrl: "https://asherin.com/dashboard",
+            flagCount: flagList.length,
+            flagSeverity: worst,
+            reportUrl: `https://asherin.com/dashboard?tab=cloud-intel&module=rideshare&ride=${encodeURIComponent(rideId)}`,
             generatedAt: new Date().toUTCString(),
           },
         }),

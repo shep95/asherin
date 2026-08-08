@@ -207,12 +207,12 @@ export const Shell = ({ preview, eyebrow, children }: ShellProps) => (
     <Preview>{preview}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={brandRow}>Aureon</Text>
+        <Text style={brandRow}>Asherin</Text>
         {eyebrow && <Text style={eyebrowStyle}>{eyebrow}</Text>}
         {children}
         <Hr style={ruleStyle} />
-        <Text style={signOff}>— Aureon</Text>
-        <Text style={footerLine}>aureonai.app · Intelligence, distilled.</Text>
+        <Text style={signOff}>— Asherin</Text>
+        <Text style={footerLine}>asherin.com · Intelligence, distilled.</Text>
       </Container>
     </Body>
   </Html>
