@@ -275,6 +275,16 @@ export function scoreCandidates(
     }
     if (!ride.city) { logit -= 0.4; reasons.push("-0.4 no city to constrain jurisdiction"); }
 
+    // Ceiling. Open-web recombination cannot certify a human, and a stack of
+    // correlated signals off the same story must not compound into certainty —
+    // that is how an innocent namesake acquires someone else's record.
+    const CEILING = 2.2; // ≈ 91% after the residual mass is applied
+    if (logit > CEILING) {
+      reasons.push(`capped at ${CEILING} — open-source recombination cannot exceed ~91% binding`);
+      logit = CEILING;
+    }
+
+
     scored.push({
       name: `${first} ${rec.last}`,
       first,
