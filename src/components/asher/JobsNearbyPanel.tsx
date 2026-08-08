@@ -4,7 +4,7 @@
 // open-web board sweep, geocoded to map pins. Every posting keeps its source
 // URL; nothing is synthesised.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Briefcase, X, Loader2, ExternalLink, MapPin, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -45,10 +45,14 @@ const JobsNearbyPanel = ({ open, onClose, center, units, onResults, onFocus, onR
   const [error, setError] = useState<string | null>(null);
   const [locality, setLocality] = useState<string | null>(null);
   const liveRef = useRef(true);
+  const runRef = useRef<(r: string) => void>(() => {});
+  const onResultsRef = useRef(onResults);
+  onResultsRef.current = onResults;
 
   const run = async (r: string) => {
     const q = r.trim();
     if (!q) { setError("Name the role you're hunting for."); return; }
+    liveRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -62,14 +66,31 @@ const JobsNearbyPanel = ({ open, onClose, center, units, onResults, onFocus, onR
       const list: JobPosting[] = Array.isArray(data.jobs) ? data.jobs : [];
       setJobs(list);
       setLocality(data.locality || null);
-      onResults(list);
+      onResultsRef.current(list);
       if (!list.length) setError(data.note || "No live postings surfaced for that role here.");
     } catch (e: any) {
-      setError(e?.message || "Job sweep failed.");
+      if (liveRef.current) setError(e?.message || "Job sweep failed.");
     } finally {
-      setBusy(false);
+      if (liveRef.current) setBusy(false);
     }
   };
+  runRef.current = run;
+
+  /* Opening the panel IS the request. Waiting for a second click on "Find
+     hiring" is what made this read as broken: the operator opened it, saw an
+     empty shell, and closed it again. A default broad sweep runs immediately
+     and every preset chip then narrows it. */
+  useEffect(() => {
+    if (!open) { liveRef.current = false; return; }
+    liveRef.current = true;
+    runRef.current(role.trim() || "Hiring now");
+    // Deliberately keyed on `open` alone: re-sweeping on every keystroke or
+    // parent repaint would hammer the board scrapers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => () => { liveRef.current = false; }, []);
+
 
   if (!open) return null;
 

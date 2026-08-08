@@ -202,13 +202,26 @@ function writeJSON(key: string, value: unknown) {
   }
 }
 
+/* Consent is DURABLE, not session-scoped.
+   Previously the grant lived in sessionStorage, so every new tab re-locked the
+   sensor: the operator's own-force track died the moment they reopened the
+   app, the map fell back to its continental default, and every "nearby" tool
+   then swept a city the operator was not standing in. A consent decision is a
+   standing authorisation until it is revoked, so it belongs in localStorage.
+   A session-era grant is migrated forward once so nobody is asked twice. */
 export function hasStoredConsent(): boolean {
   try {
-    return sessionStorage.getItem(CONSENT_KEY) === "granted";
+    if (localStorage.getItem(CONSENT_KEY) === "granted") return true;
+    if (sessionStorage.getItem(CONSENT_KEY) === "granted") {
+      localStorage.setItem(CONSENT_KEY, "granted");
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
+
 
 /* ── The hook ────────────────────────────────────────────────────────────── */
 
@@ -235,6 +248,10 @@ export interface UseSelfTracking {
   addFence: (f: { label: string; lat: number; lng: number; radiusM: number }) => Geofence;
   removeFence: (id: string) => void;
   clearTrail: () => void;
+  /** High-accuracy burst; keeps only the tightest sample. Never worsens the fix. */
+  refine: () => Promise<SelfFix | null>;
+  refining: boolean;
+
 }
 
 export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEvent?: (e: GeofenceEvent) => void }): UseSelfTracking {
@@ -381,12 +398,53 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     if (watchIdRef.current != null) return;
     setStatus("requesting");
     setError(null);
+    /* `maximumAge: 0` is deliberate. A cached fix on a laptop is almost always
+       the coarse wifi/IP estimate the platform kept from the last page that
+       asked — that is exactly the "my position is in the wrong place" symptom.
+       Forcing a fresh acquisition costs one round trip and buys a real fix. */
     watchIdRef.current = navigator.geolocation.watchPosition(handlePosition, handleError, {
       enableHighAccuracy: true,
-      maximumAge: 5000,
-      timeout: 20000,
+      maximumAge: 0,
+      timeout: 30000,
     });
   }, [supported, handlePosition, handleError]);
+
+  /* ── REFINE ───────────────────────────────────────────────────────────────
+     Laptops have no GNSS chip: the first fix is a wifi/IP triangulation that
+     can be kilometres wide. Accuracy improves as the platform accumulates
+     scan results, so a short burst of high-accuracy samples, keeping only the
+     tightest, converges far closer than any single call. Samples worse than
+     the incumbent are discarded, so refine can never make the fix worse. */
+  const refiningRef = useRef(false);
+  const [refining, setRefining] = useState(false);
+  const refine = useCallback(async (): Promise<SelfFix | null> => {
+    if (!supported || refiningRef.current) return lastFixRef.current;
+    refiningRef.current = true;
+    setRefining(true);
+    let best: GeolocationPosition | null = null;
+    try {
+      for (let i = 0; i < 5; i++) {
+        const pos = await new Promise<GeolocationPosition | null>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve(p),
+            () => resolve(null),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 },
+          );
+        });
+        if (pos && (!best || pos.coords.accuracy < best.coords.accuracy)) best = pos;
+        // A sub-25 m fix is a genuine GNSS lock; nothing is gained by sampling on.
+        if (best && best.coords.accuracy <= 25) break;
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+      if (best && (!lastFixRef.current || best.coords.accuracy <= lastFixRef.current.accM)) {
+        handlePosition(best);
+      }
+    } finally {
+      refiningRef.current = false;
+      setRefining(false);
+    }
+    return lastFixRef.current;
+  }, [supported, handlePosition]);
 
   const stop = useCallback(() => {
     if (watchIdRef.current != null) {
@@ -402,15 +460,77 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
   }, []);
 
+  /* ── ALREADY-GRANTED BROWSER PERMISSION IS CONSENT ────────────────────────
+     If the Permissions API reports geolocation as `granted`, the operator has
+     already authorised this origin at the browser level — the strongest
+     consent signal that exists. Re-demanding an in-app click after that is not
+     extra safety, it is a tool that silently stops watching the operator's
+     back. The grant is recorded so the track survives reloads, and a later
+     browser-level revocation flips it straight back off. */
+  useEffect(() => {
+    if (!supported || consent) return;
+    let cancelled = false;
+    const perms = (navigator as Navigator & { permissions?: Permissions }).permissions;
+    if (!perms?.query) return;
+    perms.query({ name: "geolocation" as PermissionName })
+      .then((st) => {
+        if (cancelled) return;
+        const sync = () => {
+          if (st.state === "granted") {
+            try { localStorage.setItem(CONSENT_KEY, "granted"); } catch { /* private mode */ }
+            setConsent(true);
+          } else if (st.state === "denied") {
+            try { localStorage.removeItem(CONSENT_KEY); } catch { /* private mode */ }
+            setConsent(false);
+          }
+        };
+        sync();
+        st.onchange = sync;
+      })
+      .catch(() => { /* Permissions API unavailable — the explicit gate still works */ });
+    return () => { cancelled = true; };
+  }, [supported, consent]);
+
+  /* ── STANDING AUTHORISATION = STANDING TRACK ──────────────────────────────
+
+     Once consent exists it is not re-asked and not re-clicked. The sensor
+     opens the moment the surface mounts, and a first refine burst tightens
+     the initial coarse fix without any operator action. */
+  useEffect(() => {
+    if (!consent || !supported) return;
+    start();
+    const t = window.setTimeout(() => { void refine(); }, 1500);
+    return () => window.clearTimeout(t);
+  }, [consent, supported, start, refine]);
+
+  /* A watch can be silently suspended when a tab is backgrounded or a laptop
+     sleeps. On return to the foreground the watch is re-armed and re-refined
+     so the operator never comes back to a frozen position. */
+  useEffect(() => {
+    if (!consent) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (watchIdRef.current == null) start();
+      void refine();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onVisible);
+    };
+  }, [consent, start, refine]);
+
   const grantConsent = useCallback(() => {
-    try { sessionStorage.setItem(CONSENT_KEY, "granted"); } catch { /* private mode */ }
+    try { localStorage.setItem(CONSENT_KEY, "granted"); } catch { /* private mode */ }
     setConsent(true);
     setPendingRequest(null);
     start();
-  }, [start]);
+    void refine();
+  }, [start, refine]);
 
   const revokeConsent = useCallback(() => {
-    try { sessionStorage.removeItem(CONSENT_KEY); } catch { /* private mode */ }
+    try { localStorage.removeItem(CONSENT_KEY); sessionStorage.removeItem(CONSENT_KEY); } catch { /* private mode */ }
     setConsent(false);
     setPendingRequest(null);
     stop();
@@ -420,6 +540,7 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     if (hasStoredConsent()) { start(); return; }
     setPendingRequest(reason);
   }, [start]);
+
 
   const addFence = useCallback((f: { label: string; lat: number; lng: number; radiusM: number }): Geofence => {
     const radiusM = Math.max(20, Math.min(200_000, f.radiusM));
@@ -471,6 +592,6 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     status, error, consent, pendingRequest, fix, trail, stats, fences, events, follow,
     requestFromAI, clearPending: () => setPendingRequest(null),
     grantConsent, revokeConsent, start, stop, setFollow,
-    addFence, removeFence, clearTrail,
+    addFence, removeFence, clearTrail, refine, refining,
   };
 }
