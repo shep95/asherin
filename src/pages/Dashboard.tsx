@@ -27,6 +27,7 @@ const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboar
 const AIKeysSettings = lazyWithRetry(() => import("@/components/dashboard/AIKeysSettings"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
+const GhostEngineView = lazyWithRetry(() => import("@/components/dashboard/GhostEngineView"));
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
 const ZaliView = lazyWithRetry(() => import("@/components/dashboard/zali/ZaliView"));
 const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/CommunityView"));
