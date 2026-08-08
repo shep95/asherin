@@ -14,6 +14,7 @@ import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import { useAccess } from "@/hooks/useAccess";
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
+import SentinelDaemon from "@/components/dashboard/SentinelDaemon";
 
 // Lazy-load heavy views
 const LibraryView = lazyWithRetry(() => import("@/components/dashboard/LibraryView"));
@@ -1612,6 +1613,7 @@ const Dashboard = () => {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
+      <SentinelDaemon />
       <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
       {prevDashWallpaper && isDashTransitioning && (
