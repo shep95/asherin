@@ -411,10 +411,10 @@ Deno.serve(async (req) => {
     return json({ action: "upload", trace });
   }
 
-  // ── TIMELINE — the archived web, 1996 → today ──────────────────────────────
-  // The intercept reads the web that is being served this second. This reads
-  // the web that was: capture indexes, crawl indexes, and full-text corpora,
-  // folded into one per-year record with a proving link on every row.
+  // ── TIMELINE — the engine's own reach-back ─────────────────────────────────
+  // No outside capture archive is consulted. The engine re-runs its own harvest
+  // across era buckets, opens every lead itself, and carves the date out of the
+  // document — transport header, structured markup, URL path, copyright range.
   if (action === "timeline") {
     const target = String(body.query || "").trim();
     if (!target) return json({ error: "Give the engine a selector to reach back on." }, 400);
@@ -422,6 +422,7 @@ Deno.serve(async (req) => {
     const report = await deepTimeSweep(target, id.kind, {
       hosts: Array.isArray(body.hosts) ? body.hosts.slice(0, 8).map(String) : [],
       fromYear: typeof body.fromYear === "number" ? body.fromYear : undefined,
+      authHeader: req.headers.get("Authorization"),
     });
     return json({ action: "timeline", identity: id, report });
   }

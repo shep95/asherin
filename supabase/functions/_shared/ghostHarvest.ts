@@ -181,7 +181,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       for (const s of ["github.com", "gitlab.com", "gist.github.com"]) {
         push(`code:${s}`, `"${e}" site:${s}`);
       }
-      push("archive", `site:web.archive.org "${e}"`);
       for (const s of BREACH_HINTS) push(`hint:${s}`, `site:${s} "${e}"`, 0.5);
       break;
     }
@@ -200,7 +199,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("records", `"${grouped}" (${RECORD_SITES.map((s) => `site:${s}`).join(" OR ")})`);
       push("carrier", `"${grouped}" (carrier OR sim OR porting OR "spam calls")`);
       push("classified", `"${grouped}" (craigslist OR classified OR listing OR contact)`);
-      push("archive", `site:web.archive.org "${grouped}"`);
       break;
     }
     case "domain": {
@@ -210,7 +208,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("subdomain-index", `site:${h}`);
       push("about", `${h} (about OR contact OR imprint OR "privacy policy")`);
       push("whois", `"${h}" (whois OR registrar OR "domain owner")`);
-      push("archive", `site:web.archive.org ${h}`);
       push("shodan", `site:shodan.io "${h}"`);
       push("crt", `site:crt.sh ${h}`);
       push("virustotal", `site:virustotal.com "${h}"`);
@@ -223,7 +220,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("literal", `"@${h}"`, 3);
       for (const s of SOCIAL_SITES) push(`site:${s}`, `site:${s} "${h}"`);
       push("github", `site:github.com ${h}`);
-      push("archive", `site:web.archive.org "@${h}"`);
       break;
     }
     case "name": {
@@ -239,7 +235,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("obit", `"${n}" (obituary OR memorial OR funeral)`);
       push("news", `"${n}" (news OR interview OR announcement)`);
       push("property", `"${n}" (property OR deed OR parcel OR assessor)`);
-      push("archive", `site:web.archive.org "${n}"`);
       if (first && last) push("initials", `"${first[0]}. ${last}"`, 0.5);
       break;
     }
@@ -247,7 +242,6 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("literal", id.label, 3);
       push("phrase", `"${id.label}"`, 2);
       push("filetype", `${id.label} filetype:pdf OR filetype:doc`);
-      push("archive", `site:web.archive.org ${id.label}`);
       push("github", `site:github.com ${id.label}`);
       push("news", `${id.label} (news OR report OR announcement)`);
     }
