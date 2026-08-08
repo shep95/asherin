@@ -623,6 +623,29 @@ const IntelligenceMapModule = () => {
   const [cloudLayerLoading, setCloudLayerLoading] = useState(false);
   const [activeCloud, setActiveCloud] = useState<Record<string, boolean>>({ "cloud-contacts": false, "cloud-venues": false, "cloud-security": false, "cloud-relationships": false });
   const mapRef = useRef<L.Map | null>(null);
+
+  const refreshCloudLayer = async (kind: string) => {
+    try {
+      setCloudLayerLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const layer = await loadCloudMapLayer(user.id, supabase, kind);
+      setCloudLayer((prev) => ({ ...prev, [layerKeyForKind(kind)]: layer }));
+    } catch (e: any) {
+      toast.error(e?.message || "Cloud intelligence layer failed to load");
+    } finally {
+      setCloudLayerLoading(false);
+    }
+  };
+  const layerKeyForKind = (kind: string): keyof CloudMapLayer => {
+    switch (kind) {
+      case "cloud-contacts": return "contacts";
+      case "cloud-venues": return "venues";
+      case "cloud-security": return "security";
+      case "cloud-relationships": return "relationships";
+      default: return "contacts";
+    }
+  };
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const [showInside, setShowInside] = useState(false);
