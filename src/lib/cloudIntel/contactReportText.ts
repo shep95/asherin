@@ -183,6 +183,57 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push("");
   }
 
+  // Reasoned exposure is a third finding class: the sweep reports where the
+  // identifier IS, the doctrine reports where the subject's shape says it
+  // SHOULD be, and then tests that claim. Untested reasoning is not published.
+  L.push(...banner(n++, "Reasoned exposure (55-domain dork doctrine)"));
+  {
+    const d = a.dork;
+    if (!d) {
+      L.push("  Doctrine leg not run for this subject.");
+      L.push("");
+    } else {
+      L.push(...field("  Battery:  ",
+        `${d.theoriesGenerated} theories generated · ${d.theoriesTested} tested · ${d.totalHits} indexed hits · ${Math.round(d.elapsedMs / 1000)}s`, 12));
+      L.push("");
+      if (d.blocker) {
+        L.push(...wrap(`  ${d.blocker}`, 2));
+        L.push("");
+      }
+      if (d.topExposures.length) {
+        L.push("  CONFIRMED EXPOSURE THEORIES (query → what it returned):");
+        L.push("");
+        for (const t of d.topExposures) {
+          L.push(...field(`  [${String(t.yieldScore).padStart(3)}] ${t.category.replace(/_/g, " ").toUpperCase()} — `, t.query, 8));
+          L.push(...field("        Rationale: ", t.why, 8));
+          if (t.markers.length) {
+            L.push(...field("        Markers:   ", t.markers.join(", "), 8));
+          }
+          for (const h of t.hits) {
+            L.push(...field("          • ", `${h.title || h.host} — ${h.url}`, 12));
+          }
+          L.push("");
+        }
+      }
+      if (d.novel.length) {
+        L.push(...wrap("  NOVEL CROSS-DOMAIN THEORIES — constructed by intersecting exposure domains rather than recalled from a known dork list. These are first-run queries; their yield is stated, not assumed.", 2));
+        L.push("");
+        for (const t of d.novel) {
+          L.push(...field(`  [${String(t.yieldScore).padStart(3)}] `, t.query, 8));
+          L.push(...field("        ", `${t.why} — ${t.hits} hit${t.hits === 1 ? "" : "s"}`, 8));
+        }
+        L.push("");
+      }
+      if (d.defensiveGuidance) {
+        L.push("  SELF-AUDIT POSTURE:");
+        L.push(...wrap(`  ${d.defensiveGuidance.replace(/[#*`]/g, "").replace(/\s+/g, " ").trim().slice(0, 900)}`, 2));
+        L.push("");
+      }
+    }
+  }
+
+
+
   L.push(...banner(n++, "Source register (Admiralty reliability)"));
   if (!a.sources.length) {
     L.push("  No source was retained.");
