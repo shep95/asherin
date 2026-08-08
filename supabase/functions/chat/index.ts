@@ -1518,14 +1518,21 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         try {
           const { runZophielIntel, formatZophielContext, needsGraphLayer } =
             await import("../_shared/zophielChatBridge.ts");
+          const { isQuickIntel } = await import("../_shared/quickIntelligenceBrain.ts");
+          // A practical everyday question ("is this place open right now") must
+          // never pay for the graph layer: the operator is waiting, and a shallow
+          // fast sweep already carries the hours/price/status surface.
+          const quick = isQuickIntel(q);
           // The graph layer is skipped when the jurisdictional dossier engine is
           // already going to run: that path performs its own deeper harvest and
           // both together would exceed the 150s edge ceiling.
           const deep =
+            !quick &&
             (needsGraphLayer(q) || mode === "research") &&
             (!intelIntent || intelIntent.kind === "none");
           const bundle = await runZophielIntel(q, { deep, mode: "web", fast: true });
           webSearchContext = formatZophielContext(bundle);
+
           if (bundle) {
             console.log(
               `[chat] Zophiel corpus: ${bundle.results.length} hits, entity=${bundle.plan?.entity ?? "?"}, topRel=${bundle.topRelevance.toFixed(2)}, rescue=${bundle.rescueUsed}, graph=${bundle.intel ? "yes" : "no"}, ${bundle.elapsedMs}ms`,
