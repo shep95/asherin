@@ -477,7 +477,7 @@ async function inflateOne(bytes: Uint8Array, start: number, ends: number[]): Pro
   return "";
 }
 
-async function inflatePdfStreams(bytes: Uint8Array): Promise<string> {
+export async function inflatePdfStreams(bytes: Uint8Array): Promise<string> {
   const latin1 = new TextDecoder("latin1").decode(bytes);
   const out: string[] = [];
   let cursor = 0;
