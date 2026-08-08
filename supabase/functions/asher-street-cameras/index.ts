@@ -131,6 +131,78 @@ function inCalifornia(b: { south: number; north: number; west: number; east: num
   return b.north > 32.4 && b.south < 42.1 && b.east > -124.5 && b.west < -114.0;
 }
 
+/* ── 511NY (NYSDOT statewide CCTV, open catalogue, HLS streams) ─────────── */
+
+const nyCache: { at: number; cams: Camera[] } = { at: 0, cams: [] };
+const NY_TTL_MS = 10 * 60 * 1000;
+
+async function nyCameras(): Promise<Camera[]> {
+  if (Date.now() - nyCache.at < NY_TTL_MS && nyCache.cams.length) return nyCache.cams;
+  try {
+    const rows: any[] = await fetchJson("https://511ny.org/api/getcameras?key=public&format=json", 15_000);
+    const cams: Camera[] = [];
+    for (const r of Array.isArray(rows) ? rows : []) {
+      const lat = Number(r?.Latitude), lng = Number(r?.Longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      if (r?.Disabled === true || r?.Blocked === true) continue;
+      if (!r?.VideoUrl) continue; // position-only rows add noise; OSM already covers those
+      cams.push({
+        id: `511ny-${r.ID}`,
+        lat, lng,
+        name: String(r.Name || "NYSDOT CCTV"),
+        roadway: r.RoadwayName || undefined,
+        direction: r.DirectionOfTravel && r.DirectionOfTravel !== "Unknown" ? r.DirectionOfTravel : undefined,
+        streamUrl: String(r.VideoUrl),
+        source: "511NY CCTV",
+        operator: "New York State DOT",
+      });
+    }
+    if (cams.length) { nyCache.at = Date.now(); nyCache.cams = cams; }
+    return cams;
+  } catch { return nyCache.cams; }
+}
+
+function inNewYork(b: { south: number; north: number; west: number; east: number }): boolean {
+  return b.north > 40.4 && b.south < 45.1 && b.east > -79.9 && b.west < -71.8;
+}
+
+/* ── Transport for London JamCams (open, still frame + short clip) ──────── */
+
+const tflCache: { at: number; cams: Camera[] } = { at: 0, cams: [] };
+const TFL_TTL_MS = 10 * 60 * 1000;
+
+async function tflCameras(): Promise<Camera[]> {
+  if (Date.now() - tflCache.at < TFL_TTL_MS && tflCache.cams.length) return tflCache.cams;
+  try {
+    const rows: any[] = await fetchJson("https://api.tfl.gov.uk/Place/Type/JamCam", 15_000);
+    const cams: Camera[] = [];
+    for (const p of Array.isArray(rows) ? rows : []) {
+      const lat = Number(p?.lat), lng = Number(p?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const props: Record<string, string> = {};
+      for (const a of p?.additionalProperties || []) if (a?.key) props[a.key] = String(a.value ?? "");
+      if (props.available === "false") continue;
+      if (!props.imageUrl && !props.videoUrl) continue;
+      cams.push({
+        id: `tfl-${p.id}`,
+        lat, lng,
+        name: String(p.commonName || "TfL JamCam"),
+        direction: props.view || undefined,
+        imageUrl: props.imageUrl || undefined,
+        streamUrl: props.videoUrl || undefined,
+        source: "TfL JamCams",
+        operator: "Transport for London",
+      });
+    }
+    if (cams.length) { tflCache.at = Date.now(); tflCache.cams = cams; }
+    return cams;
+  } catch { return tflCache.cams; }
+}
+
+function inLondon(b: { south: number; north: number; west: number; east: number }): boolean {
+  return b.north > 51.2 && b.south < 51.75 && b.east > -0.62 && b.west < 0.35;
+}
+
 /* ── OpenStreetMap surveillance cameras (global positions, no imagery) ──── */
 
 const OVERPASS = [
@@ -214,6 +286,8 @@ serve(async (req) => {
           .catch(() => []),
       );
     }
+    if (inNewYork(b)) tasks.push(nyCameras().catch(() => []));
+    if (inLondon(b)) tasks.push(tflCameras().catch(() => []));
     tasks.push(osmCameras(b).catch(() => []));
 
     const settled = await Promise.allSettled(tasks);
@@ -238,7 +312,7 @@ serve(async (req) => {
       ? undefined
       : near.length
         ? "Camera positions only. No transport agency in this area publishes an open live feed, so no frames are available — positions are OpenStreetMap-tagged devices."
-        : "No open public camera feed covers this corridor. Live frames are currently available where a DOT publishes an unauthenticated CCTV catalogue (California statewide today); everywhere else only OpenStreetMap-tagged camera positions exist.";
+        : "No open public camera feed covers this corridor. Live frames are currently available where an agency publishes an unauthenticated CCTV catalogue (California, New York State and Greater London today); everywhere else only OpenStreetMap-tagged camera positions exist.";
 
     return new Response(JSON.stringify({ success: true, cameras: near, sources, coverageNote }), {
       headers: { ...cors, "Content-Type": "application/json" },

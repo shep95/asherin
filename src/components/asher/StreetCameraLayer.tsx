@@ -1,12 +1,15 @@
 // StreetCameraLayer — live public camera positions and frames on the map.
 //
-// Two classes of object render here:
+// Three classes of object render here:
 //  · Agency CCTV with a still-image endpoint → the popup shows the live frame
-//    and refreshes it on a timer while open.
+//    and refreshes it on a timer while open (Caltrans, TfL).
+//  · Agency CCTV that only publishes video (HLS .m3u8 / clip .mp4, e.g. 511NY)
+//    → the popup mounts a muted inline player, lazily loading hls.js only when
+//    the browser has no native HLS support. Torn down on popup close.
 //  · OpenStreetMap-tagged surveillance devices → position only. They render
 //    hollow so an operator can never mistake a position for a viewable feed.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleMarker, Popup, Tooltip } from "react-leaflet";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { liveFrameUrl, type StreetCamera } from "@/lib/asher/streetCameras";
@@ -19,6 +22,70 @@ interface Props {
 
 const LIVE = "#c98b3a";
 const POSITION_ONLY = "#8b8b8b";
+
+/** Inline player for stream-only cameras. Native HLS on Safari/iOS, hls.js
+ *  elsewhere — imported dynamically so the 400 KB parser never lands in the
+ *  main bundle for operators who never open a camera. */
+const CameraStream = ({ url }: { url: string }) => {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    let destroyed = false;
+    let hls: { destroy: () => void } | null = null;
+
+    const isHls = /\.m3u8(\?|$)/i.test(url);
+    if (!isHls || video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = url;
+      video.play().catch(() => { /* autoplay refusal is not a failure */ });
+    } else {
+      import("hls.js")
+        .then(({ default: Hls }) => {
+          if (destroyed || !ref.current) return;
+          if (!Hls.isSupported()) { setFailed(true); return; }
+          const inst = new Hls({ lowLatencyMode: true, maxBufferLength: 8 });
+          hls = inst;
+          inst.on(Hls.Events.ERROR, (_e, data) => { if (data?.fatal) setFailed(true); });
+          inst.loadSource(url);
+          inst.attachMedia(ref.current);
+          ref.current.play().catch(() => { /* ignore */ });
+        })
+        .catch(() => setFailed(true));
+    }
+
+    return () => {
+      destroyed = true;
+      hls?.destroy();
+      try { video.pause(); video.removeAttribute("src"); video.load(); } catch { /* teardown best-effort */ }
+    };
+  }, [url]);
+
+  if (failed) {
+    return (
+      <p className="text-[10px] leading-snug opacity-70">
+        Stream would not play in-browser.{" "}
+        <a href={url} target="_blank" rel="noopener noreferrer" className="underline">Open it directly</a>.
+      </p>
+    );
+  }
+
+  return (
+    <video
+      ref={ref}
+      muted
+      playsInline
+      autoPlay
+      loop
+      controls
+      width={260}
+      height={146}
+      className="block w-[260px] rounded border border-black/20 bg-black/60 object-cover"
+      style={{ aspectRatio: "16 / 9" }}
+    />
+  );
+};
 
 const CameraFrame = ({ cam, refreshMs }: { cam: StreetCamera; refreshMs: number }) => {
   const [tick, setTick] = useState(() => Date.now());
@@ -33,6 +100,9 @@ const CameraFrame = ({ cam, refreshMs }: { cam: StreetCamera; refreshMs: number 
   }, [cam.imageUrl, refreshMs]);
 
   if (!cam.imageUrl) {
+    // Stream-only agency feed (511NY HLS, TfL clip) — play it rather than
+    // mislabelling it as an unviewable OpenStreetMap position.
+    if (cam.streamUrl) return <CameraStream url={cam.streamUrl} />;
     return (
       <p className="text-[10px] leading-snug opacity-70">
         Position only — this device is mapped in OpenStreetMap but publishes no public feed.
