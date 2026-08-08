@@ -242,10 +242,30 @@ function pdfDate(raw: string | undefined): string | null {
 }
 
 /**
+ * Index metadata under both its namespaced key and its bare suffix, lowercased.
+ * `pdf:CreationDate` becomes reachable as `creationdate`; `html:og:title` as
+ * both `og:title` and `title`.
+ */
+function flattenMeta(meta: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(meta)) {
+    const lower = k.toLowerCase();
+    if (out[lower] === undefined) out[lower] = v;
+    const parts = lower.split(":");
+    for (let i = 1; i < parts.length; i++) {
+      const suffix = parts.slice(i).join(":");
+      if (out[suffix] === undefined) out[suffix] = v;
+    }
+  }
+  return out;
+}
+
+/**
  * Date the sighting, strongest basis first. Publication markup beats a
  * transport header, which beats a dated URL, which beats a date merely sitting
  * near the match. The basis travels with the date so a reader can discount it.
  */
+
 function carveDate(
   url: string,
   headers: Headers | null,
