@@ -2015,8 +2015,8 @@ const IntelligenceMapModule = () => {
     <div className="relative flex h-full w-full bg-background">
       {/* LEFT LAYER PANEL — resizable, collapsible, searchable */}
       <div
-        className="flex h-full flex-col border-r border-border/15 bg-card/30 backdrop-blur-md"
-        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined, overflow: sidebar.collapsed ? "hidden" : undefined }}
+        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border/15 bg-card/30 backdrop-blur-md"
+        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined }}
         aria-hidden={sidebar.collapsed}
       >
         <div className="border-b border-border/15 px-5 py-4 flex items-center gap-3">
