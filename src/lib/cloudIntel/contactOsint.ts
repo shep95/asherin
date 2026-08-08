@@ -718,6 +718,8 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     reverse: null,
     identifierSweeps: [],
     dork: null,
+    imagery: [],
+    kin: [],
   };
 }
 
