@@ -158,7 +158,7 @@ const BluetoothSentinel = () => {
     setFlushing(true);
     try {
       const byok = await resolveByok();
-      const { data } = await invokeWithByokRetry("sentinel-ble", {
+      const data = await invokeWithByokRetry<any>("sentinel-ble", {
         body: {
           action: "ble.ingest",
           sessionId: sessionRef.current,
@@ -172,7 +172,8 @@ const BluetoothSentinel = () => {
         },
         silent: true,
       });
-      const alerts = (data as any)?.alerts || [];
+      const alerts = data?.alerts || [];
+
       for (const al of alerts) {
         toast.warning(`Recurring device: ${al.name}`, { description: al.reason, duration: 12000 });
       }
