@@ -237,6 +237,15 @@ export async function collectDossier(
   }
   const queue = [...plan];
 
+  // ── Phase B2: Zophiel engine, launched alongside the angles ──────────────
+  // It runs against a different substrate (the dashboard search engine), so
+  // serialising it would double the wall clock for no extra evidence.
+  const zophielPromise = zophielLayer(
+    ride,
+    pivot.bestFullName,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
