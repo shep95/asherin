@@ -436,7 +436,8 @@ async function faceGate(
         `Answer false for: sculpture, statues, busts, paintings, drawings, illustrations, cartoons, ` +
         `AI-generated art, book covers, posters, logos, screenshots, product shots, landscapes, ` +
         `buildings, vehicles, crowd scenes with no dominant face, and any image with no discernible face.\n\n` +
-        `Return STRICT JSON only: {"faces":[true,false,...]} with exactly ${frames.length} booleans in image order.`,
+        `Answer with ONE line containing exactly ${frames.length} characters, no spaces, no punctuation, ` +
+        `no explanation: "T" if that image qualifies, "F" if it does not, in image order.`,
     },
     ...frames.map((f) => ({ inline_data: { mime_type: f.type, data: f.b64 } })),
   ];
@@ -448,16 +449,13 @@ async function faceGate(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
-          // The model spends latent reasoning tokens against this same budget,
-          // so a 512 ceiling truncated the boolean array mid-write and the
-          // fail-closed parse then discarded every frame. Disable the reasoning
-          // spend for a classification this shallow and budget for the answer.
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-            thinkingConfig: { thinkingBudget: 0 },
-          },
+          // Two failure modes were folded into one answer shape. A 512-token
+          // ceiling truncated a pretty-printed JSON array mid-write (the model
+          // spends latent reasoning tokens against the same budget), and
+          // `thinkingConfig` is rejected outright by this alias on v1beta. A
+          // bare T/F string costs a handful of tokens and cannot truncate into
+          // something that parses as a different answer.
+          generationConfig: { temperature: 0, maxOutputTokens: 1024 },
         }),
         signal: AbortSignal.timeout(60_000),
       },
@@ -468,13 +466,12 @@ async function faceGate(
     }
     const j = await r.json();
     const text: string = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("") ?? "";
-    const parsed = safeParse(text.replace(/^```json\s*|```$/g, "").trim());
-    const arr = Array.isArray(parsed?.faces) ? parsed.faces : null;
-    if (!arr) {
-      console.error("face_gate_unparsable", text.slice(0, 200));
+    const flags = (text.toUpperCase().match(/[TF]/g) ?? []);
+    if (flags.length < frames.length) {
+      console.error("face_gate_unparsable", JSON.stringify({ got: flags.length, want: frames.length, text: text.slice(0, 120) }));
       return frames.map(() => false);
     }
-    const out = frames.map((_, i) => arr[i] === true);
+    const out = frames.map((_, i) => flags[i] === "T");
     console.log("face_gate", JSON.stringify({ screened: frames.length, kept: out.filter(Boolean).length }));
     return out;
   } catch (e) {
