@@ -26,7 +26,10 @@ const PRO_VIEWS: DashboardView[] = [
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial"];
 
 
-const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
+// Zophiel Search Intelligence tab and its sibling search surfaces. Included
+// with the $18/mo Asherin subscription (monthly + 6-month term) and above.
+export const ZOPHIEL_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
+const SEARCH_VIEWS: DashboardView[] = ZOPHIEL_VIEWS;
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
