@@ -2314,7 +2314,9 @@ const IntelligenceMapModule = () => {
               onResults={setJobPins}
               onFocus={(j) => { if (j.lat !== undefined && j.lng !== undefined) flyTo(j.lat, j.lng, 17); }}
               onRoute={(j) => { if (j.lat !== undefined && j.lng !== undefined) openDirectionsTo({ label: j.employer, lat: j.lat, lng: j.lng }); }}
+            />
           </div>
+
           <div className="pointer-events-auto">
             {/* Camera intelligence anchors on the operator's own fix whenever the
                 GPS has one — a sweep centred on the default DC viewport is what
