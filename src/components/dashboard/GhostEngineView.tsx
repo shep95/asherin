@@ -228,16 +228,23 @@ const GhostEngineView = () => {
       {/* ── Body ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <div className="mx-auto max-w-4xl">
-          {!data && !loading && (
+          {!data && !loading && tab !== "buffer" && (
             <div className="mt-16 text-center">
               <Ghost className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
-              <p className="text-sm font-light text-muted-foreground/70">It touches everything and reads nothing.</p>
+              <p className="text-sm font-light text-muted-foreground/70">The card catalog, and the shelf behind it.</p>
               <p className="mx-auto mt-3 max-w-lg text-xs leading-relaxed text-muted-foreground/45">
                 The Ghost Engine indexes the shell around information — transport headers, DNS and ASN posture,
-                redirect topology, EXIF capture fields, document producers, timestamps — and never the content
-                itself. Three indexes are built over every sweep: inverted facets, a shared-dimension graph, and
-                a phonetic identity fold that survives spelling drift.
+                redirect topology, EXIF capture fields, document producers, timestamps. Three indexes are built over
+                every sweep: inverted facets, a shared-dimension graph, and a phonetic identity fold that survives
+                spelling drift. Arm <span className="text-foreground/70">Retain bodies</span> and each session's payload
+                is also held in a self-expiring buffer, searchable by dictionary and pattern, then destroyed.
               </p>
+              <button
+                onClick={() => setTab("buffer")}
+                className="mx-auto mt-4 flex items-center gap-1.5 rounded-md border border-border/20 px-3 py-1.5 text-[11px] text-muted-foreground/65 transition-colors hover:text-foreground"
+              >
+                <Archive className="h-3 w-3" /> Open buffer
+              </button>
             </div>
           )}
 
@@ -249,24 +256,33 @@ const GhostEngineView = () => {
             </div>
           )}
 
-          {index && (
+          {(index || tab === "buffer") && (
             <>
               <div className="mb-4 flex flex-wrap gap-1 border-b border-border/10 pb-2">
-                {TABS.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => setTab(id)}
-                    aria-current={tab === id}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] transition-colors ${
-                      tab === id ? "bg-foreground/8 text-foreground" : "text-muted-foreground/55 hover:text-foreground/80"
-                    }`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                    <span className="text-muted-foreground/35">{counts[id]}</span>
-                  </button>
-                ))}
+                {TABS.map(({ id, label, icon: Icon }) => {
+                  // The buffer outlives any single sweep, so it stays reachable
+                  // even before one has run. Index tabs cannot.
+                  const disabled = !index && id !== "buffer";
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setTab(id)}
+                      disabled={disabled}
+                      aria-current={tab === id}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-30 ${
+                        tab === id ? "bg-foreground/8 text-foreground" : "text-muted-foreground/55 hover:text-foreground/80"
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
+                      {counts[id] !== undefined && <span className="text-muted-foreground/35">{counts[id]}</span>}
+                    </button>
+                  );
+                })}
               </div>
+
+              {tab === "buffer" && <GhostBufferConsole key={bufferNonce} />}
+
 
               {tab === "records" && (
                 <div className="space-y-2">
