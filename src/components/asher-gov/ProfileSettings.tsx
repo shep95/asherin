@@ -6,6 +6,7 @@ import { X, User as UserIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import IconUploader from "./IconUploader";
+import { validateDisplayName } from "@/lib/auth/blockedNames";
 
 export default function ProfileSettings({
   open, onClose, userId, defaultEmail,
