@@ -24,6 +24,10 @@
 
 import { classifySelector, harvestLeads, type SelectorIdentity } from "./ghostHarvest.ts";
 import { pool } from "./ghostMetadata.ts";
+import {
+  readDocument, toProse, matchTerms, keywordTerms,
+  type DocClass, type TermHit,
+} from "./ghostDocIntel.ts";
 
 /** The web's own year zero — nothing predates this on a dated document. */
 export const ARCHIVE_EPOCH_YEAR = 1990;
@@ -38,7 +42,9 @@ export type DateProof =
   | "time-element"
   | "url-path"
   | "copyright"
-  | "body-text";
+  | "body-text"
+  | "doc-metadata"
+  | "undated";
 
 export interface TimeCapture {
   url: string;
@@ -54,6 +60,16 @@ export interface TimeCapture {
   raw: string;
   title: string;
   source: "probe";
+  /** Which surface carried the document — page, PDF, office file, code, share. */
+  doc_class: DocClass;
+  /** Metadata fields the file itself carried (pdf:Author, html:generator, …). */
+  meta: Record<string, string>;
+  /** Keywords the document declared about itself. */
+  keywords: string[];
+  /** Selector terms found inside the document, with the sentence proving each. */
+  terms: TermHit[];
+  /** Bytes the engine actually read. */
+  bytes: number;
 }
 
 export interface TimeEra {
@@ -85,6 +101,14 @@ export interface TimeMachineReport {
   hosts_probed: string[];
   /** Hosts that carried the selector but no longer answer. */
   dead_hosts: string[];
+  /** Documents by surface class, so the operator sees what was actually read. */
+  classes: Array<{ doc_class: DocClass; documents: number }>;
+  /** Keywords the corpus declared, ranked by how many documents carried each. */
+  keywords: Array<{ keyword: string; documents: number }>;
+  /** Authoring metadata recovered across the corpus (authors, producers, tools). */
+  authors: Array<{ value: string; field: string; documents: number; sample_url: string }>;
+  /** Selector terms and how often the corpus corroborated each one. */
+  term_coverage: Array<{ term: string; documents: number; hits: number }>;
   /** The engine's own stages — never an outside corpus. */
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
   elapsed_ms: number;
@@ -175,25 +199,71 @@ function carveDates(url: string, headers: Headers, html: string): Dated[] {
 }
 
 const PROOF_RANK: Record<DateProof, number> = {
+  // A file's own authoring stamp outranks anything a page says about itself:
+  // /CreationDate was written by the producing application, not by a CMS.
+  "doc-metadata": 7,
   jsonld: 6, "meta-published": 5, "time-element": 4, "url-path": 4,
   "http-last-modified": 3, copyright: 2, "body-text": 1,
 };
 
-/** Read one lead with the engine's own reader and date it. */
-async function probeLead(lead: { url: string; title: string }): Promise<TimeCapture[]> {
-  const res = await timedFetch(lead.url, { headers: { "user-agent": UA, accept: "text/html,*/*" } }, 11_000);
-  if (!res) return [];
-  const mime = (res.headers.get("content-type") || "").split(";")[0].trim();
-  let html = "";
-  if (res.ok && /html|xml|text|json/i.test(mime)) {
-    html = (await res.text().catch(() => "")).slice(0, MAX_BODY);
-  } else {
-    await res.body?.cancel().catch(() => {});
-  }
-  const dated = carveDates(lead.url, res.headers, html);
-  if (!dated.length) return [];
+/**
+ * Read one lead as a DOCUMENT and date it.
+ *
+ * The reader no longer sniffs a MIME type and walks away from anything that is
+ * not markup. A PDF is inflated and its /Info and XMP blocks are read; an
+ * office package surrenders its core properties; a code file is read as text
+ * so a name committed into a .py or .ts is found where it actually lives. The
+ * document's own authoring stamp is admitted as a date proof outranking every
+ * page-level claim, and the operator's terms are located with the sentence
+ * that carries them.
+ */
+async function probeLead(
+  lead: { url: string; title: string },
+  terms: string[],
+): Promise<TimeCapture[]> {
+  const doc = await readDocument(lead.url, 12_000);
+  if (!doc.headers) return [];
 
-  // One row per distinct year, keeping the strongest proof for that year.
+  const dated = carveDates(lead.url, doc.headers, doc.text);
+
+  // The file's own authoring stamps — the strongest date a document can offer.
+  const stampFields = [
+    "pdf:CreationDate", "pdf:ModDate", "xmp:xmp:CreateDate", "xmp:xmp:ModifyDate",
+    "office:created", "office:modified", "exif:DateTimeOriginal", "exif:DateTime",
+    "html:article:published_time", "html:dc.date", "html:date",
+  ];
+  for (const f of stampFields) {
+    const v = doc.meta[f];
+    if (!v) continue;
+    // PDF dates arrive as D:YYYYMMDDHHmmSS; normalise before parsing.
+    const norm = /^\d{8}/.test(v)
+      ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`
+      : v;
+    const hit = isoFrom(norm);
+    if (hit) dated.push({ ...hit, proof: "doc-metadata", raw: `${f}=${v.slice(0, 60)}` });
+  }
+
+  const prose = doc.docClass === "webpage" || doc.docClass === "other"
+    ? toProse(doc.text)
+    : doc.text.replace(/\s+/g, " ");
+  const title = doc.meta["html:title"] || doc.meta["pdf:Title"] || doc.meta["xmp:dc:title"] || lead.title;
+  const termHits = matchTerms(lead.url, title, doc.meta, doc.keywords, prose, terms);
+
+  // A document that carries no date at all is still evidence when it carries
+  // the operator's words — it is filed under the year the transport reports,
+  // or, failing that, kept undated rather than discarded.
+  if (!dated.length) {
+    if (!termHits.length) return [];
+    return [{
+      url: lead.url, evidence_url: lead.url,
+      timestamp: "", year: 0, status: String(doc.status), mime: doc.mime,
+      proof: "undated", raw: "no date declared — retained on term match",
+      title, source: "probe" as const,
+      doc_class: doc.docClass, meta: doc.meta, keywords: doc.keywords,
+      terms: termHits, bytes: doc.bytes,
+    }];
+  }
+
   const best = new Map<number, Dated>();
   for (const d of dated) {
     const prev = best.get(d.year);
@@ -204,12 +274,17 @@ async function probeLead(lead: { url: string; title: string }): Promise<TimeCapt
     evidence_url: lead.url,
     timestamp: d.iso,
     year: d.year,
-    status: String(res.status),
-    mime,
+    status: String(doc.status),
+    mime: doc.mime,
     proof: d.proof,
     raw: d.raw,
-    title: lead.title,
+    title,
     source: "probe" as const,
+    doc_class: doc.docClass,
+    meta: doc.meta,
+    keywords: doc.keywords,
+    terms: termHits,
+    bytes: doc.bytes,
   }));
 }
 
@@ -238,6 +313,31 @@ export interface TimeMachineOptions {
   authHeader?: string | null;
   /** How many documents the engine will open and read. */
   probeBudget?: number;
+  /** Extra terms to hunt for inside every document body. */
+  terms?: string[];
+}
+
+/**
+ * Document-surface legs.
+ *
+ * Era buckets alone only reach pages. These legs go after the artefacts: the
+ * filed PDF, the shared drive document, the spreadsheet in an open directory,
+ * the name sitting inside a committed source file. Each is asked without a
+ * platform constraint except where the constraint *is* the surface.
+ */
+function documentLegs(selector: string): string[] {
+  const q = selector.trim();
+  return [
+    `"${q}" (filetype:pdf OR filetype:doc OR filetype:docx OR filetype:rtf)`,
+    `"${q}" (filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:txt)`,
+    `"${q}" (filetype:ppt OR filetype:pptx)`,
+    `"${q}" (site:docs.google.com OR site:drive.google.com OR site:dropbox.com OR site:onedrive.live.com OR site:sharepoint.com OR site:box.com OR site:notion.site)`,
+    `"${q}" (ext:py OR ext:ts OR ext:js OR ext:json OR ext:yml OR ext:sql)`,
+    `"${q}" (site:raw.githubusercontent.com OR site:gist.github.com OR site:gitlab.com OR site:bitbucket.org OR site:sourceforge.net)`,
+    `"${q}" (pastebin OR rentry OR "raw paste" OR "text dump")`,
+    `"${q}" intitle:"index of"`,
+    `"${q}" (report OR register OR roster OR list OR record OR archive OR annexure)`,
+  ];
 }
 
 /** Coarse era buckets — the index answers differently when a decade is named. */
@@ -271,16 +371,26 @@ export async function deepTimeSweep(
     selector, kind,
     window: { from: fromYear, to: nowYear },
     earliest: null, latest: null, eras: [], captures: [],
+    classes: [], keywords: [], authors: [], term_coverage: [],
     hosts: [], hosts_probed: [], dead_hosts: [],
     corpora: [], elapsed_ms: 0,
   };
 
   // ── 1. FAN-OUT on the engine's own harvest, base selector + era buckets ───
   const base: SelectorIdentity = classifySelector(selector);
-  const legs: SelectorIdentity[] = [base, ...eraLegs(selector, fromYear).map(classifySelector)];
+  const legs: SelectorIdentity[] = [
+    base,
+    ...eraLegs(selector, fromYear).map(classifySelector),
+    ...documentLegs(selector).map(classifySelector),
+  ];
+
+  // The words the operator actually typed are what a document must corroborate.
+  const terms = keywordTerms(selector, opts.terms ?? []);
 
   const harvests = await Promise.allSettled(
-    legs.map((id) => harvestLeads(id, auth, { maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000 })),
+    legs.map((id) => harvestLeads(id, auth, {
+      maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000, perHostCap: 8,
+    })),
   );
 
   const leadByUrl = new Map<string, { url: string; title: string }>();
@@ -311,19 +421,68 @@ export async function deepTimeSweep(
   });
 
   // ── 2. PROBE + DATE ───────────────────────────────────────────────────────
-  const probed = await pool(leads, 8, (l) => probeLead(l).catch(() => [] as TimeCapture[]));
-  const all = probed.flat().filter((c) => c.year >= fromYear);
+  const probed = await pool(leads, 8, (l) => probeLead(l, terms).catch(() => [] as TimeCapture[]));
+  // Undated documents (year 0) are kept when the operator's terms are in them —
+  // a missing date is the publisher's silence, not the document's irrelevance.
+  const read = probed.flat();
+  const all = read.filter((c) => c.year === 0 || c.year >= fromYear);
   report.corpora.push({ name: "Direct probe", ok: true, records: leads.length, note: null });
   report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   report.captures = all.slice(0, cap);
-  report.earliest = all[0] ?? null;
-  report.latest = all[all.length - 1] ?? null;
+  // Endpoints of the timeline are only meaningful for documents that carry one.
+  const datedOnly = all.filter((c) => c.year > 0);
+  report.earliest = datedOnly[0] ?? null;
+  report.latest = datedOnly[datedOnly.length - 1] ?? null;
+
+  // ── Metadata, keyword and term aggregation ────────────────────────────────
+  const classTally = new Map<DocClass, number>();
+  const kwTally = new Map<string, number>();
+  const authorTally = new Map<string, { field: string; documents: number; sample_url: string }>();
+  const termTally = new Map<string, { documents: number; hits: number }>();
+  const seenDoc = new Set<string>();
+  const AUTHOR_FIELDS = [
+    "pdf:Author", "pdf:Creator", "pdf:Producer", "pdf:Company", "xmp:dc:creator",
+    "xmp:pdf:Producer", "office:creator", "office:lastModifiedBy", "office:company",
+    "office:application", "html:author", "html:generator", "html:jsonld:author",
+    "html:jsonld:publisher", "exif:Make", "exif:Model", "exif:Software",
+  ];
+  for (const c of all) {
+    if (seenDoc.has(c.url)) continue;
+    seenDoc.add(c.url);
+    classTally.set(c.doc_class, (classTally.get(c.doc_class) ?? 0) + 1);
+    for (const k of c.keywords) kwTally.set(k, (kwTally.get(k) ?? 0) + 1);
+    for (const f of AUTHOR_FIELDS) {
+      const v = c.meta[f];
+      if (!v) continue;
+      const key = `${f}|${v}`;
+      const prev = authorTally.get(key);
+      if (prev) prev.documents++;
+      else authorTally.set(key, { field: f, documents: 1, sample_url: c.url });
+    }
+    for (const t of c.terms) {
+      const prev = termTally.get(t.term);
+      if (prev) { prev.documents++; prev.hits += t.count; }
+      else termTally.set(t.term, { documents: 1, hits: t.count });
+    }
+  }
+  report.classes = [...classTally.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([doc_class, documents]) => ({ doc_class, documents }));
+  report.keywords = [...kwTally.entries()]
+    .sort((a, b) => b[1] - a[1]).slice(0, 60)
+    .map(([keyword, documents]) => ({ keyword, documents }));
+  report.authors = [...authorTally.entries()]
+    .sort((a, b) => b[1].documents - a[1].documents).slice(0, 40)
+    .map(([key, v]) => ({ value: key.split("|").slice(1).join("|"), ...v }));
+  report.term_coverage = [...termTally.entries()]
+    .sort((a, b) => b[1].documents - a[1].documents)
+    .map(([term, v]) => ({ term, ...v }));
 
   // ── 3. Era ladder ─────────────────────────────────────────────────────────
   const byYear = new Map<number, { captures: number; hosts: Set<string>; sample: TimeCapture }>();
-  for (const c of all) {
+  for (const c of datedOnly) {
     const b = byYear.get(c.year);
     if (b) { b.captures++; b.hosts.add(hostOf(c.url)); }
     else byYear.set(c.year, { captures: 1, hosts: new Set([hostOf(c.url)]), sample: c });
@@ -338,7 +497,7 @@ export async function deepTimeSweep(
 
   // ── 4. Host lifespans ─────────────────────────────────────────────────────
   const hostAgg = new Map<string, { first: number; last: number; docs: number }>();
-  for (const c of all) {
+  for (const c of datedOnly) {
     const h = hostOf(c.url);
     if (!h) continue;
     const a = hostAgg.get(h);
