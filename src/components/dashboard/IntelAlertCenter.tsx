@@ -212,7 +212,7 @@ export default function IntelAlertCenter() {
       ref={panelRef}
       role="dialog"
       aria-label="Intelligence alerts"
-      className="fixed right-4 top-16 z-[95] w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl"
+      className="fixed right-3 bottom-16 z-[95] w-[min(26rem,calc(100vw-1.5rem))] max-h-[70vh] overflow-hidden rounded-2xl border border-white/10 bg-black/85 backdrop-blur-xl shadow-2xl"
     >
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div>
