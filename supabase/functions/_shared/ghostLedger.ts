@@ -371,7 +371,7 @@ export function formatGhostLedgerContext(b: GhostLedgerBundle | null): string {
   if (!b || !b.correspondents.length) return "";
   const lines: string[] = [
     "\n\n## GHOST LEDGER — CLOUD INTELLIGENCE RUN THROUGH THE GHOST ENGINE",
-    `Scope: ${b.scanned} ledger signals over ${b.windowDays} days · ${b.hostsConsidered} distinct hosts nominated · ${b.hostsProbed} probed${b.partial ? " (partial — budget reached)" : ""} · ${b.elapsedMs}ms.`,
+    `Scope: ${b.scanned} ledger signals over ${b.windowDays} days · ${b.hostsConsidered} distinct hosts nominated · ${b.hostsProbed} probed${b.partial ? " (not exhaustive — host cap or probe budget reached)" : ""} · ${b.elapsedMs}ms.`,
     "Every line below is observed infrastructure joined to correspondence the operator actually received. No message body was read.",
     "",
   ];
