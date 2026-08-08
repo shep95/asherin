@@ -15,8 +15,17 @@
 //     rate-limits + CAPTCHAs edge-function IPs. zophiel-search fans out to 5
 //     engines (DDG html, Wikipedia, HackerNews, OpenAlex, CrossRef) which is
 //     what actually returns hits from inside the platform.
+//
+// v2 — 55-DOMAIN DOCTRINE (dorkDomainDoctrine.ts):
+//   • The 8 canonical prompts still ship. A 9th "NOVEL SYNTHESIS" call feeds
+//     Gemini the full 55-domain doctrine + 10 root-cause patterns and asks
+//     for cross-domain dorks nobody has documented before — the elite move.
+//   • Novel-synthesis output is tagged category=`novel_synthesis` so the
+//     ledger can rank first-to-find hits separately from canonical hits.
 
 // deno-lint-ignore-file no-explicit-any
+
+import { doctrineDigest, NOVEL_SYNTHESIS_SYSTEM } from "./dorkDomainDoctrine.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
