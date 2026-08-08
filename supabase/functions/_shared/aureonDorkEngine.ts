@@ -321,10 +321,13 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
   const { theories, via } = await generateTheories(target, opts.geminiKey);
   const testCap = Math.min(opts.testCap ?? 50, theories.length);
 
-  // Heuristic pre-rank: theories with high-signal operator tokens get tested first.
-  const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws"];
+  // Heuristic pre-rank: high-signal operator tokens + novel_synthesis (first-to-find) go first.
+  const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws", "crt.sh", "form 4", "form 990", "warning letter", "orcid.org", "opencorporates"];
   const scored = theories.map((th, i) => ({
-    th, rank: HOT.reduce((a, k) => a + (th.query.toLowerCase().includes(k.toLowerCase()) ? 5 : 0), 0) - i * 0.001,
+    th,
+    rank: HOT.reduce((a, k) => a + (th.query.toLowerCase().includes(k.toLowerCase()) ? 5 : 0), 0)
+      + (th.category === "novel_synthesis" ? 8 : 0) // elite lift — untested cross-domain dorks
+      - i * 0.001,
   })).sort((a, b) => b.rank - a.rank);
   const toTest = scored.slice(0, testCap).map((s) => s.th);
 
