@@ -627,10 +627,17 @@ const IntelligenceMapModule = () => {
   const refreshCloudLayer = async (kind: string) => {
     try {
       setCloudLayerLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const layer = await loadCloudMapLayer(user.id, supabase, kind);
-      setCloudLayer((prev) => ({ ...prev, [layerKeyForKind(kind)]: layer }));
+      const q: Record<string, boolean> = {
+        contacts: kind === "cloud-contacts" || kind === "cloud-relationships",
+        venues: kind === "cloud-venues",
+        security: kind === "cloud-security",
+        relationships: kind === "cloud-relationships",
+      };
+      const layer = await loadCloudMapLayer(q);
+      setCloudLayer((prev) => ({ ...prev, [layerKeyForKind(kind)]: layer[layerKeyForKind(kind)] }));
+      if (kind === "cloud-relationships") {
+        setCloudLayer((prev) => ({ ...prev, relationships: layer.relationships }));
+      }
     } catch (e: any) {
       toast.error(e?.message || "Cloud intelligence layer failed to load");
     } finally {
