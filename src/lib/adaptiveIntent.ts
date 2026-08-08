@@ -27,6 +27,7 @@ export type IntentDomain =
   | "research"
   | "security"
   | "howto"
+  | "quickintel"
   | "smalltalk"
   | "general";
 
@@ -119,6 +120,16 @@ const RULES: Record<Exclude<IntentDomain, "general" | "smalltalk">, Rule[]> = {
     [2, /\b(vpn|ip address|leak(ed)? (data|credentials)|data breach|breached|2fa|mfa)\b/i],
     [1, /\b(security|secure|privacy|protect)\b/i],
   ],
+  quickintel: [
+    [3, /\b(is|are)\b[^?\n]{0,60}\b(open|closed|still open|open now)\b/i],
+    [3, /\b(open (now|today|late)|what time (do|does|are) [a-z ]{0,30}(open|close)|hours of operation|opening hours|closing time)\b/i],
+    [3, /\b(near me|nearby|closest|nearest|around (here|me)|in my area|walking distance)\b/i],
+    [2, /\b(look (this|that|it) up|search the web|check online)\b/i],
+    [2, /\b(find|look up|search)\b[^?\n]{0,60}\b(on the web|online|on google)\b/i],
+    [2, /\b(wait time|in stock|available (now|today|tonight)|any (tables|appointments|slots)|reservation)\b/i],
+    [2, /\b(weather|forecast|traffic (on|to)|flight status|is it raining)\b/i],
+    [1, /\b(right now|tonight|today|currently)\b/i],
+  ],
   howto: [
     [3, /\b(how (do|can) i (use|start|begin|find|get)|where (is|do i find)|what (can|does) (you|this|asherin|aureon) do)\b/i],
     [3, /\b(i('| a)?m new|i don'?t know (how|where|what)|help me get started|walk me through|show me how)\b/i],
@@ -138,6 +149,7 @@ const DOMAIN_CEILING: Record<string, number> = {
   research: 5,
   security: 6,
   howto: 6,
+  quickintel: 6,
 };
 
 const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
@@ -149,6 +161,7 @@ const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
   security: ["bulwark", "cloud-intelligence"],
   code: ["development-suite"],
   research: ["zophiel-search"],
+  quickintel: ["zophiel-search", "asherin-maps"],
   legal: [],
 };
 

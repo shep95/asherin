@@ -1035,10 +1035,17 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
     "current", "today", "recent", "news", "who is", "what happened",
     "how much", "price of", "stock", "market", "weather",
     "what's happening", "update on", "latest on",
+    // Everyday live-status vocabulary: the old list never armed the sweep for
+    // "is the plaza open right now", so the model answered from stale memory.
+    "open now", "still open", "is it open", "are they open", "opening hours",
+    "hours of operation", "what time do", "what time does", "closing time",
+    "near me", "nearby", "closest", "nearest", "in stock", "wait time",
+    "right now", "tonight", "reservation", "appointment", "phone number for",
   ];
 
   return searchTriggers.some((t) => content.includes(t));
 }
+
 
 function defaultModelForStoredProvider(provider: string): string | null {
   const defaults: Record<string, string> = {
@@ -1511,14 +1518,21 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         try {
           const { runZophielIntel, formatZophielContext, needsGraphLayer } =
             await import("../_shared/zophielChatBridge.ts");
+          const { isQuickIntel } = await import("../_shared/quickIntelligenceBrain.ts");
+          // A practical everyday question ("is this place open right now") must
+          // never pay for the graph layer: the operator is waiting, and a shallow
+          // fast sweep already carries the hours/price/status surface.
+          const quick = isQuickIntel(q);
           // The graph layer is skipped when the jurisdictional dossier engine is
           // already going to run: that path performs its own deeper harvest and
           // both together would exceed the 150s edge ceiling.
           const deep =
+            !quick &&
             (needsGraphLayer(q) || mode === "research") &&
             (!intelIntent || intelIntent.kind === "none");
           const bundle = await runZophielIntel(q, { deep, mode: "web", fast: true });
           webSearchContext = formatZophielContext(bundle);
+
           if (bundle) {
             console.log(
               `[chat] Zophiel corpus: ${bundle.results.length} hits, entity=${bundle.plan?.entity ?? "?"}, topRel=${bundle.topRelevance.toFixed(2)}, rescue=${bundle.rescueUsed}, graph=${bundle.intel ? "yes" : "no"}, ${bundle.elapsedMs}ms`,
@@ -2116,9 +2130,18 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // and drops that posture as soon as the subject changes.
     const { ADAPTIVE_OPERATOR_ROUTER, parseRoutingHint, buildRouterEmphasis } =
       await import("../_shared/adaptiveOperatorRouter.ts");
-    const _routerEmphasis = buildRouterEmphasis(
-      parseRoutingHint(String(prunedMessages?.[prunedMessages.length - 1]?.content || "")),
+    const _lastUserText = String(prunedMessages?.[prunedMessages.length - 1]?.content || "");
+    const _routerEmphasis = buildRouterEmphasis(parseRoutingHint(_lastUserText));
+    // Quick intelligence — everyday practical questions answered at their own
+    // scale, with live grounding when the answer can change and an explicit
+    // "could not confirm" when the corpus came back empty.
+    const { QUICK_INTELLIGENCE_BRAIN, buildQuickIntelEmphasis } =
+      await import("../_shared/quickIntelligenceBrain.ts");
+    const _quickIntelEmphasis = buildQuickIntelEmphasis(
+      _lastUserText,
+      Boolean(webSearchContext && webSearchContext.trim()),
     );
+
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // PROMPT ASSEMBLY ORDER (recency-weighted):
     //   1. Core identity + static doctrine brains (foundation)
@@ -2190,6 +2213,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the user press a button" rule dominate earlier specialist brains.
       ADAPTIVE_OPERATOR_ROUTER,
       _routerEmphasis,
+      QUICK_INTELLIGENCE_BRAIN,
+      _quickIntelEmphasis,
+
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
       ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
