@@ -244,10 +244,14 @@ function startGeo() {
       // over on every watch update costs nothing and is the only way a closed
       // browser can still say where its owner is.
       handOverFix(pos);
+      // Fleet view: the same fix is what makes THIS device findable from the
+      // operator's other devices. Throttled inside the reporter.
+      void reportMeshDevice(pos, { source: "geo" });
     },
     () => { if (state.positioned) emit({ positioned: false }); },
     { enableHighAccuracy: false, maximumAge: 60_000, timeout: 20_000 },
   );
+
 }
 
 function stopGeo() {
