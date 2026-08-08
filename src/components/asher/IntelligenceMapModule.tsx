@@ -803,6 +803,104 @@ const IntelligenceMapModule = () => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
 
+  /* ── Sidebar geometry ────────────────────────────────────────────────────
+     The drag is tracked on `document` (not the handle) so a fast pointer that
+     outruns the 6px rail keeps resizing, and pointer capture guarantees the
+     release fires even if the cursor leaves the window. Width is written to
+     state on every move but only flushed to storage on release — persisting
+     at 120 Hz would thrash localStorage on the main thread. */
+  const resizingRef = useRef(false);
+  const persistSidebar = useCallback((next: { width: number; collapsed: boolean }) => {
+    try { localStorage.setItem(SIDEBAR_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+  }, []);
+
+  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      if (!resizingRef.current) return;
+      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, ev.clientX));
+      setSidebar((s) => (s.width === w ? s : { ...s, width: w }));
+    };
+    const up = () => {
+      resizingRef.current = false;
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      document.body.style.userSelect = "";
+      // Leaflet caches container size; a resized rail must be re-measured or
+      // tiles tear along the old edge.
+      setTimeout(() => mapRef.current?.invalidateSize(), 60);
+      setSidebar((s) => { persistSidebar(s); return s; });
+    };
+    document.body.style.userSelect = "none";
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }, [persistSidebar]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebar((s) => {
+      const next = { ...s, collapsed: !s.collapsed };
+      persistSidebar(next);
+      setTimeout(() => mapRef.current?.invalidateSize(), 260);
+      return next;
+    });
+  }, [persistSidebar]);
+
+  // Keyboard resize keeps the rail operable without a pointer (WCAG 2.1.1).
+  const nudgeWidth = useCallback((delta: number) => {
+    setSidebar((s) => {
+      const next = { ...s, width: Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, s.width + delta)) };
+      persistSidebar(next);
+      setTimeout(() => mapRef.current?.invalidateSize(), 60);
+      return next;
+    });
+  }, [persistSidebar]);
+
+  const changeUnits = useCallback((u: Units) => {
+    setUnits(u);
+    try { localStorage.setItem(UNITS_KEY, u); } catch { /* private mode */ }
+  }, []);
+
+  /* ── Directions / places / cameras plumbing ───────────────────────────── */
+  const mapCenter = useCallback(
+    () => {
+      const c = mapRef.current?.getCenter();
+      return c ? { lat: c.lat, lng: c.lng } : { lat: coord.lat, lng: coord.lng };
+    },
+    [coord.lat, coord.lng],
+  );
+
+  const openDirectionsTo = useCallback((dest: DirectionsEndpoint) => {
+    setSeedDest(dest);
+    setTool("directions");
+  }, []);
+
+  const handleRoutes = useCallback((routes: RouteOption[], activeId: string | null) => {
+    setRouteLayer((prev) => ({ ...prev, routes, activeId }));
+    const active = routes.find((r) => r.id === activeId) ?? routes[0];
+    if (active && mapRef.current && active.geometry.length > 1) {
+      mapRef.current.fitBounds(L.latLngBounds(active.geometry.map((p) => [p.lat, p.lng] as [number, number])), {
+        padding: [60, 60], maxZoom: 16,
+      });
+    }
+  }, []);
+
+  const loadCameras = useCallback(async (opts: { near?: { lat: number; lng: number }; route?: Array<{ lat: number; lng: number }> }) => {
+    setCameraBusy(true);
+    try {
+      const list = await fetchStreetCameras(opts);
+      setCameras(list);
+      if (!list.length) toast.info("No public traffic cameras published for that corridor.");
+    } catch (e: any) {
+      toast.error(e?.message || "Camera catalogue unavailable.");
+    } finally {
+      setCameraBusy(false);
+    }
+  }, []);
+
+
+
   /* ── Own-force tracking ──────────────────────────────────────────────────
      The sensor is owned by the operator, never by the model. Follow mode pans
      (never zooms) so the analyst's chosen scale survives every fix, and it
