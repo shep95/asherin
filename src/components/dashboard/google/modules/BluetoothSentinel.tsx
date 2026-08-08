@@ -204,14 +204,15 @@ const BluetoothSentinel = () => {
     setCheckingArea(true);
     try {
       const byok = await resolveByok();
-      const { data } = await invokeWithByokRetry("sentinel-ble", {
+      const data = await invokeWithByokRetry<any>("sentinel-ble", {
         body: { action: "geo.check", lat: p.lat, lng: p.lng, ...(byok ? { byok } : {}) },
         silent: true,
       });
-      const a = (data as any)?.assessment;
+      const a = data?.assessment;
       if (a) {
         setAreaState({ level: a.risk_level, label: a.place_label || "", summary: a.summary || "" });
-        if ((data as any)?.notified) {
+        if (data?.notified) {
+
           toast.warning(`${a.risk_level} risk area`, { description: a.summary?.slice(0, 180), duration: 14000 });
           await load();
         }
