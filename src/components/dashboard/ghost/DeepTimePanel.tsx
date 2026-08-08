@@ -8,11 +8,21 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { memo, useMemo, useState } from "react";
-import { Clock, ExternalLink, Library, Radar, Ghost, Skull } from "lucide-react";
+import { Clock, ExternalLink, Library, Radar, Ghost, Skull, FileText, Fingerprint, Tags, Quote } from "lucide-react";
 
 export type DateProof =
   | "http-last-modified" | "jsonld" | "meta-published"
-  | "time-element" | "url-path" | "copyright" | "body-text";
+  | "time-element" | "url-path" | "copyright" | "body-text" | "doc-metadata";
+
+export type DocClass =
+  | "webpage" | "pdf" | "office" | "code" | "data" | "image" | "share" | "other";
+
+export interface TermHit {
+  term: string;
+  count: number;
+  where: Array<"url" | "title" | "meta" | "keywords" | "body">;
+  snippet: string;
+}
 
 export interface TimeCapture {
   url: string;
@@ -25,6 +35,11 @@ export interface TimeCapture {
   raw: string;
   title: string;
   source: "probe";
+  doc_class: DocClass;
+  meta: Record<string, string>;
+  keywords: string[];
+  terms: TermHit[];
+  bytes: number;
 }
 
 export interface HostLifespan {
@@ -55,11 +70,61 @@ export interface TimeMachineReport {
   hosts: HostLifespan[];
   hosts_probed: string[];
   dead_hosts: string[];
+  classes: Array<{ doc_class: DocClass; documents: number }>;
+  keywords: Array<{ keyword: string; documents: number }>;
+  authors: Array<{ value: string; field: string; documents: number; sample_url: string }>;
+  term_coverage: Array<{ term: string; documents: number; hits: number }>;
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
   elapsed_ms: number;
 }
 
-const fmtDate = (iso: string) => iso.slice(0, 10);
+const fmtDate = (iso: string) => (iso ? iso.slice(0, 10) : "undated");
+
+const CLASS_LABEL: Record<DocClass, string> = {
+  webpage: "web page", pdf: "PDF", office: "office file", code: "source file",
+  data: "data file", image: "image", share: "shared drive", other: "other",
+};
+
+/** Metadata worth surfacing on a row — the authoring trail, not the whole dump. */
+const ROW_META = [
+  "pdf:Author", "pdf:Creator", "pdf:Producer", "xmp:dc:creator",
+  "office:creator", "office:lastModifiedBy", "office:application",
+  "html:author", "html:generator", "exif:Make", "exif:Model", "exif:Software",
+];
+
+function CaptureRow({ c }: { c: TimeCapture }) {
+  const trail = ROW_META.map((f) => (c.meta?.[f] ? `${f.split(":").pop()}: ${c.meta[f]}` : null))
+    .filter(Boolean).slice(0, 3) as string[];
+  return (
+    <li>
+      <a
+        href={c.evidence_url}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="block rounded px-1 py-1 transition-colors hover:bg-foreground/[0.04]"
+      >
+        <span className="flex items-baseline gap-2 text-[11.5px] text-muted-foreground/70">
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground/45">{fmtDate(c.timestamp)}</span>
+          <span className="shrink-0 rounded border border-border/25 px-1 font-mono text-[9px] uppercase tracking-[0.08em] text-muted-foreground/50">
+            {CLASS_LABEL[c.doc_class] ?? "document"}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-foreground/80">{c.title || c.url}</span>
+          <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground/35">{c.proof}</span>
+          <ExternalLink className="h-3 w-3 shrink-0 opacity-40" />
+        </span>
+        {trail.length > 0 && (
+          <span className="mt-0.5 block truncate font-mono text-[10px] text-muted-foreground/45">{trail.join("  ·  ")}</span>
+        )}
+        {c.terms?.length > 0 && (
+          <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/55">
+            <Quote className="mr-1 inline h-2.5 w-2.5 opacity-50" />
+            {c.terms[0].snippet || c.terms.map((t) => t.term).join(", ")}
+          </span>
+        )}
+      </a>
+    </li>
+  );
+}
 
 function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
   const [openYear, setOpenYear] = useState<number | null>(null);
@@ -72,6 +137,7 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
   const byYear = useMemo(() => {
     const m = new Map<number, TimeCapture[]>();
     for (const c of report.captures) {
+      if (!c.year) continue;
       const list = m.get(c.year);
       if (list) list.push(c); else m.set(c.year, [c]);
     }
@@ -82,7 +148,12 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
     ? report.latest.year - report.earliest.year
     : 0;
 
-  const empty = !report.eras.length;
+  const undated = useMemo(
+    () => report.captures.filter((c) => !c.year),
+    [report.captures],
+  );
+
+  const empty = !report.eras.length && !undated.length;
 
   return (
     <div className="space-y-4">
@@ -165,19 +236,7 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
                   {open && (
                     <ul className="mb-2 ml-11 space-y-1 border-l border-border/15 pl-3">
                       {rows.slice(0, 40).map((c) => (
-                        <li key={`${c.timestamp}-${c.url}`}>
-                          <a
-                            href={c.evidence_url}
-                            target="_blank"
-                            rel="noopener noreferrer nofollow"
-                            className="flex items-baseline gap-2 py-0.5 text-[11.5px] text-muted-foreground/70 hover:text-foreground"
-                          >
-                            <span className="shrink-0 font-mono text-[10px] text-muted-foreground/45">{fmtDate(c.timestamp)}</span>
-                            <span className="min-w-0 flex-1 truncate">{c.title || c.url}</span>
-                            <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground/35">{c.proof}</span>
-                            <ExternalLink className="h-3 w-3 shrink-0 opacity-40" />
-                          </a>
-                        </li>
+                        <CaptureRow key={`${c.timestamp}-${c.url}`} c={c} />
                       ))}
                       {rows.length > 40 && (
                         <li className="text-[10px] text-muted-foreground/40">+{rows.length - 40} more documents this year</li>
@@ -188,6 +247,87 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
               );
             })}
           </div>
+        </section>
+      )}
+
+      {/* Document surfaces + term corroboration */}
+      {(report.classes?.length > 0 || report.term_coverage?.length > 0) && (
+        <section className="rounded-lg border border-border/15 bg-foreground/[0.02] p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
+            <FileText className="h-3.5 w-3.5" /> What the engine read
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {(report.classes ?? []).map((c) => (
+              <span key={c.doc_class} className="rounded-full border border-border/25 px-2 py-0.5 text-[10.5px] text-foreground/75">
+                {CLASS_LABEL[c.doc_class] ?? c.doc_class} · {c.documents}
+              </span>
+            ))}
+          </div>
+          {report.term_coverage?.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {report.term_coverage.map((t) => (
+                <li key={t.term} className="flex items-center gap-3 text-[11.5px]">
+                  <span className="min-w-0 flex-1 truncate text-foreground/85">{t.term}</span>
+                  <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground/55">
+                    {t.documents} doc{t.documents === 1 ? "" : "s"} · {t.hits} hit{t.hits === 1 ? "" : "s"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {/* Authoring metadata recovered from the files themselves */}
+      {report.authors?.length > 0 && (
+        <section className="rounded-lg border border-border/15 bg-foreground/[0.02] p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
+            <Fingerprint className="h-3.5 w-3.5" /> Authoring trail · {report.authors.length}
+          </h3>
+          <ul className="space-y-1">
+            {report.authors.map((a) => (
+              <li key={`${a.field}-${a.value}`} className="flex items-center gap-3 text-[11.5px]">
+                <span className="w-36 shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground/45">{a.field}</span>
+                <a
+                  href={a.sample_url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="min-w-0 flex-1 truncate text-foreground/85 hover:underline"
+                >
+                  {a.value}
+                </a>
+                <span className="w-8 shrink-0 text-right text-[10.5px] text-muted-foreground/45">{a.documents}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Declared keywords */}
+      {report.keywords?.length > 0 && (
+        <section className="rounded-lg border border-border/15 bg-foreground/[0.02] p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
+            <Tags className="h-3.5 w-3.5" /> Keywords the corpus declared
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            {report.keywords.map((k) => (
+              <span key={k.keyword} className="rounded-full border border-border/20 px-2 py-0.5 text-[10.5px] text-muted-foreground/70">
+                {k.keyword}{k.documents > 1 && <span className="text-muted-foreground/40"> ·{k.documents}</span>}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Undated but corroborated — a missing date is not irrelevance */}
+      {undated.length > 0 && (
+        <section className="rounded-lg border border-border/15 bg-foreground/[0.02] p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
+            <FileText className="h-3.5 w-3.5" /> Undated · matched on your terms · {undated.length}
+          </h3>
+          <ul className="space-y-1">
+            {undated.slice(0, 40).map((c) => <CaptureRow key={c.url} c={c} />)}
+          </ul>
         </section>
       )}
 
