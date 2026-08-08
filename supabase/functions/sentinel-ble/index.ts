@@ -26,6 +26,11 @@ import {
   BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
   type AdvertInput, type DeviceKind,
 } from "../_shared/bleSentinel.ts";
+import {
+  analyzeTradecraft, buildCasePrompt, deterministicCase, tradecraftBriefFor,
+  TRADECRAFT_CASE_SYSTEM, TRADECRAFT_DOCTRINE,
+  type TcDevice, type TcSighting, type TcCampaign,
+} from "../_shared/stalkerTradecraft.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
