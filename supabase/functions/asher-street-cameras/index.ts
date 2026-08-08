@@ -286,6 +286,8 @@ serve(async (req) => {
           .catch(() => []),
       );
     }
+    if (inNewYork(b)) tasks.push(nyCameras().catch(() => []));
+    if (inLondon(b)) tasks.push(tflCameras().catch(() => []));
     tasks.push(osmCameras(b).catch(() => []));
 
     const settled = await Promise.allSettled(tasks);
