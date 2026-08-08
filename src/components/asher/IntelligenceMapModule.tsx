@@ -2314,9 +2314,30 @@ const IntelligenceMapModule = () => {
               onResults={setJobPins}
               onFocus={(j) => { if (j.lat !== undefined && j.lng !== undefined) flyTo(j.lat, j.lng, 17); }}
               onRoute={(j) => { if (j.lat !== undefined && j.lng !== undefined) openDirectionsTo({ label: j.employer, lat: j.lat, lng: j.lng }); }}
+          </div>
+          <div className="pointer-events-auto">
+            {/* Camera intelligence anchors on the operator's own fix whenever the
+                GPS has one — a sweep centred on the default DC viewport is what
+                made this tool look dead off the eastern seaboard. */}
+            <CameraIntelligencePanel
+              open={tool === "cameras"}
+              onClose={() => { setTool(null); setCameras([]); }}
+              anchor={track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : { lat: coord.lat, lng: coord.lng }}
+              anchorIsOperator={!!track.fix}
+              units={units}
+              onResults={setCameras}
+              onFocus={(c) => flyTo(c.lat, c.lng, 18)}
+              onFit={(list) => {
+                if (list.length && mapRef.current) {
+                  mapRef.current.fitBounds(
+                    L.latLngBounds(list.map((c) => [c.lat, c.lng] as [number, number])),
+                    { padding: [70, 70], maxZoom: 15 },
+                  );
+                }
+              }}
             />
           </div>
-        </div>
+
 
 
         {/* SEARCH RESULTS */}
