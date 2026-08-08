@@ -49,6 +49,7 @@ export const NAV_INTENTS: NavIntent[] = [
 
   // INVESTIGATE
   { view: "search", label: "Search Intelligence", codename: "Zophiel", blurb: "Privacy-first source-credibility search", keywords: ["search", "research", "look up", "google", "find", "investigate", "osint"], group: "Investigate", access: "search" },
+  { view: "ghost-engine", label: "Metadata Search", codename: "Ghost Engine", blurb: "Indexes the shell around information — headers, EXIF, producers, DNS/ASN — and never the content", keywords: ["ghost", "metadata", "meta data", "exif", "headers", "provenance", "forensics", "shell", "who made this", "when was this made", "forgery", "authenticity"], group: "Investigate", access: "pro" },
   { view: "nomad", label: "OSINT Investigation", codename: "NOMAD", blurb: "30+ source OSINT with AI correlation", keywords: ["osint", "investigate", "intelligence", "background check", "person", "dossier"], group: "Investigate" },
   { view: "axrlen", label: "Predictive Intelligence", codename: "Axrlen", blurb: "Live global event prediction and policy simulation", keywords: ["predict", "prediction", "future", "forecast event", "scenario", "monte carlo"], group: "Investigate", access: "pro" },
   { view: "zerlal", label: "Cyber Security", codename: "Zerlal", blurb: "Threat analysis, vulnerability detection, defense", keywords: ["security", "cyber", "vulnerability", "exploit", "hack", "threat", "scan", "pentest"], group: "Investigate" },
