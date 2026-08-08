@@ -8397,6 +8397,7 @@ export type Database = {
           notify_email: boolean | null
           notify_push: boolean
           notify_sms: boolean | null
+          notify_wifi: boolean
           password_change: boolean | null
           recovery_code_usage: boolean | null
           session_revocation: boolean | null
@@ -8412,6 +8413,7 @@ export type Database = {
           notify_email?: boolean | null
           notify_push?: boolean
           notify_sms?: boolean | null
+          notify_wifi?: boolean
           password_change?: boolean | null
           recovery_code_usage?: boolean | null
           session_revocation?: boolean | null
@@ -8427,6 +8429,7 @@ export type Database = {
           notify_email?: boolean | null
           notify_push?: boolean
           notify_sms?: boolean | null
+          notify_wifi?: boolean
           password_change?: boolean | null
           recovery_code_usage?: boolean | null
           session_revocation?: boolean | null
@@ -9863,6 +9866,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wifi_networks: {
+        Row: {
+          band: string | null
+          bssid: string
+          captive_portal_url: string | null
+          channel: number | null
+          connect_count: number
+          connected_devices: number | null
+          created_at: string
+          dns_servers: string[]
+          enrichment: Json
+          estimated_distance_m: number | null
+          findings: Json
+          first_seen: string
+          frequency_mhz: number | null
+          gateway_ip: string | null
+          id: string
+          is_hidden: boolean
+          last_seen: string
+          latitude: number | null
+          longitude: number | null
+          public_ip: string | null
+          risk_level: string
+          risk_score: number
+          rssi: number | null
+          security: string | null
+          ssid: string | null
+          updated_at: string
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          band?: string | null
+          bssid: string
+          captive_portal_url?: string | null
+          channel?: number | null
+          connect_count?: number
+          connected_devices?: number | null
+          created_at?: string
+          dns_servers?: string[]
+          enrichment?: Json
+          estimated_distance_m?: number | null
+          findings?: Json
+          first_seen?: string
+          frequency_mhz?: number | null
+          gateway_ip?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_seen?: string
+          latitude?: number | null
+          longitude?: number | null
+          public_ip?: string | null
+          risk_level?: string
+          risk_score?: number
+          rssi?: number | null
+          security?: string | null
+          ssid?: string | null
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          band?: string | null
+          bssid?: string
+          captive_portal_url?: string | null
+          channel?: number | null
+          connect_count?: number
+          connected_devices?: number | null
+          created_at?: string
+          dns_servers?: string[]
+          enrichment?: Json
+          estimated_distance_m?: number | null
+          findings?: Json
+          first_seen?: string
+          frequency_mhz?: number | null
+          gateway_ip?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_seen?: string
+          latitude?: number | null
+          longitude?: number | null
+          public_ip?: string | null
+          risk_level?: string
+          risk_score?: number
+          rssi?: number | null
+          security?: string | null
+          ssid?: string | null
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
+        }
+        Relationships: []
       }
       workspace_items: {
         Row: {
