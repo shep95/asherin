@@ -452,6 +452,52 @@ const RideshareGuardian = () => {
                         </div>
                       )}
 
+                      {Array.isArray(p.plate_candidates) && p.plate_candidates.length > 0 && (
+                        <div className="mt-3 rounded-sm border border-border/25 bg-muted/5 p-3">
+                          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                            Plate-anchored identity reconstruction
+                            {typeof p.unresolved_mass === "number" &&
+                              ` · unresolved ${Math.round(p.unresolved_mass * 100)}%`}
+                          </p>
+                          <ul className="mt-2 space-y-2">
+                            {p.plate_candidates.map((c: any, i: number) => (
+                              <li key={i} className="text-xs">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <span className="text-foreground">
+                                    {c.name}
+                                    {c.plate_anchored && (
+                                      <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.18em] text-foreground/60">
+                                        plate-anchored
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="font-mono text-[11px] text-muted-foreground">
+                                    {Math.round((c.posterior || 0) * 100)}%
+                                  </span>
+                                </div>
+                                {/* Weight bar: transform-free width so it cannot shift layout. */}
+                                <div className="mt-1 h-1 w-full rounded-full bg-muted/30">
+                                  <div
+                                    className="h-1 rounded-full bg-foreground/50"
+                                    style={{ width: `${Math.min(100, Math.round((c.posterior || 0) * 100))}%` }}
+                                  />
+                                </div>
+                                {Array.isArray(c.reasons) && (
+                                  <p className="mt-1 text-[11px] text-muted-foreground/80">{c.reasons.join(" · ")}</p>
+                                )}
+                                {Array.isArray(c.sources) && c.sources.length > 0 && (
+                                  <p className="text-[10px] text-muted-foreground/60">{c.sources.join(", ")}</p>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {typeof p.collection_note === "string" && p.collection_note && (
+                        <p className="mt-3 text-[11px] text-muted-foreground/70">{p.collection_note}</p>
+                      )}
+
                       <footer className="mt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/50">
                         {deep
                           ? `identity ${Math.round((deep.confidence || 0) * 100)}%${p.clamped_to_thin ? " · held at THIN, identity unbound" : ""}${deep.delivered_channels?.length ? ` · alerted via ${deep.delivered_channels.join(", ")}` : ""}`
