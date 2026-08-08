@@ -255,6 +255,15 @@ adopt a candidate's surname only when its posterior is at or above 0.55, prefer 
 over any unanchored one, and report the residual "none of these" mass as an explicit gap when it dominates.
 Never average two candidates into one person.
 
+ZOPHIEL ENGINE SWEEP
+The collection may contain a section titled "Zophiel engine sweep" — a tier-ranked, veracity-scored
+corpus from the Asherin search engine, with a mean top-5 relevance figure. Tier 1 is a primary source
+and outranks a tier 4 aggregator saying the opposite. Honour its own warnings: a "WEAK MATCH",
+"DEGRADATION NOTICE" or "LOW-CONFIDENCE RETRIEVAL" line means those documents may belong to a
+different person and may not raise identity_confidence or produce a flag without independent
+corroboration. If that section states the identity is UNBOUND, nothing in it may be attributed to a
+named person — it describes the vehicle only. Cite hits from it by title and URL.
+
 DOSSIER DEPTH
 Where — and only where — the collection actually evidences it, resolve the driver as a person:
 identity (aliases, approximate age), locality (city/neighbourhood level only, never a street address
