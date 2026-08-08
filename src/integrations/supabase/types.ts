@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _name_guard_probe: {
-        Row: {
-          note: string | null
-          result: string | null
-        }
-        Insert: {
-          note?: string | null
-          result?: string | null
-        }
-        Update: {
-          note?: string | null
-          result?: string | null
-        }
-        Relationships: []
-      }
       account_activity_log: {
         Row: {
           created_at: string | null
