@@ -141,8 +141,9 @@ const GhostEngineView = () => {
             <Ghost className="h-4 w-4 text-foreground/70" />
             <h1 className="text-sm font-normal tracking-wide text-foreground">Asherin Ghost Engine</h1>
             <span className="rounded border border-border/25 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50">
-              Metadata only
+              {capture ? "Metadata + buffer" : "Metadata only"}
             </span>
+
           </div>
 
           <form
