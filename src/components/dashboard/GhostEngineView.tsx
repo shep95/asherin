@@ -126,7 +126,11 @@ const GhostEngineView = () => {
     timeline: index?.timeline.length ?? 0,
     anomalies: index?.anomalies.length ?? 0,
     facets: index?.facets.length ?? 0,
-  }), [index]);
+    // The buffer's size is owned by the buffer console, which polls it live.
+    // Showing a stale sweep-time number next to a self-expiring shelf would lie.
+    buffer: undefined,
+  }), [index]) as Record<Tab, number | undefined>;
+
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
