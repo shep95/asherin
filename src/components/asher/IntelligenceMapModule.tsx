@@ -45,6 +45,7 @@ import {
 import {
   loadCloudMapLayer, venueFeatures, clearCloudMapCache,
   pendingVenueFeatures, getPendingVenues, clearPendingVenues,
+  pendingContactFeatures, getPendingContacts, clearPendingContacts,
   type CloudMapLayer, type CloudMapFeature,
 } from "@/lib/cloudIntel/mapBridge";
 
