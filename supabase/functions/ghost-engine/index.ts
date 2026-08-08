@@ -33,6 +33,8 @@ import {
   deriveFields, selectContent, ttlToExpiry, SelectorError,
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
+import { runGhostLedger } from "../_shared/ghostLedger.ts";
+
 
 const MAX_TARGETS = 24;
 const CONCURRENCY = 6;
