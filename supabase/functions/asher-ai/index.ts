@@ -197,6 +197,12 @@ function detectMapEditIntent(text: string): boolean {
   if (!t) return false;
   if (/\b(clear|wipe|remove|erase|delete)\b[^.]{0,24}\b(overlay|annotation|annotations|marker|markers|pin|pins|zone|zones|route|routes|drawing|drawings)\b/.test(t)) return true;
   if (/\b(what|list|show)\b[^.]{0,20}\b(on|in)\b[^.]{0,12}\b(my |the )?(overlay|annotations)\b/.test(t)) return true;
+  // Navigation / local-discovery intents are UI actions too — skip the heavy
+  // archive + jurisdictional + youtube sweeps (up to 75s) before the tool call.
+  if (/\b(directions?|navigate|how (do|can) i get|fastest route|drive time|how long.{0,20}\b(drive|walk|get there)|route to)\b/.test(t)) return true;
+  if (/\b(near ?by|near me|around me|closest|nearest)\b/.test(t) && /\b(restaurant|food|cafe|coffee|gas|fuel|petrol|pharmac|hotel|atm|hospital|parking|store|supermarket|bar|place)\w*/.test(t)) return true;
+  if (/\b(hiring|jobs?|job openings?|now hiring|vacanc)\w*\b/.test(t) && /\b(near|around|by|close to|hiring)\b/.test(t)) return true;
+  if (/\b(street|traffic|cctv|live)\s*cam(era)?s?\b/.test(t)) return true;
   const verb = /\b(pin|mark|plot|drop|place|draw|outline|circle|annotate|label|highlight|measure|sketch|trace out)\b/.test(t);
   const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence)\b/.test(t);
   return verb && noun;
