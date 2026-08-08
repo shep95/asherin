@@ -193,6 +193,13 @@ export function parseVoiceEnvelope(
   const isVoiceDomain = /txt\.voice\.google\.com|voice-noreply@google\.com/i.test(`${from} ${to}`);
   if (!isVoiceDomain) return null;
 
+  // `voice-noreply@google.com` also carries account admin notices ("Change to
+  // your Google Voice account"). Those are not conversation and must never be
+  // filed as a message from whatever number appears in their body text.
+  const fromTxtDomain = /txt\.voice\.google\.com/i.test(`${from} ${to}`);
+  const looksLikeMessage = /(text message|voicemail|missed call|mms|multimedia)/i.test(subject);
+  if (!fromTxtDomain && !looksLikeMessage) return null;
+
   const lower = subject.toLowerCase();
   const kind: PhoneKind =
     lower.includes("voicemail") ? "voicemail"

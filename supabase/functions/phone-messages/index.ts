@@ -142,6 +142,11 @@ Deno.serve(async (req) => {
           reports.push({ account: a.google_email, status: "error", error: String((e as Error).message).slice(0, 300) });
         }
       }
+      // Purge rows left behind by an earlier parse that truncated the body —
+      // a message with no readable text is noise in every downstream fold.
+      await sb.from("google_signals").delete()
+        .eq("user_id", user.id).eq("source", "sms").or("snippet.is.null,snippet.eq.<");
+
       return json({ ok: true, ingested, reports, elapsedMs: Date.now() - started }, 200, cors);
     }
 
