@@ -127,14 +127,29 @@ function extractPlain(payload: any, depth = 0): string {
  * footer is not conversation — leaving it in poisons every stylometric,
  * sentiment and topic measurement with the same twelve marketing sentences.
  */
+// Observed live envelope shape (Voice, 2026):
+//
+//   \r\n<https://voice.google.com>\r\n
+//   <the actual message, one or more lines>
+//   YOUR ACCOUNT <https://voice.google.com> HELP CENTER <…> HELP FORUM <…>
+//   This email was sent to you because…  Google LLC  1600 Amphitheatre Pkwy
+//
+// The message is the slice between a leading bare-link banner and the first
+// footer marker. An earlier cut on the bare "https://voice.google.com" banner
+// truncated every message to a single "<" character — the marker set below is
+// therefore restricted to strings that only ever appear in the footer.
 const FOOTER_MARKERS = [
-  "To respond to this text message",
   "YOUR ACCOUNT",
-  "Google Voice",
-  "https://voice.google.com",
+  "To respond to this text message",
   "This email was sent to you because",
   "Do not reply to this email",
+  "Google LLC",
+  "1600 Amphitheatre",
+  "update your email notification settings",
 ];
+
+/** Leading banner Voice puts above every message body. */
+const BANNER = /^\s*(?:<https?:\/\/voice\.google\.com[^>]*>\s*)+/i;
 
 function stripVoiceFooter(body: string): string {
   let text = String(body ?? "").replace(/\r/g, "");
@@ -143,11 +158,16 @@ function stripVoiceFooter(body: string): string {
     const i = text.indexOf(marker);
     if (i > 0 && i < cut) cut = i;
   }
-  text = text.slice(0, cut);
-  // Voice prefixes a "<name> ((555) 123-4567)" attribution line on some
-  // locales. Keep the words, drop the trailing unsubscribe debris.
-  return text.replace(/\n{2,}$/g, "").trim();
+  text = text.slice(0, cut).replace(BANNER, "");
+  // Drop any residual line that is nothing but a Google link.
+  return text
+    .split("\n")
+    .filter((l) => !/^\s*<?https?:\/\/(?:voice|support|productforums)\.google\.com\S*>?\s*$/i.test(l))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
+
 
 interface ParsedEnvelope {
   kind: PhoneKind;
