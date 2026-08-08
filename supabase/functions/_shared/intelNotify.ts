@@ -69,6 +69,17 @@ export interface IntelNotice {
    * `body` must not go out that way. Defaults to `body` when omitted.
    */
   pushBody?: string;
+  /**
+   * Optional inline image rendered above the meta card in the email —
+   * e.g. a satellite thumbnail of the actor's coordinates on a security
+   * alert. Must be an https URL served by an image-friendly host.
+   */
+  imageUrl?: string;
+  /**
+   * Optional secondary CTA rendered under the primary button. Security
+   * alerts use it to surface a "Not you? Lock the account" escape hatch.
+   */
+  secondaryCta?: { label: string; url: string };
 }
 
 export interface IntelDelivery {
@@ -312,6 +323,17 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
                 ? `https://asherin.com/report/${out.notificationId}`
                 : `https://asherin.com${url}`,
               generatedAt: new Date().toUTCString(),
+              // Optional enrichment. Only emitted when the caller supplied it,
+              // so every existing module's email renders byte-identically.
+              ...(typeof notice.imageUrl === "string" && /^https?:\/\//.test(notice.imageUrl)
+                ? { imageUrl: notice.imageUrl }
+                : {}),
+              ...(notice.secondaryCta?.label && notice.secondaryCta?.url
+                ? {
+                    secondaryCtaLabel: clamp(notice.secondaryCta.label, 60),
+                    secondaryCtaUrl: notice.secondaryCta.url.slice(0, 300),
+                  }
+                : {}),
             },
           }),
         });
