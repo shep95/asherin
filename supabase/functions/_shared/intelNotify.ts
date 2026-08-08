@@ -187,16 +187,34 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   try {
     // The idempotency index is PARTIAL (idempotency_key IS NOT NULL), so
     // PostgREST cannot infer it for ON CONFLICT. Read-then-write explicitly.
-    const { data, error } = priorId
+    let { data, error } = priorId
       ? await sb.from("intel_notifications")
           .update(row).eq("id", priorId).select("id").single()
       : await sb.from("intel_notifications").insert(row).select("id").single();
+
+    // Two sweeps finishing at once both saw "no prior row" and both inserted.
+    // The loser lands on the unique index; it is the same alert, so adopt the
+    // winner's row rather than losing the record.
+    if (error && (error as { code?: string }).code === "23505" && idem) {
+      const { data: won } = await sb
+        .from("intel_notifications")
+        .select("id, channels_delivered")
+        .eq("user_id", notice.userId)
+        .eq("idempotency_key", idem)
+        .maybeSingle();
+      if (won) {
+        alreadyDelivered = won.channels_delivered ?? [];
+        data = { id: won.id };
+        error = null;
+      }
+    }
     if (error) throw error;
     out.notificationId = data?.id ?? null;
     out.channels.push("in_app");
   } catch (e) {
     console.error("intel_notify_inbox_failed", e instanceof Error ? e.message : e);
   }
+
 
   const meetsThreshold = SEVERITY_RANK[severity] >= SEVERITY_RANK[prefs.min_severity];
   if (!meetsThreshold) {
