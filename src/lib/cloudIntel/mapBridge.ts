@@ -251,6 +251,20 @@ export async function venueFeatures(venues: VenueInput[]): Promise<CloudMapFeatu
   return out;
 }
 
+export async function pendingVenueFeatures(venues: Venue[]): Promise<CloudMapFeature[]> {
+  const inputs: VenueInput[] = venues.map((v) => ({
+    label: v.label,
+    address: v.label,
+    visits: v.visits.length,
+    totalHours: v.totalHours,
+    nextPredicted: v.nextExpectedAt ? new Date(v.nextExpectedAt).toISOString() : undefined,
+    confidence: v.patternConfidence / 100,
+    source: "calendar_prophet",
+  }));
+  return venueFeatures(inputs);
+}
+
+
 async function securityFeatures(sinceDays: number): Promise<CloudMapFeature[]> {
   const out: CloudMapFeature[] = [];
   const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
