@@ -7,7 +7,16 @@ import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
 import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
-import { expandPromptToLegal, loadLegalMode, saveLegalMode } from "@/lib/legalAdvisor";
+import { expandPromptToLegal } from "@/lib/legalAdvisor";
+import {
+  classifyMessage,
+  shouldAutoArmLegal,
+  buildRoutingHint,
+  loadLawSwitch,
+  saveLawSwitch,
+  cycleLawSwitch,
+  type LawSwitch,
+} from "@/lib/adaptiveIntent";
 import { setModelPromptOverride } from "@/lib/promptOverrideMap";
 
 import type { FileAttachment } from "./types";
