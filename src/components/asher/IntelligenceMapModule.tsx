@@ -654,6 +654,22 @@ const IntelligenceMapModule = () => {
       default: return "contacts";
     }
   };
+
+  // Load pending venues pushed from Cloud Intelligence modules (e.g. Prophet).
+  useEffect(() => {
+    const load = async () => {
+      const pending = getPendingVenues();
+      if (!pending.length) return;
+      clearPendingVenues();
+      const features = await pendingVenueFeatures(pending);
+      if (!features.length) return;
+      setCloudLayer((prev) => ({ ...prev, venues: features }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-venues": true }));
+      fitFeatures(features);
+    };
+    load();
+  }, []);
+
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const [showInside, setShowInside] = useState(false);
