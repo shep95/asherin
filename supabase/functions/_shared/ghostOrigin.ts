@@ -888,7 +888,7 @@ async function inspectArtifact(trace: OriginTrace, bytes: Uint8Array): Promise<v
   // 6. Selector harvest — the document is not the end of the trace, it is the
   // start of the next one. Everything pivotable is lifted out of both the body
   // text and the metadata fields, deduped, and handed back as search seeds.
-  trace.selectors = harvestSelectors(docText, trace);
+  trace.selectors = harvestSelectors(`${docText}\n${auxText}`.slice(0, 600_000), trace);
   const sel = trace.selectors;
   if (sel.emails.length) push("Addresses in document", sel.emails.slice(0, 8).join(", "), "body text + metadata fields", "confirmed");
   if (sel.phones.length) push("Phone numbers in document", sel.phones.slice(0, 8).join(", "), "body text", "confirmed");
