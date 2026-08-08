@@ -184,15 +184,50 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   const url = typeof notice.url === "string" && /^\/[^/\\]/.test(notice.url)
     ? notice.url.slice(0, 300)
     : "/dashboard";
-  const sections = (notice.sections ?? [])
+  const rawSections = (notice.sections ?? [])
     .filter((s) => s && clamp(s.label, 60) && clamp(s.value, 400))
     .slice(0, 12)
     .map((s) => ({ label: clamp(s.label, 60), value: clamp(s.value, 400) }));
-  const findings = (notice.findings ?? [])
+  const rawFindings = (notice.findings ?? [])
     .map((f) => clamp(f, 300))
     .filter(Boolean)
     .slice(0, 12);
   const idem = clamp(notice.idempotencyKey, 200) || null;
+
+  // ── ICD 203 / 206 normalisation ──────────────────────────────────────────
+  // One place, one standard. Every product that leaves this bus — no matter
+  // which module produced it — is ordered as a finished intelligence product,
+  // carries its Source Summary and its gap statement, and portion-marks its
+  // judgments. Modules that supplied their own apparatus keep it; the bus only
+  // fills what is missing, and never fabricates calibration.
+  const generatedAt = new Date();
+  const product = buildIcProduct({
+    kind,
+    title,
+    body,
+    subjectName,
+    source,
+    severity,
+    sections: rawSections,
+    findings: rawFindings,
+    scopeNote: notice.scopeNote ?? null,
+    sourceSummary: notice.sourceSummary ?? null,
+    outlook: notice.outlook ?? null,
+    alternatives: notice.alternatives ?? null,
+    gaps: notice.gaps ?? null,
+    confidence: notice.confidence ?? null,
+    reportingCutoff: notice.reportingCutoff ?? null,
+    handling: notice.handling ?? null,
+    serial: idem,
+    generatedAt,
+  });
+
+  // Apparatus prose is longer than a fact row, so it gets a wider clamp than
+  // the 400 chars a key-fact value is allowed.
+  const sections = product.sections
+    .slice(0, 24)
+    .map((s) => ({ label: clamp(s.label, 60), value: clamp(s.value, 700) }));
+  const findings = product.keyJudgments;
 
   const sb = admin();
   const prefs = await loadIntelPrefs(notice.userId);
