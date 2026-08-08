@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { isAdminEmail } from "@/lib/adminEmail";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasZophielAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
