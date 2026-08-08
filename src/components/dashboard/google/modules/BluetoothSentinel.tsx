@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Radar, ShieldAlert, MapPin, Loader2, RefreshCw, EyeOff, UserCheck, FileText, Radio,
+  Crosshair, BookOpen, Download,
 } from "lucide-react";
 
 /**
