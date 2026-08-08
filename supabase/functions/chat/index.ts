@@ -1980,8 +1980,9 @@ ${truncatedRome}
 ## END OF WAR STRATEGY BRAIN
 `;
         } else {
-          console.error("Failed to fetch Rome brain:", romeResp.status);
+          console.error("War Strategy brain unavailable this turn");
         }
+
       } catch (e) {
         console.error("Failed to load War Strategy Brain:", e);
       }
