@@ -347,7 +347,7 @@ const PRODUCTS: Product[] = [
     tier: "pro",
   },
   {
-    name: "Intelligence Property Map",
+    name: "Asherin Maps",
     tagline: "Live parcel intel via Zophiel",
     description: "Click any property — Zophiel scrapes live ownership, valuation, permit history, and risk intel.",
     icon: Map,

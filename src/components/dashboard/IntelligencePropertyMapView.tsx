@@ -1,7 +1,7 @@
 import IntelligenceMapModule from "@/components/asher/IntelligenceMapModule";
 
 /**
- * AUREON PRO — Intelligence Property Map
+ * AUREON PRO — Asherin Maps
  *
  * Brings the Asher Dashboard real-time intelligence map into the Aureon
  * dashboard for the Maximum Intelligence (Pro) subscription tier.
