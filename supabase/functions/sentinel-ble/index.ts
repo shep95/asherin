@@ -89,14 +89,19 @@ async function collect(angles: Array<{ label: string; query: string }>, budgetMs
 
 // ── Dossier for one radio ──────────────────────────────────────────────────
 
-async function buildDeviceDossier(row: any, cfg: any) {
+async function buildDeviceDossier(row: any, cfg: any, tradecraftBrief?: string) {
   const name = row.display_name as string;
   const maker = row.manufacturer as string | null;
-  const research = await collect([
+  const collected = await collect([
     { label: "Hardware identification", query: `"${name}" ${maker || ""} bluetooth device what is it specifications` },
     { label: "Covert-tracking misuse", query: `${maker || name} bluetooth tracker stalking unwanted tracking reports` },
     { label: "Detection & countermeasures", query: `how to find hidden ${row.inferred_kind === "tracker" ? "bluetooth tracker tag" : `${name} bluetooth device`} on your person or car` },
   ], 30_000);
+  // The behavioural read and the hardware read must never contradict each
+  // other, so the tradecraft indicators are handed to the same model call.
+  const research = tradecraftBrief
+    ? `${collected}\n\n### Tradecraft indicators observed for THIS radio\n${tradecraftBrief}\n\nUse these behavioural indicators in your assessment, and restate their innocent explanations honestly.`
+    : collected;
 
   const raw = await callByokJsonWithRetry(
     cfg,
