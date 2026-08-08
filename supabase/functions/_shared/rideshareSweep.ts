@@ -84,12 +84,12 @@ function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
   if (!name) return [];
 
   if (!bound) {
-    // First-name-only and the pivot did not resolve a surname. Only angles that
-    // can survive an unbound identity are worth the wall clock.
-    return [
-      { label: "Reputation & complaints", query: `${name}${where} uber lyft driver reviews complaints rating passenger` },
-    ];
+    // First-name-only and the pivot did not resolve a surname. The
+    // jurisdictional identity collector needs a bindable person, so nothing it
+    // returns here would be admissible; the open-web fallback runs instead.
+    return [];
   }
+
 
   const angles: Angle[] = [
     { label: "Identity & residence", query: `who is ${name}${where} address phone email background` },
