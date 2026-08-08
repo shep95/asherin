@@ -57,6 +57,84 @@ interface GeoEvent {
   created_at: string;
 }
 
+interface TcIndicator {
+  code: string;
+  title: string;
+  school: string;
+  severity: "informational" | "notable" | "serious" | "critical";
+  confidence: number;
+  deviceIds: string[];
+  finding: string;
+  doctrine: string;
+  evidence: string[];
+  benign: string;
+  watchFor: string[];
+}
+
+interface TcAnalysis {
+  tier: "none" | "watch" | "probable" | "active";
+  score: number;
+  headline: string;
+  posture: string;
+  indicators: TcIndicator[];
+  coverage: {
+    sessions: number; days: number; places: number; devices: number; sightings: number;
+    windowStart: string | null; windowEnd: string | null;
+  };
+  blindSpots: string[];
+}
+
+interface DoctrineEntry {
+  code: string; school: string; name: string; how: string; radioSignature: string; counter: string;
+}
+
+const SEVERITY_STYLE: Record<string, string> = {
+  critical: "border-foreground/70 bg-foreground/10",
+  serious: "border-foreground/50 bg-foreground/[0.06]",
+  notable: "border-border bg-muted/30",
+  informational: "border-border bg-transparent",
+};
+
+/** A case file is only useful if it can leave the app. Markdown travels into
+ *  an email, a police report and a lawyer's bundle without losing structure. */
+function caseToMarkdown(a: TcAnalysis, file: Record<string, any>): string {
+  const L: string[] = [];
+  L.push(`# ${file.case_reference || "Sentinel case file"}`);
+  L.push(`_Generated ${new Date().toISOString()} · Asherin Bluetooth Sentinel_`);
+  L.push(`\n**Tier:** ${a.tier} · **Score:** ${a.score}/100 · **Posture:** ${a.posture}`);
+  L.push(`\n## Executive summary\n${file.executive_summary || a.headline}`);
+  if (file.pattern_of_conduct) L.push(`\n## Pattern of conduct\n${file.pattern_of_conduct}`);
+  if (file.adversary_assessment) {
+    L.push(`\n## Adversary assessment\n- Posture: ${file.adversary_assessment.posture}\n- Sophistication: ${file.adversary_assessment.sophistication}\n- Reasoning: ${file.adversary_assessment.reasoning}`);
+  }
+  L.push(`\n## Coverage of the log\n- Scan sessions: ${a.coverage.sessions}\n- Days: ${a.coverage.days}\n- Locations: ${a.coverage.places}\n- Radios tracked: ${a.coverage.devices}\n- Sightings: ${a.coverage.sightings}\n- Window: ${a.coverage.windowStart || "n/a"} → ${a.coverage.windowEnd || "n/a"}`);
+  L.push(`\n## Indicators`);
+  for (const i of a.indicators) {
+    L.push(`\n### [${i.code}] ${i.title}\n- Severity: ${i.severity} (confidence ${(i.confidence * 100).toFixed(0)}%)\n- Finding: ${i.finding}\n- Doctrine: ${i.doctrine}\n- Evidence:\n${i.evidence.map((e) => `  - ${e}`).join("\n")}\n- Innocent explanation: ${i.benign}\n- Watch for:\n${i.watchFor.map((w) => `  - ${w}`).join("\n")}`);
+  }
+  for (const [heading, key] of [
+    ["Exhibits", "exhibits"], ["Timeline", "timeline"], ["Next 24 hours", "next_24_hours"],
+    ["Evidence preservation", "evidence_preservation"], ["Reporting package", "reporting_package"],
+    ["Alternative explanations", "alternative_explanations"], ["Watch for", "watch_for"],
+  ] as const) {
+    const v = file[key];
+    if (!Array.isArray(v) || !v.length) continue;
+    L.push(`\n## ${heading}`);
+    for (const item of v) {
+      if (typeof item === "string") L.push(`- ${item}`);
+      else if (item?.exhibit) L.push(`- **Exhibit ${item.exhibit}** — ${item.device}: ${item.why_it_matters}`);
+      else if (item?.when) L.push(`- ${item.when} — ${item.what}`);
+      else L.push(`- ${JSON.stringify(item)}`);
+    }
+  }
+  L.push(`\n## Blind spots\n${a.blindSpots.map((b) => `- ${b}`).join("\n")}`);
+  if (file.limits) L.push(`\n## Limits\n${file.limits}`);
+  L.push(`\n---\nThis file records the behaviour of Bluetooth hardware. It does not identify any person and is not proof of who is responsible.`);
+  return L.join("\n");
+}
+
+
+
 const TIER_STYLE: Record<string, string> = {
   breach: "border-foreground/60 bg-foreground/10 text-foreground",
   priority: "border-foreground/40 bg-foreground/[0.06] text-foreground/90",
