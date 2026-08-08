@@ -511,6 +511,34 @@ const RideshareGuardian = () => {
               </div>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
+              <div className="pr-4">
+                <p className="text-sm text-foreground">Autopilot — read rides from my mail</p>
+                <p className="text-xs text-muted-foreground">
+                  Scans your connected Google mailbox every 15 minutes for Uber and Lyft trip mail,
+                  rebuilds the ride card, and runs the full dossier without you pasting anything.
+                </p>
+              </div>
+              <Switch
+                checked={settings.autopilot_enabled}
+                onCheckedChange={(v) => saveSettings({ ...settings, autopilot_enabled: v })}
+              />
+            </div>
+            {settings.autopilot_enabled && (
+              <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
+                <div>
+                  <p className="text-sm text-foreground">Run a scan now</p>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.last_scan_at
+                      ? `Last read ${new Date(settings.last_scan_at).toLocaleString()} — ${settings.last_scan_detail || settings.last_scan_status || "no detail"}`
+                      : "Your mailbox has not been read yet."}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" disabled={scanning} onClick={runScanNow}>
+                  {scanning ? "Scanning…" : "Scan mailbox"}
+                </Button>
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
               <div>
                 <p className="text-sm text-foreground">Device notifications</p>
                 <p className="text-xs text-muted-foreground">Arrives even when Asherin is closed.</p>
@@ -525,6 +553,7 @@ const RideshareGuardian = () => {
               <Switch checked={settings.email_enabled} onCheckedChange={(v) => saveSettings({ ...settings, email_enabled: v })} />
             </div>
           </div>
+
         </TabsContent>
       </Tabs>
     </div>
