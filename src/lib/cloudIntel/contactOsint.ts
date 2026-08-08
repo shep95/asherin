@@ -532,6 +532,153 @@ async function sweepIdentifierLeg(
   }
 }
 
+// ───────────── dork doctrine leg (55-domain exposure reasoning) ─────────────
+
+/**
+ * Run the Asherin dork doctrine against one contact.
+ *
+ * The vault dossier and the identifier sweep both answer "what already exists
+ * in an index". The doctrine answers a different question — given this
+ * subject's shape, which of the 55 exposure domains SHOULD carry them — and
+ * then tests those theories, including cross-domain ones no prior sweep has
+ * run. That is why it is a third leg rather than a deeper setting on either
+ * existing one.
+ *
+ * Never throws. A missing AI key, a cold model or a timeout returns a summary
+ * with a stated blocker: the absence of the leg is itself reportable, and a
+ * background check must not lose its dossier because reasoning was unavailable.
+ */
+async function dorkBatteryLeg(
+  subject: { name: string; email: string | null; identifiers: string[]; locationHint: string | null },
+  signal?: AbortSignal,
+): Promise<DorkBatterySummary | null> {
+  // The subject string is what every generated query is anchored to. A bare
+  // address is a weaker anchor than a name but still a valid one; with neither
+  // there is nothing to reason about and the leg declines rather than guessing.
+  const anchor = (subject.name || subject.email || "").trim();
+  if (anchor.length < 3) return null;
+
+  const base: DorkBatterySummary = {
+    subject: anchor,
+    theoriesGenerated: 0, theoriesTested: 0, totalHits: 0,
+    topExposures: [], novel: [], brief: "", defensiveGuidance: "",
+    elapsedMs: 0, blocker: null,
+  };
+
+  try {
+    // The employer domain is the single highest-value hint the doctrine takes:
+    // it turns generic person theories into org-scoped ones. Free-mail hosts
+    // are deliberately excluded — they describe the mailbox, not the subject.
+    const host = subject.email?.split("@")[1]?.toLowerCase() ?? "";
+    const FREEMAIL = /^(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|aol|proton(mail)?|gmx|mail|yandex)\./;
+    const domain = host && !FREEMAIL.test(host) ? host : undefined;
+
+    const { data, error } = await supabase.functions.invoke("aureon-dork", {
+      body: {
+        target: {
+          subject: anchor,
+          kind: "person",
+          hints: {
+            domain,
+            location: subject.locationHint || undefined,
+            // Hard identifiers are passed as employer-adjacent context so the
+            // engine can bind phone/alt-address theories to the same subject.
+            employer: undefined,
+          },
+        },
+        // A contact report runs this leg for every dossier opened, so the cap
+        // is tighter than the interactive Asherin Engine battery: enough to
+        // cover the doctrine's tiers, not enough to dominate wall clock.
+        testCap: 26,
+        // The markdown brief is the expensive final model call and the report
+        // renders its own narrative from the tested theories, so it is skipped.
+        skipBrief: true,
+        persist: true,
+      },
+    });
+    if (signal?.aborted) return null;
+
+    if (error) {
+      let detail = error.message ?? "unknown error";
+      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
+      if (ctx?.text) {
+        try { detail = (await ctx.text()).slice(0, 220) || detail; } catch { /* consumed */ }
+      }
+      return { ...base, blocker: `Dork doctrine unavailable: ${detail}` };
+    }
+
+    const report = (data as { report?: RawDorkReport } | null)?.report;
+    if (!report) return { ...base, blocker: "Dork doctrine returned no battery." };
+
+    const tested = Array.isArray(report.topExposures) ? report.topExposures : [];
+    const novelPool = Object.values(report.byCategory ?? {})
+      .flat()
+      .filter((t): t is RawDorkTheory => !!t && t.category === "novel_synthesis" && t.tested);
+
+    return {
+      subject: anchor,
+      theoriesGenerated: Number(report.theoriesGenerated ?? 0),
+      theoriesTested: Number(report.theoriesTested ?? 0),
+      totalHits: Number(report.totalHits ?? 0),
+      topExposures: tested
+        .filter((t) => (t.hits?.length ?? 0) > 0)
+        .slice(0, 8)
+        .map((t) => ({
+          category: String(t.category ?? "unclassified"),
+          query: String(t.query ?? ""),
+          why: String(t.why ?? ""),
+          yieldScore: Number(t.yieldScore ?? 0),
+          markers: Array.isArray(t.markers) ? t.markers.slice(0, 6) : [],
+          hits: (t.hits ?? []).slice(0, 4).map((h) => ({
+            title: String(h.title ?? "").slice(0, 160),
+            url: String(h.url ?? ""),
+            host: String(h.host ?? ""),
+          })),
+        })),
+      novel: novelPool
+        .sort((a, b) => (b.yieldScore ?? 0) - (a.yieldScore ?? 0))
+        .slice(0, 5)
+        .map((t) => ({
+          query: String(t.query ?? ""),
+          why: String(t.why ?? ""),
+          yieldScore: Number(t.yieldScore ?? 0),
+          hits: t.hits?.length ?? 0,
+        })),
+      brief: String(report.brief ?? ""),
+      defensiveGuidance: String(report.defensiveGuidance ?? ""),
+      elapsedMs: Number(report.elapsedMs ?? 0),
+      blocker: tested.length === 0
+        ? "The doctrine generated theories but none returned an indexed surface for this subject."
+        : null,
+    };
+  } catch (e) {
+    return { ...base, blocker: `Dork doctrine aborted: ${(e as Error).message.slice(0, 160)}` };
+  }
+}
+
+/** Wire shapes from aureon-dork — narrowed defensively, never trusted. */
+interface RawDorkTheory {
+  category?: string;
+  query?: string;
+  why?: string;
+  yieldScore?: number;
+  tested?: boolean;
+  markers?: string[];
+  hits?: Array<{ title?: string; url?: string; host?: string }>;
+}
+interface RawDorkReport {
+  theoriesGenerated?: number;
+  theoriesTested?: number;
+  totalHits?: number;
+  byCategory?: Record<string, RawDorkTheory[]>;
+  topExposures?: RawDorkTheory[];
+  brief?: string;
+  defensiveGuidance?: string;
+  elapsedMs?: number;
+}
+
+
+
 /** An annex that reports its own failure rather than being silently omitted. */
 export function emptyAnnex(status: OsintStatus, blocker: string, name: string, email: string | null): OsintAnnex {
   return {
