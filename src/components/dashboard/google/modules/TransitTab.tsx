@@ -180,10 +180,13 @@ const TransitTab = () => {
 
   const call = useCallback(async (body: Record<string, unknown>) => {
     const byok = await resolveByok();
-    const { data, error } = await invokeWithByokRetry("transit-guardian", { ...body, byok });
-    if (error) throw new Error(error.message || "Request failed");
-    if ((data as any)?.error) throw new Error((data as any).message || (data as any).error);
-    return data as Record<string, any>;
+    // The helper throws on transport and terminal-429 failures and returns the
+    // parsed body otherwise, so a thrown error here is the only failure path.
+    const data = await invokeWithByokRetry<Record<string, any>>("transit-guardian", {
+      body: { ...body, byok },
+    });
+    if (data?.error) throw new Error(data.message || data.error);
+    return data;
   }, []);
 
   const load = useCallback(async () => {
