@@ -32,6 +32,7 @@ import ReportViewer from "./contactIntel/ReportViewer";
 import { buildContactReport } from "@/lib/cloudIntel/contactReport";
 import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 import { collectContactOsint, emptyAnnex, type OsintAnnex } from "@/lib/cloudIntel/contactOsint";
+import { setPendingContacts } from "@/lib/cloudIntel/mapBridge";
 
 
 
