@@ -24,6 +24,10 @@
 
 import { classifySelector, harvestLeads, type SelectorIdentity } from "./ghostHarvest.ts";
 import { pool } from "./ghostMetadata.ts";
+import {
+  readDocument, toProse, matchTerms, keywordTerms,
+  type DocClass, type TermHit,
+} from "./ghostDocIntel.ts";
 
 /** The web's own year zero — nothing predates this on a dated document. */
 export const ARCHIVE_EPOCH_YEAR = 1990;
@@ -38,7 +42,8 @@ export type DateProof =
   | "time-element"
   | "url-path"
   | "copyright"
-  | "body-text";
+  | "body-text"
+  | "doc-metadata";
 
 export interface TimeCapture {
   url: string;
@@ -54,6 +59,16 @@ export interface TimeCapture {
   raw: string;
   title: string;
   source: "probe";
+  /** Which surface carried the document — page, PDF, office file, code, share. */
+  doc_class: DocClass;
+  /** Metadata fields the file itself carried (pdf:Author, html:generator, …). */
+  meta: Record<string, string>;
+  /** Keywords the document declared about itself. */
+  keywords: string[];
+  /** Selector terms found inside the document, with the sentence proving each. */
+  terms: TermHit[];
+  /** Bytes the engine actually read. */
+  bytes: number;
 }
 
 export interface TimeEra {
@@ -85,6 +100,14 @@ export interface TimeMachineReport {
   hosts_probed: string[];
   /** Hosts that carried the selector but no longer answer. */
   dead_hosts: string[];
+  /** Documents by surface class, so the operator sees what was actually read. */
+  classes: Array<{ doc_class: DocClass; documents: number }>;
+  /** Keywords the corpus declared, ranked by how many documents carried each. */
+  keywords: Array<{ keyword: string; documents: number }>;
+  /** Authoring metadata recovered across the corpus (authors, producers, tools). */
+  authors: Array<{ value: string; field: string; documents: number; sample_url: string }>;
+  /** Selector terms and how often the corpus corroborated each one. */
+  term_coverage: Array<{ term: string; documents: number; hits: number }>;
   /** The engine's own stages — never an outside corpus. */
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
   elapsed_ms: number;
@@ -175,6 +198,9 @@ function carveDates(url: string, headers: Headers, html: string): Dated[] {
 }
 
 const PROOF_RANK: Record<DateProof, number> = {
+  // A file's own authoring stamp outranks anything a page says about itself:
+  // /CreationDate was written by the producing application, not by a CMS.
+  "doc-metadata": 7,
   jsonld: 6, "meta-published": 5, "time-element": 4, "url-path": 4,
   "http-last-modified": 3, copyright: 2, "body-text": 1,
 };
