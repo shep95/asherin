@@ -2022,6 +2022,94 @@ const IntelligenceMapModule = () => {
               className="asher-tactical-border-overlay"
             />
           )}
+
+          {/* ROUTE CORRIDOR — alternatives sit underneath the active line so a
+              click always lands on the route the operator is following. */}
+          {routeLayer.routes.map((r) => (
+            r.id === routeLayer.activeId ? null : (
+              <Polyline
+                key={`alt-${r.id}`}
+                positions={r.path.map((p) => [p.lat, p.lng] as [number, number])}
+                pathOptions={{ color: "#8b8b8b", weight: 4, opacity: 0.5, dashArray: "6 8" }}
+              />
+            )
+          ))}
+          {routeLayer.routes
+            .filter((r) => r.id === routeLayer.activeId)
+            .map((r) => (
+              <Polyline
+                key={`act-${r.id}`}
+                positions={r.path.map((p) => [p.lat, p.lng] as [number, number])}
+                pathOptions={{ color: "#c98b3a", weight: 6, opacity: 0.95 }}
+              >
+                <Popup>
+                  <div className="min-w-[170px] space-y-1 text-xs">
+                    <div className="font-semibold">{r.summary || "Route"}</div>
+                    <div>{fmtDistUnits(r.distanceM, units)} · {fmtDurUnits(r.durationS)}</div>
+                    <div className="opacity-70">Arrive ~{fmtEta(r.durationS)}</div>
+                    {r.degraded && <div className="text-amber-500">{r.degraded}</div>}
+                  </div>
+                </Popup>
+              </Polyline>
+            ))}
+          {routeLayer.highlight && routeLayer.highlight.length > 1 && (
+            <Polyline
+              positions={routeLayer.highlight.map((p) => [p.lat, p.lng] as [number, number])}
+              pathOptions={{ color: "#ffe0a3", weight: 9, opacity: 0.85 }}
+            />
+          )}
+
+          {/* LIVE STREET CAMERAS */}
+          <StreetCameraLayer cameras={cameras} />
+
+          {/* NEARBY PLACES */}
+          {placePins.map((p) => (
+            <CircleMarker
+              key={`place-${p.id}`}
+              center={[p.lat, p.lng]}
+              radius={6}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#c98b3a", fillOpacity: 0.95 }}
+            >
+              <Popup>
+                <div className="min-w-[190px] space-y-1 text-xs">
+                  <div className="font-semibold">{p.name}</div>
+                  {p.address && <div className="opacity-80">{p.address}</div>}
+                  {p.openNow !== null && p.openNow !== undefined && (
+                    <div className={p.openNow ? "text-emerald-600" : "text-red-500"}>{p.openNow ? "Open now" : "Closed now"}</div>
+                  )}
+                  {p.phone && <a href={`tel:${p.phone}`} className="block underline">{p.phone}</a>}
+                  {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" className="block underline">Website</a>}
+                  <div className="flex gap-2 pt-1">
+                    <button className="underline" onClick={() => openDirectionsTo({ label: p.name, lat: p.lat, lng: p.lng })}>Directions</button>
+                    <a className="underline" href={streetViewUrl(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">Street view</a>
+                  </div>
+                  <div className="text-[10px] opacity-60">OpenStreetMap · live query</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
+          {/* HIRING PINS */}
+          {jobPins.filter((j) => j.lat !== undefined && j.lng !== undefined).map((j, i) => (
+            <CircleMarker
+              key={`job-${j.applyUrl || j.employer}-${i}`}
+              center={[j.lat as number, j.lng as number]}
+              radius={6}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#34d399", fillOpacity: 0.95 }}
+            >
+              <Popup>
+                <div className="min-w-[200px] space-y-1 text-xs">
+                  <div className="font-semibold">{j.title}</div>
+                  <div className="opacity-80">{j.employer}</div>
+                  {j.address && <div className="opacity-70">{j.address}</div>}
+                  {j.pay && <div className="text-emerald-600">{j.pay}</div>}
+                  {j.applyUrl && <a href={j.applyUrl} target="_blank" rel="noopener noreferrer" className="block underline">Apply · {j.source}</a>}
+                  <button className="underline" onClick={() => openDirectionsTo({ label: j.employer, lat: j.lat as number, lng: j.lng as number })}>Directions</button>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
           <MapClick onClick={handleMapClick} />
           <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
           <SelfLocationLayer
