@@ -394,6 +394,29 @@ export async function loadCloudMapLayer(q: CloudMapQuery = {}): Promise<CloudMap
   return { contacts, venues, security, relationships };
 }
 
+const PENDING_VENUES_KEY = "asher-cloud-venues-pending";
+
+export function setPendingVenues(venues: Venue[]) {
+  try {
+    localStorage.setItem(PENDING_VENUES_KEY, JSON.stringify(venues));
+  } catch {}
+}
+
+export function getPendingVenues(): Venue[] {
+  try {
+    const raw = localStorage.getItem(PENDING_VENUES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearPendingVenues() {
+  try {
+    localStorage.removeItem(PENDING_VENUES_KEY);
+  } catch {}
+}
+
 export function clearCloudMapCache() {
   geoCache.clear();
 }
