@@ -36,10 +36,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "ziali-magic-pixels"
-const SENDER_DOMAIN = "notify.aureonai.app"
-const ROOT_DOMAIN = "aureonai.app"
-const FROM_DOMAIN = "aureonai.app" // Domain shown in From address (may be root or sender subdomain)
+const SITE_NAME = "Asherin"
+const SENDER_DOMAIN = "notify.asherin.com"
+const ROOT_DOMAIN = "asherin.com"
+const FROM_DOMAIN = "asherin.com" // Domain shown in From address (may be root or sender subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.

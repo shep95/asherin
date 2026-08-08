@@ -12,12 +12,12 @@ interface Props {
 const AccountDeletionScheduledEmail = ({
   name,
   scheduledDeletionDate = '30 days from now',
-  cancelUrl = 'https://aureonai.app/account',
+  cancelUrl = 'https://asherin.com/account',
 }: Props) => (
   <Shell preview="Your account is scheduled for deletion." eyebrow="Account">
     <Hed>Deletion scheduled.</Hed>
     <Prose>
-      {name ? `${name}, we've` : "We've"} received your request to delete your Aureon account.
+      {name ? `${name}, we've` : "We've"} received your request to delete your Asherin account.
     </Prose>
     <MetaCard rows={[{ label: 'Permanent deletion on', value: <strong>{scheduledDeletionDate}</strong> }]} />
     <Prose>
@@ -31,11 +31,11 @@ const AccountDeletionScheduledEmail = ({
 
 export const template = {
   component: AccountDeletionScheduledEmail,
-  subject: 'Your Aureon account is scheduled for deletion',
+  subject: 'Your Asherin account is scheduled for deletion',
   displayName: 'Account deletion scheduled',
   previewData: {
     name: 'Asher',
     scheduledDeletionDate: 'June 25, 2026',
-    cancelUrl: 'https://aureonai.app/account',
+    cancelUrl: 'https://asherin.com/account',
   },
 } satisfies TemplateEntry

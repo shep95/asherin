@@ -19,7 +19,7 @@ interface Props {
   endsOn?: string
 }
 
-const SubscriptionEndingEmail = ({ name, planName = 'Aureon', daysLeft = 3, endsOn }: Props) => (
+const SubscriptionEndingEmail = ({ name, planName = 'Asherin', daysLeft = 3, endsOn }: Props) => (
   <Shell
     preview={`Your ${planName} subscription ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}.`}
     eyebrow="Subscription Ending Soon"
@@ -46,7 +46,7 @@ const SubscriptionEndingEmail = ({ name, planName = 'Aureon', daysLeft = 3, ends
       ]}
     />
 
-    <Cta href="https://aureonai.app/dashboard/settings" label="Manage subscription" />
+    <Cta href="https://asherin.com/dashboard/settings" label="Manage subscription" />
 
     <Prose>
       Either way — keep in touch. Follow Asher &amp; #houseofasher:
@@ -59,7 +59,7 @@ const SubscriptionEndingEmail = ({ name, planName = 'Aureon', daysLeft = 3, ends
     </Prose>
 
     <Note>
-      Nothing but love. — <em>#houseofasher and the Aureon Team</em>
+      Nothing but love. — <em>#houseofasher and the Asherin Team</em>
     </Note>
   </Shell>
 )
@@ -67,11 +67,11 @@ const SubscriptionEndingEmail = ({ name, planName = 'Aureon', daysLeft = 3, ends
 export const template = {
   component: SubscriptionEndingEmail,
   subject: (d: any) =>
-    `Your ${d?.planName ?? 'Aureon'} subscription ends in ${d?.daysLeft ?? 3} day${(d?.daysLeft ?? 3) === 1 ? '' : 's'}`,
+    `Your ${d?.planName ?? 'Asherin'} subscription ends in ${d?.daysLeft ?? 3} day${(d?.daysLeft ?? 3) === 1 ? '' : 's'}`,
   displayName: 'Subscription ending soon',
   previewData: {
     name: 'Asher',
-    planName: 'Aureon Pro',
+    planName: 'Asherin Pro',
     daysLeft: 3,
     endsOn: 'June 22, 2026',
   },

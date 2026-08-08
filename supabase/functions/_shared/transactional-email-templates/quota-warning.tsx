@@ -20,7 +20,7 @@ const QuotaWarningEmail = ({
   limit = 1000,
   percent,
   resetDate,
-  planName = 'Aureon',
+  planName = 'Asherin',
 }: Props) => {
   const pct = percent ?? Math.round((used / Math.max(limit, 1)) * 100)
   return (
@@ -33,7 +33,7 @@ const QuotaWarningEmail = ({
       <Bar percent={pct} />
       {resetDate && <Prose>Quota resets on <strong>{resetDate}</strong>.</Prose>}
       <Prose>Upgrade now to keep momentum and avoid interruption.</Prose>
-      <Cta href="https://aureonai.app/pricing" label="Upgrade plan" />
+      <Cta href="https://asherin.com/pricing" label="Upgrade plan" />
       <Note>You can also downgrade or pause from your dashboard at any time.</Note>
     </Shell>
   )
@@ -50,6 +50,6 @@ export const template = {
     limit: 1000,
     percent: 80,
     resetDate: 'June 26, 2026',
-    planName: 'Aureon Chat',
+    planName: 'Asherin Chat',
   },
 } satisfies TemplateEntry

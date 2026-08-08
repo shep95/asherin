@@ -56,7 +56,7 @@ const ZerlalScanReportEmail = ({
   durationSec,
   scanProfile = 'security-audit',
   summary,
-  reportUrl = 'https://aureonai.app/dashboard/zerlal',
+  reportUrl = 'https://asherin.com/dashboard/zerlal',
   completedAt = new Date().toUTCString(),
   findings = [],
   errors = [],
@@ -141,7 +141,7 @@ export const template = {
     durationSec: 184,
     scanProfile: 'security-audit',
     summary: 'Two critical findings stem from unparameterized SQL in the billing module. Patch order prioritized in dashboard.',
-    reportUrl: 'https://aureonai.app/dashboard/zerlal',
+    reportUrl: 'https://asherin.com/dashboard/zerlal',
     completedAt: 'Fri, 12 Jun 2026 04:21:00 GMT',
   },
 } satisfies TemplateEntry

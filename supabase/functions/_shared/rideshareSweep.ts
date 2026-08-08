@@ -296,7 +296,11 @@ export async function deliver(
             recommendedAction: p.recommended_action || "",
             flagCount: flagList.length,
             flagSeverity: worst,
-            reportUrl: `https://asherin.com/dashboard?tab=cloud-intel&module=rideshare&ride=${encodeURIComponent(rideId)}`,
+            // Resolve to the rendered dossier when the row exists; the in-app
+            // deep link is only the fallback.
+            reportUrl: bus.notificationId
+              ? `https://asherin.com/report/${bus.notificationId}`
+              : `https://asherin.com/dashboard?tab=cloud-intel&module=rideshare&ride=${encodeURIComponent(rideId)}`,
             generatedAt: new Date().toUTCString(),
           },
         }),

@@ -766,7 +766,7 @@ async function sendEmails({ supabase, user, project_id, scan_id, scan_profile, s
     ]);
     const recipient = (settings?.alert_email && settings.alert_email.trim()) || user.email;
     const projectName = project?.name || "Untitled project";
-    const reportUrl = "https://aureonai.app/dashboard/zerlal";
+    const reportUrl = "https://asherin.com/dashboard/zerlal";
     const completedAtStr = new Date().toUTCString();
 
     if (!recipient) return;

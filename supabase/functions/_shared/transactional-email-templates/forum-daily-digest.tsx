@@ -45,7 +45,7 @@ const Digest = ({
   date = new Date().toISOString().slice(0, 10),
   bugs = [], theories = [], topIdea = null, ideasRunnersUp = [], randomBugs = [],
 }: Props) => (
-  <Shell preview={`Aureon Forums Daily Digest — ${date}`} eyebrow="Forums Digest">
+  <Shell preview={`Asherin Forums Daily Digest — ${date}`} eyebrow="Forums Digest">
     <Hed>Daily Digest — {date}</Hed>
     <Prose>Community activity across ideas, bugs, and theories from the last 24 hours.</Prose>
 
@@ -70,7 +70,7 @@ const Digest = ({
     <Section title="Theories Submitted (24h) — Open Source" items={theories} emptyLabel="No theories submitted." />
 
     <Note>
-      Theories submitted to Aureon Forums are declared open-source: anyone — including
+      Theories submitted to Asherin Forums are declared open-source: anyone — including
       other AI systems — may read, cite, and build upon them to advance AI for humanity.
     </Note>
   </Shell>
@@ -78,7 +78,7 @@ const Digest = ({
 
 export const template = {
   component: Digest,
-  subject: (d: Record<string, any>) => `Aureon Forums Digest — ${d?.date ?? new Date().toISOString().slice(0, 10)}`,
+  subject: (d: Record<string, any>) => `Asherin Forums Digest — ${d?.date ?? new Date().toISOString().slice(0, 10)}`,
   displayName: 'Forum Daily Digest',
   to: 'shepherdnewtonx@gmail.com',
   previewData: {

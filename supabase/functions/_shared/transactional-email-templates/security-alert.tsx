@@ -27,13 +27,13 @@ const SecurityAlertEmail = ({ name, event = 'Account activity detected', device,
     <Prose>
       Wasn't you? Lock the account and rotate credentials immediately.
     </Prose>
-    <Cta href="https://aureonai.app/security" label="Secure account" />
+    <Cta href="https://asherin.com/security" label="Secure account" />
   </Shell>
 )
 
 export const template = {
   component: SecurityAlertEmail,
-  subject: (d: any) => d?.event ?? 'Security alert on your Aureon account',
+  subject: (d: any) => d?.event ?? 'Security alert on your Asherin account',
   displayName: 'Security alert',
   previewData: { name: 'Asher', event: 'New device signed in', device: 'MacBook Pro · Chrome', location: 'San Francisco, CA, US', time: 'May 26, 2026 · 22:14 UTC' },
 } satisfies TemplateEntry

@@ -46,7 +46,7 @@ export const template = {
     exportType: 'Conversation archive',
     fileName: 'aureon-conversations-2026-05.zip',
     fileSize: '14.2 MB',
-    downloadUrl: 'https://aureonai.app/exports/abc123',
+    downloadUrl: 'https://asherin.com/exports/abc123',
     expiresAt: 'June 2, 2026',
   },
 } satisfies TemplateEntry

@@ -305,7 +305,12 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
               subjectName: subjectName ?? "",
               sections,
               findings,
-              reportUrl: `https://asherin.com${url}`,
+              // A report link must resolve to the report. When the dossier row
+              // exists, point at the standalone dossier page; only fall back to
+              // the in-app deep link when there is no row to render.
+              reportUrl: out.notificationId
+                ? `https://asherin.com/report/${out.notificationId}`
+                : `https://asherin.com${url}`,
               generatedAt: new Date().toUTCString(),
             },
           }),

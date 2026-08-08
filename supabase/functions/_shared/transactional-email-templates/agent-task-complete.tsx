@@ -50,7 +50,7 @@ export const template = {
     agentName: 'Zophiel OSINT Scout',
     taskName: 'Weekly threat intelligence sweep',
     summary: 'Scanned 30 sources. Surfaced 4 high-confidence leads and 12 secondary signals across monitored entities.',
-    resultUrl: 'https://aureonai.app/agents/runs/latest',
+    resultUrl: 'https://asherin.com/agents/runs/latest',
     completedAt: 'Tue, 26 May 2026 22:14:00 GMT',
     durationMs: 47200,
   },

@@ -19,7 +19,7 @@ interface Props {
 
 const InvoiceReceiptEmail = ({
   name,
-  planName = 'Aureon',
+  planName = 'Asherin',
   amount = '$199.00',
   invoiceNumber = 'INV-000000',
   paidAt = new Date().toISOString().slice(0, 10),
@@ -68,11 +68,11 @@ const InvoiceReceiptEmail = ({
 
 export const template = {
   component: InvoiceReceiptEmail,
-  subject: (d: Record<string, any>) => `Receipt — ${d?.planName ?? 'Aureon'} (${d?.amount ?? ''})`.trim(),
+  subject: (d: Record<string, any>) => `Receipt — ${d?.planName ?? 'Asherin'} (${d?.amount ?? ''})`.trim(),
   displayName: 'Invoice receipt',
   previewData: {
     name: 'Asher',
-    planName: 'Aureon Pro',
+    planName: 'Asherin Pro',
     amount: '$740.00',
     invoiceNumber: 'INV-2026-0142',
     paidAt: '2026-05-26',

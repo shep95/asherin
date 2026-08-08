@@ -12,7 +12,7 @@ interface Props {
 }
 
 const OrderConfirmationEmail = ({ name, orderId, planName, amount, date }: Props) => (
-  <Shell preview={`Order confirmed — ${planName ?? 'Aureon'}.`} eyebrow="Receipt">
+  <Shell preview={`Order confirmed — ${planName ?? 'Asherin'}.`} eyebrow="Receipt">
     <Hed>Order confirmed.</Hed>
     <Prose>
       {name ? `${name}, your` : 'Your'} purchase is complete. Access is active immediately.
@@ -31,7 +31,7 @@ const OrderConfirmationEmail = ({ name, orderId, planName, amount, date }: Props
 
 export const template = {
   component: OrderConfirmationEmail,
-  subject: (d: any) => `Order confirmed — ${d?.planName ?? 'Aureon'}`,
+  subject: (d: any) => `Order confirmed — ${d?.planName ?? 'Asherin'}`,
   displayName: 'Order confirmation',
-  previewData: { name: 'Asher', orderId: 'ORD-7H3F2K', planName: 'Aureon Pro', amount: '$740.00 USD', date: 'May 26, 2026' },
+  previewData: { name: 'Asher', orderId: 'ORD-7H3F2K', planName: 'Asherin Pro', amount: '$740.00 USD', date: 'May 26, 2026' },
 } satisfies TemplateEntry

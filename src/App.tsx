@@ -35,6 +35,7 @@ const Ziaassets = lazy(() => import("./pages/Ziaassets"));
 const AsherinGov = lazy(() => import("./pages/AsherinGov"));
 const AsherinGovDashboard = lazy(() => import("./pages/AsherinGovDashboard"));
 const SymbolsOfTheBible = lazy(() => import("./pages/SymbolsOfTheBible"));
+const IntelligenceReport = lazy(() => import("./pages/IntelligenceReport"));
 
 
 // SEO content cluster (Theories 8-14): glossary, satellites, predictions, feature spines.
@@ -227,6 +228,14 @@ const App = () => (
             <Route
               path="/blog/how-to-break-any-encryption-theory"
               element={<BlogHowToBreakAnyEncryptionTheory />}
+            />
+            <Route
+              path="/report/:id"
+              element={
+                <ProtectedRoute>
+                  <IntelligenceReport />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/asher-dashboard"
