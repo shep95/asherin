@@ -183,6 +183,35 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(bin);
 }
 
+/**
+ * Parse model JSON, tolerating a response truncated by the token ceiling.
+ * A cut-off object still carries the verdict and most of the reasoning, and
+ * discarding it loses a real assessment over a missing brace.
+ */
+function safeParse(raw: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    /* fall through to salvage */
+  }
+  const field = (k: string): string => {
+    const m = raw.match(new RegExp(`"${k}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`, "i"));
+    return m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, " ").trim() : "";
+  };
+  const verdict = field("verdict");
+  if (!verdict) return null;
+  const conf = raw.match(/"confidence"\s*:\s*([0-9.]+)/i);
+  const obsBlock = raw.match(/"observations"\s*:\s*\[([\s\S]*?)(\]|$)/i)?.[1] ?? "";
+  const observations = [...obsBlock.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  return {
+    verdict,
+    confidence: conf ? Number(conf[1]) : 0,
+    reasoning: field("reasoning"),
+    observations,
+    falsifier: field("falsifier"),
+  };
+}
+
 
 async function crossMatch(
   subject: string,
