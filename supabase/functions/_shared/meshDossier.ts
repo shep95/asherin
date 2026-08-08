@@ -255,6 +255,19 @@ export interface MeshDossierDoc {
   };
   gaps: string[];
   jurisdiction: string;
+  /**
+   * Face imagery harvested from the resolved identity clusters. URLs only —
+   * bytes are never inlined and are fetched later through the SSRF-guarded
+   * intel-avatar proxy. Each entry names the cluster it came from so a photo
+   * can never be silently attributed to the wrong same-name person.
+   */
+  imagery: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  /**
+   * Kin names asserted by the resolved cluster (relatives / spouse lines in
+   * people-directory documents). Carried separately from the association ring
+   * because a relative is a claimed blood/marriage tie, not a co-occurrence.
+   */
+  kin: string[];
   /** Which inbound channel produced this subject (mail, calendar, phone…). */
   channel?: string | null;
   /** Outcome of the reverse-identifier pass, when one was run. */
