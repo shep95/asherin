@@ -8104,66 +8104,96 @@ export type Database = {
       }
       rideshare_rides: {
         Row: {
+          arrive_at: string | null
           auto_captured: boolean
+          booking_ref: string | null
           city: string | null
           confidence: number | null
           created_at: string
+          depart_at: string | null
+          destination_label: string | null
           driver_name: string | null
           email_message_id: string | null
           id: string
           idempotency_key: string | null
+          leg: Json
+          mode: string
+          operator: string | null
+          operator_label: string | null
           pickup_label: string | null
           plate: string | null
           platform: string
           ride_at: string | null
+          seat: string | null
           source: string
           status: string
           trip_url: string | null
           updated_at: string
           user_id: string
           vehicle: string | null
+          vehicle_ident: string | null
           verdict: string | null
         }
         Insert: {
+          arrive_at?: string | null
           auto_captured?: boolean
+          booking_ref?: string | null
           city?: string | null
           confidence?: number | null
           created_at?: string
+          depart_at?: string | null
+          destination_label?: string | null
           driver_name?: string | null
           email_message_id?: string | null
           id?: string
           idempotency_key?: string | null
+          leg?: Json
+          mode?: string
+          operator?: string | null
+          operator_label?: string | null
           pickup_label?: string | null
           plate?: string | null
           platform?: string
           ride_at?: string | null
+          seat?: string | null
           source: string
           status?: string
           trip_url?: string | null
           updated_at?: string
           user_id: string
           vehicle?: string | null
+          vehicle_ident?: string | null
           verdict?: string | null
         }
         Update: {
+          arrive_at?: string | null
           auto_captured?: boolean
+          booking_ref?: string | null
           city?: string | null
           confidence?: number | null
           created_at?: string
+          depart_at?: string | null
+          destination_label?: string | null
           driver_name?: string | null
           email_message_id?: string | null
           id?: string
           idempotency_key?: string | null
+          leg?: Json
+          mode?: string
+          operator?: string | null
+          operator_label?: string | null
           pickup_label?: string | null
           plate?: string | null
           platform?: string
           ride_at?: string | null
+          seat?: string | null
           source?: string
           status?: string
           trip_url?: string | null
           updated_at?: string
           user_id?: string
           vehicle?: string | null
+          vehicle_ident?: string | null
           verdict?: string | null
         }
         Relationships: []
