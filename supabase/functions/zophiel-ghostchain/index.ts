@@ -300,7 +300,7 @@ function buildSegments(blocks: TextBlock[]): Segment[] {
 }
 function distill(segments: Segment[]) {
   const sig = segments.filter((s) => !s.isBoilerplate).sort((a, b) => b.entropy - a.entropy);
-  const body = sig.map((s) => s.text).join("\n\n");
+  const body = sig.map((s) => s.text).join("\n\n").slice(0, 200_000);
   return { body, keywords: extractKeywords(body), snippet: sig[0]?.text.slice(0, 280) ?? "" };
 }
 

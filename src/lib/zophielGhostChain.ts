@@ -34,8 +34,14 @@ export interface GhostChainReport {
   warnings: string[];
 }
 
-function ghostChainError(error: unknown, data: unknown): Error {
-  const payload = data && typeof data === "object" ? data as { error?: string; message?: string; retryAfterMs?: number } : null;
+async function ghostChainError(error: unknown, data: unknown): Promise<Error> {
+  let payload = data && typeof data === "object" ? data as { error?: string; message?: string; retryAfterMs?: number } : null;
+  const context = error && typeof error === "object" && "context" in error ? (error as { context?: unknown }).context : null;
+  if (!payload && context instanceof Response) {
+    try {
+      payload = await context.clone().json() as { error?: string; message?: string; retryAfterMs?: number };
+    } catch { /* retain the transport error below */ }
+  }
   const code = payload?.error || (error instanceof Error ? error.message : "Ghost Chain failed");
   const messages: Record<string, string> = {
     UPSTREAM_TIMEOUT: "The target did not respond in time. Try again shortly.",
@@ -64,6 +70,6 @@ export async function ghostChainScrape(url: string, opts?: { forceLocal?: boolea
       ...(byok ? { byok } : {}),
     },
   });
-  if (error || !data?.success) throw ghostChainError(error, data);
+  if (error || !data?.success) throw await ghostChainError(error, data);
   return data as GhostChainReport;
 }

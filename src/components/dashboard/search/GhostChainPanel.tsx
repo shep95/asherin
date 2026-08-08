@@ -18,6 +18,7 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
   const [report, setReport] = useState<GhostChainReport | null>(null);
 
   const run = async () => {
+    if (loading) return;
     const target = url.trim();
     if (!target) return;
     setLoading(true);
@@ -46,7 +47,7 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
         <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") run(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !loading) void run(); }}
           placeholder="https://target-url.example.com"
           className="bg-background/40 border-border/30 text-sm"
           disabled={loading}
