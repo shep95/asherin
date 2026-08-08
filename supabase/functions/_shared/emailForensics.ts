@@ -490,16 +490,29 @@ export function analyzeMessage(msg: AnalyzeInput): MessageForensics {
     });
   }
   if (aligned.returnPath === false) {
+    // A bulk sender whose DMARC passes is *supposed* to bounce through its
+    // platform. Scoring that as "high" buried the real hijack attempts under
+    // every newsletter in the mailbox, so relaxed alignment is graded as
+    // context, not as an accusation.
+    const benign = dmarc === "pass" && (isBulk || aligned.dkim === true);
     push({
-      code: "ENVELOPE_MISMATCH", severity: "high", title: "Envelope sender differs from visible sender",
-      detail: `Bounces route to ${returnPathDomain}, while the message presents as ${fromDomain}. Normal for mailing platforms, notable for personal mail.`,
+      code: "ENVELOPE_MISMATCH", severity: benign ? "info" : "high",
+      title: benign ? "Platform-relayed envelope (expected)" : "Envelope sender differs from visible sender",
+      detail: benign
+        ? `Bounces route to ${returnPathDomain} while the message presents as ${fromDomain} — normal relaxed alignment for a DMARC-passing sending platform.`
+        : `Bounces route to ${returnPathDomain}, while the message presents as ${fromDomain}, and nothing authenticates that relationship.`,
       evidence: `Return-Path: ${returnPath} | From: ${fromAddress}`,
     });
   }
   if (replyToDomain && sameOrg(replyToDomain, fromDomain) === false) {
+    const benign = dmarc === "pass" && isBulk;
     push({
-      code: "REPLYTO_DIVERGENCE", severity: "high", title: "Replies redirect to a different domain",
-      detail: `A reply leaves the conversation and lands at ${replyToDomain}. This is the standard mechanic of a conversation-hijack or invoice-redirection attempt.`,
+      code: "REPLYTO_DIVERGENCE", severity: benign ? "low" : "high",
+      title: "Replies redirect to a different domain",
+      detail: benign
+        ? `Replies land at ${replyToDomain} rather than ${fromDomain} — common for authenticated platform mail, still worth knowing before you answer.`
+        : `A reply leaves the conversation and lands at ${replyToDomain}. This is the standard mechanic of a conversation-hijack or invoice-redirection attempt.`,
+
       evidence: `Reply-To: ${replyTo} | From: ${fromAddress}`,
     });
   }
