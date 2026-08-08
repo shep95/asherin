@@ -526,13 +526,25 @@ function detectHarsh(points: CleanPoint[], roads: Array<OsmWay | null>): TripEve
 }
 
 /**
- * A swerve is not a turn. A turn is one sustained direction change; a swerve is
- * a lateral spike immediately answered by an opposite one — out and back. Only
- * the paired form is reported, which is what keeps ordinary cornering out of
- * the record.
+ * A swerve is not a turn, and it is not a corner.
+ *
+ * The first version of this detector fired seven times on a clean routed drive
+ * through Manhattan and correctly identified none of them: turning off Bowery
+ * onto a cross street produces a sharp heading change followed by a settling
+ * correction, which looks exactly like an out-and-back if you only check that
+ * the two spikes have opposite signs.
+ *
+ * Two gates separate the two shapes. First, a swerve returns to where it was
+ * going — the net heading change across the pair is near zero, where a turn's
+ * is tens of degrees. Second, physics: a road car on dry asphalt tops out near
+ * 0.9 g laterally, so a computed 3.8 g is a GPS heading artefact and is thrown
+ * away rather than reported as violent driving.
  */
+const SWERVE_NET_HEADING_MAX_DEG = 18;
+const LATERAL_PLAUSIBLE_MAX_MPS2 = 9.5; // ~0.97 g — beyond this it is sensor noise.
+
 function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripEvent[] {
-  const spikes: Array<{ i: number; lat: number; signed: number; t: number }> = [];
+  const spikes: Array<{ i: number; lat: number; signed: number; t: number; dHead: number }> = [];
 
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i];
@@ -549,9 +561,10 @@ function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripE
     const dHead = bearingDelta(hA, hB);
     const yawRate = (dHead * Math.PI / 180) / dt;
     const lateral = b.spd * yawRate;
-    if (Math.abs(lateral) >= LATERAL_MPS2) {
-      spikes.push({ i, lat: lateral, signed: Math.sign(lateral), t: b.t });
-    }
+    const mag = Math.abs(lateral);
+    if (mag < LATERAL_MPS2) continue;
+    if (mag > LATERAL_PLAUSIBLE_MAX_MPS2) continue; // beyond tyre grip: artefact
+    spikes.push({ i, lat: lateral, signed: Math.sign(lateral), t: b.t, dHead });
   }
 
   const out: TripEvent[] = [];
@@ -562,8 +575,13 @@ function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripE
     if (c.signed === p.signed) continue;
     if ((c.t - p.t) / 1000 > SWERVE_PAIR_S) continue;
 
+    // The deciding test: did the vehicle come back to its original heading?
+    const net = Math.abs(p.dHead + c.dHead);
+    if (net > SWERVE_NET_HEADING_MAX_DEG) continue; // a turn, not a swerve
+
     const pt = points[c.i];
     const peak = Math.max(Math.abs(p.lat), Math.abs(c.lat));
+    const amplitude = Math.max(Math.abs(p.dHead), Math.abs(c.dHead));
     out.push({
       kind: "swerve",
       at: iso(p.t),
@@ -573,13 +591,16 @@ function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripE
       lon: pt.lon,
       street: roads[c.i]?.name ?? null,
       detail:
-        `Two opposing lateral spikes ${((c.t - p.t) / 1000).toFixed(1)} s apart at ` +
-        `${(pt.spd * MPS_TO_MPH).toFixed(0)} mph, peaking at ${(peak / 9.80665).toFixed(2)} g ` +
-        `sideways — an out-and-back movement rather than a turn.`,
-      confidence: peak > LATERAL_MPS2 * 1.5 ? 0.7 : 0.5,
+        `Heading moved ${amplitude.toFixed(0)}° off line and returned within ` +
+        `${((c.t - p.t) / 1000).toFixed(1)} s at ${(pt.spd * MPS_TO_MPH).toFixed(0)} mph ` +
+        `(net ${net.toFixed(0)}°, peak ${(peak / 9.80665).toFixed(2)} g sideways). ` +
+        `Consistent with avoiding something or drifting out of lane; the cause is not recorded.`,
+      confidence: peak > LATERAL_MPS2 * 1.5 && net < 8 ? 0.7 : 0.5,
       metrics: {
         peakLateralMps2: Number(peak.toFixed(2)),
         peakLateralG: Number((peak / 9.80665).toFixed(2)),
+        amplitudeDeg: Number(amplitude.toFixed(1)),
+        netHeadingDeg: Number(net.toFixed(1)),
         speedMph: Number((pt.spd * MPS_TO_MPH).toFixed(1)),
       },
     });
@@ -587,6 +608,8 @@ function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripE
   }
   return out;
 }
+
+
 
 function detectStops(points: CleanPoint[], roads: Array<OsmWay | null>): TripEvent[] {
   const out: TripEvent[] = [];
