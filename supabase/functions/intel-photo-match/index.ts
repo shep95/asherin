@@ -85,30 +85,42 @@ async function sha256(buf: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Firecrawl search, narrowed to identity-bearing profile surfaces. */
+/** Firecrawl search over surfaces that can plausibly carry a portrait. */
 async function searchProfiles(query: string): Promise<Array<{ url: string; title: string }>> {
-  if (!FIRECRAWL_KEY) return [];
+  if (!FIRECRAWL_KEY) {
+    console.error("photo_search_skipped", "no_firecrawl_key");
+    return [];
+  }
   try {
     const r = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${FIRECRAWL_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 10 }),
+      body: JSON.stringify({ query, limit: 12 }),
       signal: AbortSignal.timeout(25_000),
     });
     if (!r.ok) {
-      console.error("photo_search_failed", r.status, (await r.text()).slice(0, 200));
+      console.error("photo_search_failed", r.status, (await r.text()).slice(0, 300));
       return [];
     }
     const j = await r.json();
-    const rows: any[] = Array.isArray(j?.data) ? j.data : Array.isArray(j?.web) ? j.web : [];
-    return rows
+    const rows: any[] = Array.isArray(j?.data)
+      ? j.data
+      : Array.isArray(j?.data?.web)
+        ? j.data.web
+        : Array.isArray(j?.web)
+          ? j.web
+          : [];
+    const kept = rows
       .map((x) => ({ url: String(x?.url ?? ""), title: String(x?.title ?? "") }))
-      .filter((x) => x.url.startsWith("https://") && PROFILE_HOSTS.test(x.url));
+      .filter((x) => x.url.startsWith("https://") && !JUNK_HOSTS.test(x.url));
+    console.log("photo_search", JSON.stringify({ query: query.slice(0, 80), raw: rows.length, kept: kept.length }));
+    return kept;
   } catch (e) {
     console.error("photo_search_error", e instanceof Error ? e.message : e);
     return [];
   }
 }
+
 
 /** Pull the profile image a page advertises about itself (og/twitter image). */
 async function ogImageOf(pageUrl: string): Promise<string | null> {
