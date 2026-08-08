@@ -321,6 +321,26 @@ const PRODUCTS: Product[] = [
     tier: "pro",
   },
   {
+    name: "Asherin Ghost Engine",
+    tagline: "Metadata-only search engine",
+    description:
+      "It touches everything and reads nothing. Ghost indexes the shell around information — transport headers, DNS/ASN posture, redirect topology, EXIF capture fields, document producers, embedded authorship and timestamps — then builds three indexes over it: inverted facets, a shared-dimension graph, and a phonetic identity fold. The contradictions between shells are the intelligence.",
+    icon: Fingerprint,
+    features: [
+      "Metadata-only extraction (no content is retrieved or read)",
+      "EXIF device, software, authorship and GPS recovery",
+      "PDF producer / creation-date recovery via trailer range reads",
+      "DNS, ASN, TLS/HSTS/CSP posture and redirect topology",
+      "Shared-dimension graph with keystone-node detection",
+      "Timeline reconstruction + anomaly report (hardware-date paradoxes, GPS leakage, off-hours writes)",
+      "Wired into Asherin Chat as a provenance substrate",
+    ],
+    competitors: ["Maltego", "Shodan", "ExifTool"],
+    route: "/dashboard/ghost-engine",
+    tier: "pro",
+  },
+  {
+
     name: "Axrlen",
     tagline: "Predictive intelligence engine",
     description:
