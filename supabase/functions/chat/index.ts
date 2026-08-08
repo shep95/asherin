@@ -1035,10 +1035,17 @@ function shouldSearch(messages: { role: string; content: string }[], mode: strin
     "current", "today", "recent", "news", "who is", "what happened",
     "how much", "price of", "stock", "market", "weather",
     "what's happening", "update on", "latest on",
+    // Everyday live-status vocabulary: the old list never armed the sweep for
+    // "is the plaza open right now", so the model answered from stale memory.
+    "open now", "still open", "is it open", "are they open", "opening hours",
+    "hours of operation", "what time do", "what time does", "closing time",
+    "near me", "nearby", "closest", "nearest", "in stock", "wait time",
+    "right now", "tonight", "reservation", "appointment", "phone number for",
   ];
 
   return searchTriggers.some((t) => content.includes(t));
 }
+
 
 function defaultModelForStoredProvider(provider: string): string | null {
   const defaults: Record<string, string> = {
