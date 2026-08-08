@@ -252,16 +252,23 @@ function carveDate(
   meta: Record<string, string>,
   context: string,
 ): { seenAt: string | null; basis: string | null } {
+  // The reader namespaces its metadata (`html:og:title`, `pdf:CreationDate`,
+  // `office:created`). Looking up bare keys against a namespaced map is how a
+  // perfectly good publication date goes missing, so both forms are indexed.
+  const flat = flattenMeta(meta);
   const metaKeys = [
-    "article:published_time", "og:published_time", "datePublished", "dc.date",
-    "dcterms.created", "citation_publication_date", "pubdate", "date",
+    "article:published_time", "og:published_time", "jsonld:datepublished",
+    "datepublished", "dc.date", "dcterms.created", "created",
+    "citation_publication_date", "pubdate", "publish-date", "date",
+    "xmp:createdate", "createdate",
   ];
   for (const k of metaKeys) {
-    const hit = isoOrNull(meta[k] ?? meta[k.toLowerCase()]);
+    const hit = isoOrNull(flat[k]);
     if (hit) return { seenAt: hit, basis: `declared publication date (${k})` };
   }
-  const pdf = pdfDate(meta["pdf:CreationDate"] ?? meta["CreationDate"] ?? meta["pdf:ModDate"]);
+  const pdf = pdfDate(flat["creationdate"] ?? flat["moddate"]);
   if (pdf) return { seenAt: pdf, basis: "document container clock" };
+
 
   const lm = isoOrNull(headers?.get("last-modified"));
   if (lm) return { seenAt: lm, basis: "transport last-modified header" };
