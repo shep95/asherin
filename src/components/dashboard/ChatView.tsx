@@ -848,8 +848,16 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
                <h1 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
-                How can I help?
+                <Link
+                  to="/dashboard/settings"
+                  aria-label="How can I help? Open settings"
+                  title="Open settings"
+                  className="rounded-md px-1 outline-none transition-colors duration-200 hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none"
+                >
+                  How can I help?
+                </Link>
               </h1>
+
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <Lock className="h-3 w-3 text-emerald-500/70" />
                 <span className="text-xs font-extralight text-emerald-500/70">End-to-end encrypted</span>
