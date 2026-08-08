@@ -534,6 +534,9 @@ async function watchdog(): Promise<void> {
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
   if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
   if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  if (meshTimer == null) meshTimer = window.setInterval(() => { void reportMeshDevice(pos, { source: "heartbeat", force: true }); }, MESH_MS);
+  void bindBatteryReporting();
+
   void ensurePush();
   void startBackgroundSentinel();
 }
