@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin, RefreshCw, AlertTriangle, Compass, Route, Clock, Building2,
 } from "lucide-react";
@@ -10,6 +11,7 @@ import {
   silenceFinding, sortFindings, confidenceFrom, round, relativeDay,
   percentile, ordinal, type Finding,
 } from "@/lib/cloudIntel/logic";
+import { setPendingVenues } from "@/lib/cloudIntel/mapBridge";
 import FindingCard from "../intel/FindingCard";
 import { TrendStat, BaselineBar } from "../intel/TrendStat";
 import Heatmap, { type HeatCell } from "../intel/Heatmap";
