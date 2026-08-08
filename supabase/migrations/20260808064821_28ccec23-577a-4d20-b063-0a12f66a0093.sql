@@ -1,0 +1,1 @@
+DELETE FROM public.wifi_networks WHERE ssid IN ('HomeNet-5G','Starbucks WiFi');

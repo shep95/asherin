@@ -306,13 +306,166 @@ Deno.serve(async (req) => {
     }
 
     if (action === "forget") {
-      const bssid = normaliseBssid(str(body.bssid, 32));
+      const raw = str(body.bssid, 64);
+      const bssid = normaliseBssid(raw) ?? (raw.startsWith("uplink:") ? raw : null);
       if (!bssid) return json({ error: "invalid_bssid" }, 400, cors);
       await sb.from("wifi_networks").delete().eq("user_id", userId).eq("bssid", bssid);
       return json({ ok: true }, 200, cors);
     }
 
+    /**
+     * ── uplink ──────────────────────────────────────────────────────────
+     * The web runtime is forbidden by every browser from reading an SSID, a
+     * BSSID or a signal strength — that is why the full "report" action has
+     * never fired for anyone who is not inside the native companion, and why
+     * no safety report has ever arrived. The uplink action answers the half
+     * of the question the browser CAN answer truthfully: who operates the
+     * public egress this device is currently sitting behind, whether that
+     * egress is a datacentre or proxy rather than a carrier, and what the
+     * device itself reports about the link. The egress address is taken from
+     * the request headers — never from the body — so it cannot be spoofed by
+     * the caller into fabricating a clean verdict.
+     */
+    if (action === "uplink") {
+      const fwd = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+      const publicIp = fwd || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "";
+      if (!publicIp) return json({ error: "no_egress_visible" }, 422, cors);
+
+      const linkType = str(body.linkType, 24).toLowerCase();   // wifi | cellular | ethernet | unknown
+      const effectiveType = str(body.effectiveType, 12);
+      const latitude = num(body.latitude);
+      const longitude = num(body.longitude);
+      const force = body.force === true;
+
+      let egress: { isp: string | null; org: string | null; hosting: boolean; proxy: boolean } | null = null;
+      try {
+        const e = await enrichActor(publicIp, "");
+        egress = { isp: e.isp, org: e.org, hosting: e.hosting, proxy: e.proxy };
+      } catch { /* enrichment is advisory — a partial report still ships */ }
+
+      const f: Finding[] = [];
+      const operator = egress?.org ?? egress?.isp ?? null;
+
+      if (operator) {
+        f.push({
+          severity: "info",
+          title: `Egress operated by ${operator}`,
+          detail:
+            `Everything this device sends leaves through ${operator} at ${publicIp}. That operator ` +
+            "sees the address of every server you reach and the timing of every session, even where " +
+            "the contents are encrypted.",
+        });
+      } else {
+        f.push({
+          severity: "low",
+          title: "Egress operator could not be attributed",
+          detail: `The public address ${publicIp} did not resolve to a registered network operator. Attribution is unavailable, not clean.`,
+        });
+      }
+
+      if (egress?.hosting) {
+        f.push({
+          severity: "high",
+          title: "Traffic egresses through a datacentre",
+          detail:
+            `${operator ?? "The upstream operator"} is a hosting provider rather than a consumer or ` +
+            "carrier network. On a network you did not deliberately route through a VPN, this is the " +
+            "signature of traffic being relayed through infrastructure somebody else controls.",
+        });
+      }
+      if (egress?.proxy) {
+        f.push({
+          severity: "medium",
+          title: "Egress is a known proxy or VPN exit",
+          detail: "The outbound address is a catalogued proxy exit. Your apparent location and identity are being rewritten before traffic reaches its destination.",
+        });
+      }
+      if (linkType === "cellular") {
+        f.push({ severity: "info", title: "Carrier data link", detail: "The device reports a cellular link. Carrier links are not exposed to the local-radio attacks that make shared Wi-Fi dangerous." });
+      } else if (linkType === "wifi" || linkType === "ethernet") {
+        f.push({
+          severity: "info",
+          title: linkType === "wifi" ? "Wi-Fi link — radio detail unavailable in the browser" : "Wired link",
+          detail:
+            linkType === "wifi"
+              ? "Browsers are prohibited from exposing the network name, hardware address or signal strength, so encryption grade, evil-twin history and transmitter distance cannot be judged from this tab. Install the Asherin companion to unlock the full six-question report."
+              : "A wired segment. Local-radio interception does not apply, but the segment operator still sees all unencrypted traffic.",
+        });
+      }
+      if (effectiveType) {
+        f.push({ severity: "info", title: `Link quality ${effectiveType}`, detail: "Reported by the device's own network information interface." });
+      }
+
+      const score = Math.min(100, f.reduce((s, x) => s + WEIGHT[x.severity], 0));
+      const level = score >= 65 ? "critical" : score >= 40 ? "high" : score >= 18 ? "moderate" : "low";
+      const order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 } as const;
+      f.sort((a, b) => order[a.severity] - order[b.severity]);
+
+      // Pseudo-identifier: keyed by egress address so reconnecting to the same
+      // uplink refreshes one row instead of accumulating history noise. It is
+      // deliberately NOT a MAC shape, so it can never collide with a real
+      // access point or pollute evil-twin matching (which keys on SSID).
+      const pseudoBssid = `uplink:${publicIp}`;
+      const { error: upErr } = await sb.from("wifi_networks").upsert({
+        user_id: userId,
+        ssid: operator ? `${operator} uplink` : "Unattributed uplink",
+        bssid: pseudoBssid,
+        security: linkType ? linkType.toUpperCase() : "UNKNOWN",
+        public_ip: publicIp,
+        risk_score: score,
+        risk_level: level,
+        findings: f,
+        enrichment: { egress, linkType, effectiveType, mode: "uplink", isConnected: true },
+        latitude, longitude,
+        last_seen: new Date().toISOString(),
+      }, { onConflict: "user_id,bssid" });
+      if (upErr) throw upErr;
+
+      // A manual run always delivers a report — the whole complaint was that
+      // asking for one produced silence. Automatic runs stay quiet unless the
+      // uplink is genuinely dangerous.
+      let notified = false;
+      const dangerous = level === "critical" || level === "high";
+      if (force || dangerous) {
+        const { data: prefs } = await sb.from("security_notification_prefs")
+          .select("notify_wifi, notify_push, notify_email").eq("user_id", userId).maybeSingle();
+        const wifiOn = prefs ? (prefs as any).notify_wifi !== false : true;
+        if (wifiOn) {
+          await notifyIntel({
+            userId,
+            userEmail: user.email ?? null,
+            kind: "security",
+            severity: level === "critical" ? "critical" : dangerous ? "notable" : "info",
+            title: dangerous
+              ? `Unsafe uplink — ${operator ?? publicIp}`
+              : `Network report — ${operator ?? publicIp}`,
+            body:
+              `Your device is egressing through ${operator ?? publicIp} on a ${linkType || "unknown"} link. ` +
+              `Risk ${score}/100 (${level}). ${f[0]?.detail ?? ""}`,
+            source: "Asherin Wi-Fi Sentinel",
+            url: "/dashboard/google?module=sentinel&tab=network",
+            sections: f.slice(0, 8).map((x) => ({ label: `${x.severity.toUpperCase()} · ${x.title}`, value: x.detail })),
+            findings: f.filter((x) => x.severity !== "info").map((x) => x.title),
+            secondaryCta: { label: "Review all networks", url: "https://asherin.com/dashboard/google?module=sentinel&tab=network" },
+            idempotencyKey: force
+              ? `uplink-manual-${userId}-${publicIp}-${Date.now()}`
+              : `uplink-${userId}-${publicIp}-${Math.floor(Date.now() / 3_600_000)}`,
+            skipPush: prefs ? (prefs as any).notify_push === false : false,
+            skipEmail: prefs ? (prefs as any).notify_email === false : false,
+          });
+          notified = true;
+        }
+      }
+
+      return json({
+        ok: true, mode: "uplink", notified,
+        network: { bssid: pseudoBssid, ssid: operator ? `${operator} uplink` : "Unattributed uplink",
+          publicIp, operator, linkType: linkType || null, riskScore: score, riskLevel: level, findings: f },
+      }, 200, cors);
+    }
+
     if (action !== "report") return json({ error: "unknown_action" }, 400, cors);
+
 
     // ── report ──────────────────────────────────────────────────────────
     const raw = Array.isArray(body.networks) ? body.networks : [];
