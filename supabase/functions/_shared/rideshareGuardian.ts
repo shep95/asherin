@@ -425,12 +425,85 @@ export function reportText(ride: RideInput, deep: PhaseResult): string {
     }
     lines.push("");
   }
+  const sp = (p.subject_profile || {}) as any;
+  const hasProfile = sp && (sp.resolved_name || sp.home_locality || sp.employment_history?.length ||
+    sp.criminal_record?.length || sp.vehicle_records?.length || sp.licences?.length ||
+    sp.phones?.length || sp.emails?.length);
+  if (hasProfile) {
+    lines.push("SUBJECT PROFILE");
+    if (sp.resolved_name) lines.push(`  Resolved ......... ${sp.resolved_name}${sp.approximate_age ? ` (approx. ${sp.approximate_age})` : ""}`);
+    if (sp.aliases?.length) lines.push(`  Aliases .......... ${sp.aliases.join(", ")}`);
+    if (sp.home_locality) lines.push(`  Home locality .... ${sp.home_locality}`);
+    if (sp.prior_localities?.length) lines.push(`  Prior localities . ${sp.prior_localities.join(", ")}`);
+    for (const ph of sp.phones || []) lines.push(`  Phone ............ ${ph.value} — ${ph.source}`);
+    for (const em of sp.emails || []) lines.push(`  Email ............ ${em.value} — ${em.source}`);
+    lines.push("");
+    if (sp.employment_history?.length) {
+      lines.push("EMPLOYMENT HISTORY");
+      for (const j of sp.employment_history) {
+        lines.push(`  · ${j.employer || "unnamed employer"} — ${j.role || "role unstated"} — ${j.period || "period unstated"}`);
+        lines.push(`      source: ${j.source}`);
+      }
+      lines.push("");
+    }
+    if (sp.licences?.length) {
+      lines.push("LICENCES");
+      for (const l of sp.licences) lines.push(`  · ${l.type || "licence"} ${l.number_masked || ""} — ${l.status || "status unstated"} (${l.issuer || "issuer unstated"}) — source: ${l.source}`);
+      lines.push("");
+    }
+    if (sp.vehicle_records?.length) {
+      lines.push("VEHICLE RECORDS");
+      for (const v of sp.vehicle_records) lines.push(`  · ${v.plate || "plate unstated"} — ${v.make_model || ""} — ${v.registration_state || ""} — ${v.status || ""} — source: ${v.source}`);
+      lines.push("");
+    }
+    if (sp.criminal_record?.length) {
+      lines.push("CRIMINAL RECORD (bound to this subject only)");
+      for (const c of sp.criminal_record) {
+        lines.push(`  · ${c.charge || "charge unstated"} — ${c.disposition || "disposition unstated"} — ${c.date || "date unstated"} — ${c.jurisdiction || ""}`);
+        lines.push(`      binding: ${c.binding || "possible"} · source: ${c.source}`);
+      }
+      lines.push("");
+    }
+    if (sp.civil_record?.length) {
+      lines.push("CIVIL RECORD");
+      for (const c of sp.civil_record) lines.push(`  · ${c.matter || "matter unstated"} — ${c.date || ""} — ${c.jurisdiction || ""} — source: ${c.source}`);
+      lines.push("");
+    }
+  }
+  if (p.unbound_records_dropped) {
+    lines.push(`  ${p.unbound_records_dropped} record(s) matching the name were discarded as unbound to this driver.`);
+    lines.push("");
+  }
+  if (p.relationships?.length) {
+    lines.push("KNOWN ASSOCIATES");
+    for (const r of p.relationships) lines.push(`  · [hop ${r.hop ?? 1}] ${r.name} — ${r.relation || "link unstated"} — evidence: ${r.evidence}`);
+    lines.push("");
+  }
+  if (p.three_hop?.length) {
+    lines.push("THREE-HOP BOUNCE");
+    for (const h of p.three_hop) lines.push(`  · ${h.path} — ${h.basis} — confidence ${(Number(h.confidence || 0) * 100).toFixed(0)}%`);
+    lines.push("");
+  }
+  const rep = (p.reputation || {}) as any;
+  if (rep.summary || rep.ratings?.length || rep.public_comments?.length) {
+    lines.push("WHAT OTHERS SAY");
+    if (rep.summary) lines.push(`  ${rep.summary}`);
+    for (const r of rep.ratings || []) lines.push(`  · ${r.platform}: ${r.score} (${r.volume || "volume unstated"}) — source: ${r.source}`);
+    for (const c of rep.public_comments || []) lines.push(`  · "${c.quote}" — ${c.where || "source page"} — ${c.source}`);
+    lines.push("");
+  }
   if (p.flags?.length) {
     lines.push("FLAGS");
     for (const f of p.flags) lines.push(`  [${String(f.severity || "info").toUpperCase()}] ${f.detail} — evidence: ${f.evidence}`);
     lines.push("");
   }
+  if (p.gaps?.length) {
+    lines.push("SEARCHED, NOT FOUND");
+    for (const g of p.gaps) lines.push(`  · ${g}`);
+    lines.push("");
+  }
   if (p.vehicle_check) { lines.push("VEHICLE"); lines.push(`  ${p.vehicle_check}`); lines.push(""); }
+
   lines.push("ACTION");
   lines.push(`  ${p.recommended_action}`);
   lines.push("");
