@@ -1,12 +1,18 @@
 /// <reference types="npm:@types/react@18.3.1" />
 import * as React from 'npm:react@18.3.1'
+import { Img, Section as Block, Text } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
-import { Shell, Hed, Prose, MetaCard, Cta, Note, Subhed } from '../email-theme.tsx'
+import { Shell, Hed, Prose, MetaCard, Cta, Note, Subhed, T } from '../email-theme.tsx'
 
 /**
  * Generic intelligence-report email. Every Asherin module that produces an
- * intelligence product emails through this one template so the rider/analyst
- * sees a single consistent artefact rather than a per-module dialect.
+ * intelligence product emails through this one template so the analyst sees a
+ * single consistent artefact rather than a per-module dialect.
+ *
+ * `imageUrl` and the secondary CTA are optional. Account-security alerts use
+ * them to place a satellite frame of the actor's origin above the meta card
+ * and a "lock the account" escape hatch under the primary button. Modules
+ * that pass neither render exactly as they always did.
  */
 
 interface Section {
@@ -24,12 +30,33 @@ interface Props {
   findings?: string[]
   reportUrl?: string
   generatedAt?: string
+  imageUrl?: string
+  imageCaption?: string
+  secondaryCtaLabel?: string
+  secondaryCtaUrl?: string
 }
 
 const SEVERITY_LABEL: Record<string, string> = {
   info: 'ROUTINE',
   notable: 'NOTABLE',
   critical: 'CRITICAL',
+}
+
+const figure: React.CSSProperties = {
+  border: `1px solid ${T.panelEdge}`,
+  borderRadius: '14px',
+  overflow: 'hidden',
+  margin: '0 0 8px',
+}
+
+const captionStyle: React.CSSProperties = {
+  fontFamily: T.sans,
+  fontSize: '11px',
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: T.faint,
+  fontWeight: 600,
+  margin: '0 0 24px',
 }
 
 const IntelligenceReportEmail = ({
@@ -42,6 +69,10 @@ const IntelligenceReportEmail = ({
   findings = [],
   reportUrl = 'https://asherin.com/dashboard',
   generatedAt = new Date().toUTCString(),
+  imageUrl = '',
+  imageCaption = '',
+  secondaryCtaLabel = '',
+  secondaryCtaUrl = '',
 }: Props) => {
   const band = SEVERITY_LABEL[severity] ?? 'ROUTINE'
   const rows: Array<{ label: string; value: React.ReactNode }> = [
@@ -51,27 +82,52 @@ const IntelligenceReportEmail = ({
     { label: 'GENERATED', value: generatedAt },
     ...sections
       .filter((s) => s?.label && s?.value)
-      .slice(0, 12)
+      .slice(0, 16)
       .map((s) => ({ label: String(s.label).toUpperCase(), value: String(s.value) })),
   ]
+
+  // Only render a remote image over https — an http asset is stripped or
+  // flagged by most mail clients and leaks the open in cleartext.
+  const showImage = /^https:\/\//.test(imageUrl)
 
   return (
     <Shell preview={`${band} · ${title}`} eyebrow="ASHERIN · INTELLIGENCE REPORT">
       <Hed>{title}</Hed>
       {body ? <Prose>{body}</Prose> : null}
 
+      {showImage ? (
+        <>
+          <Block style={figure}>
+            <Img
+              src={imageUrl}
+              alt={imageCaption || 'Satellite frame of the reported origin'}
+              width="560"
+              height="320"
+              style={{ display: 'block', width: '100%', maxWidth: '560px', height: 'auto' }}
+            />
+          </Block>
+          <Text style={captionStyle}>
+            {imageCaption || 'Satellite frame · reported origin'}
+          </Text>
+        </>
+      ) : null}
+
       <MetaCard rows={rows} />
 
       {findings.length > 0 ? (
         <>
           <Subhed>Findings</Subhed>
-          {findings.slice(0, 12).map((f, i) => (
+          {findings.slice(0, 14).map((f, i) => (
             <Prose key={i}>— {f}</Prose>
           ))}
         </>
       ) : null}
 
       <Cta href={reportUrl} label="Open the full report" />
+
+      {secondaryCtaLabel && secondaryCtaUrl ? (
+        <Cta href={secondaryCtaUrl} label={secondaryCtaLabel} variant="ghost" />
+      ) : null}
 
       <Note>
         Open sources only. Absence of a record is not a clearance, and a match on a
