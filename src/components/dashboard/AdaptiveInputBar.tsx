@@ -719,23 +719,33 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             <BookOpen className="h-3 w-3" strokeWidth={1.6} />
             NAR
           </button>
-          {/* LAW — legal-advisor mode: deep-jurisdiction + old-law supersession
-              directive wraps the prompt before send. */}
+          {/* LAW — tri-state legal posture. AUTO detects legal questions per
+              message and stands down automatically; ON forces; OFF suppresses. */}
           <button
             onClick={toggleLegal}
-            title={legalMode
-              ? "LAW mode ON — prompts are wrapped in a deep legal-research directive (country/state/local laws + older superseding statutes). Click to disable."
-              : "LAW mode OFF — click to enable legal-advisor mode for jurisdiction-aware answers."}
-            aria-pressed={legalMode}
+            title={
+              lawSwitch === "on"
+                ? "LAW: ALWAYS ON — every message is wrapped in the deep legal-research directive. Click for OFF."
+                : lawSwitch === "off"
+                  ? "LAW: OFF — legal posture never engages, even for legal questions. Click for AUTO."
+                  : autoLegalArmed
+                    ? "LAW: AUTO — this message reads as a legal question, so jurisdiction-aware legal research is armed for it. Click for ALWAYS ON."
+                    : "LAW: AUTO — legal research engages by itself when you ask a legal question. Click for ALWAYS ON."
+            }
+            aria-pressed={legalActive}
+            aria-label={`Legal posture: ${lawSwitch}${autoLegalArmed ? " (armed for this message)" : ""}`}
             className={`shrink-0 flex items-center gap-1 h-8 px-2 rounded-lg text-[10px] font-medium tracking-[0.2em] uppercase transition-all border ${
-              legalMode
+              legalActive
                 ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 shadow-[0_0_12px_hsl(150_80%_50%/0.25)]"
-                : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
+                : lawSwitch === "off"
+                  ? "border-border/20 bg-background/20 text-muted-foreground/35 hover:text-foreground/70"
+                  : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
             }`}
           >
             <Scale className="h-3 w-3" strokeWidth={1.6} />
-            LAW
+            {lawSwitch === "on" ? "LAW" : lawSwitch === "off" ? "LAW·OFF" : autoLegalArmed ? "LAW·ON" : "LAW·AUTO"}
           </button>
+
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
               <X className="h-3.5 w-3.5" />
