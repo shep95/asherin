@@ -76,3 +76,28 @@ export function orderIcSections<T extends { label: string }>(sections: T[]): T[]
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map((x) => x.s);
 }
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Report serial. Must stay byte-identical to the server implementation in
+ * supabase/functions/_shared/icTradecraft.ts, so the number printed in the
+ * email is the number shown on the dossier page. Both derive it from the
+ * inbox row id, never from a random uuid.
+ */
+export function reportNumber(kind: string, serial: string | null | undefined, at: Date): string {
+  const tag = (kind || "INTEL").toUpperCase().replace(/[^A-Z0-9]+/g, "").slice(0, 10) || "INTEL";
+  const day = `${at.getUTCFullYear()}${pad(at.getUTCMonth() + 1)}${pad(at.getUTCDate())}`;
+  const suffix = (serial ?? "").replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "0000";
+  return `ASH-${tag}-${day}-${suffix}`;
+}
+
+export const IC_APPARATUS_TITLE: Record<string, string> = {
+  "SCOPE NOTE": "SCOPE NOTE",
+  "SOURCE SUMMARY": "SOURCE SUMMARY STATEMENT",
+  OUTLOOK: "OUTLOOK",
+  "ALTERNATIVE ANALYSIS": "ALTERNATIVE ANALYSIS — WHAT WOULD CHANGE THIS",
+  "INTELLIGENCE GAPS": "INTELLIGENCE GAPS",
+  CONFIDENCE: "CONFIDENCE IN THIS ASSESSMENT",
+  HANDLING: "HANDLING AND DISTRIBUTION",
+};
