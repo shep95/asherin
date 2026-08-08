@@ -234,6 +234,14 @@ VERDICTS
 - WATCH — a specific, evidenced concern exists (plate/vehicle inconsistency, adverse record with moderate binding).
 - AVOID — strongly bound, serious safety-relevant record (violence, sexual offence, DUI pattern), or the vehicle does not match the assignment.
 
+PLATE-ANCHORED RECONSTRUCTION
+The collection may contain a section titled "Probabilistic identity reconstruction". Those posteriors
+were computed deterministically from plate co-occurrence, source authority, city/vehicle agreement and
+independent-domain corroboration — they are evidence, not suggestion. Use them as your binding strength:
+adopt a candidate's surname only when its posterior is at or above 0.55, prefer a PLATE-ANCHORED candidate
+over any unanchored one, and report the residual "none of these" mass as an explicit gap when it dominates.
+Never average two candidates into one person.
+
 DOSSIER DEPTH
 Where — and only where — the collection actually evidences it, resolve the driver as a person:
 identity (aliases, approximate age), locality (city/neighbourhood level only, never a street address
