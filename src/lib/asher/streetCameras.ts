@@ -70,9 +70,9 @@ export async function fetchStreetCameras(q: CameraQuery, opts: CameraQueryOpts =
         limit: q.limit ?? 60,
       },
       // The Supabase client forwards this to fetch, so the abort really cancels.
-      // @ts-expect-error — `signal` is accepted by FunctionInvokeOptions at runtime.
       signal: ctrl.signal,
     });
+
 
     if (error) throw new Error(error.message);
     if (!data?.success) throw new Error(data?.error || "Camera sweep failed");
