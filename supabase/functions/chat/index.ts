@@ -20,6 +20,8 @@ import { SILENT_OBSERVABLE_DIRECTIVE } from "../_shared/imagineEvidence.ts";
 import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
+import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
+
 import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
