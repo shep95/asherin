@@ -691,9 +691,20 @@ async function inspectArtifact(trace: OriginTrace, bytes: Uint8Array): Promise<v
     let readable = latin1;
     try {
       const inflated = await inflatePdfStreams(bytes);
-      if (inflated) readable = `${latin1}\n${inflated}`;
+      if (inflated) {
+        readable = `${latin1}\n${inflated}`;
+        // Forms built in LiveCycle/XFA carry their real content as XML inside
+        // those same streams, never as text-showing operators — so the inflated
+        // body is kept as its own corpus for selector carving, tags stripped.
+        auxText = inflated
+          .replace(/<[^>]{0,400}>/g, " ")
+          .replace(/[^\x20-\x7e\n]+/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .slice(0, 400_000);
+      }
     } catch { /* an unreadable stream is a fact, not a failure */ }
     try { docText = pdfToText(readable).slice(0, 400_000); } catch { /* text is a bonus, not a requirement */ }
+
 
   }
 
