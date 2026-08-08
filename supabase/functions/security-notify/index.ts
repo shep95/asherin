@@ -43,6 +43,12 @@ import {
   type PreciseLocation,
   type IdentityTrace,
 } from "../_shared/actorForensics.ts";
+import {
+  assessTradecraft,
+  findCameraCoverage,
+  type TradecraftAssessment,
+  type CameraCoverage,
+} from "../_shared/adversaryProfile.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -214,6 +220,8 @@ Deno.serve(async (req) => {
         let jumps: JumpVerdict | null = null;
         let precise: PreciseLocation | null = null;
         let identity: IdentityTrace | null = null;
+        let tradecraft: TradecraftAssessment | null = null;
+        let cameras: CameraCoverage | null = null;
         let candidates: ActorCandidate[] = [];
 
         if (isRetro) {
@@ -262,6 +270,49 @@ Deno.serve(async (req) => {
           if (mRes.status === "fulfilled") mechanism = mRes.value;
           if (pRes.status === "fulfilled") precise = pRes.value;
           if (iRes.status === "fulfilled") identity = iRes.value;
+
+          // Tradecraft grading is pure computation over evidence already in
+          // hand, so it runs unconditionally and cannot fail the dispatch.
+          try {
+            tradecraft = assessTradecraft({
+              ip: actor.ip,
+              isp: actor.isp,
+              org: actor.org,
+              asn: actor.asn,
+              reverseDns: actor.reverseDns,
+              mobile: actor.mobile,
+              proxy: actor.proxy,
+              hosting: actor.hosting,
+              userAgent: ua || actor.device || null,
+              // Live enrichment parses a raw header; on the reconstruction
+              // path there is no header, only the session's stored label. Fall
+              // back to that label's own components so the report names a real
+              // device class instead of "Unknown browser / Unknown OS".
+              browser: actor.browser && !/unknown/i.test(actor.browser)
+                ? actor.browser
+                : (ua.match(/—\s*([^/]+?)\s*\//)?.[1]?.trim() ?? null),
+              os: actor.os && !/unknown/i.test(actor.os)
+                ? actor.os
+                : (ua.split("/").slice(1).join("/").trim() || null),
+              deviceType: actor.deviceType && !/unknown/i.test(actor.deviceType)
+                ? actor.deviceType
+                : (ua.split("—")[0]?.trim() || null),
+              occurredAt,
+              actorTimezone: actor.timezone ?? null,
+              mechanism,
+              jumps,
+              candidates,
+              selfDisclosedEmail: identity?.actorEmail ?? null,
+            });
+          } catch (e) {
+            console.error("tradecraft_failed", e instanceof Error ? e.message : e);
+          }
+
+          // Camera enumeration is a network call against a third party, so it
+          // is bounded, optional, and never allowed to hold up the alert.
+          if (actor.latitude != null && actor.longitude != null) {
+            cameras = await findCameraCoverage(actor.latitude, actor.longitude, 350).catch(() => null);
+          }
         } else {
           occurredAt = new Date();
           const ip = extractClientIp(req.headers);
@@ -315,6 +366,11 @@ Deno.serve(async (req) => {
                   candidates,
                   preciseAddress: precise?.address ?? null,
                   actorEmail: identity?.actorEmail ?? null,
+                  tradecraftTier: tradecraft?.tier ?? null,
+                  tradecraftScore: tradecraft?.score ?? null,
+                  tradecraftConfidence: tradecraft?.confidence ?? null,
+                  originClass: tradecraft?.origin.cls ?? null,
+                  camerasNearby: cameras?.cameras.length ?? null,
                 }
               : undefined,
           },
@@ -382,6 +438,40 @@ Deno.serve(async (req) => {
           if (precise?.address) {
             sections.push({ label: "Street-level resolution", value: `${precise.address} — ${precise.caveat}` });
           }
+          if (cameras) {
+            sections.push({ label: "Camera coverage at the coordinate", value: cameras.summary });
+            if (cameras.cameras.length) {
+              sections.push({
+                label: "Cameras to send preservation requests to",
+                value: cameras.cameras
+                  .slice(0, 8)
+                  .map((c) => `${c.kind}${c.operator ? ` (${c.operator})` : ""} — ${c.metres} m`)
+                  .join("  •  "),
+              });
+            }
+            sections.push({ label: "Footage access reality", value: cameras.access });
+          }
+          if (tradecraft) {
+            sections.push({
+              label: "Adversary grade",
+              value:
+                `${tradecraft.label} · ${tradecraft.score}/100 · ${tradecraft.confidence} confidence. ` +
+                tradecraft.capability,
+            });
+            sections.push({ label: "How this grade was reached", value: tradecraft.evidence.join("  •  ") });
+            sections.push({
+              label: "Device — had vs required",
+              value:
+                `Observed: ${tradecraft.device.observedDetail} ` +
+                `Required by the method: ${tradecraft.device.required.join(" ")}` +
+                (tradecraft.device.gap.length ? ` What that rules out: ${tradecraft.device.gap.join(" ")}` : ""),
+            });
+            if (tradecraft.mistakes.length) {
+              sections.push({ label: "Their mistakes — act on these", value: tradecraft.mistakes.join("  •  ") });
+            }
+            sections.push({ label: "Operating pattern for this grade", value: `${tradecraft.posture} ${tradecraft.caveat}` });
+            sections.push({ label: "What actually stops them", value: tradecraft.counter });
+          }
           if (identity) {
             sections.push({
               label: "Actor email",
@@ -418,7 +508,7 @@ Deno.serve(async (req) => {
             label: "Not you? Lock the account",
             url: "https://asherin.com/dashboard/vault?panic=1",
           },
-          idempotencyKey: `security-${type}-${userId}-${bucket}${isRetro ? "-retro-v2" : ""}`,
+          idempotencyKey: `security-${type}-${userId}-${bucket}${isRetro ? "-retro-v3" : ""}`,
           skipPush: !pushOn,
           skipEmail: !emailOn,
         });
@@ -446,6 +536,8 @@ Deno.serve(async (req) => {
                 jumps,
                 preciseAddress: precise,
                 identity,
+                tradecraft,
+                cameras,
               }
             : undefined,
         }, 200, cors);
