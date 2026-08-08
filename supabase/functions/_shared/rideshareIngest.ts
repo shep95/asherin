@@ -61,7 +61,7 @@ const strip = (html: string): string =>
     .trim();
 
 /** Registration shapes only. A loose token like "2019" must never become a plate. */
-const PLATE_RE = /\b([A-Z]{1,3}[- ]?[A-Z0-9]{2,5}|[0-9]{1,3}[- ]?[A-Z]{2,4}[- ]?[0-9]{0,4})\b/;
+const PLATE_RE = /\b([A-Z]{1,3}[- ]?[A-Z0-9]{2,9}|[0-9]{1,3}[- ]?[A-Z]{2,4}[- ]?[0-9]{0,4})\b/;
 
 /** Uber/Lyft vehicles read "2019 Toyota Camry" or "Toyota Camry · Silver". */
 const VEHICLE_RE =
@@ -104,15 +104,23 @@ function pickPlate(text: string): string | null {
   return m ? m[1].replace(/\s+/g, "").slice(0, 12) : null;
 }
 
+/** Corporate words that mean the capture grabbed the entity line, not a city. */
+const CITY_NOISE = /uber|lyft|inc\b|llc|technologies|support|receipt|total/i;
+
 function pickCity(text: string): string | null {
-  // Receipts end with the operating entity line, e.g. "Uber ... Chicago, IL".
-  const m =
-    text.match(/\b([A-Z][a-zA-Z .'-]{2,28}),\s*([A-Z]{2})\b(?!\s*\d{5}-)/) ||
-    text.match(/\bin\s+([A-Z][a-zA-Z .'-]{2,28})\s+(?:on|at)\b/);
-  if (!m) return null;
-  const city = m[1].trim();
-  if (/uber|lyft|inc|llc|technologies/i.test(city)) return null;
-  return m[2] ? `${city}, ${m[2]}` : city;
+  // Receipts carry the operating line, e.g. "Uber Technologies in Chicago, IL".
+  // The first regex hit is often the whole phrase, so every candidate is tried
+  // and the corporate prefix is trimmed off rather than failing the field.
+  const withState = text.matchAll(/([A-Za-z .'-]{2,40}),\s*([A-Z]{2})\b(?!\s*\d)/g);
+  for (const m of withState) {
+    const tail = m[1].trim().split(/\s+(?:in|at|near)\s+/i).pop()!.trim();
+    if (!tail || tail.length < 2 || CITY_NOISE.test(tail)) continue;
+    if (!/^[A-Z]/.test(tail)) continue;
+    return `${tail}, ${m[2]}`;
+  }
+  const plain = text.match(/\bin\s+([A-Z][a-zA-Z .'-]{2,28})\s+(?:on|at)\b/);
+  if (plain && !CITY_NOISE.test(plain[1])) return plain[1].trim();
+  return null;
 }
 
 function pickPickup(text: string): string | null {
