@@ -270,6 +270,39 @@ Deno.serve(async (req) => {
           if (mRes.status === "fulfilled") mechanism = mRes.value;
           if (pRes.status === "fulfilled") precise = pRes.value;
           if (iRes.status === "fulfilled") identity = iRes.value;
+
+          // Tradecraft grading is pure computation over evidence already in
+          // hand, so it runs unconditionally and cannot fail the dispatch.
+          try {
+            tradecraft = assessTradecraft({
+              ip: actor.ip,
+              isp: actor.isp,
+              org: actor.org,
+              asn: actor.asn,
+              reverseDns: actor.reverseDns,
+              mobile: actor.mobile,
+              proxy: actor.proxy,
+              hosting: actor.hosting,
+              userAgent: ua || actor.device || null,
+              browser: actor.browser,
+              os: actor.os,
+              deviceType: actor.deviceType,
+              occurredAt,
+              actorTimezone: actor.timezone ?? null,
+              mechanism,
+              jumps,
+              candidates,
+              selfDisclosedEmail: identity?.actorEmail ?? null,
+            });
+          } catch (e) {
+            console.error("tradecraft_failed", e instanceof Error ? e.message : e);
+          }
+
+          // Camera enumeration is a network call against a third party, so it
+          // is bounded, optional, and never allowed to hold up the alert.
+          if (actor.latitude != null && actor.longitude != null) {
+            cameras = await findCameraCoverage(actor.latitude, actor.longitude, 350).catch(() => null);
+          }
         } else {
           occurredAt = new Date();
           const ip = extractClientIp(req.headers);
