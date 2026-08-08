@@ -160,6 +160,14 @@ export interface OsintAnnex {
    * one that exposes paste-site and breach-index circulation.
    */
   identifierSweeps: IdentifierSweepSummary[];
+  /**
+   * The 55-domain dork doctrine run against this subject. The vault dossier
+   * reads what indexes already published; the dork battery reasons about which
+   * exposure surfaces SHOULD carry this subject and then tests those theories.
+   * Null when the leg was not run (no AI key, or the contact has no usable
+   * subject string) — never silently omitted.
+   */
+  dork: DorkBatterySummary | null;
 }
 
 /** A per-identifier exposure register, folded down for report rendering. */
@@ -176,6 +184,32 @@ export interface IdentifierSweepSummary {
   /** Null when the leg ran clean; otherwise why it is thin. */
   blocker: string | null;
 }
+
+/** The dork battery folded down to what a background report can publish. */
+export interface DorkBatterySummary {
+  subject: string;
+  theoriesGenerated: number;
+  theoriesTested: number;
+  totalHits: number;
+  /** Highest-yield tested theories, each with the surfaces it actually hit. */
+  topExposures: Array<{
+    category: string;
+    query: string;
+    why: string;
+    yieldScore: number;
+    markers: string[];
+    hits: Array<{ title: string; url: string; host: string }>;
+  }>;
+  /** Cross-domain theories the doctrine invented rather than recalled. */
+  novel: Array<{ query: string; why: string; yieldScore: number; hits: number }>;
+  /** Analyst brief and the self-audit framing, both markdown from the engine. */
+  brief: string;
+  defensiveGuidance: string;
+  elapsedMs: number;
+  /** Null when the leg ran clean; otherwise why it is thin. */
+  blocker: string | null;
+}
+
 
 // ───────────────────── Admiralty grading (ICD 206) ─────────────────────
 
