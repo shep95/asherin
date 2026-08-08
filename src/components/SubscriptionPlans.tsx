@@ -97,7 +97,7 @@ const PLANS = [
     cta: "Subscribe — $399 / month",
     highlight: true,
     groups: [
-      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features"] },
+      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features", "Google Cloud Intelligence + Asherin Maps, with Pro-depth sweeps"] },
       {
         title: "Azplen Data Intelligence Platform",
         items: [
