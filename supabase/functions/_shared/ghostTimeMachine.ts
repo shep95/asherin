@@ -205,21 +205,64 @@ const PROOF_RANK: Record<DateProof, number> = {
   "http-last-modified": 3, copyright: 2, "body-text": 1,
 };
 
-/** Read one lead with the engine's own reader and date it. */
-async function probeLead(lead: { url: string; title: string }): Promise<TimeCapture[]> {
-  const res = await timedFetch(lead.url, { headers: { "user-agent": UA, accept: "text/html,*/*" } }, 11_000);
-  if (!res) return [];
-  const mime = (res.headers.get("content-type") || "").split(";")[0].trim();
-  let html = "";
-  if (res.ok && /html|xml|text|json/i.test(mime)) {
-    html = (await res.text().catch(() => "")).slice(0, MAX_BODY);
-  } else {
-    await res.body?.cancel().catch(() => {});
-  }
-  const dated = carveDates(lead.url, res.headers, html);
-  if (!dated.length) return [];
+/**
+ * Read one lead as a DOCUMENT and date it.
+ *
+ * The reader no longer sniffs a MIME type and walks away from anything that is
+ * not markup. A PDF is inflated and its /Info and XMP blocks are read; an
+ * office package surrenders its core properties; a code file is read as text
+ * so a name committed into a .py or .ts is found where it actually lives. The
+ * document's own authoring stamp is admitted as a date proof outranking every
+ * page-level claim, and the operator's terms are located with the sentence
+ * that carries them.
+ */
+async function probeLead(
+  lead: { url: string; title: string },
+  terms: string[],
+): Promise<TimeCapture[]> {
+  const doc = await readDocument(lead.url, 12_000);
+  if (!doc.headers) return [];
 
-  // One row per distinct year, keeping the strongest proof for that year.
+  const dated = carveDates(lead.url, doc.headers, doc.text);
+
+  // The file's own authoring stamps — the strongest date a document can offer.
+  const stampFields = [
+    "pdf:CreationDate", "pdf:ModDate", "xmp:xmp:CreateDate", "xmp:xmp:ModifyDate",
+    "office:created", "office:modified", "exif:DateTimeOriginal", "exif:DateTime",
+    "html:article:published_time", "html:dc.date", "html:date",
+  ];
+  for (const f of stampFields) {
+    const v = doc.meta[f];
+    if (!v) continue;
+    // PDF dates arrive as D:YYYYMMDDHHmmSS; normalise before parsing.
+    const norm = /^\d{8}/.test(v)
+      ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`
+      : v;
+    const hit = isoFrom(norm);
+    if (hit) dated.push({ ...hit, proof: "doc-metadata", raw: `${f}=${v.slice(0, 60)}` });
+  }
+
+  const prose = doc.docClass === "webpage" || doc.docClass === "other"
+    ? toProse(doc.text)
+    : doc.text.replace(/\s+/g, " ");
+  const title = doc.meta["html:title"] || doc.meta["pdf:Title"] || doc.meta["xmp:dc:title"] || lead.title;
+  const termHits = matchTerms(lead.url, title, doc.meta, doc.keywords, prose, terms);
+
+  // A document that carries no date at all is still evidence when it carries
+  // the operator's words — it is filed under the year the transport reports,
+  // or, failing that, kept undated rather than discarded.
+  if (!dated.length) {
+    if (!termHits.length) return [];
+    return [{
+      url: lead.url, evidence_url: lead.url,
+      timestamp: "", year: 0, status: String(doc.status), mime: doc.mime,
+      proof: "doc-metadata", raw: "undated — retained on term match",
+      title, source: "probe" as const,
+      doc_class: doc.docClass, meta: doc.meta, keywords: doc.keywords,
+      terms: termHits, bytes: doc.bytes,
+    }];
+  }
+
   const best = new Map<number, Dated>();
   for (const d of dated) {
     const prev = best.get(d.year);
@@ -230,12 +273,17 @@ async function probeLead(lead: { url: string; title: string }): Promise<TimeCapt
     evidence_url: lead.url,
     timestamp: d.iso,
     year: d.year,
-    status: String(res.status),
-    mime,
+    status: String(doc.status),
+    mime: doc.mime,
     proof: d.proof,
     raw: d.raw,
-    title: lead.title,
+    title,
     source: "probe" as const,
+    doc_class: doc.docClass,
+    meta: doc.meta,
+    keywords: doc.keywords,
+    terms: termHits,
+    bytes: doc.bytes,
   }));
 }
 
