@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
+import { validateDisplayName } from "@/lib/auth/blockedNames";
 
 interface AuthOverlayProps {
   isLogin: boolean;
