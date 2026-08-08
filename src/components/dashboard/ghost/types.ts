@@ -67,7 +67,69 @@ export interface GhostResponse {
   tier?: string;
   index: GhostIndex | null;
   error?: string;
+  /** Present only when the sweep was told to retain session bodies. */
+  buffer: {
+    captured: number;
+    expiresAt: string;
+    ttlMinutes: number;
+    errors: string[];
+  } | null;
 }
+
+// ── Full-take buffer ─────────────────────────────────────────────────────────
+// The metadata index is the card catalog; these are the books on the shelf.
+// Session summaries never carry the body — only its measurements — so a buffer
+// listing stays cheap no matter how large the captured payloads are.
+
+export interface BufferSession {
+  session_id: string;
+  url: string;
+  host: string;
+  source_type: string;
+  status: number | null;
+  storage_path: string | null;
+  content_bytes: number;
+  content_sha256: string;
+  text_chars: number;
+  truncated: boolean;
+  language_tag: string | null;
+  entropy: number;
+  is_encrypted: boolean;
+  emails: string[];
+  phones: string[];
+  ipv4s: string[];
+  filenames: string[];
+  urls: string[];
+  captured_at: string;
+  expires_at: string;
+}
+
+export interface ContentHit {
+  session_id: string;
+  url: string;
+  host: string;
+  source_type: string;
+  language_tag: string | null;
+  is_encrypted: boolean;
+  captured_at: string;
+  expires_at: string;
+  content_bytes: number;
+  matches: number;
+  terms: string[];
+  snippets: { term: string; text: string; offset: number }[];
+}
+
+export interface Selector {
+  dictionary?: string[];
+  mode?: "any" | "all";
+  regex?: string;
+  caseSensitive?: boolean;
+  host?: string;
+  sourceType?: string;
+  language?: string;
+  encryptedOnly?: boolean;
+}
+
 
 export const SEVERITY_STYLE: Record<Anomaly["severity"], string> = {
   critical: "border-foreground/40 text-foreground",
