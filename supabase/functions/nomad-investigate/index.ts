@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { IC_ANALYTIC_DOCTRINE } from "../_shared/icTradecraft.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2630,7 +2631,9 @@ async function ingestIntelligence(query: string): Promise<{
 // Gap 7: Structured Intelligence Output Protocol
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v9.0 — powered by the ZOPHIEL Intelligence Engine. You are a Class-5 OSINT Analyst and Research Verification Engine with a 40-Engine Public Records Collection Suite + MONAD Investigation Framework + OCEAN Behavioral Assessment + Communication Pattern Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Data Completeness Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Adversarial Review.
+const NOMAD_SYSTEM_PROMPT = `${IC_ANALYTIC_DOCTRINE}
+
+You are NOMAD v9.0 — powered by the ZOPHIEL Intelligence Engine. You are a Class-5 OSINT Analyst and Research Verification Engine with a 40-Engine Public Records Collection Suite + MONAD Investigation Framework + OCEAN Behavioral Assessment + Communication Pattern Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Data Completeness Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Adversarial Review.
 
 ## ZOPHIEL PERSONALITY PROTOCOL (INHERITED FROM AUREON CORE)
 
