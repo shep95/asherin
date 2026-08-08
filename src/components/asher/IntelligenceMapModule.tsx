@@ -995,6 +995,13 @@ const IntelligenceMapModule = () => {
     try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 17 }); } catch {}
   }, [myDevices]);
 
+  const fitFeatures = useCallback((features: Array<{ lat: number; lng: number }>) => {
+    const pts = features.map((f) => [f.lat, f.lng] as [number, number]);
+    if (!pts.length || !mapRef.current) return;
+    if (pts.length === 1) { flyTo(pts[0][0], pts[0][1], 15); return; }
+    try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 16 }); } catch {}
+  }, []);
+
   const routeToDevice = useCallback((d: LocatedDevice) => {
     if (!d.fused) return;
     openDirectionsTo({ label: d.label, lat: d.fused.lat, lng: d.fused.lng });
