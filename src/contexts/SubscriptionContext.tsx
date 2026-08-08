@@ -58,7 +58,7 @@ interface SubscriptionState {
 
 interface SubscriptionContextValue extends SubscriptionState {
   checkSubscription: () => Promise<void>;
-  startCheckout: (tier: TierKey) => Promise<void>;
+  startCheckout: (tier: TierKey, term?: "monthly" | "semiannual") => Promise<void>;
   openPortal: () => Promise<void>;
   upgradeSubscription: (targetTier: TierKey) => Promise<void>;
   startProTrial: () => Promise<void>;
