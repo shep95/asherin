@@ -1,5 +1,5 @@
 import { CircleMarker, Circle, Polyline, Popup } from "react-leaflet";
-import { memo } from "react";
+import { Fragment, memo } from "react";
 import { STATE_COLOR, fmtAge, type LocatedDevice } from "@/lib/asher/findMy";
 
 /**
