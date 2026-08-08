@@ -313,18 +313,25 @@ function scanLocation(raw: string): { country: string; state: string; county: st
       }
     }
   }
-  // Two-letter US state code (case-insensitive, punctuation-tolerant)
+  // Two-letter US state code.
+  //
+  // Case matters here, and it used to not: a case-insensitive scan read the
+  // preposition "in" as Indiana and the conjunction "or" as Oregon, so ordinary
+  // English sentences acquired a jurisdiction they never mentioned. A real
+  // abbreviation is written uppercase ("Tampa FL", "Austin, TX"), so require
+  // uppercase — and require it to sit where a state sits: after a comma or a
+  // capitalized place word, or at the end of the message.
   if (!state) {
-    const stCode = t.match(/\b([A-Za-z]{2})\b/g);
-    if (stCode) {
-      for (const raw of stCode) {
-        const up = raw.toUpperCase();
-        if (Object.values(US_STATES).includes(up)) {
-          state = up; if (!country) country = "US"; break;
-        }
+    const codeRe = /(?:,\s*|\b[A-Za-z][a-z]+\s+)([A-Z]{2})\b(?=[\s.,!?]|$)/g;
+    let m: RegExpExecArray | null;
+    while ((m = codeRe.exec(t)) !== null) {
+      const up = m[1];
+      if (Object.values(US_STATES).includes(up)) {
+        state = up; if (!country) country = "US"; break;
       }
     }
   }
+
   // Fuzzy pass — operators misspell places ("flordia", "califorina",
   // "cape corral"). Without this the misspelled token survives into the
   // subject name and poisons every downstream registry query.
