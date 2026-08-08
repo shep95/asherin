@@ -1988,22 +1988,63 @@ ${truncatedRome}
       }
     }
 
-    // ── Strategic Doctrine Brain (always loaded — internal system brain) ──
+    // ── System brains — cached, parallel, and relevance-gated ─────────────
+    // Previously: nine static text files were re-downloaded on EVERY turn, seven
+    // of them inside a serial loop, and all of them were pasted into the prompt
+    // whatever the question was. That cost the user two things at once — eight
+    // sequential round-trips before the model was even asked, and up to ~700K
+    // characters of prefill the model had to read before its first token.
+    //
+    // Now: every file is cached per isolate (they are static), all cold misses
+    // fan out in parallel, and each brain is attached only to the turns it can
+    // actually improve. Voice-governing brains stay on every turn, because they
+    // are what makes the answer sound like Aureon; the heavy domain digests
+    // attach to their own domain. No brain that used to shape an answer stops
+    // shaping it — only the ones that were being read and ignored are dropped.
+    const SB_BRAIN_URL = Deno.env.get("SUPABASE_URL") || "";
+    const SB_BRAIN_SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const brainUrl = (p: string) => `${SB_BRAIN_URL}/storage/v1/object/library/${p}`;
+    const MAX_BRAIN_CHARS = 80000;
+
+    const brainProbe = `${vedicLastMsg}\n${allUserContent.slice(-4000)}`;
+    const isStrategicTurn =
+      isWarQuery ||
+      /\b(geopolit|conflict|escalat|sanction|alliance|nato|defen[cs]e|deterrenc|forecast|scenario|regime|border|treaty|intelligence assessment|threat)\w*/i.test(brainProbe);
+    const isCodingTurn =
+      /\b(code|coding|function|component|api|endpoint|bug|error|stack ?trace|refactor|typescript|javascript|python|react|sql|schema|deploy|build|compile|repo|git|regex|algorithm|architecture|latency|performance)\b/i.test(brainProbe) ||
+      (messages || []).some((m: any) => m.attachments?.some((a: any) =>
+        /\.(zip|ts|tsx|js|jsx|py|sql|json|rs|go|java|rb|php|c|cpp|sh)$/i.test(a?.name || "")));
+
+    // Voice + guardrail brains: always on. These are the reason answers sound
+    // like Aureon rather than a generic assistant, so they are never gated.
+    const alwaysBrains = [
+      "system-brains/anti_spiral_protocol.md",
+      "system-brains/aureon_philosophy_consciousness.txt",
+    ];
+    const codingBrains = isCodingTurn
+      ? [
+          "system-brains/zophiel_elite_v4_architecture.txt",
+          "system-brains/zophiel_elite_prompt_engine.txt",
+          "system-brains/zophiel_algorithm_coding.md",
+          "system-brains/zophiel_algorithm_mind.md",
+        ]
+      : [];
+    const intelBrains = isIntelTurn || isStrategicTurn
+      ? ["system-brains/zophiel_algorithm_intel.md"]
+      : [];
+
+    const zophielFiles = [...alwaysBrains, ...codingBrains, ...intelBrains];
+    const doctrineUrl = isStrategicTurn ? brainUrl("system-brains/strategic_doctrine.txt") : null;
+
+    // One parallel wave for every brain this turn needs — cold or warm.
+    const [doctrineText, ...zophielTexts] = await Promise.all([
+      doctrineUrl ? loadBrain(doctrineUrl, SB_BRAIN_SRK) : Promise.resolve(null),
+      ...zophielFiles.map((f) => loadBrain(brainUrl(f), SB_BRAIN_SRK)),
+    ]);
+
     let strategicDoctrineBrainContent = "";
-    try {
-      const SUPABASE_URL4 = Deno.env.get("SUPABASE_URL") || "";
-      const SERVICE_ROLE4 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const doctrinePath = `${SUPABASE_URL4}/storage/v1/object/library/system-brains/strategic_doctrine.txt`;
-      const doctrineResp = await fetch(doctrinePath, {
-        headers: { Authorization: `Bearer ${SERVICE_ROLE4}` },
-      });
-      if (doctrineResp.ok) {
-        const doctrineText = await doctrineResp.text();
-        const MAX_DOCTRINE_CHARS = 80000;
-        const truncatedDoctrine = doctrineText.length > MAX_DOCTRINE_CHARS
-          ? doctrineText.slice(0, MAX_DOCTRINE_CHARS) + `\n\n[... Truncated at ${MAX_DOCTRINE_CHARS} characters.]`
-          : doctrineText;
-        strategicDoctrineBrainContent = `
+    if (doctrineText) {
+      strategicDoctrineBrainContent = `
 
 ## ═══════════════════════════════════════════════════════════════════
 ## STRATEGIC DOCTRINE BRAIN — GEOPOLITICAL & DEFENSE ANALYSIS (INTERNAL SYSTEM BRAIN)
@@ -2025,47 +2066,18 @@ ANALYTICAL MANDATE:
 4. Structure responses using the academic/strategic assessment framework — never tactical execution.
 5. Integrate with other active brains (Project Rome, Vedic, etc.) when relevant for multi-domain analysis.
 
-${truncatedDoctrine}
+${clampBrain(doctrineText, MAX_BRAIN_CHARS)}
 
 ## END OF STRATEGIC DOCTRINE BRAIN
 `;
-      } else {
-        console.error("Failed to fetch Strategic Doctrine brain:", doctrineResp.status);
-      }
-    } catch (e) {
-      console.error("Failed to load Strategic Doctrine Brain:", e);
     }
 
-    // ── Zophiel Elite Coding Brains (always loaded — internal system brains) ──
-    let zophielCodingBrainContent = "";
-    try {
-      const SB_URL_Z = Deno.env.get("SUPABASE_URL") || "";
-      const SRK_Z = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const brainFiles = [
-        "system-brains/zophiel_elite_v4_architecture.txt",
-        "system-brains/zophiel_elite_prompt_engine.txt",
-        "system-brains/anti_spiral_protocol.md",
-        "system-brains/aureon_philosophy_consciousness.txt",
-        // Zophiel coding brain digests — internal reference only
-        "system-brains/zophiel_algorithm_coding.md",
-        "system-brains/zophiel_algorithm_mind.md",
-        "system-brains/zophiel_algorithm_intel.md",
-      ];
-      for (const bf of brainFiles) {
-        try {
-          const bfResp = await fetch(`${SB_URL_Z}/storage/v1/object/library/${bf}`, {
-            headers: { Authorization: `Bearer ${SRK_Z}` },
-          });
-          if (bfResp.ok) {
-            const bfText = await bfResp.text();
-            const MAX_ZC = 80000;
-            const truncBf = bfText.length > MAX_ZC ? bfText.slice(0, MAX_ZC) + `\n\n[... Truncated at ${MAX_ZC} characters.]` : bfText;
-            zophielCodingBrainContent += `\n\n${truncBf}\n`;
-          }
-        } catch { /* skip individual file errors */ }
-      }
-      if (zophielCodingBrainContent) {
-        zophielCodingBrainContent = `
+    let zophielCodingBrainContent = zophielTexts
+      .filter((t): t is string => typeof t === "string" && t.length > 0)
+      .map((t) => `\n\n${clampBrain(t, MAX_BRAIN_CHARS)}\n`)
+      .join("");
+    if (zophielCodingBrainContent) {
+      zophielCodingBrainContent = `
 ## ═══════════════════════════════════════════════════════════════════
 ## ZOPHIEL ELITE CODING PROTOCOLS — INTERNAL SYSTEM BRAIN
 ## ═══════════════════════════════════════════════════════════════════
@@ -2078,10 +2090,9 @@ ${zophielCodingBrainContent}
 
 ## END OF ZOPHIEL ELITE CODING BRAIN
 `;
-      }
-    } catch (e) {
-      console.error("Failed to load Zophiel Coding Brains:", e);
     }
+
+
 
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
