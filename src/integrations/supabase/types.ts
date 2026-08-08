@@ -5581,6 +5581,87 @@ export type Database = {
         }
         Relationships: []
       }
+      intel_notification_prefs: {
+        Row: {
+          email_enabled: boolean
+          in_app_enabled: boolean
+          min_severity: string
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          min_severity?: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          min_severity?: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      intel_notifications: {
+        Row: {
+          body: string
+          channels_delivered: string[]
+          created_at: string
+          findings: Json
+          id: string
+          idempotency_key: string | null
+          kind: string
+          read_at: string | null
+          sections: Json
+          severity: string
+          source: string | null
+          subject_name: string | null
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          channels_delivered?: string[]
+          created_at?: string
+          findings?: Json
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          read_at?: string | null
+          sections?: Json
+          severity?: string
+          source?: string | null
+          subject_name?: string | null
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          channels_delivered?: string[]
+          created_at?: string
+          findings?: Json
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          read_at?: string | null
+          sections?: Json
+          severity?: string
+          source?: string | null
+          subject_name?: string | null
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       investigation_annotations: {
         Row: {
           added_sources: string[] | null
