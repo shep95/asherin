@@ -21,6 +21,7 @@ import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
+import { resolveCallerCached } from "../_shared/authCache.ts";
 
 import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
@@ -1071,8 +1072,8 @@ async function resolveStoredByok(req: Request, requireVision = false): Promise<{
     const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     const token = authHeader.replace("Bearer ", "").trim();
-    const anonSb = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
-    const { data: { user } } = await anonSb.auth.getUser(token);
+    // Identity verified once per turn (see _shared/authCache.ts).
+    const user = await resolveCallerCached(authHeader, SUPABASE_URL, ANON_KEY);
     if (!user) return null;
     const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
     const { data: pref } = await adminSb
@@ -1241,8 +1242,7 @@ serve(async (req) => {
           const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
           const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE);
           const token = authHeader2.replace("Bearer ", "");
-          const anonSb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
-          const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
+          const reqUser = await resolveCallerCached(authHeader2, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
           if (reqUser) {
             const { data: keyRow, error: keyErr } = await adminSb
               .from("user_api_keys")
@@ -1291,11 +1291,8 @@ const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAI
       try {
         const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
         const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
-        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: { user } } = await sb.auth.getUser(token);
-        if (isAuthorizedAdminEmail(user?.email)) isAdmin = true;
+        const user = await resolveCallerCached(authHeader, SUPABASE_URL, SUPABASE_ANON_KEY);
+        if (isAuthorizedAdminEmail(user?.email ?? undefined)) isAdmin = true;
       } catch (e) {
         console.error("Admin check failed:", e);
       }
@@ -1719,9 +1716,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const ANON_M = Deno.env.get("SUPABASE_ANON_KEY") || "";
         const { createClient: ccM } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const anonM = ccM(SUPABASE_URL_M, ANON_M);
-        const tokenM = authH.replace("Bearer ", "");
-        const { data: { user: memUser } } = await anonM.auth.getUser(tokenM);
+        const memUser = await resolveCallerCached(authH, SUPABASE_URL_M, ANON_M);
         if (memUser) {
           const adminM = ccM(SUPABASE_URL_M, SRK_M);
           const { data: mems } = await adminM
@@ -1759,8 +1754,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const LK = Deno.env.get("LOVABLE_API_KEY") || "";
         if (LK && SUPABASE_URL_V && SRK_V) {
           const { createClient: ccV } = await import("https://esm.sh/@supabase/supabase-js@2");
-          const anonV = ccV(SUPABASE_URL_V, ANON_V);
-          const { data: { user: vUser } } = await anonV.auth.getUser(authV.replace("Bearer ", ""));
+          const vUser = await resolveCallerCached(authV, SUPABASE_URL_V, ANON_V);
           if (vUser) {
             const adminV = ccV(SUPABASE_URL_V, SRK_V);
             // Tier check via active subscription OR admin email.
