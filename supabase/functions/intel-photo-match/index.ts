@@ -371,6 +371,115 @@ async function crossMatch(
   }
 }
 
+// ── Subject qualification ──────────────────────────────────────────────────
+// A mononym is not a person reference. Searching `"Marcus" photo` returns the
+// emperor, the book cover and the stock portrait, and the comparator then
+// dutifully reports that a marble bust and a stranger are not the same face —
+// which reads to the operator as intelligence when it is only noise. When the
+// dossier has not bound an identity, the honest output is refusal.
+const HONORIFIC = /^(mr|mrs|ms|miss|dr|prof|sir|rev|driver)\.?$/i;
+
+function nameTokens(subject: string): string[] {
+  return subject
+    .split(/[\s,]+/)
+    .map((t) => t.replace(/[^\p{L}\p{M}'-]/gu, ""))
+    .filter((t) => t.length >= 2 && !HONORIFIC.test(t));
+}
+
+/** A subject is corroboratable only when it carries a family name. */
+function isQualifiedSubject(subject: string): boolean {
+  return nameTokens(subject).length >= 2;
+}
+
+// Only person-locating context sharpens a portrait search. Verdict prose,
+// percentages, plate strings and vehicle descriptions actively poison it —
+// they pull the index toward car listings and toward whatever page happens to
+// quote the same number.
+const ANCHOR_LABELS =
+  /(city|locality|location|based|residence|employer|company|organisation|organization|affiliation|role|title|occupation|school|university)/i;
+const ANCHOR_NOISE =
+  /(\d|verdict|confidence|watch|clear|thin|plate|vin|vehicle|do not board|registry|mismatch|unbound|%)/i;
+
+function anchorsFrom(sections: unknown): string {
+  const rows = Array.isArray(sections) ? (sections as any[]) : [];
+  const kept: string[] = [];
+  for (const s of rows) {
+    const label = String(s?.label ?? s?.key ?? "");
+    const value = String(s?.value ?? "").trim();
+    if (!value || value.length > 48) continue;
+    if (!ANCHOR_LABELS.test(label)) continue;
+    if (ANCHOR_NOISE.test(value)) continue;
+    kept.push(value);
+    if (kept.length >= 2) break;
+  }
+  return kept.join(" ");
+}
+
+// ── Face gate ──────────────────────────────────────────────────────────────
+// og:image is a page's *social card*, not a portrait. Left ungated it admits
+// sculpture, book jackets, logos and landscape art into an evidence gallery,
+// and a gallery of non-faces is worse than an empty one: it manufactures the
+// appearance of corroboration. Every harvested frame must first prove it
+// contains a real, photographic human face before it is stored or shown.
+async function faceGate(
+  frames: Array<{ b64: string; type: string; host: string }>,
+): Promise<boolean[]> {
+  if (!frames.length) return [];
+  if (!GEMINI_KEY) return frames.map(() => false);
+  const parts: any[] = [
+    {
+      text:
+        `You are screening ${frames.length} images for use as facial-comparison evidence.\n` +
+        `For EACH image in order, decide whether it is a PHOTOGRAPH OF A REAL LIVING HUMAN FACE ` +
+        `that is large enough and clear enough to compare (face occupies a meaningful part of the frame, ` +
+        `eyes and nose visible).\n\n` +
+        `Answer false for: sculpture, statues, busts, paintings, drawings, illustrations, cartoons, ` +
+        `AI-generated art, book covers, posters, logos, screenshots, product shots, landscapes, ` +
+        `buildings, vehicles, crowd scenes with no dominant face, and any image with no discernible face.\n\n` +
+        `Answer with ONE line containing exactly ${frames.length} characters, no spaces, no punctuation, ` +
+        `no explanation: "T" if that image qualifies, "F" if it does not, in image order.`,
+    },
+    ...frames.map((f) => ({ inline_data: { mime_type: f.type, data: f.b64 } })),
+  ];
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          // Two failure modes were folded into one answer shape. A 512-token
+          // ceiling truncated a pretty-printed JSON array mid-write (the model
+          // spends latent reasoning tokens against the same budget), and
+          // `thinkingConfig` is rejected outright by this alias on v1beta. A
+          // bare T/F string costs a handful of tokens and cannot truncate into
+          // something that parses as a different answer.
+          generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+        }),
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
+    if (!r.ok) {
+      console.error("face_gate_failed", r.status, (await r.text()).slice(0, 200));
+      return frames.map(() => false); // fail CLOSED: unscreened frames are not evidence
+    }
+    const j = await r.json();
+    const text: string = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("") ?? "";
+    const flags = (text.toUpperCase().match(/[TF]/g) ?? []);
+    if (flags.length < frames.length) {
+      console.error("face_gate_unparsable", JSON.stringify({ got: flags.length, want: frames.length, text: text.slice(0, 120) }));
+      return frames.map(() => false);
+    }
+    const out = frames.map((_, i) => flags[i] === "T");
+    console.log("face_gate", JSON.stringify({ screened: frames.length, kept: out.filter(Boolean).length }));
+    return out;
+  } catch (e) {
+    console.error("face_gate_error", e instanceof Error ? e.message : e);
+    return frames.map(() => false);
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -434,13 +543,32 @@ Deno.serve(async (req) => {
     return json({ photos: [], match }, 200, cors);
   }
 
-  // Context hint: locality / employer strings already in the dossier sharpen
-  // the search without inventing facts the report never asserted.
-  const hint = (Array.isArray(note.sections) ? (note.sections as any[]) : [])
-    .map((s) => String(s?.value ?? ""))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .slice(0, 120);
+  // A first name alone cannot be corroborated. Running the harvest anyway is
+  // how a dossier ends up illustrated with strangers, so refuse and say why.
+  if (!isQualifiedSubject(subject)) {
+    const match: PhotoMatch = {
+      verdict: "unavailable",
+      confidence: 0,
+      independentSources: 0,
+      reasoning:
+        `n/a — the subject of record is "${subject}", a given name with no family name. ` +
+        `An open-web image search on a given name alone returns unrelated people and non-photographic ` +
+        `artwork, so any gallery it produced would be decoration, not corroboration. No frames were harvested.`,
+      observations: [],
+      falsifier: "Supply a full name (or a registry-resolved surname) and re-run the cross-match.",
+      assessedAt: new Date().toISOString(),
+    };
+    await sb
+      .from("intel_notifications")
+      .update({ photos: [], photo_match: match })
+      .eq("id", note.id)
+      .eq("user_id", user.id);
+    return json({ photos: [], match }, 200, cors);
+  }
+
+  // Only person-locating context is carried into the query. Verdict prose and
+  // vehicle/plate strings are excluded — they steer the index toward listings.
+  const hint = anchorsFrom(note.sections);
 
   const queries = [
     `"${subject}" photo ${hint}`.trim(),
@@ -477,39 +605,62 @@ Deno.serve(async (req) => {
   console.log("photo_images", JSON.stringify({ refs: imageRefs.length }));
 
 
-  const stored: StoredPhoto[] = [];
-  const frames: Array<{ b64: string; type: string; host: string }> = [];
+  // Harvest into memory first. Nothing is written to storage or shown to the
+  // operator until the face gate has cleared it, so the gallery can never
+  // contain a bust, a book cover or a logo.
+  type Pending = { buf: ArrayBuffer; type: string; hash: string; ref: { imageUrl: string; pageUrl: string; title: string } };
+  const pending: Pending[] = [];
   const seen = new Set<string>();
 
   for (const ref of imageRefs) {
-    if (stored.length >= MAX_PHOTOS) break;
+    if (pending.length >= MAX_PHOTOS) break;
     const got = await fetchImage(ref.imageUrl);
     if (!got) continue;
     const hash = await sha256(got.buf);
     if (seen.has(hash)) continue; // same file re-syndicated is not a second source
     seen.add(hash);
+    pending.push({ buf: got.buf, type: got.type, hash, ref });
+  }
 
-    const path = `${user.id}/${note.id}/${hash.slice(0, 16)}.${extOf(got.type)}`;
+  const gate = await faceGate(
+    pending.map((p) => ({ b64: toBase64(p.buf), type: p.type, host: hostOf(p.ref.pageUrl) })),
+  );
+  const admitted = pending.filter((_, i) => gate[i]);
+  const rejected = pending.length - admitted.length;
+  console.log("photo_face_gate", JSON.stringify({ harvested: pending.length, admitted: admitted.length, rejected }));
+
+  const stored: StoredPhoto[] = [];
+  const frames: Array<{ b64: string; type: string; host: string }> = [];
+
+  for (const p of admitted) {
+    const path = `${user.id}/${note.id}/${p.hash.slice(0, 16)}.${extOf(p.type)}`;
     const { error: upErr } = await sb.storage
       .from(BUCKET)
-      .upload(path, got.buf, { contentType: got.type, upsert: true });
+      .upload(path, p.buf, { contentType: p.type, upsert: true });
     if (upErr) {
       console.error("photo_upload_failed", upErr.message);
       continue;
     }
     stored.push({
       path,
-      sourceUrl: ref.pageUrl,
-      sourceHost: hostOf(ref.pageUrl),
-      sourceTitle: ref.title.slice(0, 160),
-      contentType: got.type,
-      bytes: got.buf.byteLength,
-      hash,
+      sourceUrl: p.ref.pageUrl,
+      sourceHost: hostOf(p.ref.pageUrl),
+      sourceTitle: p.ref.title.slice(0, 160),
+      contentType: p.type,
+      bytes: p.buf.byteLength,
+      hash: p.hash,
     });
-    frames.push({ b64: toBase64(got.buf), type: got.type, host: hostOf(ref.pageUrl) });
+    frames.push({ b64: toBase64(p.buf), type: p.type, host: hostOf(p.ref.pageUrl) });
   }
 
   const match = await crossMatch(subject, frames);
+  // Silence is not evidence: if the gate discarded frames, the report says so
+  // rather than letting a thin gallery look like a thin internet.
+  if (rejected > 0) {
+    match.reasoning =
+      `${match.reasoning} ${rejected} harvested image${rejected === 1 ? " was" : "s were"} discarded by the face gate ` +
+      `(no comparable human face — artwork, logo, product or scene).`.trim();
+  }
 
   await sb
     .from("intel_notifications")

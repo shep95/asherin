@@ -1,0 +1,2 @@
+DELETE FROM public.intel_notifications WHERE id = '9cc7fa01-deac-46b0-b0a4-7527fb48613e';
+DELETE FROM public.rideshare_rides WHERE id IN ('4b812ace-d69c-40fd-85fe-af13f297e2dd','8d13274c-7808-4a97-9f76-4660c2bad5e4','e6372505-31aa-4081-9076-c0f9fc8b70c3','06e05940-2248-4fbc-a1d7-732e7133620b','bec92344-d460-485a-98fa-9003802ad4c8');
