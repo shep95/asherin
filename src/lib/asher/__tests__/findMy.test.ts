@@ -13,7 +13,9 @@ describe("Find-My fusion", () => {
   it("fuses the recent cluster and never claims sub-metre precision", () => {
     const f = fusePosition(fixes, NOW)!;
     expect(f).toBeTruthy();
-    expect(f.fixCount).toBe(3);
+    // Only the two fixes inside the 30-minute cluster window count; the 02:14
+    // hit is older than the window and is deliberately excluded.
+    expect(f.fixCount).toBe(2);
     expect(f.radiusM).toBeGreaterThanOrEqual(5);
     // Centroid must sit inside the bounding box of the contributing fixes.
     expect(f.lat).toBeGreaterThan(40.7128); expect(f.lat).toBeLessThan(40.7136);
