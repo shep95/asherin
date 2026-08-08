@@ -363,33 +363,32 @@ function searchLabel(label: string): string {
   return (parts.length > 3 ? parts.slice(0, 2).concat(parts.slice(-1)) : parts).join(", ") || label;
 }
 
-/** Run the area collection plan and fold it into one evidence block. Queries go
- *  out two at a time: four parallel calls trip the provider's burst limit and
- *  come back empty, which the model then grades as UNKNOWN. */
+/** Run the area collection plan and fold it into one evidence block.
+ *  The provider rate-limits hard on burst: parallel angles all return 429 and
+ *  the model then grades a well-documented city as UNKNOWN. Queries therefore
+ *  go out one at a time, spaced, with a trimmed three-angle plan. */
 export async function collectAreaEvidence(label: string): Promise<string> {
   const q = searchLabel(label);
   const plan: Array<[string, string]> = [
-    ["Reported crime", `recent crime reports incidents ${q}`],
-    ["Police & news", `police news shooting robbery assault ${q}`],
-    ["Documented group activity", `gang activity territory documented ${q}`],
+    ["Reported crime & police reporting", `recent crime reports police incidents ${q}`],
+    ["Documented group activity", `gang activity documented ${q}`],
     ["Community safety reporting", `is ${q} safe at night neighborhood safety`],
   ];
-  const results: Array<PromiseSettledResult<WebHit[]>> = [];
-  for (let i = 0; i < plan.length; i += 2) {
-    const batch = plan.slice(i, i + 2).map(([, query]) => placeSearch(query));
-    results.push(...(await Promise.allSettled(batch)));
-  }
   const blocks: string[] = [];
-  results.forEach((res, i) => {
-    const [heading] = plan[i];
-    if (res.status !== "fulfilled" || !res.value.length) {
-      blocks.push(`### ${heading}\n(searched — nothing surfaced)`);
-      return;
-    }
-    blocks.push(`### ${heading}\n` + res.value
-      .map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 400)}\n  source: ${h.url}`)
-      .join("\n"));
-  });
+  for (let i = 0; i < plan.length; i++) {
+    const [heading, query] = plan[i];
+    if (i > 0) await new Promise((res) => setTimeout(res, 900));
+    let hits: WebHit[] = [];
+    try {
+      hits = await placeSearch(query);
+    } catch { /* placeSearch already logged; an empty angle is reported as empty */ }
+    blocks.push(hits.length
+      ? `### ${heading}\n` + hits
+        .map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 400)}\n  source: ${h.url}`)
+        .join("\n")
+      : `### ${heading}\n(searched — nothing surfaced)`);
+  }
   return blocks.join("\n\n");
 }
+
 
