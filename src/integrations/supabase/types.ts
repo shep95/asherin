@@ -6171,6 +6171,39 @@ export type Database = {
         }
         Relationships: []
       }
+      message_sources: {
+        Row: {
+          channel: string
+          counterparty: string | null
+          created_at: string
+          id: string
+          parsed: Json
+          raw: string
+          report: string | null
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          counterparty?: string | null
+          created_at?: string
+          id?: string
+          parsed?: Json
+          raw: string
+          report?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          counterparty?: string | null
+          created_at?: string
+          id?: string
+          parsed?: Json
+          raw?: string
+          report?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments_enc: string | null
@@ -7163,6 +7196,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limit_tracking: {
         Row: {
           blocked: boolean
@@ -7381,6 +7447,140 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rideshare_reports: {
+        Row: {
+          confidence: number
+          created_at: string
+          delivered_channels: string[]
+          headline: string | null
+          id: string
+          payload: Json
+          phase: string
+          ride_id: string
+          score: number
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          delivered_channels?: string[]
+          headline?: string | null
+          id?: string
+          payload?: Json
+          phase: string
+          ride_id: string
+          score?: number
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          delivered_channels?: string[]
+          headline?: string | null
+          id?: string
+          payload?: Json
+          phase?: string
+          ride_id?: string
+          score?: number
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rideshare_reports_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rideshare_rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rideshare_rides: {
+        Row: {
+          city: string | null
+          confidence: number | null
+          created_at: string
+          driver_name: string | null
+          id: string
+          idempotency_key: string | null
+          pickup_label: string | null
+          plate: string | null
+          platform: string
+          source: string
+          status: string
+          trip_url: string | null
+          updated_at: string
+          user_id: string
+          vehicle: string | null
+          verdict: string | null
+        }
+        Insert: {
+          city?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          idempotency_key?: string | null
+          pickup_label?: string | null
+          plate?: string | null
+          platform?: string
+          source: string
+          status?: string
+          trip_url?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle?: string | null
+          verdict?: string | null
+        }
+        Update: {
+          city?: string | null
+          confidence?: number | null
+          created_at?: string
+          driver_name?: string | null
+          id?: string
+          idempotency_key?: string | null
+          pickup_label?: string | null
+          plate?: string | null
+          platform?: string
+          source?: string
+          status?: string
+          trip_url?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle?: string | null
+          verdict?: string | null
+        }
+        Relationships: []
+      }
+      rideshare_settings: {
+        Row: {
+          alert_threshold: string
+          auto_from_email: boolean
+          email_enabled: boolean
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_threshold?: string
+          auto_from_email?: boolean
+          email_enabled?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_threshold?: string
+          auto_from_email?: boolean
+          email_enabled?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       room_participants: {
         Row: {
