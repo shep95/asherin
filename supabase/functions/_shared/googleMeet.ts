@@ -113,8 +113,10 @@ async function collectCalendar(
   a: Acct,
   sinceMs: number,
   cap: number,
-): Promise<MeetSessionRow[]> {
+): Promise<{ rows: MeetSessionRow[]; scanned: number; failed: boolean }> {
   const out: MeetSessionRow[] = [];
+  let scanned = 0;
+  let failed = false;
   let pageToken = "";
   for (let page = 0; page < 6 && out.length < cap; page++) {
     const url = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
@@ -126,7 +128,8 @@ async function collectCalendar(
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
     const data = await jget(url.toString(), a.token, 20_000);
-    if (!data) break;
+    if (!data) { failed = page === 0; break; }
+    scanned += (data.items ?? []).length;
 
     for (const ev of data.items ?? []) {
       const link: string | null =
@@ -159,7 +162,7 @@ async function collectCalendar(
     pageToken = data.nextPageToken ?? "";
     if (!pageToken) break;
   }
-  return out;
+  return { rows: out, scanned, failed };
 }
 
 // ── 2. MEET API v2 ─────────────────────────────────────────────────────────
@@ -429,7 +432,15 @@ export async function sweepMeetVault(
     const artifacts: MeetArtifactRow[] = [];
 
     if (hasScope(a, "calendar.readonly")) {
-      sessions.push(...await collectCalendar(userId, a, sinceMs, cap));
+      const cal = await collectCalendar(userId, a, sinceMs, cap);
+      sessions.push(...cal.rows);
+      if (cal.failed) {
+        notes.push("Google refused the calendar read for this account — reconnect it to restore meeting history.");
+      } else if (cal.scanned === 0) {
+        notes.push(`No calendar events at all in the last ${days} days for this account.`);
+      } else if (cal.rows.length === 0) {
+        notes.push(`${cal.scanned} calendar events scanned, none of them carried a Meet link.`);
+      }
     } else {
       notes.push("Calendar access was not granted, so meeting titles and invitees are missing.");
     }
