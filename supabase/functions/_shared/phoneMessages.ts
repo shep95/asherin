@@ -532,8 +532,8 @@ export function fenceMessages(lines: string[]): string {
   ].join("\n");
 }
 
-export async function gfetchPeek(a: Acct) {
-  const list = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=${encodeURIComponent(VOICE_QUERY)}`, a.token);
+export async function gfetchPeek(a: Acct, q = "from:txt.voice.google.com") {
+  const list = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=${encodeURIComponent(q)}`, a.token);
   const id = list.messages?.[0]?.id;
   const d = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`, a.token);
   const walk = (p: any, depth = 0): any => ({

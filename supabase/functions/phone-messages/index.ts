@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       const accounts = await liveAccounts(sb, user.id, null);
       const a = accounts.find((x) => x.google_email === String(body?.email ?? "")) ?? accounts[0];
       const { gfetchPeek } = await import("../_shared/phoneMessages.ts");
-      return json(await gfetchPeek(a), 200, cors);
+      return json(await gfetchPeek(a, String(body?.q ?? "from:txt.voice.google.com")), 200, cors);
     }
 
     // ── SYNC: Google Voice → ledger ──────────────────────────────────────
