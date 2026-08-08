@@ -65,6 +65,8 @@ interface WireDoc {
   jurisdiction?: string;
   channel?: string | null;
   reverse?: { identifier: string; factsAdded: number; hits: number; timedOut?: boolean; error?: string } | null;
+  imagery?: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  kin?: string[];
 }
 
 // ─────────────────────────── annex shapes ───────────────────────────
