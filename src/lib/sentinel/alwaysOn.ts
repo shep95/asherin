@@ -564,12 +564,13 @@ export function bootSentinel(): void {
     if (document.visibilityState === "visible") resume();
     else { void flushSentinel(true); beaconOnHide(); } // never lose a buffer to a backgrounded tab
   });
-  window.addEventListener("online", () => { resume(); void runNetworkCheck(false); });
+  window.addEventListener("online", () => { resume(); void runNetworkCheck(false, { bypassThrottle: true }); });
   window.addEventListener("pageshow", resume);
   window.addEventListener("focus", resume);
   window.addEventListener("pagehide", () => { void flushSentinel(true); beaconOnHide(); });
   // A link transition is the one moment a new, unjudged network appears.
-  (navigator as any)?.connection?.addEventListener?.("change", () => { void runNetworkCheck(false); });
+  (navigator as any)?.connection?.addEventListener?.("change", () => { void runNetworkCheck(false, { bypassThrottle: true }); });
+
 
   watchdogTimer ??= window.setInterval(() => { void watchdog(); }, WATCHDOG_MS);
 
