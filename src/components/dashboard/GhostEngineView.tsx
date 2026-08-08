@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
-  Download, Archive, ChevronDown, Sparkle, History, X,
+  Download, Archive, ChevronDown, Sparkle, History, X, Crosshair,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import GhostGraph from "./ghost/GhostGraph";
 import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
+import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
 import {
   projectRecords, suggestFromIndex,
   type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
@@ -51,6 +52,9 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
   { id: "buffer", label: "Buffer", hint: "Soft selection over bodies already on the shelf" },
 ];
 
+/** ORIGIN is not a scope — it is a different question, so it gets its own verb. */
+const MODE_KEY = "ghost_engine_mode";
+
 const CAPTURE_KEY = "ghost_engine_capture";
 const SCOPE_KEY = "ghost_engine_scope";
 const RECENT_KEY = "ghost_engine_recent";
@@ -86,6 +90,12 @@ const GhostEngineView = () => {
   );
   const [replay, setReplay] = useState<GhostHistoryRun | null>(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  // INTERCEPT sweeps a selector. ORIGIN traces one artefact back to the act of
+  // authorship behind it. Same box, different engine path, different surface.
+  const [mode, setMode] = useState<"intercept" | "origin">(
+    () => (localStorage.getItem(MODE_KEY) === "origin" ? "origin" : "intercept"),
+  );
+  const [origin, setOrigin] = useState<OriginTrace | null>(null);
 
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 8); } catch { return []; }
