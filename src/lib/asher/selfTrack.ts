@@ -460,7 +460,39 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
   }, []);
 
+  /* ── ALREADY-GRANTED BROWSER PERMISSION IS CONSENT ────────────────────────
+     If the Permissions API reports geolocation as `granted`, the operator has
+     already authorised this origin at the browser level — the strongest
+     consent signal that exists. Re-demanding an in-app click after that is not
+     extra safety, it is a tool that silently stops watching the operator's
+     back. The grant is recorded so the track survives reloads, and a later
+     browser-level revocation flips it straight back off. */
+  useEffect(() => {
+    if (!supported || consent) return;
+    let cancelled = false;
+    const perms = (navigator as Navigator & { permissions?: Permissions }).permissions;
+    if (!perms?.query) return;
+    perms.query({ name: "geolocation" as PermissionName })
+      .then((st) => {
+        if (cancelled) return;
+        const sync = () => {
+          if (st.state === "granted") {
+            try { localStorage.setItem(CONSENT_KEY, "granted"); } catch { /* private mode */ }
+            setConsent(true);
+          } else if (st.state === "denied") {
+            try { localStorage.removeItem(CONSENT_KEY); } catch { /* private mode */ }
+            setConsent(false);
+          }
+        };
+        sync();
+        st.onchange = sync;
+      })
+      .catch(() => { /* Permissions API unavailable — the explicit gate still works */ });
+    return () => { cancelled = true; };
+  }, [supported, consent]);
+
   /* ── STANDING AUTHORISATION = STANDING TRACK ──────────────────────────────
+
      Once consent exists it is not re-asked and not re-clicked. The sensor
      opens the moment the surface mounts, and a first refine burst tightens
      the initial coarse fix without any operator action. */
