@@ -125,8 +125,8 @@ const PLANS = [
         items: ["Daily briefings", "Industry customization"],
       },
       {
-        title: "Zophiel Search (Pro)",
-        items: ["Higher query limits", "Deeper crawling / broader coverage", "Priority latency"],
+        title: "Zophiel Search (Pro throughput)",
+        items: ["Same full engine as Asherin, with Pro limits", "Higher query limits", "Deeper crawl depth per query", "Priority latency"],
       },
       {
         title: "Collaboration (Pro)",
