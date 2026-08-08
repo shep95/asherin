@@ -23,7 +23,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const [nameTouched, setNameTouched] = useState(false);
   // Advisory only — public.tg_guard_display_name is the authoritative gate.
   const nameCheck = validateDisplayName(name);
-  const nameError = !isLogin && nameTouched && !nameCheck.ok ? nameCheck.reason : null;
+  const nameError = !isLogin && nameTouched && nameCheck.ok === false ? nameCheck.reason : null;
   const { toast } = useToast();
   const location = useLocation();
 
