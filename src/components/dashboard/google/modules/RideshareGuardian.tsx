@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Car, MessageSquare, ShieldAlert, Loader2, Trash2, Download, RefreshCw } from "lucide-react";
+import { Car, MessageSquare, ShieldAlert, Loader2, Trash2, Download, RefreshCw, Route } from "lucide-react";
+import TripRecorderTab from "./TripRecorderTab";
 
 /**
  * GUARDIAN — rideshare driver assessment and phone-message analysis.
