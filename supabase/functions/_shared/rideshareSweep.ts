@@ -107,6 +107,76 @@ function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
   return angles;
 }
 
+// ── Zophiel engine layer ───────────────────────────────────────────────────
+
+/**
+ * The jurisdictional collector reaches registers and courts; it does not reach
+ * the ranked, tier-scored, multi-index corpus the Zophiel engine maintains for
+ * the dashboard. A driver's reviews, complaints, forum mentions and news trail
+ * live there, so the Guardian now queries the same substrate the search tab
+ * uses and folds it in as one clearly-labelled, citation-carrying block.
+ *
+ * It is strictly additive: a null bundle, a timeout or an engine outage costs
+ * the dossier this block and nothing else. The graph layer is only requested
+ * when the identity is actually bound — running relationship extraction on an
+ * unbound first name manufactures associations that belong to other people.
+ */
+async function zophielLayer(
+  ride: RideInput,
+  resolvedName: string | null,
+  budgetMs: number,
+): Promise<{ block: string; hits: number; note: string }> {
+  const raw = (ride.driver_name || "").trim();
+  const name = (resolvedName || raw).trim();
+  const bound = Boolean(resolvedName) || raw.split(/\s+/).length > 1;
+  const where = ride.city ? ` ${ride.city}` : "";
+
+  const query = bound && name
+    ? `${name}${where} rideshare driver background court record reviews complaints associates`
+    : ride.plate
+      ? `license plate ${ride.plate}${where} vehicle registration rideshare driver`
+      : "";
+
+  if (!query || budgetMs < 8_000) {
+    return {
+      block: "",
+      hits: 0,
+      note: query
+        ? "Zophiel engine layer skipped — no wall clock left after the identity angles."
+        : "Zophiel engine layer skipped — no bindable name or plate to query.",
+    };
+  }
+
+  const bundle = await withTimeout(
+    runZophielIntel(query, { deep: bound, mode: "web", fast: false }),
+    Math.min(budgetMs, 40_000),
+    null,
+  ).catch(() => null);
+
+  const body = formatZophielContext(bundle).trim();
+  if (!body) {
+    return {
+      block: `### Zophiel engine sweep\n(Zophiel engine queried for "${query}" — returned nothing usable)`,
+      hits: 0,
+      note: "Zophiel engine returned no usable corpus for this driver.",
+    };
+  }
+
+  const hits = bundle?.results.length ?? 0;
+  const graph = bundle?.intel ? " with graph layer" : "";
+  return {
+    block: [
+      "### Zophiel engine sweep",
+      bound
+        ? "Identity-bound query against the Zophiel multi-index corpus. Tier 1 is a primary source; treat weak-match warnings as disqualifying unless corroborated."
+        : "Identity is UNBOUND — this corpus was retrieved on the plate/vehicle only. Nothing here may be attributed to a named person.",
+      body,
+    ].join("\n"),
+    hits,
+    note: `Zophiel engine returned ${hits} ranked document(s)${graph} at ${(bundle?.topRelevance ?? 0).toFixed(2)} mean top-5 relevance.`,
+  };
+}
+
 export interface CollectionResult {
   context: string;
   note: string;
