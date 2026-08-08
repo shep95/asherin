@@ -42,7 +42,10 @@ import {
   locateGroup, locateDevice, fmtAge,
   type LocatedDevice,
 } from "@/lib/asher/findMy";
-
+import {
+  loadCloudMapLayer, venueFeatures, clearCloudMapCache,
+  type CloudMapLayer, type CloudMapFeature,
+} from "@/lib/cloudIntel/mapBridge";
 
 import {
   makeAnnotation, annoCenter, annoMetric,
