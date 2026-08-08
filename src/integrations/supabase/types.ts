@@ -8013,6 +8013,139 @@ export type Database = {
         }
         Relationships: []
       }
+      rideshare_trip_points: {
+        Row: {
+          accuracy_m: number | null
+          altitude_m: number | null
+          created_at: string
+          heading_deg: number | null
+          id: number
+          lat: number
+          lon: number
+          speed_mps: number | null
+          t: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          altitude_m?: number | null
+          created_at?: string
+          heading_deg?: number | null
+          id?: number
+          lat: number
+          lon: number
+          speed_mps?: number | null
+          t: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          altitude_m?: number | null
+          created_at?: string
+          heading_deg?: number | null
+          id?: number
+          lat?: number
+          lon?: number
+          speed_mps?: number | null
+          t?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rideshare_trip_points_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "rideshare_trip_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rideshare_trip_tracks: {
+        Row: {
+          analysis: Json
+          avg_speed_mps: number | null
+          coverage_gap_s: number | null
+          created_at: string
+          distance_m: number | null
+          duration_s: number | null
+          ended_at: string | null
+          events: Json
+          id: string
+          idempotency_key: string | null
+          label: string | null
+          max_speed_mps: number | null
+          moving_s: number | null
+          platform: string
+          point_count: number
+          ride_id: string | null
+          started_at: string
+          status: string
+          stopped_s: number | null
+          streets: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json
+          avg_speed_mps?: number | null
+          coverage_gap_s?: number | null
+          created_at?: string
+          distance_m?: number | null
+          duration_s?: number | null
+          ended_at?: string | null
+          events?: Json
+          id?: string
+          idempotency_key?: string | null
+          label?: string | null
+          max_speed_mps?: number | null
+          moving_s?: number | null
+          platform?: string
+          point_count?: number
+          ride_id?: string | null
+          started_at?: string
+          status?: string
+          stopped_s?: number | null
+          streets?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json
+          avg_speed_mps?: number | null
+          coverage_gap_s?: number | null
+          created_at?: string
+          distance_m?: number | null
+          duration_s?: number | null
+          ended_at?: string | null
+          events?: Json
+          id?: string
+          idempotency_key?: string | null
+          label?: string | null
+          max_speed_mps?: number | null
+          moving_s?: number | null
+          platform?: string
+          point_count?: number
+          ride_id?: string | null
+          started_at?: string
+          status?: string
+          stopped_s?: number | null
+          streets?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rideshare_trip_tracks_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rideshare_rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_participants: {
         Row: {
           cursor_state: Json | null

@@ -36,6 +36,7 @@ import {
   type PhaseResult,
   type Verdict,
 } from "../_shared/rideshareGuardian.ts";
+import { analyseTrip, toGpx } from "../_shared/tripTelemetry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -293,6 +294,202 @@ Deno.serve(async (req) => {
         await admin().from("rideshare_rides").delete().eq("id", rideId).eq("user_id", userId);
         return json({ ok: true }, 200, cors);
       }
+
+      // ── trip recorder ──────────────────────────────────────────────────
+      // The rider's own telemetry. The recorder streams fixes up in batches
+      // while the ride is live so a phone that dies mid-trip still leaves a
+      // record; analysis runs once, after the trip ends.
+      case "trip.start": {
+        // Idempotency is keyed on the client's own start token rather than a
+        // fresh uuid, so a retried request resumes the same trip instead of
+        // opening a duplicate.
+        const idem = str(body.idempotency_key, 120);
+        if (idem) {
+          const { data: existing } = await admin()
+            .from("rideshare_trip_tracks")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("idempotency_key", idem)
+            .maybeSingle();
+          if (existing) return json({ trip: existing, resumed: true }, 200, cors);
+        }
+        const { data, error } = await admin().from("rideshare_trip_tracks").insert({
+          user_id: userId,
+          ride_id: str(body.ride_id, 60),
+          platform: ["uber", "lyft", "taxi", "other"].includes(String(body.platform))
+            ? String(body.platform) : "uber",
+          label: str(body.label, 120),
+          idempotency_key: idem,
+          started_at: new Date().toISOString(),
+        }).select().single();
+        if (error) throw error;
+        return json({ trip: data, resumed: false }, 200, cors);
+      }
+
+      case "trip.points": {
+        const tripId = str(body.trip_id, 60);
+        if (!tripId) return json({ error: "trip_id_required" }, 400, cors);
+        const raw = Array.isArray(body.points) ? body.points : [];
+        if (!raw.length) return json({ ok: true, inserted: 0 }, 200, cors);
+        // A batch cap keeps one bad client from writing an unbounded payload.
+        if (raw.length > 2000) return json({ error: "batch_too_large" }, 400, cors);
+
+        const { data: owned } = await admin()
+          .from("rideshare_trip_tracks")
+          .select("id,status")
+          .eq("id", tripId).eq("user_id", userId).maybeSingle();
+        if (!owned) return json({ error: "trip_not_found" }, 404, cors);
+
+        const num = (v: unknown, lo: number, hi: number): number | null => {
+          const n = Number(v);
+          return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
+        };
+        const rows = raw.map((p: Record<string, unknown>) => {
+          const lat = num(p.lat, -90, 90);
+          const lon = num(p.lon, -180, 180);
+          const t = typeof p.t === "number" ? p.t : Date.parse(String(p.t));
+          if (lat == null || lon == null || !Number.isFinite(t)) return null;
+          return {
+            trip_id: tripId,
+            user_id: userId,
+            t: new Date(t).toISOString(),
+            lat, lon,
+            accuracy_m: num(p.accuracy_m, 0, 100_000),
+            speed_mps: num(p.speed_mps, 0, 200),
+            heading_deg: num(p.heading_deg, -360, 360),
+            altitude_m: num(p.altitude_m, -500, 20_000),
+          };
+        }).filter(Boolean);
+        if (!rows.length) return json({ ok: true, inserted: 0 }, 200, cors);
+
+        // Upload is at-least-once: the recorder replays its buffer after a
+        // network drop, so the unique (trip, t) index absorbs the repeats.
+        const { error } = await admin()
+          .from("rideshare_trip_points")
+          .upsert(rows, { onConflict: "trip_id,t", ignoreDuplicates: true });
+        if (error) throw error;
+
+        const { count } = await admin()
+          .from("rideshare_trip_points")
+          .select("id", { count: "exact", head: true })
+          .eq("trip_id", tripId);
+        await admin().from("rideshare_trip_tracks")
+          .update({ point_count: count ?? 0, updated_at: new Date().toISOString() })
+          .eq("id", tripId).eq("user_id", userId);
+
+        return json({ ok: true, inserted: rows.length, total: count ?? 0 }, 200, cors);
+      }
+
+      case "trip.end": {
+        const tripId = str(body.trip_id, 60);
+        if (!tripId) return json({ error: "trip_id_required" }, 400, cors);
+        const { data, error } = await admin().from("rideshare_trip_tracks")
+          .update({ status: "ended", ended_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("id", tripId).eq("user_id", userId).select().single();
+        if (error) throw error;
+        return json({ trip: data }, 200, cors);
+      }
+
+      case "trip.analyze": {
+        const tripId = str(body.trip_id, 60);
+        if (!tripId) return json({ error: "trip_id_required" }, 400, cors);
+        const { data: trip } = await admin().from("rideshare_trip_tracks")
+          .select("*").eq("id", tripId).eq("user_id", userId).maybeSingle();
+        if (!trip) return json({ error: "trip_not_found" }, 404, cors);
+
+        // Paged read: a long ride exceeds the default row ceiling, and a
+        // silently truncated trace would be analysed as a shorter, cleaner
+        // trip than the one that happened.
+        const points: Record<string, unknown>[] = [];
+        const PAGE = 1000;
+        for (let from = 0; from < 60_000; from += PAGE) {
+          const { data: page, error: pErr } = await admin()
+            .from("rideshare_trip_points")
+            .select("t,lat,lon,accuracy_m,speed_mps,heading_deg,altitude_m")
+            .eq("trip_id", tripId)
+            .order("t", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (pErr) throw pErr;
+          if (!page?.length) break;
+          points.push(...page);
+          if (page.length < PAGE) break;
+        }
+
+        let analysis;
+        try {
+          analysis = await analyseTrip(points as never);
+        } catch (e) {
+          await admin().from("rideshare_trip_tracks")
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", tripId).eq("user_id", userId);
+          return json({ error: "analysis_failed", message: String((e as Error).message) }, 500, cors);
+        }
+
+        const { data: saved, error: sErr } = await admin().from("rideshare_trip_tracks").update({
+          status: "analyzed",
+          ended_at: trip.ended_at ?? new Date().toISOString(),
+          duration_s: analysis.durationS,
+          distance_m: analysis.distanceM,
+          max_speed_mps: analysis.maxSpeedMps,
+          avg_speed_mps: analysis.avgSpeedMps,
+          moving_s: analysis.movingS,
+          stopped_s: analysis.stoppedS,
+          coverage_gap_s: analysis.coverageGapS,
+          point_count: analysis.retainedCount,
+          streets: analysis.streets,
+          events: analysis.events,
+          analysis: {
+            summary: analysis.summary,
+            quality: analysis.quality,
+            roadData: analysis.roadData,
+            avgMovingSpeedMps: analysis.avgMovingSpeedMps,
+            droppedForAccuracy: analysis.droppedForAccuracy,
+            rawPointCount: analysis.pointCount,
+            analyzedAt: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        }).eq("id", tripId).eq("user_id", userId).select().single();
+        if (sErr) throw sErr;
+
+        return json({ trip: saved, analysis }, 200, cors);
+      }
+
+      case "trip.list": {
+        const { data, error } = await admin()
+          .from("rideshare_trip_tracks")
+          .select("id,ride_id,platform,label,status,started_at,ended_at,duration_s,distance_m,max_speed_mps,avg_speed_mps,moving_s,stopped_s,coverage_gap_s,point_count,streets,events,analysis")
+          .eq("user_id", userId)
+          .order("started_at", { ascending: false })
+          .limit(25);
+        if (error) throw error;
+        return json({ trips: data || [] }, 200, cors);
+      }
+
+      case "trip.track": {
+        const tripId = str(body.trip_id, 60);
+        if (!tripId) return json({ error: "trip_id_required" }, 400, cors);
+        const { data: trip } = await admin().from("rideshare_trip_tracks")
+          .select("*").eq("id", tripId).eq("user_id", userId).maybeSingle();
+        if (!trip) return json({ error: "trip_not_found" }, 404, cors);
+        const { data: pts } = await admin().from("rideshare_trip_points")
+          .select("t,lat,lon,speed_mps,accuracy_m,altitude_m")
+          .eq("trip_id", tripId).order("t", { ascending: true }).limit(20_000);
+        if (body.format === "gpx") {
+          return new Response(
+            toGpx((pts || []) as never, trip.label || `Asherin trip ${trip.started_at}`),
+            { status: 200, headers: { ...cors, "Content-Type": "application/gpx+xml" } },
+          );
+        }
+        return json({ trip, points: pts || [] }, 200, cors);
+      }
+
+      case "trip.delete": {
+        const tripId = str(body.trip_id, 60);
+        if (!tripId) return json({ error: "trip_id_required" }, 400, cors);
+        await admin().from("rideshare_trip_tracks").delete().eq("id", tripId).eq("user_id", userId);
+        return json({ ok: true }, 200, cors);
+      }
+
 
       // ── phone-message analysis ─────────────────────────────────────────
       case "message.ingest": {

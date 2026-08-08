@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Car, MessageSquare, ShieldAlert, Loader2, Trash2, Download, RefreshCw } from "lucide-react";
+import { Car, MessageSquare, ShieldAlert, Loader2, Trash2, Download, RefreshCw, Route } from "lucide-react";
+import TripRecorderTab from "./TripRecorderTab";
 
 /**
  * GUARDIAN — rideshare driver assessment and phone-message analysis.
@@ -327,9 +328,16 @@ const RideshareGuardian = () => {
       <Tabs defaultValue="rides" className="flex flex-1 flex-col overflow-hidden">
         <TabsList className="mx-5 mt-3 w-fit">
           <TabsTrigger value="rides"><Car className="mr-1.5 h-3.5 w-3.5" />Rides</TabsTrigger>
+          <TabsTrigger value="recorder"><Route className="mr-1.5 h-3.5 w-3.5" />Trip recorder</TabsTrigger>
           <TabsTrigger value="messages"><MessageSquare className="mr-1.5 h-3.5 w-3.5" />Phone messages</TabsTrigger>
           <TabsTrigger value="settings">Alerting</TabsTrigger>
         </TabsList>
+
+        {/* ── TRIP RECORDER ─────────────────────────────────────────────── */}
+        <TabsContent value="recorder" className="flex-1 overflow-hidden">
+          <TripRecorderTab />
+        </TabsContent>
+
 
         {/* ── RIDES ─────────────────────────────────────────────────────── */}
         <TabsContent value="rides" className="flex-1 overflow-hidden">
