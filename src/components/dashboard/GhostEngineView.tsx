@@ -57,8 +57,9 @@ const GhostEngineView = () => {
     setSelected(null);
     try {
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
-        body: { query: q, limit: 12 },
+        body: { query: q, limit: 12, capture },
       });
+
       if (controller.signal.aborted) return;
 
       if (error) {
