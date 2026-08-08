@@ -155,7 +155,13 @@ export async function collectDossier(
 
   // ── Phase B: identity collection, re-seeded by the pivot ─────────────────
   const plan = collectionPlan(ride, pivot.bestFullName);
+  if (!plan.length) {
+    // Unbound: nothing may be attributed to the person, but the car, the
+    // pickup and the locality still carry rider-safety signal.
+    blocks.push(await unboundContextSweep(ride, Math.min(14_000, Math.max(6_000, budgetMs - (Date.now() - started) - 4_000))));
+  }
   const queue = [...plan];
+
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
