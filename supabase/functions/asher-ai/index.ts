@@ -552,7 +552,7 @@ serve(async (req) => {
       const userBroughtGemini = !!(headerKey || byokGeminiKey);
       const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
-      const yt = mapEditFast
+      const yt = (mapEditFast || cloudIntelFast)
         ? { fired: false, evidence: "" }
         : await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
       if (yt.fired) youtubeBlock = yt.evidence;
