@@ -85,6 +85,28 @@ export interface IntelNotice {
    * alerts use it to surface a "Not you? Lock the account" escape hatch.
    */
   secondaryCta?: { label: string; url: string };
+
+  // ── ICD 203 / ICD 206 analytic apparatus ─────────────────────────────────
+  // Optional on purpose. A module that supplies none of these still ships to
+  // standard, because the bus supplies the mandated sections and says out loud
+  // where the module left a gap. What the bus will NOT do is invent a
+  // confidence level or a probability the module did not derive.
+  /** Question addressed, period covered, what is out of scope. */
+  scopeNote?: string | null;
+  /** ICD 206 aggregate characterisation of the sourcing base. */
+  sourceSummary?: string | null;
+  /** Forward projection, kept separate from current-state judgments. */
+  outlook?: string | null;
+  /** Competing explanations and the observable that would flip the judgment. */
+  alternatives?: string[] | null;
+  /** What is not known, and what collection would resolve it. */
+  gaps?: string[] | null;
+  /** Evidence-quality axis. Never inferred from severity — they are unrelated. */
+  confidence?: ConfidenceLevel | null;
+  /** Information cutoff for the assessment. */
+  reportingCutoff?: string | null;
+  /** Redistribution restrictions. */
+  handling?: string | null;
 }
 
 export interface IntelDelivery {
