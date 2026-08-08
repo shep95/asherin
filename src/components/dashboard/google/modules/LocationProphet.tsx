@@ -26,6 +26,7 @@ const WINDOW_FORWARD_DAYS = 30;
 
 const LocationProphet = () => {
   const { fetchGoogleData, isConnected } = useGoogleApi();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
