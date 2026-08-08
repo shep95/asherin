@@ -63,8 +63,9 @@ const RULES: Record<Exclude<IntentDomain, "general" | "smalltalk">, Rule[]> = {
     [3, /\b(is it (legal|illegal|lawful)|am i allowed|can (i|they|he|she) legally|do i have (the )?right)\b/i],
     [3, /\b(sue|suing|lawsuit|subpoena|indict(ed|ment)?|felony|misdemeanor|deposition|litigation|plaintiff|defendant)\b/i],
     [3, /\b(statute|ordinance|case law|precedent|jurisdiction|due process|habeas|tort|liab(le|ility))\b/i],
-    [2, /\b(landlord|tenant|eviction|custody|divorce|alimony|child support|restraining order)\b/i],
-    [2, /\b(contract|nda|non-?compete|lease|clause|breach of contract|terms of service|licen[cs]e agreement)\b/i],
+    [3, /\b(landlord|tenant|evict(ed|ion)?|custody|divorce|alimony|child support|restraining order)\b/i],
+    [3, /\b(breach of contract|non-?compete|nda|licen[cs]e agreement|terms of service)\b/i],
+    [2, /\b(contract|lease|clause|indemnit|arbitration|liab(le|ility) waiver)\b/i],
     [2, /\b(my rights|police (stop|search|report)|miranda|warrant|expunge|parole|probation)\b/i],
     [2, /\b(copyright|trademark|patent|infringement|defamation|libel|slander)\b/i],
     [1, /\b(law|legal|attorney|lawyer|court|judge|statutory|regulation)\b/i],
@@ -86,7 +87,8 @@ const RULES: Record<Exclude<IntentDomain, "general" | "smalltalk">, Rule[]> = {
   osint: [
     [3, /\b(background check|dossier|intelligence report|find (everything|info|details) (on|about)|look ?up this (person|guy|woman))\b/i],
     [3, /\b(osint|skip trace|people search|reverse (phone|image|email) (lookup|search))\b/i],
-    [2, /\b(who is|whois|address history|relatives|known associates|phone number|email address) \b/i],
+    [3, /\b(find (someone|somebody|a person)('| )?s? (address|phone|email|info)|track down (someone|somebody|a person))\b/i],
+    [2, /\b(who is|whois|address history|relatives|known associates|phone number|email address)\b/i],
     [2, /\b(license plate|plate number|vin|driver'?s licen[cs]e)\b/i],
     [1, /\b(investigate|profile|trace|records)\b/i],
   ],
@@ -114,7 +116,7 @@ const RULES: Record<Exclude<IntentDomain, "general" | "smalltalk">, Rule[]> = {
   security: [
     [3, /\b(am i being (hacked|tracked|followed|watched)|someone (changed|reset) my password|my account (was|got) (hacked|breached))\b/i],
     [2, /\b(stalker|surveillance|bluetooth tracker|airtag|evil twin|wifi (sentinel|intrusion)|phishing)\b/i],
-    [2, /\b(vpn|ip address|leak(ed)? (data|credentials)|breach|2fa|mfa)\b/i],
+    [2, /\b(vpn|ip address|leak(ed)? (data|credentials)|data breach|breached|2fa|mfa)\b/i],
     [1, /\b(security|secure|privacy|protect)\b/i],
   ],
   howto: [
@@ -126,7 +128,7 @@ const RULES: Record<Exclude<IntentDomain, "general" | "smalltalk">, Rule[]> = {
 };
 
 const DOMAIN_CEILING: Record<string, number> = {
-  legal: 8,
+  legal: 6,
   code: 7,
   market: 7,
   osint: 7,
@@ -150,7 +152,7 @@ const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
   legal: [],
 };
 
-const SMALLTALK = /^(?:(?:hi|hey|hello|yo|sup|thanks|thank you|ty|ok(?:ay)?|k|cool|nice|lol|lmao|haha|got it|makes sense|no worries|bye|gn|gm|please|yes|no|yep|nope|sure)[\s!.,?]*)+$/i;
+const SMALLTALK = /^(?:(?:hi|hey|hello|yo|sup|thanks|thank you|ty|ok(?:ay)?|k|cool|nice|lol|lmao|haha|got it|makes sense|no worries|bye|gn|gm|please|yes|no|yep|nope|sure|same|true|facts|right|word|fair|indeed|ikr|damn|wow|great|perfect|awesome)[\s!.,?]*)+$/i;
 
 /** Cap analysed length so a 200 KB paste cannot stall the composer. */
 const MAX_SCAN = 4000;
