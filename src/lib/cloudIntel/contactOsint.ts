@@ -616,6 +616,10 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
         },
       }),
       Promise.all(hardIdentifiers.map((id) => sweepIdentifierLeg(id, req.signal))),
+      dorkBatteryLeg(
+        { name, email, identifiers: hardIdentifiers, locationHint: req.locationHint ?? null },
+        req.signal,
+      ),
     ]);
 
     const identifierSweeps = sweepResults.filter(
@@ -634,7 +638,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       // The dossier failed, but a confirmed exposure register is still
       // intelligence — it is carried onto the failure annex rather than
       // discarded alongside the leg that did fail.
-      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps };
+      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps, dork };
     }
 
     const payload = data as { status?: string; dossier?: WireDoc | null; confidence?: number; message?: string } | null;
@@ -647,6 +651,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
           email,
         ),
         identifierSweeps,
+        dork,
       };
     }
 
@@ -659,7 +664,9 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
         email,
       }),
       identifierSweeps,
+      dork,
     };
+
   } catch (e) {
     return emptyAnnex("error", `Collection aborted: ${(e as Error).message.slice(0, 200)}`, name, email);
   }
