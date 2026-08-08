@@ -161,7 +161,51 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           Two plans. No trial countdown, no upsell wall. Cancel from the dashboard in one click —
           your data is exported or deleted on request.
         </p>
+
+        {/* Billing term */}
+        <div
+          role="radiogroup"
+          aria-label="Billing term"
+          className="mt-7 inline-flex items-center rounded-full border border-foreground/15 bg-background/50 p-1 backdrop-blur-xl"
+        >
+          {(["monthly", "semiannual"] as const).map((t) => (
+            <button
+              key={t}
+              role="radio"
+              aria-checked={term === t}
+              onClick={() => setTerm(t)}
+              className={`rounded-full px-5 py-2 text-[10px] font-light tracking-[0.2em] uppercase transition-colors ${
+                term === t
+                  ? "bg-foreground text-background"
+                  : "text-foreground/60 hover:text-foreground"
+              }`}
+            >
+              {t === "monthly" ? "Monthly" : "6 months"}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-5 max-w-2xl mx-auto text-[13px] font-extralight leading-relaxed text-muted-foreground/80">
+          We didn&rsquo;t want anyone living in survival mode over a subscription — liking the work
+          but bracing for a charge every thirty days, asking each month whether they can keep the
+          tools they build with. So there is a six-month term: pay once, then don&rsquo;t think
+          about it for half a year. Same price per month, none of the monthly dread.
+        </p>
+
+        <p
+          className="mt-3 text-[11px] font-extralight text-muted-foreground/55"
+          aria-live="polite"
+        >
+          {ppp.loading
+            ? "Checking regional pricing…"
+            : ppp.multiplier < 1
+              ? `Regional pricing applied for ${countryName(ppp.country)} — priced to what the local economy can carry, not the US sticker.`
+              : ppp.vpnSuspected
+                ? "Standard pricing — your connection changed networks in the last hour, so regional pricing is paused."
+                : `Standard pricing${ppp.country ? ` for ${countryName(ppp.country)}` : ""}.`}
+        </p>
       </div>
+
 
       <div className="grid gap-4 md:grid-cols-2">
         {PLANS.map((plan) => (
@@ -184,28 +228,52 @@ export default function SubscriptionPlans({ compact = false }: Props) {
             <h3 className="mt-3 text-2xl font-extralight tracking-tight text-foreground">
               {plan.name}
             </h3>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-5xl font-extralight tracking-tight text-foreground">
-                {plan.price}
-              </span>
-              <span className="text-sm text-muted-foreground font-extralight">{plan.period}</span>
-            </div>
-            <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-              {plan.description}
-            </p>
+            {(() => {
+              const q = quoteCents(ppp, plan.id, term);
+              const isSemi = term === "semiannual";
+              const perMonth = isSemi ? Math.round(q.cents / 6) : q.cents;
+              return (
+                <>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-5xl font-extralight tracking-tight text-foreground">
+                      {formatUsd(q.cents)}
+                    </span>
+                    <span className="text-sm text-muted-foreground font-extralight">
+                      {isSemi ? "/ 6 months" : "/month"}
+                    </span>
+                    {q.cents < q.baseCents && (
+                      <span className="text-sm font-extralight text-muted-foreground/50 line-through">
+                        {formatUsd(q.baseCents)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] font-extralight text-muted-foreground/60">
+                    {isSemi
+                      ? `Paid once — works out to ${formatUsd(perMonth)}/month, then renews every 6 months.`
+                      : "Billed every month."}
+                  </p>
+                  <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                    {plan.description}
+                  </p>
 
-            <button
-              onClick={() => handleSubscribe(plan.id)}
-              disabled={checkoutLoading && pendingId === plan.id}
-              className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-xs font-light tracking-[0.2em] uppercase transition-colors disabled:opacity-60 ${
-                plan.highlight
-                  ? "bg-foreground text-background hover:bg-foreground/90"
-                  : "border border-foreground/30 text-foreground hover:bg-foreground/5"
-              }`}
-            >
-              {checkoutLoading && pendingId === plan.id ? "Loading…" : plan.cta}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+                  <button
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={checkoutLoading && pendingId === plan.id}
+                    className={`mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-xs font-light tracking-[0.2em] uppercase transition-colors disabled:opacity-60 ${
+                      plan.highlight
+                        ? "bg-foreground text-background hover:bg-foreground/90"
+                        : "border border-foreground/30 text-foreground hover:bg-foreground/5"
+                    }`}
+                  >
+                    {checkoutLoading && pendingId === plan.id
+                      ? "Loading…"
+                      : `Subscribe — ${formatUsd(q.cents)}${isSemi ? " / 6 months" : " / month"}`}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              );
+            })()}
+
 
             <div className="mt-8 space-y-5">
               {plan.groups.map((g) => (
@@ -278,6 +346,13 @@ export default function SubscriptionPlans({ compact = false }: Props) {
       <p className="mt-6 text-center text-xs font-extralight text-muted-foreground/70">
         All prices in USD. Cancel anytime — no retention flow, no &ldquo;are you sure?&rdquo; loop.
       </p>
+      <p className="mt-2 text-center text-[11px] font-extralight leading-relaxed text-muted-foreground/50 max-w-2xl mx-auto">
+        Regional pricing is resolved from the network your request actually arrives on and is
+        re-checked at checkout. Rotating IPs, hopping countries or routing through a
+        datacenter/VPN network within the hour simply returns you to standard pricing — nothing is
+        blocked, nothing is punished. It exists so the discount reaches the people it was built for.
+      </p>
+
       {!user && (
         <p className="mt-2 text-center text-xs font-extralight text-muted-foreground/50">
           <Link to="/dashboard" className="underline hover:text-foreground">Sign in</Link> to subscribe.
