@@ -280,10 +280,10 @@ async function runLegZophiel(bearer: string, supabaseUrl: string, leg: HarvestLe
       body: JSON.stringify({ query: leg.query, mode: "web", fast: true }),
       signal: ctrl.signal,
     });
-    if (!res.ok) return [];
+    if (!res.ok) { console.log(`[ghostHarvest] zophiel leg "${leg.label}" -> HTTP ${res.status}`); return []; }
     const j = await res.json() as { results?: Array<{ url: string; title?: string; snippet?: string; engine?: string }> };
     return (j.results || []).slice(0, 40).map((r) => ({ url: r.url, title: r.title, snippet: r.snippet, engine: r.engine || "zophiel" }));
-  } catch { return []; }
+  } catch (e) { console.log(`[ghostHarvest] zophiel leg "${leg.label}" failed: ${(e as Error).message}`); return []; }
   finally { clearTimeout(t); }
 }
 
