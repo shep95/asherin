@@ -1487,7 +1487,7 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
-      case "ghost-engine": return gatedView("ghost-engine", GhostEngineView, "Asherin Ghost Engine", "The metadata-only search engine — transport headers, DNS/ASN posture, EXIF capture fields, document producers, and the contradictions between them. Available on the Asherin Pro plan.");
+      case "ghost-engine": return gatedView("ghost-engine", GhostEngineView, "Asherin Engine", "The metadata-only search engine — transport headers, DNS/ASN posture, EXIF capture fields, document producers, and the contradictions between them. Available on the Asherin Pro plan.");
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
       case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");

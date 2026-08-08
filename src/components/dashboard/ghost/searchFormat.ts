@@ -1,4 +1,4 @@
-// Ghost Engine — search-surface formatting helpers.
+// Asherin Engine — search-surface formatting helpers.
 //
 // The backend already ranks and snippets; these helpers exist so the client can
 // render, group and re-suggest without a second round-trip, and so the same

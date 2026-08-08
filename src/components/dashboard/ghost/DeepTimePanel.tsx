@@ -3,7 +3,7 @@
 //
 // The intercept surface answers "what is being served about this right now".
 // This one answers "how far back does the record go, and which hosts died".
-// Every row is a document the Ghost Engine opened and dated itself — no outside
+// Every row is a document the Asherin Engine opened and dated itself — no outside
 // capture archive is consulted, and nothing is interpolated between years.
 // ─────────────────────────────────────────────────────────────────────────────
 
