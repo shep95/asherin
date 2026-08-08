@@ -1,24 +1,39 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// DEEP TIME PANEL — the archived web, 1996 → today.
+// DEEP TIME PANEL — the engine's own reach-back.
 //
 // The intercept surface answers "what is being served about this right now".
-// This one answers "what was ever served, and when did it stop". Every row on
-// the era ladder is backed by a dated capture the operator can open; nothing is
-// interpolated between years, because a gap in the archive is itself evidence.
+// This one answers "how far back does the record go, and which hosts died".
+// Every row is a document the Ghost Engine opened and dated itself — no outside
+// capture archive is consulted, and nothing is interpolated between years.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { memo, useMemo, useState } from "react";
 import { Clock, ExternalLink, Library, Radar, Ghost, Skull } from "lucide-react";
 
+export type DateProof =
+  | "http-last-modified" | "jsonld" | "meta-published"
+  | "time-element" | "url-path" | "copyright" | "body-text";
+
 export interface TimeCapture {
   url: string;
-  wayback_url: string;
+  evidence_url: string;
   timestamp: string;
   year: number;
   status: string;
   mime: string;
-  digest: string;
-  source: "wayback" | "commoncrawl";
+  proof: DateProof;
+  raw: string;
+  title: string;
+  source: "probe";
+}
+
+export interface HostLifespan {
+  host: string;
+  first_year: number | null;
+  last_year: number | null;
+  documents: number;
+  alive: boolean;
+  resolves: boolean;
 }
 
 export interface TimeEra {
@@ -26,7 +41,7 @@ export interface TimeEra {
   captures: number;
   hosts: string[];
   sample_url: string | null;
-  sample_wayback: string | null;
+  sample_evidence: string | null;
 }
 
 export interface TimeMachineReport {
@@ -37,10 +52,7 @@ export interface TimeMachineReport {
   latest: TimeCapture | null;
   eras: TimeEra[];
   captures: TimeCapture[];
-  archive_items: Array<{
-    id: string; title: string; creator: string; date: string;
-    mediatype: string; url: string; excerpt: string;
-  }>;
+  hosts: HostLifespan[];
   hosts_probed: string[];
   dead_hosts: string[];
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
@@ -70,7 +82,7 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
     ? report.latest.year - report.earliest.year
     : 0;
 
-  const empty = !report.eras.length && !report.archive_items.length;
+  const empty = !report.eras.length;
 
   return (
     <div className="space-y-4">
@@ -84,13 +96,13 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
         <p className="mt-2 break-all text-[13px] text-foreground/90">{report.selector}</p>
         {report.earliest ? (
           <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground/75">
-            First archived trace <span className="text-foreground/90">{fmtDate(report.earliest.timestamp)}</span>
+            Oldest dated document <span className="text-foreground/90">{fmtDate(report.earliest.timestamp)}</span>
             {span > 0 && <> · a {span}-year presence through {report.latest?.year}</> }
-            {" "}· {report.captures.length} dated capture{report.captures.length === 1 ? "" : "s"} across {report.eras.length} year{report.eras.length === 1 ? "" : "s"}.
+            {" "}· {report.captures.length} dated document{report.captures.length === 1 ? "" : "s"} across {report.eras.length} year{report.eras.length === 1 ? "" : "s"}.
           </p>
         ) : (
           <p className="mt-2 text-[12px] text-muted-foreground/65">
-            No capture index holds a dated record for this selector.
+            Nothing the engine reached carried a date it could prove.
           </p>
         )}
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -114,8 +126,8 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
         <div className="flex items-start gap-2 rounded-lg border border-foreground/30 bg-foreground/[0.06] p-3 text-[11.5px] text-foreground/85">
           <Skull className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            {report.dead_hosts.join(", ")} answer{report.dead_hosts.length === 1 ? "s" : ""} nothing today but
-            {" "}exist{report.dead_hosts.length === 1 ? "s" : ""} in the archive. The live web has forgotten this; the captures have not.
+            {report.dead_hosts.join(", ")} carried this selector but answer{report.dead_hosts.length === 1 ? "s" : ""} nothing
+            {" "}today. A host that went dark is the highest-value lead in an origins search.
           </span>
         </div>
       )}
@@ -155,19 +167,20 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
                       {rows.slice(0, 40).map((c) => (
                         <li key={`${c.timestamp}-${c.url}`}>
                           <a
-                            href={c.wayback_url}
+                            href={c.evidence_url}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
                             className="flex items-baseline gap-2 py-0.5 text-[11.5px] text-muted-foreground/70 hover:text-foreground"
                           >
                             <span className="shrink-0 font-mono text-[10px] text-muted-foreground/45">{fmtDate(c.timestamp)}</span>
-                            <span className="min-w-0 flex-1 truncate">{c.url}</span>
+                            <span className="min-w-0 flex-1 truncate">{c.title || c.url}</span>
+                            <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground/35">{c.proof}</span>
                             <ExternalLink className="h-3 w-3 shrink-0 opacity-40" />
                           </a>
                         </li>
                       ))}
                       {rows.length > 40 && (
-                        <li className="text-[10px] text-muted-foreground/40">+{rows.length - 40} more captures this year</li>
+                        <li className="text-[10px] text-muted-foreground/40">+{rows.length - 40} more documents this year</li>
                       )}
                     </ul>
                   )}
@@ -178,29 +191,25 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
         </section>
       )}
 
-      {/* Full-text corpora */}
-      {report.archive_items.length > 0 && (
+      {/* Host lifespans */}
+      {report.hosts.length > 0 && (
         <section className="rounded-lg border border-border/15 bg-foreground/[0.02] p-4">
           <h3 className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
-            <Library className="h-3.5 w-3.5" /> Full-text record · {report.archive_items.length}
+            <Library className="h-3.5 w-3.5" /> Host lifespans · {report.hosts.length}
           </h3>
-          <ul className="space-y-3">
-            {report.archive_items.map((it) => (
-              <li key={it.id}>
-                <a
-                  href={it.url}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="text-[12.5px] text-foreground/85 hover:underline"
-                >
-                  {it.title || it.id}
-                </a>
-                <p className="mt-0.5 text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground/45">
-                  {[it.mediatype, it.creator, it.date?.slice(0, 10)].filter(Boolean).join(" · ")}
-                </p>
-                {it.excerpt && (
-                  <p className="mt-1 line-clamp-3 text-[11.5px] leading-relaxed text-muted-foreground/65">{it.excerpt}</p>
-                )}
+          <ul className="space-y-1.5">
+            {report.hosts.map((h) => (
+              <li key={h.host} className="flex items-center gap-3 text-[11.5px]">
+                <span className="min-w-0 flex-1 truncate text-foreground/85">{h.host}</span>
+                <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground/55">
+                  {h.first_year ? `${h.first_year}${h.last_year && h.last_year !== h.first_year ? `–${h.last_year}` : ""}` : "undated"}
+                </span>
+                <span className="w-10 shrink-0 text-right text-[10.5px] text-muted-foreground/45">{h.documents}</span>
+                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9.5px] uppercase tracking-[0.1em] ${
+                  h.alive ? "border-border/25 text-muted-foreground/55" : "border-foreground/35 text-foreground/85"
+                }`}>
+                  {h.alive ? "live" : h.resolves ? "silent" : "gone"}
+                </span>
               </li>
             ))}
           </ul>
@@ -209,7 +218,7 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
 
       {report.hosts_probed.length > 0 && (
         <p className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground/45">
-          <Radar className="h-3 w-3" /> Capture indexes queried for: {report.hosts_probed.join(", ")}
+          <Radar className="h-3 w-3" /> Hosts the engine probed: {report.hosts_probed.join(", ")}
         </p>
       )}
 
@@ -217,12 +226,11 @@ function DeepTimePanelBase({ report }: { report: TimeMachineReport }) {
         <div className="rounded-lg border border-border/15 p-6 text-center">
           <Ghost className="mx-auto mb-3 h-7 w-7 text-foreground/20" />
           <p className="text-[12.5px] text-muted-foreground/70">
-            The archives hold nothing dated for this selector.
+            Nothing the engine reached carried a provable date.
           </p>
           <p className="mx-auto mt-2 max-w-lg text-[11.5px] leading-relaxed text-muted-foreground/45">
-            Capture indexes are keyed by URL, not by person. A name reaches them only through the full-text corpora
-            or through a host already tied to it — run an intercept first, then come back and the hosts it found will
-            be carried into the reach-back.
+            Deep Time dates documents the engine opens itself. A bare name reaches further once hosts are tied to it —
+            run an intercept first, then come back and the hosts it found are carried into the reach-back.
           </p>
         </div>
       )}
