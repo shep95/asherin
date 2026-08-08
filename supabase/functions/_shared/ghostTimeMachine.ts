@@ -43,7 +43,8 @@ export type DateProof =
   | "url-path"
   | "copyright"
   | "body-text"
-  | "doc-metadata";
+  | "doc-metadata"
+  | "undated";
 
 export interface TimeCapture {
   url: string;
@@ -256,7 +257,7 @@ async function probeLead(
     return [{
       url: lead.url, evidence_url: lead.url,
       timestamp: "", year: 0, status: String(doc.status), mime: doc.mime,
-      proof: "doc-metadata", raw: "undated — retained on term match",
+      proof: "undated", raw: "no date declared — retained on term match",
       title, source: "probe" as const,
       doc_class: doc.docClass, meta: doc.meta, keywords: doc.keywords,
       terms: termHits, bytes: doc.bytes,

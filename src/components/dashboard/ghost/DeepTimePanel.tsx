@@ -12,7 +12,7 @@ import { Clock, ExternalLink, Library, Radar, Ghost, Skull, FileText, Fingerprin
 
 export type DateProof =
   | "http-last-modified" | "jsonld" | "meta-published"
-  | "time-element" | "url-path" | "copyright" | "body-text" | "doc-metadata";
+  | "time-element" | "url-path" | "copyright" | "body-text" | "doc-metadata" | "undated";
 
 export type DocClass =
   | "webpage" | "pdf" | "office" | "code" | "data" | "image" | "share" | "other";

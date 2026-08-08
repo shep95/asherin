@@ -194,6 +194,22 @@ const latin1 = (b: Uint8Array) => {
  * Never throws — an unreadable document is itself a finding and is returned
  * with `ok:false` and the reason attached.
  */
+/**
+ * PDF text strings are often UTF-16BE with a þÿ (FE FF) byte-order mark. Left
+ * raw they render as NUL-laced mojibake, so an author name becomes unreadable
+ * exactly when it matters most.
+ */
+export function decodePdfText(v: string): string {
+  if (v.startsWith("\u00fe\u00ff")) {
+    let out = "";
+    for (let i = 2; i + 1 < v.length; i += 2) {
+      out += String.fromCharCode((v.charCodeAt(i) << 8) | v.charCodeAt(i + 1));
+    }
+    return out.replace(/\u0000/g, "").trim();
+  }
+  return v.replace(/\u0000/g, "").trim();
+}
+
 export async function readDocument(url: string, timeoutMs = 12_000): Promise<DocRead> {
   const base: DocRead = {
     url, ok: false, status: 0, mime: "", docClass: "other",
@@ -217,7 +233,7 @@ export async function readDocument(url: string, timeoutMs = 12_000): Promise<Doc
       out.bytes = buf.length;
       const raw = latin1(buf);
       const info = parsePdfInfo(raw);
-      for (const [k, v] of Object.entries(info)) out.meta[`pdf:${k}`] = v;
+      for (const [k, v] of Object.entries(info)) out.meta[`pdf:${k}`] = decodePdfText(v);
       // XMP packets carry the authoring trail even when /Info was scrubbed.
       const xmp = raw.match(/<x:xmpmeta[\s\S]{0,20000}?<\/x:xmpmeta>/)?.[0] ?? "";
       for (const [key, re] of [
