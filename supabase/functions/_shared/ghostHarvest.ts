@@ -372,7 +372,7 @@ export async function harvestLeads(
   };
   if (!supabaseUrl || !bearer) return empty;
 
-  const concurrency = opts.concurrency ?? 4;
+  const concurrency = opts.concurrency ?? 6;
   const legTimeoutMs = opts.legTimeoutMs ?? 12_000;
   const maxLeads = opts.maxLeads ?? 300;
 
@@ -418,7 +418,7 @@ export async function harvestLeads(
   // Legs whose query already embedded the selector are trusted even when the
   // engine returns a snippet that omits the term — absence from a 160-char
   // preview is not absence from the page.
-  const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens)$/;
+  const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens|open:bare)$/;
   const relevant = all.filter((l) => LITERAL_LEGS.test(l.via) || leadIsRelevant(l, tokens, id));
 
   // ── Zophiel web filter ────────────────────────────────────────────────────
