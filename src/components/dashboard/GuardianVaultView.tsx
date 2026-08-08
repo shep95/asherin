@@ -868,12 +868,15 @@ const GuardianVaultView = () => {
                   <h3 className="text-xs font-light tracking-wider text-muted-foreground/60 uppercase">Channels</h3>
                   {([
                     { key: "notify_email", label: "Email Notifications", icon: Globe },
+                    { key: "notify_push", label: "Device Notifications (laptop & phone)", icon: Monitor },
                     { key: "notify_sms", label: "SMS Notifications", icon: Smartphone },
                   ] as { key: keyof NotifPrefs; label: string; icon: React.ElementType }[]).map(ch => (
                     <div key={ch.key} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/10 px-4 py-3">
                       <button
                         onClick={() => saveNotifPrefs({ ...notifPrefs, [ch.key]: !notifPrefs[ch.key] })}
-                        className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 relative ${
+                        aria-pressed={notifPrefs[ch.key]}
+                        aria-label={`${notifPrefs[ch.key] ? "Disable" : "Enable"} ${ch.label}`}
+                        className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           notifPrefs[ch.key] ? "bg-emerald-500/40" : "bg-foreground/10"
                         }`}
                       >
@@ -886,6 +889,73 @@ const GuardianVaultView = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* ── Device enrolment ──────────────────────────────────────
+                    A channel switch is only a wish: the alert cannot land
+                    until this browser has granted permission and registered
+                    an endpoint. This block shows the real state of that. */}
+                <div className="border-t border-border/10 pt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-xs font-light tracking-wider text-muted-foreground/60 uppercase">Alert Devices</h3>
+                    <button
+                      onClick={testDeviceAlerts}
+                      disabled={pushBusy || devices.length === 0}
+                      className="text-[10px] font-light tracking-wide px-2.5 py-1 rounded-lg border border-border/30 text-muted-foreground/70 hover:text-foreground hover:border-border/60 transition-colors disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Send test alert
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl border border-border/20 bg-card/10 px-4 py-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                      {pushStatus.state === "enabled"
+                        ? <Bell className="h-4 w-4 text-emerald-400/70" />
+                        : <BellOff className="h-4 w-4 text-muted-foreground/40" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-light text-foreground">This device</p>
+                        <p className="text-[10px] text-muted-foreground/40 mt-0.5" aria-live="polite">
+                          {pushStatus.state === "enabled"
+                            ? "Registered — security alerts will appear here even with Asherin closed."
+                            : pushStatus.reason ?? "Not registered. Enable to receive alerts on this device."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={toggleDeviceAlerts}
+                        disabled={pushBusy || pushStatus.state === "unsupported"}
+                        className="text-[10px] font-light tracking-wide px-3 py-1.5 rounded-lg border border-border/30 text-foreground hover:border-border/60 transition-colors disabled:opacity-30 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {pushBusy ? "Working…" : pushStatus.state === "enabled" ? "Turn off" : "Enable"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {devices.length === 0 ? (
+                    <p className="text-[10px] text-muted-foreground/30 px-1">
+                      No devices registered yet. Enable alerts on each laptop and phone you want notified.
+                    </p>
+                  ) : devices.map(d => (
+                    <div key={d.id} className="flex items-center gap-3 rounded-xl border border-border/15 bg-card/5 px-4 py-2.5">
+                      {d.platform === "iOS" || d.platform === "Android"
+                        ? <Smartphone className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        : <Monitor className="h-3.5 w-3.5 text-muted-foreground/40" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-light text-foreground truncate">{d.label ?? "Registered device"}</p>
+                        <p className="text-[10px] text-muted-foreground/35">
+                          Added {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
+                          {pushStatus.endpoint === d.endpoint ? " · this device" : ""}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => forgetDevice(d.endpoint)}
+                        aria-label={`Remove ${d.label ?? "device"} from alerts`}
+                        className="text-muted-foreground/30 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
               </div>
             </>
           )}
