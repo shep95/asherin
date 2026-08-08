@@ -601,7 +601,7 @@ const IntelligenceMapModule = () => {
   const [layerFilter, setLayerFilter] = useState("");
   const [sidebar, setSidebar] = useState(readSidebar);
   const [units, setUnits] = useState<Units>(readUnits);
-  const [tool, setTool] = useState<null | "directions" | "places" | "jobs">(null);
+  const [tool, setTool] = useState<null | "directions" | "places" | "jobs" | "cameras">(null);
   const [seedDest, setSeedDest] = useState<DirectionsEndpoint | null>(null);
   const [routeLayer, setRouteLayer] = useState<{ routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }>({ routes: [], activeId: null, highlight: null });
   const [cameras, setCameras] = useState<StreetCamera[]>([]);
