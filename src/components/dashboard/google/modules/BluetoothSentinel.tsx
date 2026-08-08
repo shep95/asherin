@@ -553,6 +553,9 @@ const BluetoothSentinel = () => {
       <Tabs defaultValue="devices">
         <TabsList>
           <TabsTrigger value="devices">Devices {flagged.length > 0 && `(${flagged.length})`}</TabsTrigger>
+          <TabsTrigger value="tradecraft">
+            Tradecraft {analysis && analysis.indicators.length > 0 && `(${analysis.indicators.length})`}
+          </TabsTrigger>
           <TabsTrigger value="area">Area risk</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
