@@ -356,6 +356,11 @@ Deno.serve(async (req) => {
                   candidates,
                   preciseAddress: precise?.address ?? null,
                   actorEmail: identity?.actorEmail ?? null,
+                  tradecraftTier: tradecraft?.tier ?? null,
+                  tradecraftScore: tradecraft?.score ?? null,
+                  tradecraftConfidence: tradecraft?.confidence ?? null,
+                  originClass: tradecraft?.origin.cls ?? null,
+                  camerasNearby: cameras?.cameras.length ?? null,
                 }
               : undefined,
           },
