@@ -251,6 +251,17 @@ const LocationProphet = () => {
                   Sweep
                 </button>
               )}
+              {isConnected && venues.length > 0 && (
+                <button
+                  onClick={() => {
+                    setPendingVenues(venues);
+                    navigate("/dashboard?tab=map");
+                  }}
+                  className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all"
+                >
+                  <MapPin className="h-3 w-3" /> Plot on map
+                </button>
+              )}
             </div>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
               {isConnected
