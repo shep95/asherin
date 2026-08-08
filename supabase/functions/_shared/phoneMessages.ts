@@ -205,20 +205,32 @@ export function parseVoiceEnvelope(
   const direction: "in" | "out" =
     labelIds.includes("SENT") || /txt\.voice\.google\.com/i.test(to) ? "out" : "in";
 
-  // The peer number lives, in order of reliability: in the Voice address local
-  // part, in the subject line ("New text message from +1 555…"), then in the
-  // body's attribution line.
+  // Peer resolution, in descending order of reliability:
+  //
+  //  1. The quoted display name on the From header. Voice puts the peer there
+  //     verbatim — a contact name when it knows one, otherwise the number.
+  //  2. The subject line: "New text message from (239) 391-8328".
+  //  3. The envelope local part, which is
+  //     `<operator voice number>.<peer number>.<opaque token>` — the FIRST
+  //     numeric segment is the operator's own line, so taking it would file
+  //     every conversation in the world under the operator's own number.
   const voiceAddr = /txt\.voice\.google\.com/i.test(from) ? from : to;
-  const localPart = (voiceAddr.match(/<?([^<>@\s]+)@txt\.voice\.google\.com/i)?.[1] ?? "")
-    .split(".").filter((seg) => phoneKey(seg).length >= 7)[0] ?? "";
+  const segs = (voiceAddr.match(/<?([^<>@\s]+)@txt\.voice\.google\.com/i)?.[1] ?? "")
+    .split(".").filter((seg) => phoneKey(seg).length >= 7);
+  const localPeer = segs.length > 1 ? segs[1] : (segs[0] ?? "");
 
-  const peer = firstPhone(localPart, subject, body);
-  const nameMatch = /(?:from|to)\s+([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})/u.exec(subject);
   const quoted = /"([^"]{2,60})"\s*</.exec(from)?.[1] ?? "";
+  const quotedIsNumber = !!quoted && phoneKey(quoted).length >= 7;
+  const peer = firstPhone(quotedIsNumber ? quoted : "", subject, localPeer);
+
+  const nameMatch = /(?:from|to)\s+([A-Z][\p{L}'’.-]+(?:\s+[A-Z][\p{L}'’.-]+){0,3})/u.exec(subject);
   const peerName = clip(
-    quoted && !PHONE_IN_TEXT.test(quoted) ? quoted : (nameMatch?.[1] ?? ""),
+    (quoted && !quotedIsNumber ? quoted : (nameMatch?.[1] ?? ""))
+      // Voice suffixes the channel onto the contact name — "Jonas (SMS)".
+      .replace(/\s*\((?:SMS|MMS|Voicemail|Text)\)\s*$/i, ""),
     120,
   );
+
 
   const text = stripVoiceFooter(body);
   if (!peer && !text) return null;
