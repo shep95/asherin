@@ -36,6 +36,12 @@ import AnalysisPanel from "@/components/asher/AnalysisPanel";
 import SelfLocationLayer from "@/components/asher/SelfLocationLayer";
 import SelfTrackPanel from "@/components/asher/SelfTrackPanel";
 import { useSelfTracking, bearingDeg, compass16, fmtSpeed } from "@/lib/asher/selfTrack";
+import MyDevicesLayer from "@/components/asher/MyDevicesLayer";
+import MyDevicesPanel from "@/components/asher/MyDevicesPanel";
+import {
+  locateGroup, locateDevice, fmtAge,
+  type LocatedDevice,
+} from "@/lib/asher/findMy";
 
 
 import {
@@ -118,6 +124,9 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-eth",   label: "Ethnic Groups",       status: "soon" },
     { id: "d-rel",   label: "Religious Groups",    status: "soon" },
     { id: "d-lang",  label: "Language Distribution", status: "soon" },
+  ]},
+  { id: "assets", label: "My Devices (Find-My)", layers: [
+    { id: "my-devices", label: "Owned BLE Gear — Group Map", status: "live" },
   ]},
   { id: "threats", label: "Natural Hazards", layers: [
     { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
@@ -644,6 +653,16 @@ const IntelligenceMapModule = () => {
      card streams the same entity slices the side drawer shows. */
   const [focusPin, setFocusPin] = useState<FocusPinTarget | null>(null);
 
+  /* FIND-MY — owned BLE gear rendered as assets, not threats. The roster comes
+     from `ble_owned_devices`; positions are fused server-side from every
+     Asherin scanner that heard the fingerprint (crowd relay), and the finder's
+     identity never crosses the boundary. */
+  const [showMyDevices, setShowMyDevices] = useState(false);
+  const [myDevices, setMyDevices] = useState<LocatedDevice[]>([]);
+  const [myDevicesLoading, setMyDevicesLoading] = useState(false);
+  const [focusedDevice, setFocusedDevice] = useState<string | null>(null);
+  const [deviceBreadcrumb, setDeviceBreadcrumb] = useState<Array<{ lat: number; lng: number; seen_at: string }>>([]);
+
 
   // The case id must be readable from inside the persistence funnel without
   // re-creating it on every render — a ref keeps the closure permanently fresh.
@@ -888,6 +907,56 @@ const IntelligenceMapModule = () => {
     setSeedDest(dest);
     setTool("directions");
   }, []);
+
+  /* ── FIND-MY ─────────────────────────────────────────────────────────────
+     One round trip returns the newest fix per owned device. Polling is slow
+     (45 s) and only while the layer is visible: BLE sightings arrive on the
+     scanner's duty cycle, so a tighter loop would burn quota for no new truth. */
+  const refreshMyDevices = useCallback(async () => {
+    setMyDevicesLoading(true);
+    try {
+      const rows = await locateGroup(24);
+      setMyDevices(rows);
+      setFocusedDevice((prev) => (prev && rows.some((r) => r.fingerprint === prev) ? prev : null));
+    } catch (e: any) {
+      toast.error(`Find-My unavailable — ${e?.message ?? "unknown error"}`);
+    } finally {
+      setMyDevicesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showMyDevices) return;
+    let alive = true;
+    const tick = () => { if (alive) void refreshMyDevices(); };
+    tick();
+    const id = window.setInterval(tick, 45_000);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [showMyDevices, refreshMyDevices]);
+
+  const focusDevice = useCallback(async (fingerprint: string) => {
+    setFocusedDevice(fingerprint);
+    const d = myDevices.find((x) => x.fingerprint === fingerprint);
+    if (d?.fused) flyTo(d.fused.lat, d.fused.lng, 17);
+    try {
+      const { breadcrumb } = await locateDevice(fingerprint, 24);
+      setDeviceBreadcrumb(breadcrumb);
+    } catch {
+      setDeviceBreadcrumb([]);
+    }
+  }, [myDevices]);
+
+  const fitAllDevices = useCallback(() => {
+    const pts = myDevices.filter((d) => d.fused).map((d) => [d.fused!.lat, d.fused!.lng] as [number, number]);
+    if (!pts.length || !mapRef.current) return;
+    if (pts.length === 1) { flyTo(pts[0][0], pts[0][1], 17); return; }
+    try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 17 }); } catch {}
+  }, [myDevices]);
+
+  const routeToDevice = useCallback((d: LocatedDevice) => {
+    if (!d.fused) return;
+    openDirectionsTo({ label: d.label, lat: d.fused.lat, lng: d.fused.lng });
+  }, [openDirectionsTo]);
 
   const handleRoutes = useCallback((payload: { routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }) => {
     const { routes, activeId } = payload;
@@ -1685,6 +1754,43 @@ const IntelligenceMapModule = () => {
       }
     }
 
+    /* FIND-MY — "where's my laptop". The roster is the only namespace the model
+       may address; an unmatched name returns the roster rather than guessing. */
+    if (a.type === "locate_device") {
+      setShowMyDevices(true);
+      let rows: LocatedDevice[];
+      try {
+        rows = await locateGroup(24);
+      } catch (e: any) {
+        return `Find-My is unavailable right now (${e?.message ?? "unknown error"}).`;
+      }
+      setMyDevices(rows);
+      if (!rows.length) return "You have no claimed devices yet. Tag one in the My Devices panel — it must have been heard within 5 m by your own scanner on two separate days.";
+
+      const needle = (a.name || "").trim().toLowerCase();
+      const match = needle
+        ? rows.find((d) => d.label.toLowerCase() === needle)
+          ?? rows.find((d) => d.label.toLowerCase().includes(needle))
+          ?? rows.find((d) => d.kind.toLowerCase() === needle)
+        : rows.length === 1 ? rows[0] : undefined;
+
+      if (!match) {
+        const list = rows.map((d) => `- ${d.label} (${d.kind}) — ${d.fused ? d.fused.caption : "no sighting in 24 h"}`).join("\n");
+        return `Name the device. Your roster:\n${list}`;
+      }
+      if (!match.fused) {
+        return `${match.label} has no sighting in the last 24 hours. Nothing on the mesh has heard it, so I will not invent a position. Last known state: ${match.effectiveState}.`;
+      }
+      setFocusedDevice(match.fingerprint);
+      flyTo(match.fused.lat, match.fused.lng, 17);
+      try {
+        const { breadcrumb } = await locateDevice(match.fingerprint, 24);
+        setDeviceBreadcrumb(breadcrumb);
+      } catch { setDeviceBreadcrumb([]); }
+      const f = match.fused;
+      return `${match.label} — ${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}, confidence ±${f.radiusM} m. ${f.caption}. State: ${match.effectiveState}${match.state === "stolen" ? " (declared stolen — breadcrumb trail is live)" : ""}. Last heard ${fmtAge(f.lastSeenAt)}. Map is on it.`;
+    }
+
     if (a.type === "distance_from_me") {
       const f = track.fix;
       if (!f) return "No operator fix — start tracking before asking for range from your position.";
@@ -1838,9 +1944,12 @@ const IntelligenceMapModule = () => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
+                      const isMyDevices = l.id === "my-devices";
                       const isActive = isBase
                         ? l.id === activeBase
-                        : isThreat ? !!activeThreats[l.id as ThreatId] : isBoundary ? showTacticalBorders : false;
+                        : isThreat ? !!activeThreats[l.id as ThreatId]
+                        : isBoundary ? showTacticalBorders
+                        : isMyDevices ? showMyDevices : false;
                       return (
                         <button
                           key={l.id}
@@ -1849,6 +1958,7 @@ const IntelligenceMapModule = () => {
                             if (isBase) setActiveBase(l.id);
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
+                            else if (isMyDevices) setShowMyDevices((p) => !p);
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors ${
@@ -1876,6 +1986,18 @@ const IntelligenceMapModule = () => {
             );
           })}
         </div>
+
+        {showMyDevices && (
+          <MyDevicesPanel
+            devices={myDevices}
+            loading={myDevicesLoading}
+            focused={focusedDevice}
+            onRefresh={refreshMyDevices}
+            onFocus={focusDevice}
+            onFitAll={fitAllDevices}
+            onRoute={routeToDevice}
+          />
+        )}
 
         <AnnotationPanel
           annotations={annotations}
@@ -2188,6 +2310,16 @@ const IntelligenceMapModule = () => {
               </Popup>
             </CircleMarker>
           ))}
+
+          {showMyDevices && (
+            <MyDevicesLayer
+              devices={myDevices}
+              focusedFingerprint={focusedDevice}
+              breadcrumb={focusedDevice ? deviceBreadcrumb : []}
+              onFocus={focusDevice}
+              onRoute={routeToDevice}
+            />
+          )}
 
           <MapClick onClick={handleMapClick} />
           <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
