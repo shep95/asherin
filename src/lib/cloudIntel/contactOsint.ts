@@ -407,7 +407,94 @@ function toAnnex(
     keyJudgments: synthesizeJudgments(facts, associations, metrics),
     gaps: doc.gaps ?? [],
     reverse: doc.reverse ?? null,
+    // Filled by the parallel sweep leg in collectContactOsint; the vault
+    // dossier itself has no view of identifier circulation.
+    identifierSweeps: [],
   };
+}
+
+// ─────────────────── identifier exposure leg (Asherin Engine) ───────────────
+
+interface RawSurface {
+  host: string;
+  surfaceClass: string;
+  sightings: unknown[];
+  firstSeen: string | null;
+  lastSeen: string | null;
+}
+
+const EXPOSED_CLASSES = new Set(["paste", "breach-index"]);
+
+/**
+ * Sweep one hard identifier through the Asherin Engine and fold the register
+ * down to what a background report needs.
+ *
+ * Never throws and never propagates its own abort: a background check that
+ * dies because one exposure leg timed out is worse than one that reports the
+ * leg as thin. Each identifier carries its own deadline so a slow sweep cannot
+ * hold the whole contact report hostage.
+ */
+async function sweepIdentifierLeg(
+  identifier: string,
+  signal?: AbortSignal,
+): Promise<IdentifierSweepSummary | null> {
+  const base: IdentifierSweepSummary = {
+    identifier, kind: "unknown", surfaces: 0, confirmed: 0,
+    firstSeen: null, lastSeen: null, exposed: [], top: [], blocker: null,
+  };
+  try {
+    const { data, error } = await supabase.functions.invoke("ghost-engine", {
+      body: { action: "identifier", query: identifier, budgetMs: 70_000, limit: 24, maxLeads: 140 },
+    });
+    if (signal?.aborted) return null;
+    if (error) {
+      let detail = error.message ?? "unknown error";
+      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
+      if (ctx?.text) {
+        try { detail = (await ctx.text()).slice(0, 200) || detail; } catch { /* consumed */ }
+      }
+      return { ...base, blocker: `Exposure sweep unavailable: ${detail}` };
+    }
+
+    const report = (data as { report?: {
+      identity?: { kind?: string };
+      surfaces?: RawSurface[];
+      confirmed?: number;
+      firstSeen?: string | null;
+      lastSeen?: string | null;
+      notes?: string[];
+    } } | null)?.report;
+    if (!report) return { ...base, blocker: "Exposure sweep returned no register." };
+
+    const surfaces = Array.isArray(report.surfaces) ? report.surfaces : [];
+    return {
+      identifier,
+      kind: report.identity?.kind ?? "unknown",
+      surfaces: surfaces.length,
+      confirmed: Number(report.confirmed ?? 0),
+      firstSeen: report.firstSeen ?? null,
+      lastSeen: report.lastSeen ?? null,
+      exposed: surfaces
+        .filter((s) => EXPOSED_CLASSES.has(s.surfaceClass))
+        .slice(0, 8)
+        .map((s) => ({ host: s.host, surfaceClass: s.surfaceClass, lastSeen: s.lastSeen })),
+      top: surfaces
+        .slice()
+        .sort((a, b) => (b.sightings?.length ?? 0) - (a.sightings?.length ?? 0))
+        .slice(0, 6)
+        .map((s) => ({
+          host: s.host,
+          surfaceClass: s.surfaceClass,
+          sightings: s.sightings?.length ?? 0,
+          lastSeen: s.lastSeen,
+        })),
+      blocker: surfaces.length === 0
+        ? "No surface confirmed to carry this identifier on the reachable public web."
+        : null,
+    };
+  } catch (e) {
+    return { ...base, blocker: `Exposure sweep aborted: ${(e as Error).message.slice(0, 160)}` };
+  }
 }
 
 /** An annex that reports its own failure rather than being silently omitted. */
