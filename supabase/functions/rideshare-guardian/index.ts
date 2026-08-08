@@ -349,7 +349,6 @@ Deno.serve(async (req) => {
           plate: row.plate, vehicle: row.vehicle, city: row.city,
           pickup_label: row.pickup_label, trip_url: row.trip_url,
         };
-        const fast = fastPass(ride);
 
         let key;
         try {
@@ -361,61 +360,19 @@ Deno.serve(async (req) => {
           ? { provider: "google" as const, model: "gemini-flash-latest", apiKey: key.geminiKey! }
           : key.byok!;
 
-        // Collection: only run a sweep when there is something nameable to
-        // sweep for. A plate alone produces noise, not intelligence.
-        let intelContext = "";
-        let collectionNote = "No name available — no public-record collection was attempted.";
-        if (ride.driver_name) {
-          const q = `background check on ${ride.driver_name}${ride.city ? ` in ${ride.city}` : ""}`;
-          const intent = classifyIntent(q);
-          if (intent.kind !== "none") {
-            const bundle = await runJurisdictionalSearch(intent);
-            intelContext = formatIntelContext(bundle);
-            collectionNote = `Collected ${bundle.totalHits ?? 0} open-source hits across ${bundle.jurisdictionLabel || "unspecified jurisdiction"}.`;
-          } else {
-            collectionNote = "Query could not be resolved to a jurisdiction — collection skipped.";
-          }
-        }
-
-        const raw = await callByokJsonWithRetry(
+        // One engine, two entry points: the desk and the autopilot must produce
+        // identical dossiers, so the sweep itself lives in the shared module.
+        const { deep, delivered } = await runDeepSweep({
+          userId,
+          userEmail,
+          rideId: row.id,
+          ride,
           cfg,
-          DEEP_SYSTEM_PROMPT,
-          buildDeepUserPrompt(ride, intelContext),
-          { temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 3 },
-        );
-
-        let parsedModel: unknown = {};
-        try {
-          parsedModel = JSON.parse(raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
-        } catch {
-          parsedModel = {};
-        }
-        const deep = enforceDoctrine(parsedModel, fast);
-        (deep.payload as Record<string, unknown>).collection_note = collectionNote;
-
-        const settings = await loadSettings(userId);
-        const delivered = await deliver(userId, userEmail, ride, deep, settings, row.id);
-
-        await admin().from("rideshare_reports").upsert({
-          ride_id: row.id,
-          user_id: userId,
-          phase: "deep",
-          verdict: deep.verdict,
-          confidence: deep.confidence,
-          score: deep.score,
-          headline: deep.headline,
-          payload: deep.payload,
-          delivered_channels: delivered,
-        }, { onConflict: "ride_id,phase" });
-
-        await admin().from("rideshare_rides").update({
-          status: "deep_done",
-          verdict: deep.verdict,
-          confidence: deep.confidence,
-          updated_at: new Date().toISOString(),
-        }).eq("id", row.id);
+          settings: await loadSettings(userId),
+        });
 
         return json({ deep, delivered, report_text: reportText(ride, deep) }, 200, cors);
+
       }
 
       case "ride.list": {
