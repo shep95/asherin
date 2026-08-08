@@ -152,12 +152,27 @@ export async function buildLocationTimeline(
 const whereOf = (o: Observation) =>
   [o.city, o.region, o.country].filter(Boolean).join(", ") || o.ip || "unknown";
 
+/** Countries normalise inconsistently across enrichers ("Netherlands" vs "The Netherlands"). */
+const canonCountry = (c: string) =>
+  c.toLowerCase().replace(/^the\s+/, "").replace(/\s+/g, " ").trim();
+
 /**
- * Physics-based tunnel detection.
+ * Tunnel detection on two independent tracks, because each covers the other's
+ * blind spot.
  *
- * Only observations that carry BOTH coordinates can be compared, and only
- * consecutive DISTINCT places are considered — comparing an IP against itself
- * produces zero-distance noise that would drown the real jumps.
+ * TRACK 1 — physics. Where both observations carry coordinates, distance over
+ * elapsed time gives an implied ground speed. Above what an aircraft can do,
+ * one of the two positions is a tunnel exit.
+ *
+ * TRACK 2 — borders. Coordinates are frequently absent (older session rows,
+ * enrichers that returned only a country), and a coordinate-only detector then
+ * reports "clean" purely because it had nothing to look at. Silence is not
+ * evidence. A country changing and changing back inside an interval no flight
+ * could cover is a tunnel signature on its own, and country survives in almost
+ * every row.
+ *
+ * Coverage is reported alongside the verdict so a thin-evidence "clean" can
+ * never be mistaken for a well-supported one.
  */
 export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
   const geo = timeline.filter(
@@ -165,6 +180,7 @@ export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
   );
   const anomalies: TravelAnomaly[] = [];
 
+  // ── track 1: coordinate physics ──
   for (let i = 1; i < geo.length; i++) {
     const a = geo[i - 1];
     const b = geo[i];
@@ -187,14 +203,53 @@ export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
     });
   }
 
+  // ── track 2: border hops without coordinates ──
+  /** No intercontinental hop completes in under three hours, gate to airport included. */
+  const MIN_BORDER_MINUTES = 180;
+  const withCountry = timeline.filter((o) => o.country);
+  const alreadyFlagged = new Set(anomalies.map((a) => `${a.fromAt}|${a.toAt}`));
+  let borderHops = 0;
+  for (let i = 1; i < withCountry.length; i++) {
+    const a = withCountry[i - 1];
+    const b = withCountry[i];
+    if (canonCountry(a.country!) === canonCountry(b.country!)) continue;
+    const minutes = (Date.parse(b.at) - Date.parse(a.at)) / 60_000;
+    if (minutes >= MIN_BORDER_MINUTES) continue;
+    if (alreadyFlagged.has(`${a.at}|${b.at}`)) continue;
+    borderHops++;
+    if (anomalies.length < 8) {
+      anomalies.push({
+        fromAt: a.at, toAt: b.at,
+        fromWhere: whereOf(a), toWhere: whereOf(b),
+        fromIp: a.ip, toIp: b.ip,
+        km: -1, // unknown: this track has no coordinates by construction
+        minutes: Math.max(0, Math.round(minutes)),
+        impliedKmh: -1,
+      });
+    }
+  }
+
   const ips = new Set(timeline.map((o) => o.ip).filter(Boolean) as string[]);
-  const countries = [...new Set(timeline.map((o) => o.country).filter(Boolean) as string[])];
+  const countries = [
+    ...new Map(
+      timeline.filter((o) => o.country).map((o) => [canonCountry(o.country!), o.country!]),
+    ).values(),
+  ];
+  const coverage = timeline.length ? Math.round((geo.length / timeline.length) * 100) : 0;
+
+  const coverageNote =
+    coverage < 40
+      ? ` Coordinate coverage is thin (${coverage}% of ${timeline.length} observations carry a position), so the border-crossing track carries most of the weight here.`
+      : "";
 
   const summary = anomalies.length
-    ? `${anomalies.length} impossible-travel transition${anomalies.length > 1 ? "s" : ""} across ${ips.size} distinct addresses — at least one observed location is a tunnel exit, not a physical position.`
+    ? `${anomalies.length} impossible-travel transition${anomalies.length > 1 ? "s" : ""} across ${ips.size} distinct addresses` +
+      (borderHops ? ` (${borderHops} of them cross-border inside three hours)` : "") +
+      ` — at least one observed location is a tunnel exit, not a physical position.${coverageNote}`
     : ips.size > 1
-      ? `${ips.size} distinct addresses observed, all consistent with physical travel — no tunnelling signature in this window.`
-      : "Single origin address across the window — no location-jump signature available.";
+      ? `${ips.size} distinct addresses across ${countries.length || 1} countr${countries.length === 1 ? "y" : "ies"}, all consistent with physical travel — no tunnelling signature in this window.${coverageNote}`
+      : `Single origin address across the window — no location-jump signature available.${coverageNote}`;
+
 
   return {
     observations: timeline.length,
