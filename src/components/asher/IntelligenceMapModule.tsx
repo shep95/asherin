@@ -1,11 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap, CircleMarker, Popup } from "react-leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, useMap, CircleMarker, Polyline, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ChevronDown, ChevronRight, X, Search, Loader2, Pin,
   Layers as LayersIcon, Crosshair as CrosshairIcon, Save,
+  PanelLeftClose, PanelLeftOpen, Plus, Minus, LocateFixed, Copy, Share2,
+  Navigation2, Utensils, Briefcase, Camera as CameraIcon, Eye,
 } from "lucide-react";
+import DirectionsPanel, { type DirectionsEndpoint } from "@/components/asher/DirectionsPanel";
+import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
+import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
+import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
+import { fetchStreetCameras, type StreetCamera } from "@/lib/asher/streetCameras";
+import { streetViewUrl, type Place } from "@/lib/asher/places";
+import {
+  getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
+  type RouteOption, type TravelMode, type Units,
+} from "@/lib/asher/directions";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
