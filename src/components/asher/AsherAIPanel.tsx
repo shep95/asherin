@@ -58,7 +58,12 @@ export type MapAction =
      operator's explicit consent is what actually opens it. ── */
   | { type: "track_location"; mode: "start" | "stop" | "status" | "center" | "follow" | "unfollow"; reason?: string }
   | { type: "distance_from_me"; to: GeoRef; label?: string }
-  | { type: "geofence"; label: string; radiusM: number; ref?: GeoRef };
+  | { type: "geofence"; label: string; radiusM: number; ref?: GeoRef }
+  /* ── Navigation, discovery and live imagery (Asherin Maps parity set) ── */
+  | { type: "get_directions"; from?: GeoRef; to: GeoRef; mode?: "driving" | "walking" | "cycling"; withCameras?: boolean }
+  | { type: "find_nearby"; category?: string; query?: string; ref?: GeoRef; radiusM?: number; openNow?: boolean }
+  | { type: "find_jobs"; role: string; ref?: GeoRef; radiusMi?: number }
+  | { type: "street_cameras"; ref?: GeoRef; radiusM?: number; alongRoute?: boolean };
 
 
 
@@ -246,6 +251,47 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
             type: "road_route", from: toGeoRef(args?.from), to: toGeoRef(args?.to), label: str(args?.label),
           });
           return typeof r === "string" ? r : "Route computed.";
+        }
+        case "get_directions": {
+          const r = await onAction({
+            type: "get_directions",
+            from: args?.from ? toGeoRef(args.from) : undefined,
+            to: toGeoRef(args?.to ?? args?.destination ?? args),
+            mode: (["driving", "walking", "cycling"] as const).find((m) => m === str(args?.mode)) ?? "driving",
+            withCameras: args?.withCameras === true || args?.cameras === true,
+          });
+          return typeof r === "string" ? r : "Directions plotted.";
+        }
+        case "find_nearby": {
+          const r = await onAction({
+            type: "find_nearby",
+            category: str(args?.category),
+            query: str(args?.query ?? args?.what),
+            ref: args?.ref || args?.near ? toGeoRef(args?.ref ?? args?.near) : undefined,
+            radiusM: num(args?.radiusM),
+            openNow: args?.openNow === true,
+          });
+          return typeof r === "string" ? r : "Nearby search complete.";
+        }
+        case "find_jobs": {
+          const role = str(args?.role ?? args?.query ?? args?.what);
+          if (!role) return "Name the role to hunt for — e.g. \"line cook\" or \"forklift operator\".";
+          const r = await onAction({
+            type: "find_jobs",
+            role,
+            ref: args?.ref || args?.near ? toGeoRef(args?.ref ?? args?.near) : undefined,
+            radiusMi: num(args?.radiusMi ?? args?.radius),
+          });
+          return typeof r === "string" ? r : "Hiring sweep complete.";
+        }
+        case "street_cameras": {
+          const r = await onAction({
+            type: "street_cameras",
+            ref: args?.ref ? toGeoRef(args.ref) : undefined,
+            radiusM: num(args?.radiusM),
+            alongRoute: args?.alongRoute === true || args?.route === true,
+          });
+          return typeof r === "string" ? r : "Camera sweep complete.";
         }
         case "solar_analysis": {
           const r = await onAction({ type: "solar_analysis", ref: toGeoRef(args?.ref ?? args), iso: str(args?.iso) });
