@@ -52,6 +52,7 @@ function decodeManufacturer(map: any): string | null {
 }
 
 export function detectScanMode(): ScanMode {
+  if (isNativeApp()) return "native";
   if (typeof navigator === "undefined" || !("bluetooth" in (navigator as any))) return "unsupported";
   const bt = (navigator as any).bluetooth;
   if (typeof bt?.requestLEScan === "function") return "continuous";
@@ -65,12 +66,21 @@ export interface ScannerHandle {
 
 export async function startScan(onAdvert: (a: RawAdvert) => void): Promise<ScannerHandle> {
   const mode = detectScanMode();
+
+  // Native companion: the radio keeps running when the app leaves the screen,
+  // so this branch is preferred whenever it exists.
+  if (mode === "native") {
+    const handle = await startNativeScan((a) => onAdvert({ ...a }));
+    return { mode, stop: handle.stop };
+  }
+
   if (mode === "unsupported") {
     throw new Error(
-      "Web Bluetooth is not available. Use Chrome on Android, or the Bluefy browser on iOS.",
+      "Web Bluetooth is not available. Install the Asherin companion app, or use Chrome on Android.",
     );
   }
   const bt = (navigator as any).bluetooth;
+
 
   if (mode === "continuous") {
     const handler = (event: any) => {
