@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
-  Download, Archive, ChevronDown, Sparkle, History, X, Crosshair,
+  Download, Archive, ChevronDown, Sparkle, History, X, Crosshair, Filter,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +56,7 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 const MODE_KEY = "ghost_engine_mode";
 
 const CAPTURE_KEY = "ghost_engine_capture";
+const FILTER_KEY = "ghost_engine_filter";
 const SCOPE_KEY = "ghost_engine_scope";
 const RECENT_KEY = "ghost_engine_recent";
 const RAIL_KEY = "ghost_engine_rail";
@@ -80,7 +81,12 @@ const GhostEngineView = () => {
   const [tab, setTab] = useState<Tab>("records");
   const [details, setDetails] = useState(false);
   const [selected, setSelected] = useState<GhostRecord | null>(null);
-  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) === "1");
+  // Retention defaults ON. A metadata hit the operator cannot reopen and read
+  // is a card catalog with no library behind it — the shelf is the point.
+  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) !== "0");
+  // Zophiel web filter — suppress reference corpora, content farms, commerce
+  // listings, search containers and mirrored duplicates before ranking.
+  const [noiseFilter, setNoiseFilter] = useState<boolean>(() => localStorage.getItem(FILTER_KEY) !== "0");
   const [bufferNonce, setBufferNonce] = useState(0);
   // The HISTORY rail is a sibling surface, not a dropdown: it refetches when a
   // run completes, and it can push an archived run back into the result pane.
@@ -154,7 +160,7 @@ const GhostEngineView = () => {
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
         // No client-side aperture. The probe budget is the engine's to spend;
         // sending 12 was what capped a full-spectrum lookup at a page of links.
-        body: { action: "search", scope: useScope, query: q, capture },
+        body: { action: "search", scope: useScope, query: q, capture, noiseFilter },
       });
 
       if (controller.signal.aborted) return;
@@ -207,7 +213,7 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope, mode]);
+  }, [loading, capture, scope, mode, noiseFilter]);
 
 
   const index = data?.index ?? null;
@@ -401,6 +407,35 @@ const GhostEngineView = () => {
                 {s.label}
               </button>
             ))}
+            {mode === "intercept" && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={noiseFilter}
+                onClick={() => setNoiseFilter((f) => {
+                  localStorage.setItem(FILTER_KEY, f ? "0" : "1");
+                  return !f;
+                })}
+                title="Zophiel web filter — cut encyclopedia pages, content farms, shop listings, search containers and mirrored duplicates before ranking"
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                  noiseFilter
+                    ? "border-foreground/35 bg-foreground/8 text-foreground"
+                    : "border-border/20 text-muted-foreground/55 hover:text-foreground/85"
+                }`}
+              >
+                <Filter className="h-3 w-3" />
+                {noiseFilter ? "Filtered" : "Raw"}
+              </button>
+            )}
+            {mode === "intercept" && data?.harvest?.filter?.applied && data.harvest.filter.dropped > 0 && (
+              <span
+                className="text-[10px] text-muted-foreground/45"
+                title={Object.entries(data.harvest.filter.reasons)
+                  .map(([r, n]) => `${n} × ${r}`).join("\n")}
+              >
+                {data.harvest.filter.dropped} noise link{data.harvest.filter.dropped === 1 ? "" : "s"} cut
+              </span>
+            )}
             {mode === "intercept" && index && (
               <button
                 onClick={() => exportJSON(

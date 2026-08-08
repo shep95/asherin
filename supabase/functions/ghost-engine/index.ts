@@ -70,6 +70,10 @@ interface GhostRequest {
   sessionId?: string;
   /** action=search — which layers to consult. */
   scope?: "all" | "web" | "buffer";
+  /** Zophiel web filter — suppress reference/farm/commerce/container noise. */
+  noiseFilter?: boolean;
+  /** Filter strictness. Higher cuts more; 0 is default; negative reveals more. */
+  filterFloor?: number;
   /** action=ledger — Cloud Intelligence fusion parameters. */
   windowDays?: number;
   channel?: "gmail" | "sms" | null;
@@ -99,22 +103,33 @@ function asUrl(raw: string): string | null {
  * index only concedes an entity exists when it is asked in the vocabulary the
  * indexers used. The fan-out does that asking.
  */
+interface DiscoveryReport {
+  leads: HarvestLead[];
+  legs: number;
+  filter: { applied: boolean; raw: number; kept: number; dropped: number; reasons: Record<string, number> };
+}
+
 async function discoverWide(
   identity: SelectorIdentity,
   authHeader: string | null,
-): Promise<{ leads: HarvestLead[]; legs: number }> {
+  noiseFilter: boolean,
+  filterFloor?: number,
+): Promise<DiscoveryReport> {
+  const nil = { applied: false, raw: 0, kept: 0, dropped: 0, reasons: {} as Record<string, number> };
   try {
-    const { legs, leads } = await harvestLeads(identity, authHeader, {
+    const { legs, leads, filter } = await harvestLeads(identity, authHeader, {
       concurrency: 5,
       legTimeoutMs: 12_000,
       maxLeads: HARVEST_CAP,
+      noiseFilter,
+      filterFloor,
     });
     // A lead is only useful if it is a public HTTP target we are allowed to open.
     const usable = leads.filter((l) => isPublicHttpUrl(l.url));
-    return { leads: usable, legs: legs.length };
+    return { leads: usable, legs: legs.length, filter };
   } catch (e) {
     console.error("[ghost-engine] harvest error:", (e as Error).message);
-    return { leads: [], legs: 0 };
+    return { leads: [], legs: 0, filter: nil };
   }
 }
 
@@ -553,7 +568,12 @@ Deno.serve(async (req) => {
   if (!query && explicit.length === 0) return json({ error: "query or urls is required" }, 400);
 
   const started = Date.now();
-  const capture = body.capture === true && !!sb && !!userId;
+  // The buffer is the shelf. Retention is ON unless the operator explicitly
+  // turns it off — a metadata hit the operator cannot reopen and read is a
+  // card catalog with no library behind it, which was the complaint.
+  const capture = body.capture !== false && !!sb && !!userId;
+  const noiseFilter = body.noiseFilter !== false;
+  const filterFloor = Number.isFinite(Number(body.filterFloor)) ? Number(body.filterFloor) : undefined;
 
   let targets: string[] = explicit.map(asUrl).filter(Boolean) as string[];
   let mode: "sweep" | "target" = targets.length ? "target" : (body.mode ?? "sweep");
@@ -566,6 +586,7 @@ Deno.serve(async (req) => {
 
   let harvest: HarvestLead[] = [];
   let legCount = 0;
+  let filterReport: DiscoveryReport["filter"] = { applied: false, raw: 0, kept: 0, dropped: 0, reasons: {} };
 
   if (!targets.length && direct) {
     mode = "target";
@@ -579,9 +600,10 @@ Deno.serve(async (req) => {
       `${u.origin}/sitemap.xml`,
       `${u.origin}/.well-known/security.txt`,
     ])];
-    const wide = await discoverWide(identity, req.headers.get("Authorization"));
+    const wide = await discoverWide(identity, req.headers.get("Authorization"), noiseFilter, filterFloor);
     harvest = wide.leads;
     legCount = wide.legs;
+    filterReport = wide.filter;
     const seen = new Set(targets);
     for (const l of harvest) {
       if (targets.length >= probeBudget) break;
@@ -590,9 +612,10 @@ Deno.serve(async (req) => {
       targets.push(l.url);
     }
   } else if (!targets.length) {
-    const wide = await discoverWide(identity, req.headers.get("Authorization"));
+    const wide = await discoverWide(identity, req.headers.get("Authorization"), noiseFilter, filterFloor);
     harvest = wide.leads;
     legCount = wide.legs;
+    filterReport = wide.filter;
     targets = harvest.slice(0, probeBudget).map((l) => l.url);
     if (!targets.length) {
       return json({
@@ -698,6 +721,7 @@ Deno.serve(async (req) => {
     legs: legCount,
     probed: records.length,
     unprobed: unprobed.length,
+    filter: filterReport,
   };
 
   // ── History write ──────────────────────────────────────────────────────────
