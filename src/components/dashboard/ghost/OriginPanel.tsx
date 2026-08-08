@@ -10,7 +10,9 @@
 import { memo } from "react";
 import {
   Clock, Fingerprint, Globe2, MapPin, Server, ShieldAlert, Wrench, FileWarning, ExternalLink,
+  Paperclip, Radar,
 } from "lucide-react";
+
 
 export interface OriginTimestamp {
   field: string;
@@ -66,12 +68,18 @@ export interface OriginTrace {
   identity: { author: string | null; company: string | null; title: string | null; subject: string | null; keywords: string | null };
   lineage: { document_id: string | null; instance_id: string | null; original_document_id: string | null; edit_span_minutes: number | null; revisions: string[] };
   serving: { server: string | null; powered_by: string | null; last_modified: string | null; cdn_pop: string | null; ip: string | null; asn: string | null; ip_place: string | null };
+  selectors?: {
+    emails: string[]; phones: string[]; urls: string[]; hosts: string[];
+    handles: string[]; people: string[]; places: string[]; ids: string[];
+  };
+  upload?: { filename: string; declared_type: string } | null;
   raw_fields: Record<string, string>;
   scrubbed: boolean;
   notes: string[];
   errors: string[];
   elapsed_ms: number;
 }
+
 
 const CONF: Record<OriginClaim["confidence"], string> = {
   confirmed: "border-foreground/40 text-foreground/85",
@@ -133,9 +141,63 @@ function Clocks({ s }: { s: OriginTimestamp }) {
     </div>
   );
 }
+/**
+ * Every pivotable string the artefact gave up. A document is rarely the answer;
+ * it is the list of the next five questions, and each chip fires one of them
+ * straight back into the engine rather than making the operator retype it.
+ */
+function SelectorHarvest({ trace, onPivot }: { trace: OriginTrace; onPivot?: (s: string) => void }) {
+  const s = trace.selectors;
+  if (!s) return null;
+  const groups: Array<[string, string[]]> = [
+    ["Email addresses", s.emails],
+    ["Phone numbers", s.phones],
+    ["People named", s.people],
+    ["Hosts", s.hosts],
+    ["Handles", s.handles],
+    ["Addresses", s.places],
+    ["Reference numbers", s.ids],
+    ["Links", s.urls],
+  ];
+  const live = groups.filter(([, v]) => v.length > 0);
+  if (!live.length) return null;
 
-function OriginPanelBase({ trace }: { trace: OriginTrace }) {
+  return (
+    <Section icon={<Radar className="h-3.5 w-3.5" />} title="Selectors carved out of the file">
+      <div className="space-y-3">
+        {live.map(([label, values]) => (
+          <div key={label}>
+            <p className="mb-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/45">
+              {label} · {values.length}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {values.slice(0, 24).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => onPivot?.(v)}
+                  disabled={!onPivot}
+                  title={onPivot ? `Intercept ${v}` : v}
+                  className="max-w-full truncate rounded-full border border-border/20 px-2.5 py-1 text-[11px] text-muted-foreground/75 transition-colors hover:border-foreground/35 hover:text-foreground disabled:cursor-default disabled:hover:border-border/20 disabled:hover:text-muted-foreground/75"
+                >
+                  {v}
+                </button>
+              ))}
+              {values.length > 24 && (
+                <span className="self-center text-[10px] text-muted-foreground/40">+{values.length - 24} more</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+
+function OriginPanelBase({ trace, onPivot }: { trace: OriginTrace; onPivot?: (selector: string) => void }) {
   const raw = Object.entries(trace.raw_fields);
+  const uploaded = !!trace.upload;
 
   return (
     <div className="space-y-4">
@@ -143,19 +205,26 @@ function OriginPanelBase({ trace }: { trace: OriginTrace }) {
       <div className="rounded-lg border border-border/20 bg-foreground/[0.03] p-4">
         <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/55">
           <span className="rounded border border-border/25 px-1.5 py-0.5">{trace.kind}</span>
-          {trace.status != null && <span>HTTP {trace.status}</span>}
+          {uploaded && <span className="rounded border border-foreground/30 px-1.5 py-0.5 text-foreground/70">Uploaded</span>}
+          {!uploaded && trace.status != null && <span>HTTP {trace.status}</span>}
           {trace.content_type && <span>{trace.content_type}</span>}
           {trace.bytes != null && <span>{(trace.bytes / 1024).toFixed(0)} KB</span>}
           <span className="ml-auto normal-case tracking-normal">{trace.elapsed_ms} ms</span>
         </div>
-        <a
-          href={trace.final_url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="mt-2 flex items-center gap-1.5 break-all text-[12.5px] text-foreground/85 hover:underline"
-        >
-          {trace.final_url} <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-        </a>
+        {uploaded ? (
+          <p className="mt-2 flex items-center gap-1.5 break-all text-[12.5px] text-foreground/85">
+            <Paperclip className="h-3 w-3 shrink-0 opacity-50" /> {trace.upload!.filename}
+          </p>
+        ) : (
+          <a
+            href={trace.final_url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="mt-2 flex items-center gap-1.5 break-all text-[12.5px] text-foreground/85 hover:underline"
+          >
+            {trace.final_url} <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+          </a>
+        )}
         {trace.redirect_chain.length > 0 && (
           <p className="mt-1 text-[11px] text-muted-foreground/55">
             {trace.redirect_chain.length} redirect{trace.redirect_chain.length === 1 ? "" : "s"} traversed before the bytes were served.
@@ -165,6 +234,7 @@ function OriginPanelBase({ trace }: { trace: OriginTrace }) {
           <p className="mt-1 font-mono text-[10px] text-muted-foreground/40">sha256 {trace.sha256.slice(0, 32)}…</p>
         )}
       </div>
+
 
       {trace.errors.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-border/25 bg-foreground/[0.04] p-3 text-[11.5px] text-muted-foreground/75">
@@ -271,16 +341,24 @@ function OriginPanelBase({ trace }: { trace: OriginTrace }) {
         {trace.lineage.revisions.length > 0 && <Row k="Recorded edits" v={trace.lineage.revisions.join(", ")} />}
       </Section>
 
-      {/* Hosting */}
-      <Section icon={<Server className="h-3.5 w-3.5" />} title="Serving infrastructure">
-        <Row k="Host" v={trace.host || "—"} />
-        <Row k="Resolved IP" v={trace.serving.ip ?? "—"} />
-        <Row k="Network" v={trace.serving.asn ?? "—"} />
-        <Row k="Hosting geography" v={trace.serving.ip_place ?? "—"} />
-        {trace.serving.server && <Row k="Server" v={trace.serving.server} />}
-        {trace.serving.cdn_pop && <Row k="Edge / POP" v={trace.serving.cdn_pop} />}
-        {trace.serving.last_modified && <Row k="Last-Modified" v={trace.serving.last_modified} />}
-      </Section>
+      {/* Selectors carved out of the artefact — each one is a next search. */}
+      <SelectorHarvest trace={trace} onPivot={onPivot} />
+
+      {/* Hosting. An uploaded file was never served to anyone, so there is no
+          infrastructure to report and the panel says so rather than showing
+          a column of em-dashes that reads like a failed lookup. */}
+      {!uploaded && (
+        <Section icon={<Server className="h-3.5 w-3.5" />} title="Serving infrastructure">
+          <Row k="Host" v={trace.host || "—"} />
+          <Row k="Resolved IP" v={trace.serving.ip ?? "—"} />
+          <Row k="Network" v={trace.serving.asn ?? "—"} />
+          <Row k="Hosting geography" v={trace.serving.ip_place ?? "—"} />
+          {trace.serving.server && <Row k="Server" v={trace.serving.server} />}
+          {trace.serving.cdn_pop && <Row k="Edge / POP" v={trace.serving.cdn_pop} />}
+          {trace.serving.last_modified && <Row k="Last-Modified" v={trace.serving.last_modified} />}
+        </Section>
+      )}
+
 
       {trace.notes.length > 0 && (
         <ul className="space-y-1.5 rounded-lg border border-border/15 p-3">
