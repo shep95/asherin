@@ -160,21 +160,40 @@ const GhostSearchResults = ({ results, suggestions, elapsedMs, scanned, onOpenRe
             <div className="mb-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/45">
               {r.source === "buffer"
                 ? <Archive className="h-3 w-3 text-foreground/60" />
-                : <Globe className="h-3 w-3" />}
+                : <Globe className={`h-3 w-3 ${r.source === "lead" ? "opacity-45" : ""}`} />}
               <span className="truncate font-mono">{r.url}</span>
             </div>
-            <button
-              onClick={() => (r.source === "buffer" && r.session_id
-                ? openPayload(r.session_id)
-                : r.entity_id && onOpenRecord(r.entity_id))}
-              className="block w-full text-left"
-            >
-              <h3 className="flex items-center gap-2 text-[15px] font-light text-foreground/90 underline-offset-4 group-hover:underline">
-                {r.title}
-                {opening === r.session_id && <Loader2 className="h-3 w-3 animate-spin" />}
-              </h3>
-            </button>
+            {/*
+              A lead was surfaced but not opened, so there is no shell to show.
+              Sending it to a record panel that does not exist would be a dead
+              click; it opens the target itself instead.
+            */}
+            {r.source === "lead" ? (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="block w-full text-left"
+              >
+                <h3 className="text-[15px] font-light text-foreground/85 underline-offset-4 group-hover:underline">
+                  {r.title}
+                </h3>
+              </a>
+            ) : (
+              <button
+                onClick={() => (r.source === "buffer" && r.session_id
+                  ? openPayload(r.session_id)
+                  : r.entity_id && onOpenRecord(r.entity_id))}
+                className="block w-full text-left"
+              >
+                <h3 className="flex items-center gap-2 text-[15px] font-light text-foreground/90 underline-offset-4 group-hover:underline">
+                  {r.title}
+                  {opening === r.session_id && <Loader2 className="h-3 w-3 animate-spin" />}
+                </h3>
+              </button>
+            )}
             <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground/70">{r.snippet}</p>
+
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {r.badges.map((b, i) => (
                 <span

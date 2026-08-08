@@ -10,7 +10,13 @@ export type SearchScope = "all" | "web" | "buffer";
 
 export interface GhostSearchResult {
   id: string;
-  source: "web" | "buffer";
+  /**
+   * Which layer produced the row.
+   *   web    — probed shell, metadata carved
+   *   lead   — surfaced by the harvest, beyond this round's probe budget
+   *   buffer — retained body already on the shelf
+   */
+  source: "web" | "lead" | "buffer";
   title: string;
   url: string;
   host: string;
@@ -19,6 +25,55 @@ export interface GhostSearchResult {
   score: number;
   session_id?: string;
   entity_id?: string;
+  /** Fan-out leg that surfaced the URL. */
+  via?: string;
+  /** Distinct legs that independently returned this URL. */
+  corroboration?: number;
+}
+
+/** Normalized selector the backend resolved from the typed query. */
+export interface GhostIdentity {
+  kind: "email" | "phone" | "domain" | "name" | "handle" | "freeform";
+  key: string;
+  label: string;
+  parts: Record<string, string>;
+}
+
+export interface GhostHarvestSummary {
+  leads: number;
+  legs: number;
+  probed: number;
+  unprobed: number;
+}
+
+/** One past lookup of one entity. */
+export interface GhostHistoryRun {
+  id: string;
+  entity_key: string;
+  entity_kind: string;
+  entity_label: string;
+  query: string;
+  scope: string;
+  leads_found: number;
+  probed: number;
+  anomalies: number;
+  elapsed_ms: number;
+  created_at: string;
+  results?: GhostSearchResult[];
+  summary?: { legs?: number; hosts?: string[]; facets?: { field: string; value: string; count: number }[] };
+}
+
+/** Runs collapsed by entity — the HISTORY rail's row model. */
+export interface GhostHistoryEntity {
+  entity_key: string;
+  entity_kind: string;
+  entity_label: string;
+  runs: number;
+  first_seen: string;
+  last_seen: string;
+  total_leads: number;
+  total_anomalies: number;
+  queries: string[];
 }
 
 export interface GhostSearchResponse {
@@ -28,6 +83,8 @@ export interface GhostSearchResponse {
   mode: "sweep" | "target";
   elapsedMs: number;
   tier?: string;
+  identity?: GhostIdentity;
+  harvest?: GhostHarvestSummary;
   index: GhostIndex | null;
   results?: GhostSearchResult[];
   suggestions?: string[];
@@ -35,6 +92,7 @@ export interface GhostSearchResponse {
   error?: string;
   buffer: { captured: number; expiresAt: string; ttlMinutes: number; errors: string[] } | null;
 }
+
 
 const fmtTs = (iso: string | null) => (iso ? `${iso.slice(0, 16).replace("T", " ")}Z` : null);
 
