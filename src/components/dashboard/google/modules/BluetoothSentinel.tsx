@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Radar, ShieldAlert, MapPin, Loader2, RefreshCw, EyeOff, UserCheck, FileText, Radio,
+  Crosshair, BookOpen, Download,
 } from "lucide-react";
 
 /**
@@ -56,6 +57,84 @@ interface GeoEvent {
   created_at: string;
 }
 
+interface TcIndicator {
+  code: string;
+  title: string;
+  school: string;
+  severity: "informational" | "notable" | "serious" | "critical";
+  confidence: number;
+  deviceIds: string[];
+  finding: string;
+  doctrine: string;
+  evidence: string[];
+  benign: string;
+  watchFor: string[];
+}
+
+interface TcAnalysis {
+  tier: "none" | "watch" | "probable" | "active";
+  score: number;
+  headline: string;
+  posture: string;
+  indicators: TcIndicator[];
+  coverage: {
+    sessions: number; days: number; places: number; devices: number; sightings: number;
+    windowStart: string | null; windowEnd: string | null;
+  };
+  blindSpots: string[];
+}
+
+interface DoctrineEntry {
+  code: string; school: string; name: string; how: string; radioSignature: string; counter: string;
+}
+
+const SEVERITY_STYLE: Record<string, string> = {
+  critical: "border-foreground/70 bg-foreground/10",
+  serious: "border-foreground/50 bg-foreground/[0.06]",
+  notable: "border-border bg-muted/30",
+  informational: "border-border bg-transparent",
+};
+
+/** A case file is only useful if it can leave the app. Markdown travels into
+ *  an email, a police report and a lawyer's bundle without losing structure. */
+function caseToMarkdown(a: TcAnalysis, file: Record<string, any>): string {
+  const L: string[] = [];
+  L.push(`# ${file.case_reference || "Sentinel case file"}`);
+  L.push(`_Generated ${new Date().toISOString()} · Asherin Bluetooth Sentinel_`);
+  L.push(`\n**Tier:** ${a.tier} · **Score:** ${a.score}/100 · **Posture:** ${a.posture}`);
+  L.push(`\n## Executive summary\n${file.executive_summary || a.headline}`);
+  if (file.pattern_of_conduct) L.push(`\n## Pattern of conduct\n${file.pattern_of_conduct}`);
+  if (file.adversary_assessment) {
+    L.push(`\n## Adversary assessment\n- Posture: ${file.adversary_assessment.posture}\n- Sophistication: ${file.adversary_assessment.sophistication}\n- Reasoning: ${file.adversary_assessment.reasoning}`);
+  }
+  L.push(`\n## Coverage of the log\n- Scan sessions: ${a.coverage.sessions}\n- Days: ${a.coverage.days}\n- Locations: ${a.coverage.places}\n- Radios tracked: ${a.coverage.devices}\n- Sightings: ${a.coverage.sightings}\n- Window: ${a.coverage.windowStart || "n/a"} → ${a.coverage.windowEnd || "n/a"}`);
+  L.push(`\n## Indicators`);
+  for (const i of a.indicators) {
+    L.push(`\n### [${i.code}] ${i.title}\n- Severity: ${i.severity} (confidence ${(i.confidence * 100).toFixed(0)}%)\n- Finding: ${i.finding}\n- Doctrine: ${i.doctrine}\n- Evidence:\n${i.evidence.map((e) => `  - ${e}`).join("\n")}\n- Innocent explanation: ${i.benign}\n- Watch for:\n${i.watchFor.map((w) => `  - ${w}`).join("\n")}`);
+  }
+  for (const [heading, key] of [
+    ["Exhibits", "exhibits"], ["Timeline", "timeline"], ["Next 24 hours", "next_24_hours"],
+    ["Evidence preservation", "evidence_preservation"], ["Reporting package", "reporting_package"],
+    ["Alternative explanations", "alternative_explanations"], ["Watch for", "watch_for"],
+  ] as const) {
+    const v = file[key];
+    if (!Array.isArray(v) || !v.length) continue;
+    L.push(`\n## ${heading}`);
+    for (const item of v) {
+      if (typeof item === "string") L.push(`- ${item}`);
+      else if (item?.exhibit) L.push(`- **Exhibit ${item.exhibit}** — ${item.device}: ${item.why_it_matters}`);
+      else if (item?.when) L.push(`- ${item.when} — ${item.what}`);
+      else L.push(`- ${JSON.stringify(item)}`);
+    }
+  }
+  L.push(`\n## Blind spots\n${a.blindSpots.map((b) => `- ${b}`).join("\n")}`);
+  if (file.limits) L.push(`\n## Limits\n${file.limits}`);
+  L.push(`\n---\nThis file records the behaviour of Bluetooth hardware. It does not identify any person and is not proof of who is responsible.`);
+  return L.join("\n");
+}
+
+
+
 const TIER_STYLE: Record<string, string> = {
   breach: "border-foreground/60 bg-foreground/10 text-foreground",
   priority: "border-foreground/40 bg-foreground/[0.06] text-foreground/90",
@@ -98,6 +177,12 @@ const BluetoothSentinel = () => {
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
   const [areaState, setAreaState] = useState<{ level: string; label: string; summary: string } | null>(null);
   const [checkingArea, setCheckingArea] = useState(false);
+  const [analysis, setAnalysis] = useState<TcAnalysis | null>(null);
+  const [doctrine, setDoctrine] = useState<DoctrineEntry[]>([]);
+  const [analysing, setAnalysing] = useState(false);
+  const [caseFile, setCaseFile] = useState<Record<string, any> | null>(null);
+  const [buildingCase, setBuildingCase] = useState(false);
+  const [caseNote, setCaseNote] = useState("");
   const [settings, setSettings] = useState({
     recurrence_threshold: 3,
     ignore_audio: true,
@@ -320,6 +405,57 @@ const BluetoothSentinel = () => {
     }
   };
 
+  // ── Tradecraft: deterministic, so it runs without a model key ────────────
+  const runTradecraft = useCallback(async (silent = true) => {
+    setAnalysing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sentinel-ble", { body: { action: "ble.tradecraft" } });
+      if (error) throw error;
+      setAnalysis((data?.analysis || null) as TcAnalysis | null);
+      setDoctrine((data?.doctrine || []) as DoctrineEntry[]);
+      if (!silent) toast.success("Tradecraft analysis complete");
+    } catch (e) {
+      if (!silent) toast.error(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalysing(false);
+    }
+  }, []);
+
+  useEffect(() => { void runTradecraft(true); }, [runTradecraft]);
+
+  const buildCase = async () => {
+    setBuildingCase(true);
+    try {
+      const byok = await resolveByok();
+      const data = await invokeWithByokRetry<any>("sentinel-ble", {
+        body: { action: "ble.case", note: caseNote.slice(0, 2000), ...(byok ? { byok } : {}) },
+        silent: true,
+      });
+      if (data?.analysis) setAnalysis(data.analysis as TcAnalysis);
+      setCaseFile(data?.caseFile || null);
+      toast.success("Case file built");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Case file failed");
+    } finally {
+      setBuildingCase(false);
+    }
+  };
+
+  const downloadCase = () => {
+    if (!analysis || !caseFile) return;
+    const blob = new Blob([caseToMarkdown(analysis, caseFile)], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${caseFile.case_reference || "sentinel-case"}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoke on the next frame so Safari has committed the navigation.
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+  };
+
+
   const saveSettings = async (next: Partial<typeof settings>) => {
     const merged = { ...settings, ...next };
     setSettings(merged);
@@ -417,6 +553,9 @@ const BluetoothSentinel = () => {
       <Tabs defaultValue="devices">
         <TabsList>
           <TabsTrigger value="devices">Devices {flagged.length > 0 && `(${flagged.length})`}</TabsTrigger>
+          <TabsTrigger value="tradecraft">
+            Tradecraft {analysis && analysis.indicators.length > 0 && `(${analysis.indicators.length})`}
+          </TabsTrigger>
           <TabsTrigger value="area">Area risk</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -452,6 +591,160 @@ const BluetoothSentinel = () => {
                 {rest.map((d) => <DeviceCard key={d.id} d={d} />)}
               </div>
             </ScrollArea>
+          )}
+        </TabsContent>
+
+        <TabsContent value="tradecraft" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => runTradecraft(false)} disabled={analysing}>
+              {analysing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Crosshair className="h-3.5 w-3.5 mr-1" />}
+              Re-run analysis
+            </Button>
+            <Button size="sm" onClick={buildCase} disabled={buildingCase || !analysis}>
+              {buildingCase ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <FileText className="h-3.5 w-3.5 mr-1" />}
+              Build case file
+            </Button>
+            {caseFile && (
+              <Button size="sm" variant="ghost" onClick={downloadCase}>
+                <Download className="h-3.5 w-3.5 mr-1" /> Export markdown
+              </Button>
+            )}
+          </div>
+
+          {analysing && !analysis ? (
+            <div className="space-y-2">{[0, 1].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+          ) : !analysis ? (
+            <p className="text-xs text-muted-foreground">Analysis unavailable. Run the watch first, then re-run.</p>
+          ) : (
+            <>
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{analysis.headline}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Posture reads {analysis.posture} · {analysis.coverage.sessions} sessions · {analysis.coverage.days} days · {analysis.coverage.places} locations · {analysis.coverage.devices} radios
+                    </p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider border rounded px-1.5 py-0.5 shrink-0">
+                    {analysis.tier} · {analysis.score}/100
+                  </span>
+                </div>
+                {/* Progress bar is a plain div so it can never animate on a
+                    reduced-motion preference. */}
+                <div className="h-1 w-full rounded bg-muted overflow-hidden" role="img" aria-label={`Tradecraft score ${analysis.score} of 100`}>
+                  <div className="h-full bg-foreground/70" style={{ width: `${analysis.score}%` }} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3" /> Tradecraft indicators
+                </p>
+                {analysis.indicators.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No indicator matched documented stalking or surveillance methodology in the current log. That is not the same as being safe — see the blind spots below.
+                  </p>
+                ) : (
+                  analysis.indicators.map((i) => (
+                    <div key={`${i.code}-${i.deviceIds.join("-")}`} className={`rounded-lg border p-3 space-y-2 ${SEVERITY_STYLE[i.severity]}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium">{i.title}</p>
+                        <span className="text-[10px] uppercase tracking-wider border rounded px-1.5 py-0.5 shrink-0">
+                          {i.severity} · {(i.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{i.finding}</p>
+                      <p className="text-[11px]"><span className="text-muted-foreground">Method matched: </span>{i.doctrine}</p>
+                      <details className="text-[11px] text-muted-foreground">
+                        <summary className="cursor-pointer select-none">Evidence &amp; innocent explanation</summary>
+                        <ul className="list-disc pl-4 mt-1">
+                          {i.evidence.map((e, n) => <li key={n}>{e}</li>)}
+                        </ul>
+                        <p className="mt-1 italic">Most likely innocent reading: {i.benign}</p>
+                      </details>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What to watch for</p>
+                        <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                          {i.watchFor.map((w, n) => <li key={n}>{w}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What this method cannot see</p>
+                <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                  {analysis.blindSpots.map((b, n) => <li key={n}>{b}</li>)}
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">Case note (optional)</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Anything you personally observed — a car, a time, a message. It is recorded as your statement, kept separate from the machine analysis, and never used to name anyone.
+                </p>
+                <textarea
+                  value={caseNote}
+                  maxLength={2000}
+                  onChange={(e) => setCaseNote(e.target.value)}
+                  rows={3}
+                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+                  placeholder="e.g. Same silver estate parked opposite the entrance on Tuesday and Thursday around 23:00."
+                />
+              </div>
+
+              {caseFile && (
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <p className="text-sm font-semibold">{String(caseFile.case_reference || "Case file")}</p>
+                  <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{String(caseFile.executive_summary || "")}</p>
+                  {Array.isArray(caseFile.next_24_hours) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Next 24 hours</p>
+                      <ol className="text-[11px] text-muted-foreground list-decimal pl-4">
+                        {caseFile.next_24_hours.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                  {Array.isArray(caseFile.evidence_preservation) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Evidence preservation</p>
+                      <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                        {caseFile.evidence_preservation.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(caseFile.reporting_package) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Hand to police / advocate</p>
+                      <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                        {caseFile.reporting_package.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {caseFile.narration_note && <p className="text-[10px] italic text-muted-foreground">{String(caseFile.narration_note)}</p>}
+                </div>
+              )}
+
+              {doctrine.length > 0 && (
+                <details className="rounded-lg border border-border/60 p-3">
+                  <summary className="text-[11px] uppercase tracking-wider text-muted-foreground cursor-pointer select-none flex items-center gap-1">
+                    <BookOpen className="h-3 w-3" /> How following is actually run — the methods this engine tests for
+                  </summary>
+                  <div className="mt-2 space-y-3">
+                    {doctrine.map((d) => (
+                      <div key={d.code} className="space-y-1">
+                        <p className="text-xs font-medium">{d.name} <span className="text-[10px] uppercase tracking-wider text-muted-foreground">· {d.school}</span></p>
+                        <p className="text-[11px] text-muted-foreground">{d.how}</p>
+                        <p className="text-[11px] text-muted-foreground"><span className="text-foreground/70">Radio signature: </span>{d.radioSignature}</p>
+                        <p className="text-[11px] text-muted-foreground"><span className="text-foreground/70">Counter: </span>{d.counter}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
           )}
         </TabsContent>
 

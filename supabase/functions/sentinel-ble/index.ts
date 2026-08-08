@@ -26,6 +26,11 @@ import {
   BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
   type AdvertInput, type DeviceKind,
 } from "../_shared/bleSentinel.ts";
+import {
+  analyzeTradecraft, buildCasePrompt, deterministicCase, tradecraftBriefFor,
+  TRADECRAFT_CASE_SYSTEM, TRADECRAFT_DOCTRINE,
+  type TcDevice, type TcSighting, type TcCampaign,
+} from "../_shared/stalkerTradecraft.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -84,14 +89,19 @@ async function collect(angles: Array<{ label: string; query: string }>, budgetMs
 
 // ── Dossier for one radio ──────────────────────────────────────────────────
 
-async function buildDeviceDossier(row: any, cfg: any) {
+async function buildDeviceDossier(row: any, cfg: any, tradecraftBrief?: string) {
   const name = row.display_name as string;
   const maker = row.manufacturer as string | null;
-  const research = await collect([
+  const collected = await collect([
     { label: "Hardware identification", query: `"${name}" ${maker || ""} bluetooth device what is it specifications` },
     { label: "Covert-tracking misuse", query: `${maker || name} bluetooth tracker stalking unwanted tracking reports` },
     { label: "Detection & countermeasures", query: `how to find hidden ${row.inferred_kind === "tracker" ? "bluetooth tracker tag" : `${name} bluetooth device`} on your person or car` },
   ], 30_000);
+  // The behavioural read and the hardware read must never contradict each
+  // other, so the tradecraft indicators are handed to the same model call.
+  const research = tradecraftBrief
+    ? `${collected}\n\n### Tradecraft indicators observed for THIS radio\n${tradecraftBrief}\n\nUse these behavioural indicators in your assessment, and restate their innocent explanations honestly.`
+    : collected;
 
   const raw = await callByokJsonWithRetry(
     cfg,
@@ -181,6 +191,29 @@ async function recompute(deviceId: string, totalSessions: number) {
     presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
     median_rssi: median,
   };
+}
+
+// ── Tradecraft: behavioural read across the whole log ──────────────────────
+//
+// Recurrence says "something follows you". Tradecraft says "how it is being
+// run", which is what changes the advice. Bounded to the last 5,000 sightings
+// so one noisy city week cannot turn this into an unbounded scan.
+
+async function loadTradecraft(userId: string): Promise<{ campaign: TcCampaign; names: Record<string, string> }> {
+  const db = admin();
+  const [devRes, sightRes] = await Promise.all([
+    db.from("ble_devices")
+      .select("id,display_name,manufacturer,inferred_kind,is_self,is_ignored,first_seen,last_seen,encounter_count,distinct_days,distinct_places,closest_distance_m")
+      .eq("user_id", userId).limit(500),
+    db.from("ble_sightings")
+      .select("device_id,seen_at,session_id,place_key,distance_m,rssi")
+      .eq("user_id", userId).order("seen_at", { ascending: false }).limit(5000),
+  ]);
+  const devices = (devRes.data || []) as unknown as TcDevice[];
+  const sightings = (sightRes.data || []) as unknown as TcSighting[];
+  const names: Record<string, string> = {};
+  for (const d of devices) names[d.id] = d.display_name;
+  return { campaign: analyzeTradecraft(devices, sightings), names };
 }
 
 Deno.serve(async (req) => {
@@ -273,6 +306,7 @@ Deno.serve(async (req) => {
         // Recompute aggregates and run the recurrence doctrine.
         const alerts: any[] = [];
         let dossiersBuilt = 0;
+        let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
           const agg = await recompute(id, totalSessions);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
@@ -314,12 +348,20 @@ Deno.serve(async (req) => {
             try { key = await resolveKey(req, body.byok); } catch { key = null; }
             if (key) {
               const merged = { ...row, ...patch };
-              const dossier = await buildDeviceDossier(merged, cfgFrom(key)).catch((e) => ({
+              // Behavioural read, computed once per ingest and only when an
+              // alert is actually being raised.
+              tcCache ??= await loadTradecraft(userId).catch(() => null);
+              const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
+              const dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch((e) => ({
                 headline: `${row.display_name} — dossier build failed`,
                 grade: "THIN",
                 assessment: `Recurrence confirmed: ${verdict.reason} Open-source enrichment failed (${(e as Error).message?.slice(0, 100)}).`,
                 actions: ["Run your phone's built-in unwanted-tracker scan.", "Physically sweep bag, coat linings and vehicle wheel wells."],
               }));
+              if (tcCache) {
+                (dossier as any).tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
+                (dossier as any).tradecraft_tier = tcCache.campaign.tier;
+              }
               patch.dossier = dossier;
               patch.dossier_at = new Date().toISOString();
               patch.alert_count = (row.alert_count || 0) + 1;
@@ -361,9 +403,95 @@ Deno.serve(async (req) => {
         if (!row) return json({ error: "not_found" }, 404, cors);
         let key;
         try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
-        const dossier = await buildDeviceDossier(row, cfgFrom(key));
+        const tc = await loadTradecraft(userId).catch(() => null);
+        const dossier = await buildDeviceDossier(row, cfgFrom(key), tc ? tradecraftBriefFor(deviceId, tc.campaign) : undefined);
+        if (tc) {
+          (dossier as any).tradecraft = tc.campaign.indicators.filter((i) => i.deviceIds.includes(deviceId));
+          (dossier as any).tradecraft_tier = tc.campaign.tier;
+        }
         await db.from("ble_devices").update({ dossier, dossier_at: new Date().toISOString() }).eq("id", deviceId);
         return json({ dossier }, 200, cors);
+      }
+
+      // ── Tradecraft analysis (deterministic, no model required) ───────────
+      case "ble.tradecraft": {
+        const { campaign } = await loadTradecraft(userId);
+        return json({ analysis: campaign, doctrine: TRADECRAFT_DOCTRINE }, 200, cors);
+      }
+
+      // ── Case file: deterministic substrate, model narration on top ───────
+      case "ble.case": {
+        const { campaign, names } = await loadTradecraft(userId);
+        const note = typeof body.note === "string" ? body.note.slice(0, 2000) : "";
+        const fallback = deterministicCase(campaign, names);
+
+        let caseFile: Record<string, unknown> = fallback;
+        let key = null as any;
+        try { key = await resolveKey(req, body.byok); } catch { key = null; }
+        if (key) {
+          try {
+            const raw = await callByokJsonWithRetry(
+              cfgFrom(key),
+              TRADECRAFT_CASE_SYSTEM,
+              buildCasePrompt(campaign, { note, deviceNames: names }),
+              { temperature: 0.15, jsonMode: true, maxOutputTokens: 6144, timeoutMs: 120_000, attempts: 2 },
+            );
+            const parsed = parseJsonLoose(raw);
+            // The facts stay deterministic; the model only narrates them. A
+            // thin or malformed generation must never erase the real analysis.
+            if (parsed && typeof parsed.executive_summary === "string" && parsed.executive_summary.length > 40) {
+              caseFile = { ...fallback, ...parsed, generated_offline: false };
+            }
+          } catch (e) {
+            (caseFile as any).narration_note = `Model narration unavailable (${(e as Error).message?.slice(0, 120)}). The analysis below is the deterministic engine output.`;
+          }
+        } else {
+          (caseFile as any).narration_note = "No model key available — this case file is the deterministic engine output.";
+        }
+
+        const { data: saved } = await db.from("sentinel_cases").insert({
+          user_id: userId,
+          case_reference: String((caseFile as any).case_reference || `BLE-SENTINEL-${new Date().toISOString().slice(0, 10)}`).slice(0, 80),
+          tier: campaign.tier,
+          score: campaign.score,
+          posture: campaign.posture,
+          headline: campaign.headline,
+          analysis: campaign as unknown as Record<string, unknown>,
+          case_file: caseFile,
+          note: note || null,
+        }).select("*").maybeSingle();
+
+        if (campaign.tier === "active" || campaign.tier === "probable") {
+          const settings = await loadSettings(userId);
+          await notifyIntel({
+            userId,
+            userEmail,
+            kind: "sentinel",
+            severity: campaign.tier === "active" ? "critical" : "notable",
+            title: `Stalking case file — ${campaign.headline}`,
+            body: String((caseFile as any).executive_summary || campaign.headline),
+            source: "Bluetooth Sentinel · Tradecraft",
+            url: `/dashboard?tab=cloud-intel&module=sentinel`,
+            sections: [
+              { label: "Tier", value: campaign.tier },
+              { label: "Posture", value: campaign.posture },
+              { label: "Score", value: `${campaign.score}/100` },
+              { label: "Indicators", value: campaign.indicators.map((i) => i.title).join("; ") || "none" },
+            ],
+            findings: Array.isArray((caseFile as any).next_24_hours) ? (caseFile as any).next_24_hours.map(String) : [],
+            idempotencyKey: `sentinel:case:${saved?.id || Date.now()}`,
+            skipPush: !settings.push_enabled,
+            skipEmail: !settings.email_enabled,
+          }).catch((e) => console.error("sentinel_case_notify_failed", e instanceof Error ? e.message : e));
+        }
+
+        return json({ analysis: campaign, caseFile, case: saved || null }, 200, cors);
+      }
+
+      case "ble.cases": {
+        const { data } = await db.from("sentinel_cases").select("*").eq("user_id", userId)
+          .order("created_at", { ascending: false }).limit(25);
+        return json({ cases: data || [] }, 200, cors);
       }
 
       // ── Area risk ────────────────────────────────────────────────────────
