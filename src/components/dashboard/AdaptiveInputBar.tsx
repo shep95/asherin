@@ -7,7 +7,16 @@ import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import SlashCommandPalette from "./SlashCommandPalette";
 import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
 import { expandPromptToNarrative, loadNarrativeMode, saveNarrativeMode } from "@/lib/promptToNarrative";
-import { expandPromptToLegal, loadLegalMode, saveLegalMode } from "@/lib/legalAdvisor";
+import { expandPromptToLegal } from "@/lib/legalAdvisor";
+import {
+  classifyMessage,
+  shouldAutoArmLegal,
+  buildRoutingHint,
+  loadLawSwitch,
+  saveLawSwitch,
+  cycleLawSwitch,
+  type LawSwitch,
+} from "@/lib/adaptiveIntent";
 import { setModelPromptOverride } from "@/lib/promptOverrideMap";
 
 import type { FileAttachment } from "./types";
@@ -201,12 +210,17 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const toggleNarrative = useCallback(() => {
     setNarrativeMode(prev => { const next = !prev; saveNarrativeMode(next); return next; });
   }, []);
-  // LAW mode — legal-advisor directive with deep-jurisdiction + old-law
-  // supersession research. Mutually independent of NAR.
-  const [legalMode, setLegalMode] = useState<boolean>(() => loadLegalMode());
+  // LAW switch — tri-state. AUTO (default) arms the legal-advisor directive only
+  // on messages that actually read as legal questions and stands down on the very
+  // next non-legal message. ON forces it, OFF suppresses it entirely.
+  const [lawSwitch, setLawSwitch] = useState<LawSwitch>(() => loadLawSwitch());
   const toggleLegal = useCallback(() => {
-    setLegalMode(prev => { const next = !prev; saveLegalMode(next); return next; });
+    setLawSwitch(prev => { const next = cycleLawSwitch(prev); saveLawSwitch(next); return next; });
   }, []);
+  // Live read of the current draft — drives the AUTO badge without touching send.
+  const reading = useMemo(() => classifyMessage(value), [value]);
+  const autoLegalArmed = lawSwitch === "auto" && shouldAutoArmLegal(reading);
+  const legalActive = lawSwitch === "on" || autoLegalArmed;
 
   useEffect(() => {
     const handler = () => {
@@ -286,14 +300,19 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    // LAW takes precedence over NAR (legal directive is more specific).
-    // The wrapped directive is sent to the MODEL only — the visible/stored
-    // user message stays as the raw text so the user never sees the prompt
-    // scaffolding echoed back into the transcript.
+    // Per-message adaptation. The visible/stored user message stays raw; only the
+    // MODEL payload carries the directive + routing hint, so the transcript never
+    // echoes prompt scaffolding back at the operator.
     const raw = value.trim();
+    const send = classifyMessage(raw);
+    const armLegal = lawSwitch === "on" || (lawSwitch === "auto" && shouldAutoArmLegal(send));
     let outbound = raw;
-    if (legalMode) outbound = expandPromptToLegal(raw).transformed;
-    else if (narrativeMode) outbound = expandPromptToNarrative(raw).transformed;
+    // LAW takes precedence over NAR (legal directive is more specific), but NAR is
+    // now skipped for smalltalk so "thanks" is never expanded into a narrative.
+    if (armLegal) outbound = expandPromptToLegal(raw).transformed;
+    else if (narrativeMode && !send.smalltalk) outbound = expandPromptToNarrative(raw).transformed;
+    const hint = buildRoutingHint(send);
+    if (hint) outbound = `${hint}\n\n${outbound}`;
     if (outbound !== raw) setModelPromptOverride(raw, outbound);
 
     onSendMessage(raw, attachments.length > 0 ? attachments : undefined);
@@ -700,23 +719,33 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             <BookOpen className="h-3 w-3" strokeWidth={1.6} />
             NAR
           </button>
-          {/* LAW — legal-advisor mode: deep-jurisdiction + old-law supersession
-              directive wraps the prompt before send. */}
+          {/* LAW — tri-state legal posture. AUTO detects legal questions per
+              message and stands down automatically; ON forces; OFF suppresses. */}
           <button
             onClick={toggleLegal}
-            title={legalMode
-              ? "LAW mode ON — prompts are wrapped in a deep legal-research directive (country/state/local laws + older superseding statutes). Click to disable."
-              : "LAW mode OFF — click to enable legal-advisor mode for jurisdiction-aware answers."}
-            aria-pressed={legalMode}
+            title={
+              lawSwitch === "on"
+                ? "LAW: ALWAYS ON — every message is wrapped in the deep legal-research directive. Click for OFF."
+                : lawSwitch === "off"
+                  ? "LAW: OFF — legal posture never engages, even for legal questions. Click for AUTO."
+                  : autoLegalArmed
+                    ? "LAW: AUTO — this message reads as a legal question, so jurisdiction-aware legal research is armed for it. Click for ALWAYS ON."
+                    : "LAW: AUTO — legal research engages by itself when you ask a legal question. Click for ALWAYS ON."
+            }
+            aria-pressed={legalActive}
+            aria-label={`Legal posture: ${lawSwitch}${autoLegalArmed ? " (armed for this message)" : ""}`}
             className={`shrink-0 flex items-center gap-1 h-8 px-2 rounded-lg text-[10px] font-medium tracking-[0.2em] uppercase transition-all border ${
-              legalMode
+              legalActive
                 ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-300 shadow-[0_0_12px_hsl(150_80%_50%/0.25)]"
-                : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
+                : lawSwitch === "off"
+                  ? "border-border/20 bg-background/20 text-muted-foreground/35 hover:text-foreground/70"
+                  : "border-border/30 bg-background/30 text-muted-foreground/60 hover:text-foreground hover:border-border/60"
             }`}
           >
             <Scale className="h-3 w-3" strokeWidth={1.6} />
-            LAW
+            {lawSwitch === "on" ? "LAW" : lawSwitch === "off" ? "LAW·OFF" : autoLegalArmed ? "LAW·ON" : "LAW·AUTO"}
           </button>
+
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
               <X className="h-3.5 w-3.5" />
