@@ -934,15 +934,19 @@ function uniq(list: string[], cap: number): string[] {
   return out;
 }
 
-/** A run of digits is only a phone number if it has phone-number shape. */
 function looksLikePhone(raw: string): boolean {
   const digits = raw.replace(/\D/g, "");
   if (digits.length < 7 || digits.length > 15) return false;
   // Dates, invoice totals, and ZIP+4 runs are the usual false positives.
   if (/^(19|20)\d{6}$/.test(digits)) return false;
   if (/^(\d)\1+$/.test(digits)) return false;
+  // Inflated page streams are full of coordinate triplets — "1054 236 1055"
+  // reads as a phone number only if space is accepted as a separator. Require
+  // real punctuation, a country prefix, or one contiguous run.
+  if (!/[+().\-]/.test(raw) && /\s/.test(raw)) return false;
   return true;
 }
+
 
 function harvestSelectors(docText: string, trace: OriginTrace) {
   const metaBlob = [
