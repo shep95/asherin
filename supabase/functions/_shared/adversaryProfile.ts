@@ -760,7 +760,6 @@ export async function findCameraCoverage(
     return { radiusM, cameras, access, summary };
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
+
