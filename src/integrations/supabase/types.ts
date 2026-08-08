@@ -8860,6 +8860,51 @@ export type Database = {
         }
         Relationships: []
       }
+      sentinel_cases: {
+        Row: {
+          analysis: Json
+          case_file: Json
+          case_reference: string
+          created_at: string
+          headline: string | null
+          id: string
+          note: string | null
+          posture: string
+          score: number
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis?: Json
+          case_file?: Json
+          case_reference: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          note?: string | null
+          posture?: string
+          score?: number
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis?: Json
+          case_file?: Json
+          case_reference?: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          note?: string | null
+          posture?: string
+          score?: number
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sentinel_settings: {
         Row: {
           ble_enabled: boolean
