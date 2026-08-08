@@ -43,6 +43,12 @@ import {
   type PreciseLocation,
   type IdentityTrace,
 } from "../_shared/actorForensics.ts";
+import {
+  assessTradecraft,
+  findCameraCoverage,
+  type TradecraftAssessment,
+  type CameraCoverage,
+} from "../_shared/adversaryProfile.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
