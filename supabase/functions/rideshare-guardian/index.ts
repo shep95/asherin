@@ -126,14 +126,23 @@ Deno.serve(async (req) => {
         const threshold = ["CLEAR", "THIN", "WATCH", "AVOID"].includes(String(s.alert_threshold))
           ? String(s.alert_threshold)
           : "WATCH";
+        // Autopilot is opt-in: reading a mailbox on a schedule is a standing
+        // permission, so it defaults off and must be turned on explicitly.
+        const lookbackRaw = Number(s.lookback_hours);
+        const lookback = Number.isFinite(lookbackRaw)
+          ? Math.min(168, Math.max(1, Math.round(lookbackRaw)))
+          : 24;
         const { error } = await admin().from("rideshare_settings").upsert({
           user_id: userId,
           alert_threshold: threshold,
           push_enabled: s.push_enabled !== false,
           email_enabled: s.email_enabled !== false,
           auto_from_email: s.auto_from_email !== false,
+          autopilot_enabled: s.autopilot_enabled === true,
+          lookback_hours: lookback,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
         if (error) throw error;
         return json({ settings: await loadSettings(userId) }, 200, cors);
       }
