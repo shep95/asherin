@@ -363,7 +363,11 @@ export async function harvestLeads(
 
   const tokens = selectorTokens(id);
   const all = [...leadsByUrl.values()];
-  const relevant = all.filter((l) => leadIsRelevant(l, tokens, id));
+  // Legs whose query already embedded the selector are trusted even when the
+  // engine returns a snippet that omits the term — absence from a 160-char
+  // preview is not absence from the page.
+  const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens)$/;
+  const relevant = all.filter((l) => LITERAL_LEGS.test(l.via) || leadIsRelevant(l, tokens, id));
   // Corroboration first — a URL two independent legs both surfaced is a
   // stronger claim than one a single scraper coughed up.
   const leads = relevant.sort((a, b) => b.corroboration - a.corroboration);
