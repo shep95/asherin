@@ -1693,6 +1693,50 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Asherin dork failed:", (e as Error).message);
     }
 
+    // ── AUTONOMOUS INTELLIGENCE LOOP ──────────────────────────────────────
+    // Detects research intents ("who is X", "background on Y", "profile Z"),
+    // fans out across dork+ghost+jurisdictional in parallel, verifies via
+    // multi-model consensus, and persists the subject into the per-user
+    // memory graph so future sessions inherit accumulated intelligence.
+    let autonomousContext = "";
+    try {
+      const lastUserForLoop = [...messages].reverse().find((m: any) => m.role === "user");
+      const loopText = lastUserForLoop?.content || "";
+      const authHLoop = isIntelTurn ? null : req.headers.get("Authorization");
+      if (authHLoop && loopText && !isDefensiveSecurityAuditRequest) {
+        const { detectAutonomousIntent } = await import("../_shared/autonomousIntent.ts");
+        const preTrig = detectAutonomousIntent(loopText);
+        if (preTrig.fire) {
+          const SB_URL_L = Deno.env.get("SUPABASE_URL") || "";
+          const SRK_L = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const ANON_L = Deno.env.get("SUPABASE_ANON_KEY") || "";
+          const { createClient: ccL } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const loopUser = await resolveCallerCached(authHLoop, SB_URL_L, ANON_L);
+          if (loopUser) {
+            console.log("[chat] Autonomous loop firing:", preTrig.subject, preTrig.kind);
+            const adminL = ccL(SB_URL_L, SRK_L, { auth: { persistSession: false } });
+            const { runAutonomousLoop } = await import("../_shared/autonomousLoop.ts");
+            const result = await Promise.race([
+              runAutonomousLoop(loopText, {
+                supabase: adminL,
+                userId: loopUser.id,
+                geminiKey: Deno.env.get("GEMINI_API_KEY") || "",
+                supabaseAnonKey: ANON_L,
+                supabaseUrl: SB_URL_L,
+              }),
+              new Promise<null>((r) => setTimeout(() => r(null), 95000)),
+            ]);
+            if (result?.fired) {
+              autonomousContext = result.contextBlock;
+              console.log("[chat] Autonomous loop complete:", result.toolsFired, "consensus=", result.consensusScore);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Autonomous loop failed:", (e as Error).message);
+    }
+
     // ── PROMPT GUARD — Block prompt injection attempts ─────────────────────
     const guardMsg = messages[messages.length - 1]?.content || "";
     const INJECTION_PATTERNS = [
