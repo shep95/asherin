@@ -62,7 +62,7 @@ function selfPinIcon(degraded: boolean): L.DivIcon {
 }
 
 const BLUE = GOLD;
-const TRAIL = "#0ea5e9";
+const TRAIL = "#a6712e";
 
 /** Heading wedge: a 46° cone projected ~70 m ahead of the operator. */
 function headingCone(fix: SelfFix): [number, number][] | null {
