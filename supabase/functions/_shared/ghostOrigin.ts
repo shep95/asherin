@@ -457,16 +457,22 @@ function placeFromAddress(
  * one malformed object must not cost the whole document — and both zlib-wrapped
  * and raw deflate framings are attempted, because producers disagree.
  */
-async function inflateOne(chunk: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(chunk.length);
-  copy.set(chunk);
-  for (const format of ["deflate", "deflate-raw"] as const) {
-    try {
-      const stream = new Blob([copy]).stream().pipeThrough(new DecompressionStream(format));
-
-      const buf = new Uint8Array(await new Response(stream).arrayBuffer());
-      if (buf.length) return new TextDecoder("latin1").decode(buf);
-    } catch { /* try the other framing */ }
+async function inflateOne(bytes: Uint8Array, start: number, ends: number[]): Promise<string> {
+  // The bytes between `stream` and `endstream` usually carry a trailing EOL
+  // that is not part of the deflate payload; feeding it in fails the whole
+  // stream, which is why an entire form used to read as empty. Each plausible
+  // end offset is tried, longest first, under both framings.
+  for (const end of ends) {
+    if (end <= start) continue;
+    const copy = new Uint8Array(end - start);
+    copy.set(bytes.subarray(start, end));
+    for (const format of ["deflate", "deflate-raw"] as const) {
+      try {
+        const stream = new Blob([copy]).stream().pipeThrough(new DecompressionStream(format));
+        const buf = new Uint8Array(await new Response(stream).arrayBuffer());
+        if (buf.length) return new TextDecoder("latin1").decode(buf);
+      } catch { /* try the other framing, then the other end */ }
+    }
   }
   return "";
 }
@@ -491,12 +497,22 @@ async function inflatePdfStreams(bytes: Uint8Array): Promise<string> {
     if (end === -1) break;
     cursor = end + 9;
     if (!/\/FlateDecode/.test(dict)) continue;
-    const len = end - start;
-    if (len < 12 || len > 4 * 1024 * 1024) continue;
+    const span = end - start;
+    if (span < 12 || span > 4 * 1024 * 1024) continue;
     count++;
-    const text = await inflateOne(bytes.subarray(start, end));
+    // Trim the EOL that precedes `endstream`, and honour a declared /Length.
+    let trimmed = end;
+    while (trimmed > start && (bytes[trimmed - 1] === 0x0a || bytes[trimmed - 1] === 0x0d)) trimmed--;
+    const declared = /\/Length\s+(\d+)/.exec(dict);
+    const ends = [trimmed, end];
+    if (declared) {
+      const n = start + Number(declared[1]);
+      if (n > start && n <= end) ends.unshift(n);
+    }
+    const text = await inflateOne(bytes, start, ends);
     if (text) { out.push(text); total += text.length; }
   }
+
   return out.join("\n");
 }
 
