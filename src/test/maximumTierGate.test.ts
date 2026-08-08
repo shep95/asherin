@@ -1,32 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { hasMaximumAccess, hasProAccess } from "@/contexts/SubscriptionContext";
-import { MAXIMUM_VIEWS } from "@/hooks/useAccess";
+import { hasAureonAccess, hasMaximumAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { CONNECTED_ACCOUNT_VIEWS } from "@/hooks/useAccess";
 
-// Live gating contract for the $399/mo Maximum tier surface.
-describe("Cloud Intelligence Mesh — maximum tier gate", () => {
-  it("registers the mesh as a maximum-tier view", () => {
-    expect(MAXIMUM_VIEWS).toContain("google");
+// Live gating contract for the connected-account (Google Cloud Intelligence)
+// surface, now bundled with the $18/mo Asherin subscription and above.
+describe("Cloud Intelligence Mesh — connected-account gate", () => {
+  it("registers the mesh as a connected-account view", () => {
+    expect(CONNECTED_ACCOUNT_VIEWS).toContain("google");
   });
 
-  it("opens only for the $399 Asherin Pro subscription and its one-time equivalent", () => {
-    expect(hasMaximumAccess("monthly_pro")).toBe(true);
-    expect(hasMaximumAccess("pro")).toBe(true);
+  it("opens for the $18 Asherin subscription (monthly + 6-month term) and above", () => {
+    expect(hasAureonAccess("monthly_aureon")).toBe(true);
+    expect(hasAureonAccess("aureon")).toBe(true);
+    expect(hasAureonAccess("monthly_pro")).toBe(true);
+    expect(hasAureonAccess("pro")).toBe(true);
   });
 
-  it("stays closed for every tier below maximum", () => {
-    for (const tier of ["chat", "monthly_aureon", "aureon"] as const) {
-      expect(hasMaximumAccess(tier)).toBe(false);
-    }
+  it("stays closed for chat-only accounts and for no subscription at all", () => {
+    expect(hasAureonAccess("chat")).toBe(false);
+    expect(hasAureonAccess(null)).toBe(false);
   });
 
-  it("does not leak to grandfathered lifetime/algorithm holders that pro-tier checks admit", () => {
+  it("keeps the maximum ladder intact for surfaces that still need it", () => {
     expect(hasProAccess("lifetime")).toBe(true);
-    expect(hasProAccess("algorithm")).toBe(true);
     expect(hasMaximumAccess("lifetime")).toBe(false);
-    expect(hasMaximumAccess("algorithm")).toBe(false);
-  });
-
-  it("stays closed with no subscription at all", () => {
-    expect(hasMaximumAccess(null)).toBe(false);
+    expect(hasMaximumAccess("monthly_pro")).toBe(true);
   });
 });
