@@ -110,12 +110,19 @@ const RideshareGuardian = () => {
   const [sweeping, setSweeping] = useState<string | null>(null);
   const [analysing, setAnalysing] = useState(false);
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
+  const [scanning, setScanning] = useState(false);
   const [settings, setSettings] = useState({
     alert_threshold: "WATCH" as Verdict,
     push_enabled: true,
     email_enabled: true,
     auto_from_email: true,
+    autopilot_enabled: false,
+    lookback_hours: 24,
+    last_scan_at: null as string | null,
+    last_scan_status: null as string | null,
+    last_scan_detail: null as string | null,
   });
+
 
   const [form, setForm] = useState({
     trip_url: "", driver_name: "", plate: "", vehicle: "", city: "", pickup_label: "",
