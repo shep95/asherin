@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithByokRetry } from "@/lib/byokInvoke";
 import { enablePush, readPushStatus, type PushStatus } from "@/lib/guardianPush";
-import { startScan, pickOne, listPaired, detectScanMode, type RawAdvert, type ScannerHandle } from "@/components/dashboard/zaxin/core/scanner";
+import { pickOne, listPaired } from "@/components/dashboard/zaxin/core/scanner";
+import {
+  subscribeSentinel, getSentinelState, armSentinel, disarmSentinel, flushSentinel,
+  checkAreaNow, grantRadioPermission, ingestAdvert, invalidateSentinelSettings,
+  type SentinelState,
+} from "@/lib/sentinel/alwaysOn";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -172,13 +177,9 @@ const BluetoothSentinel = () => {
   const [events, setEvents] = useState<GeoEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [watching, setWatching] = useState(false);
-  const [liveCount, setLiveCount] = useState(0);
-  const [flushing, setFlushing] = useState(false);
+  const [sent, setSent] = useState<SentinelState>(getSentinelState());
   const [dossierFor, setDossierFor] = useState<string | null>(null);
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
-  const [areaState, setAreaState] = useState<{ level: string; label: string; summary: string } | null>(null);
-  const [checkingArea, setCheckingArea] = useState(false);
   const [analysis, setAnalysis] = useState<TcAnalysis | null>(null);
   const [doctrine, setDoctrine] = useState<DoctrineEntry[]>([]);
   const [analysing, setAnalysing] = useState(false);
@@ -195,19 +196,15 @@ const BluetoothSentinel = () => {
     email_enabled: true,
   });
 
-  // Foreground watch machinery. Buffer is a ref so the scan callback never
-  // re-renders the tree on every advertisement (hundreds per minute in a city).
-  const bufferRef = useRef<Map<string, RawAdvert & { lat?: number; lng?: number; accuracy?: number }>>(new Map());
-  const handleRef = useRef<ScannerHandle | null>(null);
-  const wakeRef = useRef<any>(null);
-  const sessionRef = useRef<string>("");
-  const posRef = useRef<{ lat: number; lng: number; accuracy: number } | null>(null);
-  const geoWatchRef = useRef<number | null>(null);
-  const flushTimer = useRef<number | null>(null);
-  const areaTimer = useRef<number | null>(null);
+  // Everything below is a projection of daemon state — no local radio, no local
+  // timers, so unmounting this tab cannot silence the watch.
+  const watching = sent.armed;
+  const liveCount = sent.liveCount;
+  const flushing = sent.flushing;
+  const areaState = sent.area;
+  const checkingArea = sent.checkingArea;
+  const mode = sent.mode;
   const mounted = useRef(true);
-
-  const mode = useMemo(() => detectScanMode(), []);
 
   const load = useCallback(async () => {
     setLoadError(null);
