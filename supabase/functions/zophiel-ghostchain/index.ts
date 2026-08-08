@@ -31,6 +31,9 @@ const PRIVATE_IP_PATTERNS = [
 const BLOCKED_HOSTS = new Set([
   "localhost", "metadata.google.internal", "169.254.169.254",
 ]);
+const MAX_REDIRECTS = 5;
+const MAX_HTML_BYTES = 2_000_000;
+const FETCH_TIMEOUT_MS = 15_000;
 function normalizeUrl(raw: string): string {
   const t = raw.trim();
   const s = /^[a-z][a-z0-9+.-]*:/i.test(t) ? t : `https://${t}`;
@@ -46,6 +49,123 @@ function validateSeedUrl(raw: string): string {
   if (BLOCKED_HOSTS.has(h) || PRIVATE_IP_PATTERNS.some((p) => p.test(h))) throw new Error("BLOCKED_HOST");
   if (u.username || u.password) throw new Error("CREDENTIALS_IN_URL");
   return u.toString();
+}
+
+async function validatePublicDestination(raw: string): Promise<string> {
+  const target = validateSeedUrl(raw);
+  const hostname = new URL(target).hostname;
+  // Literal addresses were checked above. Resolve hostnames as well so a public
+  // name cannot redirect/rebind the worker into a private network.
+  if (!hostname.includes(":")) {
+    try {
+      const addresses = await Deno.resolveDns(hostname, "A");
+      if (addresses.some((ip) => PRIVATE_IP_PATTERNS.some((pattern) => pattern.test(ip)))) {
+        throw new Error("BLOCKED_HOST");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === "BLOCKED_HOST") throw error;
+      // DNS failures are left to fetch so the caller receives a typed upstream error.
+    }
+  }
+  return target;
+}
+
+function retryDelayMs(response: Response, attempt: number): number {
+  const raw = response.headers.get("retry-after");
+  const seconds = raw ? Number(raw) : Number.NaN;
+  if (Number.isFinite(seconds)) return Math.min(3_000, Math.max(250, seconds * 1_000));
+  return 400 * (attempt + 1) + Math.floor(Math.random() * 200);
+}
+
+async function readBoundedText(response: Response): Promise<{ text: string; truncated: boolean }> {
+  if (!response.body) return { text: "", truncated: false };
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let received = 0;
+  let truncated = false;
+  try {
+    while (received < MAX_HTML_BYTES) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      const remaining = MAX_HTML_BYTES - received;
+      const slice = value.byteLength > remaining ? value.slice(0, remaining) : value;
+      received += slice.byteLength;
+      chunks.push(decoder.decode(slice, { stream: true }));
+      if (value.byteLength > remaining) { truncated = true; break; }
+    }
+    chunks.push(decoder.decode());
+  } finally {
+    if (truncated) await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+  return { text: chunks.join(""), truncated };
+}
+
+interface AcquiredPage {
+  finalUrl: string;
+  html: string;
+  warnings: string[];
+}
+
+async function acquirePage(seed: string): Promise<AcquiredPage> {
+  let current = await validatePublicDestination(seed);
+  const warnings: string[] = [];
+  for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect++) {
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        response = await fetch(current, {
+          redirect: "manual",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; ZophielGhostChain/2.1; +https://asherin.com)",
+            Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.4",
+          },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
+      } catch (error) {
+        if (attempt === 0) { await new Promise((resolve) => setTimeout(resolve, 450)); continue; }
+        const reason = error instanceof DOMException && error.name === "TimeoutError" ? "timeout" : "network";
+        throw new Error(`UPSTREAM_${reason.toUpperCase()}`);
+      }
+      if ((response.status === 429 || response.status >= 500) && attempt === 0) {
+        const delay = retryDelayMs(response, attempt);
+        await response.body?.cancel().catch(() => undefined);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      break;
+    }
+    if (!response) throw new Error("UPSTREAM_NETWORK");
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get("location");
+      await response.body?.cancel().catch(() => undefined);
+      if (!location) throw new Error("UPSTREAM_REDIRECT_WITHOUT_LOCATION");
+      if (redirect === MAX_REDIRECTS) throw new Error("UPSTREAM_TOO_MANY_REDIRECTS");
+      current = await validatePublicDestination(new URL(location, current).toString());
+      continue;
+    }
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      const error = new Error(`UPSTREAM_HTTP_${response.status}`) as Error & { status?: number; retryAfterMs?: number };
+      error.status = response.status;
+      if (response.status === 429) error.retryAfterMs = retryDelayMs(response, 1);
+      throw error;
+    }
+
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+    if (contentType && !contentType.includes("html") && !contentType.includes("text/plain") && !contentType.includes("xhtml")) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new Error(`UNSUPPORTED_CONTENT_TYPE:${contentType.split(";")[0]}`);
+    }
+    const { text, truncated } = await readBoundedText(response);
+    if (truncated) warnings.push("Page exceeded the 2 MB analysis window; the first 2 MB was analyzed.");
+    if (!text.trim()) warnings.push("The target returned no readable static content.");
+    return { finalUrl: current, html: text, warnings };
+  }
+  throw new Error("UPSTREAM_TOO_MANY_REDIRECTS");
 }
 
 // ─── Static HTML scraper (regex — no cheerio dep) ─────────────────────────
@@ -202,6 +322,7 @@ async function synthesizeReport(apiKey: string, payload: unknown): Promise<strin
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(15_000),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: REPORT_SYS }] },
         contents: [{ role: "user", parts: [{ text: JSON.stringify(payload).slice(0, 30_000) }] }],
@@ -229,47 +350,48 @@ serve(async (req) => {
     }
 
     const target = validateSeedUrl(rawUrl);
+    const warnings: string[] = [];
 
     // Optional passthrough to the user-hosted v2 Node service.
     const remote = Deno.env.get("ZOPHIEL_V2_REMOTE_URL");
     if (remote && !body?.forceLocal) {
-      const upstream = await fetch(`${remote.replace(/\/+$/, "")}/investigate`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: target, query: body?.query ?? "" }),
-        signal: AbortSignal.timeout(45_000),
-      });
-      if (upstream.ok) {
-        const j = await upstream.json();
-        return new Response(JSON.stringify({ success: true, mode: "remote", target, ...j }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      try {
+        const upstream = await fetch(`${remote.replace(/\/+$/, "")}/investigate`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: target, query: body?.query ?? "" }),
+          signal: AbortSignal.timeout(20_000),
         });
+        if (upstream.ok) {
+          const j = await upstream.json();
+          return new Response(JSON.stringify({ success: true, mode: "remote", target, ...j }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await upstream.body?.cancel().catch(() => undefined);
+        warnings.push(`Remote investigator returned ${upstream.status}; static analysis was used.`);
+      } catch {
+        warnings.push("Remote investigator was unavailable; static analysis was used.");
       }
-      // fall through to local port on remote failure
     }
 
-    // Resolve AI key (admin platform key OR caller BYOK)
-    let resolved;
+    // Extraction is useful without an AI provider. Key resolution and report
+    // synthesis are optional enrichments and must never destroy the base scan.
+    let resolved = null;
     try { resolved = await resolveKey(req, (body as { byok?: unknown }).byok); }
-    catch (e) { return byokErrorResponse(e, corsHeaders); }
+    catch (e) {
+      const code = (e as { code?: string })?.code;
+      if (code !== "BYOK_REQUIRED") return byokErrorResponse(e, corsHeaders);
+      warnings.push("Metadata extraction completed without AI synthesis; connect an AI key for the narrative report.");
+    }
     // Only Gemini keys are wired for synthesis here. Venice fallback callers
     // still get keywords/entities/report="" so the panel renders cleanly.
-    const isGemini = resolved.mode === "admin" || (resolved.mode === "byok" && (resolved.byok?.provider ?? "gemini") === "gemini");
-    const apiKey = isGemini ? (resolved.mode === "byok" ? (resolved.byok?.apiKey ?? "") : (resolved.geminiKey ?? "")) : "";
+    const isGemini = resolved?.mode === "admin" || (resolved?.mode === "byok" && (resolved.byok?.provider ?? "gemini") === "gemini");
+    const apiKey = isGemini && resolved ? (resolved.mode === "byok" ? (resolved.byok?.apiKey ?? "") : (resolved.geminiKey ?? "")) : "";
 
 
-    // Fetch page (SSRF-guarded, 20s cap)
-    const resp = await fetch(target, {
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; ZophielGhostChain/2.0)", "Accept": "text/html,*/*" },
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (!resp.ok) {
-      return new Response(JSON.stringify({ error: `upstream_${resp.status}` }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const html = await resp.text();
-    const parsed = parseStaticHtml(html, target);
+    const acquired = await acquirePage(target);
+    warnings.push(...acquired.warnings);
+    const parsed = parseStaticHtml(acquired.html, acquired.finalUrl);
     const segments = buildSegments(parsed.textBlocks);
     const { body: signalBody, keywords, snippet } = distill(segments);
     const entities = extractEntities(signalBody);
@@ -285,23 +407,33 @@ serve(async (req) => {
         });
       } catch (e) {
         console.error("[ghostchain] synth failed", e);
+        warnings.push("AI synthesis was unavailable; extracted evidence is still shown below.");
       }
     }
 
     return new Response(JSON.stringify({
       success: true, mode: "local",
-      target, title: parsed.title, snippet,
+      target: acquired.finalUrl, title: parsed.title, snippet,
       keywords, entities,
       links: parsed.links.slice(0, 40),
       segments: segments.slice(0, 30).map((s) => ({ text: s.text.slice(0, 400), entropy: Number(s.entropy.toFixed(3)), selector: s.selector, source: s.source })),
-      report,
+      report, warnings,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "ghostchain_failed";
-    const status = /^(INVALID|BLOCKED|CREDENTIALS)/.test(msg) ? 400 : 500;
+    const upstreamStatus = (e as { status?: number })?.status;
+    const status = /^(INVALID|BLOCKED|CREDENTIALS|UNSUPPORTED)/.test(msg) ? 400
+      : upstreamStatus === 429 ? 429
+      : /^UPSTREAM_/.test(msg) ? 502
+      : 500;
     console.error("[ghostchain]", e);
-    return new Response(JSON.stringify({ error: msg }), {
-      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const retryAfterMs = (e as { retryAfterMs?: number })?.retryAfterMs;
+    return new Response(JSON.stringify({ error: msg, ...(retryAfterMs ? { retryAfterMs } : {}) }), {
+      status, headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}),
+      },
     });
   }
 });

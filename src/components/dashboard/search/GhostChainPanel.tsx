@@ -80,6 +80,12 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
             </div>
           )}
 
+          {report.warnings?.length > 0 && (
+            <div role="status" className="border border-border/30 rounded-lg px-4 py-3 bg-muted/20 text-xs text-muted-foreground">
+              {report.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+            </div>
+          )}
+
           {report.entities.length > 0 && (
             <div className="border border-border/20 rounded-lg p-4 bg-card/30">
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-2">Entities ({report.entities.length})</div>
