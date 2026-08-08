@@ -402,7 +402,9 @@ export function profileDevice(s: AdversarySignals, agent: AgentRead, origin: Ori
     ? `Presented as "${observed}", but the signature is fabricated — treat the device class as unknown and the fabrication itself as the finding.`
     : agent.automation
       ? `Presented as "${observed}" — this is tooling, not a person at a browser. The physical device behind it is unconstrained.`
-      : `Presented as "${observed}". The signature is internally consistent, so this is most likely the actual device class.`;
+      : agent.rawHeader
+        ? `Presented as "${observed}". The raw header is internally consistent, so this is most likely the actual device class.`
+        : `Recorded as "${observed}" from a stored session label rather than the raw header — device class only, with no fingerprint detail to test.`;
 
   const required: string[] = [];
   const gap: string[] = [];
