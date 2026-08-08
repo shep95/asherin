@@ -37,7 +37,10 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const BATCH = 3;
 const GLOBAL_BUDGET_MS = 110_000;
-const PER_RIDE_COLLECTION_MS = 30_000;
+// Searches now share one serialized provider lane (~1.1 s apart), so a full
+// driver sweep costs wall-clock time it did not before. Too small a budget
+// truncates collection and reproduces the thin-identity failure.
+const PER_RIDE_COLLECTION_MS = 60_000;
 /** Only sweep rides this recent — an old receipt is history, not a safety event. */
 const MAX_RIDE_AGE_MS = 36 * 60 * 60 * 1000;
 
