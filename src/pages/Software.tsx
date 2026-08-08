@@ -246,6 +246,38 @@ const PRODUCTS: Product[] = [
     competitors: ["DuckDuckGo Privacy", "uBlock Origin"],
     tier: "aureon",
   },
+  {
+    name: "Asherin Maps",
+    tagline: "Tactical satellite map + live parcel intel",
+    description:
+      "Satellite-first mapping with a scalable layer tree, live street-camera sweeps, fastest-route directions, explore/hiring nearby, and Zophiel parcel intelligence on any property you click.",
+    icon: Map,
+    features: [
+      "Satellite imagery with resizable layer tree",
+      "Live street-camera intelligence sweeps",
+      "Fast-lane directions, explore + hiring nearby",
+      "Parcel ownership, valuation, permits and risk overlay",
+      "Find-My locating for your signed-in device fleet",
+    ],
+    route: "/dashboard/geospatial",
+    tier: "aureon",
+  },
+  {
+    name: "Google Cloud Intelligence",
+    tagline: "Your linked accounts, read as intelligence",
+    description:
+      "Pair multiple Google accounts and every device signed into them. Gmail, Calendar, Drive and Meet become a single ledger with automated dossiers on anyone who contacts you, plus a live device mesh showing battery, link quality and last known position.",
+    icon: Globe,
+    features: [
+      "Multi-account Google pairing (Gmail, Calendar, Drive, Meet)",
+      "Automated contact intelligence dossiers",
+      "Signed-in device mesh — battery, link, live location",
+      "Always-on Sentinel alerts by email and push",
+      "Meet Vault — recordings and transcripts, downloadable",
+    ],
+    route: "/dashboard/google",
+    tier: "aureon",
+  },
 
   /* ═══════════════ PRO — ASHERIN PRO $399 ═══════════════ */
   {
@@ -344,15 +376,6 @@ const PRODUCTS: Product[] = [
     icon: LineChart,
     features: ["Multi-model ensemble", "Anomaly detection", "Seasonality decomposition", "Confidence bands"],
     route: "/dashboard/timeseries",
-    tier: "pro",
-  },
-  {
-    name: "Asherin Maps",
-    tagline: "Live parcel intel via Zophiel",
-    description: "Click any property — Zophiel scrapes live ownership, valuation, permit history, and risk intel.",
-    icon: Map,
-    features: ["Parcel-level ownership", "Live valuation scrape", "Permit + zoning history", "Risk overlay"],
-    route: "/dashboard/geospatial",
     tier: "pro",
   },
   {
