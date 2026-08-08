@@ -1,6 +1,6 @@
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useEffect, useState, lazy, Suspense } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
