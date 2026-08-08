@@ -175,6 +175,7 @@ async function sweepRider(
       confidence: fast.confidence,
       auto_captured: true,
       email_message_id: r.messageId,
+      ride_at: new Date(r.at).toISOString(),
       idempotency_key: `auto:${r.messageId}`,
       updated_at: new Date().toISOString(),
     };
@@ -254,11 +255,21 @@ Deno.serve(async (req) => {
         continue;
       }
       try {
-        results.push(await sweepRider(sb, rider, started + GLOBAL_BUDGET_MS));
+        const out = await sweepRider(sb, rider, started + GLOBAL_BUDGET_MS);
+        results.push(out);
+        // The rider can see when their mailbox was last read and what it found;
+        // a silent scheduler is indistinguishable from a broken one.
+        await sb.from("rideshare_settings").update({
+          last_scan_status: String(out.status ?? "ok"),
+          last_scan_detail: `found ${out.found ?? 0}, swept ${out.swept ?? 0}`,
+        }).eq("user_id", rider.user_id);
       } catch (e) {
         const msg = (e as Error).message ?? "unknown";
         log("rider failed", { userId: rider.user_id, msg });
         results.push({ userId: rider.user_id, status: "error", error: msg.slice(0, 200) });
+        await sb.from("rideshare_settings").update({
+          last_scan_status: "error", last_scan_detail: msg.slice(0, 300),
+        }).eq("user_id", rider.user_id);
       }
     }
     return json({ ok: true, elapsed_ms: Date.now() - started, results }, 200, cors);
