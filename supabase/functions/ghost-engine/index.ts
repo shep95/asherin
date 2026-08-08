@@ -422,7 +422,9 @@ Deno.serve(async (req) => {
     const report = await deepTimeSweep(target, id.kind, {
       hosts: Array.isArray(body.hosts) ? body.hosts.slice(0, 8).map(String) : [],
       fromYear: typeof body.fromYear === "number" ? body.fromYear : undefined,
+      terms: Array.isArray(body.terms) ? body.terms.slice(0, 24).map(String) : [],
       authHeader: req.headers.get("Authorization"),
+
     });
     return json({ action: "timeline", identity: id, report });
   }
