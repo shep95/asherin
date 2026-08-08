@@ -370,6 +370,7 @@ export async function deepTimeSweep(
     selector, kind,
     window: { from: fromYear, to: nowYear },
     earliest: null, latest: null, eras: [], captures: [],
+    classes: [], keywords: [], authors: [], term_coverage: [],
     hosts: [], hosts_probed: [], dead_hosts: [],
     corpora: [], elapsed_ms: 0,
   };
@@ -429,12 +430,58 @@ export async function deepTimeSweep(
 
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   report.captures = all.slice(0, cap);
-  report.earliest = all[0] ?? null;
-  report.latest = all[all.length - 1] ?? null;
+  // Endpoints of the timeline are only meaningful for documents that carry one.
+  const datedOnly = all.filter((c) => c.year > 0);
+  report.earliest = datedOnly[0] ?? null;
+  report.latest = datedOnly[datedOnly.length - 1] ?? null;
+
+  // ── Metadata, keyword and term aggregation ────────────────────────────────
+  const classTally = new Map<DocClass, number>();
+  const kwTally = new Map<string, number>();
+  const authorTally = new Map<string, { field: string; documents: number; sample_url: string }>();
+  const termTally = new Map<string, { documents: number; hits: number }>();
+  const seenDoc = new Set<string>();
+  const AUTHOR_FIELDS = [
+    "pdf:Author", "pdf:Creator", "pdf:Producer", "pdf:Company", "xmp:dc:creator",
+    "xmp:pdf:Producer", "office:creator", "office:lastModifiedBy", "office:company",
+    "office:application", "html:author", "html:generator", "html:jsonld:author",
+    "html:jsonld:publisher", "exif:Make", "exif:Model", "exif:Software",
+  ];
+  for (const c of all) {
+    if (seenDoc.has(c.url)) continue;
+    seenDoc.add(c.url);
+    classTally.set(c.doc_class, (classTally.get(c.doc_class) ?? 0) + 1);
+    for (const k of c.keywords) kwTally.set(k, (kwTally.get(k) ?? 0) + 1);
+    for (const f of AUTHOR_FIELDS) {
+      const v = c.meta[f];
+      if (!v) continue;
+      const key = `${f}|${v}`;
+      const prev = authorTally.get(key);
+      if (prev) prev.documents++;
+      else authorTally.set(key, { field: f, documents: 1, sample_url: c.url });
+    }
+    for (const t of c.terms) {
+      const prev = termTally.get(t.term);
+      if (prev) { prev.documents++; prev.hits += t.count; }
+      else termTally.set(t.term, { documents: 1, hits: t.count });
+    }
+  }
+  report.classes = [...classTally.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([doc_class, documents]) => ({ doc_class, documents }));
+  report.keywords = [...kwTally.entries()]
+    .sort((a, b) => b[1] - a[1]).slice(0, 60)
+    .map(([keyword, documents]) => ({ keyword, documents }));
+  report.authors = [...authorTally.entries()]
+    .sort((a, b) => b[1].documents - a[1].documents).slice(0, 40)
+    .map(([key, v]) => ({ value: key.split("|").slice(1).join("|"), ...v }));
+  report.term_coverage = [...termTally.entries()]
+    .sort((a, b) => b[1].documents - a[1].documents)
+    .map(([term, v]) => ({ term, ...v }));
 
   // ── 3. Era ladder ─────────────────────────────────────────────────────────
   const byYear = new Map<number, { captures: number; hosts: Set<string>; sample: TimeCapture }>();
-  for (const c of all) {
+  for (const c of datedOnly) {
     const b = byYear.get(c.year);
     if (b) { b.captures++; b.hosts.add(hostOf(c.url)); }
     else byYear.set(c.year, { captures: 1, hosts: new Set([hostOf(c.url)]), sample: c });
@@ -449,7 +496,7 @@ export async function deepTimeSweep(
 
   // ── 4. Host lifespans ─────────────────────────────────────────────────────
   const hostAgg = new Map<string, { first: number; last: number; docs: number }>();
-  for (const c of all) {
+  for (const c of datedOnly) {
     const h = hostOf(c.url);
     if (!h) continue;
     const a = hostAgg.get(h);
