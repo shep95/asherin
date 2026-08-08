@@ -82,6 +82,17 @@ const HIGH_VALUE_MARKERS = [
   "id_rsa", ".ssh/", ".htpasswd",
   "AKIA", "AIza", "sk_live_", "xoxb-",
   "confidential", "internal use only", "restricted",
+  // 55-domain doctrine surface markers
+  "crt.sh", "_dmarc", "wigle.net", "shodan", "censys",
+  "form 4", "form 990", "13F", "warning letter", "483",
+  "n-number", "airmen inquiry", "vessel documentation",
+  "opencorporates", "companieshouse", "sam.gov",
+  "web.archive.org", "wayback", "orcid.org",
+  "assignee", "acknowledgments", "funded by",
+  "statement of work", "sole source", "toxic release",
+  "H-1B", "prevailing wage", "npi", "medical board",
+  "building permit", "business license", "voter registration",
+  "survived by", "in memory of", "beloved",
 ];
 
 // ── 8 categorical dork-generation micro-prompts ─────────────────────────────
