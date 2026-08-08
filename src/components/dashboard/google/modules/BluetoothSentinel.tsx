@@ -557,10 +557,16 @@ const BluetoothSentinel = () => {
             Tradecraft {analysis && analysis.indicators.length > 0 && `(${analysis.indicators.length})`}
           </TabsTrigger>
           <TabsTrigger value="area">Area risk</TabsTrigger>
+          <TabsTrigger value="network">Network</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="network">
+          <NetworkSentinelTab />
+        </TabsContent>
+
         <TabsContent value="devices" className="space-y-3">
+
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={captureOnce}>Capture once</Button>
             <Button size="sm" variant="ghost" onClick={() => flush(false)} disabled={flushing}>Sync buffer</Button>
