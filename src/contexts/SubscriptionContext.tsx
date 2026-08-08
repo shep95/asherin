@@ -89,8 +89,15 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
 
 export const useSubscription = () => useContext(SubscriptionContext);
 
+// Six-month term products resolve to the same entitlement as their monthly twin.
+const SEMIANNUAL_PRODUCTS: Record<string, TierKey> = {
+  prod_V226j5fQ5fSoD9: "monthly_aureon",
+  prod_V2267gYsf3sRRn: "monthly_pro",
+};
+
 function productToTier(productId: string | null): TierKey | null {
   if (!productId) return null;
+  if (SEMIANNUAL_PRODUCTS[productId]) return SEMIANNUAL_PRODUCTS[productId];
   for (const [key, val] of Object.entries(TIERS)) {
     if (val.product_id === productId) return key as TierKey;
   }
