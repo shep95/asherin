@@ -24,6 +24,11 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendWebPush } from "./webPush.ts";
+import {
+  buildIcProduct,
+  reportNumber as icReportNumber,
+  type ConfidenceLevel,
+} from "./icTradecraft.ts";
 
 export type IntelSeverity = "info" | "notable" | "critical";
 
