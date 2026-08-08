@@ -1,3 +1,6 @@
+import { isNativeApp } from "@/lib/native/nativeRuntime";
+import { startNativeScan, listNativeBonded } from "@/lib/native/nativeBle";
+
 // Scanner brain — wraps Web Bluetooth into a uniform sweep stream.
 //
 // Reality check baked into this module:
