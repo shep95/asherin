@@ -105,6 +105,13 @@ Deno.serve(async (req) => {
     const days = Math.max(1, Math.min(365, Number(body?.days) || 90));
     const sb = adminClient();
 
+    if (action === "__peek") {
+      const accounts = await liveAccounts(sb, user.id, null);
+      const a = accounts.find((x) => x.google_email === String(body?.email ?? "")) ?? accounts[0];
+      const { gfetchPeek } = await import("../_shared/phoneMessages.ts");
+      return json(await gfetchPeek(a), 200, cors);
+    }
+
     // ── SYNC: Google Voice → ledger ──────────────────────────────────────
     if (action === "sync") {
       const accounts = await liveAccounts(sb, user.id, body?.account_id ?? null);
