@@ -136,7 +136,8 @@ const SHARE_URL_RE =
 
 function classify(subject: string, text: string): ParsedRideEmail["kind"] {
   if (SHARE_URL_RE.test(text)) return "share";
-  if (/receipt|your trip with|you rode with|trip summary|ride receipt/i.test(subject)) return "receipt";
+  if (/receipt|trip with (?:uber|lyft)|your trip|you rode with|trip summary|ride receipt/i.test(subject) ||
+      /you rode with|total\s*\$|trip fare/i.test(text)) return "receipt";
   return "dispatch";
 }
 
