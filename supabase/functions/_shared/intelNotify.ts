@@ -156,6 +156,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   // Re-notification guard: if this exact key already delivered on a transport,
   // the work was already announced. Refresh the row, announce nothing again.
   let alreadyDelivered: string[] = [];
+  let priorId: string | null = null;
   if (idem) {
     const { data: prior } = await sb
       .from("intel_notifications")
@@ -163,7 +164,10 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
       .eq("user_id", notice.userId)
       .eq("idempotency_key", idem)
       .maybeSingle();
-    if (prior) alreadyDelivered = prior.channels_delivered ?? [];
+    if (prior) {
+      priorId = prior.id;
+      alreadyDelivered = prior.channels_delivered ?? [];
+    }
   }
 
   const row = {
@@ -181,10 +185,11 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   };
 
   try {
-    const { data, error } = idem
+    // The idempotency index is PARTIAL (idempotency_key IS NOT NULL), so
+    // PostgREST cannot infer it for ON CONFLICT. Read-then-write explicitly.
+    const { data, error } = priorId
       ? await sb.from("intel_notifications")
-          .upsert(row, { onConflict: "user_id,idempotency_key" })
-          .select("id").single()
+          .update(row).eq("id", priorId).select("id").single()
       : await sb.from("intel_notifications").insert(row).select("id").single();
     if (error) throw error;
     out.notificationId = data?.id ?? null;
@@ -290,7 +295,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
     if (s.status === "fulfilled" && s.value) out.channels.push(s.value);
   }
 
-  if (out.notificationId && out.channels.length > 1) {
+  if (out.notificationId && out.channels.length) {
     await sb.from("intel_notifications")
       .update({ channels_delivered: out.channels })
       .eq("id", out.notificationId)
