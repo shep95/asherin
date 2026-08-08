@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeWithByokRetry } from "@/lib/byokInvoke";
 import { enablePush, readPushStatus, type PushStatus } from "@/lib/guardianPush";
-import { startScan, pickOne, listPaired, detectScanMode, type RawAdvert, type ScannerHandle } from "@/components/dashboard/zaxin/core/scanner";
+import { pickOne, listPaired } from "@/components/dashboard/zaxin/core/scanner";
+import {
+  subscribeSentinel, getSentinelState, armSentinel, disarmSentinel, flushSentinel,
+  checkAreaNow, grantRadioPermission, ingestAdvert, invalidateSentinelSettings,
+  type SentinelState,
+} from "@/lib/sentinel/alwaysOn";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -172,13 +177,9 @@ const BluetoothSentinel = () => {
   const [events, setEvents] = useState<GeoEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [watching, setWatching] = useState(false);
-  const [liveCount, setLiveCount] = useState(0);
-  const [flushing, setFlushing] = useState(false);
+  const [sent, setSent] = useState<SentinelState>(getSentinelState());
   const [dossierFor, setDossierFor] = useState<string | null>(null);
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
-  const [areaState, setAreaState] = useState<{ level: string; label: string; summary: string } | null>(null);
-  const [checkingArea, setCheckingArea] = useState(false);
   const [analysis, setAnalysis] = useState<TcAnalysis | null>(null);
   const [doctrine, setDoctrine] = useState<DoctrineEntry[]>([]);
   const [analysing, setAnalysing] = useState(false);
@@ -195,19 +196,15 @@ const BluetoothSentinel = () => {
     email_enabled: true,
   });
 
-  // Foreground watch machinery. Buffer is a ref so the scan callback never
-  // re-renders the tree on every advertisement (hundreds per minute in a city).
-  const bufferRef = useRef<Map<string, RawAdvert & { lat?: number; lng?: number; accuracy?: number }>>(new Map());
-  const handleRef = useRef<ScannerHandle | null>(null);
-  const wakeRef = useRef<any>(null);
-  const sessionRef = useRef<string>("");
-  const posRef = useRef<{ lat: number; lng: number; accuracy: number } | null>(null);
-  const geoWatchRef = useRef<number | null>(null);
-  const flushTimer = useRef<number | null>(null);
-  const areaTimer = useRef<number | null>(null);
+  // Everything below is a projection of daemon state — no local radio, no local
+  // timers, so unmounting this tab cannot silence the watch.
+  const watching = sent.armed;
+  const liveCount = sent.liveCount;
+  const flushing = sent.flushing;
+  const areaState = sent.area;
+  const checkingArea = sent.checkingArea;
+  const mode = sent.mode;
   const mounted = useRef(true);
-
-  const mode = useMemo(() => detectScanMode(), []);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -235,154 +232,27 @@ const BluetoothSentinel = () => {
     return () => { mounted.current = false; };
   }, [load]);
 
-  // ── Flush: one batch per interval, deduped to strongest sample per radio ──
-  const flush = useCallback(async (silent = true) => {
-    const batch = Array.from(bufferRef.current.values());
-    bufferRef.current.clear();
-    if (!mounted.current) return;
-    setLiveCount(0);
-    if (!batch.length) return;
-    setFlushing(true);
-    try {
-      const byok = await resolveByok();
-      const data = await invokeWithByokRetry<any>("sentinel-ble", {
-        body: {
-          action: "ble.ingest",
-          sessionId: sessionRef.current,
-          scannerLabel: navigator.platform || "device",
-          adverts: batch.map((a) => ({
-            id: a.id, name: a.name, manufacturer: a.manufacturer,
-            serviceUuids: a.serviceUuids, rssi: a.rssi, txPower: a.txPower,
-            lat: a.lat ?? null, lng: a.lng ?? null, accuracy: a.accuracy ?? null, ts: a.ts,
-          })),
-          ...(byok ? { byok } : {}),
-        },
-        silent: true,
-      });
-      const alerts = data?.alerts || [];
+  // The scan itself lives in the always-on daemon (src/lib/sentinel/alwaysOn.ts),
+  // which is armed at app boot. This view is a window onto it — it never opens a
+  // second radio stream, which would double-count sightings and corrupt the
+  // recurrence maths every stalking judgement depends on.
+  useEffect(() => subscribeSentinel(setSent), []);
 
-      for (const al of alerts) {
-        toast.warning(`Recurring device: ${al.name}`, { description: al.reason, duration: 12000 });
-      }
-      if (!silent) toast.success(`${batch.length} radios logged`);
-      await load();
-    } catch (e) {
-      if (!silent) toast.error(e instanceof Error ? e.message : "Ingest failed");
-    } finally {
-      if (mounted.current) setFlushing(false);
-    }
-  }, [load]);
-
-  const stopWatch = useCallback(async () => {
-    if (flushTimer.current) { window.clearInterval(flushTimer.current); flushTimer.current = null; }
-    if (areaTimer.current) { window.clearInterval(areaTimer.current); areaTimer.current = null; }
-    if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null; }
-    try { await handleRef.current?.stop(); } catch { /* noop */ }
-    handleRef.current = null;
-    try { await wakeRef.current?.release?.(); } catch { /* noop */ }
-    wakeRef.current = null;
-    await flush(false);
-    if (mounted.current) setWatching(false);
-  }, [flush]);
-
-  const checkArea = useCallback(async (silent = true) => {
-    const p = posRef.current;
-    if (!p) { if (!silent) toast.error("No position fix yet."); return; }
-    setCheckingArea(true);
-    try {
-      const byok = await resolveByok();
-      const data = await invokeWithByokRetry<any>("sentinel-ble", {
-        body: { action: "geo.check", lat: p.lat, lng: p.lng, ...(byok ? { byok } : {}) },
-        silent: true,
-      });
-      const a = data?.assessment;
-      if (a) {
-        setAreaState({ level: a.risk_level, label: a.place_label || "", summary: a.summary || "" });
-        if (data?.notified) {
-
-          toast.warning(`${a.risk_level} risk area`, { description: a.summary?.slice(0, 180), duration: 14000 });
-          await load();
-        }
-      }
-    } catch (e) {
-      if (!silent) toast.error(e instanceof Error ? e.message : "Area check failed");
-    } finally {
-      if (mounted.current) setCheckingArea(false);
-    }
-  }, [load]);
-
-  const startWatch = useCallback(async () => {
-    if (handleRef.current) return;
-    sessionRef.current = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    try {
-      handleRef.current = await startScan((a) => {
-        // Keep the strongest sample per radio for this window — the closest
-        // approach is the safety-relevant fact, not the average.
-        const prev = bufferRef.current.get(a.id);
-        const withPos = { ...a, ...(posRef.current || {}) };
-        if (!prev || (a.rssi ?? -999) > (prev.rssi ?? -999)) bufferRef.current.set(a.id, withPos);
-        setLiveCount(bufferRef.current.size);
-      });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Bluetooth scan unavailable");
-      return;
-    }
-    // Position: the "different place?" signal. Coarse-gridded server-side.
-    if ("geolocation" in navigator) {
-      geoWatchRef.current = navigator.geolocation.watchPosition(
-        (pos) => { posRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }; },
-        () => { /* denied — recurrence falls back to distinct days */ },
-        { enableHighAccuracy: false, maximumAge: 60_000, timeout: 20_000 },
-      );
-    }
-    try { wakeRef.current = await (navigator as any).wakeLock?.request("screen"); } catch { /* noop */ }
-    flushTimer.current = window.setInterval(() => { void flush(true); }, 45_000);
-    if (settings.geo_enabled) {
-      areaTimer.current = window.setInterval(() => { void checkArea(true); }, 5 * 60_000);
-      window.setTimeout(() => { void checkArea(true); }, 8_000);
-    }
-    setWatching(true);
-    toast.success("Sentinel watching", { description: "Foreground watch active. Keep this tab open." });
-  }, [flush, checkArea, settings.geo_enabled]);
-
-  // Auto-resume: returning to the tab restores the wake lock and the scan.
+  // Any daemon ingest (background flush, area alert) refreshes the tables.
   useEffect(() => {
-    const onVis = async () => {
-      if (document.visibilityState !== "visible" || !watching) return;
-      if (!wakeRef.current) {
-        try { wakeRef.current = await (navigator as any).wakeLock?.request("screen"); } catch { /* noop */ }
-      }
-      if (!handleRef.current) {
-        try { handleRef.current = await startScan((a) => {
-          const prev = bufferRef.current.get(a.id);
-          const withPos = { ...a, ...(posRef.current || {}) };
-          if (!prev || (a.rssi ?? -999) > (prev.rssi ?? -999)) bufferRef.current.set(a.id, withPos);
-          setLiveCount(bufferRef.current.size);
-        }); } catch { /* noop */ }
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [watching]);
-
-  // Teardown on unmount: never leave a radio scan or wake lock behind.
-  useEffect(() => () => {
-    try { handleRef.current?.stop(); } catch { /* noop */ }
-    try { wakeRef.current?.release?.(); } catch { /* noop */ }
-    if (flushTimer.current) window.clearInterval(flushTimer.current);
-    if (areaTimer.current) window.clearInterval(areaTimer.current);
-    if (geoWatchRef.current != null) navigator.geolocation.clearWatch(geoWatchRef.current);
-  }, []);
+    const onIngest = () => { void load(); };
+    window.addEventListener("asherin-sentinel-ingest", onIngest);
+    return () => window.removeEventListener("asherin-sentinel-ingest", onIngest);
+  }, [load]);
 
   const captureOnce = async () => {
-    sessionRef.current ||= `${Date.now().toString(36)}-manual`;
     try {
       if (mode === "continuous" || mode === "native") {
         const paired = await listPaired();
-        for (const a of paired) bufferRef.current.set(a.id, { ...a, ...(posRef.current || {}) });
+        for (const a of paired) ingestAdvert(a);
       }
-      await pickOne((a) => bufferRef.current.set(a.id, { ...a, ...(posRef.current || {}) }));
-      await flush(false);
+      await pickOne((a) => ingestAdvert(a));
+      await flushSentinel(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No device selected");
     }
@@ -462,6 +332,8 @@ const BluetoothSentinel = () => {
     const merged = { ...settings, ...next };
     setSettings(merged);
     await supabase.functions.invoke("sentinel-ble", { body: { action: "settings.set", settings: merged } });
+    // The daemon caches these — tell it to re-read rather than run a stale policy.
+    invalidateSentinelSettings();
   };
 
   const flagged = devices.filter((d) => !d.is_self && !d.is_ignored && ["priority", "breach"].includes(d.threat_tier));
@@ -523,16 +395,24 @@ const BluetoothSentinel = () => {
             <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           {watching ? (
-            <Button size="sm" variant="destructive" onClick={() => stopWatch()}>Stop watch</Button>
+            <Button size="sm" variant="ghost" onClick={() => void disarmSentinel()}>Disarm</Button>
           ) : (
-            <Button size="sm" onClick={() => startWatch()} disabled={mode === "unsupported"}>
-              <Radio className="h-3.5 w-3.5 mr-1" /> Start watch
+            <Button size="sm" onClick={() => void armSentinel()}>
+              <Radio className="h-3.5 w-3.5 mr-1" /> Arm sentinel
             </Button>
           )}
         </div>
       </div>
 
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-[11px] text-muted-foreground space-y-1">
+        <p>
+          <strong className="text-foreground">
+            {watching ? "Armed — running by itself." : "Disarmed."}
+          </strong>{" "}
+          {watching
+            ? "The sentinel starts on its own whenever Asherin is open. You never have to press start; disarming is the only thing that stops it."
+            : "You turned the watch off. Nothing is being logged and no area alerts will fire until you arm it again."}
+        </p>
         <p>
           <strong className="text-foreground">Radio reality:</strong>{" "}
           {mode === "native"
@@ -546,9 +426,23 @@ const BluetoothSentinel = () => {
         <p>
           {mode === "native"
             ? "Background and screen-off sweeps run natively. No phone can listen while it is fully powered down — the radio has no power then — so the log resumes the moment the handset boots."
-            : "A web page can only listen while this tab is open and in front. It cannot scan with the tab closed — no browser can. The watch is wake-locked and auto-resumes when you return; alerts it has already raised still reach you by push and email anywhere."}
+            : "A web page can only listen while Asherin is open somewhere. The watch is wake-locked, supervised every minute, and re-arms itself the moment you return; alerts it has already raised still reach you by push and email anywhere."}
         </p>
-        {watching && <p className="text-foreground">Watching · {liveCount} radio{liveCount === 1 ? "" : "s"} buffered {flushing && "· syncing"}</p>}
+        {watching && sent.blocked && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-foreground/80">{sent.blocked}</span>
+            {(mode === "continuous" || mode === "native") && (
+              <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => void grantRadioPermission()}>
+                Grant radio access
+              </Button>
+            )}
+          </div>
+        )}
+        {watching && (
+          <p className="text-foreground">
+            {sent.scanning ? "Radio watching" : "Radio idle"} · {sent.positioned ? "position locked" : "waiting for position"} · {liveCount} radio{liveCount === 1 ? "" : "s"} buffered {flushing && "· syncing"}
+          </p>
+        )}
       </div>
 
 
@@ -571,7 +465,7 @@ const BluetoothSentinel = () => {
 
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={captureOnce}>Capture once</Button>
-            <Button size="sm" variant="ghost" onClick={() => flush(false)} disabled={flushing}>Sync buffer</Button>
+            <Button size="sm" variant="ghost" onClick={() => flushSentinel(false)} disabled={flushing}>Sync buffer</Button>
           </div>
           {loading ? (
             <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
@@ -758,7 +652,7 @@ const BluetoothSentinel = () => {
 
         <TabsContent value="area" className="space-y-3">
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => checkArea(false)} disabled={checkingArea}>
+            <Button size="sm" onClick={() => checkAreaNow(false)} disabled={checkingArea}>
               {checkingArea ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <MapPin className="h-3.5 w-3.5 mr-1" />}
               Assess where I am
             </Button>
