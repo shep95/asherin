@@ -876,8 +876,9 @@ const IntelligenceMapModule = () => {
     setTool("directions");
   }, []);
 
-  const handleRoutes = useCallback((routes: RouteOption[], activeId: string | null) => {
-    setRouteLayer((prev) => ({ ...prev, routes, activeId }));
+  const handleRoutes = useCallback((payload: { routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }) => {
+    const { routes, activeId } = payload;
+    setRouteLayer(payload);
     const active = routes.find((r) => r.id === activeId) ?? routes[0];
     if (active && mapRef.current && active.path.length > 1) {
       mapRef.current.fitBounds(L.latLngBounds(active.path.map((p) => [p.lat, p.lng] as [number, number])), {
