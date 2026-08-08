@@ -168,7 +168,7 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [dynamicLineItem ?? { price: priceId, quantity: 1 }],
       mode: checkoutMode,
       success_url: `${origin}/dashboard?subscription=success`,
       cancel_url: `${origin}/dashboard?subscription=canceled`,
@@ -188,6 +188,7 @@ serve(async (req) => {
           is_gift: isGift ? "true" : "false",
           gift_recipient_email: giftRecipientEmail || "",
           gift_duration_months: safeGiftMonths ? String(safeGiftMonths) : "",
+          ...pricingAudit,
         },
       };
     } else {
