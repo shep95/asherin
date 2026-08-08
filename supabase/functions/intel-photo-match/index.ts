@@ -448,7 +448,16 @@ async function faceGate(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0, maxOutputTokens: 512, responseMimeType: "application/json" },
+          // The model spends latent reasoning tokens against this same budget,
+          // so a 512 ceiling truncated the boolean array mid-write and the
+          // fail-closed parse then discarded every frame. Disable the reasoning
+          // spend for a classification this shallow and budget for the answer.
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 2048,
+            responseMimeType: "application/json",
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
         signal: AbortSignal.timeout(60_000),
       },
