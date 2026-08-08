@@ -458,9 +458,12 @@ function placeFromAddress(
  * and raw deflate framings are attempted, because producers disagree.
  */
 async function inflateOne(chunk: Uint8Array): Promise<string> {
+  const copy = new Uint8Array(chunk.length);
+  copy.set(chunk);
   for (const format of ["deflate", "deflate-raw"] as const) {
     try {
-      const stream = new Blob([chunk]).stream().pipeThrough(new DecompressionStream(format));
+      const stream = new Blob([copy]).stream().pipeThrough(new DecompressionStream(format));
+
       const buf = new Uint8Array(await new Response(stream).arrayBuffer());
       if (buf.length) return new TextDecoder("latin1").decode(buf);
     } catch { /* try the other framing */ }
