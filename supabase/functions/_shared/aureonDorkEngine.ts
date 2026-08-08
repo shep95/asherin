@@ -43,7 +43,8 @@ export interface DorkTheory {
 export interface DorkHit { title: string; url: string; snippet: string; host: string }
 export type DorkCategory =
   | "exposed_files" | "open_directories" | "login_portals" | "exposed_dbs"
-  | "sensitive_docs" | "device_feeds" | "credentials_keys" | "attack_surface";
+  | "sensitive_docs" | "device_feeds" | "credentials_keys" | "attack_surface"
+  | "novel_synthesis";
 
 export interface DorkTarget {
   subject: string;
