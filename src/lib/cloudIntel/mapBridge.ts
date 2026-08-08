@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { LatLng } from "@/lib/asher/directions";
+import type { Venue } from "@/lib/cloudIntel/movement";
 
 export type CloudEntityKind = "contact" | "venue" | "security" | "relationship";
 
