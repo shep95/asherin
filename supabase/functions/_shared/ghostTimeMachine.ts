@@ -312,6 +312,31 @@ export interface TimeMachineOptions {
   authHeader?: string | null;
   /** How many documents the engine will open and read. */
   probeBudget?: number;
+  /** Extra terms to hunt for inside every document body. */
+  terms?: string[];
+}
+
+/**
+ * Document-surface legs.
+ *
+ * Era buckets alone only reach pages. These legs go after the artefacts: the
+ * filed PDF, the shared drive document, the spreadsheet in an open directory,
+ * the name sitting inside a committed source file. Each is asked without a
+ * platform constraint except where the constraint *is* the surface.
+ */
+function documentLegs(selector: string): string[] {
+  const q = selector.trim();
+  return [
+    `"${q}" (filetype:pdf OR filetype:doc OR filetype:docx OR filetype:rtf)`,
+    `"${q}" (filetype:xls OR filetype:xlsx OR filetype:csv OR filetype:txt)`,
+    `"${q}" (filetype:ppt OR filetype:pptx)`,
+    `"${q}" (site:docs.google.com OR site:drive.google.com OR site:dropbox.com OR site:onedrive.live.com OR site:sharepoint.com OR site:box.com OR site:notion.site)`,
+    `"${q}" (ext:py OR ext:ts OR ext:js OR ext:json OR ext:yml OR ext:sql)`,
+    `"${q}" (site:raw.githubusercontent.com OR site:gist.github.com OR site:gitlab.com OR site:bitbucket.org OR site:sourceforge.net)`,
+    `"${q}" (pastebin OR rentry OR "raw paste" OR "text dump")`,
+    `"${q}" intitle:"index of"`,
+    `"${q}" (report OR register OR roster OR list OR record OR archive OR annexure)`,
+  ];
 }
 
 /** Coarse era buckets — the index answers differently when a decade is named. */
@@ -351,10 +376,19 @@ export async function deepTimeSweep(
 
   // ── 1. FAN-OUT on the engine's own harvest, base selector + era buckets ───
   const base: SelectorIdentity = classifySelector(selector);
-  const legs: SelectorIdentity[] = [base, ...eraLegs(selector, fromYear).map(classifySelector)];
+  const legs: SelectorIdentity[] = [
+    base,
+    ...eraLegs(selector, fromYear).map(classifySelector),
+    ...documentLegs(selector).map(classifySelector),
+  ];
+
+  // The words the operator actually typed are what a document must corroborate.
+  const terms = keywordTerms(selector, opts.terms ?? []);
 
   const harvests = await Promise.allSettled(
-    legs.map((id) => harvestLeads(id, auth, { maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000 })),
+    legs.map((id) => harvestLeads(id, auth, {
+      maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000, perHostCap: 8,
+    })),
   );
 
   const leadByUrl = new Map<string, { url: string; title: string }>();
@@ -385,8 +419,11 @@ export async function deepTimeSweep(
   });
 
   // ── 2. PROBE + DATE ───────────────────────────────────────────────────────
-  const probed = await pool(leads, 8, (l) => probeLead(l).catch(() => [] as TimeCapture[]));
-  const all = probed.flat().filter((c) => c.year >= fromYear);
+  const probed = await pool(leads, 8, (l) => probeLead(l, terms).catch(() => [] as TimeCapture[]));
+  // Undated documents (year 0) are kept when the operator's terms are in them —
+  // a missing date is the publisher's silence, not the document's irrelevance.
+  const read = probed.flat();
+  const all = read.filter((c) => c.year === 0 || c.year >= fromYear);
   report.corpora.push({ name: "Direct probe", ok: true, records: leads.length, note: null });
   report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
