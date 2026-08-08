@@ -153,6 +153,36 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push("");
   }
 
+  // Circulation is a separate finding from identity: knowing WHO the contact
+  // is says nothing about WHERE their address or number is already carried.
+  L.push(...banner(n++, "Identifier exposure (confirmed sightings)"));
+  if (!a.identifierSweeps.length) {
+    L.push("  No hard identifier on this contact record was swept.");
+    L.push("");
+  } else {
+    for (const sw of a.identifierSweeps) {
+      L.push(...field(`  ${sw.identifier} — `, `${sw.kind}`, 4));
+      if (sw.blocker) {
+        L.push(...field("    └─ ", sw.blocker, 8));
+        L.push("");
+        continue;
+      }
+      L.push(...field("    ├─ Confirmed:  ",
+        `${sw.confirmed} sighting${sw.confirmed === 1 ? "" : "s"} across ${sw.surfaces} surface${sw.surfaces === 1 ? "" : "s"}`, 8));
+      L.push(...field("    ├─ Window:     ",
+        `${sw.firstSeen?.slice(0, 10) ?? "undated"} → ${sw.lastSeen?.slice(0, 10) ?? "undated"}`, 8));
+      if (sw.exposed.length) {
+        L.push(...field("    ├─ CIRCULATED: ",
+          `${sw.exposed.map((e) => `${e.host} (${e.surfaceClass})`).join(", ")} — treat this identifier as publicly circulated`, 8));
+      }
+      L.push(...field("    └─ Surfaces:   ",
+        sw.top.map((t) => `${t.host} ×${t.sightings}`).join(", ") || "none", 8));
+      L.push("");
+    }
+    L.push(...wrap("  A sighting means the engine opened the page and found the identifier on it. Candidates that could not be confirmed are excluded, so absence here is absence of proof, not proof of absence.", 2));
+    L.push("");
+  }
+
   L.push(...banner(n++, "Source register (Admiralty reliability)"));
   if (!a.sources.length) {
     L.push("  No source was retained.");
