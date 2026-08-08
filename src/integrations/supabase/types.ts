@@ -6562,6 +6562,75 @@ export type Database = {
         }
         Relationships: []
       }
+      mesh_devices: {
+        Row: {
+          accuracy: number | null
+          battery_at: string | null
+          battery_charging: boolean | null
+          battery_pct: number | null
+          created_at: string
+          device_id: string
+          effective_type: string | null
+          fix_at: string | null
+          form_factor: string
+          google_emails: string[]
+          id: string
+          label: string | null
+          last_seen_at: string
+          last_source: string | null
+          lat: number | null
+          link_type: string | null
+          lng: number | null
+          platform: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          battery_at?: string | null
+          battery_charging?: boolean | null
+          battery_pct?: number | null
+          created_at?: string
+          device_id: string
+          effective_type?: string | null
+          fix_at?: string | null
+          form_factor?: string
+          google_emails?: string[]
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          last_source?: string | null
+          lat?: number | null
+          link_type?: string | null
+          lng?: number | null
+          platform?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          battery_at?: string | null
+          battery_charging?: boolean | null
+          battery_pct?: number | null
+          created_at?: string
+          device_id?: string
+          effective_type?: string | null
+          fix_at?: string | null
+          form_factor?: string
+          google_emails?: string[]
+          id?: string
+          label?: string | null
+          last_seen_at?: string
+          last_source?: string | null
+          lat?: number | null
+          link_type?: string | null
+          lng?: number | null
+          platform?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       mesh_dossier_runs: {
         Row: {
           built: number
@@ -9088,6 +9157,7 @@ export type Database = {
           id: string
           label: string | null
           last_beacon_at: string | null
+          mesh_device_id: string | null
           platform: string | null
           revoked: boolean
           token_hash: string
@@ -9099,6 +9169,7 @@ export type Database = {
           id?: string
           label?: string | null
           last_beacon_at?: string | null
+          mesh_device_id?: string | null
           platform?: string | null
           revoked?: boolean
           token_hash: string
@@ -9110,6 +9181,7 @@ export type Database = {
           id?: string
           label?: string | null
           last_beacon_at?: string | null
+          mesh_device_id?: string | null
           platform?: string | null
           revoked?: boolean
           token_hash?: string
@@ -12200,6 +12272,29 @@ export type Database = {
           id: string
           similarity: number
           source_id: string
+        }[]
+      }
+      mesh_peer_user_ids: { Args: { _user: string }; Returns: string[] }
+      mesh_roster: {
+        Args: never
+        Returns: {
+          accuracy: number
+          battery_at: string
+          battery_charging: boolean
+          battery_pct: number
+          device_id: string
+          effective_type: string
+          fix_at: string
+          form_factor: string
+          google_emails: string[]
+          id: string
+          label: string
+          last_seen_at: string
+          lat: number
+          link_type: string
+          lng: number
+          owner_is_self: boolean
+          platform: string
         }[]
       }
       move_to_dlq: {
