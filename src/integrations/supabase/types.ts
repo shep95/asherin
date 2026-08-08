@@ -7594,8 +7594,10 @@ export type Database = {
           created_at: string
           endpoint: string
           id: string
+          label: string | null
           last_used_at: string | null
           p256dh: string
+          platform: string | null
           user_agent: string | null
           user_id: string
         }
@@ -7604,8 +7606,10 @@ export type Database = {
           created_at?: string
           endpoint: string
           id?: string
+          label?: string | null
           last_used_at?: string | null
           p256dh: string
+          platform?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -7614,8 +7618,10 @@ export type Database = {
           created_at?: string
           endpoint?: string
           id?: string
+          label?: string | null
           last_used_at?: string | null
           p256dh?: string
+          platform?: string | null
           user_agent?: string | null
           user_id?: string
         }
@@ -8383,6 +8389,7 @@ export type Database = {
           mfa_change: boolean | null
           new_device_login: boolean | null
           notify_email: boolean | null
+          notify_push: boolean
           notify_sms: boolean | null
           password_change: boolean | null
           recovery_code_usage: boolean | null
@@ -8397,6 +8404,7 @@ export type Database = {
           mfa_change?: boolean | null
           new_device_login?: boolean | null
           notify_email?: boolean | null
+          notify_push?: boolean
           notify_sms?: boolean | null
           password_change?: boolean | null
           recovery_code_usage?: boolean | null
@@ -8411,6 +8419,7 @@ export type Database = {
           mfa_change?: boolean | null
           new_device_login?: boolean | null
           notify_email?: boolean | null
+          notify_push?: boolean
           notify_sms?: boolean | null
           password_change?: boolean | null
           recovery_code_usage?: boolean | null
