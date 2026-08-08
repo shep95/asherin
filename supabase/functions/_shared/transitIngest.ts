@@ -150,15 +150,36 @@ function readAirportPair(text: string): { from: string; to: string } | null {
 
 /** Named station/terminal pair: "London St Pancras to Paris Gare du Nord". */
 function readNamedPair(text: string): { from: string; to: string } | null {
-  const m = text.match(
+  const clean = (s: string) => s.trim().replace(/\s{2,}/g, " ").replace(/[\s,–—-]+$/, "");
+  const accept = (a?: string, b?: string) => {
+    if (!a || !b) return null;
+    const from = clean(a), to = clean(b);
+    if (!from || !to || from.toLowerCase() === to.toLowerCase()) return null;
+    return { from, to };
+  };
+
+  const cued = text.match(
     /\b(?:from|departing|depart)\s*[:\-]?\s*([A-Z][\w'’.\- ]{2,44}?)\s+(?:to|→|->|arriving(?: at| in)?)\s+([A-Z][\w'’.\- ]{2,44})(?=[\n,.]|$)/,
   );
-  if (!m) return null;
-  const clean = (s: string) => s.trim().replace(/\s{2,}/g, " ");
-  const from = clean(m[1]);
-  const to = clean(m[2]);
-  if (from.toLowerCase() === to.toLowerCase()) return null;
-  return { from, to };
+  const fromCue = accept(cued?.[1], cued?.[2]);
+  if (fromCue) return fromCue;
+
+  // Rail and ferry tickets usually print the pair with no cue word at all —
+  // "Penn Station 6:00 AM to Washington Union Station". Requiring a cue lost
+  // every one of those routes, so a line-scoped pass runs next, gated on a
+  // place noun so ordinary prose containing "to" cannot masquerade as a route.
+  const PLACE = /(?:station|terminal|airport|central|union|penn|gare|bahnhof|hbf|pier|port|dock|heliport|depot|parkway|junction)/i;
+  for (const line of text.split(/\n+/).slice(0, 80)) {
+    if (line.length > 200 || !PLACE.test(line)) continue;
+    const m = line.match(
+      /([A-Z][\w'’.\- ]{2,44}?)\s*(?:→|->|—|–)\s*([A-Z][\w'’.\- ]{2,44})\s*$/,
+    ) || line.match(
+      /^([A-Z][\w'’.\- ]{2,44}?)(?:\s+(?:on\s+)?(?:\w{3,9}\.?\s+\d{1,2},?\s+\d{4})?[^\n]{0,20}?)?\s+to\s+([A-Z][\w'’.\- ]{2,44})\s*$/,
+    );
+    const pair = accept(m?.[1], m?.[2]);
+    if (pair) return pair;
+  }
+  return null;
 }
 
 function readSeat(text: string): string | null {
