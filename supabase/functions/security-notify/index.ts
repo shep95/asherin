@@ -23,6 +23,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendWebPush } from "../_shared/webPush.ts";
 import { notifyIntel, type IntelSeverity } from "../_shared/intelNotify.ts";
+import { enrichActor, extractClientIp, actorSections, type ActorIntel } from "../_shared/actorIntel.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -163,23 +164,96 @@ Deno.serve(async (req) => {
         return json({ ok: delivered > 0, delivered, pruned: dead.length, errors: errors.slice(0, 3) }, 200, cors);
       }
 
-      case "event": {
-        const type = str(body.type, 40);
+      case "event":
+      case "dispatch_recent_password_change": {
+        // Two paths funnel here. `event` fires live: the actor is whoever
+        // just called this function, so IP and UA come from THIS request's
+        // headers — a client-supplied "location" or "device" is untrusted
+        // and only used as a last resort. `dispatch_recent_password_change`
+        // reconstructs a past event for the owner: the actor is the most
+        // recent live session on the account, correlated to auth.users.
+        // updated_at (the timestamp Supabase bumps on a password change).
+        const isRetro = action === "dispatch_recent_password_change";
+        const type = isRetro ? "password_change" : str(body.type, 40);
         const spec = EVENTS[type];
         if (!spec) return json({ error: "unknown_event" }, 400, cors);
 
-        const description = str(body.description, 300) || spec.title;
-        const location = str(body.location, 120) || null;
-        const device = str(body.device, 200) || null;
+        let actor: ActorIntel;
+        let occurredAt: Date;
+        let outcome = str(body.outcome, 20) || "success";
 
-        // 1. Audit trail first: the record must survive any transport failure.
+        if (isRetro) {
+          const [{ data: userRow }, { data: sessRows }] = await Promise.all([
+            sb.auth.admin.getUserById(userId),
+            sb.from("user_sessions")
+              .select("ip_address, browser, os, device_type, city, region, country, latitude, longitude, created_at, last_active_at")
+              .eq("user_id", userId)
+              .order("last_active_at", { ascending: false, nullsFirst: false })
+              .limit(1),
+          ]);
+          const updatedAt = userRow?.user?.updated_at ? new Date(userRow.user.updated_at) : new Date();
+          occurredAt = updatedAt;
+          const s = sessRows?.[0];
+          const rawIp = str(s?.ip_address, 64) || null;
+          const ua = [s?.browser, s?.os, s?.device_type].filter(Boolean).join(" ");
+          actor = await enrichActor(rawIp, ua);
+          // Prefer live enrichment; fall back to the session's stored geo so
+          // the email is never empty when ip-api is unreachable.
+          if (!actor.city && s?.city) actor.city = s.city as string;
+          if (!actor.region && s?.region) actor.region = s.region as string;
+          if (!actor.country && s?.country) actor.country = s.country as string;
+          if (actor.latitude == null && typeof s?.latitude === "number") actor.latitude = s.latitude as number;
+          if (actor.longitude == null && typeof s?.longitude === "number") actor.longitude = s.longitude as number;
+          if (actor.latitude != null && actor.longitude != null && !actor.satelliteUrl) {
+            const { satelliteExportUrl } = await import("../_shared/actorIntel.ts");
+            actor.satelliteUrl = satelliteExportUrl(actor.latitude, actor.longitude);
+            actor.mapsUrl = `/dashboard/maps?lat=${actor.latitude.toFixed(5)}&lon=${actor.longitude.toFixed(5)}&z=15`;
+          }
+        } else {
+          occurredAt = new Date();
+          const ip = extractClientIp(req.headers);
+          const ua = req.headers.get("user-agent") || "";
+          actor = await enrichActor(ip, ua);
+        }
+
+        const geoLocation = [actor.city, actor.region, actor.country].filter(Boolean).join(", ") || null;
+        const description = isRetro
+          ? `The account password was changed at ${occurredAt.toUTCString()}. This alert reconstructs the actor from the most recent authenticated session on the account.`
+          : (str(body.description, 300) || spec.title);
+
+        // 1. Audit trail first: survives any transport failure.
         await sb.from("account_activity_log").insert({
           user_id: userId,
           event_type: type === "failed_login" ? "failed_login" : type,
           description,
-          device_info: device,
-          location,
-          outcome: str(body.outcome, 20) || "success",
+          device_info: actor.device,
+          location: geoLocation,
+          ip_address: actor.ip,
+          outcome,
+          metadata: {
+            actor: {
+              ip: actor.ip,
+              browser: actor.browser,
+              os: actor.os,
+              deviceType: actor.deviceType,
+              isp: actor.isp,
+              org: actor.org,
+              asn: actor.asn,
+              country: actor.country,
+              region: actor.region,
+              city: actor.city,
+              latitude: actor.latitude,
+              longitude: actor.longitude,
+              timezone: actor.timezone,
+              mobile: actor.mobile,
+              proxy: actor.proxy,
+              hosting: actor.hosting,
+              reverseDns: actor.reverseDns,
+              threatBadges: actor.threatBadges,
+            },
+            occurredAt: occurredAt.toISOString(),
+            retro: isRetro,
+          },
         });
 
         // 2. Consult the user's own gate for this event class.
@@ -194,30 +268,54 @@ Deno.serve(async (req) => {
         const emailOn = prefs ? (prefs as Record<string, unknown>).notify_email !== false : PREF_DEFAULT;
         if (!eventOn) return json({ ok: true, suppressed: "event_muted" }, 200, cors);
 
-        // 3. Fan out. Idempotency is content-derived and minute-bucketed: a
-        // double-submitted form must not buzz every device twice, while a
-        // genuine repeat an hour later still alerts.
-        const bucket = Math.floor(Date.now() / 60_000);
+        // 3. Fan out. Idempotency is content-derived and minute-bucketed for
+        // live events; retro dispatches key off the event timestamp so the
+        // owner cannot accidentally spam themselves with the same reconstruction.
+        const bucket = isRetro
+          ? Math.floor(occurredAt.getTime() / 60_000)
+          : Math.floor(Date.now() / 60_000);
+
+        const { sections: actorRows, findings } = actorSections(actor);
+        const sections = [
+          { label: "Event", value: `${spec.title} · ${occurredAt.toUTCString()}` },
+          ...actorRows,
+        ];
+        if (isRetro) sections.push({ label: "Reconstruction", value: "Actor derived from most recent authenticated session on the account." });
+
         const delivery = await notifyIntel({
           userId,
           userEmail: user.email ?? null,
           kind: "security",
           severity: spec.severity,
-          title: spec.title,
+          title: isRetro ? `${spec.title} · reconstructed actor` : spec.title,
           body: description,
           source: "Asherin Security",
           url: "/dashboard/vault",
-          sections: [
-            ...(location ? [{ label: "Location", value: location }] : []),
-            ...(device ? [{ label: "Device", value: device }] : []),
-            { label: "Recorded", value: new Date().toUTCString() },
-          ],
-          idempotencyKey: `security-${type}-${userId}-${bucket}`,
+          sections,
+          findings,
+          imageUrl: actor.satelliteUrl ?? undefined,
+          secondaryCta: {
+            label: "Not you? Lock the account",
+            url: "https://asherin.com/dashboard/vault?panic=1",
+          },
+          idempotencyKey: `security-${type}-${userId}-${bucket}${isRetro ? "-retro" : ""}`,
           skipPush: !pushOn,
           skipEmail: !emailOn,
         });
 
-        return json({ ok: true, channels: delivery.channels }, 200, cors);
+        return json({
+          ok: true,
+          channels: delivery.channels,
+          actor: {
+            ip: actor.ip,
+            city: actor.city,
+            country: actor.country,
+            isp: actor.isp,
+            device: actor.device,
+            badges: actor.threatBadges,
+            satellite: actor.satelliteUrl,
+          },
+        }, 200, cors);
       }
 
       default:
