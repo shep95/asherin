@@ -659,14 +659,23 @@ const IntelligenceMapModule = () => {
   // Load pending venues pushed from Cloud Intelligence modules (e.g. Prophet).
   useEffect(() => {
     const load = async () => {
-      const pending = getPendingVenues();
-      if (!pending.length) return;
+      const pendingVenues = getPendingVenues();
+      const pendingContacts = getPendingContacts();
       clearPendingVenues();
-      const features = await pendingVenueFeatures(pending);
-      if (!features.length) return;
-      setCloudLayer((prev) => ({ ...prev, venues: features }));
-      setActiveCloud((prev) => ({ ...prev, "cloud-venues": true }));
-      fitFeatures(features);
+      clearPendingContacts();
+      const venueFeatures = pendingVenues.length ? await pendingVenueFeatures(pendingVenues) : [];
+      const contactFeatures = pendingContacts.length ? await pendingContactFeatures(pendingContacts) : [];
+      const updates: Partial<CloudMapLayer> = {};
+      if (venueFeatures.length) updates.venues = venueFeatures;
+      if (contactFeatures.length) updates.contacts = contactFeatures;
+      if (!Object.keys(updates).length) return;
+      setCloudLayer((prev) => ({ ...prev, ...updates }));
+      setActiveCloud((prev) => ({
+        ...prev,
+        ...(venueFeatures.length ? { "cloud-venues": true } : {}),
+        ...(contactFeatures.length ? { "cloud-contacts": true } : {}),
+      }));
+      fitFeatures([...(venueFeatures || []), ...(contactFeatures || [])]);
     };
     load();
   }, []);
