@@ -1042,7 +1042,7 @@ const ContactIntelligence = () => {
                           </div>
                         )}
 
-                        <div className="pt-1 border-t border-border/10">
+                        <div className="pt-1 border-t border-border/10 flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => setReportKey(d.key)}
                             disabled={!corpus}
@@ -1050,8 +1050,19 @@ const ContactIntelligence = () => {
                           >
                             <ScrollText className="h-3 w-3" /> Deep Intelligence Report
                           </button>
+                          {d.location && (
+                            <button
+                              onClick={() => {
+                                setPendingContacts([{ name: d.name, email: d.emails[0], location: d.location, organization: d.organization, source: "contact_intelligence" }]);
+                                navigate("/dashboard?tab=map");
+                              }}
+                              className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-colors"
+                            >
+                              <MapPin className="h-3 w-3" /> Plot on map
+                            </button>
+                          )}
                           {!corpus && (
-                            <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1.5">
+                            <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1.5 w-full">
                               The report reads raw traffic, which this session has not loaded. Run a deep sweep to enable it.
                             </p>
                           )}
