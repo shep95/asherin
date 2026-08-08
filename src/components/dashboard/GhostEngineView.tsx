@@ -80,6 +80,21 @@ const GhostEngineView = () => {
       setTab(payload.index?.anomalies.length ? "anomalies" : "records");
       if (payload.error) toast({ title: "No targets resolved", description: payload.error });
 
+      // A capture that silently kept nothing is worse than no capture at all —
+      // say what landed on the shelf, and refresh the console so its count is
+      // never stale behind the sweep that produced it.
+      if (payload.buffer) {
+        setBufferNonce((n) => n + 1);
+        toast({
+          title: payload.buffer.captured
+            ? `${payload.buffer.captured} session${payload.buffer.captured === 1 ? "" : "s"} buffered`
+            : "Nothing retained",
+          description: payload.buffer.captured
+            ? `Bodies are searchable for ~${payload.buffer.ttlMinutes} minutes, then destroyed.`
+            : payload.buffer.errors[0] || "No target returned a retainable body.",
+        });
+      }
+
       setRecent((prev) => {
         const next = [q, ...prev.filter((r) => r !== q)].slice(0, 6);
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
@@ -93,10 +108,10 @@ const GhostEngineView = () => {
       }
     } finally {
       clearTimeout(timer);
-      if (!controller.signal.aborted) setLoading(false);
-      else setLoading(false);
+      setLoading(false);
     }
-  }, [loading]);
+  }, [loading, capture]);
+
 
   const index = data?.index ?? null;
   const recordById = useMemo(
