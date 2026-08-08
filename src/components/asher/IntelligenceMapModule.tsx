@@ -42,7 +42,12 @@ import {
   locateGroup, locateDevice, fmtAge,
   type LocatedDevice,
 } from "@/lib/asher/findMy";
-
+import {
+  loadCloudMapLayer, venueFeatures, clearCloudMapCache,
+  pendingVenueFeatures, getPendingVenues, clearPendingVenues,
+  pendingContactFeatures, getPendingContacts, clearPendingContacts,
+  type CloudMapLayer, type CloudMapFeature,
+} from "@/lib/cloudIntel/mapBridge";
 
 import {
   makeAnnotation, annoCenter, annoMetric,
@@ -133,6 +138,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "h-fire",   label: "Active Wildfires (NASA FIRMS)", status: "live" },
     { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
     { id: "h-env",    label: "Environmental",       status: "soon" },
+  ]},
+  { id: "cloud-intel", label: "Cloud Intelligence", layers: [
+    { id: "cloud-contacts",    label: "Contact Dossiers",    status: "live" },
+    { id: "cloud-venues",      label: "Calendar Venues & Forecasts", status: "live" },
+    { id: "cloud-security",    label: "Security Events & Signals", status: "live" },
+    { id: "cloud-relationships", label: "Inferred Relationship Links", status: "live" },
   ]},
 ];
 
@@ -610,7 +621,65 @@ const IntelligenceMapModule = () => {
   const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const [showTacticalBorders, setShowTacticalBorders] = useState(true);
+  const [cloudLayer, setCloudLayer] = useState<CloudMapLayer>({ contacts: [], venues: [], security: [], relationships: [] });
+  const [cloudLayerLoading, setCloudLayerLoading] = useState(false);
+  const [activeCloud, setActiveCloud] = useState<Record<string, boolean>>({ "cloud-contacts": false, "cloud-venues": false, "cloud-security": false, "cloud-relationships": false });
   const mapRef = useRef<L.Map | null>(null);
+
+  const refreshCloudLayer = async (kind: string) => {
+    try {
+      setCloudLayerLoading(true);
+      const q: Record<string, boolean> = {
+        contacts: kind === "cloud-contacts" || kind === "cloud-relationships",
+        venues: kind === "cloud-venues",
+        security: kind === "cloud-security",
+        relationships: kind === "cloud-relationships",
+      };
+      const layer = await loadCloudMapLayer(q);
+      setCloudLayer((prev) => ({ ...prev, [layerKeyForKind(kind)]: layer[layerKeyForKind(kind)] }));
+      if (kind === "cloud-relationships") {
+        setCloudLayer((prev) => ({ ...prev, relationships: layer.relationships }));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Cloud intelligence layer failed to load");
+    } finally {
+      setCloudLayerLoading(false);
+    }
+  };
+  const layerKeyForKind = (kind: string): keyof CloudMapLayer => {
+    switch (kind) {
+      case "cloud-contacts": return "contacts";
+      case "cloud-venues": return "venues";
+      case "cloud-security": return "security";
+      case "cloud-relationships": return "relationships";
+      default: return "contacts";
+    }
+  };
+
+  // Load pending venues pushed from Cloud Intelligence modules (e.g. Prophet).
+  useEffect(() => {
+    const load = async () => {
+      const pendingVenues = getPendingVenues();
+      const pendingContacts = getPendingContacts();
+      clearPendingVenues();
+      clearPendingContacts();
+      const venueFeatures = pendingVenues.length ? await pendingVenueFeatures(pendingVenues) : [];
+      const contactFeatures = pendingContacts.length ? await pendingContactFeatures(pendingContacts) : [];
+      const updates: Partial<CloudMapLayer> = {};
+      if (venueFeatures.length) updates.venues = venueFeatures;
+      if (contactFeatures.length) updates.contacts = contactFeatures;
+      if (!Object.keys(updates).length) return;
+      setCloudLayer((prev) => ({ ...prev, ...updates }));
+      setActiveCloud((prev) => ({
+        ...prev,
+        ...(venueFeatures.length ? { "cloud-venues": true } : {}),
+        ...(contactFeatures.length ? { "cloud-contacts": true } : {}),
+      }));
+      fitFeatures([...(venueFeatures || []), ...(contactFeatures || [])]);
+    };
+    load();
+  }, []);
+
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
   const [showInside, setShowInside] = useState(false);
@@ -952,6 +1021,13 @@ const IntelligenceMapModule = () => {
     if (pts.length === 1) { flyTo(pts[0][0], pts[0][1], 17); return; }
     try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 17 }); } catch {}
   }, [myDevices]);
+
+  const fitFeatures = useCallback((features: Array<{ lat: number; lng: number }>) => {
+    const pts = features.map((f) => [f.lat, f.lng] as [number, number]);
+    if (!pts.length || !mapRef.current) return;
+    if (pts.length === 1) { flyTo(pts[0][0], pts[0][1], 15); return; }
+    try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [80, 80], maxZoom: 16 }); } catch {}
+  }, []);
 
   const routeToDevice = useCallback((d: LocatedDevice) => {
     if (!d.fused) return;
@@ -1883,6 +1959,51 @@ const IntelligenceMapModule = () => {
       return `Camera sweep run around ${anchor.lat.toFixed(5)}, ${anchor.lng.toFixed(5)}. Public agency feeds only — click a pin for the live frame.`;
     }
 
+    /* ── Cloud Intelligence overlays ─────────────────────────────────────
+       The map is the spatial canvas for the user's Cloud Intelligence.
+       Contacts, calendar venues, and security signals are geocoded and plotted
+       as distinct layers with provenance-tagged popups. */
+    if (a.type === "plot_cloud_contacts") {
+      const limit = Math.max(1, Math.min(a.limit ?? 50, 200));
+      const layer = await loadCloudMapLayer({ contacts: true, venues: false, security: false, relationships: true, limit });
+      setCloudLayer((prev) => ({ ...prev, contacts: layer.contacts, relationships: layer.relationships }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-contacts": true, "cloud-relationships": true }));
+      if (!layer.contacts.length) return "No contact dossiers with geocodable locations found in Cloud Intelligence.";
+      if (layer.contacts.length === 1) flyTo(layer.contacts[0].lat, layer.contacts[0].lng, 14);
+      else fitFeatures(layer.contacts);
+      return `Plotted ${layer.contacts.length} contact dossiers and ${layer.relationships.length} inferred relationship links from Cloud Intelligence.`;
+    }
+    if (a.type === "plot_cloud_venues") {
+      const layer = await loadCloudMapLayer({ contacts: false, venues: true, security: false, relationships: false });
+      setCloudLayer((prev) => ({ ...prev, venues: layer.venues }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-venues": true }));
+      if (!layer.venues.length) return "No calendar venues or movement forecasts with geocodable locations found.";
+      fitFeatures(layer.venues);
+      return `Plotted ${layer.venues.length} calendar venues / movement forecasts from Cloud Intelligence.`;
+    }
+    if (a.type === "plot_cloud_security") {
+      const layer = await loadCloudMapLayer({ contacts: false, venues: false, security: true, relationships: false, sinceDays: a.sinceDays ?? 30 });
+      setCloudLayer((prev) => ({ ...prev, security: layer.security }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-security": true }));
+      if (!layer.security.length) return "No security events or signals with geocodable locations in the selected window.";
+      fitFeatures(layer.security);
+      return `Plotted ${layer.security.length} security events / signals from Cloud Intelligence.`;
+    }
+    if (a.type === "focus_cloud_contact") {
+      const { email, name } = a;
+      if (!email && !name) return "Need an email or name to focus a Cloud Intelligence contact.";
+      const layer = await loadCloudMapLayer({ contacts: true, limit: 200 });
+      const match = layer.contacts.find((c) =>
+        (email && c.subjectEmail && c.subjectEmail.toLowerCase() === email.toLowerCase()) ||
+        (name && c.label.toLowerCase().includes(name.toLowerCase()))
+      );
+      if (!match) return `No geocodable contact matching ${email || name} in Cloud Intelligence.`;
+      setCloudLayer((prev) => ({ ...prev, contacts: layer.contacts }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-contacts": true }));
+      flyTo(match.lat, match.lng, 16);
+      return `Focused on ${match.label} — ${match.caption}. Source: ${match.source}.`;
+    }
+
   };
 
   /* Horizontal space the right-hand docks occupy, so the top bar never renders
@@ -1945,11 +2066,14 @@ const IntelligenceMapModule = () => {
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
                       const isMyDevices = l.id === "my-devices";
+                      const isCloud = cat.id === "cloud-intel";
                       const isActive = isBase
                         ? l.id === activeBase
                         : isThreat ? !!activeThreats[l.id as ThreatId]
                         : isBoundary ? showTacticalBorders
-                        : isMyDevices ? showMyDevices : false;
+                        : isMyDevices ? showMyDevices
+                        : isCloud ? !!activeCloud[l.id]
+                        : false;
                       return (
                         <button
                           key={l.id}
@@ -1959,6 +2083,10 @@ const IntelligenceMapModule = () => {
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
                             else if (isMyDevices) setShowMyDevices((p) => !p);
+                            else if (isCloud) {
+                              setActiveCloud((p) => ({ ...p, [l.id]: !p[l.id] }));
+                              void refreshCloudLayer(l.id);
+                            }
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors ${
@@ -1976,6 +2104,15 @@ const IntelligenceMapModule = () => {
                           )}
                           {isThreat && isActive && (
                             <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
+                          )}
+                          {isCloud && isActive && (
+                            <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">
+                              {l.id === "cloud-contacts" ? cloudLayer.contacts.length
+                                : l.id === "cloud-venues" ? cloudLayer.venues.length
+                                : l.id === "cloud-security" ? cloudLayer.security.length
+                                : l.id === "cloud-relationships" ? cloudLayer.relationships.length
+                                : 0}
+                            </span>
                           )}
                         </button>
                       );
@@ -2448,6 +2585,70 @@ const IntelligenceMapModule = () => {
                 </CircleMarker>
               );
             })}
+
+          {/* Cloud Intelligence overlays */}
+          {activeCloud["cloud-contacts"] && cloudLayer.contacts.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + f.confidence * 5)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#8b5cf6", fillOpacity: 0.85 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1.5 text-xs">
+                  <div className="font-semibold">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  <div className="opacity-70">Confidence: {(f.confidence * 100).toFixed(0)}%</div>
+                  {f.subjectName && f.subjectName !== f.label && <div className="opacity-80">{f.subjectName}</div>}
+                  {f.subjectEmail && <div className="opacity-80 font-mono text-[10px]">{f.subjectEmail}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-venues"] && cloudLayer.venues.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + (f.confidence ?? 0.5) * 5)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#f59e0b", fillOpacity: 0.85 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1 text-xs">
+                  <div className="font-semibold">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  {f.payload?.nextPredicted && <div className="text-emerald-400">Predicted next: {f.payload.nextPredicted}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-security"] && cloudLayer.security.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + (f.confidence ?? 0.5) * 6)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#ef4444", fillOpacity: 0.8 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1 text-xs">
+                  <div className="font-semibold text-red-400">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  {f.occurredAt && <div className="opacity-70">{new Date(f.occurredAt).toLocaleString()}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-relationships"] && cloudLayer.relationships.map((f) => (
+            f.to && (
+              <Polyline
+                key={f.id}
+                positions={[[f.lat, f.lng], [f.to.lat, f.to.lng]]}
+                pathOptions={{ color: "#8b5cf6", weight: 2, opacity: 0.6, dashArray: "4 4" }}
+              />
+            )
+          ))}
         </MapContainer>
 
         {/* Always-visible tracking indicator. A live sensor must never be

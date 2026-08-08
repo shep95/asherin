@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users, Clock, Network, Zap, AlertTriangle, RefreshCw, Search,
   HardDrive, Download, Brain, Activity, MessageSquare, Trash2, ChevronDown, Cloud,
-  ScrollText,
+  ScrollText, MapPin,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ import ReportViewer from "./contactIntel/ReportViewer";
 import { buildContactReport } from "@/lib/cloudIntel/contactReport";
 import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 import { collectContactOsint, emptyAnnex, type OsintAnnex } from "@/lib/cloudIntel/contactOsint";
+import { setPendingContacts } from "@/lib/cloudIntel/mapBridge";
 
 
 
@@ -130,6 +132,7 @@ const Sparkline = ({ data, labels }: { data: number[]; labels?: string[] }) => {
 const ContactIntelligence = () => {
   const { accounts, isConnected, fetchGoogleData } = useGoogleApi();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.id ?? "";
 
   const [loading, setLoading] = useState(false);
@@ -877,6 +880,21 @@ const ContactIntelligence = () => {
             <Network className="h-4 w-4" /> Identity Ledger
           </h3>
           <div className="flex items-center gap-2">
+            {dossiers.filter((d) => d.location).length > 0 && (
+              <button
+                onClick={() => {
+                  setPendingContacts(
+                    dossiers
+                      .filter((d) => d.location)
+                      .map((d) => ({ name: d.name, email: d.emails[0], location: d.location, organization: d.organization, source: "contact_intelligence" }))
+                  );
+                  navigate("/dashboard/geospatial");
+                }}
+                className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all"
+              >
+                <MapPin className="h-3 w-3" /> Plot contacts
+              </button>
+            )}
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
               <input
@@ -1024,7 +1042,7 @@ const ContactIntelligence = () => {
                           </div>
                         )}
 
-                        <div className="pt-1 border-t border-border/10">
+                        <div className="pt-1 border-t border-border/10 flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => setReportKey(d.key)}
                             disabled={!corpus}
@@ -1032,8 +1050,19 @@ const ContactIntelligence = () => {
                           >
                             <ScrollText className="h-3 w-3" /> Deep Intelligence Report
                           </button>
+                          {d.location && (
+                            <button
+                              onClick={() => {
+                                setPendingContacts([{ name: d.name, email: d.emails[0], location: d.location, organization: d.organization, source: "contact_intelligence" }]);
+                                navigate("/dashboard/geospatial");
+                              }}
+                              className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-colors"
+                            >
+                              <MapPin className="h-3 w-3" /> Plot on map
+                            </button>
+                          )}
                           {!corpus && (
-                            <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1.5">
+                            <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1.5 w-full">
                               The report reads raw traffic, which this session has not loaded. Run a deep sweep to enable it.
                             </p>
                           )}

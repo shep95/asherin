@@ -65,6 +65,13 @@ NAVIGATION & LOCAL DISCOVERY (Asherin Maps — always call the tool, never estim
 - locate_device(name?): ASHERIN FIND-MY. Locate one of the operator's own claimed Bluetooth devices (laptop, earbuds, tag) using sightings from every Asherin scanner on the mesh. Use for "where's my laptop", "find my earbuds", "I lost my bag tag", "my laptop was stolen". Omit name to list the roster. Report the confidence radius the tool returns and never claim a tighter fix than it gives.
 NAVIGATION RULES: never invent ETAs, addresses, opening hours or camera feeds — call the tool and report what it returns. If a sweep returns nothing, say so plainly and offer a wider radius.
 
+CLOUD INTELLIGENCE (the user's personal intelligence substrate — contacts, calendar, signals, security):
+- plot_cloud_contacts(query?, limit?): geocode and plot every contact dossier from the user's Cloud Intelligence on the map. Include relationship links when multiple addresses are inferred for the same subject.
+- plot_cloud_venues(): plot calendar venues and Location Prophet movement forecasts from Cloud Intelligence.
+- plot_cloud_security(sinceDays?): plot security events and signals (suspicious logins, WAF blocks, intel signals) with geocodable locations.
+- focus_cloud_contact(email?, name?): find a specific contact by email or name, fly the map to them, and show their dossier summary.
+Use these when the operator asks to see their contacts, dossiers, calendar venues, or security events on the map, or when they mention "Cloud Intelligence" on the map.
+
 OWN-FORCE TRACKING (the operator's own live position, from their device sensor):
 - track_my_location(mode, reason?): mode = start | stop | status | center | follow | unfollow. Use it whenever the operator says "track me", "where am I", "find me", "follow me", "start/stop tracking", or asks for anything relative to their current position.
 DISAMBIGUATION — POSSESSION vs PERSON: "my" attached to an OBJECT (laptop, MacBook, earbuds, AirPods, tag, keys, bag, bike, headphones, tablet, "my devices", "my gear") is ALWAYS locate_device — never track_my_location. Only "me/myself/I" (where am I, track me, follow me) is track_my_location. "My laptop was stolen" is locate_device with the device name, not own-force tracking.
@@ -134,6 +141,13 @@ const TOOLS = [
   { type: "function", function: { name: "find_jobs", description: "Live hiring sweep: find open job listings for a role near a location, geocoded onto the map. Use for 'restaurant jobs hiring near me', 'warehouse jobs near this address'.", parameters: { type: "object", properties: { role: { type: "string", description: "Role or industry, e.g. 'line cook', 'restaurant', 'forklift operator'" }, ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, radiusMi: { type: "number", description: "Search radius in miles (default 15)" } }, required: ["role"] } } },
   { type: "function", function: { name: "locate_device", description: "Asherin Find-My: locate one of the operator's own claimed Bluetooth devices from live mesh sightings, fly the map to it and report the fused confidence radius. Omit name to list the roster.", parameters: { type: "object", properties: { name: { type: "string", description: "Device label as the operator names it, e.g. 'MacBook Pro' or 'AirPods'. Omit to list all claimed devices." } } } } },
   { type: "function", function: { name: "street_cameras", description: "Pull live public DOT/traffic street camera feeds around a point, or along the currently plotted route when alongRoute=true.", parameters: { type: "object", properties: { ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, radiusM: { type: "number", description: "Radius in metres (default 5000)" }, alongRoute: { type: "boolean", description: "Sweep the active route corridor instead of a radius" } } } } },
+
+  /* ── CLOUD INTELLIGENCE (user's personal intelligence substrate) ── */
+  { type: "function", function: { name: "plot_cloud_contacts", description: "Plot the user's Cloud Intelligence contact dossiers as map pins, including inferred relationship links between locations tied to the same subject.", parameters: { type: "object", properties: { query: { type: "string", description: "Optional filter string matched against label, name or email" }, limit: { type: "number", description: "Max contacts to plot (default 50, max 200)" } } } } },
+  { type: "function", function: { name: "plot_cloud_venues", description: "Plot calendar venues and Location Prophet movement forecasts from the user's Cloud Intelligence on the map.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "plot_cloud_security", description: "Plot security events and signals from the user's Cloud Intelligence with geocodable locations.", parameters: { type: "object", properties: { sinceDays: { type: "number", description: "How many days back to look (default 30, max 90)" } } } } },
+  { type: "function", function: { name: "focus_cloud_contact", description: "Find a specific contact in Cloud Intelligence by email or name and focus the map on them.", parameters: { type: "object", properties: { email: { type: "string" }, name: { type: "string" } }, required: [] } } },
+
 
   { type: "function", function: { name: "track_my_location", description: "Control live tracking of the OPERATOR'S OWN position from their device sensor. Requires the operator's on-screen consent; a start request returns 'awaiting operator consent' until they approve.", parameters: { type: "object", properties: { mode: { type: "string", enum: ["start", "stop", "status", "center", "follow", "unfollow"], description: "start = request the sensor, status = read the current fix, center = fly the map to the operator, follow/unfollow = keep the map locked on them" }, reason: { type: "string", description: "Short reason shown to the operator in the consent prompt" } }, required: ["mode"] } } },
   { type: "function", function: { name: "distance_from_me", description: "Straight-line range and bearing from the operator's live position to a point or named place.", parameters: { type: "object", properties: { to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, label: { type: "string" } }, required: ["to"] } } },
@@ -207,8 +221,18 @@ function detectMapEditIntent(text: string): boolean {
   if (/\b(hiring|jobs?|job openings?|now hiring|vacanc)\w*\b/.test(t) && /\b(near|around|by|close to|hiring)\b/.test(t)) return true;
   if (/\b(street|traffic|cctv|live)\s*cam(era)?s?\b/.test(t)) return true;
   const verb = /\b(pin|mark|plot|drop|place|draw|outline|circle|annotate|label|highlight|measure|sketch|trace out)\b/.test(t);
-  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence)\b/.test(t);
+  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence|contact|contacts|dossier|dossiers|venue|venues|relationship|relationships|security event|security events|signal|signals)\b/.test(t);
   return verb && noun;
+}
+
+function detectCloudIntelIntent(text: string): boolean {
+  const t = String(text || "").toLowerCase();
+  if (!t) return false;
+  if (/\bplot my cloud (contacts|venues|security)\b/.test(t)) return true;
+  const verb = /\b(plot|show|display|map|put|render|draw|focus|find|locate|where is|where are|see my|view my)\b/.test(t);
+  const cloud = /\b(cloud|cloud intelligence)\b/.test(t);
+  const noun = /\b(contacts?|dossiers?|venues?|calendar|security events?|signals?|people|relationships?)\b/.test(t);
+  return verb && cloud && noun;
 }
 
 /** OpenAI-style tool schema → Gemini function_declarations. */
@@ -476,18 +500,20 @@ serve(async (req) => {
     // Sovereign Source Atlas policy: authoritative registries only.
     const leaksBlock = "";
 
-    // ── Map-edit fast lane ────────────────────────────────────────────────
-    // "pin this", "draw a 2km ring", "clear the overlay" are UI mutations, not
-    // investigations. Running the archive / jurisdictional / YouTube sweeps on
-    // them added up to 75s of dead latency before a one-line tool call. Skip.
+    // ── Map-edit / cloud-intel fast lane ───────────────────────────────────
+    // "pin this", "draw a 2km ring", "clear the overlay", "plot my cloud contacts"
+    // are UI mutations, not investigations. Running the archive / jurisdictional /
+    // YouTube sweeps on them added up to 75s of dead latency before a one-line
+    // tool call. Skip.
     const mapEditFast = detectMapEditIntent(latestUserText(cleaned));
+    const cloudIntelFast = detectCloudIntelIntent(latestUserText(cleaned));
 
     let archiveBlock = "";
     try {
       const userText = latestUserText(cleaned);
       const { searchArchive, formatArchiveContext, shouldQueryArchive } =
         await import("../_shared/internetArchive.ts");
-      if (!mapEditFast && shouldQueryArchive(userText)) {
+      if (!mapEditFast && !cloudIntelFast && shouldQueryArchive(userText)) {
         const hits = await searchArchive(userText.slice(0, 200), { limit: 10, deepRead: 2 });
         archiveBlock = formatArchiveContext(userText.slice(0, 80), hits);
       }
@@ -500,7 +526,7 @@ serve(async (req) => {
       const userText = latestUserText(cleaned);
       const { classifyIntent, runJurisdictionalSearch, formatIntelContext, formatClarifyContext } =
         await import("../_shared/jurisdictionalIntel.ts");
-      const intent = mapEditFast ? { kind: "none" } as any : classifyIntent(userText);
+      const intent = (mapEditFast || cloudIntelFast) ? { kind: "none" } as any : classifyIntent(userText);
       if (intent.kind !== "none") {
 
         console.log("[asher-ai] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
@@ -526,7 +552,7 @@ serve(async (req) => {
       const userBroughtGemini = !!(headerKey || byokGeminiKey);
       const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
-      const yt = mapEditFast
+      const yt = (mapEditFast || cloudIntelFast)
         ? { fired: false, evidence: "" }
         : await runYouTubePipeline(latestUserText(cleaned), { hasByokGemini: userBroughtGemini || isAdminPath });
       if (yt.fired) youtubeBlock = yt.evidence;
@@ -625,7 +651,7 @@ serve(async (req) => {
           systemInstruction: { parts: [{ text: fullSystem }] },
           contents: toGeminiContents(cleaned),
           tools: [{ function_declarations: geminiFunctionDeclarations(TOOLS) }],
-          toolConfig: { functionCallingConfig: { mode: mapEditFast ? "ANY" : "AUTO" } },
+          toolConfig: { functionCallingConfig: { mode: (mapEditFast || cloudIntelFast) ? "ANY" : "AUTO" } },
           safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
             { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },

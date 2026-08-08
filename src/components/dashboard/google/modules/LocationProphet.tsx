@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin, RefreshCw, AlertTriangle, Compass, Route, Clock, Building2,
 } from "lucide-react";
@@ -10,6 +11,7 @@ import {
   silenceFinding, sortFindings, confidenceFrom, round, relativeDay,
   percentile, ordinal, type Finding,
 } from "@/lib/cloudIntel/logic";
+import { setPendingVenues } from "@/lib/cloudIntel/mapBridge";
 import FindingCard from "../intel/FindingCard";
 import { TrendStat, BaselineBar } from "../intel/TrendStat";
 import Heatmap, { type HeatCell } from "../intel/Heatmap";
@@ -24,6 +26,7 @@ const WINDOW_FORWARD_DAYS = 30;
 
 const LocationProphet = () => {
   const { fetchGoogleData, isConnected } = useGoogleApi();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +249,17 @@ const LocationProphet = () => {
                 >
                   <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
                   Sweep
+                </button>
+              )}
+              {isConnected && venues.length > 0 && (
+                <button
+                  onClick={() => {
+                    setPendingVenues(venues);
+                    navigate("/dashboard/geospatial");
+                  }}
+                  className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all"
+                >
+                  <MapPin className="h-3 w-3" /> Plot on map
                 </button>
               )}
             </div>
