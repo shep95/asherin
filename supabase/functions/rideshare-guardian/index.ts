@@ -36,6 +36,7 @@ import {
   type PhaseResult,
   type Verdict,
 } from "../_shared/rideshareGuardian.ts";
+import { analyseTrip, toGpx } from "../_shared/tripTelemetry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
