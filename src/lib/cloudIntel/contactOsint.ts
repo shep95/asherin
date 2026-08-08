@@ -153,6 +153,28 @@ export interface OsintAnnex {
   keyJudgments: KeyJudgment[];
   gaps: string[];
   reverse: WireDoc["reverse"];
+  /**
+   * Where the contact's hard identifiers are confirmed to appear. The vault
+   * dossier answers "who is this"; the sweep answers "where is this address or
+   * number actually carried, and since when" — a different question, and the
+   * one that exposes paste-site and breach-index circulation.
+   */
+  identifierSweeps: IdentifierSweepSummary[];
+}
+
+/** A per-identifier exposure register, folded down for report rendering. */
+export interface IdentifierSweepSummary {
+  identifier: string;
+  kind: string;
+  surfaces: number;
+  confirmed: number;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  /** Paste sites and breach indexes — the surfaces that mean circulation. */
+  exposed: Array<{ host: string; surfaceClass: string; lastSeen: string | null }>;
+  top: Array<{ host: string; surfaceClass: string; sightings: number; lastSeen: string | null }>;
+  /** Null when the leg ran clean; otherwise why it is thin. */
+  blocker: string | null;
 }
 
 // ───────────────────── Admiralty grading (ICD 206) ─────────────────────
@@ -409,6 +431,7 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     keyJudgments: [],
     gaps: [],
     reverse: null,
+    identifierSweeps: [],
   };
 }
 
