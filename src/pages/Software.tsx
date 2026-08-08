@@ -305,9 +305,9 @@ const PRODUCTS: Product[] = [
   },
   {
     name: "Zophiel Pro",
-    tagline: "30-source deep-crawl OSINT",
+    tagline: "Pro throughput on the same engine",
     description:
-      "Everything in Zophiel Base plus deeper crawl, broader coverage, higher query throughput, and priority latency.",
+      "The same full Zophiel engine that ships with the $18 Asherin subscription, running at Pro limits — deeper crawl depth per query, higher throughput, and priority latency.",
     icon: Search,
     features: [
       "30+ live sources triangulated",
