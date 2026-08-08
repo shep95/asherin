@@ -202,13 +202,26 @@ function writeJSON(key: string, value: unknown) {
   }
 }
 
+/* Consent is DURABLE, not session-scoped.
+   Previously the grant lived in sessionStorage, so every new tab re-locked the
+   sensor: the operator's own-force track died the moment they reopened the
+   app, the map fell back to its continental default, and every "nearby" tool
+   then swept a city the operator was not standing in. A consent decision is a
+   standing authorisation until it is revoked, so it belongs in localStorage.
+   A session-era grant is migrated forward once so nobody is asked twice. */
 export function hasStoredConsent(): boolean {
   try {
-    return sessionStorage.getItem(CONSENT_KEY) === "granted";
+    if (localStorage.getItem(CONSENT_KEY) === "granted") return true;
+    if (sessionStorage.getItem(CONSENT_KEY) === "granted") {
+      localStorage.setItem(CONSENT_KEY, "granted");
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
+
 
 /* ── The hook ────────────────────────────────────────────────────────────── */
 
