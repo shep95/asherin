@@ -129,3 +129,53 @@ self.addEventListener('message', (event) => {
     });
   }
 });
+
+/* ── RIDESHARE GUARDIAN · push alerts ────────────────────────────────────
+   A safety alert must survive a closed tab, so it is handled here rather
+   than in page code. The payload is treated as untrusted: only known fields
+   are read, and every one is coerced to a plain string before display. */
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: 'Asherin', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = String(data.title || 'Asherin · Guardian').slice(0, 120);
+  const body = String(data.body || '').slice(0, 300);
+  const verdict = String(data.verdict || '');
+  // AVOID/WATCH must not be silently collapsed into an older notification.
+  const tag = String(data.tag || 'asherin-guardian').slice(0, 80);
+  const url = typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/dashboard';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      renotify: true,
+      requireInteraction: verdict === 'AVOID' || verdict === 'WATCH',
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/dashboard';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const win of wins) {
+        // Reuse an open Asherin tab rather than stacking new windows.
+        if (win.url.includes(self.location.origin) && 'focus' in win) {
+          win.navigate(target).catch(() => {});
+          return win.focus();
+        }
+      }
+      return clients.openWindow(target);
+    })
+  );
+});

@@ -28,6 +28,8 @@ import { template as zerlalCriticalAlert } from './zerlal-critical-alert.tsx'
 import { template as subscriptionWelcome } from './subscription-welcome.tsx'
 import { template as subscriptionEnding } from './subscription-ending.tsx'
 import { template as forumDailyDigest } from './forum-daily-digest.tsx'
+import { template as rideshareReport } from './rideshare-report.tsx'
+
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   welcome,
@@ -49,4 +51,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'subscription-welcome': subscriptionWelcome,
   'subscription-ending': subscriptionEnding,
   'forum-daily-digest': forumDailyDigest,
+  'rideshare-report': rideshareReport,
+
 }
