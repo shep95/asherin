@@ -193,6 +193,29 @@ async function recompute(deviceId: string, totalSessions: number) {
   };
 }
 
+// ── Tradecraft: behavioural read across the whole log ──────────────────────
+//
+// Recurrence says "something follows you". Tradecraft says "how it is being
+// run", which is what changes the advice. Bounded to the last 5,000 sightings
+// so one noisy city week cannot turn this into an unbounded scan.
+
+async function loadTradecraft(userId: string): Promise<{ campaign: TcCampaign; names: Record<string, string> }> {
+  const db = admin();
+  const [devRes, sightRes] = await Promise.all([
+    db.from("ble_devices")
+      .select("id,display_name,manufacturer,inferred_kind,is_self,is_ignored,first_seen,last_seen,encounter_count,distinct_days,distinct_places,closest_distance_m")
+      .eq("user_id", userId).limit(500),
+    db.from("ble_sightings")
+      .select("device_id,seen_at,session_id,place_key,distance_m,rssi")
+      .eq("user_id", userId).order("seen_at", { ascending: false }).limit(5000),
+  ]);
+  const devices = (devRes.data || []) as unknown as TcDevice[];
+  const sightings = (sightRes.data || []) as unknown as TcSighting[];
+  const names: Record<string, string> = {};
+  for (const d of devices) names[d.id] = d.display_name;
+  return { campaign: analyzeTradecraft(devices, sightings), names };
+}
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
