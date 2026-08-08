@@ -162,7 +162,16 @@ const GhostEngineView = () => {
               <span>{index.coverage.failed} unreachable</span>
               <span>{data?.elapsedMs} ms</span>
               <button
-                onClick={() => exportJSON(index.records as unknown as Record<string, unknown>[], `ghost-${Date.now()}`)}
+                onClick={() => exportJSON(
+                  `ghost-sweep-${Date.now()}`,
+                  index.records.map((r) => ({
+                    title: r.host || r.url,
+                    url: r.url,
+                    snippet: `${r.status ?? "unreachable"} · ${r.source_type}`,
+                    metadata: r as unknown as Record<string, unknown>,
+                  })),
+                  { query: data?.query, mode: data?.mode, coverage: index.coverage },
+                )}
                 className="ml-auto flex items-center gap-1 rounded border border-border/20 px-2 py-1 transition-colors hover:text-foreground"
               >
                 <Download className="h-3 w-3" /> Export shells
