@@ -36,9 +36,6 @@ interface NetRow {
   enrichment: Record<string, unknown> | null;
 }
 
-const AUTO_THROTTLE_MS = 30 * 60 * 1000;
-const throttleKey = "asherin.netsentinel.lastAuto";
-
 const SEV_CLASS: Record<string, string> = {
   critical: "text-destructive",
   high: "text-destructive",
@@ -144,7 +141,7 @@ export default function NetworkSentinelTab() {
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          No networks assessed yet. Run a report on the connection you are using now.
+          No networks assessed yet. The sentinel judges each connection automatically — the first report appears here within a minute of coming online.
         </div>
       ) : (
         <ScrollArea className="h-[520px] pr-3">
