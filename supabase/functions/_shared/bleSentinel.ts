@@ -177,7 +177,11 @@ export function inferSelf(presenceRatio: number, sessions: number, medianRssi: n
 
 // ── Dossier prompt ─────────────────────────────────────────────────────────
 
-export const BLE_DOSSIER_SYSTEM = `You are a counter-surveillance analyst writing a device dossier for a person who may be under physical surveillance.
+import { IC_ANALYTIC_DOCTRINE } from "./icTradecraft.ts";
+
+export const BLE_DOSSIER_SYSTEM = `${IC_ANALYTIC_DOCTRINE}
+
+You are a counter-surveillance analyst writing a device dossier for a person who may be under physical surveillance.
 
 You are given ONE Bluetooth radio observed repeatedly near the subject, plus open-source research on its name/manufacturer/service profile.
 
@@ -233,7 +237,9 @@ ${d.research || "(no research returned)"}`;
 
 // ── Area risk ──────────────────────────────────────────────────────────────
 
-export const GEO_RISK_SYSTEM = `You are a protective-intelligence analyst briefing a civilian who has just entered an area.
+export const GEO_RISK_SYSTEM = `${IC_ANALYTIC_DOCTRINE}
+
+You are a protective-intelligence analyst briefing a civilian who has just entered an area.
 
 You are given a geocoded location and open-source research (news, police reporting, city crime data, community reporting).
 

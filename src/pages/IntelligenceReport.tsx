@@ -14,6 +14,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  IC_APPARATUS,
+  IC_APPARATUS_TITLE,
+  PRODUCT_BANNER,
+  estimativeTermIn,
+  orderIcSections,
+  reportNumber,
+  splitPortionMark,
+} from "@/lib/ic/tradecraft";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
@@ -184,6 +193,42 @@ export default function IntelligenceReport() {
     }
   }, [dossier?.severity]);
 
+  // ── IC product decomposition ───────────────────────────────────────────
+  // The row already stores sections in canonical order (the delivery bus
+  // orders them), but a row written before this standard shipped will not be,
+  // so ordering is re-applied here. Old dossiers therefore render to the new
+  // standard too, without a backfill migration.
+  const orderedSections = useMemo(
+    () => orderIcSections(dossier?.sections ?? []),
+    [dossier?.sections],
+  );
+
+  /** Substantive collection — goes in the KEY FACTS table. */
+  const facts = useMemo(
+    () => orderedSections.filter((s) => !IC_APPARATUS.has((s.label ?? "").toUpperCase())),
+    [orderedSections],
+  );
+
+  /** Analytic apparatus — rendered as prose sections, in IC reading order. */
+  const apparatus = useMemo(
+    () =>
+      orderedSections
+        .filter((s) => IC_APPARATUS.has((s.label ?? "").toUpperCase()))
+        .map((s) => ({ label: (s.label ?? "").toUpperCase(), value: s.value })),
+    [orderedSections],
+  );
+
+  /** Same derivation the email uses, so the two artefacts cite one serial. */
+  const serial = useMemo(
+    () =>
+      dossier
+        ? reportNumber(dossier.kind, dossier.id, new Date(dossier.created_at))
+        : "—",
+    [dossier],
+  );
+
+
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -250,6 +295,9 @@ export default function IntelligenceReport() {
 
         <article className="dossier-sheet rounded-lg border border-border bg-card/40 p-8 shadow-sm backdrop-blur-sm print:rounded-none print:bg-white">
           <header className="dossier-page mb-8 border-b border-border pb-6">
+            <div className="mb-4 rounded border border-border bg-muted/20 px-3 py-1.5 text-center text-[9px] font-medium tracking-[0.28em] text-muted-foreground">
+              {PRODUCT_BANNER}
+            </div>
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[10px] font-light tracking-[0.35em] text-muted-foreground">
                 ASHERIN · INTELLIGENCE DOSSIER
@@ -263,38 +311,77 @@ export default function IntelligenceReport() {
             </h1>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs font-light text-muted-foreground sm:grid-cols-4">
               <div>
+                <dt className="tracking-[0.15em] text-[10px]">REPORT</dt>
+                <dd className="text-foreground">{serial}</dd>
+              </div>
+              <div>
                 <dt className="tracking-[0.15em] text-[10px]">SUBJECT</dt>
                 <dd className="text-foreground">{dossier.subject_name || "—"}</dd>
               </div>
               <div>
-                <dt className="tracking-[0.15em] text-[10px]">SOURCE MODULE</dt>
+                <dt className="tracking-[0.15em] text-[10px]">PRODUCED BY</dt>
                 <dd className="text-foreground">{dossier.source || "Asherin"}</dd>
               </div>
               <div>
-                <dt className="tracking-[0.15em] text-[10px]">CLASS</dt>
-                <dd className="text-foreground uppercase">{dossier.kind}</dd>
-              </div>
-              <div>
-                <dt className="tracking-[0.15em] text-[10px]">GENERATED</dt>
+                <dt className="tracking-[0.15em] text-[10px]">INFORMATION CUTOFF</dt>
                 <dd className="text-foreground">{fmt(dossier.created_at)}</dd>
               </div>
             </dl>
           </header>
 
+          {/* BLUF — the answer, before the evidence. */}
           <section className="dossier-page mb-8">
-            <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">ASSESSMENT</h2>
+            <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">
+              BOTTOM LINE UP FRONT
+            </h2>
             <p className="whitespace-pre-line text-sm font-light leading-relaxed text-foreground">
               {dossier.body || "No narrative was recorded for this alert."}
             </p>
           </section>
 
-          {dossier.sections.length > 0 && (
+          {/* Key Judgments — numbered, portion-marked, calibrated where the
+              producing module calibrated them. An uncalibrated judgment is
+              shown as written rather than dressed with an invented band. */}
+          {dossier.findings.length > 0 && (
+            <section className="dossier-page mb-8">
+              <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">
+                KEY JUDGMENTS
+              </h2>
+              <ol className="space-y-3">
+                {dossier.findings.map((f, i) => {
+                  const { mark, text } = splitPortionMark(f);
+                  const est = estimativeTermIn(text);
+                  return (
+                    <li
+                      key={i}
+                      className="border-l-2 border-border pl-4 text-sm font-light leading-relaxed text-foreground"
+                    >
+                      <span className="mr-2 text-muted-foreground">{i + 1}.</span>
+                      {mark && (
+                        <span className="mr-1.5 text-[10px] tracking-[0.12em] text-muted-foreground">
+                          ({mark})
+                        </span>
+                      )}
+                      <span>{text}</span>
+                      {est && (
+                        <span className="ml-2 whitespace-nowrap rounded border border-border px-1.5 py-0.5 text-[10px] tracking-[0.1em] text-muted-foreground">
+                          {est.lo}–{est.hi}%
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          )}
+
+          {facts.length > 0 && (
             <section className="dossier-page mb-8">
               <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">KEY FACTS</h2>
               <div className="overflow-hidden rounded border border-border">
                 <table className="w-full text-left text-sm font-light">
                   <tbody>
-                    {dossier.sections.map((s, i) => (
+                    {facts.map((s, i) => (
                       <tr key={`${s.label}-${i}`} className="border-b border-border last:border-0">
                         <th scope="row" className="w-1/3 bg-muted/30 px-4 py-2.5 align-top text-xs font-normal text-muted-foreground">
                           {s.label}
@@ -308,19 +395,19 @@ export default function IntelligenceReport() {
             </section>
           )}
 
-          {dossier.findings.length > 0 && (
-            <section className="dossier-page mb-8">
-              <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">FINDINGS</h2>
-              <ul className="space-y-2">
-                {dossier.findings.map((f, i) => (
-                  <li key={i} className="flex gap-3 text-sm font-light leading-relaxed text-foreground">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={1.5} />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Analytic apparatus, in IC reading order. Every one of these is
+              present on every product: where a module had nothing to say, the
+              bus recorded WHY it had nothing to say. Silence is not evidence. */}
+          {apparatus.map((a) => (
+            <section key={a.label} className="dossier-page mb-8">
+              <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">
+                {IC_APPARATUS_TITLE[a.label] ?? a.label}
+              </h2>
+              <p className="whitespace-pre-line text-sm font-light leading-relaxed text-muted-foreground">
+                {a.value}
+              </p>
             </section>
-          )}
+          ))}
 
           {/* ── Facial corroboration ─────────────────────────────────────── */}
           <section className="dossier-page mb-8">

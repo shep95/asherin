@@ -24,6 +24,11 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendWebPush } from "./webPush.ts";
+import {
+  buildIcProduct,
+  reportNumber as icReportNumber,
+  type ConfidenceLevel,
+} from "./icTradecraft.ts";
 
 export type IntelSeverity = "info" | "notable" | "critical";
 
@@ -80,6 +85,28 @@ export interface IntelNotice {
    * alerts use it to surface a "Not you? Lock the account" escape hatch.
    */
   secondaryCta?: { label: string; url: string };
+
+  // ── ICD 203 / ICD 206 analytic apparatus ─────────────────────────────────
+  // Optional on purpose. A module that supplies none of these still ships to
+  // standard, because the bus supplies the mandated sections and says out loud
+  // where the module left a gap. What the bus will NOT do is invent a
+  // confidence level or a probability the module did not derive.
+  /** Question addressed, period covered, what is out of scope. */
+  scopeNote?: string | null;
+  /** ICD 206 aggregate characterisation of the sourcing base. */
+  sourceSummary?: string | null;
+  /** Forward projection, kept separate from current-state judgments. */
+  outlook?: string | null;
+  /** Competing explanations and the observable that would flip the judgment. */
+  alternatives?: string[] | null;
+  /** What is not known, and what collection would resolve it. */
+  gaps?: string[] | null;
+  /** Evidence-quality axis. Never inferred from severity — they are unrelated. */
+  confidence?: ConfidenceLevel | null;
+  /** Information cutoff for the assessment. */
+  reportingCutoff?: string | null;
+  /** Redistribution restrictions. */
+  handling?: string | null;
 }
 
 export interface IntelDelivery {
@@ -157,15 +184,50 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   const url = typeof notice.url === "string" && /^\/[^/\\]/.test(notice.url)
     ? notice.url.slice(0, 300)
     : "/dashboard";
-  const sections = (notice.sections ?? [])
+  const rawSections = (notice.sections ?? [])
     .filter((s) => s && clamp(s.label, 60) && clamp(s.value, 400))
     .slice(0, 12)
     .map((s) => ({ label: clamp(s.label, 60), value: clamp(s.value, 400) }));
-  const findings = (notice.findings ?? [])
+  const rawFindings = (notice.findings ?? [])
     .map((f) => clamp(f, 300))
     .filter(Boolean)
     .slice(0, 12);
   const idem = clamp(notice.idempotencyKey, 200) || null;
+
+  // ── ICD 203 / 206 normalisation ──────────────────────────────────────────
+  // One place, one standard. Every product that leaves this bus — no matter
+  // which module produced it — is ordered as a finished intelligence product,
+  // carries its Source Summary and its gap statement, and portion-marks its
+  // judgments. Modules that supplied their own apparatus keep it; the bus only
+  // fills what is missing, and never fabricates calibration.
+  const generatedAt = new Date();
+  const product = buildIcProduct({
+    kind,
+    title,
+    body,
+    subjectName,
+    source,
+    severity,
+    sections: rawSections,
+    findings: rawFindings,
+    scopeNote: notice.scopeNote ?? null,
+    sourceSummary: notice.sourceSummary ?? null,
+    outlook: notice.outlook ?? null,
+    alternatives: notice.alternatives ?? null,
+    gaps: notice.gaps ?? null,
+    confidence: notice.confidence ?? null,
+    reportingCutoff: notice.reportingCutoff ?? null,
+    handling: notice.handling ?? null,
+    serial: idem,
+    generatedAt,
+  });
+
+  // Apparatus prose is longer than a fact row, so it gets a wider clamp than
+  // the 400 chars a key-fact value is allowed.
+  const sections = product.sections
+    .slice(0, 24)
+    .map((s) => ({ label: clamp(s.label, 60), value: clamp(s.value, 700) }));
+  const findings = product.keyJudgments;
 
   const sb = admin();
   const prefs = await loadIntelPrefs(notice.userId);
@@ -322,7 +384,16 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
               reportUrl: out.notificationId
                 ? `https://asherin.com/report/${out.notificationId}`
                 : `https://asherin.com${url}`,
-              generatedAt: new Date().toUTCString(),
+              generatedAt: product.generatedAt,
+              // Serial is derived from the inbox row id once it exists, so the
+              // number printed in the email is the same number the dossier
+              // page derives for itself. Only when the inbox write failed does
+              // it fall back to the idempotency key.
+              banner: product.banner,
+              reportNumber: out.notificationId
+                ? icReportNumber(kind, out.notificationId, generatedAt)
+                : product.reportNumber,
+              confidence: product.confidence ?? "",
               // Optional enrichment. Only emitted when the caller supplied it,
               // so every existing module's email renders byte-identically.
               ...(typeof notice.imageUrl === "string" && /^https?:\/\//.test(notice.imageUrl)
