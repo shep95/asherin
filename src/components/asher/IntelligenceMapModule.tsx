@@ -2167,11 +2167,11 @@ const IntelligenceMapModule = () => {
               onFly={(d) => {
                 if (d.lat === null || d.lng === null) return;
                 setFocusedMesh(d.device_id);
-                mapRef.current?.flyTo([d.lat, d.lng], 16, { duration: 0.8 });
+                flyTo(d.lat, d.lng, 16);
               }}
               onRoute={(d) => {
                 if (d.lat === null || d.lng === null) return;
-                void routeTo({ lat: d.lat, lng: d.lng }, d.label || "Device");
+                openDirectionsTo({ label: d.label || "Device", lat: d.lat, lng: d.lng });
               }}
             />
           )}
@@ -2532,7 +2532,7 @@ const IntelligenceMapModule = () => {
               onFocus={(id) => setFocusedMesh((p) => (p === id ? null : id))}
               onRoute={(d) => {
                 if (d.lat === null || d.lng === null) return;
-                void routeTo({ lat: d.lat, lng: d.lng }, d.label || "Device");
+                openDirectionsTo({ label: d.label || "Device", lat: d.lat, lng: d.lng });
               }}
             />
           )}
