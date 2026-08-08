@@ -3,6 +3,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import {
+  observeAndJudge, priceCents, STRIPE_PRODUCTS, FULL_PRICE_IDS,
+  type PppTier, type Term,
+} from "../_shared/ppp.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // Server-authoritative price ID whitelist. Client cannot purchase any
@@ -53,21 +57,66 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    const { priceId, mode, isGift, giftRecipientEmail, giftDurationMonths } = await req.json();
-    if (!priceId) throw new Error("Missing priceId");
-    // P0: reject any price ID not on the server-side allowlist.
-    if (!ALLOWED_PRICE_IDS.has(priceId)) {
-      logStep("REJECTED unknown priceId", { priceId });
-      return new Response(JSON.stringify({ error: "Invalid price selection" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+    const {
+      priceId, mode, isGift, giftRecipientEmail, giftDurationMonths, tier, term, visitorId,
+    } = await req.json();
+
+    // ── Path A: regional / term-based plan. Amount is computed here, never sent. ──
+    const planTier: PppTier | null =
+      tier === "monthly_aureon" || tier === "monthly_pro" ? tier : null;
+    const planTerm: Term = term === "semiannual" ? "semiannual" : "monthly";
+    let dynamicLineItem: any = null;
+    let pricingAudit: Record<string, string> = {};
+
+    if (planTier) {
+      const subjectId = typeof visitorId === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(visitorId)
+        ? visitorId
+        : user.id;
+      const verdict = await observeAndJudge(req, subjectId, user.id);
+      const amount = priceCents(planTier, planTerm, verdict.multiplier);
+      logStep("Regional price resolved", {
+        planTier, planTerm, amount, country: verdict.country,
+        multiplier: verdict.multiplier, vpnSuspected: verdict.vpnSuspected, reasons: verdict.reasons,
       });
+
+      const canonical = FULL_PRICE_IDS[planTier][planTerm];
+      if (verdict.multiplier >= 1 && canonical) {
+        dynamicLineItem = { price: canonical, quantity: 1 };
+      } else {
+        dynamicLineItem = {
+          price_data: {
+            currency: "usd",
+            product: STRIPE_PRODUCTS[planTier][planTerm],
+            unit_amount: amount,
+            recurring: { interval: "month", interval_count: planTerm === "semiannual" ? 6 : 1 },
+          },
+          quantity: 1,
+        };
+      }
+      pricingAudit = {
+        pricing_country: verdict.country ?? "unknown",
+        pricing_multiplier: String(verdict.multiplier),
+        pricing_term: planTerm,
+        pricing_integrity: verdict.vpnSuspected ? `flagged:${verdict.reasons.join("|")}`.slice(0, 480) : "clean",
+      };
+    } else {
+      if (!priceId) throw new Error("Missing priceId");
+      // P0: reject any price ID not on the server-side allowlist.
+      if (!ALLOWED_PRICE_IDS.has(priceId)) {
+        logStep("REJECTED unknown priceId", { priceId });
+        return new Response(JSON.stringify({ error: "Invalid price selection" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+        });
+      }
     }
-    const checkoutMode = mode === "payment" ? "payment" : "subscription";
+
+    const checkoutMode = planTier ? "subscription" : (mode === "payment" ? "payment" : "subscription");
     // P2: clamp gift duration to [1, 12] months
     const safeGiftMonths = isGift && giftDurationMonths
       ? Math.min(Math.max(parseInt(String(giftDurationMonths), 10) || 1, 1), 12)
       : 0;
-    logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, safeGiftMonths });
+    logStep("Price requested", { priceId, planTier, planTerm, checkoutMode, isGift, giftRecipientEmail, safeGiftMonths });
+
 
     // Validate gift recipient exists if this is a gift purchase
     if (isGift && giftRecipientEmail) {
@@ -119,7 +168,7 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [dynamicLineItem ?? { price: priceId, quantity: 1 }],
       mode: checkoutMode,
       success_url: `${origin}/dashboard?subscription=success`,
       cancel_url: `${origin}/dashboard?subscription=canceled`,
@@ -139,6 +188,7 @@ serve(async (req) => {
           is_gift: isGift ? "true" : "false",
           gift_recipient_email: giftRecipientEmail || "",
           gift_duration_months: safeGiftMonths ? String(safeGiftMonths) : "",
+          ...pricingAudit,
         },
       };
     } else {

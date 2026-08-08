@@ -58,7 +58,7 @@ interface SubscriptionState {
 
 interface SubscriptionContextValue extends SubscriptionState {
   checkSubscription: () => Promise<void>;
-  startCheckout: (tier: TierKey) => Promise<void>;
+  startCheckout: (tier: TierKey, term?: "monthly" | "semiannual") => Promise<void>;
   openPortal: () => Promise<void>;
   upgradeSubscription: (targetTier: TierKey) => Promise<void>;
   startProTrial: () => Promise<void>;
@@ -89,8 +89,15 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
 
 export const useSubscription = () => useContext(SubscriptionContext);
 
+// Six-month term products resolve to the same entitlement as their monthly twin.
+const SEMIANNUAL_PRODUCTS: Record<string, TierKey> = {
+  prod_V226j5fQ5fSoD9: "monthly_aureon",
+  prod_V2267gYsf3sRRn: "monthly_pro",
+};
+
 function productToTier(productId: string | null): TierKey | null {
   if (!productId) return null;
+  if (SEMIANNUAL_PRODUCTS[productId]) return SEMIANNUAL_PRODUCTS[productId];
   for (const [key, val] of Object.entries(TIERS)) {
     if (val.product_id === productId) return key as TierKey;
   }
@@ -183,14 +190,19 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [checkSubscription]);
 
-  const startCheckout = useCallback(async (tier: TierKey) => {
+  const startCheckout = useCallback(async (tier: TierKey, term: "monthly" | "semiannual" = "monthly") => {
     setCheckoutLoading(true);
     try {
       const isLifetime = tier === "lifetime";
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS[tier].price_id, mode: isLifetime ? "payment" : "subscription" },
-      });
+      // Regional / term plans are priced entirely server-side: we send the plan
+      // identity and the visitor id, never an amount or a country.
+      const regional = tier === "monthly_aureon" || tier === "monthly_pro";
+      const body = regional
+        ? { tier, term, visitorId: (() => { try { return localStorage.getItem("asherin_visitor_id") || undefined; } catch { return undefined; } })() }
+        : { priceId: TIERS[tier].price_id, mode: isLifetime ? "payment" : "subscription" };
+      const { data, error } = await supabase.functions.invoke("create-checkout", { body });
       if (error) throw error;
+
       if (data?.error) throw new Error(data.error);
       if (data?.url) {
         // Use location.href to avoid popup blockers

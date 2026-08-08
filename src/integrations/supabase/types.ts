@@ -7046,6 +7046,51 @@ export type Database = {
           },
         ]
       }
+      pricing_ip_observations: {
+        Row: {
+          asn: string | null
+          city: string | null
+          country: string | null
+          id: string
+          ip_address: string
+          is_infrastructure: boolean
+          latitude: number | null
+          longitude: number | null
+          observed_at: string
+          org: string | null
+          subject_id: string
+          user_id: string | null
+        }
+        Insert: {
+          asn?: string | null
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address: string
+          is_infrastructure?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          observed_at?: string
+          org?: string | null
+          subject_id: string
+          user_id?: string | null
+        }
+        Update: {
+          asn?: string | null
+          city?: string | null
+          country?: string | null
+          id?: string
+          ip_address?: string
+          is_infrastructure?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          observed_at?: string
+          org?: string | null
+          subject_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       pro_trial_usage: {
         Row: {
           used_at: string
