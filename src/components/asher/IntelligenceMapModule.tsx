@@ -44,6 +44,7 @@ import {
 } from "@/lib/asher/findMy";
 import {
   loadCloudMapLayer, venueFeatures, clearCloudMapCache,
+  pendingVenueFeatures, getPendingVenues, clearPendingVenues,
   type CloudMapLayer, type CloudMapFeature,
 } from "@/lib/cloudIntel/mapBridge";
 
