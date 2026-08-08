@@ -4471,6 +4471,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ghost_sessions: {
+        Row: {
+          captured_at: string
+          content_bytes: number
+          content_sha256: string | null
+          content_text: string | null
+          emails: string[]
+          entropy: number | null
+          expires_at: string
+          filenames: string[]
+          host: string
+          id: string
+          ipv4s: string[]
+          is_encrypted: boolean
+          language_tag: string | null
+          phones: string[]
+          session_id: string
+          source_type: string
+          status: number | null
+          storage_path: string | null
+          truncated: boolean
+          url: string
+          urls: string[]
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          content_bytes?: number
+          content_sha256?: string | null
+          content_text?: string | null
+          emails?: string[]
+          entropy?: number | null
+          expires_at: string
+          filenames?: string[]
+          host: string
+          id?: string
+          ipv4s?: string[]
+          is_encrypted?: boolean
+          language_tag?: string | null
+          phones?: string[]
+          session_id: string
+          source_type?: string
+          status?: number | null
+          storage_path?: string | null
+          truncated?: boolean
+          url: string
+          urls?: string[]
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          content_bytes?: number
+          content_sha256?: string | null
+          content_text?: string | null
+          emails?: string[]
+          entropy?: number | null
+          expires_at?: string
+          filenames?: string[]
+          host?: string
+          id?: string
+          ipv4s?: string[]
+          is_encrypted?: boolean
+          language_tag?: string | null
+          phones?: string[]
+          session_id?: string
+          source_type?: string
+          status?: number | null
+          storage_path?: string | null
+          truncated?: boolean
+          url?: string
+          urls?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       gift_purchases: {
         Row: {
           addons: Json | null
@@ -12194,6 +12269,7 @@ export type Database = {
         Returns: string
       }
       get_user_id_by_email: { Args: { _email: string }; Returns: string }
+      ghost_buffer_purge: { Args: never; Returns: number }
       has_notebook_share: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
