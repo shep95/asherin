@@ -18,6 +18,7 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
   const [report, setReport] = useState<GhostChainReport | null>(null);
 
   const run = async () => {
+    if (loading) return;
     const target = url.trim();
     if (!target) return;
     setLoading(true);
@@ -46,7 +47,7 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
         <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") run(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && !loading) void run(); }}
           placeholder="https://target-url.example.com"
           className="bg-background/40 border-border/30 text-sm"
           disabled={loading}
@@ -77,6 +78,12 @@ const GhostChainPanel = ({ initialUrl = "" }: Props) => {
             <div className="border border-border/20 rounded-lg p-4 bg-card/30">
               <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mb-2">Intelligence Report</div>
               <pre className="text-xs text-foreground/85 whitespace-pre-wrap font-sans leading-relaxed">{report.report}</pre>
+            </div>
+          )}
+
+          {report.warnings?.length > 0 && (
+            <div role="status" className="border border-border/30 rounded-lg px-4 py-3 bg-muted/20 text-xs text-muted-foreground">
+              {report.warnings.map((warning) => <p key={warning}>{warning}</p>)}
             </div>
           )}
 
