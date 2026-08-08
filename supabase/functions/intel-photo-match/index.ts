@@ -242,7 +242,11 @@ async function crossMatch(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 900, responseMimeType: "application/json" },
+          // A 900-token ceiling truncated the JSON mid-string on multi-frame
+          // comparisons, and a truncated object throws in JSON.parse — which
+          // surfaced to the reader as "comparator unreachable" when the model
+          // had in fact answered. Budget for the real answer, then salvage.
+          generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
         }),
         signal: AbortSignal.timeout(60_000),
       },
@@ -254,7 +258,16 @@ async function crossMatch(
     }
     const j = await r.json();
     const text: string = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("") ?? "";
-    const parsed = JSON.parse(text.replace(/^```json\s*|```$/g, "").trim());
+    const cleaned = text.replace(/^```json\s*|```$/g, "").trim();
+    const parsed = safeParse(cleaned);
+    if (!parsed) {
+      console.error("photo_vision_unparsable", cleaned.slice(0, 200));
+      return {
+        ...base,
+        reasoning: "n/a — the comparator returned a malformed assessment.",
+        falsifier: "Retry the cross-match.",
+      };
+    }
     const v = String(parsed?.verdict ?? "inconclusive");
     return {
       verdict: (["same_person", "likely_same", "inconclusive", "conflict"].includes(v) ? v : "inconclusive") as PhotoMatch["verdict"],
