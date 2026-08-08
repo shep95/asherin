@@ -102,6 +102,52 @@ Deno.serve(async (req) => {
       await db.from("sentinel_presence").upsert(patch, { onConflict: "user_id" });
       await db.from("sentinel_devices").update({ last_beacon_at: nowIso }).eq("id", dev.id);
 
+      // ── Fleet row: keeps this device findable from the operator's other
+      // devices while its tab is closed. Only fields the worker can honestly
+      // carry are written; a missing battery leaves the last one untouched
+      // rather than blanking it, and the timestamp stays the page's reading
+      // time so the UI can age it correctly instead of showing it as fresh.
+      const meshDeviceId = clampStr(body.meshDeviceId, 120);
+      if (meshDeviceId) {
+        const meshPatch: Record<string, unknown> = {
+          last_source: "worker",
+          link_type: clampStr(body.linkType, 40),
+          effective_type: clampStr(body.effectiveType, 20),
+          last_seen_at: nowIso,
+          updated_at: nowIso,
+        };
+        const pct = Number(body.batteryPct);
+        if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+          meshPatch.battery_pct = Math.round(pct);
+          meshPatch.battery_charging = typeof body.batteryCharging === "boolean" ? body.batteryCharging : null;
+          const bAt = Number(body.batteryAt);
+          meshPatch.battery_at = Number.isFinite(bAt) && bAt > 0 ? new Date(bAt).toISOString() : nowIso;
+        }
+        if (hasFix) {
+          meshPatch.lat = lat;
+          meshPatch.lng = lng;
+          meshPatch.accuracy = Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null;
+          meshPatch.fix_at = nowIso;
+        }
+        const { data: existing } = await db.from("mesh_devices")
+          .select("id").eq("user_id", dev.user_id).eq("device_id", meshDeviceId).maybeSingle();
+        if (existing) {
+          await db.from("mesh_devices").update(meshPatch).eq("id", existing.id);
+        } else {
+          // First contact from a worker that outlived its page: create the row
+          // so a device lost before it ever reported in-page is still on the
+          // roster. The page fills in label/emails on its next boot.
+          await db.from("mesh_devices").insert({
+            ...meshPatch,
+            user_id: dev.user_id,
+            device_id: meshDeviceId,
+            label: clampStr(body.label, 80),
+            form_factor: "unknown",
+          });
+        }
+        await db.from("sentinel_devices").update({ mesh_device_id: meshDeviceId }).eq("id", dev.id);
+      }
+
       // A device that just reported a *new* position deserves an immediate
       // sweep rather than waiting out the interval — that is the whole point
       // of a background heartbeat.
