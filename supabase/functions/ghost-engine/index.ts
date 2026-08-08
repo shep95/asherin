@@ -36,6 +36,7 @@ import {
 import { runGhostLedger } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
+import { sweepIdentifier } from "../_shared/identifierSweep.ts";
 import {
   classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
 } from "../_shared/ghostHarvest.ts";
@@ -55,7 +56,7 @@ const BUCKET = "ghost-buffer";
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
   | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin"
-  | "upload" | "timeline";
+  | "upload" | "timeline" | "identifier";
 
 
 
@@ -88,6 +89,11 @@ interface GhostRequest {
   /** action=timeline — reach back through the capture archives. */
   fromYear?: number;
   hosts?: string[];
+  /** action=timeline — extra keyword terms to carve for inside documents. */
+  terms?: string[];
+  /** action=identifier — wall-clock budget and harvest aperture. */
+  budgetMs?: number;
+  maxLeads?: number;
 }
 
 
