@@ -137,6 +137,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
     { id: "h-env",    label: "Environmental",       status: "soon" },
   ]},
+  { id: "cloud-intel", label: "Cloud Intelligence", layers: [
+    { id: "cloud-contacts",    label: "Contact Dossiers",    status: "live" },
+    { id: "cloud-venues",      label: "Calendar Venues & Forecasts", status: "live" },
+    { id: "cloud-security",    label: "Security Events & Signals", status: "live" },
+    { id: "cloud-relationships", label: "Inferred Relationship Links", status: "live" },
+  ]},
 ];
 
 const TILE_SOURCES: Record<string, { url: string; attribution: string; max?: number }> = {
