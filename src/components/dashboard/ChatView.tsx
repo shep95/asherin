@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { Link } from "react-router-dom";
+
 import { Eye, Lock, Copy, Check, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
 import ConversationBranches, { getActiveBranch, getBranches, getMessageBranch, setActiveBranchStorage, tagMessageBranch } from "./ConversationBranches";
 import OutputFormatMenu from "./OutputFormatMenu";
