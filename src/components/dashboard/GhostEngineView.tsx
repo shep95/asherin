@@ -33,9 +33,12 @@ const GhostEngineView = () => {
   const [data, setData] = useState<GhostResponse | null>(null);
   const [tab, setTab] = useState<Tab>("records");
   const [selected, setSelected] = useState<GhostRecord | null>(null);
+  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) === "1");
+  const [bufferNonce, setBufferNonce] = useState(0);
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 6); } catch { return []; }
   });
+
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
