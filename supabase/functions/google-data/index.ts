@@ -1,7 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  FORENSIC_HEADERS, analyzeMessage, geolocateIps, attachGeo, aggregate,
+  type MessageForensics,
+} from "../_shared/emailForensics.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
 
 const adminClient = createClient(
   Deno.env.get("SUPABASE_URL")!,
