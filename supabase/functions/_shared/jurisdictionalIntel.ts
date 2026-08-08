@@ -194,16 +194,57 @@ const ENTITY_HINTS = /\b(llc|inc\.?|corp\.?|corporation|company|ltd\.?|holdings|
 // messages like "asher shepherd newton" are still recognized as a name.
 const NAME_RE = /\b([A-Z][a-z'’\-]{1,})(?:\s+([A-Z][a-z'’\-]{1,})){1,3}\b/;
 
+/**
+ * Words that can never be part of a person's name in a query.
+ *
+ * Why this list exists: the title-case fallback below uppercases EVERY word so
+ * that a lowercased "asher newton" is still recognized. Unguarded, that same
+ * fallback turned "how many ounces in a cup" into "How Many Ounces" and sent a
+ * grocery question into a forty-second three-hop identity sweep. Casing alone
+ * is not evidence of a name — the tokens have to be capable of being one.
+ */
+const NON_NAME_TOKENS = new Set([
+  "how","what","why","when","where","which","who","whom","whose","is","are","was",
+  "were","do","does","did","can","could","should","would","will","shall","may",
+  "might","the","a","an","and","or","but","if","then","than","that","this","these",
+  "those","there","here","of","in","on","at","to","for","from","by","with","about",
+  "into","over","under","between","many","much","more","most","less","least","some",
+  "any","all","none","not","no","yes","please","tell","me","my","you","your","i",
+  "we","us","it","its","he","she","they","them","his","her","their","explain",
+  "describe","compare","give","make","show","help","need","want","know","think",
+  "write","build","fix","create","list","find","search","look","up","out","get",
+  "now","today","tomorrow","yesterday","time","times","open","close","closed",
+  "price","cost","weather","near","best","good","bad","new","old","cup","ounces",
+  "code","file","error","function","page","app","site","data","report","map",
+]);
+
+function isPlausibleName(candidate: string): boolean {
+  const tokens = candidate.trim().split(/\s+/);
+  if (tokens.length < 2) return false;
+  // Every token must be name-capable. One function word is enough to prove the
+  // phrase is a sentence fragment, not a name.
+  return tokens.every((tok) => {
+    const w = tok.toLowerCase().replace(/[^a-z'’\-]/g, "");
+    return w.length >= 2 && !NON_NAME_TOKENS.has(w);
+  });
+}
+
 function titleCaseForName(s: string): string {
   return s.replace(/\b([a-z])([a-z'’\-]*)/gi, (_m, a: string, b: string) => a.toUpperCase() + b.toLowerCase());
 }
 
 function matchName(s: string): string {
   const direct = s.match(NAME_RE);
-  if (direct) return direct[0];
+  if (direct && isPlausibleName(direct[0])) return direct[0];
+
+  // Title-case fallback is only for genuinely lowercased input. If the operator
+  // already capitalized something and it did not survive the plausibility test,
+  // re-casing the whole sentence cannot turn it into a name.
+  if (/[A-Z]/.test(s.replace(/^[^a-z]*/i, "").slice(1))) return "";
   const tc = titleCaseForName(s).match(NAME_RE);
-  return tc ? tc[0] : "";
+  return tc && isPlausibleName(tc[0]) ? tc[0] : "";
 }
+
 
 function stripTriggerVerbs(raw: string): string {
   return raw
@@ -272,18 +313,25 @@ function scanLocation(raw: string): { country: string; state: string; county: st
       }
     }
   }
-  // Two-letter US state code (case-insensitive, punctuation-tolerant)
+  // Two-letter US state code.
+  //
+  // Case matters here, and it used to not: a case-insensitive scan read the
+  // preposition "in" as Indiana and the conjunction "or" as Oregon, so ordinary
+  // English sentences acquired a jurisdiction they never mentioned. A real
+  // abbreviation is written uppercase ("Tampa FL", "Austin, TX"), so require
+  // uppercase — and require it to sit where a state sits: after a comma or a
+  // capitalized place word, or at the end of the message.
   if (!state) {
-    const stCode = t.match(/\b([A-Za-z]{2})\b/g);
-    if (stCode) {
-      for (const raw of stCode) {
-        const up = raw.toUpperCase();
-        if (Object.values(US_STATES).includes(up)) {
-          state = up; if (!country) country = "US"; break;
-        }
+    const codeRe = /(?:,\s*|\b[A-Za-z][a-z]+\s+)([A-Z]{2})\b(?=[\s.,!?]|$)/g;
+    let m: RegExpExecArray | null;
+    while ((m = codeRe.exec(t)) !== null) {
+      const up = m[1];
+      if (Object.values(US_STATES).includes(up)) {
+        state = up; if (!country) country = "US"; break;
       }
     }
   }
+
   // Fuzzy pass — operators misspell places ("flordia", "califorina",
   // "cape corral"). Without this the misspelled token survives into the
   // subject name and poisons every downstream registry query.
