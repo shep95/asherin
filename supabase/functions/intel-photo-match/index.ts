@@ -345,18 +345,28 @@ Deno.serve(async (req) => {
     .slice(0, 120);
 
   const queries = [
-    `"${subject}" profile ${hint}`.trim(),
-    `"${subject}" linkedin OR instagram OR facebook profile photo`,
+    `"${subject}" photo ${hint}`.trim(),
+    `"${subject}" profile biography portrait`,
   ];
   const found = (await Promise.all(queries.map(searchProfiles))).flat();
 
-  // One candidate per host keeps "two sources" from meaning "one site twice".
+  // One candidate per host keeps "two sources" from meaning "one site twice",
+  // and portrait-bearing surfaces are attempted before login-walled ones so a
+  // short candidate budget is never spent entirely on brand logos.
   const byHost = new Map<string, { url: string; title: string }>();
   for (const f of found) {
     const h = hostOf(f.url);
     if (h && !byHost.has(h)) byHost.set(h, f);
   }
-  const candidates = [...byHost.values()].slice(0, MAX_PHOTOS);
+  const rank = (u: string) => (PORTRAIT_HOSTS.test(u) ? 0 : WALLED_HOSTS.test(u) ? 2 : 1);
+  const candidates = [...byHost.values()]
+    .sort((a, b) => rank(a.url) - rank(b.url))
+    .slice(0, MAX_PHOTOS * 2);
+  console.log(
+    "photo_candidates",
+    JSON.stringify({ found: found.length, hosts: candidates.map((c) => hostOf(c.url)) }),
+  );
+
 
   const imageRefs = (
     await Promise.all(
