@@ -63,6 +63,8 @@ export interface SentinelState {
   blocked: string | null;
   area: AreaState | null;
   lastFlushAt: number | null;
+  /** Latest automatic uplink judgement, so the UI never needs to ask for one. */
+  network: { level: string; operator: string | null; checkedAt: number } | null;
 }
 
 type Listener = (s: SentinelState) => void;
@@ -78,6 +80,7 @@ let state: SentinelState = {
   blocked: null,
   area: null,
   lastFlushAt: null,
+  network: null,
 };
 
 const listeners = new Set<Listener>();
@@ -91,6 +94,8 @@ let sessionId = "";
 let flushTimer: number | null = null;
 let areaTimer: number | null = null;
 let watchdogTimer: number | null = null;
+let netTimer: number | null = null;
+let tradeTimer: number | null = null;
 let lastRadioAttempt = 0;
 let booted = false;
 let geoEnabled = true;
@@ -317,6 +322,134 @@ function newSession(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// ── Network leg ──────────────────────────────────────────────────────────────
+// The Wi-Fi / uplink judgement used to exist only while the Network tab was on
+// screen. Safety that depends on which tab you opened is not safety, so the
+// daemon owns it: on boot, on every link transition, on reconnect, and on a
+// half-hourly cadence — throttled so a flapping connection cannot spam alerts.
+
+const NET_MS = 30 * 60_000;
+const NET_KEY = "asherin.netsentinel.lastAuto";
+
+function linkFacts(): { linkType: string; effectiveType: string } {
+  const c = (navigator as any)?.connection;
+  const type = c?.type;
+  return { linkType: type && type !== "none" ? type : "unknown", effectiveType: c?.effectiveType ?? "" };
+}
+
+export async function runNetworkCheck(force = false): Promise<void> {
+  if (!state.armed && !force) return;
+  if (!force) {
+    let last = 0;
+    try { last = Number(localStorage.getItem(NET_KEY) ?? 0); } catch { /* noop */ }
+    if (Date.now() - last < NET_MS) return;
+  }
+  if (!(await hasSession())) return;
+  try { localStorage.setItem(NET_KEY, String(Date.now())); } catch { /* noop */ }
+  try {
+    const { linkType, effectiveType } = linkFacts();
+    const { data, error } = await supabase.functions.invoke("wifi-sentinel", {
+      body: { action: "uplink", linkType, effectiveType, force },
+    });
+    if (error) throw error;
+    const net = (data as any)?.network;
+    if (net) {
+      emit({ network: { level: net.riskLevel, operator: net.operator ?? null, checkedAt: Date.now() } });
+      // Only a genuinely risky uplink speaks unprompted; a clean café network
+      // that says nothing is the correct behaviour, not a missing feature.
+      if ((data as any)?.notified) {
+        toast.warning(`Network risk: ${net.riskLevel}`, {
+          description: `${net.operator ?? "Unattributed uplink"} — full report in Cloud Intelligence → Network.`,
+          duration: 14000,
+        });
+      }
+    }
+    window.dispatchEvent(new CustomEvent("asherin-network-updated"));
+  } catch (e) {
+    if (force) toast.error(e instanceof Error ? e.message : "Network report failed");
+  }
+}
+
+// ── Tradecraft leg ───────────────────────────────────────────────────────────
+// Recurrence only becomes a judgement once something evaluates it. Running that
+// evaluation only when the Tradecraft tab mounts means the escalation that
+// matters happens unobserved. The daemon re-scores on a cadence and speaks the
+// moment the tier climbs.
+
+const TRADE_MS = 15 * 60_000;
+const TIER_KEY = "asherin.sentinel.lastTier";
+const TIER_RANK: Record<string, number> = { none: 0, watch: 1, probable: 2, active: 3 };
+
+export async function runTradecraftSweep(silent = true): Promise<any | null> {
+  if (!(await hasSession())) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke("sentinel-ble", { body: { action: "ble.tradecraft" } });
+    if (error) throw error;
+    const analysis = data?.analysis || null;
+    if (analysis) {
+      let prev = "none";
+      try { prev = localStorage.getItem(TIER_KEY) || "none"; } catch { /* noop */ }
+      const now = String(analysis.tier || "none");
+      if ((TIER_RANK[now] ?? 0) > (TIER_RANK[prev] ?? 0)) {
+        toast.warning(`Following pattern escalated to ${now.toUpperCase()}`, {
+          description: analysis.headline || "Open Cloud Intelligence → Bluetooth Sentinel → Tradecraft.",
+          duration: 16000,
+        });
+      }
+      try { localStorage.setItem(TIER_KEY, now); } catch { /* noop */ }
+      window.dispatchEvent(new CustomEvent("asherin-tradecraft-updated", { detail: data }));
+    }
+    return data ?? null;
+  } catch (e) {
+    if (!silent) toast.error(e instanceof Error ? e.message : "Analysis failed");
+    return null;
+  }
+}
+
+// ── Alert-delivery leg ───────────────────────────────────────────────────────
+// Push enrolment behind a button means the alerts the daemon raises die in a
+// tab nobody is looking at. Enrol silently whenever the browser already allows
+// it; when the engine insists on user activation, borrow the next tap the user
+// makes anywhere in the app instead of demanding a dedicated one.
+
+let pushTried = false;
+
+async function ensurePush(): Promise<void> {
+  if (pushTried) return;
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (!(await hasSession())) return;
+  if (Notification.permission === "denied") { pushTried = true; return; }
+  if (Notification.permission === "default") return; // handled on first gesture
+  pushTried = true;
+  try {
+    const { enablePush, readPushStatus } = await import("@/lib/guardianPush");
+    const status = await readPushStatus();
+    if (status.state !== "enabled") await enablePush();
+  } catch { /* alert channel is best-effort; email delivery still stands */ }
+}
+
+/** Borrow the user's next natural interaction — never a dedicated button. */
+function armOnFirstGesture(): void {
+  if (typeof window === "undefined") return;
+  const handler = () => {
+    window.removeEventListener("pointerdown", handler, true);
+    window.removeEventListener("keydown", handler, true);
+    lastRadioAttempt = 0;
+    void startRadio();
+    void (async () => {
+      if (!("Notification" in window) || Notification.permission !== "default") { void ensurePush(); return; }
+      if (!(await hasSession())) return;
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") { pushTried = false; await ensurePush(); }
+        else pushTried = true;
+      } catch { /* engine refused; nothing else to do silently */ }
+    })();
+  };
+  window.addEventListener("pointerdown", handler, true);
+  window.addEventListener("keydown", handler, true);
+}
+
 // ── Engine ───────────────────────────────────────────────────────────────────
 
 async function engage(): Promise<void> {
@@ -332,6 +465,14 @@ async function engage(): Promise<void> {
     areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
     window.setTimeout(() => { void checkAreaNow(true); }, 8_000);
   }
+  if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
+  if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+
+  // First pass, staggered so a cold start does not fire four calls at once.
+  window.setTimeout(() => { void runNetworkCheck(false); }, 4_000);
+  window.setTimeout(() => { void runTradecraftSweep(true); }, 12_000);
+  void ensurePush();
+  armOnFirstGesture();
 }
 
 async function requestWake(): Promise<void> {
@@ -345,6 +486,8 @@ async function requestWake(): Promise<void> {
 async function disengage(): Promise<void> {
   if (flushTimer != null) { window.clearInterval(flushTimer); flushTimer = null; }
   if (areaTimer != null) { window.clearInterval(areaTimer); areaTimer = null; }
+  if (netTimer != null) { window.clearInterval(netTimer); netTimer = null; }
+  if (tradeTimer != null) { window.clearInterval(tradeTimer); tradeTimer = null; }
   stopGeo();
   await stopRadio();
   try { await wakeLock?.release?.(); } catch { /* noop */ }
@@ -363,6 +506,9 @@ async function watchdog(): Promise<void> {
   if (!bleEnabled && handle) await stopRadio();
   if (flushTimer == null) flushTimer = window.setInterval(() => { void flushSentinel(true); }, FLUSH_MS);
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
+  if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
+  if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  void ensurePush();
 }
 
 /** Called once from the app shell. Idempotent. */
@@ -382,10 +528,12 @@ export function bootSentinel(): void {
     if (document.visibilityState === "visible") resume();
     else void flushSentinel(true); // never lose a buffer to a backgrounded tab
   });
-  window.addEventListener("online", resume);
+  window.addEventListener("online", () => { resume(); void runNetworkCheck(false); });
   window.addEventListener("pageshow", resume);
   window.addEventListener("focus", resume);
   window.addEventListener("pagehide", () => { void flushSentinel(true); });
+  // A link transition is the one moment a new, unjudged network appears.
+  (navigator as any)?.connection?.addEventListener?.("change", () => { void runNetworkCheck(false); });
 
   watchdogTimer ??= window.setInterval(() => { void watchdog(); }, WATCHDOG_MS);
 

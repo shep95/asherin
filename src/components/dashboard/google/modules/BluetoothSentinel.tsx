@@ -6,6 +6,7 @@ import { pickOne, listPaired } from "@/components/dashboard/zaxin/core/scanner";
 import {
   subscribeSentinel, getSentinelState, armSentinel, disarmSentinel, flushSentinel,
   checkAreaNow, grantRadioPermission, ingestAdvert, invalidateSentinelSettings,
+  runTradecraftSweep,
   type SentinelState,
 } from "@/lib/sentinel/alwaysOn";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -278,22 +279,35 @@ const BluetoothSentinel = () => {
   };
 
   // ── Tradecraft: deterministic, so it runs without a model key ────────────
+  // The daemon re-scores every 15 minutes whether or not anyone is looking, and
+  // escalations alert on their own. This view renders the latest score and can
+  // force a fresh pass, but nothing here is a prerequisite for the analysis.
   const runTradecraft = useCallback(async (silent = true) => {
     setAnalysing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("sentinel-ble", { body: { action: "ble.tradecraft" } });
-      if (error) throw error;
-      setAnalysis((data?.analysis || null) as TcAnalysis | null);
-      setDoctrine((data?.doctrine || []) as DoctrineEntry[]);
-      if (!silent) toast.success("Tradecraft analysis complete");
-    } catch (e) {
-      if (!silent) toast.error(e instanceof Error ? e.message : "Analysis failed");
+      const data = await runTradecraftSweep(silent);
+      if (data) {
+        setAnalysis((data?.analysis || null) as TcAnalysis | null);
+        setDoctrine((data?.doctrine || []) as DoctrineEntry[]);
+        if (!silent) toast.success("Tradecraft analysis complete");
+      }
     } finally {
       setAnalysing(false);
     }
   }, []);
 
-  useEffect(() => { void runTradecraft(true); }, [runTradecraft]);
+  useEffect(() => {
+    void runTradecraft(true);
+    const onSweep = (e: Event) => {
+      const data = (e as CustomEvent).detail;
+      if (!data) return;
+      setAnalysis((data.analysis || null) as TcAnalysis | null);
+      setDoctrine((data.doctrine || []) as DoctrineEntry[]);
+      void load();
+    };
+    window.addEventListener("asherin-tradecraft-updated", onSweep);
+    return () => window.removeEventListener("asherin-tradecraft-updated", onSweep);
+  }, [runTradecraft, load]);
 
   const buildCase = async () => {
     setBuildingCase(true);
