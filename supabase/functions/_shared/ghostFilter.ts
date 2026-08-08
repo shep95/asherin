@@ -119,6 +119,12 @@ export interface FilterContext {
   pinnedHosts?: string[];
   /** Score floor. Raise it for a tighter cut, lower it to see more. */
   floor?: number;
+  /**
+   * Maximum leads retained from any single host. Without a cap, a handful of
+   * high-volume platforms occupy the whole board and the long tail — where the
+   * uncatalogued material actually lives — never reaches the operator.
+   */
+  perHostCap?: number;
 }
 
 interface Scored<T> { lead: T; score: number; reason: string }
@@ -138,13 +144,29 @@ function scoreLead(lead: FilterableLead, ctx: FilterContext): { score: number; r
   let reason = "";
 
   // ── 1. Host class ─────────────────────────────────────────────────────────
-  if (anyMatch(host, HIGH_SIGNAL)) score += 10;
+  // The known-platform bonus is deliberately small. A large bonus makes the
+  // filter an authority ranker: every independent forum, club roster, parish
+  // bulletin or one-person blog scores zero against a mega-platform's +10 and
+  // falls under the floor, so the board fills with the same dozen corporations
+  // no matter who the selector names. Evidence is not a function of traffic.
+  const known = anyMatch(host, HIGH_SIGNAL);
+  const govEdu = /\.(gov|mil|edu)$/.test(host) || /\.gov\.[a-z]{2}$/.test(host);
+  if (known) score += 3;
   if (anyMatch(host, REFERENCE)) { score -= 9; reason = "generic reference corpus"; }
   if (anyMatch(host, FARM)) { score -= 8; reason = reason || "content farm"; }
   if (anyMatch(host, SHOPPING)) { score -= 10; reason = reason || "commerce listing"; }
   if (anyMatch(host, AGGREGATOR)) { score -= 8; reason = reason || "search aggregator"; }
   if (anyMatch(host, PARKED)) { score -= 12; reason = reason || "parked domain"; }
-  if (/\.(gov|mil|edu)$/.test(host) || /\.gov\.[a-z]{2}$/.test(host)) score += 6;
+  if (govEdu) score += 2;
+
+  // Long-tail credit. A host that belongs to no list at all is the open web:
+  // the personal site, the regional paper, the hobby forum, the small firm.
+  // These carry the material the platforms never mirrored, so they are given
+  // parity with the named platforms rather than being scored as unknowns.
+  const listed = known || govEdu ||
+    anyMatch(host, REFERENCE) || anyMatch(host, FARM) || anyMatch(host, SHOPPING) ||
+    anyMatch(host, AGGREGATOR) || anyMatch(host, PARKED);
+  if (!listed) score += 3;
 
   // ── 2. Path shape ─────────────────────────────────────────────────────────
   let path = "";
@@ -200,6 +222,9 @@ export function filterLeads<T extends FilterableLead>(
   const kept: T[] = [];
   const dropped: T[] = [];
   const reasons: Record<string, number> = {};
+  const perHostCap = ctx.perHostCap ?? 6;
+  const byHost = new Map<string, number>();
+  const pinnedHost = (h: string) => (ctx.pinnedHosts || []).some((p) => h === p || h.endsWith(`.${p}`));
 
   for (const s of scored.sort((a, b) => b.score - a.score)) {
     const sig = sigOf(s.lead);
@@ -217,8 +242,44 @@ export function filterLeads<T extends FilterableLead>(
       }
       byTitle.set(sig, seen + 1);
     }
+    const h = hostOf(s.lead.url);
+    if (h && !pinnedHost(h)) {
+      const n = byHost.get(h) ?? 0;
+      if (n >= perHostCap) {
+        dropped.push(s.lead);
+        reasons["host quota reached — long tail given the slot"] =
+          (reasons["host quota reached — long tail given the slot"] ?? 0) + 1;
+        continue;
+      }
+      byHost.set(h, n + 1);
+    }
     kept.push(s.lead);
   }
 
   return { kept, dropped, reasons };
+}
+
+/**
+ * Host-diversity interleave. Ranked lists collapse onto whichever host returned
+ * the most rows; round-robining across hosts puts the open web on the first
+ * page beside the platforms instead of eighty rows below them.
+ */
+export function diversifyByHost<T extends FilterableLead>(leads: T[]): T[] {
+  const buckets = new Map<string, T[]>();
+  for (const l of leads) {
+    const h = hostOf(l.url) || l.url;
+    const b = buckets.get(h);
+    if (b) b.push(l); else buckets.set(h, [l]);
+  }
+  const queues = [...buckets.values()];
+  const out: T[] = [];
+  let drained = false;
+  while (!drained) {
+    drained = true;
+    for (const q of queues) {
+      const next = q.shift();
+      if (next) { out.push(next); drained = false; }
+    }
+  }
+  return out;
 }

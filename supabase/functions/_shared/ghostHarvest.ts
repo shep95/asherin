@@ -21,7 +21,7 @@
 //                  evidence even if the shell probe later fails.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { filterLeads } from "./ghostFilter.ts";
+import { filterLeads, diversifyByHost } from "./ghostFilter.ts";
 
 export type SelectorKind = "email" | "phone" | "domain" | "name" | "handle" | "freeform";
 
@@ -152,6 +152,35 @@ function leadIsRelevant(lead: HarvestLead, tokens: string[], id: SelectorIdentit
 }
 
 
+/**
+ * Open-web legs.
+ *
+ * Every `site:` leg is a question that can only be answered by the corporation
+ * named inside it. A plan built entirely from `site:` legs therefore cannot
+ * return anything except platforms and agencies, no matter what the selector
+ * is — the long tail was never asked. These legs carry no host constraint and
+ * are deliberately shaped to reach the uncatalogued web: forums, club rosters,
+ * parish and school pages, local press, personal sites, meeting minutes,
+ * newsletters, mailing-list archives and small-business directories.
+ */
+function openWebLegs(label: string, extra: string[] = []): HarvestLeg[] {
+  const q = label;
+  const legs: HarvestLeg[] = [
+    { label: "open:bare", query: q, weight: 3 },
+    { label: "open:forum", query: `"${q}" (forum OR thread OR "board index" OR viewtopic OR phpbb OR discourse)`, weight: 1.5 },
+    { label: "open:personal", query: `"${q}" (blog OR "personal site" OR homepage OR portfolio OR "about me")`, weight: 1.2 },
+    { label: "open:local", query: `"${q}" (local OR county OR township OR neighborhood OR "community" OR gazette OR herald OR tribune)`, weight: 1.2 },
+    { label: "open:civic", query: `"${q}" (minutes OR agenda OR roster OR newsletter OR bulletin OR directory OR membership)`, weight: 1.2 },
+    { label: "open:smallbiz", query: `"${q}" (LLC OR "sole proprietor" OR shop OR studio OR "family owned" OR contractor OR invoice)`, weight: 1 },
+    { label: "open:club", query: `"${q}" (club OR league OR team OR church OR parish OR alumni OR volunteer OR fundraiser)`, weight: 1 },
+    { label: "open:archive-mail", query: `"${q}" ("mailing list" OR listserv OR mailman OR pipermail OR "index of")`, weight: 0.9 },
+    { label: "open:docs", query: `"${q}" (filetype:pdf OR filetype:doc OR filetype:xls OR filetype:csv OR filetype:txt)`, weight: 1.2 },
+    { label: "open:index", query: `"${q}" intitle:"index of"`, weight: 0.8 },
+  ];
+  for (const e of extra) legs.push({ label: `open:${e.slice(0, 18)}`, query: `"${q}" ${e}`, weight: 1 });
+  return legs;
+}
+
 export function planFanout(id: SelectorIdentity): HarvestLeg[] {
   const legs: HarvestLeg[] = [];
   const push = (label: string, query: string, weight = 1) => legs.push({ label, query, weight });
@@ -246,6 +275,15 @@ export function planFanout(id: SelectorIdentity): HarvestLeg[] {
       push("news", `${id.label} (news OR report OR announcement)`);
     }
   }
+
+  // The open web, asked without a host constraint, alongside the platform legs.
+  const openSubject =
+    id.kind === "email" && isFreemail(id.parts.domain) ? id.parts.local
+      : id.kind === "domain" ? id.parts.host
+        : id.kind === "handle" ? id.parts.handle
+          : id.label;
+  legs.push(...openWebLegs(openSubject));
+
   return legs;
 }
 
@@ -308,6 +346,8 @@ export interface HarvestOptions {
   noiseFilter?: boolean;
   /** Score floor for the noise filter. Higher is stricter. */
   filterFloor?: number;
+  /** Maximum leads kept from any one host, so no platform owns the board. */
+  perHostCap?: number;
 }
 
 export interface HarvestReport {
@@ -332,7 +372,7 @@ export async function harvestLeads(
   };
   if (!supabaseUrl || !bearer) return empty;
 
-  const concurrency = opts.concurrency ?? 4;
+  const concurrency = opts.concurrency ?? 6;
   const legTimeoutMs = opts.legTimeoutMs ?? 12_000;
   const maxLeads = opts.maxLeads ?? 300;
 
@@ -378,7 +418,7 @@ export async function harvestLeads(
   // Legs whose query already embedded the selector are trusted even when the
   // engine returns a snippet that omits the term — absence from a 160-char
   // preview is not absence from the page.
-  const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens)$/;
+  const LITERAL_LEGS = /^(literal|phrase|intitle|intext|root|literal-host|subdomain-index|local-as-handle|dashed|dotted|parens|open:bare)$/;
   const relevant = all.filter((l) => LITERAL_LEGS.test(l.via) || leadIsRelevant(l, tokens, id));
 
   // ── Zophiel web filter ────────────────────────────────────────────────────
@@ -398,6 +438,7 @@ export async function harvestLeads(
       tokens,
       pinnedHosts,
       floor: opts.filterFloor ?? 0,
+      perHostCap: opts.perHostCap ?? 6,
     });
     // A filter that empties the board has failed at its job. When the cut
     // leaves nothing, fall back to the unfiltered set rather than telling the
@@ -419,7 +460,9 @@ export async function harvestLeads(
 
   // Corroboration first — a URL two independent legs both surfaced is a
   // stronger claim than one a single scraper coughed up.
-  leads = [...leads].sort((a, b) => b.corroboration - a.corroboration);
+  // Corroboration ranks within a host; the interleave then rotates across
+  // hosts so the first page is the whole web rather than four platforms.
+  leads = diversifyByHost([...leads].sort((a, b) => b.corroboration - a.corroboration));
   console.log(
     `[ghostHarvest] ${id.kind} · legs=${legs.length} · raw=${all.length} · relevant=${relevant.length} · ` +
     `kept=${leads.length} · filtered=${report.dropped}`,
