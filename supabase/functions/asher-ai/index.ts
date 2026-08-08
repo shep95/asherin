@@ -221,8 +221,18 @@ function detectMapEditIntent(text: string): boolean {
   if (/\b(hiring|jobs?|job openings?|now hiring|vacanc)\w*\b/.test(t) && /\b(near|around|by|close to|hiring)\b/.test(t)) return true;
   if (/\b(street|traffic|cctv|live)\s*cam(era)?s?\b/.test(t)) return true;
   const verb = /\b(pin|mark|plot|drop|place|draw|outline|circle|annotate|label|highlight|measure|sketch|trace out)\b/.test(t);
-  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence)\b/.test(t);
+  const noun = /\b(marker|pin|point|label|circle|ring|radius|zone|area|polygon|perimeter|sector|route|corridor|line|path|overlay|annotation|distance|boundary|geofence|contact|contacts|dossier|dossiers|venue|venues|relationship|relationships|security event|security events|signal|signals)\b/.test(t);
   return verb && noun;
+}
+
+function detectCloudIntelIntent(text: string): boolean {
+  const t = String(text || "").toLowerCase();
+  if (!t) return false;
+  if (/\bplot my cloud (contacts|venues|security)\b/.test(t)) return true;
+  const verb = /\b(plot|show|display|map|put|render|draw|focus|find|locate|where is|where are|see my|view my)\b/.test(t);
+  const cloud = /\b(cloud|cloud intelligence)\b/.test(t);
+  const noun = /\b(contacts?|dossiers?|venues?|calendar|security events?|signals?|people|relationships?)\b/.test(t);
+  return verb && cloud && noun;
 }
 
 /** OpenAI-style tool schema → Gemini function_declarations. */
