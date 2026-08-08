@@ -1,7 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  FORENSIC_HEADERS, analyzeMessage, geolocateIps, attachGeo, aggregate,
+  type MessageForensics,
+} from "../_shared/emailForensics.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+
 
 const adminClient = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -128,6 +133,57 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
       })),
     };
   }
+
+  // ── POSTMARK — full header forensics ─────────────────────────────────────
+  // Same Gmail read cost as gmail_inbox (one list + one metadata GET per
+  // message), but asking for the whole forensic header set instead of six
+  // display fields. Parsing is local; only relay-IP geolocation leaves.
+  if (service === "gmail_forensics") {
+    const maxResults = Math.max(1, Math.min(120, Number(params?.maxResults) || 40));
+    const q = params?.q || "in:anywhere -in:chats";
+    const geoEnabled = params?.geo !== false;
+
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(q)}`,
+      { headers }
+    );
+    const list = await listRes.json();
+    if (list.error) throw new Error(list.error.message);
+    const ids = (list.messages || []).slice(0, maxResults);
+
+    const headerQuery = FORENSIC_HEADERS.map((h) => `&metadataHeaders=${encodeURIComponent(h)}`).join("");
+    const raws = await pooled(ids, 8, async (msg: any) => {
+      try {
+        const r = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata${headerQuery}`,
+          { headers }
+        );
+        if (!r.ok) return null;
+        return await r.json();
+      } catch {
+        return null;
+      }
+    });
+
+    const reports = raws.filter(Boolean).map((d: any) => analyzeMessage(d));
+    if (geoEnabled) {
+      const ips = reports.flatMap((r) => r.hops.map((h) => h.ip).filter(Boolean) as string[]);
+      try {
+        attachGeo(reports, await geolocateIps(ips));
+      } catch (e) {
+        // Geolocation is corroboration, not the finding. Never void the sweep.
+        console.error("gmail_forensics geo enrichment failed:", e);
+      }
+    }
+    return {
+      scannedEstimate: list.resultSizeEstimate || reports.length,
+      query: q,
+      geoEnabled,
+      messages: reports,
+      aggregate: aggregate(reports),
+    };
+  }
+
 
   if (service === "gmail_stats") {
     // `messages?q=…&maxResults=1` returns `resultSizeEstimate`, which Gmail
@@ -400,6 +456,25 @@ function mergeResults(service: string, results: any[]): any {
     allMessages.sort((a: any, b: any) => (at(b) || 0) - (at(a) || 0));
     return { totalMessages: results.reduce((s, r) => s + (r.totalMessages || 0), 0), messages: allMessages };
   }
+
+  if (service === "gmail_forensics") {
+    // Re-aggregate over the union rather than summing per-account rollups:
+    // domain reputation and country spread are only meaningful across the
+    // operator's whole correspondence, not per mailbox.
+    const allReports: MessageForensics[] = results.flatMap((r) =>
+      (r.messages || []).map((m: MessageForensics) => ({ ...m, _account: r._account_email } as MessageForensics))
+    );
+    allReports.sort((a, b) => (b.internalDate ?? 0) - (a.internalDate ?? 0));
+    return {
+      scannedEstimate: results.reduce((s, r) => s + (r.scannedEstimate || 0), 0),
+      query: results[0]?.query ?? null,
+      geoEnabled: results.some((r) => r.geoEnabled),
+      messages: allReports,
+      aggregate: aggregate(allReports),
+    };
+  }
+
+
 
   if (service === "gmail_stats") {
     // Every exact counter must survive the fold. Summing only the three legacy
