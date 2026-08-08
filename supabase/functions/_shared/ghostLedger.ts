@@ -111,8 +111,18 @@ const registrable = (host: string): string => {
   return parts.length > 2 ? parts.slice(-2).join(".") : parts.join(".");
 };
 
+/** Reserved and synthetic suffixes never resolve. The SMS normaliser mints
+ *  `+15551234@phone.invalid` for a number with no address, and probing that
+ *  would score a placeholder as hostile infrastructure. RFC 2606/6761 names
+ *  are excluded at nomination so no probe budget is spent proving they are
+ *  unreachable. */
+const RESERVED_SUFFIX = /\.(invalid|local|localhost|test|example|internal|arpa|onion|home|lan)$/i;
+
 const isProbeableHost = (host: string): boolean =>
-  /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host) && !SELF_HOSTS.has(registrable(host));
+  /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host) &&
+  !RESERVED_SUFFIX.test(host) &&
+  !SELF_HOSTS.has(registrable(host));
+
 
 /** Cheap edit distance, capped — used only for lookalike detection. */
 function editDistance(a: string, b: string): number {
