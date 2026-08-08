@@ -18,7 +18,7 @@ export type SurfaceClass =
   | "paste" | "breach-index" | "people-record" | "social" | "code"
   | "document" | "registry" | "forum" | "commerce" | "web";
 
-export type MatchGrade = "body" | "title" | "metadata" | "url";
+export type MatchGrade = "body" | "markup" | "title" | "metadata" | "url";
 
 export interface Sighting {
   url: string;
@@ -90,6 +90,7 @@ const CLASS_LABEL: Record<SurfaceClass, string> = {
 
 const GRADE_NOTE: Record<MatchGrade, string> = {
   body: "found in the page body",
+  markup: "found in the page source — a mailto link or attribute, not visible text",
   title: "found in the page title only",
   metadata: "found in declared metadata only",
   url: "found in the address only — the page body does not carry it",

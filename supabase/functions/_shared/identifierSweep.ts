@@ -60,7 +60,7 @@ export type SurfaceClass =
   | "web";
 
 /** How strong the sighting is, by where the identifier was found. */
-export type MatchGrade = "body" | "title" | "metadata" | "url";
+export type MatchGrade = "body" | "markup" | "title" | "metadata" | "url";
 
 export interface Sighting {
   url: string;
@@ -351,6 +351,27 @@ function confirmIn(
   }
   if (occurrences > 0) return { grade: "body", forms: [...forms], occurrences, context };
 
+  // Prose is the reader's stripped, human-visible text. An address published
+  // as `mailto:` — the single most common way a contact address appears — lives
+  // in an href attribute and never survives that strip. Searching only the
+  // prose is why a page that plainly carries the address reports as clean, so
+  // the raw source is searched too and graded one step below visible text.
+  const raw = text.slice(0, MAX_TEXT);
+  matcher.lastIndex = 0;
+  const rawForms = new Set<string>();
+  let rawHits = 0;
+  let rawContext = "";
+  while ((m = matcher.exec(raw)) !== null) {
+    rawHits += 1;
+    rawForms.add(tidy(m[0]).slice(0, 80));
+    if (!rawContext) rawContext = contextAround(raw, m.index, m[0].length);
+    if (rawHits >= 200) break;
+    if (m.index === matcher.lastIndex) matcher.lastIndex += 1;
+  }
+  if (rawHits > 0) {
+    return { grade: "markup", forms: [...rawForms], occurrences: rawHits, context: rawContext };
+  }
+
   matcher.lastIndex = 0;
   if (title && matcher.test(title)) {
     return { grade: "title", forms: [tidy(title).slice(0, 80)], occurrences: 1, context: tidy(title) };
@@ -372,7 +393,7 @@ function confirmIn(
 
 // ── Orchestration ────────────────────────────────────────────────────────────
 
-const GRADE_RANK: Record<MatchGrade, number> = { body: 0, title: 1, metadata: 2, url: 3 };
+const GRADE_RANK: Record<MatchGrade, number> = { body: 0, markup: 1, title: 2, metadata: 3, url: 4 };
 
 const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./i, ""); } catch { return ""; } };
 
