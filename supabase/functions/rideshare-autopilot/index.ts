@@ -189,7 +189,14 @@ async function sweepRider(
       ride_id: row.id, user_id: userId, phase: "fast",
       verdict: fast.verdict, confidence: fast.confidence, score: fast.score,
       headline: fast.headline,
-      payload: { ...fast.payload, capture: "autopilot", email_gaps: r.gaps, email_kind: r.kind },
+      payload: {
+        ...fast.payload,
+        capture: "autopilot",
+        email_gaps: r.gaps,
+        email_kind: r.kind,
+        email_subject: r.subject,
+        email_excerpt: r.excerpt,
+      },
     }, { onConflict: "ride_id,phase" });
 
     try {

@@ -29,6 +29,9 @@ export interface ParsedRideEmail {
   subject: string;
   /** What the parser could not read — surfaced so the rider sees the gap. */
   gaps: string[];
+  /** Bounded excerpt of the rider's own mail, kept so an unreadable card can be
+   *  diagnosed without re-reading the mailbox. Never leaves the rider's row. */
+  excerpt: string;
 }
 
 /** Gmail search expression. Kept narrow: only the two operators' own domains,
@@ -197,6 +200,7 @@ export function parseRideEmail(msg: {
     kind,
     subject,
     gaps,
+    excerpt: text.slice(0, 600),
   };
 }
 
