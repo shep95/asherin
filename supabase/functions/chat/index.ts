@@ -2213,6 +2213,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the user press a button" rule dominate earlier specialist brains.
       ADAPTIVE_OPERATOR_ROUTER,
       _routerEmphasis,
+      QUICK_INTELLIGENCE_BRAIN,
+      _quickIntelEmphasis,
+
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
       ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
