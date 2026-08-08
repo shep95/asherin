@@ -36,6 +36,12 @@ import AnalysisPanel from "@/components/asher/AnalysisPanel";
 import SelfLocationLayer from "@/components/asher/SelfLocationLayer";
 import SelfTrackPanel from "@/components/asher/SelfTrackPanel";
 import { useSelfTracking, bearingDeg, compass16, fmtSpeed } from "@/lib/asher/selfTrack";
+import MyDevicesLayer from "@/components/asher/MyDevicesLayer";
+import MyDevicesPanel from "@/components/asher/MyDevicesPanel";
+import {
+  locateGroup, locateDevice, fmtAge,
+  type LocatedDevice,
+} from "@/lib/asher/findMy";
 
 
 import {
@@ -118,6 +124,9 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-eth",   label: "Ethnic Groups",       status: "soon" },
     { id: "d-rel",   label: "Religious Groups",    status: "soon" },
     { id: "d-lang",  label: "Language Distribution", status: "soon" },
+  ]},
+  { id: "assets", label: "My Devices (Find-My)", layers: [
+    { id: "my-devices", label: "Owned BLE Gear — Group Map", status: "live" },
   ]},
   { id: "threats", label: "Natural Hazards", layers: [
     { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
@@ -643,6 +652,16 @@ const IntelligenceMapModule = () => {
      single site the operator (or the AI) is currently interrogating, and its
      card streams the same entity slices the side drawer shows. */
   const [focusPin, setFocusPin] = useState<FocusPinTarget | null>(null);
+
+  /* FIND-MY — owned BLE gear rendered as assets, not threats. The roster comes
+     from `ble_owned_devices`; positions are fused server-side from every
+     Asherin scanner that heard the fingerprint (crowd relay), and the finder's
+     identity never crosses the boundary. */
+  const [showMyDevices, setShowMyDevices] = useState(false);
+  const [myDevices, setMyDevices] = useState<LocatedDevice[]>([]);
+  const [myDevicesLoading, setMyDevicesLoading] = useState(false);
+  const [focusedDevice, setFocusedDevice] = useState<string | null>(null);
+  const [deviceBreadcrumb, setDeviceBreadcrumb] = useState<Array<{ lat: number; lng: number; seen_at: string }>>([]);
 
 
   // The case id must be readable from inside the persistence funnel without
