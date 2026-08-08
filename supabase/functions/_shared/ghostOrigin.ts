@@ -916,7 +916,7 @@ const EMAIL_RE = /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{2,255}\.[A-Za-z]{2,24}\
 /** NANP + international, tolerant of the spacing PDFs introduce mid-number. */
 const PHONE_RE = /(?:\+\d{1,3}[\s.\-]?)?(?:\(\d{2,4}\)[\s.\-]?|\d{2,4}[\s.\-])\d{3,4}[\s.\-]?\d{3,4}\b/g;
 const URL_RE = /\bhttps?:\/\/[^\s<>"')\]]{4,300}/g;
-const HANDLE_RE = /(?:^|[\s(:])@([A-Za-z0-9_]{3,30})\b/g;
+const HANDLE_RE = /(?:^|[\s(:])@([A-Za-z][A-Za-z0-9_]{3,29})\b/g;
 const ID_RE = /\b(?:[A-Z]{2,4}-\d{3,8}|\d{2}-\d{7}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/g;
 
 function uniq(list: string[], cap: number): string[] {
