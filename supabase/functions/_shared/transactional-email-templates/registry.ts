@@ -51,4 +51,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'subscription-welcome': subscriptionWelcome,
   'subscription-ending': subscriptionEnding,
   'forum-daily-digest': forumDailyDigest,
+  'rideshare-report': rideshareReport,
+
 }
