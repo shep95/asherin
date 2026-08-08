@@ -508,7 +508,7 @@ const BluetoothSentinel = () => {
               />
             </div>
           ))}
-          {push.state !== "granted" && (
+          {push.state !== "enabled" && (
             <Button size="sm" variant="outline" onClick={async () => setPush(await enablePush())}>
               Enable device push
             </Button>
