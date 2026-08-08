@@ -220,6 +220,8 @@ Deno.serve(async (req) => {
         let jumps: JumpVerdict | null = null;
         let precise: PreciseLocation | null = null;
         let identity: IdentityTrace | null = null;
+        let tradecraft: TradecraftAssessment | null = null;
+        let cameras: CameraCoverage | null = null;
         let candidates: ActorCandidate[] = [];
 
         if (isRetro) {
