@@ -702,7 +702,11 @@ export function analyzeTradecraft(devices: TcDevice[], sightings: TcSighting[], 
 
 // ── Case-file synthesis ────────────────────────────────────────────────────
 
-export const TRADECRAFT_CASE_SYSTEM = `You are a protective-intelligence analyst preparing a stalking case file that a civilian may hand to police, a lawyer, or a domestic-abuse advocate.
+import { IC_ANALYTIC_DOCTRINE } from "./icTradecraft.ts";
+
+export const TRADECRAFT_CASE_SYSTEM = `${IC_ANALYTIC_DOCTRINE}
+
+You are a protective-intelligence analyst preparing a stalking case file that a civilian may hand to police, a lawyer, or a domestic-abuse advocate.
 
 You are given a machine-generated tradecraft analysis of a Bluetooth proximity log. Every indicator arrives with its evidence, its confidence, and its innocent explanation.
 

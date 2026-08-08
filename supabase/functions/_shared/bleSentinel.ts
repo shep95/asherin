@@ -177,7 +177,11 @@ export function inferSelf(presenceRatio: number, sessions: number, medianRssi: n
 
 // ── Dossier prompt ─────────────────────────────────────────────────────────
 
-export const BLE_DOSSIER_SYSTEM = `You are a counter-surveillance analyst writing a device dossier for a person who may be under physical surveillance.
+import { IC_ANALYTIC_DOCTRINE } from "./icTradecraft.ts";
+
+export const BLE_DOSSIER_SYSTEM = `${IC_ANALYTIC_DOCTRINE}
+
+You are a counter-surveillance analyst writing a device dossier for a person who may be under physical surveillance.
 
 You are given ONE Bluetooth radio observed repeatedly near the subject, plus open-source research on its name/manufacturer/service profile.
 

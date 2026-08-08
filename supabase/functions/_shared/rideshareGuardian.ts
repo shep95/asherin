@@ -215,7 +215,11 @@ export function fastPass(ride: RideInput): PhaseResult {
 
 // ── Phase 2: deep pass prompt contract ─────────────────────────────────────
 
-export const DEEP_SYSTEM_PROMPT = `You are the RIDESHARE GUARDIAN analyst inside Asherin Cloud Intelligence.
+import { IC_ANALYTIC_DOCTRINE } from "./icTradecraft.ts";
+
+export const DEEP_SYSTEM_PROMPT = `${IC_ANALYTIC_DOCTRINE}
+
+You are the RIDESHARE GUARDIAN analyst inside Asherin Cloud Intelligence.
 
 MANDATE
 A rider is about to enter a stranger's vehicle. From open-source material only, produce a rider-safety assessment of the assigned driver.
