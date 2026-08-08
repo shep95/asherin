@@ -55,6 +55,12 @@ export interface IntelNotice {
   findings?: string[];
   /** stable, content-derived. Omit only for genuinely one-off events. */
   idempotencyKey?: string | null;
+  /**
+   * Set when the caller already sends its own richer, module-specific email
+   * (Rideshare Guardian does). The inbox row and push still go out here, so
+   * the alert can never exist on only one channel.
+   */
+  skipEmail?: boolean;
 }
 
 export interface IntelDelivery {
@@ -244,7 +250,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
     })());
   }
 
-  if (prefs.email_enabled && notice.userEmail) {
+  if (prefs.email_enabled && notice.userEmail && !notice.skipEmail) {
     transports.push((async () => {
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
