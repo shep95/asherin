@@ -134,6 +134,56 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     }
   }
 
+  // A reader looking for "where do I reach this person, and where do they
+  // live" should not have to re-read the whole identity block to assemble it.
+  // This section is a re-projection of the SAME graded facts — nothing new is
+  // introduced, nothing is masked, and every value carries its band so an
+  // unverified address is never mistaken for a confirmed one.
+  L.push(...banner(n++, "Contact & location dossier (verbatim)"));
+  {
+    const reach = a.facts.filter((f) => CONTACT_FIELD.test(f.field));
+    if (a.status !== "ready") {
+      L.push(...wrap(`  NOT COLLECTED — ${a.blocker ?? "collection did not run."}`, 2));
+      L.push("");
+    } else if (!reach.length) {
+      L.push(...wrap("  NO REACH FIELD RESOLVED. No address, telephone, secondary email, employer or parcel survived matching. This is a collection gap, not a clean record.", 2));
+      L.push("");
+    } else {
+      const byField = new Map<string, typeof reach>();
+      for (const f of reach) {
+        const k = f.field.toUpperCase();
+        byField.set(k, [...(byField.get(k) ?? []), f]);
+      }
+      for (const [fieldName, rows] of byField) {
+        L.push(`  ${fieldName}`);
+        for (const f of rows) {
+          L.push(...field("    • ", `${f.value}${f.band === "candidate" ? "  [UNVERIFIED — possible name collision]" : ""}`, 6));
+          L.push(...field("      ↳ ", `credibility ${f.credibility} · ${f.independentDomains} independent domain${f.independentDomains === 1 ? "" : "s"} · ${f.sources.map((s) => s.domain).join(", ") || "no domain recorded"}`, 8));
+        }
+        L.push("");
+      }
+      L.push(...wrap("  Values are printed exactly as the source asserts them. Nothing here is redacted: a partially-masked identifier would be indistinguishable from a partially-collected one, which is the failure this section exists to prevent.", 2));
+      L.push("");
+    }
+  }
+
+  // Kin is a claimed blood/marriage tie. It is reported apart from the
+  // association ring because co-occurrence and kinship are different
+  // evidentiary objects and must never be summed into one "network" count.
+  L.push(...banner(n++, "Family & kin mapping"));
+  if (!a.kin.length) {
+    L.push(...wrap("  NO KIN LINE RESOLVED. People-directory relative blocks either did not surface for this subject or did not clear identity matching. Treat as an open collection requirement.", 2));
+    L.push("");
+  } else {
+    for (const k of a.kin) {
+      const ring = a.associations.find((s) => s.label.toLowerCase() === k.toLowerCase());
+      L.push(...field("  ◦ ", `${k}${ring ? ` — also present in the association ring at hop ${ring.hop} (${ring.independentDomains} independent domain${ring.independentDomains === 1 ? "" : "s"})` : " — asserted by a directory relatives block only"}`, 4));
+    }
+    L.push("");
+    L.push(...wrap("  A relatives block is a directory's assertion, not a vital record. Corroborate any kin tie against a registry-class source before acting on it.", 2));
+    L.push("");
+  }
+
   L.push(...banner(n++, "Association ring"));
   if (!a.associations.length) {
     L.push("  No public association survived corroboration.");
