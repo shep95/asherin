@@ -56,6 +56,8 @@ async function beacon(source) {
   if (!cfg || !cfg.token || !cfg.endpoint) return false;
   const fix = await kvGet("fix");
   const fresh = fix && Date.now() - fix.at < 6 * 3600e3 ? fix : null;
+  // Fleet identity + last true battery reading handed over by the page.
+  const mesh = await kvGet("mesh");
 
   const payload = {
     action: "beacon",
@@ -64,6 +66,12 @@ async function beacon(source) {
     linkType: (self.navigator && self.navigator.connection && self.navigator.connection.type) || "unknown",
     effectiveType: (self.navigator && self.navigator.connection && self.navigator.connection.effectiveType) || "",
   };
+  if (mesh && mesh.deviceId) {
+    payload.meshDeviceId = mesh.deviceId;
+    payload.batteryPct = typeof mesh.batteryPct === "number" ? mesh.batteryPct : null;
+    payload.batteryCharging = typeof mesh.charging === "boolean" ? mesh.charging : null;
+    payload.batteryAt = mesh.at || null;
+  }
   if (fresh) {
     payload.lat = fresh.lat;
     payload.lng = fresh.lng;
@@ -104,5 +112,6 @@ self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "sentinel-config") event.waitUntil(kvSet("config", data.config));
   else if (data.type === "sentinel-fix") event.waitUntil(kvSet("fix", data.fix));
+  else if (data.type === "sentinel-mesh") event.waitUntil(kvSet("mesh", data.mesh));
   else if (data.type === "sentinel-beacon-now") event.waitUntil(beacon("page"));
 });

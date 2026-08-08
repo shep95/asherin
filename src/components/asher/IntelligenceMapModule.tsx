@@ -40,6 +40,9 @@ import SelfTrackPanel from "@/components/asher/SelfTrackPanel";
 import { useSelfTracking, bearingDeg, compass16, fmtSpeed } from "@/lib/asher/selfTrack";
 import MyDevicesLayer from "@/components/asher/MyDevicesLayer";
 import MyDevicesPanel from "@/components/asher/MyDevicesPanel";
+import MeshDevicesLayer from "@/components/asher/MeshDevicesLayer";
+import MeshDevicesPanel from "@/components/asher/MeshDevicesPanel";
+import type { MeshDevice } from "@/lib/asher/meshDevices";
 import {
   locateGroup, locateDevice, fmtAge,
   type LocatedDevice,
@@ -134,6 +137,7 @@ const LAYER_TREE: LayerCategory[] = [
   ]},
   { id: "assets", label: "My Devices (Find-My)", layers: [
     { id: "my-devices", label: "Owned BLE Gear — Group Map", status: "live" },
+    { id: "mesh-devices", label: "Signed-in Fleet — Battery & Live Position", status: "live" },
   ]},
   { id: "threats", label: "Natural Hazards", layers: [
     { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
@@ -729,6 +733,11 @@ const IntelligenceMapModule = () => {
      Asherin scanner that heard the fingerprint (crowd relay), and the finder's
      identity never crosses the boundary. */
   const [showMyDevices, setShowMyDevices] = useState(false);
+  // Fleet layer defaults on: a device you lose tomorrow must already be
+  // reporting today, and a toggle nobody found is a device nobody can find.
+  const [showMesh, setShowMesh] = useState(true);
+  const [meshDevices, setMeshDevices] = useState<MeshDevice[]>([]);
+  const [focusedMesh, setFocusedMesh] = useState<string | null>(null);
   const [myDevices, setMyDevices] = useState<LocatedDevice[]>([]);
   const [myDevicesLoading, setMyDevicesLoading] = useState(false);
   const [focusedDevice, setFocusedDevice] = useState<string | null>(null);
@@ -2077,12 +2086,14 @@ const IntelligenceMapModule = () => {
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
                       const isMyDevices = l.id === "my-devices";
+                      const isMesh = l.id === "mesh-devices";
                       const isCloud = cat.id === "cloud-intel";
                       const isActive = isBase
                         ? l.id === activeBase
                         : isThreat ? !!activeThreats[l.id as ThreatId]
                         : isBoundary ? showTacticalBorders
                         : isMyDevices ? showMyDevices
+                        : isMesh ? showMesh
                         : isCloud ? !!activeCloud[l.id]
                         : false;
                       return (
@@ -2094,6 +2105,7 @@ const IntelligenceMapModule = () => {
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
                             else if (isMyDevices) setShowMyDevices((p) => !p);
+                            else if (isMesh) setShowMesh((p) => !p);
                             else if (isCloud) {
                               setActiveCloud((p) => ({ ...p, [l.id]: !p[l.id] }));
                               void refreshCloudLayer(l.id);
@@ -2144,6 +2156,23 @@ const IntelligenceMapModule = () => {
               onFocus={focusDevice}
               onFitAll={fitAllDevices}
               onRoute={routeToDevice}
+            />
+          )}
+
+          {showMesh && (
+            <MeshDevicesPanel
+              focused={focusedMesh}
+              onDevices={setMeshDevices}
+              onFocus={(id) => setFocusedMesh((p) => (p === id ? null : id))}
+              onFly={(d) => {
+                if (d.lat === null || d.lng === null) return;
+                setFocusedMesh(d.device_id);
+                flyTo(d.lat, d.lng, 16);
+              }}
+              onRoute={(d) => {
+                if (d.lat === null || d.lng === null) return;
+                openDirectionsTo({ label: d.label || "Device", lat: d.lat, lng: d.lng });
+              }}
             />
           )}
 
@@ -2493,6 +2522,18 @@ const IntelligenceMapModule = () => {
               breadcrumb={focusedDevice ? deviceBreadcrumb : []}
               onFocus={focusDevice}
               onRoute={routeToDevice}
+            />
+          )}
+
+          {showMesh && (
+            <MeshDevicesLayer
+              devices={meshDevices}
+              focused={focusedMesh}
+              onFocus={(id) => setFocusedMesh((p) => (p === id ? null : id))}
+              onRoute={(d) => {
+                if (d.lat === null || d.lng === null) return;
+                openDirectionsTo({ label: d.label || "Device", lat: d.lat, lng: d.lng });
+              }}
             />
           )}
 

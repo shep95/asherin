@@ -164,6 +164,19 @@ export function handOverFix(fix: { lat: number; lng: number; accuracy?: number }
   } catch { /* noop */ }
 }
 
+/** The fleet half of the same hand-over: a worker cannot read the Battery
+ *  Status API (it is window-only), so the page leaves its last true reading
+ *  behind. The worker forwards it verbatim and never extrapolates a drain
+ *  curve — a stale percentage is labelled stale in the UI, not guessed. */
+export function handOverMesh(mesh: { deviceId: string; batteryPct: number | null; charging: boolean | null }): void {
+  const payload = { ...mesh, at: Date.now() };
+  void kvSet("mesh", payload);
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: "sentinel-mesh", mesh: payload });
+  } catch { /* noop */ }
+}
+
+
 /** Last-gasp report as the tab dies: the moment Tier B matters most. */
 export function beaconOnHide(): void {
   try {

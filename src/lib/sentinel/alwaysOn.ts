@@ -36,6 +36,8 @@ import {
 } from "@/components/dashboard/zaxin/core/scanner";
 import { toast } from "sonner";
 import { startBackgroundSentinel, handOverFix, beaconOnHide, stopBackgroundSentinel } from "./background";
+import { reportMeshDevice, bindBatteryReporting } from "@/lib/asher/meshDevices";
+
 
 const ARM_KEY = "asherin.sentinel.armed";
 const FLUSH_MS = 45_000;
@@ -97,6 +99,11 @@ let areaTimer: number | null = null;
 let watchdogTimer: number | null = null;
 let netTimer: number | null = null;
 let tradeTimer: number | null = null;
+/** Fleet heartbeat: keeps this device's battery/link fresh on the roster even
+ *  when it is sitting still and geolocation emits nothing new. */
+let meshTimer: number | null = null;
+const MESH_MS = 2 * 60_000;
+
 let lastRadioAttempt = 0;
 let booted = false;
 let geoEnabled = true;
@@ -244,10 +251,14 @@ function startGeo() {
       // over on every watch update costs nothing and is the only way a closed
       // browser can still say where its owner is.
       handOverFix(pos);
+      // Fleet view: the same fix is what makes THIS device findable from the
+      // operator's other devices. Throttled inside the reporter.
+      void reportMeshDevice(pos, { source: "geo" });
     },
     () => { if (state.positioned) emit({ positioned: false }); },
     { enableHighAccuracy: false, maximumAge: 60_000, timeout: 20_000 },
   );
+
 }
 
 function stopGeo() {
@@ -472,14 +483,20 @@ async function engage(): Promise<void> {
   }
   if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
   if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  if (meshTimer == null) meshTimer = window.setInterval(() => { void reportMeshDevice(pos, { source: "heartbeat", force: true }); }, MESH_MS);
 
   // First pass, staggered so a cold start does not fire four calls at once.
   window.setTimeout(() => { void runNetworkCheck(false); }, 4_000);
   window.setTimeout(() => { void runTradecraftSweep(true); }, 12_000);
+  // Announce this device to the fleet immediately: a laptop that is lost five
+  // minutes from now must already be on the roster, not waiting out a timer.
+  void reportMeshDevice(pos, { source: "boot", force: true });
+  void bindBatteryReporting();
   void ensurePush();
   armOnFirstGesture();
   // Hand the watch to the runtimes that outlive this tab.
   void startBackgroundSentinel();
+
 }
 
 async function requestWake(): Promise<void> {
@@ -495,6 +512,8 @@ async function disengage(): Promise<void> {
   if (areaTimer != null) { window.clearInterval(areaTimer); areaTimer = null; }
   if (netTimer != null) { window.clearInterval(netTimer); netTimer = null; }
   if (tradeTimer != null) { window.clearInterval(tradeTimer); tradeTimer = null; }
+  if (meshTimer != null) { window.clearInterval(meshTimer); meshTimer = null; }
+
   stopGeo();
   await stopRadio();
   try { await wakeLock?.release?.(); } catch { /* noop */ }
@@ -515,6 +534,9 @@ async function watchdog(): Promise<void> {
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
   if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
   if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  if (meshTimer == null) meshTimer = window.setInterval(() => { void reportMeshDevice(pos, { source: "heartbeat", force: true }); }, MESH_MS);
+  void bindBatteryReporting();
+
   void ensurePush();
   void startBackgroundSentinel();
 }
