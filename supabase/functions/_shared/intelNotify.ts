@@ -323,6 +323,17 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
                 ? `https://asherin.com/report/${out.notificationId}`
                 : `https://asherin.com${url}`,
               generatedAt: new Date().toUTCString(),
+              // Optional enrichment. Only emitted when the caller supplied it,
+              // so every existing module's email renders byte-identically.
+              ...(typeof notice.imageUrl === "string" && /^https?:\/\//.test(notice.imageUrl)
+                ? { imageUrl: notice.imageUrl }
+                : {}),
+              ...(notice.secondaryCta?.label && notice.secondaryCta?.url
+                ? {
+                    secondaryCtaLabel: clamp(notice.secondaryCta.label, 60),
+                    secondaryCtaUrl: notice.secondaryCta.url.slice(0, 300),
+                  }
+                : {}),
             },
           }),
         });
