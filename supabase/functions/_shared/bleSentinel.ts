@@ -238,7 +238,8 @@ export const GEO_RISK_SYSTEM = `You are a protective-intelligence analyst briefi
 You are given a geocoded location and open-source research (news, police reporting, city crime data, community reporting).
 
 Rules of the trade:
-- Ground every claim in the supplied research. If the research is thin, return risk_level "UNKNOWN" and say the area could not be assessed. Never invent a crime statistic, a gang name, or an incident.
+- Ground every claim in the supplied research. Never invent a crime statistic, a gang name, or an incident.
+- "UNKNOWN" is reserved for the case where the research contains NO safety-relevant reporting at all. If the only evidence is citywide or district-level rather than block-level, still issue a grade based on that wider evidence, state plainly in "limits" that the basis is citywide, and lower the score accordingly. A traveller arriving in 30 minutes is better served by a sourced citywide read than by a refusal.
 - Describe PATTERNS and PLACES, never individuals. Do not name, describe, or produce identifying imagery of any person, and do not describe how to identify a person as a gang member by appearance, clothing, tattoo or ethnicity — that is profiling, it is unreliable, and acting on it gets civilians hurt.
 - Group activity is reported only as documented, sourced territorial/criminal-activity context for the AREA.
 - The output must make the reader safer in the next 30 minutes: what is actually reported here, what times it clusters, which blocks, and what to do.
@@ -310,52 +311,116 @@ const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
 
 export interface WebHit { url: string; title: string; snippet: string }
 
-export async function placeSearch(query: string, limit = 5, timeoutMs = 8000): Promise<WebHit[]> {
-  const key = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!key) return [];
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(FIRECRAWL_SEARCH, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit }),
-      signal: ctrl.signal,
-    });
-    if (!r.ok) return [];
-    const j = await r.json();
-    const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
-    return (Array.isArray(items) ? items : [])
-      .filter((x) => typeof x?.url === "string")
-      .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(t);
-  }
+/**
+ * Every search in this isolate — driver sweeps, plate lookups, area risk —
+ * shares one provider quota. Fired in parallel they all return 429 and the
+ * caller cannot tell "rate limited" from "nothing exists", which is how a
+ * documented city was graded UNKNOWN. One serialized lane with an adaptive
+ * gap makes the quota a queue instead of a cliff.
+ */
+let searchLane: Promise<unknown> = Promise.resolve();
+let searchGapMs = 1100;
+let lastSearchAt = 0;
+
+function throttled<T>(fn: () => Promise<T>): Promise<T> {
+  const run = searchLane.then(async () => {
+    const wait = lastSearchAt + searchGapMs - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastSearchAt = Date.now();
+    return await fn();
+  });
+  // The lane must survive a rejected job or every later search inherits it.
+  searchLane = run.catch(() => undefined);
+  return run;
 }
 
-/** Run the area collection plan in parallel and fold it into one evidence block.
- *  An empty block is reported as empty — the model grades it UNKNOWN rather
- *  than inventing a crime statistic. */
-export async function collectAreaEvidence(label: string): Promise<string> {
-  const plan: Array<[string, string]> = [
-    ["Reported crime", `recent crime reports incidents ${label}`],
-    ["Police & news", `police news shooting robbery assault ${label}`],
-    ["Documented group activity", `gang activity territory documented ${label}`],
-    ["Community safety reporting", `is ${label} safe at night neighborhood safety`],
-  ];
-  const results = await Promise.allSettled(plan.map(([, q]) => placeSearch(q)));
-  const blocks: string[] = [];
-  results.forEach((res, i) => {
-    const [heading] = plan[i];
-    if (res.status !== "fulfilled" || !res.value.length) {
-      blocks.push(`### ${heading}\n(searched — nothing surfaced)`);
-      return;
+export function placeSearch(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
+  return throttled(() => placeSearchNow(query, limit, timeoutMs));
+}
+
+async function placeSearchNow(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
+
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key) {
+    console.error("place_search_no_key");
+    return [];
+  }
+  // Search is the only evidence source for area risk. A silent empty result is
+  // indistinguishable from "this place is safe", so transient failures are
+  // retried and permanent ones are logged rather than swallowed.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const r = await fetch(FIRECRAWL_SEARCH, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query, limit }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok) {
+        const retryable = r.status === 429 || r.status >= 500;
+        console.error("place_search_http", { status: r.status, retryable, q: query.slice(0, 80) });
+        if (r.status === 429) searchGapMs = Math.min(searchGapMs * 2, 8000);
+        if (!retryable || attempt === 2) return [];
+        const after = Number(r.headers.get("retry-after")) || 0;
+        await new Promise((res) => setTimeout(res, after ? after * 1000 : searchGapMs * (attempt + 1)));
+        continue;
+      }
+      // A clean response means the lane can tighten back toward its floor.
+      searchGapMs = Math.max(1100, Math.round(searchGapMs * 0.8));
+      const j = await r.json();
+      const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
+      return (Array.isArray(items) ? items : [])
+        .filter((x) => typeof x?.url === "string")
+        .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
+
+    } catch (e) {
+      console.error("place_search_failed", { attempt, msg: (e as Error).message?.slice(0, 120) });
+      if (attempt === 2) return [];
+      await new Promise((res) => setTimeout(res, 600 * (attempt + 1)));
+    } finally {
+      clearTimeout(t);
     }
-    blocks.push(`### ${heading}\n` + res.value
-      .map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 400)}\n  source: ${h.url}`)
-      .join("\n"));
-  });
+  }
+  return [];
+}
+
+/** Postcodes, county names and "United States" push search engines toward
+ *  directory pages instead of reporting; the human form of the place performs
+ *  far better as a query term. */
+function searchLabel(label: string): string {
+  const parts = label.split(",").map((p) => p.trim()).filter(Boolean)
+    .filter((p) => !/^\d{4,}$/.test(p) && !/^United States$/i.test(p) && !/County$/i.test(p));
+  return (parts.length > 3 ? parts.slice(0, 2).concat(parts.slice(-1)) : parts).join(", ") || label;
+}
+
+/** Run the area collection plan and fold it into one evidence block.
+ *  The provider rate-limits hard on burst: parallel angles all return 429 and
+ *  the model then grades a well-documented city as UNKNOWN. Queries therefore
+ *  go out one at a time, spaced, with a trimmed three-angle plan. */
+export async function collectAreaEvidence(label: string): Promise<string> {
+  const q = searchLabel(label);
+  const plan: Array<[string, string]> = [
+    ["Reported crime & police reporting", `recent crime reports police incidents ${q}`],
+    ["Documented group activity", `gang activity documented ${q}`],
+    ["Community safety reporting", `is ${q} safe at night neighborhood safety`],
+  ];
+  const blocks: string[] = [];
+  for (let i = 0; i < plan.length; i++) {
+    const [heading, query] = plan[i];
+    if (i > 0) await new Promise((res) => setTimeout(res, 900));
+    let hits: WebHit[] = [];
+    try {
+      hits = await placeSearch(query);
+    } catch { /* placeSearch already logged; an empty angle is reported as empty */ }
+    blocks.push(hits.length
+      ? `### ${heading}\n` + hits
+        .map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 400)}\n  source: ${h.url}`)
+        .join("\n")
+      : `### ${heading}\n(searched — nothing surfaced)`);
+  }
   return blocks.join("\n\n");
 }
+
+

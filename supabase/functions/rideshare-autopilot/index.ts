@@ -27,6 +27,8 @@ import { gmailQuery, parseRideEmail, foldRides, type ParsedRideEmail } from "../
 import { runDeepSweep, loadSettings, type GuardianSettings } from "../_shared/rideshareSweep.ts";
 import { fastPass, type RideInput } from "../_shared/rideshareGuardian.ts";
 import { ADMIN_EMAILS } from "../_shared/constants.ts";
+import { assessAreaByLabel, alertAreaRisk, ALERTING_LEVELS, type AreaAssessment } from "../_shared/areaRisk.ts";
+import { notifyIntel } from "../_shared/intelNotify.ts";
 import type { ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -35,7 +37,10 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const BATCH = 3;
 const GLOBAL_BUDGET_MS = 110_000;
-const PER_RIDE_COLLECTION_MS = 30_000;
+// Searches now share one serialized provider lane (~1.1 s apart), so a full
+// driver sweep costs wall-clock time it did not before. Too small a budget
+// truncates collection and reproduces the thin-identity failure.
+const PER_RIDE_COLLECTION_MS = 60_000;
 /** Only sweep rides this recent — an old receipt is history, not a safety event. */
 const MAX_RIDE_AGE_MS = 36 * 60 * 60 * 1000;
 
@@ -138,7 +143,10 @@ async function sweepRider(
   const rides = await harvestRides(sb, userId, settings.lookback_hours ?? rider.lookback_hours ?? 24);
   if (!rides.length) return { userId, status: "no_rides" };
 
-  let swept = 0, skipped = 0;
+  let swept = 0, skipped = 0, briefed = 0, areaAlerts = 0;
+  // A cache miss on the area engine costs a model call, so a single tick may
+  // generate at most two fresh assessments; the rest ride the cache or wait.
+  let areaBudget = 2;
   for (const r of rides) {
     if (Date.now() > deadline) { skipped++; continue; }
 
@@ -199,11 +207,18 @@ async function sweepRider(
       },
     }, { onConflict: "ride_id,phase" });
 
+    let deep: { verdict: string; headline: string; confidence: number; delivered: string[] } | null = null;
     try {
-      await runDeepSweep({
+      const out = await runDeepSweep({
         userId, userEmail, rideId: row.id, ride, cfg, settings,
         collectionBudgetMs: PER_RIDE_COLLECTION_MS,
       });
+      deep = {
+        verdict: out.deep.verdict,
+        headline: out.deep.headline,
+        confidence: out.deep.confidence,
+        delivered: out.delivered,
+      };
       swept++;
     } catch (e) {
       // The fast pass is already persisted and visible; a failed deep pass
@@ -211,9 +226,70 @@ async function sweepRider(
       log("deep sweep failed", { userId, rideId: row.id, msg: (e as Error).message?.slice(0, 160) });
       await sb.from("rideshare_rides").update({ status: "failed" }).eq("id", row.id);
     }
+
+    // ── Destination area briefing ─────────────────────────────────────────
+    // The handset is the wrong place to learn where the rider is going: it may
+    // be off, and it is off exactly when this matters. The operator email
+    // already names the destination, so the area is assessed server-side from
+    // the label, cached per ~1.1 km cell, and alerted with the sentinel's own
+    // 6-hour per-cell dedupe.
+    let area: AreaAssessment | null = null;
+    const destLabel = [r.dropoff_label || r.pickup_label, r.city].filter(Boolean).join(", ");
+    if (destLabel && areaBudget > 0 && Date.now() < deadline) {
+      areaBudget--;
+      area = await assessAreaByLabel(sb, destLabel, cfg);
+      if (area) {
+        const alerted = await alertAreaRisk(sb, {
+          userId, userEmail, assessment: area,
+          context: `Destination of your ${ride.platform} ride`,
+          skipPush: !settings.push_enabled,
+          skipEmail: !settings.email_enabled,
+        }).catch(() => false);
+        if (alerted) areaAlerts++;
+      }
+    }
+
+    // ── Boarding briefing ─────────────────────────────────────────────────
+    // Silence is indistinguishable from a broken sentinel. A CLEAR or THIN
+    // driver still gets one informational notice per captured ride, so the
+    // rider always knows the sweep ran, what car it saw, and how the
+    // destination graded. Escalated verdicts already alerted above; this fires
+    // only when the threshold gate stayed shut.
+    if (!deep?.delivered?.length) {
+      const areaLine = area
+        ? `${area.risk_level} — ${String(area.place_label || destLabel).split(",").slice(0, 2).join(",")}`
+        : destLabel
+          ? "destination could not be assessed"
+          : "no destination in the trip email";
+      await notifyIntel({
+        userId, userEmail,
+        kind: "rideshare",
+        severity: area && ALERTING_LEVELS.has(area.risk_level) ? "notable" : "info",
+        title: `Ride logged — ${ride.driver_name || ride.plate || "driver not named"} · ${deep?.verdict ?? fast.verdict}`,
+        body: deep?.headline || fast.headline ||
+          "Autopilot captured this ride from your mailbox and swept the driver.",
+        subjectName: ride.driver_name || ride.plate || "unnamed driver",
+        source: "Rideshare Guardian · Autopilot",
+        url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${row.id}`,
+        sections: [
+          { label: "Vehicle", value: `${ride.vehicle || "not captured"} · plate ${ride.plate || "not captured"}` },
+          { label: "Identity confidence", value: `${Math.round((deep?.confidence ?? fast.confidence) * 100)}%` },
+          { label: "Destination area", value: areaLine },
+          { label: "Not captured", value: r.gaps.join(", ") || "nothing — the card was complete" },
+        ],
+        findings: area?.payload && Array.isArray((area.payload as any).safer_actions)
+          ? (area.payload as any).safer_actions.map(String).slice(0, 4)
+          : [],
+        idempotencyKey: `rideshare:boarded:${row.id}`,
+        skipPush: !settings.push_enabled,
+        skipEmail: !settings.email_enabled,
+      }).catch((e) => log("boarding brief failed", { userId, msg: (e as Error).message?.slice(0, 160) }));
+      briefed++;
+    }
   }
 
-  return { userId, status: "ok", found: rides.length, swept, skipped };
+
+  return { userId, status: "ok", found: rides.length, swept, skipped, briefed, areaAlerts };
 }
 
 Deno.serve(async (req) => {
@@ -268,7 +344,7 @@ Deno.serve(async (req) => {
         // a silent scheduler is indistinguishable from a broken one.
         await sb.from("rideshare_settings").update({
           last_scan_status: String(out.status ?? "ok"),
-          last_scan_detail: `found ${out.found ?? 0}, swept ${out.swept ?? 0}`,
+          last_scan_detail: `found ${out.found ?? 0}, swept ${out.swept ?? 0}, briefed ${out.briefed ?? 0}, area alerts ${out.areaAlerts ?? 0}`,
         }).eq("user_id", rider.user_id);
       } catch (e) {
         const msg = (e as Error).message ?? "unknown";
