@@ -193,6 +193,42 @@ export default function IntelligenceReport() {
     }
   }, [dossier?.severity]);
 
+  // ── IC product decomposition ───────────────────────────────────────────
+  // The row already stores sections in canonical order (the delivery bus
+  // orders them), but a row written before this standard shipped will not be,
+  // so ordering is re-applied here. Old dossiers therefore render to the new
+  // standard too, without a backfill migration.
+  const orderedSections = useMemo(
+    () => orderIcSections(dossier?.sections ?? []),
+    [dossier?.sections],
+  );
+
+  /** Substantive collection — goes in the KEY FACTS table. */
+  const facts = useMemo(
+    () => orderedSections.filter((s) => !IC_APPARATUS.has((s.label ?? "").toUpperCase())),
+    [orderedSections],
+  );
+
+  /** Analytic apparatus — rendered as prose sections, in IC reading order. */
+  const apparatus = useMemo(
+    () =>
+      orderedSections
+        .filter((s) => IC_APPARATUS.has((s.label ?? "").toUpperCase()))
+        .map((s) => ({ label: (s.label ?? "").toUpperCase(), value: s.value })),
+    [orderedSections],
+  );
+
+  /** Same derivation the email uses, so the two artefacts cite one serial. */
+  const serial = useMemo(
+    () =>
+      dossier
+        ? reportNumber(dossier.kind, dossier.id, new Date(dossier.created_at))
+        : "—",
+    [dossier],
+  );
+
+
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
