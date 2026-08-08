@@ -255,7 +255,7 @@ const LocationProphet = () => {
                 <button
                   onClick={() => {
                     setPendingVenues(venues);
-                    navigate("/dashboard?tab=map");
+                    navigate("/dashboard/geospatial");
                   }}
                   className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all"
                 >
