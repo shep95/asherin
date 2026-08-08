@@ -158,6 +158,21 @@ const GhostEngineView = () => {
               className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
             />
             <button
+              type="button"
+              role="switch"
+              aria-checked={capture}
+              onClick={() => setCapture((c) => { localStorage.setItem(CAPTURE_KEY, c ? "0" : "1"); return !c; })}
+              title="Retain each session body in a self-expiring buffer so it can be reopened and searched"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
+                capture
+                  ? "border-foreground/40 bg-foreground/8 text-foreground"
+                  : "border-border/25 text-muted-foreground/60 hover:text-foreground/80"
+              }`}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Retain bodies
+            </button>
+            <button
               type="submit"
               disabled={loading || !query.trim()}
               className="flex items-center gap-1.5 rounded-lg border border-border/25 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-35"
@@ -166,6 +181,7 @@ const GhostEngineView = () => {
               {loading ? "Probing" : "Sweep"}
             </button>
           </form>
+
 
           {!data && recent.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
