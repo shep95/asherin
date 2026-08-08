@@ -42,8 +42,16 @@ const PLANS = [
         ],
       },
       {
-        title: "Zophiel Search (Base)",
-        items: ["Real-time web search", "Standard recency", "Basic query limits"],
+        title: "Zophiel Search Intelligence (Full Engine)",
+        items: [
+          "Real-time web search with source-credibility + veracity scoring",
+          "Deep Search, Link Extract, Archives Harvester and page preview",
+          "Dark Web, Leaks, Onion and GhostChain sweeps",
+          "Google Dorking, XKeyscore operators and Data Engine",
+          "Intel Map, URL/Domain mapping and Zophiel V2 pipeline",
+          "Imagine Intelligence, File Scrapper and Cipher",
+          "Standard query throughput and recency",
+        ],
       },
       {
         title: "Google Cloud Intelligence",
