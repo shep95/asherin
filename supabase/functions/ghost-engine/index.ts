@@ -38,7 +38,7 @@ const MAX_TARGETS = 24;
 const CONCURRENCY = 6;
 const BUCKET = "ghost-buffer";
 
-type Action = "search" | "sweep" | "buffer" | "content" | "payload" | "purge";
+type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge";
 
 interface GhostRequest {
   action?: Action;
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
   // so the operator never has to pick a mode to get an answer.
   const searchMode = rawAction === "search";
   const scope: "all" | "web" | "buffer" = searchMode ? (body.scope ?? "all") : "web";
-  const action: Action = searchMode ? (scope === "buffer" ? "searchBuffer" as Action : "sweep") : rawAction;
+  const action: Action = searchMode ? (scope === "buffer" ? "searchBuffer" : "sweep") : rawAction;
   const sb = serviceClient();
   const userId = await callerUserId(req);
 
@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
 
   // ── Buffer-only search — the shelf without a new sweep ─────────────────────
-  if (action === ("searchBuffer" as Action)) {
+  if (action === "searchBuffer") {
     const q = String(body.query ?? "").trim().slice(0, 400);
     if (!sb || !userId) return json({ error: "Buffer unavailable for this session" }, 503);
     if (!q) return json({ error: "query is required" }, 400);
