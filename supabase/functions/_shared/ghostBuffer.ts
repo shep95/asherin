@@ -21,7 +21,7 @@
 
 export const BUFFER_DEFAULT_TTL_MIN = 60;
 export const BUFFER_MAX_TTL_MIN = 1440;          // 24h ceiling — short take, enforced
-export const MAX_PAYLOAD_BYTES = 768 * 1024;     // per session, raw bytes retained
+export const MAX_PAYLOAD_BYTES = 512 * 1024;     // per session, raw bytes retained
 export const MAX_TEXT_CHARS = 240_000;           // per session, searchable text
 export const MAX_REGEX_LEN = 240;
 const REGEX_BUDGET_MS = 1500;                    // per-session scan fence

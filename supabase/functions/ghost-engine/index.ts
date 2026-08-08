@@ -48,7 +48,7 @@ import {
 // Leads beyond the probe budget are still reported; they are simply reported
 // as surface intelligence rather than as forensic shells.
 const MAX_PROBE = 96;
-const CONCURRENCY = 12;
+const CONCURRENCY = 8;
 const HARVEST_CAP = 400;
 const BUCKET = "ghost-buffer";
 
