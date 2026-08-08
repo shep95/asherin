@@ -27,6 +27,8 @@ import { gmailQuery, parseRideEmail, foldRides, type ParsedRideEmail } from "../
 import { runDeepSweep, loadSettings, type GuardianSettings } from "../_shared/rideshareSweep.ts";
 import { fastPass, type RideInput } from "../_shared/rideshareGuardian.ts";
 import { ADMIN_EMAILS } from "../_shared/constants.ts";
+import { assessAreaByLabel, alertAreaRisk, ALERTING_LEVELS, type AreaAssessment } from "../_shared/areaRisk.ts";
+import { notifyIntel } from "../_shared/intelNotify.ts";
 import type { ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -138,7 +140,10 @@ async function sweepRider(
   const rides = await harvestRides(sb, userId, settings.lookback_hours ?? rider.lookback_hours ?? 24);
   if (!rides.length) return { userId, status: "no_rides" };
 
-  let swept = 0, skipped = 0;
+  let swept = 0, skipped = 0, briefed = 0, areaAlerts = 0;
+  // A cache miss on the area engine costs a model call, so a single tick may
+  // generate at most two fresh assessments; the rest ride the cache or wait.
+  let areaBudget = 2;
   for (const r of rides) {
     if (Date.now() > deadline) { skipped++; continue; }
 
@@ -281,7 +286,7 @@ async function sweepRider(
   }
 
 
-  return { userId, status: "ok", found: rides.length, swept, skipped };
+  return { userId, status: "ok", found: rides.length, swept, skipped, briefed, areaAlerts };
 }
 
 Deno.serve(async (req) => {
@@ -336,7 +341,7 @@ Deno.serve(async (req) => {
         // a silent scheduler is indistinguishable from a broken one.
         await sb.from("rideshare_settings").update({
           last_scan_status: String(out.status ?? "ok"),
-          last_scan_detail: `found ${out.found ?? 0}, swept ${out.swept ?? 0}`,
+          last_scan_detail: `found ${out.found ?? 0}, swept ${out.swept ?? 0}, briefed ${out.briefed ?? 0}, area alerts ${out.areaAlerts ?? 0}`,
         }).eq("user_id", rider.user_id);
       } catch (e) {
         const msg = (e as Error).message ?? "unknown";
