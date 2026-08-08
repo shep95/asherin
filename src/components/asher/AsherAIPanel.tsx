@@ -504,6 +504,32 @@ const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
           }
           return lines.join("\n");
         }
+
+        /* ── Cloud Intelligence map overlays ─────────────────────────────── */
+        case "plot_cloud_contacts": {
+          const r = await onAction({
+            type: "plot_cloud_contacts",
+            query: str(args?.query),
+            limit: num(args?.limit) ?? 50,
+          });
+          return typeof r === "string" ? r : "Cloud contacts plotted.";
+        }
+        case "plot_cloud_venues": {
+          const r = await onAction({ type: "plot_cloud_venues" });
+          return typeof r === "string" ? r : "Cloud venues plotted.";
+        }
+        case "plot_cloud_security": {
+          const r = await onAction({ type: "plot_cloud_security", sinceDays: num(args?.sinceDays) ?? 30 });
+          return typeof r === "string" ? r : "Cloud security events plotted.";
+        }
+        case "focus_cloud_contact": {
+          const r = await onAction({
+            type: "focus_cloud_contact",
+            email: str(args?.email),
+            name: str(args?.name),
+          });
+          return typeof r === "string" ? r : "Cloud contact focused.";
+        }
       }
     } catch (e: any) {
       return `Tool failed: ${e?.message || e}`;
