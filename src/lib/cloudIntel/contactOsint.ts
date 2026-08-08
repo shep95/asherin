@@ -604,7 +604,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
     // The dossier leg and the exposure legs answer different questions and
     // share no state, so they run together. Sequencing them would add the
     // sweep's wall clock to every contact report for no benefit.
-    const [vaultResult, sweepResults] = await Promise.all([
+    const [vaultResult, sweepResults, dork] = await Promise.all([
       supabase.functions.invoke("mesh-vault", {
         body: {
           action: "vault_for_contact",
