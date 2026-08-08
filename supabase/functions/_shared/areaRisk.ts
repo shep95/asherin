@@ -98,27 +98,47 @@ export async function assessArea(
 
   const { data: cached } = await db
     .from("geo_risk_assessments").select("*").eq("place_key", pk).maybeSingle();
-  if (cached && String(cached.expires_at) > nowIso) return cached as AreaAssessment;
+  if (cached && String(cached.expires_at) > nowIso && !isStaleUnknown(cached)) {
+    return cached as AreaAssessment;
+  }
   if (!cfg) return (cached as AreaAssessment) ?? null;
 
   try {
     const label = labelHint || (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
-    const research = await collectAreaEvidence(label);
+    // A street-level label often returns university pages and listings rather
+    // than crime reporting. When the narrow sweep comes back empty, widen to
+    // the locality so the model grades real evidence instead of returning
+    // UNKNOWN for a place with a well-documented record.
+    let research = await collectAreaEvidence(label);
+    if (isThin(research)) {
+      const wide = localityOf(label);
+      if (wide && wide !== label) {
+        const extra = await collectAreaEvidence(wide);
+        if (!isThin(extra)) {
+          research = `${research}\n\n## Wider locality — ${wide}\n${extra}`;
+        }
+      }
+    }
     const raw = await callByokJsonWithRetry(cfg, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
       temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 60_000, attempts: 2,
     });
     const parsed = parseJsonLoose(raw) as Record<string, unknown>;
     const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
+    const resolved = (LEVELS as readonly string[]).includes(level) ? level : "UNKNOWN";
+    // An UNKNOWN is a collection failure, not a fact about the place: it must
+    // expire in hours, not in a week, or one thin sweep silences the cell.
+    const ttlMs = resolved === "UNKNOWN" ? 6 * 3600e3 : 7 * 864e5;
     const { data: saved } = await db.from("geo_risk_assessments").upsert({
       place_key: pk, lat, lng, place_label: label,
-      risk_level: (LEVELS as readonly string[]).includes(level) ? level : "UNKNOWN",
+      risk_level: resolved,
       risk_score: Number(parsed.risk_score) || 0,
       summary: String(parsed.summary || parsed.headline || "").slice(0, 4000),
       payload: parsed,
       generated_at: nowIso,
-      expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
+      expires_at: new Date(Date.now() + ttlMs).toISOString(),
     }, { onConflict: "place_key" }).select("*").maybeSingle();
     return (saved as AreaAssessment) ?? (cached as AreaAssessment) ?? null;
+
   } catch (e) {
     console.error("area_assess_failed", (e as Error).message?.slice(0, 200));
     // A stale assessment is better intelligence than none.
