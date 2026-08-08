@@ -343,6 +343,7 @@ const GuardianVaultView = () => {
         description: "TOTP authenticator app enabled",
         outcome: "success",
       });
+      reportSecurityEvent({ type: "mfa_setup", description: "Two-factor authentication was enabled on your account." });
       setEnrollingTotp(false);
       setTotpUri(null);
       setTotpSecret(null);
@@ -367,6 +368,7 @@ const GuardianVaultView = () => {
         description: "MFA factor removed",
         outcome: "success",
       });
+      reportSecurityEvent({ type: "mfa_disable", description: "Two-factor authentication was removed from your account." });
       toast({ title: "MFA factor removed" });
       loadData();
     } catch (e: any) {
