@@ -371,6 +371,109 @@ async function crossMatch(
   }
 }
 
+// ── Subject qualification ──────────────────────────────────────────────────
+// A mononym is not a person reference. Searching `"Marcus" photo` returns the
+// emperor, the book cover and the stock portrait, and the comparator then
+// dutifully reports that a marble bust and a stranger are not the same face —
+// which reads to the operator as intelligence when it is only noise. When the
+// dossier has not bound an identity, the honest output is refusal.
+const HONORIFIC = /^(mr|mrs|ms|miss|dr|prof|sir|rev|driver)\.?$/i;
+
+function nameTokens(subject: string): string[] {
+  return subject
+    .split(/[\s,]+/)
+    .map((t) => t.replace(/[^\p{L}\p{M}'-]/gu, ""))
+    .filter((t) => t.length >= 2 && !HONORIFIC.test(t));
+}
+
+/** A subject is corroboratable only when it carries a family name. */
+function isQualifiedSubject(subject: string): boolean {
+  return nameTokens(subject).length >= 2;
+}
+
+// Only person-locating context sharpens a portrait search. Verdict prose,
+// percentages, plate strings and vehicle descriptions actively poison it —
+// they pull the index toward car listings and toward whatever page happens to
+// quote the same number.
+const ANCHOR_LABELS =
+  /(city|locality|location|based|residence|employer|company|organisation|organization|affiliation|role|title|occupation|school|university)/i;
+const ANCHOR_NOISE =
+  /(\d|verdict|confidence|watch|clear|thin|plate|vin|vehicle|do not board|registry|mismatch|unbound|%)/i;
+
+function anchorsFrom(sections: unknown): string {
+  const rows = Array.isArray(sections) ? (sections as any[]) : [];
+  const kept: string[] = [];
+  for (const s of rows) {
+    const label = String(s?.label ?? s?.key ?? "");
+    const value = String(s?.value ?? "").trim();
+    if (!value || value.length > 48) continue;
+    if (!ANCHOR_LABELS.test(label)) continue;
+    if (ANCHOR_NOISE.test(value)) continue;
+    kept.push(value);
+    if (kept.length >= 2) break;
+  }
+  return kept.join(" ");
+}
+
+// ── Face gate ──────────────────────────────────────────────────────────────
+// og:image is a page's *social card*, not a portrait. Left ungated it admits
+// sculpture, book jackets, logos and landscape art into an evidence gallery,
+// and a gallery of non-faces is worse than an empty one: it manufactures the
+// appearance of corroboration. Every harvested frame must first prove it
+// contains a real, photographic human face before it is stored or shown.
+async function faceGate(
+  frames: Array<{ b64: string; type: string; host: string }>,
+): Promise<boolean[]> {
+  if (!frames.length) return [];
+  if (!GEMINI_KEY) return frames.map(() => false);
+  const parts: any[] = [
+    {
+      text:
+        `You are screening ${frames.length} images for use as facial-comparison evidence.\n` +
+        `For EACH image in order, decide whether it is a PHOTOGRAPH OF A REAL LIVING HUMAN FACE ` +
+        `that is large enough and clear enough to compare (face occupies a meaningful part of the frame, ` +
+        `eyes and nose visible).\n\n` +
+        `Answer false for: sculpture, statues, busts, paintings, drawings, illustrations, cartoons, ` +
+        `AI-generated art, book covers, posters, logos, screenshots, product shots, landscapes, ` +
+        `buildings, vehicles, crowd scenes with no dominant face, and any image with no discernible face.\n\n` +
+        `Return STRICT JSON only: {"faces":[true,false,...]} with exactly ${frames.length} booleans in image order.`,
+    },
+    ...frames.map((f) => ({ inline_data: { mime_type: f.type, data: f.b64 } })),
+  ];
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: { temperature: 0, maxOutputTokens: 512, responseMimeType: "application/json" },
+        }),
+        signal: AbortSignal.timeout(60_000),
+      },
+    );
+    if (!r.ok) {
+      console.error("face_gate_failed", r.status, (await r.text()).slice(0, 200));
+      return frames.map(() => false); // fail CLOSED: unscreened frames are not evidence
+    }
+    const j = await r.json();
+    const text: string = j?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? "").join("") ?? "";
+    const parsed = safeParse(text.replace(/^```json\s*|```$/g, "").trim());
+    const arr = Array.isArray(parsed?.faces) ? parsed.faces : null;
+    if (!arr) {
+      console.error("face_gate_unparsable", text.slice(0, 200));
+      return frames.map(() => false);
+    }
+    const out = frames.map((_, i) => arr[i] === true);
+    console.log("face_gate", JSON.stringify({ screened: frames.length, kept: out.filter(Boolean).length }));
+    return out;
+  } catch (e) {
+    console.error("face_gate_error", e instanceof Error ? e.message : e);
+    return frames.map(() => false);
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
