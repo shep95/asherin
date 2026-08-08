@@ -21,7 +21,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { callByokJsonWithRetry } from "../_shared/zophielByokRouter.ts";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "../_shared/jurisdictionalIntel.ts";
-import { sendWebPush } from "../_shared/webPush.ts";
+import { notifyIntel, severityFromVerdict } from "../_shared/intelNotify.ts";
 import {
   fastPass,
   parseShareLink,
@@ -81,6 +81,10 @@ async function loadSettings(userId: string): Promise<Settings> {
 /**
  * Alerting is best-effort by contract: a dead push endpoint must never cost the
  * rider their report, so every channel is isolated and its outcome recorded.
+ *
+ * In-app + push go through the shared intelligence bus (so a driver check lands
+ * in the same inbox as every other Asherin report); the rideshare-specific
+ * email stays here because it carries fields no generic template models.
  */
 async function deliver(
   userId: string,
@@ -91,41 +95,42 @@ async function deliver(
   rideId: string,
 ): Promise<string[]> {
   const delivered: string[] = [];
-  // Threshold gate: a fast-pass "running" ping always goes out; substantive
-  // alerts only when the verdict is at or above what the rider asked for.
+  // Threshold gate: substantive alerts only when the verdict is at or above
+  // what the rider asked for.
   const meets = VERDICT_RANK[phase.verdict] >= VERDICT_RANK[settings.alert_threshold];
   if (!meets) return delivered;
 
-  if (settings.push_enabled) {
-    const { data: subs } = await admin()
-      .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth_key")
-      .eq("user_id", userId);
-    const results = await Promise.allSettled(
-      (subs || []).map((s) =>
-        sendWebPush(s, {
-          title: `${phase.verdict} · Rideshare Guardian`,
-          body: phase.headline,
-          tag: `ride-${rideId}`,
-          url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${rideId}`,
-          verdict: phase.verdict,
-        }).then((r) => ({ r, id: s.id })),
-      ),
-    );
-    let anyOk = false;
-    const dead: string[] = [];
-    for (const res of results) {
-      if (res.status !== "fulfilled") continue;
-      if (res.value.r.ok) anyOk = true;
-      if (res.value.r.gone) dead.push(res.value.id);
-    }
-    if (dead.length) await admin().from("push_subscriptions").delete().in("id", dead);
-    if (anyOk) delivered.push("push");
-  }
+  const p = phase.payload as Record<string, any>;
+  const bus = await notifyIntel({
+    userId,
+    userEmail,
+    kind: "rideshare",
+    severity: severityFromVerdict(phase.verdict),
+    title: `${phase.verdict} — ${phase.headline}`,
+    body: p.narrative || phase.headline,
+    subjectName: ride.driver_name || ride.plate || "unnamed driver",
+    source: "Rideshare Guardian",
+    url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${rideId}`,
+    sections: [
+      { label: "Identity confidence", value: `${Math.round(phase.confidence * 100)}%` },
+      { label: "Vehicle", value: `${ride.vehicle || "not captured"} · plate ${ride.plate || "not captured"}` },
+      { label: "Recommended action", value: p.recommended_action || "Verify the plate and driver photo before boarding." },
+    ],
+    findings: Array.isArray(p.flags)
+      ? p.flags.map((f: any) => `${String(f?.severity || "note").toUpperCase()}: ${f?.detail ?? ""}`)
+      : [],
+    idempotencyKey: `rideshare:${rideId}:${p.phase ?? "deep"}`,
+    // Push settings are honoured by the bus; a rider who muted push here must
+    // stay muted there too.
+    skipEmail: true,
+    skipPush: !settings.push_enabled,
+  });
+  // "in_app" is always present when the inbox write succeeded.
+  for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
+
 
   if (settings.email_enabled && userEmail) {
     try {
-      const p = phase.payload as Record<string, any>;
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
         method: "POST",
         headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
@@ -299,11 +304,21 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         };
 
-        const { data: row, error } = idem
+        // The idempotency index on rideshare_rides is PARTIAL, so PostgREST
+        // cannot infer it for ON CONFLICT. Resolve the prior ride explicitly:
+        // a re-captured card must reuse its ride, not spawn a duplicate.
+        let prior: { id: string } | null = null;
+        if (idem) {
+          const { data: found } = await admin().from("rideshare_rides")
+            .select("id").eq("user_id", userId).eq("idempotency_key", idem).maybeSingle();
+          prior = found ?? null;
+        }
+        const { data: row, error } = prior
           ? await admin().from("rideshare_rides")
-              .upsert(insert, { onConflict: "user_id,idempotency_key" }).select().single()
+              .update(insert).eq("id", prior.id).select().single()
           : await admin().from("rideshare_rides").insert(insert).select().single();
         if (error) throw error;
+
 
         await admin().from("rideshare_reports").upsert({
           ride_id: row.id,
@@ -492,7 +507,7 @@ Return strict JSON only:
         return json({ error: "unknown_action" }, 400, cors);
     }
   } catch (e) {
-    console.error("rideshare_guardian_error", action, e instanceof Error ? e.message : e);
-    return json({ error: "guardian_failed", detail: e instanceof Error ? e.message : String(e) }, 500, cors);
+    console.error("rideshare_guardian_error", action, e instanceof Error ? e.message : JSON.stringify(e));
+    return json({ error: "guardian_failed", detail: e instanceof Error ? e.message : JSON.stringify(e)?.slice(0, 300) }, 500, cors);
   }
 });

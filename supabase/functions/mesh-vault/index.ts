@@ -25,6 +25,7 @@ import {
   selectTargets, selectContactTargets, buildDossier, foldCrossLinks, normKey,
   type MeshDossierDoc,
 } from "../_shared/meshDossier.ts";
+import { notifyIntel } from "../_shared/intelNotify.ts";
 import {
   selectColdInbound, selectCalendarTargets, selectPhoneTargets, dedupeByIdentity,
   type ChannelTarget,
@@ -40,6 +41,52 @@ const json = (body: unknown, status: number, cors: Record<string, string>) =>
 /** Wall-clock guard: leave room to write results before the platform cuts us. */
 const RUN_BUDGET_MS = 140_000;
 const PER_SUBJECT_MS = 115_000;
+
+
+/**
+ * A finished dossier is an intelligence product, so it announces itself on the
+ * same bus as every other report: inbox row, device push, email. Failures here
+ * are logged and swallowed — the dossier itself is already safely persisted.
+ */
+async function announceDossier(
+  userId: string,
+  userEmail: string | null,
+  subjectName: string,
+  subjectKey: string,
+  doc: MeshDossierDoc,
+  summary: string,
+  confidence: number,
+) {
+  try {
+    const identityFields = Object.keys(doc?.identity ?? {}).length;
+    await notifyIntel({
+      userId,
+      userEmail,
+      kind: "dossier",
+      // A dossier that actually bound an identity is worth interrupting for;
+      // a thin one belongs in the inbox, not on a lock screen.
+      severity: confidence >= 0.7 && identityFields > 0 ? "notable" : "info",
+      title: `Dossier ready — ${subjectName}`,
+      body: summary || "Correspondent dossier built from open sources.",
+      subjectName,
+      source: "Cloud Intelligence Mesh",
+      url: `/dashboard?tab=cloud-intel&module=vault&subject=${encodeURIComponent(subjectKey)}`,
+      sections: [
+        { label: "Identity confidence", value: `${Math.round((confidence ?? 0) * 100)}%` },
+        { label: "Jurisdiction", value: doc?.jurisdiction || "not resolved" },
+        {
+          label: "Collection",
+          value: `${doc?.metrics?.documentsParsed ?? 0} documents parsed across ${doc?.metrics?.independentDomains ?? 0} independent domains`,
+        },
+        { label: "Network", value: `${doc?.hop1?.length ?? 0} direct · ${doc?.hop2?.length ?? 0} second-hop · ${doc?.hop3?.length ?? 0} cross-links` },
+      ],
+      findings: (doc?.gaps ?? []).slice(0, 6).map((g) => `Gap: ${g}`),
+      idempotencyKey: `dossier:${subjectKey}:${doc?.builtAt ?? ""}`,
+    });
+  } catch (e) {
+    console.error("dossier_announce_failed", e instanceof Error ? e.message : e);
+  }
+}
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
@@ -228,6 +275,7 @@ Deno.serve(async (req) => {
         }).eq("user_id", userId).eq("subject_key", subjectKey);
 
         if ((row?.hop ?? 1) === 1) await persistHopTwo(sb, userId, name || email!, doc);
+        await announceDossier(userId, user.email ?? null, name || email!, subjectKey, doc, summary, confidence);
 
         return json({ status: "ready", source: "fresh", dossier: doc, summary, confidence, builtAt }, 200, cors);
       } catch (e) {
@@ -581,6 +629,7 @@ Deno.serve(async (req) => {
           }).eq("id", row.id).eq("user_id", userId);
 
           if (row.hop === 1) await persistHopTwo(sb, userId, row.subject_name, doc);
+          await announceDossier(userId, user.email ?? null, row.subject_name, row.subject_key, doc, summary, confidence);
           built++;
           processed.push({ id: row.id, name: row.subject_name, confidence, hop1: doc.hop1.length, hop2: doc.hop2.length, hop3: doc.hop3.length });
         } catch (e) {

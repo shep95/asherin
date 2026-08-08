@@ -1,0 +1,2 @@
+DELETE FROM public.intel_notifications WHERE idempotency_key LIKE 'verify:%' OR idempotency_key LIKE 'selftest:%';
+DELETE FROM public.rideshare_rides WHERE plate = 'RTX4090' AND driver_name = 'Marcus V.';

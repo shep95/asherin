@@ -10,6 +10,7 @@ import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import { useAccess } from "@/hooks/useAccess";
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
@@ -1677,6 +1678,8 @@ const Dashboard = () => {
           [data-dashboard-app-launcher] { display: none !important; }
         `}</style>
       )}
+
+      {!focusMode && <IntelAlertCenter />}
 
       <div className="relative z-10 flex h-screen">
         {!focusMode && (
