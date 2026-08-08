@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Ghost, Loader2, ArrowRight, Fingerprint, AlertTriangle, Network, Clock, Layers, Download } from "lucide-react";
+import { Ghost, Loader2, ArrowRight, Fingerprint, AlertTriangle, Network, Clock, Layers, Download, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { exportJSON } from "@/lib/exportEngine";
 import GhostRecordPanel from "./ghost/GhostRecordPanel";
 import GhostGraph from "./ghost/GhostGraph";
+import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import { SEVERITY_STYLE, type GhostRecord, type GhostResponse } from "./ghost/types";
 
-type Tab = "records" | "entities" | "graph" | "timeline" | "anomalies" | "facets";
+type Tab = "records" | "entities" | "graph" | "timeline" | "anomalies" | "facets" | "buffer";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "records", label: "Shells", icon: Layers },
@@ -16,7 +17,11 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "timeline", label: "Timeline", icon: Clock },
   { id: "anomalies", label: "Anomalies", icon: AlertTriangle },
   { id: "facets", label: "Facets", icon: Ghost },
+  { id: "buffer", label: "Buffer", icon: Archive },
 ];
+
+const CAPTURE_KEY = "ghost_engine_capture";
+
 
 const RECENT_KEY = "ghost_engine_recent";
 
