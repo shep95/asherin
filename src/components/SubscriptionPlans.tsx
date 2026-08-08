@@ -24,7 +24,7 @@ const PLANS = [
     period: "/month",
     tagline: "Core intelligence",
     description:
-      "Everything you need to think, code, search and ship — uncensored AI, elite coding engine, base Zophiel Search, persistent memory and a workspace built for one operator.",
+      "Everything you need to think, code, search and ship — uncensored AI, elite coding engine, the full Zophiel Search Intelligence engine, persistent memory and a workspace built for one operator.",
     cta: "Subscribe — $18 / month",
     highlight: false,
     groups: [
