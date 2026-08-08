@@ -1,13 +1,22 @@
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { bootSentinel } from "@/lib/sentinel/alwaysOn";
 
 /**
- * Mounts once inside the authenticated shell and hands control to the always-on
- * sentinel daemon. Renders nothing: protection should not depend on a tab being
- * open, a module being selected, or a button being pressed.
+ * Mounts once inside the app shell and hands control to the always-on sentinel
+ * daemon. Renders nothing, sits above the router, and boots the moment a session
+ * exists: protection must not depend on which page is open, which tab is
+ * selected, or on the user remembering to press anything.
+ *
+ * Gated on an authenticated session so an anonymous visitor on the marketing
+ * site is never asked for location or notification permission.
  */
 const SentinelDaemon = () => {
-  useEffect(() => { bootSentinel(); }, []);
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!user) return;
+    bootSentinel();
+  }, [user]);
   return null;
 };
 
