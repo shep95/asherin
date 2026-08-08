@@ -2454,11 +2454,83 @@ const IntelligenceMapModule = () => {
         )}
 
         {/* COORD WIDGET */}
+        {/* MAP CONTROLS — zoom, recenter on operator, copy/share the view */}
+        <div className="absolute bottom-24 right-3 z-[1000] flex flex-col gap-1.5">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md">
+            <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" className="px-2.5 py-2 text-muted-foreground hover:bg-foreground/10 hover:text-foreground">
+              <Plus className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-border/30" />
+            <button onClick={() => mapRef.current?.zoomOut()} aria-label="Zoom out" className="px-2.5 py-2 text-muted-foreground hover:bg-foreground/10 hover:text-foreground">
+              <Minus className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              if (track.fix) { flyTo(track.fix.lat, track.fix.lng, Math.max(mapRef.current?.getZoom() ?? 15, 16)); track.setFollow(true); }
+              else track.start();
+            }}
+            aria-label="Centre on my location"
+            title={track.fix ? "Centre on my location" : "Start location tracking"}
+            className={`rounded-xl border px-2.5 py-2 backdrop-blur-md transition-colors ${
+              track.follow && track.status === "live"
+                ? "border-[#c98b3a]/50 bg-[#c98b3a]/20 text-[#e0a955]"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LocateFixed className="h-4 w-4" />
+          </button>
+          <button
+            onClick={async () => {
+              const c = mapCenter();
+              const text = `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`;
+              try { await navigator.clipboard.writeText(text); toast.success(`Copied ${text}`); }
+              catch { toast.error("Clipboard blocked by the browser."); }
+            }}
+            aria-label="Copy centre coordinates"
+            title="Copy centre coordinates"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+          <button
+            onClick={async () => {
+              const c = mapCenter();
+              const z = Math.round(mapRef.current?.getZoom() ?? coord.zoom);
+              const url = `${window.location.origin}${window.location.pathname}?lat=${c.lat.toFixed(6)}&lng=${c.lng.toFixed(6)}&z=${z}&base=${activeBase}`;
+              try { await navigator.clipboard.writeText(url); toast.success("Map view link copied."); }
+              catch { toast.error("Clipboard blocked by the browser."); }
+            }}
+            aria-label="Copy a link to this view"
+            title="Copy a link to this view"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <a
+            href={streetViewUrl(coord.lat, coord.lng)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open street-level imagery here"
+            title="Street-level imagery at map centre"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Eye className="h-4 w-4" />
+          </a>
+        </div>
+
         <div className="absolute bottom-3 right-3 z-[1000] rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-wide text-muted-foreground space-y-0.5">
           <p><span className="text-muted-foreground/50">LAT/LNG:</span> {fmtCoord(coord.lat, coord.lng)}</p>
           <p><span className="text-muted-foreground/50">ZOOM:</span> {coord.zoom.toFixed(0)}</p>
           <p><span className="text-muted-foreground/50">SCALE:</span> 1:{Math.round(591657550.5 / Math.pow(2, coord.zoom)).toLocaleString()}</p>
+          <button
+            onClick={() => changeUnits(units === "imperial" ? "metric" : "imperial")}
+            className="pt-0.5 uppercase tracking-[0.18em] text-[9px] text-muted-foreground/70 hover:text-foreground"
+          >
+            Units · {units === "imperial" ? "mi / ft" : "km / m"}
+          </button>
         </div>
+
 
         {/* ENTITY DRAWER */}
         {entity && (
