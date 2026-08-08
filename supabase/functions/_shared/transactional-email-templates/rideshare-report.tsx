@@ -3,111 +3,76 @@ import * as React from 'npm:react@18.3.1'
 import type { TemplateEntry } from './registry.ts'
 import { Shell, Hed, Prose, MetaCard, Cta, Note, Subhed } from '../email-theme.tsx'
 
-interface Flag {
-  code?: string
-  severity?: string
-  detail?: string
-  evidence?: string
-}
-
-interface Candidate {
-  name?: string
-  locality?: string
-  basis?: string
-  match_confidence?: number
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// RIDESHARE GUARDIAN — CURBSIDE ALERT
+//
+// Deliberately NOT the dossier. Mail is plaintext at rest on infrastructure
+// the rider does not control, is trivially forwarded, and for autopilot users
+// lands in the same mailbox the trip receipts are read from. A resolved
+// identity, candidate matches and evidence links for a named private person
+// must not be sitting there in perpetuity.
+//
+// This carries only what is actionable in the ten seconds before a car door
+// opens: the verdict, the vehicle to expect, and the instruction. The full
+// assessment stays behind an authenticated session.
+// ═══════════════════════════════════════════════════════════════════════════
 
 interface Props {
   verdict?: string
   headline?: string
-  driverName?: string
   plate?: string
   vehicle?: string
-  city?: string
   platform?: string
-  identityConfidence?: number
-  narrative?: string
   recommendedAction?: string
-  vehicleCheck?: string
-  limits?: string
-  flags?: Flag[]
-  candidates?: Candidate[]
+  flagCount?: number
+  flagSeverity?: string
   reportUrl?: string
   generatedAt?: string
+}
+
+const flagLine = (count: number, severity: string): string => {
+  if (!count) return 'No flags raised.'
+  const noun = count === 1 ? 'flag' : 'flags'
+  return severity === 'high'
+    ? `${count} ${noun} raised, including at least one high-severity item. Read it before you board.`
+    : `${count} ${noun} raised. Review them in the dossier.`
 }
 
 const RideshareReportEmail = ({
   verdict = 'THIN',
   headline = 'Driver assessment complete',
-  driverName = 'not captured',
   plate = 'not captured',
   vehicle = 'not captured',
-  city = 'not captured',
   platform = 'uber',
-  identityConfidence = 0,
-  narrative = '',
   recommendedAction = 'Verify the plate and driver photo against the app before you get in.',
-  vehicleCheck = '',
-  limits = 'Open sources only. Absence of record is not a clearance.',
-  flags = [],
-  candidates = [],
+  flagCount = 0,
+  flagSeverity = 'none',
   reportUrl = 'https://asherin.com/dashboard',
   generatedAt = new Date().toUTCString(),
 }: Props) => (
   <Shell preview={`${verdict} · ${headline}`} eyebrow="ASHERIN · RIDESHARE GUARDIAN">
     <Hed>{verdict} — {headline}</Hed>
-    <Prose>{narrative || 'Assessment produced no narrative detail.'}</Prose>
-    <MetaCard
-      rows={[
-        { label: 'Verdict', value: verdict },
-        { label: 'Identity confidence', value: `${Math.round((identityConfidence || 0) * 100)}%` },
-        { label: 'Platform', value: platform },
-        { label: 'Driver', value: driverName },
-        { label: 'Plate', value: plate },
-        { label: 'Vehicle', value: vehicle },
-        { label: 'City', value: city },
-        { label: 'Generated', value: generatedAt },
-      ]}
-    />
 
     <Subhed>Do this now</Subhed>
     <Prose>{recommendedAction}</Prose>
 
-    {candidates.length > 0 && (
-      <>
-        <Subhed>Candidate resolution ({candidates.length})</Subhed>
-        <MetaCard
-          rows={candidates.map((c) => ({
-            label: `${Math.round((c.match_confidence || 0) * 100)}%`,
-            value: `${c.name || 'unnamed'} — ${c.locality || 'locality unknown'}${c.basis ? ` — ${c.basis}` : ''}`,
-          }))}
-        />
-      </>
-    )}
-
-    {flags.length > 0 && (
-      <>
-        <Subhed>Flags ({flags.length})</Subhed>
-        <MetaCard
-          rows={flags.map((f) => ({
-            label: (f.severity || 'info').toUpperCase(),
-            value: `${f.detail || ''}${f.evidence ? ` — evidence: ${f.evidence}` : ''}`,
-          }))}
-        />
-      </>
-    )}
-
-    {vehicleCheck ? (
-      <>
-        <Subhed>Vehicle</Subhed>
-        <Prose>{vehicleCheck}</Prose>
-      </>
-    ) : null}
+    <MetaCard
+      rows={[
+        { label: 'Verdict', value: verdict },
+        { label: 'Expect', value: `${vehicle} · plate ${plate}` },
+        { label: 'Platform', value: platform },
+        { label: 'Flags', value: flagLine(flagCount || 0, flagSeverity || 'none') },
+        { label: 'Generated', value: generatedAt },
+      ]}
+    />
 
     <Cta href={reportUrl} label="Open the full dossier" />
+
     <Note>
-      Limits: {limits} This assessment is private to you, derived from public sources, and must
-      not be republished or used for any employment decision. #houseofasher
+      The assessment itself — identity resolution, candidates, evidence and sourcing — is held in
+      your account and is not sent by email. Open sources only; absence of record is not a
+      clearance. Private to you, and not to be republished or used for any employment decision.
+      #houseofasher
     </Note>
   </Shell>
 )
@@ -115,29 +80,18 @@ const RideshareReportEmail = ({
 export const template = {
   component: RideshareReportEmail,
   subject: (d: Record<string, any>) =>
-    `${d?.verdict ?? 'THIN'} · Rideshare Guardian — ${d?.driverName ?? 'your driver'}`,
-  displayName: 'Rideshare Guardian report',
+    `${d?.verdict ?? 'THIN'} · Rideshare Guardian — your ${d?.platform ?? 'ride'} driver`,
+  displayName: 'Rideshare Guardian alert',
   previewData: {
     verdict: 'WATCH',
     headline: 'Plate on the card does not match the assigned vehicle',
-    driverName: 'Marcus',
     plate: 'JHK 4820',
     vehicle: 'Toyota Camry',
-    city: 'Atlanta, GA',
     platform: 'uber',
-    identityConfidence: 0.61,
-    narrative:
-      'A driver matching the displayed first name and vehicle class resolves to one Atlanta-area candidate with moderate confidence. The plate captured from the trip card does not match the make recorded against that registration.',
     recommendedAction: 'Do not board until the plate on the car matches the plate in your app.',
-    vehicleCheck: 'Make and model confirmed; plate could not be tied to the same vehicle record.',
-    limits: 'Open sources only. No carrier, DMV, or law-enforcement systems were queried.',
-    flags: [
-      { code: 'PLATE_MISMATCH', severity: 'high', detail: 'Plate/vehicle inconsistency', evidence: 'Trip card vs public registration listing' },
-    ],
-    candidates: [
-      { name: 'Marcus D.', locality: 'Atlanta, GA', basis: 'First name + metro + vehicle class', match_confidence: 0.61 },
-    ],
-    reportUrl: 'https://asherin.com/dashboard',
+    flagCount: 1,
+    flagSeverity: 'high',
+    reportUrl: 'https://asherin.com/dashboard?tab=cloud-intel&module=rideshare',
     generatedAt: 'Sat, 08 Aug 2026 00:45:00 GMT',
   },
 } satisfies TemplateEntry
