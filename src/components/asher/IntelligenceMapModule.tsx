@@ -1957,11 +1957,14 @@ const IntelligenceMapModule = () => {
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
                       const isMyDevices = l.id === "my-devices";
+                      const isCloud = cat.id === "cloud-intel";
                       const isActive = isBase
                         ? l.id === activeBase
                         : isThreat ? !!activeThreats[l.id as ThreatId]
                         : isBoundary ? showTacticalBorders
-                        : isMyDevices ? showMyDevices : false;
+                        : isMyDevices ? showMyDevices
+                        : isCloud ? !!activeCloud[l.id]
+                        : false;
                       return (
                         <button
                           key={l.id}
@@ -1971,6 +1974,10 @@ const IntelligenceMapModule = () => {
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
                             else if (isMyDevices) setShowMyDevices((p) => !p);
+                            else if (isCloud) {
+                              setActiveCloud((p) => ({ ...p, [l.id]: !p[l.id] }));
+                              void refreshCloudLayer(l.id);
+                            }
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors ${
@@ -1988,6 +1995,15 @@ const IntelligenceMapModule = () => {
                           )}
                           {isThreat && isActive && (
                             <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
+                          )}
+                          {isCloud && isActive && (
+                            <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">
+                              {l.id === "cloud-contacts" ? cloudLayer.contacts.length
+                                : l.id === "cloud-venues" ? cloudLayer.venues.length
+                                : l.id === "cloud-security" ? cloudLayer.security.length
+                                : l.id === "cloud-relationships" ? cloudLayer.relationships.length
+                                : 0}
+                            </span>
                           )}
                         </button>
                       );
