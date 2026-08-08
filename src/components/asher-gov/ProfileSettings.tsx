@@ -6,6 +6,7 @@ import { X, User as UserIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import IconUploader from "./IconUploader";
+import { validateDisplayName } from "@/lib/auth/blockedNames";
 
 export default function ProfileSettings({
   open, onClose, userId, defaultEmail,
@@ -42,6 +43,12 @@ export default function ProfileSettings({
   };
 
   const saveName = async () => {
+    // Advisory check; public.tg_guard_display_name rejects the write regardless.
+    const nameCheck = validateDisplayName(displayName);
+    if (nameCheck.ok === false) {
+      toast.error(nameCheck.reason);
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase.from("profiles")
@@ -49,7 +56,10 @@ export default function ProfileSettings({
       if (error) throw error;
       toast.success("Profile updated");
       onClose();
-    } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      toast.error(msg.includes("reserved_display_name") ? "That name is reserved. Please choose another." : (msg || "Save failed"));
+    }
     finally { setSaving(false); }
   };
 

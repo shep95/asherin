@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
+import { validateDisplayName } from "@/lib/auth/blockedNames";
 
 interface AuthOverlayProps {
   isLogin: boolean;
@@ -19,6 +20,10 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
+  // Advisory only — public.tg_guard_display_name is the authoritative gate.
+  const nameCheck = validateDisplayName(name);
+  const nameError = !isLogin && nameTouched && nameCheck.ok === false ? nameCheck.reason : null;
   const { toast } = useToast();
   const location = useLocation();
 
@@ -31,6 +36,13 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+    if (!isLogin && nameCheck.ok === false) {
+      // Surface the reason inline rather than round-tripping to the server for
+      // a rejection we can already prove locally.
+      setNameTouched(true);
+      toast({ title: "Choose a different name", description: nameCheck.reason, variant: "destructive" });
+      return;
+    }
     setLoading(true);
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -43,7 +55,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
     } else {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { data: { name }, emailRedirectTo: window.location.origin },
+        options: { data: { name: name.trim() }, emailRedirectTo: window.location.origin },
       });
       setLoading(false);
       if (error) {
@@ -161,8 +173,24 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
             <form onSubmit={handleAuth} className="space-y-4">
               {!isLogin && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Name</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-xl border border-border/40 bg-background/50 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
+                  <label htmlFor="signup-name" className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Name</label>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={() => setNameTouched(true)}
+                    placeholder="Your name"
+                    maxLength={50}
+                    aria-invalid={nameError ? true : undefined}
+                    aria-describedby={nameError ? "signup-name-error" : undefined}
+                    className={`w-full rounded-xl border bg-background/50 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors ${nameError ? "border-destructive/60 focus:border-destructive" : "border-border/40 focus:border-foreground/30"}`}
+                  />
+                  {nameError && (
+                    <p id="signup-name-error" role="alert" className="mt-1.5 text-xs font-extralight text-destructive">
+                      {nameError}
+                    </p>
+                  )}
                 </div>
               )}
               <div>
