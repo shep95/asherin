@@ -91,6 +91,9 @@ interface Props {
   mapContext: Record<string, any>;
   onAction: (a: MapAction) => Promise<string | void>;
   onClose?: () => void;
+  /** Fires whenever the dock expands or collapses so the map chrome can
+   *  reserve horizontal space and never render controls underneath it. */
+  onDockedChange?: (docked: boolean) => void;
 }
 
 interface Msg {
@@ -101,8 +104,9 @@ interface Msg {
   actions?: { label: string; status: "ok" | "fail" | "info" }[];
 }
 
-const AsherAIPanel = ({ mapContext, onAction }: Props) => {
+const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
   const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => { onDockedChange?.(!collapsed); }, [collapsed, onDockedChange]);
   const [messages, setMessages] = useState<Msg[]>([
     {
       id: "welcome",
