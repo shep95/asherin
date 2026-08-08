@@ -581,9 +581,13 @@ async function dorkBatteryLeg(
           hints: {
             domain,
             location: subject.locationHint || undefined,
-            // Hard identifiers are passed as employer-adjacent context so the
-            // engine can bind phone/alt-address theories to the same subject.
-            employer: undefined,
+            // Every hard identifier on the record is bound into the target so
+            // the doctrine scopes its 55 domains around the subject's phone
+            // and alternate addresses too — not the name alone, which is the
+            // weakest anchor and the one that produces collision hits.
+            employer: subject.identifiers.length
+              ? `bound identifiers: ${subject.identifiers.slice(0, 4).join(", ")}`
+              : undefined,
           },
         },
         // A contact report runs this leg for every dossier opened, so the cap
