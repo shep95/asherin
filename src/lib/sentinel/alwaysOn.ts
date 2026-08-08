@@ -512,6 +512,8 @@ async function disengage(): Promise<void> {
   if (areaTimer != null) { window.clearInterval(areaTimer); areaTimer = null; }
   if (netTimer != null) { window.clearInterval(netTimer); netTimer = null; }
   if (tradeTimer != null) { window.clearInterval(tradeTimer); tradeTimer = null; }
+  if (meshTimer != null) { window.clearInterval(meshTimer); meshTimer = null; }
+
   stopGeo();
   await stopRadio();
   try { await wakeLock?.release?.(); } catch { /* noop */ }
