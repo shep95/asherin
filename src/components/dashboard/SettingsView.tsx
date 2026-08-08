@@ -10,6 +10,7 @@ import AIKeysSettings from "./AIKeysSettings";
 import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
 
 import { isAdminEmail } from "@/lib/adminEmail";
+import { validateDisplayName } from "@/lib/auth/blockedNames";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 
 const WALLPAPERS = ALL_WALLPAPERS;
