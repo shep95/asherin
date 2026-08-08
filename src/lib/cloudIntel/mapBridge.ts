@@ -47,6 +47,18 @@ export interface CloudMapQuery {
   sinceDays?: number;
 }
 
+export interface VenueInput {
+  label: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  visits?: number;
+  totalHours?: number;
+  nextPredicted?: string;
+  confidence?: number;
+  source?: string;
+}
+
 const NOMINATIM = "https://nominatim.openstreetmap.org";
 
 interface GeocodeCache {
@@ -91,17 +103,18 @@ async function geocode(address: string): Promise<GeocodeCache | null> {
   }
 }
 
-/** Extract every location string from a contact dossier payload. */
+/** Extract every location string from a dossier payload. */
 function locationsFromDossier(dossier: Record<string, any>): string[] {
-  const out: string[] = [];
+  const out = new Set<string>();
   const push = (v: any) => {
-    if (typeof v === "string" && v.length > 3) out.push(v);
+    if (typeof v === "string" && v.length > 3) out.add(v);
   };
-  const walk = (obj: any) => {
-    if (!obj) return;
-    if (Array.isArray(obj)) obj.forEach(walk);
-    else if (typeof obj === "object") {
-      Object.entries(obj).forEach(([k, v]) => {
+  const walk = (obj: any, depth = 0) => {
+    if (!obj || depth > 8) return;
+    if (Array.isArray(obj)) {
+      obj.forEach((item) => walk(item, depth + 1));
+    } else if (typeof obj === "object") {
+      for (const [k, v] of Object.entries(obj)) {
         const kl = k.toLowerCase();
         if (
           kl.includes("address") ||
@@ -111,25 +124,37 @@ function locationsFromDossier(dossier: Record<string, any>): string[] {
           kl.includes("country") ||
           kl.includes("place") ||
           kl.includes("coordinates") ||
-          kl.includes("lat") ||
-          kl.includes("lng")
+          kl === "lat" ||
+          kl === "lng" ||
+          kl === "latitude" ||
+          kl === "longitude"
         ) {
           push(v);
+        } else if (typeof v === "object") {
+          walk(v, depth + 1);
         }
-        if (typeof v === "object" && !(kl.includes("lat") || kl.includes("lng"))) walk(v);
-      });
+      }
     }
   };
   walk(dossier);
-  return [...new Set(out)].filter(Boolean);
+  return [...out].filter(Boolean);
 }
 
 /** Prefer explicit lat/lng in a dossier when present. */
 function explicitLatLng(dossier: Record<string, any>): LatLng | null {
-  const lat = Number(dossier?.location?.latitude ?? dossier?.latitude ?? dossier?.lat ?? dossier?.coordinates?.lat ?? dossier?.coordinates?.latitude ?? NaN);
-  const lng = Number(dossier?.location?.longitude ?? dossier?.longitude ?? dossier?.lng ?? dossier?.coordinates?.lng ?? dossier?.coordinates?.longitude ?? NaN);
-  if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
-  return null;
+  const pick = (obj: any): LatLng | null => {
+    if (!obj || typeof obj !== "object") return null;
+    const lat = Number(
+      obj.latitude ?? obj.lat ?? obj?.location?.latitude ?? obj?.coordinates?.lat ?? obj?.coordinates?.latitude ?? NaN
+    );
+    const lng = Number(
+      obj.longitude ?? obj.lng ?? obj?.location?.longitude ?? obj?.coordinates?.lng ?? obj?.coordinates?.longitude ?? NaN
+    );
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) return { lat, lng };
+    return null;
+  };
+  if (!dossier || typeof dossier !== "object") return null;
+  return pick(dossier) || pick(dossier.location) || pick(dossier.coordinates) || null;
 }
 
 async function contactFeatures(userId: string, limit: number): Promise<CloudMapFeature[]> {
@@ -145,7 +170,8 @@ async function contactFeatures(userId: string, limit: number): Promise<CloudMapF
   if (!dossiers) return out;
 
   for (const d of dossiers) {
-    const explicit = explicitLatLng(d.dossier);
+    const dossier = (d.dossier || {}) as Record<string, any>;
+    const explicit = explicitLatLng(dossier);
     if (explicit) {
       out.push({
         id: `dossier-${d.id}`,
@@ -154,20 +180,19 @@ async function contactFeatures(userId: string, limit: number): Promise<CloudMapF
         lng: explicit.lng,
         label: d.subject_name || "Unknown contact",
         caption: `Explicit coordinates in dossier${d.source_account ? ` · ${d.source_account}` : ""}`,
-        confidence: Math.min(1, Math.max(0.3, d.confidence ?? 0.7)),
+        confidence: Math.min(1, Math.max(0.3, Number(d.confidence) || 0.7)),
         source: "mesh_dossier",
         dossierId: d.id,
         subjectEmail: d.subject_email,
         subjectName: d.subject_name,
-        payload: d.dossier,
+        payload: dossier,
       });
       continue;
     }
 
-    const locations = locationsFromDossier(d.dossier);
+    const locations = locationsFromDossier(dossier);
     if (!locations.length) continue;
 
-    // Geocode the first resolved location; subsequent ones create separate pins.
     for (const loc of locations.slice(0, 2)) {
       const g = await geocode(loc);
       if (!g) continue;
@@ -178,29 +203,17 @@ async function contactFeatures(userId: string, limit: number): Promise<CloudMapF
         lng: g.lng,
         label: d.subject_name || "Unknown contact",
         caption: `Derived from dossier location: ${g.display}${d.source_account ? ` · ${d.source_account}` : ""}`,
-        confidence: Math.min(0.75, Math.max(0.25, (d.confidence ?? 0.5) * 0.8)),
+        confidence: Math.min(0.75, Math.max(0.25, (Number(d.confidence) || 0.5) * 0.8)),
         source: "mesh_dossier_geocoded",
         dossierId: d.id,
         subjectEmail: d.subject_email,
         subjectName: d.subject_name,
-        payload: { locationHint: loc, dossier: d.dossier },
+        payload: { locationHint: loc, dossier },
       });
     }
   }
 
   return out;
-}
-
-export interface VenueInput {
-  label: string;
-  address?: string;
-  lat?: number;
-  lng?: number;
-  visits?: number;
-  totalHours?: number;
-  nextPredicted?: string;
-  confidence?: number;
-  source?: string;
 }
 
 export async function venueFeatures(venues: VenueInput[]): Promise<CloudMapFeature[]> {
@@ -223,10 +236,10 @@ export async function venueFeatures(venues: VenueInput[]): Promise<CloudMapFeatu
     }
 
     out.push({
-      id: `venue-${v.label}-${lat!.toFixed(4)}-${lng!.toFixed(4)}`,
+      id: `venue-${v.label}-${lat.toFixed(4)}-${lng.toFixed(4)}`,
       kind: "venue",
-      lat: lat!,
-      lng: lng!,
+      lat,
+      lng,
       label: v.label,
       caption,
       confidence: Math.min(1, Math.max(0.3, v.confidence ?? 0.6)),
@@ -237,81 +250,92 @@ export async function venueFeatures(venues: VenueInput[]): Promise<CloudMapFeatu
   return out;
 }
 
-async function securityFeatures(userId: string, sinceDays: number): Promise<CloudMapFeature[]> {
+async function securityFeatures(sinceDays: number): Promise<CloudMapFeature[]> {
   const out: CloudMapFeature[] = [];
   const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
 
-  const [{ data: securityEvents }, { data: signals }] = await Promise.all([
-    supabase
-      .from("security_events")
-      .select("id, event_type, severity, ip_address, location, occurred_at, details, metadata")
-      .eq("user_id", userId)
-      .gte("occurred_at", since)
-      .order("occurred_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("google_signals")
-      .select("id, source, kind, actor_email, actor_name, subject, snippet, metadata, occurred_at")
-      .eq("user_id", userId)
-      .gte("occurred_at", since)
-      .order("occurred_at", { ascending: false })
-      .limit(200),
-  ]);
+  const { data: securityEvents } = await supabase
+    .from("security_events")
+    .select("id, event_type, severity, source_ip, geo_country, geo_city, metadata, created_at, detection_rule, action_taken")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(200);
 
-  if (securityEvents) {
-    for (const e of securityEvents) {
-      const explicit = explicitLatLng(e.metadata) || explicitLatLng(e.location) || explicitLatLng(e.details);
-      const locations = e.location
-        ? [typeof e.location === "string" ? e.location : JSON.stringify(e.location)]
-        : locationsFromDossier(e.details || e.metadata || {});
+  if (!securityEvents) return out;
 
-      const resolve = async (): Promise<LatLng | null> => {
-        if (explicit) return explicit;
-        if (!locations.length) return null;
-        const g = await geocode(locations[0]);
-        return g ? { lat: g.lat, lng: g.lng } : null;
-      };
+  for (const e of securityEvents) {
+    const metadata = (e.metadata || {}) as Record<string, any>;
+    const explicit = explicitLatLng(metadata);
+    const locations = explicit ? [] : locationsFromDossier(metadata);
+    const locationStrings = [
+      explicit ? null : e.geo_city && e.geo_country ? `${e.geo_city}, ${e.geo_country}` : null,
+      e.geo_country,
+      locations.length ? locations[0] : null,
+    ].filter(Boolean) as string[];
 
-      const pos = await resolve();
-      if (!pos) continue;
+    const resolve = async (): Promise<LatLng | null> => {
+      if (explicit) return explicit;
+      for (const addr of locationStrings) {
+        const g = await geocode(addr);
+        if (g) return { lat: g.lat, lng: g.lng };
+      }
+      return null;
+    };
 
-      out.push({
-        id: `sec-${e.id}`,
-        kind: "security",
-        lat: pos.lat,
-        lng: pos.lng,
-        label: e.event_type || "Security event",
-        caption: `${e.event_type} · severity ${e.severity ?? "unknown"}${e.ip_address ? ` · IP ${e.ip_address}` : ""}${e.occurred_at ? ` · ${new Date(e.occurred_at).toLocaleString()}` : ""}`,
-        confidence: 0.7,
-        source: "security_events",
-        occurredAt: e.occurred_at,
-        payload: e,
-      });
-    }
+    const pos = await resolve();
+    if (!pos) continue;
+
+    out.push({
+      id: `sec-${e.id}`,
+      kind: "security",
+      lat: pos.lat,
+      lng: pos.lng,
+      label: e.event_type || "Security event",
+      caption: `${e.event_type} · severity ${e.severity ?? "unknown"}${e.source_ip ? ` · IP ${e.source_ip}` : ""}${e.geo_city ? ` · ${e.geo_city}, ${e.geo_country || ""}` : ""} · ${e.detection_rule} → ${e.action_taken}${e.created_at ? ` · ${new Date(e.created_at).toLocaleString()}` : ""}`,
+      confidence: 0.7,
+      source: "security_events",
+      occurredAt: e.created_at,
+      payload: e as unknown as Record<string, any>,
+    });
   }
 
-  if (signals) {
-    for (const s of signals) {
-      // Only signals with location metadata are worth plotting.
-      const locations = locationsFromDossier(s.metadata || {});
-      if (!locations.length) continue;
-      const g = await geocode(locations[0]);
-      if (!g) continue;
-      out.push({
-        id: `sig-${s.id}`,
-        kind: "security",
-        lat: g.lat,
-        lng: g.lng,
-        label: s.actor_name || s.actor_email || s.source,
-        caption: `${s.kind} · ${s.subject || s.snippet || ""}`.trim(),
-        confidence: 0.5,
-        source: `google_signals:${s.source}`,
-        occurredAt: s.occurred_at,
-        subjectEmail: s.actor_email,
-        subjectName: s.actor_name,
-        payload: s,
-      });
-    }
+  return out;
+}
+
+async function signalFeatures(userId: string, sinceDays: number): Promise<CloudMapFeature[]> {
+  const out: CloudMapFeature[] = [];
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+
+  const { data: signals } = await supabase
+    .from("google_signals")
+    .select("id, source, kind, actor_email, actor_name, subject, snippet, metadata, occurred_at")
+    .eq("user_id", userId)
+    .gte("occurred_at", since)
+    .order("occurred_at", { ascending: false })
+    .limit(200);
+
+  if (!signals) return out;
+
+  for (const s of signals) {
+    const metadata = (s.metadata || {}) as Record<string, any>;
+    const locations = locationsFromDossier(metadata);
+    if (!locations.length) continue;
+    const g = await geocode(locations[0]);
+    if (!g) continue;
+    out.push({
+      id: `sig-${s.id}`,
+      kind: "security",
+      lat: g.lat,
+      lng: g.lng,
+      label: s.actor_name || s.actor_email || s.source,
+      caption: `${s.kind} · ${s.subject || s.snippet || ""}`.trim(),
+      confidence: 0.5,
+      source: `google_signals:${s.source}`,
+      occurredAt: s.occurred_at,
+      subjectEmail: s.actor_email,
+      subjectName: s.actor_name,
+      payload: s as unknown as Record<string, any>,
+    });
   }
 
   return out;
@@ -355,12 +379,14 @@ export async function loadCloudMapLayer(q: CloudMapQuery = {}): Promise<CloudMap
   const userId = session?.user?.id;
   if (!userId) return { contacts: [], venues: [], security: [], relationships: [] };
 
-  const [contacts, venues, security] = await Promise.all([
+  const [contacts, venues, securityEvents, signalEvents] = await Promise.all([
     q.contacts !== false ? contactFeatures(userId, q.limit ?? 50) : Promise.resolve([]),
     q.venues ? venueFeatures([]) : Promise.resolve([]),
-    q.security ? securityFeatures(userId, q.sinceDays ?? 30) : Promise.resolve([]),
+    q.security ? securityFeatures(q.sinceDays ?? 30) : Promise.resolve([]),
+    q.security ? signalFeatures(userId, q.sinceDays ?? 30) : Promise.resolve([]),
   ]);
 
+  const security = [...securityEvents, ...signalEvents];
   const relationships = q.relationships !== false && contacts.length > 0
     ? relationshipFeatures(contacts)
     : [];
