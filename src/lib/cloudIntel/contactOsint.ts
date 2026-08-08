@@ -170,6 +170,14 @@ export interface OsintAnnex {
    * subject string) — never silently omitted.
    */
   dork: DorkBatterySummary | null;
+  /**
+   * Face imagery attributed to a resolved identity cluster. URLs only; the
+   * viewer fetches them through the SSRF-guarded intel-avatar proxy so the
+   * report never hot-links a third-party host from the operator's browser.
+   */
+  imagery: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  /** Claimed relatives from the cluster's people-directory documents. */
+  kin: string[];
 }
 
 /** A per-identifier exposure register, folded down for report rendering. */
