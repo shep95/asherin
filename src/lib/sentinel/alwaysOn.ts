@@ -389,6 +389,10 @@ export function bootSentinel(): void {
 
   watchdogTimer ??= window.setInterval(() => { void watchdog(); }, WATCHDOG_MS);
 
+  // Diagnostic surface: lets support confirm the watch is live on a real device
+  // without asking the user to read logs. Read-only snapshot, no secrets.
+  (window as any).__sentinelProbe = () => ({ ...state });
+
   // Arm on boot when the user has not disarmed.
   if (state.armed) void engage();
 }
