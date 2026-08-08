@@ -312,7 +312,7 @@ serve(async (req) => {
       ? undefined
       : near.length
         ? "Camera positions only. No transport agency in this area publishes an open live feed, so no frames are available — positions are OpenStreetMap-tagged devices."
-        : "No open public camera feed covers this corridor. Live frames are currently available where a DOT publishes an unauthenticated CCTV catalogue (California statewide today); everywhere else only OpenStreetMap-tagged camera positions exist.";
+        : "No open public camera feed covers this corridor. Live frames are currently available where an agency publishes an unauthenticated CCTV catalogue (California, New York State and Greater London today); everywhere else only OpenStreetMap-tagged camera positions exist.";
 
     return new Response(JSON.stringify({ success: true, cameras: near, sources, coverageNote }), {
       headers: { ...cors, "Content-Type": "application/json" },
