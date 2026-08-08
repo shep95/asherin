@@ -1,0 +1,457 @@
+/**
+ * SENTINEL — nearby-radio stalker detection + area risk alerting.
+ *
+ * Actions (all bound to auth.uid(); nothing accepts a user id from the body):
+ *   settings.get / settings.set
+ *   ble.ingest   → a batch of advertisements from one foreground scan session
+ *   ble.list     → the device log with recurrence aggregates and dossiers
+ *   ble.mark     → mark a radio as your own / mute it
+ *   ble.dossier  → force a dossier build for one radio
+ *   geo.check    → risk assessment for the caller's current coordinates
+ *   geo.list     → recent area-entry alerts
+ *
+ * Alerting contract: the inbox row is written first and unconditionally by
+ * notifyIntel(); push and email are best-effort transports layered on top.
+ */
+
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { getCorsHeaders } from "../_shared/cors.ts";
+import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
+import { callByokJsonWithRetry } from "../_shared/zophielByokRouter.ts";
+import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "../_shared/jurisdictionalIntel.ts";
+import { notifyIntel } from "../_shared/intelNotify.ts";
+import {
+  fingerprint, classifyKind, displayNameFor, estimateDistance, metersToFeet,
+  placeKey, assessRecurrence, inferSelf, parseJsonLoose, reverseGeocode,
+  BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
+  type AdvertInput, type DeviceKind,
+} from "../_shared/bleSentinel.ts";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const admin = () => createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+const json = (b: unknown, s: number, cors: Record<string, string>) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+
+const DEFAULT_SETTINGS = {
+  recurrence_threshold: 3,
+  ignore_audio: true,
+  min_rssi: -95,
+  ble_enabled: true,
+  geo_enabled: true,
+  push_enabled: true,
+  email_enabled: true,
+};
+
+async function loadSettings(userId: string) {
+  const { data } = await admin().from("sentinel_settings").select("*").eq("user_id", userId).maybeSingle();
+  return { ...DEFAULT_SETTINGS, ...(data || {}) };
+}
+
+function cfgFrom(key: { mode: string; geminiKey?: string; byok?: any }) {
+  return key.mode === "admin"
+    ? { provider: "google" as const, model: "gemini-flash-latest", apiKey: key.geminiKey! }
+    : key.byok!;
+}
+
+/** Bounded, wall-clock-capped multi-angle collection. A dead angle thins the
+ *  dossier; it never fails it. */
+async function collect(angles: Array<{ label: string; query: string }>, budgetMs: number): Promise<string> {
+  const started = Date.now();
+  const blocks: string[] = [];
+  const queue = [...angles];
+  const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+    while (queue.length) {
+      if (Date.now() - started > budgetMs) return;
+      const a = queue.shift();
+      if (!a) return;
+      try {
+        const intent = classifyIntent(a.query);
+        if (intent.kind === "none") { blocks.push(`### ${a.label}\n(no jurisdiction resolved)`); continue; }
+        const bundle = await runJurisdictionalSearch(intent);
+        const body = formatIntelContext(bundle).trim();
+        blocks.push(`### ${a.label}\n${body || "(searched — nothing surfaced)"}`);
+      } catch (e) {
+        blocks.push(`### ${a.label}\n(collection failed: ${(e as Error).message?.slice(0, 120) ?? "unknown"})`);
+      }
+    }
+  });
+  await Promise.allSettled(workers);
+  return blocks.join("\n\n");
+}
+
+// ── Dossier for one radio ──────────────────────────────────────────────────
+
+async function buildDeviceDossier(row: any, cfg: any) {
+  const name = row.display_name as string;
+  const maker = row.manufacturer as string | null;
+  const research = await collect([
+    { label: "Hardware identification", query: `"${name}" ${maker || ""} bluetooth device what is it specifications` },
+    { label: "Covert-tracking misuse", query: `${maker || name} bluetooth tracker stalking unwanted tracking reports` },
+    { label: "Detection & countermeasures", query: `how to find hidden ${row.inferred_kind === "tracker" ? "bluetooth tracker tag" : `${name} bluetooth device`} on your person or car` },
+  ], 30_000);
+
+  const raw = await callByokJsonWithRetry(
+    cfg,
+    BLE_DOSSIER_SYSTEM,
+    buildDossierPrompt({
+      displayName: name,
+      manufacturer: maker,
+      kind: row.inferred_kind,
+      serviceUuids: row.service_uuids || [],
+      encounterCount: row.encounter_count,
+      distinctDays: row.distinct_days,
+      distinctPlaces: row.distinct_places,
+      closestMeters: row.closest_distance_m != null ? Number(row.closest_distance_m) : null,
+      firstSeen: row.first_seen,
+      lastSeen: row.last_seen,
+      research,
+    }),
+    { temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2 },
+  );
+  const parsed = parseJsonLoose(raw);
+  if (!parsed.headline) {
+    parsed.headline = `${name} — recurring nearby radio`;
+    parsed.grade = "THIN";
+  }
+  (parsed as any).research_note = research ? "Open-source collection ran across three angles." : "No open-source collection returned.";
+  return parsed as Record<string, any>;
+}
+
+async function alertDevice(userId: string, userEmail: string | null, row: any, verdict: any, dossier: Record<string, any>, settings: any) {
+  const closest = row.closest_distance_m != null ? Number(row.closest_distance_m) : null;
+  await notifyIntel({
+    userId,
+    userEmail,
+    kind: "sentinel",
+    severity: verdict.tier === "breach" ? "critical" : "notable",
+    title: `Recurring nearby device — ${row.display_name}`,
+    body: String(dossier.assessment || verdict.reason),
+    subjectName: row.display_name,
+    source: "Bluetooth Sentinel",
+    url: `/dashboard?tab=cloud-intel&module=sentinel&device=${row.id}`,
+    sections: [
+      { label: "Pattern", value: verdict.reason },
+      { label: "Closest approach", value: closest != null ? `${closest} m (~${metersToFeet(closest)} ft)` : "not measurable" },
+      { label: "Hardware class", value: String(dossier.device_class || row.inferred_kind) },
+      { label: "Confidence", value: `${String(dossier.grade || "THIN")}` },
+    ],
+    findings: Array.isArray(dossier.actions) ? dossier.actions.map(String) : [],
+    idempotencyKey: `sentinel:ble:${row.id}:${row.encounter_count}`,
+    skipPush: !settings.push_enabled,
+    skipEmail: !settings.email_enabled,
+  });
+}
+
+// ── Aggregate recompute for one device ─────────────────────────────────────
+
+async function recompute(deviceId: string, totalSessions: number) {
+  const { data } = await admin()
+    .from("ble_sightings")
+    .select("session_id, seen_at, place_key, distance_m, rssi")
+    .eq("device_id", deviceId)
+    .order("seen_at", { ascending: false })
+    .limit(2000);
+  const rows = data || [];
+  const sessions = new Set<string>();
+  const days = new Set<string>();
+  const places = new Set<string>();
+  let closest: number | null = null;
+  const rssis: number[] = [];
+  for (const r of rows) {
+    if (r.session_id) sessions.add(r.session_id);
+    if (r.seen_at) days.add(String(r.seen_at).slice(0, 10));
+    if (r.place_key) places.add(r.place_key);
+    if (r.distance_m != null) {
+      const d = Number(r.distance_m);
+      if (closest == null || d < closest) closest = d;
+    }
+    if (typeof r.rssi === "number") rssis.push(r.rssi);
+  }
+  rssis.sort((a, b) => a - b);
+  const median = rssis.length ? rssis[Math.floor(rssis.length / 2)] : null;
+  return {
+    encounter_count: sessions.size,
+    distinct_days: days.size,
+    distinct_places: places.size,
+    sighting_count: rows.length,
+    closest_distance_m: closest,
+    presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
+    median_rssi: median,
+  };
+}
+
+Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+
+  let body: Record<string, unknown> = {};
+  try { body = await req.json(); } catch { return json({ error: "invalid_json" }, 400, cors); }
+  const action = String(body.action || "");
+
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401, cors);
+  const anon = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+  const { data: { user }, error: uErr } = await anon.auth.getUser(authHeader.slice(7));
+  if (uErr || !user) return json({ error: "unauthorized" }, 401, cors);
+  const userId = user.id;
+  const userEmail = user.email ?? null;
+  const db = admin();
+
+  try {
+    switch (action) {
+      case "settings.get":
+        return json({ settings: await loadSettings(userId) }, 200, cors);
+
+      case "settings.set": {
+        const p = (body.settings || {}) as Record<string, unknown>;
+        const patch: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
+        if (typeof p.recurrence_threshold === "number") patch.recurrence_threshold = Math.min(20, Math.max(2, Math.round(p.recurrence_threshold)));
+        if (typeof p.min_rssi === "number") patch.min_rssi = Math.min(-30, Math.max(-110, Math.round(p.min_rssi)));
+        for (const k of ["ignore_audio", "ble_enabled", "geo_enabled", "push_enabled", "email_enabled"]) {
+          if (typeof p[k] === "boolean") patch[k] = p[k];
+        }
+        await db.from("sentinel_settings").upsert(patch, { onConflict: "user_id" });
+        return json({ settings: await loadSettings(userId) }, 200, cors);
+      }
+
+      // ── Ingest one scan session ─────────────────────────────────────────
+      case "ble.ingest": {
+        const settings = await loadSettings(userId);
+        const sessionId = String(body.sessionId || "").slice(0, 64);
+        if (!sessionId) return json({ error: "session_required" }, 400, cors);
+        const scannerLabel = String(body.scannerLabel || "device").slice(0, 60);
+        const adverts = Array.isArray(body.adverts) ? (body.adverts as AdvertInput[]).slice(0, 120) : [];
+        if (!adverts.length) return json({ ingested: 0, alerts: [] }, 200, cors);
+
+        // Total distinct sessions ever, for the self-device presence ratio.
+        const { data: sess } = await db.from("ble_sightings").select("session_id").eq("user_id", userId).limit(5000);
+        const totalSessions = new Set([...(sess || []).map((r: any) => r.session_id), sessionId]).size;
+
+        const touched: string[] = [];
+        for (const a of adverts) {
+          if (typeof a?.rssi === "number" && a.rssi < settings.min_rssi) continue;
+          const fp = await fingerprint(a);
+          const uuids = Array.isArray(a.serviceUuids) ? a.serviceUuids.slice(0, 12).map(String) : [];
+          const kind: DeviceKind = classifyKind(a.name ?? null, a.manufacturer ?? null, uuids);
+          const dist = estimateDistance(a.rssi ?? null, a.txPower ?? null);
+          const pk = placeKey(a.lat, a.lng);
+
+          const { data: dev } = await db.from("ble_devices").upsert({
+            user_id: userId,
+            fingerprint: fp,
+            display_name: displayNameFor(a.name ?? null, a.manufacturer ?? null, kind, fp),
+            raw_name: a.name ?? null,
+            manufacturer: a.manufacturer ?? null,
+            inferred_kind: kind,
+            service_uuids: uuids,
+            last_seen: new Date(a.ts || Date.now()).toISOString(),
+            last_rssi: typeof a.rssi === "number" ? Math.round(a.rssi) : null,
+            last_distance_m: dist,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id,fingerprint" }).select("id").maybeSingle();
+          if (!dev?.id) continue;
+
+          await db.from("ble_sightings").insert({
+            user_id: userId,
+            device_id: dev.id,
+            seen_at: new Date(a.ts || Date.now()).toISOString(),
+            rssi: typeof a.rssi === "number" ? Math.round(a.rssi) : null,
+            distance_m: dist,
+            lat: typeof a.lat === "number" ? a.lat : null,
+            lng: typeof a.lng === "number" ? a.lng : null,
+            accuracy_m: typeof a.accuracy === "number" ? a.accuracy : null,
+            place_key: pk,
+            scanner_label: scannerLabel,
+            session_id: sessionId,
+          });
+          if (!touched.includes(dev.id)) touched.push(dev.id);
+        }
+
+        // Recompute aggregates and run the recurrence doctrine.
+        const alerts: any[] = [];
+        let dossiersBuilt = 0;
+        for (const id of touched) {
+          const agg = await recompute(id, totalSessions);
+          const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
+          if (!row) continue;
+
+          const selfReason = row.is_self ? row.self_reason : inferSelf(agg.presence_ratio, agg.encounter_count, agg.median_rssi);
+          const isSelf = row.is_self || !!selfReason;
+
+          const verdict = assessRecurrence({
+            encounterCount: agg.encounter_count,
+            distinctDays: agg.distinct_days,
+            distinctPlaces: agg.distinct_places,
+            kind: row.inferred_kind as DeviceKind,
+            isSelf,
+            isIgnored: row.is_ignored,
+            closestMeters: agg.closest_distance_m,
+            threshold: settings.recurrence_threshold,
+            ignoreAudio: settings.ignore_audio,
+          });
+
+          const patch: Record<string, unknown> = {
+            encounter_count: agg.encounter_count,
+            distinct_days: agg.distinct_days,
+            distinct_places: agg.distinct_places,
+            sighting_count: agg.sighting_count,
+            closest_distance_m: agg.closest_distance_m,
+            is_self: isSelf,
+            self_reason: selfReason ?? row.self_reason,
+            threat_tier: verdict.tier,
+            updated_at: new Date().toISOString(),
+          };
+
+          // Re-alert only when the pattern deepens, never on every ping.
+          const escalated = verdict.shouldAlert &&
+            (!row.last_alert_at || agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+
+          if (escalated && dossiersBuilt < 1) {
+            let key;
+            try { key = await resolveKey(req, body.byok); } catch { key = null; }
+            if (key) {
+              const merged = { ...row, ...patch };
+              const dossier = await buildDeviceDossier(merged, cfgFrom(key)).catch((e) => ({
+                headline: `${row.display_name} — dossier build failed`,
+                grade: "THIN",
+                assessment: `Recurrence confirmed: ${verdict.reason} Open-source enrichment failed (${(e as Error).message?.slice(0, 100)}).`,
+                actions: ["Run your phone's built-in unwanted-tracker scan.", "Physically sweep bag, coat linings and vehicle wheel wells."],
+              }));
+              patch.dossier = dossier;
+              patch.dossier_at = new Date().toISOString();
+              patch.alert_count = (row.alert_count || 0) + 1;
+              patch.last_alert_at = new Date().toISOString();
+              dossiersBuilt++;
+              await alertDevice(userId, userEmail, { ...merged, ...patch }, verdict, dossier, settings).catch((e) =>
+                console.error("sentinel_alert_failed", e instanceof Error ? e.message : e));
+              alerts.push({ deviceId: id, name: row.display_name, tier: verdict.tier, reason: verdict.reason });
+            }
+          }
+          await db.from("ble_devices").update(patch).eq("id", id);
+        }
+
+        return json({ ingested: touched.length, sessions: totalSessions, alerts }, 200, cors);
+      }
+
+      case "ble.list": {
+        const { data } = await db.from("ble_devices").select("*").eq("user_id", userId)
+          .order("last_seen", { ascending: false }).limit(300);
+        return json({ devices: data || [] }, 200, cors);
+      }
+
+      case "ble.mark": {
+        const deviceId = String(body.deviceId || "");
+        if (!deviceId) return json({ error: "device_required" }, 400, cors);
+        const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (typeof body.is_self === "boolean") {
+          patch.is_self = body.is_self;
+          patch.self_reason = body.is_self ? "Confirmed by you as your own hardware." : null;
+        }
+        if (typeof body.is_ignored === "boolean") patch.is_ignored = body.is_ignored;
+        const { data } = await db.from("ble_devices").update(patch).eq("id", deviceId).eq("user_id", userId).select("*").maybeSingle();
+        return json({ device: data }, 200, cors);
+      }
+
+      case "ble.dossier": {
+        const deviceId = String(body.deviceId || "");
+        const { data: row } = await db.from("ble_devices").select("*").eq("id", deviceId).eq("user_id", userId).maybeSingle();
+        if (!row) return json({ error: "not_found" }, 404, cors);
+        let key;
+        try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
+        const dossier = await buildDeviceDossier(row, cfgFrom(key));
+        await db.from("ble_devices").update({ dossier, dossier_at: new Date().toISOString() }).eq("id", deviceId);
+        return json({ dossier }, 200, cors);
+      }
+
+      // ── Area risk ────────────────────────────────────────────────────────
+      case "geo.check": {
+        const settings = await loadSettings(userId);
+        if (!settings.geo_enabled) return json({ skipped: "geo_disabled" }, 200, cors);
+        const lat = Number(body.lat), lng = Number(body.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+          return json({ error: "invalid_coordinates" }, 400, cors);
+        }
+        // ~1.1 km cell: one assessment per neighbourhood, shared and cached.
+        const pk = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+        const nowIso = new Date().toISOString();
+
+        let { data: cached } = await db.from("geo_risk_assessments").select("*").eq("place_key", pk).maybeSingle();
+        if (!cached || cached.expires_at < nowIso) {
+          let key;
+          try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
+          const label = (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+          // Geography is collected from the open web, not the identity stack:
+          // the jurisdictional sweep resolves PEOPLE and returns nothing usable
+          // for "is this block safe", which silently produced UNKNOWN verdicts.
+          const research = await collectAreaEvidence(label);
+          const raw = await callByokJsonWithRetry(cfgFrom(key), GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
+            temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2,
+          });
+          const parsed = parseJsonLoose(raw);
+          const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
+          const { data: saved } = await db.from("geo_risk_assessments").upsert({
+            place_key: pk, lat, lng, place_label: label,
+            risk_level: ["LOW", "ELEVATED", "HIGH", "SEVERE", "UNKNOWN"].includes(level) ? level : "UNKNOWN",
+            risk_score: Number(parsed.risk_score) || 0,
+            summary: String(parsed.summary || parsed.headline || "").slice(0, 4000),
+            payload: parsed,
+            generated_at: nowIso,
+            expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
+          }, { onConflict: "place_key" }).select("*").maybeSingle();
+          cached = saved;
+        }
+        if (!cached) return json({ error: "assessment_failed" }, 502, cors);
+
+        // Alert on entry into an elevated area, at most once per cell per 6 h.
+        let notified = false;
+        if (["ELEVATED", "HIGH", "SEVERE"].includes(cached.risk_level)) {
+          const since = new Date(Date.now() - 6 * 3600e3).toISOString();
+          const { data: recent } = await db.from("geo_risk_events").select("id")
+            .eq("user_id", userId).eq("place_key", pk).gte("created_at", since).limit(1);
+          if (!recent?.length) {
+            const p = (cached.payload || {}) as Record<string, any>;
+            await notifyIntel({
+              userId, userEmail,
+              kind: "sentinel",
+              severity: cached.risk_level === "SEVERE" ? "critical" : "notable",
+              title: `${cached.risk_level} risk area — ${String(cached.place_label || "").split(",").slice(0, 2).join(",")}`,
+              body: String(cached.summary || p.headline || "Elevated risk reported for this area."),
+              subjectName: cached.place_label,
+              source: "Area Sentinel",
+              url: `/dashboard?tab=cloud-intel&module=sentinel`,
+              sections: [
+                { label: "Reported patterns", value: (p.reported_patterns || []).map((x: any) => `${x?.pattern} (${x?.when})`).join("; ") || "none surfaced" },
+                { label: "Area context", value: String(p.group_activity || "none documented") },
+              ],
+              findings: Array.isArray(p.safer_actions) ? p.safer_actions.map(String) : [],
+              idempotencyKey: `sentinel:geo:${userId}:${pk}:${cached.generated_at}`,
+              skipPush: !settings.push_enabled,
+              skipEmail: !settings.email_enabled,
+            }).catch((e) => console.error("geo_alert_failed", e instanceof Error ? e.message : e));
+            notified = true;
+            await db.from("geo_risk_events").insert({
+              user_id: userId, place_key: pk, lat, lng,
+              place_label: cached.place_label, risk_level: cached.risk_level, notified: true,
+            });
+          }
+        }
+        return json({ assessment: cached, notified }, 200, cors);
+      }
+
+      case "geo.list": {
+        const { data } = await db.from("geo_risk_events").select("*").eq("user_id", userId)
+          .order("created_at", { ascending: false }).limit(50);
+        return json({ events: data || [] }, 200, cors);
+      }
+
+      default:
+        return json({ error: "unknown_action" }, 400, cors);
+    }
+  } catch (e) {
+    console.error("sentinel_error", action, e instanceof Error ? e.message : e);
+    return json({ error: "sentinel_failed", detail: (e as Error).message?.slice(0, 300) }, 500, cors);
+  }
+});

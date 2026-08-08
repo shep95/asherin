@@ -2934,6 +2934,152 @@ export type Database = {
           },
         ]
       }
+      ble_devices: {
+        Row: {
+          alert_count: number
+          closest_distance_m: number | null
+          created_at: string
+          display_name: string
+          distinct_days: number
+          distinct_places: number
+          dossier: Json | null
+          dossier_at: string | null
+          encounter_count: number
+          fingerprint: string
+          first_seen: string
+          id: string
+          inferred_kind: string
+          is_ignored: boolean
+          is_self: boolean
+          last_alert_at: string | null
+          last_distance_m: number | null
+          last_rssi: number | null
+          last_seen: string
+          manufacturer: string | null
+          raw_name: string | null
+          self_reason: string | null
+          service_uuids: string[]
+          sighting_count: number
+          threat_tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_count?: number
+          closest_distance_m?: number | null
+          created_at?: string
+          display_name?: string
+          distinct_days?: number
+          distinct_places?: number
+          dossier?: Json | null
+          dossier_at?: string | null
+          encounter_count?: number
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          inferred_kind?: string
+          is_ignored?: boolean
+          is_self?: boolean
+          last_alert_at?: string | null
+          last_distance_m?: number | null
+          last_rssi?: number | null
+          last_seen?: string
+          manufacturer?: string | null
+          raw_name?: string | null
+          self_reason?: string | null
+          service_uuids?: string[]
+          sighting_count?: number
+          threat_tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_count?: number
+          closest_distance_m?: number | null
+          created_at?: string
+          display_name?: string
+          distinct_days?: number
+          distinct_places?: number
+          dossier?: Json | null
+          dossier_at?: string | null
+          encounter_count?: number
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          inferred_kind?: string
+          is_ignored?: boolean
+          is_self?: boolean
+          last_alert_at?: string | null
+          last_distance_m?: number | null
+          last_rssi?: number | null
+          last_seen?: string
+          manufacturer?: string | null
+          raw_name?: string | null
+          self_reason?: string | null
+          service_uuids?: string[]
+          sighting_count?: number
+          threat_tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ble_sightings: {
+        Row: {
+          accuracy_m: number | null
+          created_at: string
+          device_id: string
+          distance_m: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          place_key: string | null
+          rssi: number | null
+          scanner_label: string | null
+          seen_at: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          created_at?: string
+          device_id: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_key?: string | null
+          rssi?: number | null
+          scanner_label?: string | null
+          seen_at?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          created_at?: string
+          device_id?: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_key?: string | null
+          rssi?: number | null
+          scanner_label?: string | null
+          seen_at?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ble_sightings_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "ble_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brains: {
         Row: {
           created_at: string
@@ -4156,6 +4302,84 @@ export type Database = {
           phrase?: string
           reduction?: number
           reverse_ordinal?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      geo_risk_assessments: {
+        Row: {
+          expires_at: string
+          generated_at: string
+          id: string
+          lat: number
+          lng: number
+          payload: Json
+          place_key: string
+          place_label: string | null
+          risk_level: string
+          risk_score: number
+          summary: string | null
+        }
+        Insert: {
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          lat: number
+          lng: number
+          payload?: Json
+          place_key: string
+          place_label?: string | null
+          risk_level?: string
+          risk_score?: number
+          summary?: string | null
+        }
+        Update: {
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          payload?: Json
+          place_key?: string
+          place_label?: string | null
+          risk_level?: string
+          risk_score?: number
+          summary?: string | null
+        }
+        Relationships: []
+      }
+      geo_risk_events: {
+        Row: {
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          notified: boolean
+          place_key: string
+          place_label: string | null
+          risk_level: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notified?: boolean
+          place_key: string
+          place_label?: string | null
+          risk_level?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          notified?: boolean
+          place_key?: string
+          place_label?: string | null
+          risk_level?: string
           user_id?: string
         }
         Relationships: []
@@ -8395,6 +8619,42 @@ export type Database = {
           optimizations_applied?: number | null
           security_patches?: number | null
           status?: string
+        }
+        Relationships: []
+      }
+      sentinel_settings: {
+        Row: {
+          ble_enabled: boolean
+          email_enabled: boolean
+          geo_enabled: boolean
+          ignore_audio: boolean
+          min_rssi: number
+          push_enabled: boolean
+          recurrence_threshold: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ble_enabled?: boolean
+          email_enabled?: boolean
+          geo_enabled?: boolean
+          ignore_audio?: boolean
+          min_rssi?: number
+          push_enabled?: boolean
+          recurrence_threshold?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ble_enabled?: boolean
+          email_enabled?: boolean
+          geo_enabled?: boolean
+          ignore_audio?: boolean
+          min_rssi?: number
+          push_enabled?: boolean
+          recurrence_threshold?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

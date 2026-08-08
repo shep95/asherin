@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
   Eye, TrendingUp, BarChart3, Clock,
-  FileText, Sparkles, Database, ScrollText, ShieldAlert,
+  FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -32,12 +32,13 @@ import GoogleMeshPanel from "./modules/GoogleMeshPanel";
 import SubstrateExplorer from "./modules/SubstrateExplorer";
 import ContactVaultPane from "./modules/ContactVaultPane";
 import RideshareGuardian from "./modules/RideshareGuardian";
+import BluetoothSentinel from "./modules/BluetoothSentinel";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "guardian" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "guardian" | "sentinel" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 /** A directorate is an analytic function, not a product category. */
@@ -83,6 +84,7 @@ const nexusModules: ModuleDef[] = [
   { id: "scenarios", codename: "WARGAME", label: "Scenario Engine", icon: Activity, mandate: "Counterfactual simulation across career, finance and health decision branches", directorate: "FORECAST" },
 
   { id: "guardian", codename: "GUARDIAN", label: "Rideshare & Message Guardian", icon: ShieldAlert, mandate: "Background assessment of the assigned rideshare driver before boarding, plus forensic read of pasted phone-message threads — pushed to device and email", directorate: "COUNTERINTEL" },
+  { id: "sentinel", codename: "SENTINEL", label: "Bluetooth & Area Sentinel", icon: Radar, mandate: "Logs nearby Bluetooth radios, flags the ones recurring across separate times and places as a following pattern, and warns on entry into areas with reported crime or documented group activity — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "security", codename: "BULWARK", label: "Exposure & Threat", icon: Shield, mandate: "Breach exposure, phishing pressure, credential threat chaining and file audit", directorate: "COUNTERINTEL" },
   { id: "automation", codename: "RELAY", label: "Standing Orders", icon: Zap, mandate: "Conditional handling rules — triage, scheduling and location triggers", directorate: "COUNTERINTEL" },
 ];
@@ -164,6 +166,7 @@ const GoogleIntelligenceView = () => {
       case "automation": return <AutomationSuite />;
       case "security": return <SecurityIntelligence />;
       case "guardian": return <RideshareGuardian />;
+      case "sentinel": return <BluetoothSentinel />;
       case "scenarios": return <ScenarioEngine />;
       case "connected": return <ConnectedAppsView />;
       case "youtube": return <YouTubeDataView />;
