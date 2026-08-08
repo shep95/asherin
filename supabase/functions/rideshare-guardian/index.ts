@@ -304,11 +304,21 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         };
 
-        const { data: row, error } = idem
+        // The idempotency index on rideshare_rides is PARTIAL, so PostgREST
+        // cannot infer it for ON CONFLICT. Resolve the prior ride explicitly:
+        // a re-captured card must reuse its ride, not spawn a duplicate.
+        let prior: { id: string } | null = null;
+        if (idem) {
+          const { data: found } = await admin().from("rideshare_rides")
+            .select("id").eq("user_id", userId).eq("idempotency_key", idem).maybeSingle();
+          prior = found ?? null;
+        }
+        const { data: row, error } = prior
           ? await admin().from("rideshare_rides")
-              .upsert(insert, { onConflict: "user_id,idempotency_key" }).select().single()
+              .update(insert).eq("id", prior.id).select().single()
           : await admin().from("rideshare_rides").insert(insert).select().single();
         if (error) throw error;
+
 
         await admin().from("rideshare_reports").upsert({
           ride_id: row.id,
