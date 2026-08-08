@@ -403,9 +403,95 @@ Deno.serve(async (req) => {
         if (!row) return json({ error: "not_found" }, 404, cors);
         let key;
         try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
-        const dossier = await buildDeviceDossier(row, cfgFrom(key));
+        const tc = await loadTradecraft(userId).catch(() => null);
+        const dossier = await buildDeviceDossier(row, cfgFrom(key), tc ? tradecraftBriefFor(deviceId, tc.campaign) : undefined);
+        if (tc) {
+          (dossier as any).tradecraft = tc.campaign.indicators.filter((i) => i.deviceIds.includes(deviceId));
+          (dossier as any).tradecraft_tier = tc.campaign.tier;
+        }
         await db.from("ble_devices").update({ dossier, dossier_at: new Date().toISOString() }).eq("id", deviceId);
         return json({ dossier }, 200, cors);
+      }
+
+      // ── Tradecraft analysis (deterministic, no model required) ───────────
+      case "ble.tradecraft": {
+        const { campaign } = await loadTradecraft(userId);
+        return json({ analysis: campaign, doctrine: TRADECRAFT_DOCTRINE }, 200, cors);
+      }
+
+      // ── Case file: deterministic substrate, model narration on top ───────
+      case "ble.case": {
+        const { campaign, names } = await loadTradecraft(userId);
+        const note = typeof body.note === "string" ? body.note.slice(0, 2000) : "";
+        const fallback = deterministicCase(campaign, names);
+
+        let caseFile: Record<string, unknown> = fallback;
+        let key = null as any;
+        try { key = await resolveKey(req, body.byok); } catch { key = null; }
+        if (key) {
+          try {
+            const raw = await callByokJsonWithRetry(
+              cfgFrom(key),
+              TRADECRAFT_CASE_SYSTEM,
+              buildCasePrompt(campaign, { note, deviceNames: names }),
+              { temperature: 0.15, jsonMode: true, maxOutputTokens: 6144, timeoutMs: 120_000, attempts: 2 },
+            );
+            const parsed = parseJsonLoose(raw);
+            // The facts stay deterministic; the model only narrates them. A
+            // thin or malformed generation must never erase the real analysis.
+            if (parsed && typeof parsed.executive_summary === "string" && parsed.executive_summary.length > 40) {
+              caseFile = { ...fallback, ...parsed, generated_offline: false };
+            }
+          } catch (e) {
+            (caseFile as any).narration_note = `Model narration unavailable (${(e as Error).message?.slice(0, 120)}). The analysis below is the deterministic engine output.`;
+          }
+        } else {
+          (caseFile as any).narration_note = "No model key available — this case file is the deterministic engine output.";
+        }
+
+        const { data: saved } = await db.from("sentinel_cases").insert({
+          user_id: userId,
+          case_reference: String((caseFile as any).case_reference || `BLE-SENTINEL-${new Date().toISOString().slice(0, 10)}`).slice(0, 80),
+          tier: campaign.tier,
+          score: campaign.score,
+          posture: campaign.posture,
+          headline: campaign.headline,
+          analysis: campaign as unknown as Record<string, unknown>,
+          case_file: caseFile,
+          note: note || null,
+        }).select("*").maybeSingle();
+
+        if (campaign.tier === "active" || campaign.tier === "probable") {
+          const settings = await loadSettings(userId);
+          await notifyIntel({
+            userId,
+            userEmail,
+            kind: "sentinel",
+            severity: campaign.tier === "active" ? "critical" : "notable",
+            title: `Stalking case file — ${campaign.headline}`,
+            body: String((caseFile as any).executive_summary || campaign.headline),
+            source: "Bluetooth Sentinel · Tradecraft",
+            url: `/dashboard?tab=cloud-intel&module=sentinel`,
+            sections: [
+              { label: "Tier", value: campaign.tier },
+              { label: "Posture", value: campaign.posture },
+              { label: "Score", value: `${campaign.score}/100` },
+              { label: "Indicators", value: campaign.indicators.map((i) => i.title).join("; ") || "none" },
+            ],
+            findings: Array.isArray((caseFile as any).next_24_hours) ? (caseFile as any).next_24_hours.map(String) : [],
+            idempotencyKey: `sentinel:case:${saved?.id || Date.now()}`,
+            skipPush: !settings.push_enabled,
+            skipEmail: !settings.email_enabled,
+          }).catch((e) => console.error("sentinel_case_notify_failed", e instanceof Error ? e.message : e));
+        }
+
+        return json({ analysis: campaign, caseFile, case: saved || null }, 200, cors);
+      }
+
+      case "ble.cases": {
+        const { data } = await db.from("sentinel_cases").select("*").eq("user_id", userId)
+          .order("created_at", { ascending: false }).limit(25);
+        return json({ cases: data || [] }, 200, cors);
       }
 
       // ── Area risk ────────────────────────────────────────────────────────
