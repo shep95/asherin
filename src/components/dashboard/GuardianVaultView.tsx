@@ -10,6 +10,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
+import {
+  readPushStatus, enableSecurityPush, disableSecurityPush,
+  listRegisteredDevices, removeDevice, sendTestPush, reportSecurityEvent,
+  type PushStatus, type RegisteredDevice,
+} from "@/lib/securityPush";
 
 type VaultTab = "overview" | "sessions" | "activity" | "mfa" | "alerts" | "password";
 
@@ -46,6 +51,7 @@ interface NotifPrefs {
   session_revocation: boolean;
   recovery_code_usage: boolean;
   notify_email: boolean;
+  notify_push: boolean;
   notify_sms: boolean;
 }
 
@@ -57,6 +63,7 @@ const DEFAULT_PREFS: NotifPrefs = {
   session_revocation: true,
   recovery_code_usage: true,
   notify_email: true,
+  notify_push: true,
   notify_sms: false,
 };
 
@@ -108,6 +115,9 @@ const GuardianVaultView = () => {
   const [enrollingTotp, setEnrollingTotp] = useState(false);
   const [enrolledFactorId, setEnrolledFactorId] = useState<string | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [pushStatus, setPushStatus] = useState<PushStatus>({ state: "prompt" });
+  const [pushBusy, setPushBusy] = useState(false);
+  const [devices, setDevices] = useState<RegisteredDevice[]>([]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -136,6 +146,45 @@ const GuardianVaultView = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Device-alert state is read separately from the security rows: it lives in
+  // the browser (permission + subscription) and only then in the database, so
+  // a stale toggle would lie about whether this laptop can actually be reached.
+  const loadDevices = useCallback(async () => {
+    if (!user) return;
+    const [status, list] = await Promise.all([readPushStatus(), listRegisteredDevices()]);
+    setPushStatus(status);
+    setDevices(list);
+  }, [user]);
+
+  useEffect(() => { loadDevices(); }, [loadDevices]);
+
+  const toggleDeviceAlerts = async () => {
+    setPushBusy(true);
+    const next = pushStatus.state === "enabled" ? await disableSecurityPush() : await enableSecurityPush();
+    setPushStatus(next);
+    setDevices(await listRegisteredDevices());
+    setPushBusy(false);
+    if (next.state === "enabled") toast({ title: "This device will now receive security alerts" });
+    else if (next.reason) toast({ title: "Device alerts unavailable", description: next.reason, variant: "destructive" });
+  };
+
+  const testDeviceAlerts = async () => {
+    setPushBusy(true);
+    const res = await sendTestPush();
+    setPushBusy(false);
+    setDevices(await listRegisteredDevices());
+    toast(res.ok
+      ? { title: `Test alert sent to ${res.delivered} device${res.delivered === 1 ? "" : "s"}` }
+      : { title: "Test alert not delivered", description: res.reason ?? "No device accepted the alert.", variant: "destructive" });
+  };
+
+  const forgetDevice = async (endpoint: string) => {
+    const ok = await removeDevice(endpoint);
+    if (!ok) { toast({ title: "Could not remove device", variant: "destructive" }); return; }
+    setDevices(prev => prev.filter(d => d.endpoint !== endpoint));
+    setPushStatus(await readPushStatus());
+  };
+
   useEffect(() => {
     if (!user) return;
     const logVisit = async () => {
@@ -158,6 +207,7 @@ const GuardianVaultView = () => {
       description: "Revoked active session",
       outcome: "success",
     });
+    reportSecurityEvent({ type: "session_revoke", description: "An active session was revoked from Guardian Vault." });
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     toast({ title: "Session revoked" });
   };
@@ -216,6 +266,7 @@ const GuardianVaultView = () => {
         description: "Password changed successfully",
         outcome: "success",
       });
+      reportSecurityEvent({ type: "password_change", description: "Your account password was changed." });
       setPasswordForm({ current: "", new_: "", confirm: "" });
       toast({ title: "Password updated" });
     } catch (e: any) {
