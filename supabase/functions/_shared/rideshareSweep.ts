@@ -339,10 +339,37 @@ export async function runDeepSweep(opts: {
     // the empty object to THIN, which is the honest outcome.
     parsedModel = {};
   }
+
+  // Deterministic evidence outranks a model's self-reported confidence in ONE
+  // direction only: a surname that was recombined from a page carrying this
+  // exact plate is arithmetic we performed ourselves, so it may raise the
+  // binding strength. It may never lower it, and it may never invent a verdict.
+  const anchored = collection.candidates.find((c) => c.plate_anchored);
+  if (anchored && parsedModel && typeof parsedModel === "object") {
+    const pm = parsedModel as Record<string, unknown>;
+    const modelConf = typeof pm.identity_confidence === "number" ? pm.identity_confidence : 0;
+    pm.identity_confidence = Math.max(modelConf, Math.min(anchored.posterior, 0.85));
+  }
+
   const deep = enforceDoctrine(parsedModel, fast);
   const payload = deep.payload as Record<string, unknown>;
   payload.collection_note = collection.note;
   payload.collection_angles = collection.angles;
+  payload.plate_candidates = collection.candidates;
+  payload.unresolved_mass = collection.residual;
+  payload.pivot_resolved_name = collection.resolved_name;
+  // When the model named nobody, the weighted reconstruction is still the most
+  // honest candidate list we have — surfaced with its posteriors intact.
+  if (!Array.isArray(payload.candidates) || !(payload.candidates as unknown[]).length) {
+    payload.candidates = collection.candidates.map((c) => ({
+      name: c.name,
+      age: "",
+      locality: ride.city || "",
+      basis: c.reasons.join("; "),
+      match_confidence: Number(c.posterior.toFixed(3)),
+    }));
+  }
+
 
   const delivered = await deliver(userId, userEmail, ride, deep, settings, rideId);
 
