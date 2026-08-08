@@ -444,6 +444,7 @@ function toAnnex(
     // Filled by the parallel sweep leg in collectContactOsint; the vault
     // dossier itself has no view of identifier circulation.
     identifierSweeps: [],
+    dork: null,
   };
 }
 
@@ -553,6 +554,7 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     gaps: [],
     reverse: null,
     identifierSweeps: [],
+    dork: null,
   };
 }
 
