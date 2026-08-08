@@ -507,7 +507,7 @@ Return strict JSON only:
         return json({ error: "unknown_action" }, 400, cors);
     }
   } catch (e) {
-    console.error("rideshare_guardian_error", action, e instanceof Error ? e.message : e);
-    return json({ error: "guardian_failed", detail: e instanceof Error ? e.message : String(e) }, 500, cors);
+    console.error("rideshare_guardian_error", action, e instanceof Error ? e.message : JSON.stringify(e));
+    return json({ error: "guardian_failed", detail: e instanceof Error ? e.message : JSON.stringify(e)?.slice(0, 300) }, 500, cors);
   }
 });
