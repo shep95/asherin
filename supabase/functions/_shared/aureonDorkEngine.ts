@@ -15,8 +15,17 @@
 //     rate-limits + CAPTCHAs edge-function IPs. zophiel-search fans out to 5
 //     engines (DDG html, Wikipedia, HackerNews, OpenAlex, CrossRef) which is
 //     what actually returns hits from inside the platform.
+//
+// v2 — 55-DOMAIN DOCTRINE (dorkDomainDoctrine.ts):
+//   • The 8 canonical prompts still ship. A 9th "NOVEL SYNTHESIS" call feeds
+//     Gemini the full 55-domain doctrine + 10 root-cause patterns and asks
+//     for cross-domain dorks nobody has documented before — the elite move.
+//   • Novel-synthesis output is tagged category=`novel_synthesis` so the
+//     ledger can rank first-to-find hits separately from canonical hits.
 
 // deno-lint-ignore-file no-explicit-any
+
+import { doctrineDigest, NOVEL_SYNTHESIS_SYSTEM } from "./dorkDomainDoctrine.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -34,7 +43,8 @@ export interface DorkTheory {
 export interface DorkHit { title: string; url: string; snippet: string; host: string }
 export type DorkCategory =
   | "exposed_files" | "open_directories" | "login_portals" | "exposed_dbs"
-  | "sensitive_docs" | "device_feeds" | "credentials_keys" | "attack_surface";
+  | "sensitive_docs" | "device_feeds" | "credentials_keys" | "attack_surface"
+  | "novel_synthesis";
 
 export interface DorkTarget {
   subject: string;
@@ -72,6 +82,17 @@ const HIGH_VALUE_MARKERS = [
   "id_rsa", ".ssh/", ".htpasswd",
   "AKIA", "AIza", "sk_live_", "xoxb-",
   "confidential", "internal use only", "restricted",
+  // 55-domain doctrine surface markers
+  "crt.sh", "_dmarc", "wigle.net", "shodan", "censys",
+  "form 4", "form 990", "13F", "warning letter", "483",
+  "n-number", "airmen inquiry", "vessel documentation",
+  "opencorporates", "companieshouse", "sam.gov",
+  "web.archive.org", "wayback", "orcid.org",
+  "assignee", "acknowledgments", "funded by",
+  "statement of work", "sole source", "toxic release",
+  "H-1B", "prevailing wage", "npi", "medical board",
+  "building permit", "business license", "voter registration",
+  "survived by", "in memory of", "beloved",
 ];
 
 // ── 8 categorical dork-generation micro-prompts ─────────────────────────────
@@ -157,12 +178,18 @@ function parseQueries(raw: string): Array<{ q: string; why: string }> {
   }
 }
 
-// ── Generate 100 theories in 8 parallel calls ───────────────────────────────
+// ── Generate 100+ theories in 9 parallel calls (8 canonical + 1 synthesis) ─
 async function generateTheories(target: DorkTarget, geminiKey: string): Promise<{ theories: DorkTheory[]; via: string }> {
   const user = targetToUser(target);
-  const results = await Promise.allSettled(
-    CAT_PROMPTS.map((c) => callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw }))),
+  // The synthesis call gets the doctrine digest appended so Gemini reasons
+  // over all 55 domains + 10 root causes, not just the target line.
+  const synthesisUser = `${user}\n\n---\n${doctrineDigest()}\n---\n\nProduce the 10 NOVEL cross-domain dorks now.`;
+  const canonical = CAT_PROMPTS.map((c) =>
+    callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw })),
   );
+  const synthesis = callGemini(geminiKey, NOVEL_SYNTHESIS_SYSTEM, synthesisUser)
+    .then((raw) => ({ cat: "novel_synthesis" as DorkCategory, raw }));
+  const results = await Promise.allSettled([...canonical, synthesis]);
   const theories: DorkTheory[] = [];
   const seen = new Set<string>();
   let successes = 0;
@@ -185,7 +212,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       });
     }
   }
-  return { theories, via: successes >= 4 ? "gemini_parallel" : successes > 0 ? "gemini_partial" : "gemini_failed" };
+  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed" };
 }
 
 // ── zophiel-search delegation ───────────────────────────────────────────────
@@ -294,10 +321,13 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
   const { theories, via } = await generateTheories(target, opts.geminiKey);
   const testCap = Math.min(opts.testCap ?? 50, theories.length);
 
-  // Heuristic pre-rank: theories with high-signal operator tokens get tested first.
-  const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws"];
+  // Heuristic pre-rank: high-signal operator tokens + novel_synthesis (first-to-find) go first.
+  const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws", "crt.sh", "form 4", "form 990", "warning letter", "orcid.org", "opencorporates"];
   const scored = theories.map((th, i) => ({
-    th, rank: HOT.reduce((a, k) => a + (th.query.toLowerCase().includes(k.toLowerCase()) ? 5 : 0), 0) - i * 0.001,
+    th,
+    rank: HOT.reduce((a, k) => a + (th.query.toLowerCase().includes(k.toLowerCase()) ? 5 : 0), 0)
+      + (th.category === "novel_synthesis" ? 8 : 0) // elite lift — untested cross-domain dorks
+      - i * 0.001,
   })).sort((a, b) => b.rank - a.rank);
   const toTest = scored.slice(0, testCap).map((s) => s.th);
 
