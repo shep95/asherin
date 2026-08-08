@@ -248,6 +248,10 @@ export interface UseSelfTracking {
   addFence: (f: { label: string; lat: number; lng: number; radiusM: number }) => Geofence;
   removeFence: (id: string) => void;
   clearTrail: () => void;
+  /** High-accuracy burst; keeps only the tightest sample. Never worsens the fix. */
+  refine: () => Promise<SelfFix | null>;
+  refining: boolean;
+
 }
 
 export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEvent?: (e: GeofenceEvent) => void }): UseSelfTracking {
