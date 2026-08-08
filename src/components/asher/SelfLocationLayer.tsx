@@ -80,6 +80,9 @@ function headingCone(fix: SelfFix): [number, number][] | null {
 const SelfLocationLayer = ({ fix, trail, fences, onRemoveFence }: Props) => {
   const path = trail.filter((f) => !f.degraded).map((f) => [f.lat, f.lng] as [number, number]);
   const cone = fix ? headingCone(fix) : null;
+  // Rebuilding the divIcon on every fix would recreate the DOM node ~1×/sec
+  // and kill the pulse animation; it only depends on the degraded flag.
+  const selfIcon = useMemo(() => selfPinIcon(!!fix?.degraded), [fix?.degraded]);
 
   return (
     <>
