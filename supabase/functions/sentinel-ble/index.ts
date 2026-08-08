@@ -347,12 +347,20 @@ Deno.serve(async (req) => {
             try { key = await resolveKey(req, body.byok); } catch { key = null; }
             if (key) {
               const merged = { ...row, ...patch };
-              const dossier = await buildDeviceDossier(merged, cfgFrom(key)).catch((e) => ({
+              // Behavioural read, computed once per ingest and only when an
+              // alert is actually being raised.
+              tcCache ??= await loadTradecraft(userId).catch(() => null);
+              const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
+              const dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch((e) => ({
                 headline: `${row.display_name} — dossier build failed`,
                 grade: "THIN",
                 assessment: `Recurrence confirmed: ${verdict.reason} Open-source enrichment failed (${(e as Error).message?.slice(0, 100)}).`,
                 actions: ["Run your phone's built-in unwanted-tracker scan.", "Physically sweep bag, coat linings and vehicle wheel wells."],
               }));
+              if (tcCache) {
+                (dossier as any).tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
+                (dossier as any).tradecraft_tier = tcCache.campaign.tier;
+              }
               patch.dossier = dossier;
               patch.dossier_at = new Date().toISOString();
               patch.alert_count = (row.alert_count || 0) + 1;
