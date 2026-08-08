@@ -61,9 +61,11 @@ export function useAccess() {
   const canAccess = useCallback((view: DashboardView): boolean => {
     if (!GATING_ENABLED) return true;
     if (isAdmin) return true;
-    // Maximum tier is evaluated before the trial and the loading grace window:
-    // neither a 24h trial nor a slow subscription fetch may open it.
-    if (MAXIMUM_VIEWS.includes(view)) return hasMaximum;
+    // Connected-account surfaces are evaluated before the trial and the
+    // loading grace window: neither a 24h trial nor a slow subscription fetch
+    // may open someone's linked Google mesh.
+    if (CONNECTED_ACCOUNT_VIEWS.includes(view)) return hasAureon;
+
     if (trialActive) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;
     // Subscription still resolving — only forgive the flash for users who
