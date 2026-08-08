@@ -474,7 +474,9 @@ export async function sweepIdentifier(
     }
 
     const docClass = read.docClass || classifyDoc(lead.url, read.mime);
-    const title = read.meta["og:title"] || read.meta["title"] || lead.title || "";
+    const flat = flattenMeta(read.meta);
+    const title = flat["og:title"] || flat["title"] || flat["dc:title"] || lead.title || "";
+
     const hit = confirmIn(identity, matcher, lead.url, title, read.meta, read.text);
 
     if (!hit) {
