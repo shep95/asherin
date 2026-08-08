@@ -72,7 +72,16 @@ export interface TravelAnomaly {
   km: number;
   minutes: number;
   impliedKmh: number;
+  /**
+   * True when one side of the hop is a datacentre address. The platform's own
+   * server-side egress is geographically unrelated to the person using the
+   * app, so a "jump" that lands on it is an artefact of the architecture, not
+   * a tunnel the account holder is running. Recorded, shown, but excluded
+   * from the tunnel verdict.
+   */
+  infrastructureArtefact: boolean;
 }
+
 
 export interface JumpVerdict {
   observations: number;
