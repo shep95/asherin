@@ -11221,6 +11221,7 @@ export type Database = {
       }
       is_asher_operator: { Args: { _user_id: string }; Returns: boolean }
       is_asher_super_owner: { Args: { _uid: string }; Returns: boolean }
+      is_blocked_display_name: { Args: { raw: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
@@ -11268,6 +11269,7 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_display_name: { Args: { raw: string }; Returns: string }
       notebook_team_id: { Args: { _notebook_id: string }; Returns: string }
       purge_soft_deleted: { Args: { p_retention_days?: number }; Returns: Json }
       read_email_batch: {
@@ -11302,6 +11304,7 @@ export type Database = {
           running_count: number
         }[]
       }
+      unaccent_fallback: { Args: { raw: string }; Returns: string }
       ziaassets_bootstrap_emperor: { Args: never; Returns: string }
       ziaassets_has_min_rank: {
         Args: {
