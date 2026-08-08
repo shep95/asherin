@@ -31,8 +31,20 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_PHOTOS = 6;
 const SIGN_TTL = 3600;
 
-const PROFILE_HOSTS =
-  /(linkedin\.com|facebook\.com|instagram\.com|x\.com|twitter\.com|github\.com|about\.me|muckrack\.com|crunchbase\.com|imdb\.com|youtube\.com|tiktok\.com|threads\.net|gravatar\.com)/i;
+// An allow-list of social hosts starves this pipeline: LinkedIn, Instagram and
+// X serve login walls whose og:image is the site logo, while the pages that
+// actually publish a usable portrait — encyclopaedias, newsrooms, faculty and
+// company bios, conference speaker pages — were being discarded before they
+// were ever looked at. So the filter inverts: reject surfaces that cannot
+// carry a person-specific image, and rank what remains by likelihood.
+const JUNK_HOSTS =
+  /(google\.|bing\.com|duckduckgo\.com|yahoo\.|pinterest\.|shutterstock\.|gettyimages\.|istockphoto\.|alamy\.|amazon\.|ebay\.|reddit\.com|quora\.com|archive\.org|youtube\.com\/results|\.pdf$)/i;
+// Login-walled hosts are kept as *evidence of presence* but never lead the
+// harvest, because their og:image is almost always a brand asset, not a face.
+const WALLED_HOSTS = /(linkedin\.com|instagram\.com|facebook\.com|x\.com|twitter\.com|threads\.net|tiktok\.com)/i;
+// Surfaces that habitually publish a real portrait with the subject's name.
+const PORTRAIT_HOSTS =
+  /(wikipedia\.org|wikidata\.org|britannica\.com|imdb\.com|muckrack\.com|crunchbase\.com|github\.com|about\.me|gravatar\.com|\.edu|\.gov|substack\.com|medium\.com|forbes\.com|bloomberg\.com|reuters\.com|nytimes\.com|theguardian\.com)/i;
 
 interface StoredPhoto {
   path: string;
