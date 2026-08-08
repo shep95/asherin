@@ -19,6 +19,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "./jurisdictionalIntel.ts";
 import { plateAnchoredIdentity, unboundContextSweep, withTimeout, type WeightedCandidate } from "./ridesharePlateIntel.ts";
 import type { RegistryResult } from "./rideshareRegistry.ts";
+import { runZophielIntel, formatZophielContext } from "./zophielChatBridge.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { notifyIntel, severityFromVerdict } from "./intelNotify.ts";
 import {
@@ -106,6 +107,76 @@ function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
   return angles;
 }
 
+// ── Zophiel engine layer ───────────────────────────────────────────────────
+
+/**
+ * The jurisdictional collector reaches registers and courts; it does not reach
+ * the ranked, tier-scored, multi-index corpus the Zophiel engine maintains for
+ * the dashboard. A driver's reviews, complaints, forum mentions and news trail
+ * live there, so the Guardian now queries the same substrate the search tab
+ * uses and folds it in as one clearly-labelled, citation-carrying block.
+ *
+ * It is strictly additive: a null bundle, a timeout or an engine outage costs
+ * the dossier this block and nothing else. The graph layer is only requested
+ * when the identity is actually bound — running relationship extraction on an
+ * unbound first name manufactures associations that belong to other people.
+ */
+async function zophielLayer(
+  ride: RideInput,
+  resolvedName: string | null,
+  budgetMs: number,
+): Promise<{ block: string; hits: number; note: string }> {
+  const raw = (ride.driver_name || "").trim();
+  const name = (resolvedName || raw).trim();
+  const bound = Boolean(resolvedName) || raw.split(/\s+/).length > 1;
+  const where = ride.city ? ` ${ride.city}` : "";
+
+  const query = bound && name
+    ? `${name}${where} rideshare driver background court record reviews complaints associates`
+    : ride.plate
+      ? `license plate ${ride.plate}${where} vehicle registration rideshare driver`
+      : "";
+
+  if (!query || budgetMs < 8_000) {
+    return {
+      block: "",
+      hits: 0,
+      note: query
+        ? "Zophiel engine layer skipped — no wall clock left after the identity angles."
+        : "Zophiel engine layer skipped — no bindable name or plate to query.",
+    };
+  }
+
+  const bundle = await withTimeout(
+    runZophielIntel(query, { deep: bound, mode: "web", fast: false }),
+    Math.min(budgetMs, 40_000),
+    null,
+  ).catch(() => null);
+
+  const body = formatZophielContext(bundle).trim();
+  if (!body) {
+    return {
+      block: `### Zophiel engine sweep\n(Zophiel engine queried for "${query}" — returned nothing usable)`,
+      hits: 0,
+      note: "Zophiel engine returned no usable corpus for this driver.",
+    };
+  }
+
+  const hits = bundle?.results.length ?? 0;
+  const graph = bundle?.intel ? " with graph layer" : "";
+  return {
+    block: [
+      "### Zophiel engine sweep",
+      bound
+        ? "Identity-bound query against the Zophiel multi-index corpus. Tier 1 is a primary source; treat weak-match warnings as disqualifying unless corroborated."
+        : "Identity is UNBOUND — this corpus was retrieved on the plate/vehicle only. Nothing here may be attributed to a named person.",
+      body,
+    ].join("\n"),
+    hits,
+    note: `Zophiel engine returned ${hits} ranked document(s)${graph} at ${(bundle?.topRelevance ?? 0).toFixed(2)} mean top-5 relevance.`,
+  };
+}
+
 export interface CollectionResult {
   context: string;
   note: string;
@@ -166,6 +237,15 @@ export async function collectDossier(
   }
   const queue = [...plan];
 
+  // ── Phase B2: Zophiel engine, launched alongside the angles ──────────────
+  // It runs against a different substrate (the dashboard search engine), so
+  // serialising it would double the wall clock for no extra evidence.
+  const zophielPromise = zophielLayer(
+    ride,
+    pivot.bestFullName,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
@@ -202,6 +282,14 @@ export async function collectDossier(
   });
   await Promise.allSettled(workers);
 
+  const zophiel = await zophielPromise.catch(() => ({
+    block: "",
+    hits: 0,
+    note: "Zophiel engine layer failed and was dropped from the dossier.",
+  }));
+  if (zophiel.block) blocks.push(zophiel.block);
+  hits += zophiel.hits;
+
   const skipped = plan.length - ran.length;
   const registryNote = pivot.registry.records.length
     ? `Regulator register bound plate ${ride.plate} to "${pivot.registry.records[0].raw_name}" (${pivot.registry.records[0].source}).`
@@ -216,9 +304,9 @@ export async function collectDossier(
 
   return {
     context: blocks.join("\n\n"),
-    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits,
-    angles: ran,
+    angles: zophiel.hits > 0 ? [...ran, "Zophiel engine sweep"] : ran,
     candidates: pivot.candidates,
     residual: pivot.residual,
     resolved_name: pivot.bestFullName,
