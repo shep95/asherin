@@ -55,7 +55,9 @@ export function useAccess() {
 
   const tier = tierKey;
   const hasChat = !!tier;
-  const hasSearch = !!tier;
+  // Zophiel Search Intelligence — bundled with the $18 Asherin subscription
+  // (monthly + 6-month) and above; legacy chat holders retain their access.
+  const hasSearch = hasZophielAccess(tier);
   const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasMaximum = tier === "monthly_pro" || tier === "pro";
