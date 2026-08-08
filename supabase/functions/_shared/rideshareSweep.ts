@@ -19,6 +19,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "./jurisdictionalIntel.ts";
 import { plateAnchoredIdentity, unboundContextSweep, withTimeout, type WeightedCandidate } from "./ridesharePlateIntel.ts";
 import type { RegistryResult } from "./rideshareRegistry.ts";
+import { runZophielIntel, formatZophielContext } from "./zophielChatBridge.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { notifyIntel, severityFromVerdict } from "./intelNotify.ts";
 import {
