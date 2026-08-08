@@ -34,6 +34,7 @@ import {
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
 import { runGhostLedger } from "../_shared/ghostLedger.ts";
+import { traceOrigin } from "../_shared/ghostOrigin.ts";
 import {
   classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
 } from "../_shared/ghostHarvest.ts";
@@ -51,7 +52,8 @@ const BUCKET = "ghost-buffer";
 
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
-  | "purge" | "ledger" | "history" | "historyDetail" | "forget";
+  | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin";
+
 
 interface GhostRequest {
   action?: Action;
@@ -355,6 +357,19 @@ Deno.serve(async (req) => {
   // buffer's finitude is enforced on the request path, not by a cron that may
   // not have run.
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
+
+  // ── ORIGIN — provenance of a single artefact ───────────────────────────────
+  // The sweep answers "what is on this host". ORIGIN answers "who wrote this
+  // file, when, on what machine, in which timezone" — a different question
+  // with a different evidence base (container metadata, not link topology).
+  if (action === "origin") {
+    const target = String(body.query || (body.urls?.[0] ?? "")).trim();
+    if (!target) return json({ error: "Give the engine a link to trace." }, 400);
+    const trace = await traceOrigin(target);
+    return json({ action: "origin", trace });
+  }
+
+
 
   // ── HISTORY — the second half of the dual sidebar ──────────────────────────
   // INTERCEPT is what the engine is pulling right now. HISTORY is what it has

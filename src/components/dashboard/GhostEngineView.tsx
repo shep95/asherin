@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
-  Download, Archive, ChevronDown, Sparkle, History, X,
+  Download, Archive, ChevronDown, Sparkle, History, X, Crosshair,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import GhostGraph from "./ghost/GhostGraph";
 import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
+import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
 import {
   projectRecords, suggestFromIndex,
   type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
@@ -51,6 +52,9 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
   { id: "buffer", label: "Buffer", hint: "Soft selection over bodies already on the shelf" },
 ];
 
+/** ORIGIN is not a scope — it is a different question, so it gets its own verb. */
+const MODE_KEY = "ghost_engine_mode";
+
 const CAPTURE_KEY = "ghost_engine_capture";
 const SCOPE_KEY = "ghost_engine_scope";
 const RECENT_KEY = "ghost_engine_recent";
@@ -86,6 +90,12 @@ const GhostEngineView = () => {
   );
   const [replay, setReplay] = useState<GhostHistoryRun | null>(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  // INTERCEPT sweeps a selector. ORIGIN traces one artefact back to the act of
+  // authorship behind it. Same box, different engine path, different surface.
+  const [mode, setMode] = useState<"intercept" | "origin">(
+    () => (localStorage.getItem(MODE_KEY) === "origin" ? "origin" : "intercept"),
+  );
+  const [origin, setOrigin] = useState<OriginTrace | null>(null);
 
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 8); } catch { return []; }
@@ -111,6 +121,36 @@ const GhostEngineView = () => {
     setSelected(null);
     setReplay(null);
     try {
+      // ── ORIGIN path ──────────────────────────────────────────────────────
+      if (mode === "origin") {
+        setOrigin(null);
+        const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+          body: { action: "origin", query: q },
+        });
+        if (controller.signal.aborted) return;
+        if (error) {
+          const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          toast({
+            title: /403|Pro/.test(detail) ? "Origin trace is an Asherin Pro surface" : "Trace failed",
+            description: detail.slice(0, 240) || error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        const trace = (res as { trace?: OriginTrace })?.trace ?? null;
+        setOrigin(trace);
+        setData(null);
+        if (trace?.errors.length) {
+          toast({ title: "Trace incomplete", description: trace.errors[0] });
+        }
+        setRecent((prev) => {
+          const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
+          localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+          return next;
+        });
+        return;
+      }
+
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
         // No client-side aperture. The probe budget is the engine's to spend;
         // sending 12 was what capped a full-spectrum lookup at a page of links.
@@ -167,7 +207,7 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope]);
+  }, [loading, capture, scope, mode]);
 
 
   const index = data?.index ?? null;
@@ -276,8 +316,8 @@ const GhostEngineView = () => {
                 onFocus={() => setSuggestOpen(true)}
                 onBlur={() => setTimeout(() => setSuggestOpen(false), 120)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSuggestOpen(false); }}
-                placeholder="Search a domain, a name, a phrase, a pattern…"
-                aria-label="Ghost Engine search"
+                placeholder={mode === "origin" ? "Paste a link to a PDF, image or page — trace where it was made…" : "Search a domain, a name, a phrase, a pattern…"}
+                aria-label={mode === "origin" ? "Ghost Engine origin trace" : "Ghost Engine search"}
                 autoComplete="off"
                 className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
               />
@@ -302,7 +342,7 @@ const GhostEngineView = () => {
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/25 px-3 py-1 text-xs text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-35"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                {loading ? "Searching" : "Search"}
+                {loading ? (mode === "origin" ? "Tracing" : "Searching") : (mode === "origin" ? "Trace" : "Search")}
               </button>
             </form>
 
@@ -324,9 +364,29 @@ const GhostEngineView = () => {
             )}
           </div>
 
-          {/* Scope — the only knob, and it defaults to "both". */}
+          {/* Verb first, then scope. ORIGIN hides the scope knob because a
+              provenance trace consults neither the index nor the buffer. */}
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            {SCOPES.map((s) => (
+            <div className="mr-1 flex items-center gap-1 rounded-full border border-border/20 p-0.5">
+              {([
+                { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
+                { id: "origin" as const, label: "Origin", hint: "Trace one link or file back to when, where and on what it was made" },
+              ]).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setMode(m.id); localStorage.setItem(MODE_KEY, m.id); }}
+                  title={m.hint}
+                  aria-pressed={mode === m.id}
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+                    mode === m.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/55 hover:text-foreground/85"
+                  }`}
+                >
+                  {m.id === "origin" ? <Crosshair className="h-3 w-3" /> : <Search className="h-3 w-3" />}
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {mode === "intercept" && SCOPES.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setScopePersist(s.id)}
@@ -341,7 +401,7 @@ const GhostEngineView = () => {
                 {s.label}
               </button>
             ))}
-            {index && (
+            {mode === "intercept" && index && (
               <button
                 onClick={() => exportJSON(
                   `ghost-search-${Date.now()}`,
@@ -365,7 +425,23 @@ const GhostEngineView = () => {
       {/* ── Body ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto max-w-3xl">
-          {!data && !replay && !loading && (
+          {mode === "origin" && !loading && origin && <OriginPanel trace={origin} />}
+
+          {mode === "origin" && !loading && !origin && (
+            <div className="mt-14 text-center">
+              <Crosshair className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
+              <p className="text-sm font-light text-muted-foreground/70">Give the engine one link. It gives you the act of authorship.</p>
+              <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground/45">
+                A PDF carries the wall clock of the machine that wrote it, the UTC offset that machine was set to,
+                the software that produced it, the account that saved it, and — when a camera or scanner touched it —
+                the coordinates where the sensor stood. Origin recovers those fields, resolves the offset against
+                daylight saving for that exact date, reverse-geocodes any real coordinate to a building and street,
+                and converts everything into your own local time.
+              </p>
+            </div>
+          )}
+
+          {mode === "intercept" && !data && !replay && !loading && (
             <div className="mt-14 text-center">
               <Ghost className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
               <p className="text-sm font-light text-muted-foreground/70">Ask the catalog. Then pull the book.</p>
@@ -408,7 +484,7 @@ const GhostEngineView = () => {
             </div>
           )}
 
-          {!loading && (data || replay) && (
+          {mode === "intercept" && !loading && (data || replay) && (
             <>
               {/* An archived run is not a live one; the surface must never
                   let the operator confuse the two. */}
