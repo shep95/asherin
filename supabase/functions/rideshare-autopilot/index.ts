@@ -150,7 +150,7 @@ async function sweepRider(
 
     const ride: RideInput = {
       platform: r.platform,
-      source: "auto_email",
+      source: "email",
       driver_name: r.driver_name,
       plate: r.plate,
       vehicle: r.vehicle,
@@ -202,7 +202,7 @@ async function sweepRider(
       // The fast pass is already persisted and visible; a failed deep pass
       // leaves the rider with less, never with nothing.
       log("deep sweep failed", { userId, rideId: row.id, msg: (e as Error).message?.slice(0, 160) });
-      await sb.from("rideshare_rides").update({ status: "deep_failed" }).eq("id", row.id);
+      await sb.from("rideshare_rides").update({ status: "failed" }).eq("id", row.id);
     }
   }
 
