@@ -67,9 +67,24 @@ const PlacesNearbyPanel = ({ open, onClose, center, units, onResults, onFocus, o
     }
   }, [center, radiusM, openNowOnly]);
 
+  const runRef = useRef(run);
+  runRef.current = run;
+
+  /* Opening the panel IS the request. The old build rendered an empty shell
+     and waited for a chip click, which reads as a dead tool. A broad sweep of
+     the current anchor runs on open; chips then narrow it. */
+  useEffect(() => {
+    if (!open) return;
+    runRef.current("any", "");
+    // Keyed on `open` only — re-running on every parent repaint would hammer
+    // the Overpass mirrors and trip their rate limiter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   useEffect(() => () => abortRef.current?.abort(), []);
 
   if (!open) return null;
+
 
   return (
     <div className="flex max-h-[calc(100vh-8rem)] w-[340px] flex-col overflow-hidden rounded-xl border border-[#c98b3a]/25 bg-card/95 backdrop-blur-xl shadow-[0_18px_50px_-12px_rgba(0,0,0,.85)]">
