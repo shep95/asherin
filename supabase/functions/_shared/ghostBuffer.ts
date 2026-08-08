@@ -212,8 +212,16 @@ export interface DerivedFields {
 export async function deriveFields(p: GhostPayload, declaredLang?: string | null): Promise<DerivedFields> {
   const text = p.text.slice(0, MAX_TEXT_CHARS);
   const ent = entropyOf(p.bytes);
-  // High entropy with no recoverable text is the encrypted/compressed signature.
   const opaque = text.replace(/\s/g, "").length < 40;
+  // High entropy alone does not mean encrypted. JPEG, PNG, ZIP, video and
+  // Flate-compressed PDF streams all sit near 7.5 bits/byte by design; calling
+  // them encrypted would flood the selector with false positives. Formats that
+  // are compressed by construction must clear a much higher bar, and formats
+  // that should be plain text are suspicious the moment they are not.
+  const t = p.source_type;
+  const compressedByDesign = /^(image|video|audio)\//.test(t) ||
+    /zip|gzip|compress|x-7z|x-rar|x-tar|octet-stream|pdf|font|woff/.test(t);
+  const isEncrypted = opaque && (compressedByDesign ? ent > 7.95 : ent > 7.3);
   return {
     content_text: text,
     content_bytes: p.bytes.length,
@@ -221,7 +229,8 @@ export async function deriveFields(p: GhostPayload, declaredLang?: string | null
     truncated: p.truncated,
     language_tag: detectLanguage(text, declaredLang),
     entropy: ent,
-    is_encrypted: ent > 7.3 && opaque,
+    is_encrypted: isEncrypted,
+
     emails: harvest(text, RE_EMAIL, 200),
     phones: harvest(text, RE_PHONE, 100),
     ipv4s: harvest(text, RE_IPV4, 100),
