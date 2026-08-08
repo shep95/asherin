@@ -153,6 +153,28 @@ export interface OsintAnnex {
   keyJudgments: KeyJudgment[];
   gaps: string[];
   reverse: WireDoc["reverse"];
+  /**
+   * Where the contact's hard identifiers are confirmed to appear. The vault
+   * dossier answers "who is this"; the sweep answers "where is this address or
+   * number actually carried, and since when" — a different question, and the
+   * one that exposes paste-site and breach-index circulation.
+   */
+  identifierSweeps: IdentifierSweepSummary[];
+}
+
+/** A per-identifier exposure register, folded down for report rendering. */
+export interface IdentifierSweepSummary {
+  identifier: string;
+  kind: string;
+  surfaces: number;
+  confirmed: number;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  /** Paste sites and breach indexes — the surfaces that mean circulation. */
+  exposed: Array<{ host: string; surfaceClass: string; lastSeen: string | null }>;
+  top: Array<{ host: string; surfaceClass: string; sightings: number; lastSeen: string | null }>;
+  /** Null when the leg ran clean; otherwise why it is thin. */
+  blocker: string | null;
 }
 
 // ───────────────────── Admiralty grading (ICD 206) ─────────────────────
@@ -385,7 +407,94 @@ function toAnnex(
     keyJudgments: synthesizeJudgments(facts, associations, metrics),
     gaps: doc.gaps ?? [],
     reverse: doc.reverse ?? null,
+    // Filled by the parallel sweep leg in collectContactOsint; the vault
+    // dossier itself has no view of identifier circulation.
+    identifierSweeps: [],
   };
+}
+
+// ─────────────────── identifier exposure leg (Asherin Engine) ───────────────
+
+interface RawSurface {
+  host: string;
+  surfaceClass: string;
+  sightings: unknown[];
+  firstSeen: string | null;
+  lastSeen: string | null;
+}
+
+const EXPOSED_CLASSES = new Set(["paste", "breach-index"]);
+
+/**
+ * Sweep one hard identifier through the Asherin Engine and fold the register
+ * down to what a background report needs.
+ *
+ * Never throws and never propagates its own abort: a background check that
+ * dies because one exposure leg timed out is worse than one that reports the
+ * leg as thin. Each identifier carries its own deadline so a slow sweep cannot
+ * hold the whole contact report hostage.
+ */
+async function sweepIdentifierLeg(
+  identifier: string,
+  signal?: AbortSignal,
+): Promise<IdentifierSweepSummary | null> {
+  const base: IdentifierSweepSummary = {
+    identifier, kind: "unknown", surfaces: 0, confirmed: 0,
+    firstSeen: null, lastSeen: null, exposed: [], top: [], blocker: null,
+  };
+  try {
+    const { data, error } = await supabase.functions.invoke("ghost-engine", {
+      body: { action: "identifier", query: identifier, budgetMs: 70_000, limit: 24, maxLeads: 140 },
+    });
+    if (signal?.aborted) return null;
+    if (error) {
+      let detail = error.message ?? "unknown error";
+      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
+      if (ctx?.text) {
+        try { detail = (await ctx.text()).slice(0, 200) || detail; } catch { /* consumed */ }
+      }
+      return { ...base, blocker: `Exposure sweep unavailable: ${detail}` };
+    }
+
+    const report = (data as { report?: {
+      identity?: { kind?: string };
+      surfaces?: RawSurface[];
+      confirmed?: number;
+      firstSeen?: string | null;
+      lastSeen?: string | null;
+      notes?: string[];
+    } } | null)?.report;
+    if (!report) return { ...base, blocker: "Exposure sweep returned no register." };
+
+    const surfaces = Array.isArray(report.surfaces) ? report.surfaces : [];
+    return {
+      identifier,
+      kind: report.identity?.kind ?? "unknown",
+      surfaces: surfaces.length,
+      confirmed: Number(report.confirmed ?? 0),
+      firstSeen: report.firstSeen ?? null,
+      lastSeen: report.lastSeen ?? null,
+      exposed: surfaces
+        .filter((s) => EXPOSED_CLASSES.has(s.surfaceClass))
+        .slice(0, 8)
+        .map((s) => ({ host: s.host, surfaceClass: s.surfaceClass, lastSeen: s.lastSeen })),
+      top: surfaces
+        .slice()
+        .sort((a, b) => (b.sightings?.length ?? 0) - (a.sightings?.length ?? 0))
+        .slice(0, 6)
+        .map((s) => ({
+          host: s.host,
+          surfaceClass: s.surfaceClass,
+          sightings: s.sightings?.length ?? 0,
+          lastSeen: s.lastSeen,
+        })),
+      blocker: surfaces.length === 0
+        ? "No surface confirmed to carry this identifier on the reachable public web."
+        : null,
+    };
+  } catch (e) {
+    return { ...base, blocker: `Exposure sweep aborted: ${(e as Error).message.slice(0, 160)}` };
+  }
 }
 
 /** An annex that reports its own failure rather than being silently omitted. */
@@ -409,6 +518,7 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     keyJudgments: [],
     gaps: [],
     reverse: null,
+    identifierSweeps: [],
   };
 }
 
@@ -445,16 +555,37 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       return emptyAnnex("unauthenticated", "Not signed in — the open-source leg requires an authenticated session.", name, email);
     }
 
-    const { data, error } = await supabase.functions.invoke("mesh-vault", {
-      body: {
-        action: "vault_for_contact",
-        name,
-        email,
-        identifiers: (req.identifiers ?? []).slice(0, 4),
-        location_hint: req.locationHint ?? null,
-        force: req.force === true,
-      },
-    });
+    // The hard identifiers on the contact record — the address it wrote from
+    // and any number attached to it. Deduplicated so a phone listed twice is
+    // not swept twice, and capped so a contact with a dozen aliases cannot
+    // fan out into a dozen concurrent sweeps.
+    const hardIdentifiers = Array.from(new Set(
+      [email, ...(req.identifiers ?? [])]
+        .map((v) => (v ?? "").trim())
+        .filter((v) => v.length >= 5 && (v.includes("@") || /\d{7,}/.test(v.replace(/\D/g, "")))),
+    )).slice(0, 3);
+
+    // The dossier leg and the exposure legs answer different questions and
+    // share no state, so they run together. Sequencing them would add the
+    // sweep's wall clock to every contact report for no benefit.
+    const [vaultResult, sweepResults] = await Promise.all([
+      supabase.functions.invoke("mesh-vault", {
+        body: {
+          action: "vault_for_contact",
+          name,
+          email,
+          identifiers: (req.identifiers ?? []).slice(0, 4),
+          location_hint: req.locationHint ?? null,
+          force: req.force === true,
+        },
+      }),
+      Promise.all(hardIdentifiers.map((id) => sweepIdentifierLeg(id, req.signal))),
+    ]);
+
+    const identifierSweeps = sweepResults.filter(
+      (r): r is IdentifierSweepSummary => r !== null,
+    );
+    const { data, error } = vaultResult;
 
     if (error) {
       // functions.invoke collapses every non-2xx into one opaque message; the
@@ -464,26 +595,35 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       if (ctx?.text) {
         try { detail = (await ctx.text()).slice(0, 300) || detail; } catch { /* body already consumed */ }
       }
-      return emptyAnnex("error", `Collection call failed: ${detail}`, name, email);
+      // The dossier failed, but a confirmed exposure register is still
+      // intelligence — it is carried onto the failure annex rather than
+      // discarded alongside the leg that did fail.
+      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps };
     }
 
     const payload = data as { status?: string; dossier?: WireDoc | null; confidence?: number; message?: string } | null;
     if (!payload?.dossier) {
-      return emptyAnnex(
-        (payload?.status as OsintStatus) || "absent",
-        payload?.message || "No dossier was produced for this subject.",
-        name,
-        email,
-      );
+      return {
+        ...emptyAnnex(
+          (payload?.status as OsintStatus) || "absent",
+          payload?.message || "No dossier was produced for this subject.",
+          name,
+          email,
+        ),
+        identifierSweeps,
+      };
     }
 
-    return toAnnex(payload.dossier, {
-      status: "ready",
-      blocker: null,
-      confidence: Number(payload.confidence ?? 0),
-      name,
-      email,
-    });
+    return {
+      ...toAnnex(payload.dossier, {
+        status: "ready",
+        blocker: null,
+        confidence: Number(payload.confidence ?? 0),
+        name,
+        email,
+      }),
+      identifierSweeps,
+    };
   } catch (e) {
     return emptyAnnex("error", `Collection aborted: ${(e as Error).message.slice(0, 200)}`, name, email);
   }

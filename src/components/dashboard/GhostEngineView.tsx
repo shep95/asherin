@@ -14,6 +14,7 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
+import { IdentifierSweepPanel, type IdentifierSweepReport } from "./ghost/IdentifierSweepPanel";
 import { DeepTimePanel, type TimeMachineReport } from "./ghost/DeepTimePanel";
 import {
   projectRecords, suggestFromIndex,
@@ -57,7 +58,7 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 
 /** ORIGIN and DEEP TIME are not scopes — they are different questions, so they
  *  get their own verbs rather than being folded into the intercept scope knob. */
-type GhostMode = "intercept" | "origin" | "deeptime";
+type GhostMode = "intercept" | "origin" | "deeptime" | "identifier";
 const MODE_KEY = "ghost_engine_mode";
 
 
@@ -108,10 +109,13 @@ const GhostEngineView = () => {
   // engines, three surfaces.
   const [mode, setMode] = useState<GhostMode>(() => {
     const saved = localStorage.getItem(MODE_KEY);
-    return saved === "origin" || saved === "deeptime" ? saved : "intercept";
+    return saved === "origin" || saved === "deeptime" || saved === "identifier"
+      ? saved
+      : "intercept";
   });
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
+  const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -162,6 +166,36 @@ const GhostEngineView = () => {
         if (trace?.errors.length) {
           toast({ title: "Trace incomplete", description: trace.errors[0] });
         }
+        setRecent((prev) => {
+          const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
+          localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+          return next;
+        });
+        return;
+      }
+
+      // ── IDENTIFIER path ──────────────────────────────────────────────────
+      // The engine opens every candidate itself and only counts a page once
+      // the identifier is actually on it, so this leg is slower than intercept
+      // by design — the wait buys confirmation instead of a list of maybes.
+      if (mode === "identifier") {
+        setSweep(null);
+        const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+          body: { action: "identifier", query: q },
+        });
+        if (controller.signal.aborted) return;
+        if (error) {
+          const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          toast({
+            title: /403|Pro/.test(detail) ? "Identifier sweep is an Asherin Pro surface" : "Sweep failed",
+            description: detail.slice(0, 240) || error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        const report = (res as { report?: IdentifierSweepReport })?.report ?? null;
+        setSweep(report);
+        setData(null);
         setRecent((prev) => {
           const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
           localStorage.setItem(RECENT_KEY, JSON.stringify(next));
@@ -432,12 +466,15 @@ const GhostEngineView = () => {
                     ? "Paste a link — or attach a file — to trace where it was made…"
                     : mode === "deeptime"
                       ? "Reach back: a name, an email, a domain — 1996 to today…"
-                      : "Search a domain, a name, a phrase, a pattern…"
+                      : mode === "identifier"
+                        ? "Paste an email address or a phone number…"
+                        : "Search a domain, a name, a phrase, a pattern…"
                 }
                 aria-label={
                   mode === "origin" ? "Asherin Engine origin trace"
                     : mode === "deeptime" ? "Asherin Engine archive reach-back"
-                      : "Asherin Engine search"
+                      : mode === "identifier" ? "Asherin Engine identifier sweep"
+                        : "Asherin Engine search"
                 }
                 autoComplete="off"
                 className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
@@ -489,8 +526,8 @@ const GhostEngineView = () => {
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                 {loading
-                  ? (mode === "origin" ? "Tracing" : mode === "deeptime" ? "Reaching back" : "Searching")
-                  : (mode === "origin" ? "Trace" : mode === "deeptime" ? "Reach back" : "Search")}
+                  ? (mode === "origin" ? "Tracing" : mode === "deeptime" ? "Reaching back" : mode === "identifier" ? "Confirming" : "Searching")
+                  : (mode === "origin" ? "Trace" : mode === "deeptime" ? "Reach back" : mode === "identifier" ? "Sweep" : "Search")}
               </button>
 
             </form>
@@ -521,6 +558,7 @@ const GhostEngineView = () => {
                 { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
                 { id: "origin" as const, label: "Origin", hint: "Trace one link or attached file back to when, where and on what it was made" },
                 { id: "deeptime" as const, label: "Deep time", hint: "Reach into the capture archives — every year from 1996 to today" },
+                { id: "identifier" as const, label: "Identifier", hint: "Paste an email or phone number — every surface it is confirmed on, with first and last seen" },
               ]).map((m) => (
                 <button
                   key={m.id}
@@ -533,7 +571,8 @@ const GhostEngineView = () => {
                 >
                   {m.id === "origin" ? <Crosshair className="h-3 w-3" />
                     : m.id === "deeptime" ? <Hourglass className="h-3 w-3" />
-                      : <Search className="h-3 w-3" />}
+                      : m.id === "identifier" ? <Fingerprint className="h-3 w-3" />
+                        : <Search className="h-3 w-3" />}
                   {m.label}
                 </button>
 
@@ -633,6 +672,34 @@ const GhostEngineView = () => {
                 and converts everything into your own local time. Use <span className="text-foreground/70">Attach</span>{" "}
                 for a document you already hold; every email, phone number, name and address inside it comes back as a
                 one-click pivot.
+              </p>
+            </div>
+          )}
+
+          {/* IDENTIFIER — the register of confirmed sightings. */}
+          {mode === "identifier" && !loading && sweep && <IdentifierSweepPanel report={sweep} />}
+
+          {mode === "identifier" && loading && (
+            <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
+              <Loader2 className="h-5 w-5 animate-spin text-foreground/40" aria-hidden />
+              <p className="text-[12px] font-light text-muted-foreground/60">
+                Opening each candidate and confirming the identifier is on the page…
+              </p>
+            </div>
+          )}
+
+          {mode === "identifier" && !loading && !sweep && (
+            <div className="py-16 text-center">
+              <Fingerprint className="mx-auto mb-4 h-7 w-7 text-foreground/15" aria-hidden />
+              <p className="text-[13px] font-light text-muted-foreground/65">
+                Paste an email address or a phone number.
+              </p>
+              <p className="mx-auto mt-2 max-w-lg text-[11px] leading-relaxed text-muted-foreground/45">
+                The engine expands it into every written form — obfuscated, encoded, dashed,
+                dotted — fans the forms across paste sites, breach indexes, record brokers,
+                document surfaces and code hosts, then opens each candidate and only counts it
+                once the identifier is actually on the page. You get a deduplicated list of
+                surfaces with first-seen and last-seen dates and the sentence it appears in.
               </p>
             </div>
           )}
