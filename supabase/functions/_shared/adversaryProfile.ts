@@ -299,6 +299,8 @@ export function classifyOrigin(s: AdversarySignals): OriginRead {
 export interface AgentRead {
   automation: boolean;
   spoofSuspected: boolean;
+  /** True only when the raw request header survived, so spoof findings mean something. */
+  rawHeader: boolean;
   notes: string[];
 }
 
@@ -317,6 +319,7 @@ export function readAgent(ua: string | null): AgentRead {
     return {
       automation: false,
       spoofSuspected: false,
+      rawHeader: false,
       notes: ["No user-agent survived for this endpoint — the device cannot be characterised."],
     };
   }
@@ -330,6 +333,7 @@ export function readAgent(ua: string | null): AgentRead {
     return {
       automation: AUTOMATION.test(ua),
       spoofSuspected: false,
+      rawHeader: false,
       notes: [
         `Only a reconstructed device label survived for this endpoint ("${ua}") — the raw ` +
         "request header was not retained. Device CLASS is usable; fingerprint-spoofing cannot be " +
@@ -375,7 +379,7 @@ export function readAgent(ua: string | null): AgentRead {
   if (!automation && !spoof) {
     notes.push("The user-agent is internally consistent — a real browser build, presented as-is.");
   }
-  return { automation, spoofSuspected: spoof, notes };
+  return { automation, spoofSuspected: spoof, rawHeader: true, notes };
 }
 
 // ── device: had vs needed ─────────────────────────────────────────────────
@@ -443,7 +447,7 @@ export function profileDevice(s: AdversarySignals, agent: AgentRead, origin: Ori
   if (agent.spoofSuspected) {
     required.push("A fingerprint-masking browser or a hand-edited client — the agent string did not come from a stock build.");
   }
-  if (origin.cls === "residential" && !agent.spoofSuspected && !agent.automation) {
+  if (origin.cls === "residential" && agent.rawHeader && !agent.spoofSuspected && !agent.automation) {
     gap.push(
       "No anonymity layer and no fingerprint masking. Whatever else they did, they did not " +
       "protect the origin — the address in this report is the address they actually used.",
