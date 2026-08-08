@@ -322,19 +322,23 @@ const PRODUCTS: Product[] = [
   },
   {
     name: "Asherin Ghost Engine",
-    tagline: "Metadata-only search engine",
+    tagline: "Metadata index with a short full-take buffer",
     description:
-      "It touches everything and reads nothing. Ghost indexes the shell around information — transport headers, DNS/ASN posture, redirect topology, EXIF capture fields, document producers, embedded authorship and timestamps — then builds three indexes over it: inverted facets, a shared-dimension graph, and a phonetic identity fold. The contradictions between shells are the intelligence.",
+      "The card catalog and the shelf behind it. Ghost indexes the shell around information — transport headers, DNS/ASN posture, redirect topology, EXIF capture fields, document producers, embedded authorship and timestamps — then builds three indexes over it: inverted facets, a shared-dimension graph, and a phonetic identity fold. Arm retention and each session's body is held in a self-expiring buffer, searchable by dictionary and bounded regex, then destroyed. Metadata makes bulk traffic queryable; the buffer makes the matching payloads retrievable.",
     icon: Fingerprint,
     features: [
-      "Metadata-only extraction (no content is retrieved or read)",
-      "EXIF device, software, authorship and GPS recovery",
+      "Metadata index: EXIF device, software, authorship and GPS recovery",
       "PDF producer / creation-date recovery via trailer range reads",
       "DNS, ASN, TLS/HSTS/CSP posture and redirect topology",
       "Shared-dimension graph with keystone-node detection",
       "Timeline reconstruction + anomaly report (hardware-date paradoxes, GPS leakage, off-hours writes)",
+      "Short full-take buffer — session bodies retained on a bounded, self-enforcing TTL",
+      "Soft selection: dictionary, phrase and regex over buffered payloads with ReDoS refusal",
+      "Per-session forensics: entropy, language tag, harvested addresses, phones, IPs and filenames",
+      "Payload viewer with signed raw-byte download and one-click buffer purge",
       "Wired into Asherin Chat as a provenance substrate",
     ],
+
     competitors: ["Maltego", "Shodan", "ExifTool"],
     route: "/dashboard/ghost-engine",
     tier: "pro",

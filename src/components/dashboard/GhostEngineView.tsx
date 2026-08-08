@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Ghost, Loader2, ArrowRight, Fingerprint, AlertTriangle, Network, Clock, Layers, Download } from "lucide-react";
+import { Ghost, Loader2, ArrowRight, Fingerprint, AlertTriangle, Network, Clock, Layers, Download, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { exportJSON } from "@/lib/exportEngine";
 import GhostRecordPanel from "./ghost/GhostRecordPanel";
 import GhostGraph from "./ghost/GhostGraph";
+import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import { SEVERITY_STYLE, type GhostRecord, type GhostResponse } from "./ghost/types";
 
-type Tab = "records" | "entities" | "graph" | "timeline" | "anomalies" | "facets";
+type Tab = "records" | "entities" | "graph" | "timeline" | "anomalies" | "facets" | "buffer";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "records", label: "Shells", icon: Layers },
@@ -16,7 +17,11 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "timeline", label: "Timeline", icon: Clock },
   { id: "anomalies", label: "Anomalies", icon: AlertTriangle },
   { id: "facets", label: "Facets", icon: Ghost },
+  { id: "buffer", label: "Buffer", icon: Archive },
 ];
+
+const CAPTURE_KEY = "ghost_engine_capture";
+
 
 const RECENT_KEY = "ghost_engine_recent";
 
@@ -28,9 +33,12 @@ const GhostEngineView = () => {
   const [data, setData] = useState<GhostResponse | null>(null);
   const [tab, setTab] = useState<Tab>("records");
   const [selected, setSelected] = useState<GhostRecord | null>(null);
+  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) === "1");
+  const [bufferNonce, setBufferNonce] = useState(0);
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 6); } catch { return []; }
   });
+
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -49,8 +57,9 @@ const GhostEngineView = () => {
     setSelected(null);
     try {
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
-        body: { query: q, limit: 12 },
+        body: { query: q, limit: 12, capture },
       });
+
       if (controller.signal.aborted) return;
 
       if (error) {
@@ -71,6 +80,21 @@ const GhostEngineView = () => {
       setTab(payload.index?.anomalies.length ? "anomalies" : "records");
       if (payload.error) toast({ title: "No targets resolved", description: payload.error });
 
+      // A capture that silently kept nothing is worse than no capture at all —
+      // say what landed on the shelf, and refresh the console so its count is
+      // never stale behind the sweep that produced it.
+      if (payload.buffer) {
+        setBufferNonce((n) => n + 1);
+        toast({
+          title: payload.buffer.captured
+            ? `${payload.buffer.captured} session${payload.buffer.captured === 1 ? "" : "s"} buffered`
+            : "Nothing retained",
+          description: payload.buffer.captured
+            ? `Bodies are searchable for ~${payload.buffer.ttlMinutes} minutes, then destroyed.`
+            : payload.buffer.errors[0] || "No target returned a retainable body.",
+        });
+      }
+
       setRecent((prev) => {
         const next = [q, ...prev.filter((r) => r !== q)].slice(0, 6);
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
@@ -84,10 +108,10 @@ const GhostEngineView = () => {
       }
     } finally {
       clearTimeout(timer);
-      if (!controller.signal.aborted) setLoading(false);
-      else setLoading(false);
+      setLoading(false);
     }
-  }, [loading]);
+  }, [loading, capture]);
+
 
   const index = data?.index ?? null;
   const recordById = useMemo(
@@ -102,7 +126,11 @@ const GhostEngineView = () => {
     timeline: index?.timeline.length ?? 0,
     anomalies: index?.anomalies.length ?? 0,
     facets: index?.facets.length ?? 0,
-  }), [index]);
+    // The buffer's size is owned by the buffer console, which polls it live.
+    // Showing a stale sweep-time number next to a self-expiring shelf would lie.
+    buffer: undefined,
+  }), [index]) as Record<Tab, number | undefined>;
+
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -113,8 +141,9 @@ const GhostEngineView = () => {
             <Ghost className="h-4 w-4 text-foreground/70" />
             <h1 className="text-sm font-normal tracking-wide text-foreground">Asherin Ghost Engine</h1>
             <span className="rounded border border-border/25 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50">
-              Metadata only
+              {capture ? "Metadata + buffer" : "Metadata only"}
             </span>
+
           </div>
 
           <form
@@ -130,6 +159,21 @@ const GhostEngineView = () => {
               className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
             />
             <button
+              type="button"
+              role="switch"
+              aria-checked={capture}
+              onClick={() => setCapture((c) => { localStorage.setItem(CAPTURE_KEY, c ? "0" : "1"); return !c; })}
+              title="Retain each session body in a self-expiring buffer so it can be reopened and searched"
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
+                capture
+                  ? "border-foreground/40 bg-foreground/8 text-foreground"
+                  : "border-border/25 text-muted-foreground/60 hover:text-foreground/80"
+              }`}
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Retain bodies
+            </button>
+            <button
               type="submit"
               disabled={loading || !query.trim()}
               className="flex items-center gap-1.5 rounded-lg border border-border/25 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-35"
@@ -138,6 +182,7 @@ const GhostEngineView = () => {
               {loading ? "Probing" : "Sweep"}
             </button>
           </form>
+
 
           {!data && recent.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -184,16 +229,23 @@ const GhostEngineView = () => {
       {/* ── Body ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-5">
         <div className="mx-auto max-w-4xl">
-          {!data && !loading && (
+          {!data && !loading && tab !== "buffer" && (
             <div className="mt-16 text-center">
               <Ghost className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
-              <p className="text-sm font-light text-muted-foreground/70">It touches everything and reads nothing.</p>
+              <p className="text-sm font-light text-muted-foreground/70">The card catalog, and the shelf behind it.</p>
               <p className="mx-auto mt-3 max-w-lg text-xs leading-relaxed text-muted-foreground/45">
                 The Ghost Engine indexes the shell around information — transport headers, DNS and ASN posture,
-                redirect topology, EXIF capture fields, document producers, timestamps — and never the content
-                itself. Three indexes are built over every sweep: inverted facets, a shared-dimension graph, and
-                a phonetic identity fold that survives spelling drift.
+                redirect topology, EXIF capture fields, document producers, timestamps. Three indexes are built over
+                every sweep: inverted facets, a shared-dimension graph, and a phonetic identity fold that survives
+                spelling drift. Arm <span className="text-foreground/70">Retain bodies</span> and each session's payload
+                is also held in a self-expiring buffer, searchable by dictionary and pattern, then destroyed.
               </p>
+              <button
+                onClick={() => setTab("buffer")}
+                className="mx-auto mt-4 flex items-center gap-1.5 rounded-md border border-border/20 px-3 py-1.5 text-[11px] text-muted-foreground/65 transition-colors hover:text-foreground"
+              >
+                <Archive className="h-3 w-3" /> Open buffer
+              </button>
             </div>
           )}
 
@@ -205,26 +257,35 @@ const GhostEngineView = () => {
             </div>
           )}
 
-          {index && (
+          {(index || tab === "buffer") && (
             <>
               <div className="mb-4 flex flex-wrap gap-1 border-b border-border/10 pb-2">
-                {TABS.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => setTab(id)}
-                    aria-current={tab === id}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] transition-colors ${
-                      tab === id ? "bg-foreground/8 text-foreground" : "text-muted-foreground/55 hover:text-foreground/80"
-                    }`}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {label}
-                    <span className="text-muted-foreground/35">{counts[id]}</span>
-                  </button>
-                ))}
+                {TABS.map(({ id, label, icon: Icon }) => {
+                  // The buffer outlives any single sweep, so it stays reachable
+                  // even before one has run. Index tabs cannot.
+                  const disabled = !index && id !== "buffer";
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setTab(id)}
+                      disabled={disabled}
+                      aria-current={tab === id}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] transition-colors disabled:opacity-30 ${
+                        tab === id ? "bg-foreground/8 text-foreground" : "text-muted-foreground/55 hover:text-foreground/80"
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
+                      {counts[id] !== undefined && <span className="text-muted-foreground/35">{counts[id]}</span>}
+                    </button>
+                  );
+                })}
               </div>
 
-              {tab === "records" && (
+              {tab === "buffer" && <GhostBufferConsole key={bufferNonce} />}
+
+
+              {index && tab === "records" && (
                 <div className="space-y-2">
                   {index.records.map((r) => (
                     <button
@@ -254,7 +315,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "entities" && (
+              {index && tab === "entities" && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {index.cards.length === 0 && <p className="text-xs text-muted-foreground/45">No repeating identity dimension surfaced in this corpus.</p>}
                   {index.cards.map((c) => (
@@ -278,7 +339,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "graph" && (
+              {index && tab === "graph" && (
                 <div className="rounded-lg border border-border/12 bg-foreground/[0.015] p-3">
                   <GhostGraph
                     nodes={index.graph.nodes}
@@ -300,7 +361,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "timeline" && (
+              {index && tab === "timeline" && (
                 <ol className="relative space-y-2 border-l border-border/15 pl-4">
                   {index.timeline.length === 0 && <p className="text-xs text-muted-foreground/45">No timestamps survived publication in this corpus.</p>}
                   {index.timeline.map((e, i) => (
@@ -320,7 +381,7 @@ const GhostEngineView = () => {
                 </ol>
               )}
 
-              {tab === "anomalies" && (
+              {index && tab === "anomalies" && (
                 <div className="space-y-2">
                   {index.anomalies.length === 0 && (
                     <p className="text-xs text-muted-foreground/45">
@@ -344,7 +405,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "facets" && (
+              {index && tab === "facets" && (
                 <div className="grid gap-1.5 sm:grid-cols-2">
                   {index.facets.map((f) => (
                     <div key={`${f.field}:${f.value}`} className="flex items-baseline justify-between gap-3 rounded-md border border-border/10 px-2.5 py-1.5">

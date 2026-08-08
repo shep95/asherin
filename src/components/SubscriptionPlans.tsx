@@ -119,7 +119,10 @@ const PLANS = [
       {
         title: "Asherin Ghost Engine (Pro exclusive)",
         items: [
-          "Metadata-only search — indexes the shell, never the content",
+          "Metadata index over the shell — headers, DNS/ASN, redirects, containers",
+          "Short full-take buffer: session bodies retained on a self-expiring TTL",
+          "Soft selection — dictionary, phrase and bounded regex across buffered payloads",
+
           "EXIF capture fields, document producers, embedded authorship",
           "DNS / ASN / TLS posture, redirect topology, origin geolocation",
           "Shared-dimension graph with keystone detection",

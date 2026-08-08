@@ -14,7 +14,10 @@
 // `datePublished` all become the same queryable dimension.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { htmlToText, pdfToText, MAX_PAYLOAD_BYTES, type GhostPayload } from "./ghostBuffer.ts";
+
 export interface GhostRecord {
+
   entity_id: string;            // sha256 fingerprint of the canonical URL
   url: string;
   host: string;
@@ -42,7 +45,16 @@ export interface GhostRecord {
   headers: Record<string, string>;
   container: Record<string, string | number>;  // raw normalized container fields
   errors: string[];
+  /** Declared language from the markup or transport, when the session states one. */
+  declared_language?: string | null;
+  /**
+   * Full-take payload. Present ONLY when the caller asked for capture: the
+   * default posture is still shell-only. The buffer that receives this is
+   * short-lived and operator-scoped.
+   */
+  payload?: GhostPayload;
 }
+
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -303,7 +315,7 @@ const MAX_BIN_BYTES = 192 * 1024;   // EXIF / PDF-info window
  * returns a record carrying the failure, because an unreachable host is itself
  * a metadata finding.
  */
-export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
+export async function extractGhostRecord(rawUrl: string, capture = false): Promise<GhostRecord> {
   const safe = isPublicHttpUrl(rawUrl);
   const url = safe ?? rawUrl;
   const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
@@ -317,7 +329,7 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
     tls: url.startsWith("https://"), hsts: false, csp: false,
     redirect_chain: [], response_ms: null,
     dns: { a: [], ns: [], mx: [], txt_spf: null },
-    headers: {}, container: {}, errors: [],
+    headers: {}, container: {}, errors: [], declared_language: null,
   };
   if (!safe) { rec.errors.push("blocked: non-public or malformed URL"); return rec; }
 
@@ -362,11 +374,33 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
     rec.file_size_bytes = rec.headers["content-length"] ? Number(rec.headers["content-length"]) : null;
     rec.modified_at = isoOrNull(rec.headers["last-modified"]);
 
-    // 2. Container shell — bounded byte window, body then discarded.
+    // 2. Container shell — bounded byte window.
+    //    Without capture the body is read only as far as the shell requires and
+    //    is then discarded. With capture the same single read is widened to the
+    //    payload ceiling and retained in the short full-take buffer, so the
+    //    shelf costs one request, not two.
+    const wantPayload = capture === true;
     try {
-      if (rec.source_type.startsWith("image/jpeg")) {
-        const buf = new Uint8Array(await readCapped(res, MAX_BIN_BYTES));
-        const exif = parseExif(buf);
+      const isJpeg = rec.source_type.startsWith("image/jpeg");
+      const isPdf = rec.source_type.includes("pdf");
+      const isMarkup = rec.source_type.startsWith("text/html") || rec.source_type.includes("xml");
+      const isText = rec.source_type.startsWith("text/") ||
+        /json|javascript|csv|x-yaml|rtf|calendar|vcard/.test(rec.source_type);
+
+      const shellCap = isJpeg || isPdf ? MAX_BIN_BYTES : MAX_HEAD_BYTES;
+      const needBody = wantPayload || isJpeg || isPdf || isMarkup;
+
+      let bytes: Uint8Array | null = null;
+      if (needBody) {
+        bytes = new Uint8Array(
+          await readCapped(res, wantPayload ? Math.max(shellCap, MAX_PAYLOAD_BYTES) : shellCap),
+        );
+      } else {
+        try { await res.body?.cancel(); } catch { /* drained */ }
+      }
+
+      if (bytes && isJpeg) {
+        const exif = parseExif(bytes);
         rec.container = exif;
         rec.device_id = [exif.Make, exif.Model].filter(Boolean).join(" ").trim() || null;
         rec.software = (exif.Software as string) || null;
@@ -375,16 +409,16 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
         if (typeof exif.GPSLatitude === "number" && typeof exif.GPSLongitude === "number") {
           rec.geo_lat = exif.GPSLatitude; rec.geo_lng = exif.GPSLongitude; rec.geo_source = "exif";
         }
-      } else if (rec.source_type.includes("pdf")) {
-        const head = new TextDecoder("latin1").decode(await readCapped(res, MAX_BIN_BYTES));
+      } else if (bytes && isPdf) {
+        const head = new TextDecoder("latin1").decode(bytes.subarray(0, MAX_BIN_BYTES));
         let info = parsePdfInfo(head);
         // The document-info dictionary is referenced by the trailer, which sits
         // at the END of a PDF. Linearized files repeat it up front; most do not.
         // When the leading window yields nothing, pull the tail by byte range.
         const thin = !info.CreationDate && !info.ModDate && !info.Producer && !info.Author;
-        if (thin && rec.file_size_bytes && rec.file_size_bytes > MAX_BIN_BYTES) {
+        if (thin && rec.file_size_bytes && rec.file_size_bytes > bytes.length) {
           try {
-            const from = Math.max(rec.file_size_bytes - MAX_BIN_BYTES, MAX_BIN_BYTES);
+            const from = Math.max(rec.file_size_bytes - MAX_BIN_BYTES, bytes.length);
             const tailRes = await timedFetch(
               current,
               { headers: { "User-Agent": UA, accept: "*/*", Range: `bytes=${from}-${rec.file_size_bytes - 1}` } },
@@ -408,23 +442,50 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
         rec.created_at = pdfDate(info.CreationDate);
         rec.modified_at = pdfDate(info.ModDate) || rec.modified_at;
 
-      } else if (rec.source_type.startsWith("text/html") || rec.source_type.includes("xml")) {
-        const head = new TextDecoder().decode(await readCapped(res, MAX_HEAD_BYTES));
-        const cut = head.search(/<\/head>/i);
-        const meta = parseHtmlHead(cut > 0 ? head.slice(0, cut) : head);
+      } else if (bytes && isMarkup) {
+        const doc = new TextDecoder().decode(bytes);
+        const cut = doc.search(/<\/head>/i);
+        const meta = parseHtmlHead(cut > 0 ? doc.slice(0, cut) : doc.slice(0, MAX_HEAD_BYTES));
         rec.container = meta;
         rec.author = meta["author"] || meta["jsonld:author"] || meta["article:author"] || null;
         rec.software = meta["generator"] || null;
         rec.created_at = isoOrNull(meta["article:published_time"] || meta["jsonld:datePublished"] || meta["date"]);
         rec.modified_at = isoOrNull(meta["article:modified_time"] || meta["jsonld:dateModified"]) || rec.modified_at;
-        if (!rec.file_size_bytes) rec.file_size_bytes = head.length;
-      } else {
-        try { await res.body?.cancel(); } catch { /* drained */ }
+        if (!rec.file_size_bytes) rec.file_size_bytes = bytes.length;
+        const lang = doc.match(/<html[^>]*\blang\s*=\s*["']?([a-zA-Z-]{2,8})/i)?.[1];
+        if (lang) rec.declared_language = lang;
+      }
+
+      if (!rec.declared_language) {
+        const cl = res.headers.get("content-language");
+        if (cl) rec.declared_language = cl.split(",")[0].trim();
+      }
+
+      // 2b. Full-take buffer — payload retained only when explicitly requested.
+      if (wantPayload && bytes) {
+        const text = isMarkup
+          ? htmlToText(new TextDecoder().decode(bytes))
+          : isPdf
+            ? pdfToText(new TextDecoder("latin1").decode(bytes))
+            : isText
+              ? new TextDecoder().decode(bytes)
+              : "";
+        rec.payload = {
+          session_id: rec.entity_id,
+          url: rec.url,
+          host: rec.host,
+          source_type: rec.source_type,
+          status: rec.status,
+          bytes,
+          text,
+          truncated: !!rec.file_size_bytes && rec.file_size_bytes > bytes.length,
+        };
       }
     } catch (e) {
       rec.errors.push(`container: ${(e as Error).message}`);
     }
   }
+
 
   // 3. DNS + network origin posture.
   if (rec.host) {
