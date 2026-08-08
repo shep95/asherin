@@ -23,7 +23,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { sendWebPush } from "../_shared/webPush.ts";
 import { notifyIntel, type IntelSeverity } from "../_shared/intelNotify.ts";
-import { enrichActor, extractClientIp, actorSections, type ActorIntel } from "../_shared/actorIntel.ts";
+import {
+  enrichActor,
+  extractClientIp,
+  actorSections,
+  satelliteExportUrl,
+  type ActorIntel,
+} from "../_shared/actorIntel.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
