@@ -405,6 +405,57 @@ const BluetoothSentinel = () => {
     }
   };
 
+  // ── Tradecraft: deterministic, so it runs without a model key ────────────
+  const runTradecraft = useCallback(async (silent = true) => {
+    setAnalysing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sentinel-ble", { body: { action: "ble.tradecraft" } });
+      if (error) throw error;
+      setAnalysis((data?.analysis || null) as TcAnalysis | null);
+      setDoctrine((data?.doctrine || []) as DoctrineEntry[]);
+      if (!silent) toast.success("Tradecraft analysis complete");
+    } catch (e) {
+      if (!silent) toast.error(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalysing(false);
+    }
+  }, []);
+
+  useEffect(() => { void runTradecraft(true); }, [runTradecraft]);
+
+  const buildCase = async () => {
+    setBuildingCase(true);
+    try {
+      const byok = await resolveByok();
+      const data = await invokeWithByokRetry<any>("sentinel-ble", {
+        body: { action: "ble.case", note: caseNote.slice(0, 2000), ...(byok ? { byok } : {}) },
+        silent: true,
+      });
+      if (data?.analysis) setAnalysis(data.analysis as TcAnalysis);
+      setCaseFile(data?.caseFile || null);
+      toast.success("Case file built");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Case file failed");
+    } finally {
+      setBuildingCase(false);
+    }
+  };
+
+  const downloadCase = () => {
+    if (!analysis || !caseFile) return;
+    const blob = new Blob([caseToMarkdown(analysis, caseFile)], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${caseFile.case_reference || "sentinel-case"}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoke on the next frame so Safari has committed the navigation.
+    requestAnimationFrame(() => URL.revokeObjectURL(url));
+  };
+
+
   const saveSettings = async (next: Partial<typeof settings>) => {
     const merged = { ...settings, ...next };
     setSettings(merged);
