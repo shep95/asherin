@@ -4,6 +4,13 @@ import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
 import { buildSwarmContext } from "@/lib/swarmOrchestrator";
 import { buildExactContinuationPrompt, MAX_STREAM_CONTINUATIONS, stitchAiContinuation } from "@/lib/aiContinuation";
+import {
+  buildThinkingPrompt,
+  buildAnswerPromptWithThinking,
+  extractThinking,
+  stripThinkingTags,
+  shouldRunThinkingPass,
+} from "@/lib/aureonThinking";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
@@ -34,6 +41,9 @@ export async function streamChat({
   onDelta,
   onReplace,
   onDone,
+  onThinkingStart,
+  onThinkingDelta,
+  onThinkingDone,
 }: {
   messages: Msg[];
   mode: ChatMode;
@@ -47,6 +57,10 @@ export async function streamChat({
   onDelta: (text: string) => void;
   onReplace?: (text: string) => void;
   onDone: () => void;
+  /** Ghost Chain phase 1 hooks — omit them and the reasoning pass is skipped entirely. */
+  onThinkingStart?: () => void;
+  onThinkingDelta?: (text: string) => void;
+  onThinkingDone?: (fullThinking: string) => void;
 }) {
   // Transform attachments for the backend
   const apiMessages = messages.map(m => {
@@ -257,6 +271,55 @@ export async function streamChat({
 
     return { text: passText, incompleteSignal: passIncomplete };
   };
+
+  // ── GHOST CHAIN — PHASE 1: the thinking call ────────────────────────────
+  // The model reasons inside <thinking> tags; tokens stream straight into the
+  // reasoning panel. Its output is then injected as hidden context for the
+  // answer call. Fail-soft by design: if the reasoning pass errors, times out
+  // or is gated off, the answer call runs exactly as before.
+  const lastUserIdx = (() => {
+    for (let i = apiMessages.length - 1; i >= 0; i--) if (apiMessages[i].role === "user") return i;
+    return -1;
+  })();
+  const lastUserContent = lastUserIdx >= 0 ? String(apiMessages[lastUserIdx].content ?? "") : "";
+
+  let thinkingText = "";
+  if (onThinkingDelta && lastUserIdx >= 0 && shouldRunThinkingPass(lastUserContent)) {
+    onThinkingStart?.();
+    try {
+      const thinkingMessages = apiMessages.map((m, i) =>
+        i === lastUserIdx ? { ...m, content: buildThinkingPrompt(lastUserContent) } : m,
+      );
+      let rawThinking = "";
+      let closed = false;
+      const pass = await fetchAndRead(thinkingMessages, (chunk) => {
+        rawThinking += chunk;
+        if (closed) return;
+        if (/<\/thinking>/i.test(rawThinking)) closed = true;
+        // Re-derive from the accumulator so a tag split across chunks never leaks.
+        const visible = stripThinkingTags(extractThinking(rawThinking));
+        const delta = visible.slice(thinkingText.length);
+        if (delta) { thinkingText = visible; onThinkingDelta(delta); }
+      });
+      const finalThinking = extractThinking(rawThinking || pass.text);
+      if (finalThinking.length > thinkingText.length) {
+        onThinkingDelta(finalThinking.slice(thinkingText.length));
+      }
+      thinkingText = finalThinking;
+    } catch (e) {
+      if ((e as { name?: string })?.name === "AbortError") throw e;
+      thinkingText = ""; // degrade to the single-call path
+    }
+    onThinkingDone?.(thinkingText);
+  }
+
+  // ── GHOST CHAIN — PHASE 2: the answer call ──────────────────────────────
+  if (thinkingText && lastUserIdx >= 0) {
+    apiMessages[lastUserIdx] = {
+      ...apiMessages[lastUserIdx],
+      content: buildAnswerPromptWithThinking(lastUserContent, thinkingText),
+    };
+  }
 
   let requestMessages = apiMessages;
   for (let attempt = 0; attempt <= MAX_STREAM_CONTINUATIONS; attempt++) {
