@@ -119,6 +119,12 @@ export interface FilterContext {
   pinnedHosts?: string[];
   /** Score floor. Raise it for a tighter cut, lower it to see more. */
   floor?: number;
+  /**
+   * Maximum leads retained from any single host. Without a cap, a handful of
+   * high-volume platforms occupy the whole board and the long tail — where the
+   * uncatalogued material actually lives — never reaches the operator.
+   */
+  perHostCap?: number;
 }
 
 interface Scored<T> { lead: T; score: number; reason: string }
@@ -216,6 +222,9 @@ export function filterLeads<T extends FilterableLead>(
   const kept: T[] = [];
   const dropped: T[] = [];
   const reasons: Record<string, number> = {};
+  const perHostCap = ctx.perHostCap ?? 6;
+  const byHost = new Map<string, number>();
+  const pinnedHost = (h: string) => (ctx.pinnedHosts || []).some((p) => h === p || h.endsWith(`.${p}`));
 
   for (const s of scored.sort((a, b) => b.score - a.score)) {
     const sig = sigOf(s.lead);
@@ -233,8 +242,44 @@ export function filterLeads<T extends FilterableLead>(
       }
       byTitle.set(sig, seen + 1);
     }
+    const h = hostOf(s.lead.url);
+    if (h && !pinnedHost(h)) {
+      const n = byHost.get(h) ?? 0;
+      if (n >= perHostCap) {
+        dropped.push(s.lead);
+        reasons["host quota reached — long tail given the slot"] =
+          (reasons["host quota reached — long tail given the slot"] ?? 0) + 1;
+        continue;
+      }
+      byHost.set(h, n + 1);
+    }
     kept.push(s.lead);
   }
 
   return { kept, dropped, reasons };
+}
+
+/**
+ * Host-diversity interleave. Ranked lists collapse onto whichever host returned
+ * the most rows; round-robining across hosts puts the open web on the first
+ * page beside the platforms instead of eighty rows below them.
+ */
+export function diversifyByHost<T extends FilterableLead>(leads: T[]): T[] {
+  const buckets = new Map<string, T[]>();
+  for (const l of leads) {
+    const h = hostOf(l.url) || l.url;
+    const b = buckets.get(h);
+    if (b) b.push(l); else buckets.set(h, [l]);
+  }
+  const queues = [...buckets.values()];
+  const out: T[] = [];
+  let drained = false;
+  while (!drained) {
+    drained = true;
+    for (const q of queues) {
+      const next = q.shift();
+      if (next) { out.push(next); drained = false; }
+    }
+  }
+  return out;
 }
