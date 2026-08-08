@@ -651,7 +651,7 @@ serve(async (req) => {
           systemInstruction: { parts: [{ text: fullSystem }] },
           contents: toGeminiContents(cleaned),
           tools: [{ function_declarations: geminiFunctionDeclarations(TOOLS) }],
-          toolConfig: { functionCallingConfig: { mode: mapEditFast ? "ANY" : "AUTO" } },
+          toolConfig: { functionCallingConfig: { mode: (mapEditFast || cloudIntelFast) ? "ANY" : "AUTO" } },
           safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
             { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
