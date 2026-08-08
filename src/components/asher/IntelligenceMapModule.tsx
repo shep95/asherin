@@ -546,9 +546,48 @@ interface SelectedEntity {
 const THREAT_IDS = ["h-quake", "h-fire", "h-air"] as const;
 type ThreatId = typeof THREAT_IDS[number];
 
+/* Sidebar geometry — persisted so the operator's chosen width survives a
+   reload. Clamped on read: a corrupted localStorage value must never render an
+   unusable 4px rail or a sidebar wider than the viewport. */
+const SIDEBAR_KEY = "asherin-maps.sidebar";
+const SIDEBAR_MIN = 240;
+const SIDEBAR_MAX = 620;
+const SIDEBAR_DEFAULT = 384;
+const UNITS_KEY = "asherin-maps.units";
+
+function readSidebar(): { width: number; collapsed: boolean } {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIDEBAR_KEY) || "null");
+    const width = Number(raw?.width);
+    return {
+      width: Number.isFinite(width) ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width)) : SIDEBAR_DEFAULT,
+      collapsed: !!raw?.collapsed,
+    };
+  } catch {
+    return { width: SIDEBAR_DEFAULT, collapsed: false };
+  }
+}
+
+function readUnits(): Units {
+  try { return localStorage.getItem(UNITS_KEY) === "metric" ? "metric" : "imperial"; } catch { return "imperial"; }
+}
+
 const IntelligenceMapModule = () => {
-  const [activeBase, setActiveBase] = useState<string>("carto-dark");
+  // Satellite is the operator default: parcel edges, roof detail and vehicle
+  // presence are the whole point of this surface, and none of them survive on
+  // a vector base map.
+  const [activeBase, setActiveBase] = useState<string>("esri-sat");
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true, threats: true });
+  const [layerFilter, setLayerFilter] = useState("");
+  const [sidebar, setSidebar] = useState(readSidebar);
+  const [units, setUnits] = useState<Units>(readUnits);
+  const [tool, setTool] = useState<null | "directions" | "places" | "jobs">(null);
+  const [seedDest, setSeedDest] = useState<DirectionsEndpoint | null>(null);
+  const [routeLayer, setRouteLayer] = useState<{ routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }>({ routes: [], activeId: null, highlight: null });
+  const [cameras, setCameras] = useState<StreetCamera[]>([]);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [placePins, setPlacePins] = useState<Place[]>([]);
+  const [jobPins, setJobPins] = useState<JobPosting[]>([]);
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
