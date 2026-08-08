@@ -28,6 +28,7 @@
  */
 
 import { placeSearch, type WebHit } from "./bleSentinel.ts";
+import { resolveFromRegistries, type RegistryResult } from "./rideshareRegistry.ts";
 import type { RideInput } from "./rideshareGuardian.ts";
 
 // ── Utilities ──────────────────────────────────────────────────────────────
