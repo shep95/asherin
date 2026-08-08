@@ -432,12 +432,42 @@ Deno.serve(async (req) => {
 
   const index = buildIndex(records);
 
+  // ── Search projection ──────────────────────────────────────────────────────
+  // The card catalog stays intact for the power tabs; this is the flat, ranked
+  // list the front door renders. Buffer hits are merged in the same list so the
+  // operator never has to know which layer answered.
+  let results: SearchResult[] | undefined;
+  let suggestions: string[] | undefined;
+  if (searchMode) {
+    const anomalyByEntity = new Map<string, number>();
+    for (const a of index.anomalies) {
+      if (a.entity_id) anomalyByEntity.set(a.entity_id, (anomalyByEntity.get(a.entity_id) ?? 0) + 1);
+    }
+    results = records.map((r) => webResult(r, anomalyByEntity.get(r.entity_id) ?? 0));
+
+    if (scope === "all" && sb && userId && query) {
+      try {
+        const rows = await liveRows(sb, userId);
+        const hits = selectContent(rows, { dictionary: tokenize(query), mode: "any" }, 30);
+        results = [...hits.map(bufferResult), ...results];
+      } catch (e) {
+        if (!(e instanceof SelectorError)) console.error("[ghost-engine] buffer fold failed:", (e as Error).message);
+      }
+    }
+    results.sort((a, b) => b.score - a.score);
+    suggestions = suggestFromFacets(index.facets);
+  }
+
   return json({
+    action: searchMode ? "search" : "sweep",
+    scope: searchMode ? scope : undefined,
     query: query || targets[0],
     mode,
     elapsedMs: Date.now() - started,
     tier: access.reason,
     index,
+    results,
+    suggestions,
     buffer: capture
       ? {
         captured: buffered,
@@ -448,3 +478,4 @@ Deno.serve(async (req) => {
       : null,
   });
 });
+
