@@ -36,13 +36,15 @@ import RideshareGuardian from "./modules/RideshareGuardian";
 import BluetoothSentinel from "./modules/BluetoothSentinel";
 import PhoneMessages from "./modules/PhoneMessages";
 import MeetVault from "./modules/MeetVault";
+import GhostLedgerPanel from "./modules/GhostLedgerPanel";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "postmark" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "postmark" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
+
 
 /** A directorate is an analytic function, not a product category. */
 type Directorate = "COLLECTION" | "ANALYSIS" | "FORECAST" | "COUNTERINTEL";
