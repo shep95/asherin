@@ -290,6 +290,34 @@ Deno.serve(async (req) => {
   // not have run.
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
 
+  // ── LEDGER — Cloud Intelligence fused into the Ghost Engine ────────────────
+  // The operator's own correspondence nominates the targets; Ghost probes the
+  // infrastructure named inside it. Read through the caller's own token, so a
+  // ledger the caller cannot see is a ledger this action cannot probe.
+  if (action === "ledger") {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader) return json({ error: "Authentication required" }, 401);
+    const bundle = await runGhostLedger(authHeader, {
+      windowDays: Number(body.windowDays) || 90,
+      channel: body.channel === "gmail" || body.channel === "sms" ? body.channel : null,
+      focus: body.focus ? String(body.focus).slice(0, 120) : null,
+      maxHosts: Number(body.maxHosts) || 14,
+      budgetMs: 60_000,
+    });
+    if (!bundle) {
+      return json({
+        action: "ledger",
+        empty: true,
+        message: "No correspondence in the selected window, or no Google account is connected yet.",
+      });
+    }
+    console.log(
+      `[ghost-engine] ledger · scanned=${bundle.scanned} · probed=${bundle.hostsProbed}/${bundle.hostsConsidered} · ${bundle.elapsedMs}ms`,
+    );
+    return json({ action: "ledger", tier: access.reason, ...bundle });
+  }
+
+
   // ── Buffer-only search — the shelf without a new sweep ─────────────────────
   if (action === "searchBuffer") {
     const q = String(body.query ?? "").trim().slice(0, 400);
