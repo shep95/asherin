@@ -677,22 +677,48 @@ export async function findCameraCoverage(
   lon: number,
   radiusM = 350,
 ): Promise<CameraCoverage | null> {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 9000);
+  // Only the indexed `man_made=surveillance` key is queried. A bare
+  // ["surveillance"] clause forces Overpass into an unindexed key scan, which
+  // on the public instance routinely exceeds the request budget and returns
+  // nothing at all — trading complete coverage for an answer that arrives.
+  const q =
+    `[out:json][timeout:20];` +
+    `node(around:${radiusM},${lat},${lon})["man_made"="surveillance"];out body 60;`;
+
+  // The public endpoint rate-limits aggressively; the Kumi mirror serves the
+  // same dataset and is tried when the primary declines.
+  const MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+
+  let els: any[] | null = null;
+  for (const endpoint of MIRRORS) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 20_000);
+    try {
+      const r = await fetch(endpoint, {
+        method: "POST",
+        signal: ctl.signal,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Asherin-Security/1.0 (security alerts)",
+        },
+        body: `data=${encodeURIComponent(q)}`,
+      });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (Array.isArray(j?.elements)) { els = j.elements; break; }
+    } catch {
+      /* try the next mirror */
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (!els) return null;
+
   try {
-    const q =
-      `[out:json][timeout:8];` +
-      `(node(around:${radiusM},${lat},${lon})["man_made"="surveillance"];` +
-      `node(around:${radiusM},${lat},${lon})["surveillance"];);out body 60;`;
-    const r = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      signal: ctl.signal,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `data=${encodeURIComponent(q)}`,
-    });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const els = Array.isArray(j?.elements) ? j.elements : [];
+
 
     const cameras: CameraSighting[] = els
       .filter((e: any) => typeof e?.lat === "number" && typeof e?.lon === "number")
