@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
   Download, Archive, ChevronDown, Sparkle, History, X, Crosshair, Filter,
+  Paperclip, Hourglass,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -13,11 +14,13 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
+import { DeepTimePanel, type TimeMachineReport } from "./ghost/DeepTimePanel";
 import {
   projectRecords, suggestFromIndex,
   type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
 } from "./ghost/searchFormat";
 import { SEVERITY_STYLE, type GhostRecord } from "./ghost/types";
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,8 +55,11 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
   { id: "buffer", label: "Buffer", hint: "Soft selection over bodies already on the shelf" },
 ];
 
-/** ORIGIN is not a scope — it is a different question, so it gets its own verb. */
+/** ORIGIN and DEEP TIME are not scopes — they are different questions, so they
+ *  get their own verbs rather than being folded into the intercept scope knob. */
+type GhostMode = "intercept" | "origin" | "deeptime";
 const MODE_KEY = "ghost_engine_mode";
+
 
 const CAPTURE_KEY = "ghost_engine_capture";
 const FILTER_KEY = "ghost_engine_filter";
@@ -96,12 +102,19 @@ const GhostEngineView = () => {
   );
   const [replay, setReplay] = useState<GhostHistoryRun | null>(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
-  // INTERCEPT sweeps a selector. ORIGIN traces one artefact back to the act of
-  // authorship behind it. Same box, different engine path, different surface.
-  const [mode, setMode] = useState<"intercept" | "origin">(
-    () => (localStorage.getItem(MODE_KEY) === "origin" ? "origin" : "intercept"),
-  );
+  // INTERCEPT sweeps a selector. ORIGIN traces one artefact — a link or a file
+  // the operator holds — back to the act of authorship behind it. DEEP TIME
+  // reaches past the live web into the capture archives. Same box, three
+  // engines, three surfaces.
+  const [mode, setMode] = useState<GhostMode>(() => {
+    const saved = localStorage.getItem(MODE_KEY);
+    return saved === "origin" || saved === "deeptime" ? saved : "intercept";
+  });
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
+  const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
 
   const [recent, setRecent] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]").slice(0, 8); } catch { return []; }
@@ -156,6 +169,40 @@ const GhostEngineView = () => {
         });
         return;
       }
+
+      // ── DEEP TIME path ───────────────────────────────────────────────────
+      // Hosts the live intercept already tied to this selector are carried in,
+      // because a capture index cannot be asked about a person — only about a
+      // URL. Handing it the hosts is what makes a name reachable at all.
+      if (mode === "deeptime") {
+        setDeepTime(null);
+        const carried = Array.from(new Set([
+          ...(data?.index?.records ?? []).map((r) => r.host).filter(Boolean),
+          ...(origin?.selectors?.hosts ?? []),
+        ])).slice(0, 8);
+        const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+          body: { action: "timeline", query: q, hosts: carried },
+        });
+        if (controller.signal.aborted) return;
+        if (error) {
+          const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          toast({
+            title: /403|Pro/.test(detail) ? "Deep time is an Asherin Pro surface" : "Reach-back failed",
+            description: detail.slice(0, 240) || error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        setDeepTime((res as { report?: TimeMachineReport })?.report ?? null);
+        setRecent((prev) => {
+          const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
+          localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+          return next;
+        });
+        return;
+      }
+
+
 
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
         // No client-side aperture. The probe budget is the engine's to spend;
@@ -213,7 +260,65 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope, mode, noiseFilter]);
+  }, [loading, capture, scope, mode, noiseFilter, data, origin]);
+
+  /**
+   * ORIGIN for a file the operator holds. Read as bytes in the browser, sent as
+   * base64, carved server-side by the same extractor a link trace uses — so an
+   * emailed PDF and a hosted one produce the identical dossier, minus the
+   * transport layer the emailed one never had.
+   */
+  const MAX_UPLOAD = 12 * 1024 * 1024;
+  const onUpload = useCallback(async (file: File) => {
+    if (uploading || loading) return;
+    if (file.size > MAX_UPLOAD) {
+      toast({
+        title: "File too large",
+        description: `${(file.size / 1048576).toFixed(1)} MB exceeds the 12 MB inspection window.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setUploading(true);
+    setOrigin(null);
+    setMode("origin");
+    localStorage.setItem(MODE_KEY, "origin");
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      // Chunked conversion — String.fromCharCode on a multi-MB spread blows the
+      // call stack, which is how a large upload silently became a blank panel.
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) {
+        bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      }
+      const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+        body: {
+          action: "upload",
+          file: { filename: file.name, contentType: file.type, base64: btoa(bin) },
+        },
+      });
+      if (error) {
+        const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+        toast({
+          title: /403|Pro/.test(detail) ? "Origin trace is an Asherin Pro surface" : "Inspection failed",
+          description: detail.slice(0, 240) || error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      const trace = (res as { trace?: OriginTrace })?.trace ?? null;
+      setOrigin(trace);
+      setData(null);
+      setQuery(file.name);
+      if (trace?.errors.length) toast({ title: "Inspection incomplete", description: trace.errors[0] });
+    } catch (e) {
+      toast({ title: "Inspection failed", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }, [uploading, loading]);
+
 
 
   const index = data?.index ?? null;
@@ -322,34 +427,72 @@ const GhostEngineView = () => {
                 onFocus={() => setSuggestOpen(true)}
                 onBlur={() => setTimeout(() => setSuggestOpen(false), 120)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSuggestOpen(false); }}
-                placeholder={mode === "origin" ? "Paste a link to a PDF, image or page — trace where it was made…" : "Search a domain, a name, a phrase, a pattern…"}
-                aria-label={mode === "origin" ? "Ghost Engine origin trace" : "Ghost Engine search"}
+                placeholder={
+                  mode === "origin"
+                    ? "Paste a link — or attach a file — to trace where it was made…"
+                    : mode === "deeptime"
+                      ? "Reach back: a name, an email, a domain — 1996 to today…"
+                      : "Search a domain, a name, a phrase, a pattern…"
+                }
+                aria-label={
+                  mode === "origin" ? "Ghost Engine origin trace"
+                    : mode === "deeptime" ? "Ghost Engine archive reach-back"
+                      : "Ghost Engine search"
+                }
                 autoComplete="off"
                 className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
               />
-              <button
-                type="button"
-                role="switch"
-                aria-checked={capture}
-                onClick={() => setCapture((c) => { localStorage.setItem(CAPTURE_KEY, c ? "0" : "1"); return !c; })}
-                title="Retain each session body in a self-expiring buffer so it can be reopened and searched"
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] transition-colors ${
-                  capture
-                    ? "border-foreground/40 bg-foreground/8 text-foreground"
-                    : "border-border/25 text-muted-foreground/55 hover:text-foreground/80"
-                }`}
-              >
-                <Archive className="h-3 w-3" />
-                Retain
-              </button>
+              {/* A document that arrived by mail can never be traced by link —
+                  the attach path is the only way its provenance is reachable. */}
+              {mode === "origin" && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.heic,.docx,.xlsx,.pptx,.html,.htm,application/pdf,image/*"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) void onUpload(f); }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading || loading}
+                    title="Inspect a document you hold — metadata, authoring clock, lineage, and every selector inside it"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/25 px-2.5 py-1 text-[10.5px] text-muted-foreground/60 transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-40"
+                  >
+                    {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Paperclip className="h-3 w-3" />}
+                    {uploading ? "Reading" : "Attach"}
+                  </button>
+                </>
+              )}
+              {mode === "intercept" && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={capture}
+                  onClick={() => setCapture((c) => { localStorage.setItem(CAPTURE_KEY, c ? "0" : "1"); return !c; })}
+                  title="Retain each session body in a self-expiring buffer so it can be reopened and searched"
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] transition-colors ${
+                    capture
+                      ? "border-foreground/40 bg-foreground/8 text-foreground"
+                      : "border-border/25 text-muted-foreground/55 hover:text-foreground/80"
+                  }`}
+                >
+                  <Archive className="h-3 w-3" />
+                  Retain
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={loading || !query.trim()}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/25 px-3 py-1 text-xs text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-35"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                {loading ? (mode === "origin" ? "Tracing" : "Searching") : (mode === "origin" ? "Trace" : "Search")}
+                {loading
+                  ? (mode === "origin" ? "Tracing" : mode === "deeptime" ? "Reaching back" : "Searching")
+                  : (mode === "origin" ? "Trace" : mode === "deeptime" ? "Reach back" : "Search")}
               </button>
+
             </form>
 
             {suggestOpen && typeahead.length > 0 && (
@@ -376,7 +519,8 @@ const GhostEngineView = () => {
             <div className="mr-1 flex items-center gap-1 rounded-full border border-border/20 p-0.5">
               {([
                 { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
-                { id: "origin" as const, label: "Origin", hint: "Trace one link or file back to when, where and on what it was made" },
+                { id: "origin" as const, label: "Origin", hint: "Trace one link or attached file back to when, where and on what it was made" },
+                { id: "deeptime" as const, label: "Deep time", hint: "Reach into the capture archives — every year from 1996 to today" },
               ]).map((m) => (
                 <button
                   key={m.id}
@@ -387,9 +531,12 @@ const GhostEngineView = () => {
                     mode === m.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/55 hover:text-foreground/85"
                   }`}
                 >
-                  {m.id === "origin" ? <Crosshair className="h-3 w-3" /> : <Search className="h-3 w-3" />}
+                  {m.id === "origin" ? <Crosshair className="h-3 w-3" />
+                    : m.id === "deeptime" ? <Hourglass className="h-3 w-3" />
+                      : <Search className="h-3 w-3" />}
                   {m.label}
                 </button>
+
               ))}
             </div>
             {mode === "intercept" && SCOPES.map((s) => (
@@ -460,21 +607,58 @@ const GhostEngineView = () => {
       {/* ── Body ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto max-w-3xl">
-          {mode === "origin" && !loading && origin && <OriginPanel trace={origin} />}
+          {mode === "origin" && !loading && !uploading && origin && (
+            <OriginPanel
+              trace={origin}
+              onPivot={(sel) => { setMode("intercept"); localStorage.setItem(MODE_KEY, "intercept"); setQuery(sel); void run(sel); }}
+            />
+          )}
 
-          {mode === "origin" && !loading && !origin && (
+          {mode === "origin" && (loading || uploading) && (
+            <div className="mt-14 text-center text-sm font-light text-muted-foreground/60">
+              <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin opacity-50" />
+              {uploading ? "Carving the container…" : "Tracing…"}
+            </div>
+          )}
+
+          {mode === "origin" && !loading && !uploading && !origin && (
             <div className="mt-14 text-center">
               <Crosshair className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
-              <p className="text-sm font-light text-muted-foreground/70">Give the engine one link. It gives you the act of authorship.</p>
+              <p className="text-sm font-light text-muted-foreground/70">Give the engine one link — or one file. It gives you the act of authorship.</p>
               <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground/45">
                 A PDF carries the wall clock of the machine that wrote it, the UTC offset that machine was set to,
                 the software that produced it, the account that saved it, and — when a camera or scanner touched it —
                 the coordinates where the sensor stood. Origin recovers those fields, resolves the offset against
                 daylight saving for that exact date, reverse-geocodes any real coordinate to a building and street,
-                and converts everything into your own local time.
+                and converts everything into your own local time. Use <span className="text-foreground/70">Attach</span>{" "}
+                for a document you already hold; every email, phone number, name and address inside it comes back as a
+                one-click pivot.
               </p>
             </div>
           )}
+
+          {mode === "deeptime" && !loading && deepTime && <DeepTimePanel report={deepTime} />}
+
+          {mode === "deeptime" && loading && (
+            <div className="mt-14 text-center text-sm font-light text-muted-foreground/60">
+              <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin opacity-50" />
+              Walking the capture indexes…
+            </div>
+          )}
+
+          {mode === "deeptime" && !loading && !deepTime && (
+            <div className="mt-14 text-center">
+              <Hourglass className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
+              <p className="text-sm font-light text-muted-foreground/70">The live web is the smaller half of the record.</p>
+              <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground/45">
+                Most of what was ever published about a person, a family or a company is no longer served by anyone —
+                the page was deleted, the host expired, the forum closed. It survives in capture archives. Deep time
+                walks the Wayback index, the Common Crawl index and the full-text corpora from 1996 forward, and
+                returns a per-year ladder where every row keeps the dated capture that proves it.
+              </p>
+            </div>
+          )}
+
 
           {mode === "intercept" && !data && !replay && !loading && (
             <div className="mt-14 text-center">

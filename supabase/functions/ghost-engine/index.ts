@@ -34,10 +34,12 @@ import {
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
 import { runGhostLedger } from "../_shared/ghostLedger.ts";
-import { traceOrigin } from "../_shared/ghostOrigin.ts";
+import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
+import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import {
   classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
 } from "../_shared/ghostHarvest.ts";
+
 
 
 // The probe budget and the harvest aperture are two different numbers. The
@@ -52,7 +54,9 @@ const BUCKET = "ghost-buffer";
 
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
-  | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin";
+  | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin"
+  | "upload" | "timeline";
+
 
 
 interface GhostRequest {
@@ -79,7 +83,13 @@ interface GhostRequest {
   channel?: "gmail" | "sms" | null;
   focus?: string | null;
   maxHosts?: number;
+  /** action=upload — an artefact the operator holds rather than a link. */
+  file?: { filename?: string; contentType?: string; base64?: string };
+  /** action=timeline — reach back through the capture archives. */
+  fromYear?: number;
+  hosts?: string[];
 }
+
 
 
 /** A bare URL (with or without scheme) is a direct probe, not a sweep. */
@@ -383,6 +393,40 @@ Deno.serve(async (req) => {
     const trace = await traceOrigin(target);
     return json({ action: "origin", trace });
   }
+
+  // ── UPLOAD — ORIGIN for a file the operator already holds ──────────────────
+  // A link can be traced because it is served. A document that arrived by mail,
+  // by hand, or out of a case file cannot be — but the provenance lives in the
+  // bytes either way, so the same carving runs against the uploaded buffer and
+  // the response additionally hands back every selector found inside it.
+  if (action === "upload") {
+    const f = body.file;
+    if (!f?.base64) return json({ error: "No file payload received." }, 400);
+    const artifact: UploadedArtifact = {
+      filename: String(f.filename || "upload"),
+      contentType: String(f.contentType || ""),
+      base64: String(f.base64),
+    };
+    const trace = await traceUpload(artifact);
+    return json({ action: "upload", trace });
+  }
+
+  // ── TIMELINE — the archived web, 1996 → today ──────────────────────────────
+  // The intercept reads the web that is being served this second. This reads
+  // the web that was: capture indexes, crawl indexes, and full-text corpora,
+  // folded into one per-year record with a proving link on every row.
+  if (action === "timeline") {
+    const target = String(body.query || "").trim();
+    if (!target) return json({ error: "Give the engine a selector to reach back on." }, 400);
+    const id = classifySelector(target);
+    const report = await deepTimeSweep(target, id.kind, {
+      hosts: Array.isArray(body.hosts) ? body.hosts.slice(0, 8).map(String) : [],
+      fromYear: typeof body.fromYear === "number" ? body.fromYear : undefined,
+    });
+    return json({ action: "timeline", identity: id, report });
+  }
+
+
 
 
 

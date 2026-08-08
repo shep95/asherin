@@ -113,12 +113,26 @@ export interface OriginTrace {
     asn: string | null;
     ip_place: string | null;
   };
+  /** Selectors carved out of the artefact itself — pivotable, not decorative. */
+  selectors: {
+    emails: string[];
+    phones: string[];
+    urls: string[];
+    hosts: string[];
+    handles: string[];
+    people: string[];
+    places: string[];
+    ids: string[];
+  };
+  /** Set when the artefact was uploaded rather than fetched. */
+  upload: { filename: string; declared_type: string } | null;
   raw_fields: Record<string, string>;
   scrubbed: boolean;
   notes: string[];
   errors: string[];
   elapsed_ms: number;
 }
+
 
 // ── transport ────────────────────────────────────────────────────────────────
 
@@ -434,14 +448,60 @@ function placeFromAddress(
   };
 }
 
+// ── compressed page streams ──────────────────────────────────────────────────
+
+/**
+ * A PDF's visible text almost always lives inside a FlateDecode stream, so
+ * reading only the plain operators is why a filled form used to come back with
+ * no addresses and no phone numbers. Each stream is inflated independently —
+ * one malformed object must not cost the whole document — and both zlib-wrapped
+ * and raw deflate framings are attempted, because producers disagree.
+ */
+async function inflateOne(chunk: Uint8Array): Promise<string> {
+  for (const format of ["deflate", "deflate-raw"] as const) {
+    try {
+      const stream = new Blob([chunk]).stream().pipeThrough(new DecompressionStream(format));
+      const buf = new Uint8Array(await new Response(stream).arrayBuffer());
+      if (buf.length) return new TextDecoder("latin1").decode(buf);
+    } catch { /* try the other framing */ }
+  }
+  return "";
+}
+
+async function inflatePdfStreams(bytes: Uint8Array): Promise<string> {
+  const latin1 = new TextDecoder("latin1").decode(bytes);
+  const out: string[] = [];
+  let cursor = 0;
+  let count = 0;
+  let total = 0;
+  // Bounded at 140 streams / 8 MB: an adversarial file must not turn one
+  // inspection into unbounded decompression.
+  while (count < 140 && total < 8 * 1024 * 1024) {
+    const at = latin1.indexOf("stream", cursor);
+    if (at === -1) break;
+    const dict = latin1.slice(Math.max(0, at - 900), at);
+    // Per spec `stream` is followed by CRLF or LF, never a bare CR.
+    let start = at + 6;
+    if (latin1[start] === "\r") start++;
+    if (latin1[start] === "\n") start++;
+    const end = latin1.indexOf("endstream", start);
+    if (end === -1) break;
+    cursor = end + 9;
+    if (!/\/FlateDecode/.test(dict)) continue;
+    const len = end - start;
+    if (len < 12 || len > 4 * 1024 * 1024) continue;
+    count++;
+    const text = await inflateOne(bytes.subarray(start, end));
+    if (text) { out.push(text); total += text.length; }
+  }
+  return out.join("\n");
+}
+
 // ── the trace ────────────────────────────────────────────────────────────────
 
-export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
-  const t0 = Date.now();
-  const safe = isPublicHttpUrl(rawUrl.trim().match(/^https?:\/\//i) ? rawUrl.trim() : `https://${rawUrl.trim()}`);
-  const url = safe ?? rawUrl.trim();
 
-  const trace: OriginTrace = {
+function blankTrace(url: string): OriginTrace {
+  return {
     url, final_url: url, host: "", status: null, content_type: "", kind: "other",
     bytes: null, sha256: null, redirect_chain: [], fetched_at: new Date().toISOString(),
     created: null, modified: null, timestamps: [], zone_candidates: [], work_pattern: null,
@@ -450,8 +510,19 @@ export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
     identity: { author: null, company: null, title: null, subject: null, keywords: null },
     lineage: { document_id: null, instance_id: null, original_document_id: null, edit_span_minutes: null, revisions: [] },
     serving: { server: null, powered_by: null, last_modified: null, cdn_pop: null, ip: null, asn: null, ip_place: null },
+    selectors: { emails: [], phones: [], urls: [], hosts: [], handles: [], people: [], places: [], ids: [] },
+    upload: null,
     raw_fields: {}, scrubbed: false, notes: [], errors: [], elapsed_ms: 0,
   };
+}
+
+export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
+  const t0 = Date.now();
+  const safe = isPublicHttpUrl(rawUrl.trim().match(/^https?:\/\//i) ? rawUrl.trim() : `https://${rawUrl.trim()}`);
+  const url = safe ?? rawUrl.trim();
+
+  const trace: OriginTrace = blankTrace(url);
+
 
   if (!safe) {
     trace.errors.push("Target is not a public HTTP(S) URL. Private ranges and metadata endpoints are refused.");
@@ -482,9 +553,11 @@ export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
   }
 
   trace.final_url = current;
+
   try { trace.host = new URL(current).hostname.replace(/^www\./, ""); } catch { /* noop */ }
 
-  let bytes = new Uint8Array(0);
+
+  let bytes: Uint8Array<ArrayBufferLike> = new Uint8Array(0);
   if (res) {
     trace.status = res.status;
     trace.content_type = (res.headers.get("content-type") || "").split(";")[0].trim();
@@ -498,10 +571,22 @@ export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
     try { bytes = await readCapped(res, MAX_DOC_BYTES); } catch (e) { trace.errors.push(`body: ${(e as Error).message}`); }
   }
 
+  await inspectArtifact(trace, bytes);
+  trace.elapsed_ms = Date.now() - t0;
+  return trace;
+}
+
+/**
+ * Everything that can be learned from the bytes themselves. Split out of
+ * `traceOrigin` so an uploaded artefact — which has no transport layer at all —
+ * gets the identical evidence treatment as a fetched one.
+ */
+async function inspectArtifact(trace: OriginTrace, bytes: Uint8Array): Promise<void> {
   trace.bytes = bytes.length || null;
   if (bytes.length) trace.sha256 = await sha256Hex(new TextDecoder("latin1").decode(bytes.subarray(0, 2 * 1024 * 1024)));
 
   const ct = trace.content_type;
+
   const looksPdf = ct.includes("pdf") || /%PDF-/.test(new TextDecoder("latin1").decode(bytes.subarray(0, 1024)));
   const looksJpeg = ct.includes("jpeg") || (bytes[0] === 0xff && bytes[1] === 0xd8);
   trace.kind = looksPdf ? "pdf"
@@ -597,7 +682,16 @@ export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
       }
     }
 
-    try { docText = pdfToText(latin1).slice(0, 400_000); } catch { /* text is a bonus, not a requirement */ }
+    // Most real documents keep their page text inside FlateDecode streams, so
+    // reading only the uncompressed operators means a form full of addresses
+    // and phone numbers looks empty. Inflate first, then extract.
+    let readable = latin1;
+    try {
+      const inflated = await inflatePdfStreams(bytes);
+      if (inflated) readable = `${latin1}\n${inflated}`;
+    } catch { /* an unreadable stream is a fact, not a failure */ }
+    try { docText = pdfToText(readable).slice(0, 400_000); } catch { /* text is a bonus, not a requirement */ }
+
   }
 
   if (trace.kind === "image" && bytes.length) {
@@ -775,6 +869,152 @@ export async function traceOrigin(rawUrl: string): Promise<OriginTrace> {
       "EXIF GPS", "confirmed");
   }
 
+  // 6. Selector harvest — the document is not the end of the trace, it is the
+  // start of the next one. Everything pivotable is lifted out of both the body
+  // text and the metadata fields, deduped, and handed back as search seeds.
+  trace.selectors = harvestSelectors(docText, trace);
+  const sel = trace.selectors;
+  if (sel.emails.length) push("Addresses in document", sel.emails.slice(0, 8).join(", "), "body text + metadata fields", "confirmed");
+  if (sel.phones.length) push("Phone numbers in document", sel.phones.slice(0, 8).join(", "), "body text", "confirmed");
+}
+
+// ── selector harvest ─────────────────────────────────────────────────────────
+
+const EMAIL_RE = /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{2,255}\.[A-Za-z]{2,24}\b/g;
+/** NANP + international, tolerant of the spacing PDFs introduce mid-number. */
+const PHONE_RE = /(?:\+\d{1,3}[\s.\-]?)?(?:\(\d{2,4}\)[\s.\-]?|\d{2,4}[\s.\-])\d{3,4}[\s.\-]?\d{3,4}\b/g;
+const URL_RE = /\bhttps?:\/\/[^\s<>"')\]]{4,300}/g;
+const HANDLE_RE = /(?:^|[\s(:])@([A-Za-z0-9_]{3,30})\b/g;
+const ID_RE = /\b(?:[A-Z]{2,4}-\d{3,8}|\d{2}-\d{7}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/g;
+
+function uniq(list: string[], cap: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const v = raw.trim();
+    if (!v) continue;
+    const k = v.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(v);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+/** A run of digits is only a phone number if it has phone-number shape. */
+function looksLikePhone(raw: string): boolean {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) return false;
+  // Dates, invoice totals, and ZIP+4 runs are the usual false positives.
+  if (/^(19|20)\d{6}$/.test(digits)) return false;
+  if (/^(\d)\1+$/.test(digits)) return false;
+  return true;
+}
+
+function harvestSelectors(docText: string, trace: OriginTrace) {
+  const metaBlob = [
+    trace.identity.author, trace.identity.company, trace.identity.title,
+    trace.identity.subject, trace.identity.keywords,
+    ...Object.values(trace.raw_fields),
+  ].filter(Boolean).join("\n");
+  const corpus = `${docText}\n${metaBlob}`.slice(0, 500_000);
+
+  const emails = uniq([...corpus.matchAll(EMAIL_RE)].map((m) => m[0].toLowerCase()), 40);
+  const phones = uniq(
+    [...corpus.matchAll(PHONE_RE)].map((m) => m[0].replace(/\s{2,}/g, " ").trim()).filter(looksLikePhone),
+    30,
+  );
+  const urls = uniq([...corpus.matchAll(URL_RE)].map((m) => m[0].replace(/[.,;]$/, "")), 60);
+  const handles = uniq([...corpus.matchAll(HANDLE_RE)].map((m) => `@${m[1]}`), 20);
+  const ids = uniq([...corpus.matchAll(ID_RE)].map((m) => m[0]), 25);
+
+  const hosts = uniq([
+    ...urls.map((u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }),
+    ...emails.map((e) => e.split("@")[1] ?? ""),
+  ].filter(Boolean), 30);
+
+  // People: the named author plus capitalised two/three-token names in the body.
+  const bodyNames = [...docText.matchAll(/\b([A-Z][a-z]{1,15})\s+(?:([A-Z]\.|[A-Z][a-z]{1,15})\s+)?([A-Z][a-z]{1,20})\b/g)]
+    .map((m) => m[0])
+    .filter((n) => !/^(The|This|That|United|New|Form|Department|Internal|Revenue|Social|Security|Page|Table|Figure)\b/.test(n));
+  const people = uniq([trace.identity.author ?? "", ...bodyNames], 25);
+
+  const places = uniq([
+    ...trace.places.map((p) => [p.building, p.street, p.city, p.region, p.country].filter(Boolean).join(", ") || p.label),
+    ...(trace.raw_fields["document:addresses"]?.split(" | ") ?? []),
+  ].filter(Boolean), 15);
+
+  return { emails, phones, urls, hosts, handles, people, places, ids };
+}
+
+// ── uploaded artefacts ───────────────────────────────────────────────────────
+
+export interface UploadedArtifact {
+  filename: string;
+  contentType: string;
+  /** Raw base64 (no data: prefix). */
+  base64: string;
+}
+
+/** Hard ceiling on an upload the function will hold in memory. */
+export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
+
+function decodeBase64(b64: string): Uint8Array {
+  const clean = b64.includes(",") && b64.startsWith("data:") ? b64.slice(b64.indexOf(",") + 1) : b64;
+  const bin = atob(clean.replace(/\s/g, ""));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/**
+ * ORIGIN for a file the operator holds rather than a link they were sent.
+ * Transport evidence is absent by construction — no host, no CDN, no serving
+ * IP — and the trace says so instead of inventing one.
+ */
+export async function traceUpload(file: UploadedArtifact): Promise<OriginTrace> {
+  const t0 = Date.now();
+  const name = (file.filename || "upload").slice(0, 200);
+  const trace = blankTrace(`upload:${name}`);
+  trace.final_url = trace.url;
+  trace.upload = { filename: name, declared_type: file.contentType || "" };
+
+  let bytes: Uint8Array;
+  try {
+    bytes = decodeBase64(file.base64 || "");
+  } catch {
+    trace.errors.push("Upload payload was not valid base64.");
+    trace.elapsed_ms = Date.now() - t0;
+    return trace;
+  }
+  if (!bytes.length) {
+    trace.errors.push("Upload was empty.");
+    trace.elapsed_ms = Date.now() - t0;
+    return trace;
+  }
+  if (bytes.length > MAX_UPLOAD_BYTES) {
+    trace.notes.push(`File is ${(bytes.length / 1048576).toFixed(1)} MB; only the first 12 MB were read. Provenance normally lives in the head and trailer, both of which are inside that window for most documents.`);
+    bytes = bytes.subarray(0, MAX_UPLOAD_BYTES);
+  }
+
+  // The declared type is a claim by the uploader; the magic bytes are evidence.
+  const head = new TextDecoder("latin1").decode(bytes.subarray(0, 8));
+  const sniffed = head.startsWith("%PDF-") ? "application/pdf"
+    : bytes[0] === 0xff && bytes[1] === 0xd8 ? "image/jpeg"
+      : head.startsWith("\x89PNG") ? "image/png"
+        : head.startsWith("PK\x03\x04") ? "application/vnd.openxmlformats-officedocument"
+          : head.startsWith("<") ? "text/html"
+            : (file.contentType || "application/octet-stream");
+  trace.content_type = sniffed;
+  trace.status = 200;
+  if (file.contentType && !sniffed.includes(file.contentType.split("/")[1] ?? "\u0000") && !file.contentType.includes(sniffed.split("/")[1] ?? "\u0000")) {
+    trace.notes.push(`Declared type "${file.contentType}" does not match the file's own signature (${sniffed}). Read the signature, not the extension.`);
+  }
+
+  await inspectArtifact(trace, bytes);
+  trace.notes.push("Uploaded artefact — there is no transport layer to read, so no serving host, CDN edge, or origin IP appears below. Every claim comes from inside the file.");
   trace.elapsed_ms = Date.now() - t0;
   return trace;
 }
+
