@@ -1779,9 +1779,10 @@ const IntelligenceMapModule = () => {
 
   };
 
-
-
-
+  /* Horizontal space the right-hand docks occupy, so the top bar never renders
+     controls underneath the Asher AI dock (380px) or the dossier (420px). */
+  const rightDockPx =
+    entity && showDossier ? 432 : aiDocked ? 392 : 12;
 
   return (
     <div className="relative flex h-full w-full bg-background">
