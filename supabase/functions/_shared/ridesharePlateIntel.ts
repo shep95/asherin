@@ -379,3 +379,50 @@ export async function plateAnchoredIdentity(
     bestFullName: best && best.posterior >= 0.55 ? best.name : null,
   };
 }
+
+/**
+ * UNBOUND FALLBACK — what can still be said when no surname was recovered.
+ *
+ * The jurisdictional identity collector requires a bindable person; a bare
+ * given name would only return strangers. Open-web search, however, can still
+ * speak about the CAR and about the pickup context, and those are rider-safety
+ * facts that need no identity at all. This keeps a THIN dossier from being an
+ * empty one.
+ */
+export async function unboundContextSweep(ride: RideInput, budgetMs = 14_000): Promise<string> {
+  const first = (ride.driver_name || "").trim().split(/\s+/)[0] || "";
+  const city = ride.city || "";
+  const veh = ride.vehicle || "";
+  const plan: Array<[string, string]> = [];
+  if (first && city) {
+    plan.push(["Driver-name reputation (unbound)", `"${first}" uber OR lyft driver ${city} complaint review incident passenger`]);
+  }
+  if (veh && city) {
+    plan.push(["Vehicle-class incidents", `${veh} rideshare driver ${city} incident report police`]);
+  }
+  if (city) {
+    plan.push(["Local rideshare safety pattern", `${city} uber lyft driver impersonation fake driver warning recent`]);
+    plan.push(["Pickup-point risk", `${ride.pickup_label || city} rideshare pickup crime safety report`]);
+  }
+  if (!plan.length) return "### Unbound context sweep\n(no city or vehicle captured — nothing to anchor an open-web sweep on)";
+
+  const results = await Promise.allSettled(
+    plan.map(([, q]) => withTimeout(placeSearch(q, 5, budgetMs - 1500), budgetMs, [] as WebHit[])),
+  );
+  const blocks: string[] = [];
+  results.forEach((r, i) => {
+    const [heading] = plan[i];
+    if (r.status !== "fulfilled" || !r.value.length) {
+      blocks.push(`### ${heading}\n(searched — nothing surfaced)`);
+      return;
+    }
+    blocks.push(
+      `### ${heading}\n` +
+        r.value.map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 300)}\n  source: ${h.url}`).join("\n"),
+    );
+  });
+  blocks.push(
+    "NOTE: none of the above is bound to this driver as a person. It is context about the vehicle, the pickup and the locality only, and must not be reported as the driver's record.",
+  );
+  return blocks.join("\n\n");
+}
