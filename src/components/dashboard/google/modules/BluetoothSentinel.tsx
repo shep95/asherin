@@ -177,6 +177,12 @@ const BluetoothSentinel = () => {
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
   const [areaState, setAreaState] = useState<{ level: string; label: string; summary: string } | null>(null);
   const [checkingArea, setCheckingArea] = useState(false);
+  const [analysis, setAnalysis] = useState<TcAnalysis | null>(null);
+  const [doctrine, setDoctrine] = useState<DoctrineEntry[]>([]);
+  const [analysing, setAnalysing] = useState(false);
+  const [caseFile, setCaseFile] = useState<Record<string, any> | null>(null);
+  const [buildingCase, setBuildingCase] = useState(false);
+  const [caseNote, setCaseNote] = useState("");
   const [settings, setSettings] = useState({
     recurrence_threshold: 3,
     ignore_audio: true,
