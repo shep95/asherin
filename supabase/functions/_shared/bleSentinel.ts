@@ -299,3 +299,63 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
     return null;
   }
 }
+
+// ── Place-based collection ─────────────────────────────────────────────────
+//
+// The jurisdictional intel stack is an IDENTITY collector — it resolves people
+// against public-record sources and returns nothing useful for "is this block
+// safe". Geography needs open-web search, so area risk collects here instead.
+
+const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
+
+export interface WebHit { url: string; title: string; snippet: string }
+
+export async function placeSearch(query: string, limit = 5, timeoutMs = 8000): Promise<WebHit[]> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key) return [];
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(FIRECRAWL_SEARCH, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, limit }),
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
+    return (Array.isArray(items) ? items : [])
+      .filter((x) => typeof x?.url === "string")
+      .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Run the area collection plan in parallel and fold it into one evidence block.
+ *  An empty block is reported as empty — the model grades it UNKNOWN rather
+ *  than inventing a crime statistic. */
+export async function collectAreaEvidence(label: string): Promise<string> {
+  const plan: Array<[string, string]> = [
+    ["Reported crime", `recent crime reports incidents ${label}`],
+    ["Police & news", `police news shooting robbery assault ${label}`],
+    ["Documented group activity", `gang activity territory documented ${label}`],
+    ["Community safety reporting", `is ${label} safe at night neighborhood safety`],
+  ];
+  const results = await Promise.allSettled(plan.map(([, q]) => placeSearch(q)));
+  const blocks: string[] = [];
+  results.forEach((res, i) => {
+    const [heading] = plan[i];
+    if (res.status !== "fulfilled" || !res.value.length) {
+      blocks.push(`### ${heading}\n(searched — nothing surfaced)`);
+      return;
+    }
+    blocks.push(`### ${heading}\n` + res.value
+      .map((h) => `- ${h.title || h.url}\n  ${h.snippet.slice(0, 400)}\n  source: ${h.url}`)
+      .join("\n"));
+  });
+  return blocks.join("\n\n");
+}
