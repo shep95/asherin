@@ -428,6 +428,40 @@ Deno.serve(async (req) => {
           if (precise?.address) {
             sections.push({ label: "Street-level resolution", value: `${precise.address} — ${precise.caveat}` });
           }
+          if (cameras) {
+            sections.push({ label: "Camera coverage at the coordinate", value: cameras.summary });
+            if (cameras.cameras.length) {
+              sections.push({
+                label: "Cameras to send preservation requests to",
+                value: cameras.cameras
+                  .slice(0, 8)
+                  .map((c) => `${c.kind}${c.operator ? ` (${c.operator})` : ""} — ${c.metres} m`)
+                  .join("  •  "),
+              });
+            }
+            sections.push({ label: "Footage access reality", value: cameras.access });
+          }
+          if (tradecraft) {
+            sections.push({
+              label: "Adversary grade",
+              value:
+                `${tradecraft.label} · ${tradecraft.score}/100 · ${tradecraft.confidence} confidence. ` +
+                tradecraft.capability,
+            });
+            sections.push({ label: "How this grade was reached", value: tradecraft.evidence.join("  •  ") });
+            sections.push({
+              label: "Device — had vs required",
+              value:
+                `Observed: ${tradecraft.device.observedDetail} ` +
+                `Required by the method: ${tradecraft.device.required.join(" ")}` +
+                (tradecraft.device.gap.length ? ` What that rules out: ${tradecraft.device.gap.join(" ")}` : ""),
+            });
+            if (tradecraft.mistakes.length) {
+              sections.push({ label: "Their mistakes — act on these", value: tradecraft.mistakes.join("  •  ") });
+            }
+            sections.push({ label: "Operating pattern for this grade", value: `${tradecraft.posture} ${tradecraft.caveat}` });
+            sections.push({ label: "What actually stops them", value: tradecraft.counter });
+          }
           if (identity) {
             sections.push({
               label: "Actor email",
