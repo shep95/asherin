@@ -12,6 +12,14 @@ import type { ContactReport, Metric } from "./contactReport";
 import type { OsintAnnex } from "./contactOsint";
 
 const W = 74;
+
+/**
+ * Field families that answer "how do I reach this person, and where are they".
+ * Matched on the label the dossier emits, case-insensitively, so a renamed
+ * label degrades to omission from this projection rather than to a crash —
+ * the value still prints in the identity section above.
+ */
+const CONTACT_FIELD = /address|phone|email|parcel|employ|entit|licen|handle|alias|age|birth/i;
 const HR = "━".repeat(W);
 const bar = (n: number | null, width = 10) =>
   n === null ? "—".repeat(width) : "█".repeat(Math.round((n / 100) * width)).padEnd(width, "░");
