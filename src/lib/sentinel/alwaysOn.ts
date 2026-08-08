@@ -35,6 +35,7 @@ import {
   type ScanMode,
 } from "@/components/dashboard/zaxin/core/scanner";
 import { toast } from "sonner";
+import { startBackgroundSentinel, handOverFix, beaconOnHide, stopBackgroundSentinel } from "./background";
 
 const ARM_KEY = "asherin.sentinel.armed";
 const FLUSH_MS = 45_000;
@@ -239,6 +240,10 @@ function startGeo() {
     (p) => {
       pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
       if (!state.positioned) emit({ positioned: true });
+      // Tier B needs a fix it can report after this tab is gone. Handing it
+      // over on every watch update costs nothing and is the only way a closed
+      // browser can still say where its owner is.
+      handOverFix(pos);
     },
     () => { if (state.positioned) emit({ positioned: false }); },
     { enableHighAccuracy: false, maximumAge: 60_000, timeout: 20_000 },
@@ -473,6 +478,8 @@ async function engage(): Promise<void> {
   window.setTimeout(() => { void runTradecraftSweep(true); }, 12_000);
   void ensurePush();
   armOnFirstGesture();
+  // Hand the watch to the runtimes that outlive this tab.
+  void startBackgroundSentinel();
 }
 
 async function requestWake(): Promise<void> {
@@ -509,6 +516,7 @@ async function watchdog(): Promise<void> {
   if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
   if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
   void ensurePush();
+  void startBackgroundSentinel();
 }
 
 /** Called once from the app shell. Idempotent. */
@@ -526,12 +534,12 @@ export function bootSentinel(): void {
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") resume();
-    else void flushSentinel(true); // never lose a buffer to a backgrounded tab
+    else { void flushSentinel(true); beaconOnHide(); } // never lose a buffer to a backgrounded tab
   });
   window.addEventListener("online", () => { resume(); void runNetworkCheck(false); });
   window.addEventListener("pageshow", resume);
   window.addEventListener("focus", resume);
-  window.addEventListener("pagehide", () => { void flushSentinel(true); });
+  window.addEventListener("pagehide", () => { void flushSentinel(true); beaconOnHide(); });
   // A link transition is the one moment a new, unjudged network appears.
   (navigator as any)?.connection?.addEventListener?.("change", () => { void runNetworkCheck(false); });
 
@@ -556,6 +564,8 @@ export async function disarmSentinel(): Promise<void> {
   try { localStorage.setItem(ARM_KEY, "0"); } catch { /* noop */ }
   emit({ armed: false });
   await disengage();
+  // A disarm the user typed must reach the runtimes they cannot see.
+  await stopBackgroundSentinel();
 }
 
 /** One tap from the UI: satisfies browsers that demand a gesture for the radio. */

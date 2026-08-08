@@ -31,6 +31,8 @@ import {
   TRADECRAFT_CASE_SYSTEM, TRADECRAFT_DOCTRINE,
   type TcDevice, type TcSighting, type TcCampaign,
 } from "../_shared/stalkerTradecraft.ts";
+import { assessAndAlertArea } from "../_shared/areaSentinel.ts";
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -495,6 +497,9 @@ Deno.serve(async (req) => {
       }
 
       // ── Area risk ────────────────────────────────────────────────────────
+      // The judgement itself lives in _shared/areaSentinel so the unattended
+      // cron runs the identical cache, cooldown and alert shape. This handler
+      // only supplies the caller's key and records presence for that cron.
       case "geo.check": {
         const settings = await loadSettings(userId);
         if (!settings.geo_enabled) return json({ skipped: "geo_disabled" }, 200, cors);
@@ -502,72 +507,32 @@ Deno.serve(async (req) => {
         if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
           return json({ error: "invalid_coordinates" }, 400, cors);
         }
-        // ~1.1 km cell: one assessment per neighbourhood, shared and cached.
-        const pk = `${lat.toFixed(2)},${lng.toFixed(2)}`;
-        const nowIso = new Date().toISOString();
+        let key;
+        try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
 
-        let { data: cached } = await db.from("geo_risk_assessments").select("*").eq("place_key", pk).maybeSingle();
-        if (!cached || cached.expires_at < nowIso) {
-          let key;
-          try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
-          const label = (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
-          // Geography is collected from the open web, not the identity stack:
-          // the jurisdictional sweep resolves PEOPLE and returns nothing usable
-          // for "is this block safe", which silently produced UNKNOWN verdicts.
-          const research = await collectAreaEvidence(label);
-          const raw = await callByokJsonWithRetry(cfgFrom(key), GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
-            temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2,
-          });
-          const parsed = parseJsonLoose(raw);
-          const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
-          const { data: saved } = await db.from("geo_risk_assessments").upsert({
-            place_key: pk, lat, lng, place_label: label,
-            risk_level: ["LOW", "ELEVATED", "HIGH", "SEVERE", "UNKNOWN"].includes(level) ? level : "UNKNOWN",
-            risk_score: Number(parsed.risk_score) || 0,
-            summary: String(parsed.summary || parsed.headline || "").slice(0, 4000),
-            payload: parsed,
-            generated_at: nowIso,
-            expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
-          }, { onConflict: "place_key" }).select("*").maybeSingle();
-          cached = saved;
-        }
-        if (!cached) return json({ error: "assessment_failed" }, 502, cors);
+        // Every live fix teaches the server where to look when no tab is open.
+        await db.from("sentinel_presence").upsert({
+          user_id: userId, lat, lng,
+          accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null,
+          fix_at: new Date().toISOString(),
+          last_source: "foreground",
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        await db.from("sentinel_cron_state")
+          .upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
 
-        // Alert on entry into an elevated area, at most once per cell per 6 h.
-        let notified = false;
-        if (["ELEVATED", "HIGH", "SEVERE"].includes(cached.risk_level)) {
-          const since = new Date(Date.now() - 6 * 3600e3).toISOString();
-          const { data: recent } = await db.from("geo_risk_events").select("id")
-            .eq("user_id", userId).eq("place_key", pk).gte("created_at", since).limit(1);
-          if (!recent?.length) {
-            const p = (cached.payload || {}) as Record<string, any>;
-            await notifyIntel({
-              userId, userEmail,
-              kind: "sentinel",
-              severity: cached.risk_level === "SEVERE" ? "critical" : "notable",
-              title: `${cached.risk_level} risk area — ${String(cached.place_label || "").split(",").slice(0, 2).join(",")}`,
-              body: String(cached.summary || p.headline || "Elevated risk reported for this area."),
-              subjectName: cached.place_label,
-              source: "Area Sentinel",
-              url: `/dashboard?tab=cloud-intel&module=sentinel`,
-              sections: [
-                { label: "Reported patterns", value: (p.reported_patterns || []).map((x: any) => `${x?.pattern} (${x?.when})`).join("; ") || "none surfaced" },
-                { label: "Area context", value: String(p.group_activity || "none documented") },
-              ],
-              findings: Array.isArray(p.safer_actions) ? p.safer_actions.map(String) : [],
-              idempotencyKey: `sentinel:geo:${userId}:${pk}:${cached.generated_at}`,
-              skipPush: !settings.push_enabled,
-              skipEmail: !settings.email_enabled,
-            }).catch((e) => console.error("geo_alert_failed", e instanceof Error ? e.message : e));
-            notified = true;
-            await db.from("geo_risk_events").insert({
-              user_id: userId, place_key: pk, lat, lng,
-              place_label: cached.place_label, risk_level: cached.risk_level, notified: true,
-            });
-          }
-        }
-        return json({ assessment: cached, notified }, 200, cors);
+        const result = await assessAndAlertArea({
+          db, userId, userEmail, lat, lng,
+          cfg: cfgFrom(key) as any,
+          settings,
+          fixAgeMs: 0,
+          source: "Area Sentinel",
+        });
+        if (!result.assessment) return json({ error: result.reason || "assessment_failed" }, 502, cors);
+        return json({ assessment: result.assessment, notified: result.notified }, 200, cors);
       }
+
 
       case "geo.list": {
         const { data } = await db.from("geo_risk_events").select("*").eq("user_id", userId)
