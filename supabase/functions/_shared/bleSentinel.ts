@@ -311,7 +311,35 @@ const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
 
 export interface WebHit { url: string; title: string; snippet: string }
 
-export async function placeSearch(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
+/**
+ * Every search in this isolate — driver sweeps, plate lookups, area risk —
+ * shares one provider quota. Fired in parallel they all return 429 and the
+ * caller cannot tell "rate limited" from "nothing exists", which is how a
+ * documented city was graded UNKNOWN. One serialized lane with an adaptive
+ * gap makes the quota a queue instead of a cliff.
+ */
+let searchLane: Promise<unknown> = Promise.resolve();
+let searchGapMs = 1100;
+let lastSearchAt = 0;
+
+function throttled<T>(fn: () => Promise<T>): Promise<T> {
+  const run = searchLane.then(async () => {
+    const wait = lastSearchAt + searchGapMs - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastSearchAt = Date.now();
+    return await fn();
+  });
+  // The lane must survive a rejected job or every later search inherits it.
+  searchLane = run.catch(() => undefined);
+  return run;
+}
+
+export function placeSearch(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
+  return throttled(() => placeSearchNow(query, limit, timeoutMs));
+}
+
+async function placeSearchNow(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
+
   const key = Deno.env.get("FIRECRAWL_API_KEY");
   if (!key) {
     console.error("place_search_no_key");
