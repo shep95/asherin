@@ -300,14 +300,19 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    // LAW takes precedence over NAR (legal directive is more specific).
-    // The wrapped directive is sent to the MODEL only — the visible/stored
-    // user message stays as the raw text so the user never sees the prompt
-    // scaffolding echoed back into the transcript.
+    // Per-message adaptation. The visible/stored user message stays raw; only the
+    // MODEL payload carries the directive + routing hint, so the transcript never
+    // echoes prompt scaffolding back at the operator.
     const raw = value.trim();
+    const send = classifyMessage(raw);
+    const armLegal = lawSwitch === "on" || (lawSwitch === "auto" && shouldAutoArmLegal(send));
     let outbound = raw;
-    if (legalMode) outbound = expandPromptToLegal(raw).transformed;
-    else if (narrativeMode) outbound = expandPromptToNarrative(raw).transformed;
+    // LAW takes precedence over NAR (legal directive is more specific), but NAR is
+    // now skipped for smalltalk so "thanks" is never expanded into a narrative.
+    if (armLegal) outbound = expandPromptToLegal(raw).transformed;
+    else if (narrativeMode && !send.smalltalk) outbound = expandPromptToNarrative(raw).transformed;
+    const hint = buildRoutingHint(send);
+    if (hint) outbound = `${hint}\n\n${outbound}`;
     if (outbound !== raw) setModelPromptOverride(raw, outbound);
 
     onSendMessage(raw, attachments.length > 0 ? attachments : undefined);
