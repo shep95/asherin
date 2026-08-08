@@ -376,6 +376,8 @@ Deno.serve(async (req) => {
       }),
     )
   ).filter(Boolean) as Array<{ imageUrl: string; pageUrl: string; title: string }>;
+  console.log("photo_images", JSON.stringify({ refs: imageRefs.length }));
+
 
   const stored: StoredPhoto[] = [];
   const frames: Array<{ b64: string; type: string; host: string }> = [];
