@@ -262,6 +262,7 @@ export function foldRides(parsed: ParsedRideEmail[]): ParsedRideEmail[] {
     host.plate ??= p.plate;
     host.city ??= p.city;
     host.pickup_label ??= p.pickup_label;
+    host.dropoff_label ??= p.dropoff_label;
     host.trip_url ??= p.trip_url;
     // The receipt is the authoritative record of the completed trip.
     if (p.kind === "receipt") host.kind = "receipt";
