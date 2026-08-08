@@ -24,7 +24,7 @@ const ZerlalCriticalAlertEmail = ({
   projectName = 'Untitled project',
   criticalCount = 0,
   findings = [],
-  reportUrl = 'https://aureonai.app/dashboard/zerlal',
+  reportUrl = 'https://asherin.com/dashboard/zerlal',
   completedAt = new Date().toUTCString(),
 }: Props) => (
   <Shell preview={`CRITICAL · ${criticalCount} finding(s) in ${projectName}`} eyebrow="ZERLAL · Critical Alert">
@@ -68,7 +68,7 @@ export const template = {
       { title: 'Unparameterized SQL in invoice lookup', severity: 'critical', file_path: 'src/billing/invoice.ts', line_number: 142, cwe_id: 'CWE-89', cvss_score: 9.4 },
       { title: 'Hardcoded JWT signing key', severity: 'critical', file_path: 'src/auth/jwt.ts', line_number: 18, cwe_id: 'CWE-798', cvss_score: 9.1 },
     ],
-    reportUrl: 'https://aureonai.app/dashboard/zerlal',
+    reportUrl: 'https://asherin.com/dashboard/zerlal',
     completedAt: 'Fri, 12 Jun 2026 04:21:00 GMT',
   },
 } satisfies TemplateEntry

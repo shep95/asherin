@@ -20,14 +20,14 @@ interface Props {
   renewalDate?: string
 }
 
-const SubscriptionWelcomeEmail = ({ name, planName = 'Aureon', daysLeft, renewalDate }: Props) => (
+const SubscriptionWelcomeEmail = ({ name, planName = 'Asherin', daysLeft, renewalDate }: Props) => (
   <Shell
     preview={`Thank you for subscribing to ${planName}.`}
     eyebrow="Subscription Active"
   >
     <Hed>{name ? `Thank you, ${name}.` : 'Thank you for your support.'}</Hed>
     <Prose>
-      Your <strong>{planName}</strong> subscription is live. Aureon was built for
+      Your <strong>{planName}</strong> subscription is live. Asherin was built for
       operators who want clarity, depth, and signal — and your support is what
       keeps the lights on inside the lab.
     </Prose>
@@ -42,11 +42,11 @@ const SubscriptionWelcomeEmail = ({ name, planName = 'Aureon', daysLeft, renewal
       ]}
     />
 
-    <Cta href="https://aureonai.app/dashboard" label="Open Aureon" />
+    <Cta href="https://asherin.com/dashboard" label="Open Asherin" />
 
     <Prose>
       <strong>Follow Asher &amp; #houseofasher.</strong> Behind-the-scenes
-      builds, intel drops, and the long-form thinking that powers Aureon — all
+      builds, intel drops, and the long-form thinking that powers Asherin — all
       first on his channels:
     </Prose>
     <Prose>
@@ -57,18 +57,18 @@ const SubscriptionWelcomeEmail = ({ name, planName = 'Aureon', daysLeft, renewal
     </Prose>
 
     <Note>
-      Reply to this email anytime — a human reads every message. — <em>Asher &amp; the Aureon Team · #houseofasher</em>
+      Reply to this email anytime — a human reads every message. — <em>Asher &amp; the Asherin Team · #houseofasher</em>
     </Note>
   </Shell>
 )
 
 export const template = {
   component: SubscriptionWelcomeEmail,
-  subject: (d: any) => `Thank you for subscribing to ${d?.planName ?? 'Aureon'}`,
+  subject: (d: any) => `Thank you for subscribing to ${d?.planName ?? 'Asherin'}`,
   displayName: 'Subscription welcome',
   previewData: {
     name: 'Asher',
-    planName: 'Aureon Pro',
+    planName: 'Asherin Pro',
     daysLeft: 30,
     renewalDate: 'July 19, 2026',
   },

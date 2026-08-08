@@ -18,7 +18,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
     <Preview>Your verification code: {token}</Preview>
     <Body style={{ backgroundColor: T.paper, fontFamily: T.sans, margin: 0, padding: 0 }}>
       <Container style={{ maxWidth: 580, margin: '0 auto', padding: '56px 40px 48px' }}>
-        <Text style={brand}>Aureon</Text>
+        <Text style={brand}>Asherin</Text>
         <Text style={eyebrow}>Verification</Text>
         <Heading as="h1" style={hed}>Verify it's you.</Heading>
         <Text style={prose}>
@@ -34,8 +34,8 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
         </Text>
 
         <Hr style={rule} />
-        <Text style={signoff}>— Aureon</Text>
-        <Text style={footer}>aureonai.app · Intelligence, distilled.</Text>
+        <Text style={signoff}>— Asherin</Text>
+        <Text style={footer}>asherin.com · Intelligence, distilled.</Text>
       </Container>
     </Body>
   </Html>

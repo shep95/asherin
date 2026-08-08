@@ -11,7 +11,7 @@ interface Props {
   last4?: string
 }
 
-const SubscriptionRenewalEmail = ({ name, planName = 'Aureon', amount, renewalDate, last4 }: Props) => (
+const SubscriptionRenewalEmail = ({ name, planName = 'Asherin', amount, renewalDate, last4 }: Props) => (
   <Shell preview={`${planName} renews ${renewalDate ?? 'soon'}.`} eyebrow="Renewal">
     <Hed>{planName} renews soon.</Hed>
     <Prose>
@@ -26,14 +26,14 @@ const SubscriptionRenewalEmail = ({ name, planName = 'Aureon', amount, renewalDa
         ...(last4 ? [{ label: 'Card', value: `•••• ${last4}` }] : []),
       ]}
     />
-    <Cta href="https://aureonai.app/account/billing" label="Manage subscription" variant="ghost" />
+    <Cta href="https://asherin.com/account/billing" label="Manage subscription" variant="ghost" />
     <Note>You can cancel or change plan anytime before the renewal date.</Note>
   </Shell>
 )
 
 export const template = {
   component: SubscriptionRenewalEmail,
-  subject: (d: any) => `${d?.planName ?? 'Aureon'} renews ${d?.renewalDate ?? 'soon'}`,
+  subject: (d: any) => `${d?.planName ?? 'Asherin'} renews ${d?.renewalDate ?? 'soon'}`,
   displayName: 'Subscription renewal',
-  previewData: { name: 'Asher', planName: 'Aureon Pro', amount: '$740.00', renewalDate: 'June 26, 2026', last4: '4242' },
+  previewData: { name: 'Asher', planName: 'Asherin Pro', amount: '$740.00', renewalDate: 'June 26, 2026', last4: '4242' },
 } satisfies TemplateEntry

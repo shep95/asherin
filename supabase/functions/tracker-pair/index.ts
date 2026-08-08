@@ -57,7 +57,7 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aureon · Live Tracker</title>
+  <title>Asherin · Live Tracker</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:#050505;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
@@ -91,7 +91,7 @@ function buildHtml(token: string, _deviceId: string, functionUrl: string): strin
 <body>
   <div id="header">
     <div id="pulse"></div>
-    <h1>Aureon · Live Signal</h1>
+    <h1>Asherin · Live Signal</h1>
     <span id="status">Acquiring…</span>
   </div>
 
@@ -399,5 +399,5 @@ serve(async (req) => {
   }
 
   // ── GET: not used (TrackPage is served by the React app at /track) ────────
-  return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
+  return new Response(null, { status: 302, headers: { Location: "https://asherin.com/" } });
 });

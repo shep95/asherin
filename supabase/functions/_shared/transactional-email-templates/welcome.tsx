@@ -6,19 +6,19 @@ import { Shell, Hed, Prose, Cta, A } from '../email-theme.tsx'
 interface Props { name?: string }
 
 const WelcomeEmail = ({ name }: Props) => (
-  <Shell preview="You're in. Aureon is active." eyebrow="Welcome">
+  <Shell preview="You're in. Asherin is active." eyebrow="Welcome">
     <Hed>{name ? `Welcome, ${name}.` : 'Welcome.'}</Hed>
     <Prose>
-      Your access to Aureon is live. The platform is built for clarity, depth,
+      Your access to Asherin is live. The platform is built for clarity, depth,
       and signal — nothing else.
     </Prose>
     <Prose>
       Open the workspace when you're ready. Everything you need is one keystroke away.
     </Prose>
-    <Cta href="https://aureonai.app" label="Open Aureon" />
+    <Cta href="https://asherin.com" label="Open Asherin" />
     <Prose>
       Questions are welcome. Reply to this message and a human reads it.
-      For documentation, see <A href="https://aureonai.app/docs">aureonai.app/docs</A>.
+      For documentation, see <A href="https://asherin.com/docs">asherin.com/docs</A>.
     </Prose>
   </Shell>
 )
