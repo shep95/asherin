@@ -141,7 +141,12 @@ const STOPWORDS: Record<string, string[]> = {
  */
 export function detectLanguage(text: string, declared?: string | null): string | null {
   const d = (declared || "").trim().toLowerCase().split(/[-_,;]/)[0];
-  if (d && /^[a-z]{2,3}$/.test(d)) return d;
+  // A declaration is only trusted when it is a real ISO-639-1 primary subtag.
+  // Servers emit junk here — gnu.org ships `Content-Language: non-html`, whose
+  // naive primary subtag ("non") is Old Norse. Junk must fall through to the
+  // stopword profile rather than poison the index.
+  if (d && ISO_639_1.has(d)) return d;
+
   const probe = text.slice(0, 6000).toLowerCase();
   if (probe.replace(/\s/g, "").length < 60) return null;
   let best: string | null = null;
