@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import NetworkSentinelTab from "@/components/dashboard/google/modules/NetworkSentinelTab";
+
 import {
   Radar, ShieldAlert, MapPin, Loader2, RefreshCw, EyeOff, UserCheck, FileText, Radio,
   Crosshair, BookOpen, Download,
