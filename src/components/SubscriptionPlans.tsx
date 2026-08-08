@@ -3,6 +3,18 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useState } from "react";
+import { usePppQuote, quoteCents } from "@/hooks/usePppQuote";
+import { formatUsd, type Term } from "@/lib/pricing/ppp";
+
+/** ISO-3166 alpha-2 → readable country name, with a safe fallback. */
+function countryName(code: string | null): string {
+  if (!code) return "your region";
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) || code;
+  } catch {
+    return code;
+  }
+}
 
 const PLANS = [
   {
@@ -128,6 +140,8 @@ export default function SubscriptionPlans({ compact = false }: Props) {
   const { user } = useAuth();
   const { startCheckout, checkoutLoading } = useSubscription();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [term, setTerm] = useState<Term>("monthly");
+  const ppp = usePppQuote();
 
   const handleSubscribe = async (id: "monthly_aureon" | "monthly_pro") => {
     if (!user) {
@@ -136,7 +150,8 @@ export default function SubscriptionPlans({ compact = false }: Props) {
     }
     setPendingId(id);
     try {
-      await startCheckout(id);
+      await startCheckout(id, term);
+
     } catch (e) {
       console.error(e);
     } finally {
