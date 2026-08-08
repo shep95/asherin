@@ -462,14 +462,22 @@ export async function extractGhostRecord(rawUrl: string, capture = false): Promi
       }
 
       // 2b. Full-take buffer — payload retained only when explicitly requested.
+      //     Text extraction is windowed. The multi-pass markup scrub and the
+      //     PDF operator walk are linear in input length, and running them over
+      //     a half-megabyte body for every probe in a wide sweep is what tripped
+      //     the worker's CPU ceiling. The shelf keeps the full bytes; only the
+      //     derived reading window is bounded.
+      const TEXT_WINDOW = 192_000;
       if (wantPayload && bytes) {
+        const window = bytes.subarray(0, Math.min(bytes.length, TEXT_WINDOW));
         const text = isMarkup
-          ? htmlToText(new TextDecoder().decode(bytes))
+          ? htmlToText(new TextDecoder().decode(window))
           : isPdf
-            ? pdfToText(new TextDecoder("latin1").decode(bytes))
+            ? pdfToText(new TextDecoder("latin1").decode(window))
             : isText
-              ? new TextDecoder().decode(bytes)
+              ? new TextDecoder().decode(window)
               : "";
+
         rec.payload = {
           session_id: rec.entity_id,
           url: rec.url,

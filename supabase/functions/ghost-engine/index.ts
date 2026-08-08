@@ -47,8 +47,8 @@ import {
 // deep but bounded, because a full metadata extraction costs a round trip.
 // Leads beyond the probe budget are still reported; they are simply reported
 // as surface intelligence rather than as forensic shells.
-const MAX_PROBE = 96;
-const CONCURRENCY = 12;
+const MAX_PROBE = 48;
+const CONCURRENCY = 8;
 const HARVEST_CAP = 400;
 const BUCKET = "ghost-buffer";
 
@@ -611,7 +611,7 @@ Deno.serve(async (req) => {
   const explicit = Array.isArray(body.urls) ? body.urls.slice(0, MAX_PROBE) : [];
   // `limit` is now the PROBE budget, not the harvest aperture. The harvest is
   // uncapped relative to it — every lead the fan-out surfaces is reported.
-  const probeBudget = Math.min(Math.max(Number(body.limit) || 48, 1), MAX_PROBE);
+  const probeBudget = Math.min(Math.max(Number(body.limit) || 32, 1), MAX_PROBE);
   if (!query && explicit.length === 0) return json({ error: "query or urls is required" }, 400);
 
   const started = Date.now();
@@ -685,47 +685,55 @@ Deno.serve(async (req) => {
     `harvest=${harvest.length} · probing=${targets.length} · capture=${capture} · caller=${access.reason}`,
   );
 
-  const records = (await pool(targets, CONCURRENCY, (t: string) => extractGhostRecord(t, capture))) as GhostRecord[];
-
-
-  // ── Buffer write — payload leaves the record and lands on the shelf ────────
+  // ── Probe + shelve, streamed ───────────────────────────────────────────────
+  // The prior shape extracted every target first and only *then* wrote the
+  // buffer. That kept up to `probeBudget` payloads (raw bytes plus a decoded
+  // text twin) resident at once — roughly 96 × ~2.5 MB — which walks straight
+  // through the worker's memory ceiling and returns 546 WORKER_RESOURCE_LIMIT.
+  // Now each payload is uploaded and released inside the worker that produced
+  // it, so peak residency is bounded by concurrency, not by the aperture.
   let buffered = 0;
   const bufferErrors: string[] = [];
   const expiresAt = ttlToExpiry(body.ttlMinutes);
-  if (capture && sb && userId) {
-    for (const rec of records) {
-      const p = rec.payload;
-      delete rec.payload;                      // never returned inline
-      if (!p || !p.bytes.length) continue;
-      try {
-        const fields = await deriveFields(p, rec.declared_language);
-        const path = `${userId}/${p.session_id}`;
-        const up = await sb.storage.from(BUCKET).upload(path, p.bytes, {
-          contentType: p.source_type || "application/octet-stream",
-          upsert: true,
-        });
-        if (up.error) bufferErrors.push(`${p.host}: ${up.error.message}`);
-        const { error } = await sb.from("ghost_sessions").upsert({
-          user_id: userId,
-          session_id: p.session_id,
-          url: p.url,
-          host: p.host,
-          source_type: p.source_type,
-          status: p.status,
-          storage_path: up.error ? null : path,
-          expires_at: expiresAt,
-          captured_at: new Date().toISOString(),
-          ...fields,
-        }, { onConflict: "user_id,session_id" });
-        if (error) { bufferErrors.push(`${p.host}: ${error.message}`); continue; }
-        buffered++;
-      } catch (e) {
-        bufferErrors.push(`${p.host}: ${(e as Error).message}`);
-      }
+  let retainedBytes = 0;
+  const RETAIN_BUDGET = 24 * 1024 * 1024;   // total bytes shelved per sweep
+
+  const records = (await pool(targets, CONCURRENCY, async (t: string) => {
+    const rec = (await extractGhostRecord(t, capture)) as GhostRecord;
+    const p = rec.payload;
+    delete rec.payload;                      // never returned inline
+    if (!p || !p.bytes.length) return rec;
+    if (!(capture && sb && userId)) return rec;
+    if (retainedBytes + p.bytes.length > RETAIN_BUDGET) return rec;
+    retainedBytes += p.bytes.length;
+    try {
+      const fields = await deriveFields(p, rec.declared_language);
+      const path = `${userId}/${p.session_id}`;
+      const up = await sb.storage.from(BUCKET).upload(path, p.bytes, {
+        contentType: p.source_type || "application/octet-stream",
+        upsert: true,
+      });
+      if (up.error) bufferErrors.push(`${p.host}: ${up.error.message}`);
+      const { error } = await sb.from("ghost_sessions").upsert({
+        user_id: userId,
+        session_id: p.session_id,
+        url: p.url,
+        host: p.host,
+        source_type: p.source_type,
+        status: p.status,
+        storage_path: up.error ? null : path,
+        expires_at: expiresAt,
+        captured_at: new Date().toISOString(),
+        ...fields,
+      }, { onConflict: "user_id,session_id" });
+      if (error) bufferErrors.push(`${p.host}: ${error.message}`);
+      else buffered++;
+    } catch (e) {
+      bufferErrors.push(`${p.host}: ${(e as Error).message}`);
     }
-  } else {
-    for (const rec of records) delete rec.payload;
-  }
+    return rec;
+  })) as GhostRecord[];
+
 
   const index = buildIndex(records);
 

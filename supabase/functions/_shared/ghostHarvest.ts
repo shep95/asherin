@@ -376,7 +376,22 @@ export async function harvestLeads(
   const legTimeoutMs = opts.legTimeoutMs ?? 12_000;
   const maxLeads = opts.maxLeads ?? 300;
 
-  const legs = planFanout(id);
+  // Fan-out plans can emit the same query twice when several planners overlap
+  // (open-web legs layered on top of kind-specific ones). Duplicates cost a
+  // round trip each and spend the upstream rate-limit budget on an answer we
+  // already hold, which is why whole legs were coming back "Rate limit
+  // exceeded" mid-sweep. Collapse on the query text, keeping the heavier weight.
+  const legs = (() => {
+    const byQuery = new Map<string, HarvestLeg>();
+    for (const leg of planFanout(id)) {
+      const key = leg.query.trim().toLowerCase();
+      const prior = byQuery.get(key);
+      if (!prior) byQuery.set(key, leg);
+      else if (leg.weight > prior.weight) byQuery.set(key, leg);
+    }
+    return [...byQuery.values()];
+  })();
+
   const leadsByUrl = new Map<string, HarvestLead>();
 
   let cursor = 0;
