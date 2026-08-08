@@ -85,6 +85,32 @@ export async function forwardGeocode(
  * Assess a cell, generating only on a cache miss or expiry.
  * `cfg` may be null — the caller then gets whatever is cached, or nothing.
  */
+/** Research is "thin" when every angle came back with no hits. */
+function isThin(research: string): boolean {
+  if (!research || research.length < 200) return true;
+  const angles = research.split(/^### /m).filter((b) => b.trim());
+  if (!angles.length) return true;
+  const empty = angles.filter((b) => /\(searched — nothing surfaced\)/.test(b)).length;
+  return empty >= angles.length - 1;
+}
+
+/** "East Santa Clara Street, Horace Mann, San Jose, Santa Clara County, CA" →
+ *  "San Jose, California". Drops the street and the postcode noise. */
+function localityOf(label: string): string | null {
+  const parts = label.split(",").map((p) => p.trim()).filter(Boolean)
+    .filter((p) => !/^\d{4,}$/.test(p) && !/^United States$/i.test(p) && !/County$/i.test(p));
+  if (parts.length < 2) return null;
+  return parts.slice(-2).join(", ");
+}
+
+/** Legacy rows cached UNKNOWN for a week; treat any UNKNOWN older than 6 h as
+ *  due for another attempt regardless of the stored expiry. */
+function isStaleUnknown(row: Record<string, any>): boolean {
+  if (String(row.risk_level).toUpperCase() !== "UNKNOWN") return false;
+  const at = Date.parse(String(row.generated_at || 0));
+  return !Number.isFinite(at) || Date.now() - at > 6 * 3600e3;
+}
+
 export async function assessArea(
   db: SupabaseClient,
   lat: number,
