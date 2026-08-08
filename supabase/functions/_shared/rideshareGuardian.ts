@@ -234,6 +234,15 @@ VERDICTS
 - WATCH — a specific, evidenced concern exists (plate/vehicle inconsistency, adverse record with moderate binding).
 - AVOID — strongly bound, serious safety-relevant record (violence, sexual offence, DUI pattern), or the vehicle does not match the assignment.
 
+REGULATOR REGISTRY (HIGHEST AUTHORITY)
+The collection may open with "Regulator registry check". That section is a deterministic lookup in a
+government for-hire licensing register keyed on this exact plate — it is primary-source evidence and it
+outranks everything else in the collection. If it names a licensee, that is the driver identity: report
+it, set identity_confidence to the stated binding confidence, and do not average it against any web
+candidate. If it reports a name mismatch, an expired or non-active licence, or a VIN that decodes to a
+different vehicle, those are evidenced safety findings and the verdict is at least WATCH. If it reports
+that no register covers the jurisdiction, say so as a limit rather than treating web inference as a record.
+
 PLATE-ANCHORED RECONSTRUCTION
 The collection may contain a section titled "Probabilistic identity reconstruction". Those posteriors
 were computed deterministically from plate co-occurrence, source authority, city/vehicle agreement and

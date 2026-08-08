@@ -28,6 +28,7 @@
  */
 
 import { placeSearch, type WebHit } from "./bleSentinel.ts";
+import { resolveFromRegistries, type RegistryResult } from "./rideshareRegistry.ts";
 import type { RideInput } from "./rideshareGuardian.ts";
 
 // ── Utilities ──────────────────────────────────────────────────────────────
@@ -341,7 +342,17 @@ export function formatPlateBlock(ev: PlateEvidence, weighted: WeightedCandidate[
   return lines.join("\n");
 }
 
-/** Full pivot: collect on the plate, recombine with the first name, weight. */
+/**
+ * Full pivot, registry-first.
+ *
+ * Order is the whole correction. The regulator's licensing register is keyed on
+ * the plate and names the licensee outright, so it is queried before a single
+ * web search is spent. When it answers, the probabilistic recombination is not
+ * merely deprioritised — it is skipped, because a scored guess printed beside a
+ * government record only invites the reader to average the two. When no
+ * regulator covers the jurisdiction, the old weighted pivot runs as the
+ * explicit fallback it always should have been.
+ */
 export async function plateAnchoredIdentity(
   ride: RideInput,
   budgetMs = 16_000,
@@ -351,18 +362,55 @@ export async function plateAnchoredIdentity(
   candidates: WeightedCandidate[];
   residual: number;
   bestFullName: string | null;
+  registry: RegistryResult;
 }> {
-  const evidence = await platePivot(ride, budgetMs);
+  const registry = await resolveFromRegistries(
+    { plate: ride.plate, city: ride.city, driver_name: ride.driver_name, vehicle: ride.vehicle },
+    Math.min(12_000, Math.max(6_000, Math.floor(budgetMs * 0.5))),
+  );
+
+  const emptyEvidence: PlateEvidence = {
+    hits: [],
+    queries: [],
+    vehicleFacts: [],
+    note: "Web plate pivot skipped — the licensing register already bound this plate to a named licensee.",
+  };
+
+  // Registry-bound: authoritative, deterministic, done.
+  if (registry.best_name && registry.confidence >= 0.55) {
+    return {
+      block: registry.block,
+      evidence: emptyEvidence,
+      candidates: [{
+        name: registry.best_name,
+        first: registry.best_name.split(/\s+/)[0],
+        last: registry.best_name.split(/\s+/).slice(1).join(" "),
+        posterior: registry.confidence,
+        logit: 3,
+        plate_anchored: true,
+        sources: [registry.records[0]?.source ?? "regulator registry"],
+        evidence: registry.records.map((r) => `${r.raw_name} — ${r.license_type ?? "licence"} ${r.license_number ?? ""} (${r.source_url})`),
+        reasons: ["government for-hire licensing register keyed on this exact plate"],
+      }],
+      residual: 1 - registry.confidence,
+      bestFullName: registry.best_name,
+      registry,
+    };
+  }
+
+  const registryBlock = registry.block;
+  const evidence = await platePivot(ride, Math.max(6_000, budgetMs - 4_000));
   const firstToken = (ride.driver_name || "").trim().split(/\s+/)[0] || "";
   const hasSurname = (ride.driver_name || "").trim().split(/\s+/).length > 1;
 
   if (!firstToken || hasSurname || !evidence.hits.length) {
     return {
-      block: formatPlateBlock(evidence, [], 1),
+      block: `${registryBlock}\n\n${formatPlateBlock(evidence, [], 1)}`,
       evidence,
       candidates: [],
       residual: 1,
       bestFullName: null,
+      registry,
     };
   }
 
@@ -370,13 +418,14 @@ export async function plateAnchoredIdentity(
   const { candidates, residual } = scoreCandidates(firstToken, matches, ride);
   const best = candidates[0];
   return {
-    block: formatPlateBlock(evidence, candidates, residual),
+    block: `${registryBlock}\n\n${formatPlateBlock(evidence, candidates, residual)}`,
     evidence,
     candidates,
     residual,
     // Only a candidate that clears the identity floor is allowed to re-seed the
     // expensive identity collection; below it we would be researching a stranger.
     bestFullName: best && best.posterior >= 0.55 ? best.name : null,
+    registry,
   };
 }
 

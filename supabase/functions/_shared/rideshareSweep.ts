@@ -18,6 +18,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "./jurisdictionalIntel.ts";
 import { plateAnchoredIdentity, unboundContextSweep, withTimeout, type WeightedCandidate } from "./ridesharePlateIntel.ts";
+import type { RegistryResult } from "./rideshareRegistry.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { notifyIntel, severityFromVerdict } from "./intelNotify.ts";
 import {
@@ -113,6 +114,8 @@ export interface CollectionResult {
   candidates: WeightedCandidate[];
   residual: number;
   resolved_name: string | null;
+  /** Deterministic regulator evidence; the authority for identity binding. */
+  registry: RegistryResult;
 }
 
 /**
@@ -150,6 +153,7 @@ export async function collectDossier(
       candidates: pivot.candidates,
       residual: pivot.residual,
       resolved_name: null,
+      registry: pivot.registry,
     };
   }
 
@@ -199,6 +203,11 @@ export async function collectDossier(
   await Promise.allSettled(workers);
 
   const skipped = plan.length - ran.length;
+  const registryNote = pivot.registry.records.length
+    ? `Regulator register bound plate ${ride.plate} to "${pivot.registry.records[0].raw_name}" (${pivot.registry.records[0].source}).`
+    : pivot.registry.covered
+      ? `Regulator register queried (${pivot.registry.queried.join(", ")}) — no for-hire licence on file for this plate.`
+      : "No open for-hire register publishes this jurisdiction; identity binding falls back to open-web inference.";
   const pivotNote = pivot.bestFullName
     ? `Plate pivot resolved "${pivot.bestFullName}" at ${(pivot.candidates[0].posterior * 100).toFixed(0)}% posterior and re-seeded the identity collection.`
     : pivot.candidates.length
@@ -207,12 +216,13 @@ export async function collectDossier(
 
   return {
     context: blocks.join("\n\n"),
-    note: `${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits,
     angles: ran,
     candidates: pivot.candidates,
     residual: pivot.residual,
     resolved_name: pivot.bestFullName,
+    registry: pivot.registry,
   };
 }
 
@@ -334,6 +344,18 @@ export async function runDeepSweep(opts: {
   const fast = fastPass(ride);
   const collection = await collectDossier(ride, opts.collectionBudgetMs ?? 55_000);
 
+  // Registry cross-checks are arithmetic over a government record, not model
+  // opinion, so they enter the doctrine through the deterministic fast-pass
+  // channel: a HIGH registry flag (licence expired, licensee is not the person
+  // shown, VIN decodes to a different car) escalates the verdict on its own,
+  // even if the model was lenient or the collection was otherwise silent.
+  const fastFlags = (fast.payload as Record<string, unknown>).flags as Array<Record<string, unknown>>;
+  for (const f of collection.registry.flags) {
+    if (!fastFlags.some((x) => x.code === f.code)) {
+      fastFlags.push({ code: f.code, severity: f.severity, detail: f.detail, evidence: f.evidence });
+    }
+  }
+
   const raw = await callByokJsonWithRetry(
     cfg,
     DEEP_SYSTEM_PROMPT,
@@ -358,7 +380,10 @@ export async function runDeepSweep(opts: {
   if (anchored && parsedModel && typeof parsedModel === "object") {
     const pm = parsedModel as Record<string, unknown>;
     const modelConf = typeof pm.identity_confidence === "number" ? pm.identity_confidence : 0;
-    pm.identity_confidence = Math.max(modelConf, Math.min(anchored.posterior, 0.85));
+    // A registry-bound licensee is a primary-source identity and is allowed a
+    // higher ceiling than a web recombination, which stays capped at 0.85.
+    const ceiling = collection.registry.best_name ? 0.95 : 0.85;
+    pm.identity_confidence = Math.max(modelConf, Math.min(anchored.posterior, ceiling));
   }
 
   const deep = enforceDoctrine(parsedModel, fast);
@@ -368,6 +393,29 @@ export async function runDeepSweep(opts: {
   payload.plate_candidates = collection.candidates;
   payload.unresolved_mass = collection.residual;
   payload.pivot_resolved_name = collection.resolved_name;
+  payload.registry = {
+    covered: collection.registry.covered,
+    queried: collection.registry.queried,
+    records: collection.registry.records,
+    vin: collection.registry.vin,
+    flags: collection.registry.flags,
+    bound_name: collection.registry.best_name,
+    binding_confidence: collection.registry.confidence,
+  };
+  // Registry flags must appear to the reader even when the model omitted them.
+  {
+    const existing = Array.isArray(payload.flags) ? (payload.flags as Array<Record<string, unknown>>) : [];
+    for (const f of collection.registry.flags) {
+      if (!existing.some((x) => x.code === f.code)) existing.push({ ...f });
+    }
+    payload.flags = existing;
+  }
+  if (collection.registry.best_name && !(payload.subject_profile as any)?.resolved_name) {
+    (payload.subject_profile as any) = {
+      ...((payload.subject_profile as any) || {}),
+      resolved_name: collection.registry.best_name,
+    };
+  }
   // When the model named nobody, the weighted reconstruction is still the most
   // honest candidate list we have — surfaced with its posteriors intact.
   if (!Array.isArray(payload.candidates) || !(payload.candidates as unknown[]).length) {

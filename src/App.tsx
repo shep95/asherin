@@ -99,6 +99,7 @@ const GlossaryConversationalSeo = lazy(() => import("./pages/glossary/Conversati
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
+import AutoTripMount from "./components/AutoTripMount";
 import RouteSeo from "./components/RouteSeo";
 // DonationBanner removed — Aureon now runs on a monthly subscription model.
 
@@ -122,6 +123,7 @@ const App = () => (
         <BrowserRouter>
           <CommandPalette />
           <RouteSessionTracker />
+          <AutoTripMount />
           <RouteSeo />
           <ByokRequiredDialog />
           {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}

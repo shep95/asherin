@@ -12,6 +12,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { tripRecorder, type RecorderState } from "@/lib/rideshare/tripRecorder";
+import { autoTrip, type AutoTripState } from "@/lib/rideshare/autoTrip";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Route, Square, Circle, Loader2, Trash2, Download, RefreshCw,
-  AlertTriangle, Gauge, Clock, MapPin, Activity, WifiOff,
+  AlertTriangle, Gauge, Clock, MapPin, Activity, WifiOff, Radar,
 } from "lucide-react";
 
 interface StreetLeg {
@@ -84,6 +86,17 @@ export default function TripRecorderTab() {
   }, []);
 
   useEffect(() => tripRecorder.subscribe(setRec), []);
+
+  const [auto, setAuto] = useState<AutoTripState>(autoTrip.getState());
+  useEffect(() => autoTrip.subscribe(setAuto), []);
+
+  const toggleAuto = async (on: boolean) => {
+    await autoTrip.setEnabled(on);
+    if (on && autoTrip.getState().phase === "no-permission") {
+      const ok = await autoTrip.requestPermission();
+      if (!ok) toast.error("Location permission is required for automatic capture.");
+    }
+  };
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.functions.invoke("rideshare-guardian", {
@@ -170,6 +183,46 @@ export default function TripRecorderTab() {
             harsh braking or out-and-back movement. This is your record — it is not
             supplied by, and does not depend on, the rideshare operator.
           </p>
+
+          {/* ── AUTOMATIC CAPTURE ───────────────────────────────────────── */}
+          <div className="mb-4 rounded border border-border/25 bg-muted/10 px-3 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Radar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                  <span className="text-xs font-light uppercase tracking-[0.16em] text-foreground">
+                    Automatic capture
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  Recording arms itself when the phone sustains vehicle speed for 45 seconds and
+                  covers 350 m, and closes after five minutes stationary. You never have to press
+                  anything. A trip you start by hand is never closed automatically.
+                </p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground" aria-live="polite">
+                  {auto.note}
+                  {auto.lastSpeedMps != null && auto.phase !== "off" && (
+                    <span className="ml-1 opacity-70">· {mph(auto.lastSpeedMps)}</span>
+                  )}
+                </p>
+                {auto.phase === "no-permission" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-7 text-[11px]"
+                    onClick={() => void autoTrip.requestPermission()}
+                  >
+                    Grant location access
+                  </Button>
+                )}
+              </div>
+              <Switch
+                checked={auto.enabled}
+                onCheckedChange={(v) => void toggleAuto(v)}
+                aria-label="Automatic trip capture"
+              />
+            </div>
+          </div>
 
           {rec.status !== "recording" && rec.status !== "stopping" ? (
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
