@@ -2115,14 +2115,31 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // Mimics how a human mind decomposes a question before answering:
     // routing cortex → activate regions → write internal step plan → execute
     // as ONE coherent voice. The workflow itself is NEVER surfaced to the UI.
+    //
+    // Flaw this now closes: the pre-pass is a SECOND model call sitting in front
+    // of the real one, and the user waits through all of it before the first
+    // token appears. On "is the pharmacy open" it bought nothing and cost a
+    // whole round-trip. It now runs only where decomposition actually changes
+    // the answer, and is hard-bounded so a slow router can never hold the
+    // answer hostage — a missing plan degrades the shape, never the substance.
     let cognitiveWorkflowDirective = "";
     try {
       const latestUser = [...prunedMessages].reverse().find((m: any) => m.role === "user");
       const latestText = latestUser?.content || "";
       const recentCtx = prunedMessages.slice(-4).map((m: any) => `${m.role}: ${m.content || ""}`).join("\n");
       const routingKey = byokProvider === "google" ? (userApiKey || "") : "";
-      if (latestText && routingKey) {
-        const wf = await buildCognitiveWorkflow(latestText, recentCtx, routingKey);
+      // Worth planning: long, multi-part, analytical, or code/intel work.
+      const worthPlanning =
+        latestText.length > 220 ||
+        isCodingTurn || isIntelTurn || isStrategicTurn ||
+        /\b(analy[sz]e|compare|design|plan|strategy|architect|why|how (do|does|would|should|can)|step by step|break ?down|trade-?offs?|pros and cons|forecast|predict)\b/i.test(latestText) ||
+        (latestText.match(/\?/g)?.length ?? 0) > 1;
+      if (latestText && routingKey && worthPlanning) {
+        const WF_BUDGET_MS = 2_500;
+        const wf = await Promise.race([
+          buildCognitiveWorkflow(latestText, recentCtx, routingKey),
+          new Promise<null>((r) => setTimeout(() => r(null), WF_BUDGET_MS)),
+        ]);
         if (wf) {
           console.log(`[chat] Workflow: ${wf.intent} → ${wf.regions.join(",")}`);
           cognitiveWorkflowDirective = formatWorkflowDirective(wf);
@@ -2130,6 +2147,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     } catch (e) {
       console.error("[chat] cognitive workflow pre-pass error:", (e as Error).message);
+
     }
 
     // Inject the CODE → NARRATIVE → FLAWS → FIX loop protocol — applies
