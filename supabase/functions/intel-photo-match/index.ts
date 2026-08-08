@@ -122,8 +122,59 @@ async function searchProfiles(query: string): Promise<Array<{ url: string; title
 }
 
 
-/** Pull the profile image a page advertises about itself (og/twitter image). */
+/**
+ * Pull the portrait a page advertises about itself.
+ *
+ * Routing every candidate through the paid scraper spent a dozen credits per
+ * run and, once the per-minute ceiling was hit, every call failed silently and
+ * the dossier reported "nothing found" when the pages were plainly there. A
+ * plain GET reads the same og:image tag for free on the vast majority of
+ * public bio pages, so it leads; the scraper is the fallback for the pages
+ * that refuse an anonymous client.
+ */
 async function ogImageOf(pageUrl: string): Promise<string | null> {
+  const fromHtml = (html: string): string | null => {
+    const meta =
+      html.match(
+        /<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]*content=["']([^"']+)["']/i,
+      ) ??
+      html.match(
+        /<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["'](?:og:image|twitter:image)["']/i,
+      );
+    const raw = meta?.[1];
+    if (!raw) return null;
+    try {
+      const abs = new URL(raw, pageUrl).toString();
+      return abs.startsWith("https://") ? abs : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 1) Free path: read the head directly.
+  try {
+    const r = await fetch(pageUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; AsherinIntel/1.0; +https://asherin.com)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (r.ok) {
+      // Only the head is needed; capping the read keeps a 5 MB article cheap.
+      const html = (await r.text()).slice(0, 250_000);
+      const hit = fromHtml(html);
+      if (hit) return hit;
+    } else {
+      console.log("photo_og_direct_blocked", JSON.stringify({ host: hostOf(pageUrl), status: r.status }));
+    }
+  } catch (e) {
+    console.log("photo_og_direct_error", JSON.stringify({ host: hostOf(pageUrl), err: String(e).slice(0, 80) }));
+  }
+
+  // 2) Paid path: only for pages that refused the anonymous client.
   if (!FIRECRAWL_KEY) return null;
   try {
     const r = await fetch("https://api.firecrawl.dev/v2/scrape", {
@@ -132,7 +183,10 @@ async function ogImageOf(pageUrl: string): Promise<string | null> {
       body: JSON.stringify({ url: pageUrl, formats: ["markdown"], onlyMainContent: true }),
       signal: AbortSignal.timeout(30_000),
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      console.log("photo_og_scrape_failed", JSON.stringify({ host: hostOf(pageUrl), status: r.status }));
+      return null;
+    }
     const j = await r.json();
     const md = j?.data ?? j;
     const meta = md?.metadata ?? {};
@@ -140,15 +194,16 @@ async function ogImageOf(pageUrl: string): Promise<string | null> {
       meta.ogImage ?? meta["og:image"] ?? meta.twitterImage ?? meta["twitter:image"] ?? null;
     const first = Array.isArray(cand) ? cand[0] : cand;
     if (typeof first === "string" && first.startsWith("https://")) return first;
-    // Fallback: an inline profile-picture image in the rendered markdown.
     const m = typeof md?.markdown === "string"
       ? md.markdown.match(/!\[[^\]]*\]\((https:\/\/[^)\s]+\.(?:jpg|jpeg|png|webp)[^)\s]*)\)/i)
       : null;
     return m?.[1] ?? null;
-  } catch {
+  } catch (e) {
+    console.log("photo_og_scrape_error", JSON.stringify({ host: hostOf(pageUrl), err: String(e).slice(0, 80) }));
     return null;
   }
 }
+
 
 /** Fetch image bytes with hard size, type and time bounds. */
 async function fetchImage(url: string): Promise<{ buf: ArrayBuffer; type: string } | null> {
