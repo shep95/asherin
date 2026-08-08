@@ -218,6 +218,35 @@ const RideshareGuardian = () => {
     await supabase.functions.invoke("rideshare-guardian", { body: { action: "settings.set", settings: next } });
   };
 
+  /** Manual trigger for the same sweeper the scheduler runs — scoped by the
+   *  server to the caller's own mailbox. */
+  const runScanNow = async () => {
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rideshare-autopilot", { body: {} });
+      if (error) throw error;
+      const r = (data?.results?.[0] ?? {}) as { found?: number; swept?: number; status?: string };
+      toast({
+        title: r.swept ? `${r.swept} ride${r.swept === 1 ? "" : "s"} assessed` : "Mailbox read",
+        description: r.swept
+          ? "The dossier is in your inbox and on your device."
+          : r.status === "no_rides"
+            ? "No Uber or Lyft trip mail in the window."
+            : `Scan finished (${r.status ?? "ok"}).`,
+      });
+      await load();
+    } catch (e) {
+      toast({
+        title: "Scan failed",
+        description: e instanceof Error ? e.message : "The mailbox could not be read.",
+        variant: "destructive",
+      });
+    } finally {
+      setScanning(false);
+    }
+  };
+
+
   const removeRide = async (id: string) => {
     setRides((prev) => prev.filter((r) => r.id !== id));
     await supabase.functions.invoke("rideshare-guardian", { body: { action: "ride.delete", ride_id: id } });
