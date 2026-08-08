@@ -310,42 +310,74 @@ const FIRECRAWL_SEARCH = "https://api.firecrawl.dev/v2/search";
 
 export interface WebHit { url: string; title: string; snippet: string }
 
-export async function placeSearch(query: string, limit = 5, timeoutMs = 8000): Promise<WebHit[]> {
+export async function placeSearch(query: string, limit = 5, timeoutMs = 12_000): Promise<WebHit[]> {
   const key = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!key) return [];
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(FIRECRAWL_SEARCH, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit }),
-      signal: ctrl.signal,
-    });
-    if (!r.ok) return [];
-    const j = await r.json();
-    const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
-    return (Array.isArray(items) ? items : [])
-      .filter((x) => typeof x?.url === "string")
-      .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
-  } catch {
+  if (!key) {
+    console.error("place_search_no_key");
     return [];
-  } finally {
-    clearTimeout(t);
   }
+  // Search is the only evidence source for area risk. A silent empty result is
+  // indistinguishable from "this place is safe", so transient failures are
+  // retried and permanent ones are logged rather than swallowed.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const r = await fetch(FIRECRAWL_SEARCH, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query, limit }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok) {
+        const retryable = r.status === 429 || r.status >= 500;
+        console.error("place_search_http", { status: r.status, retryable, q: query.slice(0, 80) });
+        if (!retryable || attempt === 2) return [];
+        const after = Number(r.headers.get("retry-after")) || 0;
+        await new Promise((res) => setTimeout(res, after ? after * 1000 : 800 * (attempt + 1)));
+        continue;
+      }
+      const j = await r.json();
+      const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
+      return (Array.isArray(items) ? items : [])
+        .filter((x) => typeof x?.url === "string")
+        .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
+    } catch (e) {
+      console.error("place_search_failed", { attempt, msg: (e as Error).message?.slice(0, 120) });
+      if (attempt === 2) return [];
+      await new Promise((res) => setTimeout(res, 600 * (attempt + 1)));
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  return [];
 }
 
-/** Run the area collection plan in parallel and fold it into one evidence block.
- *  An empty block is reported as empty — the model grades it UNKNOWN rather
- *  than inventing a crime statistic. */
+/** Postcodes, county names and "United States" push search engines toward
+ *  directory pages instead of reporting; the human form of the place performs
+ *  far better as a query term. */
+function searchLabel(label: string): string {
+  const parts = label.split(",").map((p) => p.trim()).filter(Boolean)
+    .filter((p) => !/^\d{4,}$/.test(p) && !/^United States$/i.test(p) && !/County$/i.test(p));
+  return (parts.length > 3 ? parts.slice(0, 2).concat(parts.slice(-1)) : parts).join(", ") || label;
+}
+
+/** Run the area collection plan and fold it into one evidence block. Queries go
+ *  out two at a time: four parallel calls trip the provider's burst limit and
+ *  come back empty, which the model then grades as UNKNOWN. */
 export async function collectAreaEvidence(label: string): Promise<string> {
+  const q = searchLabel(label);
   const plan: Array<[string, string]> = [
-    ["Reported crime", `recent crime reports incidents ${label}`],
-    ["Police & news", `police news shooting robbery assault ${label}`],
-    ["Documented group activity", `gang activity territory documented ${label}`],
-    ["Community safety reporting", `is ${label} safe at night neighborhood safety`],
+    ["Reported crime", `recent crime reports incidents ${q}`],
+    ["Police & news", `police news shooting robbery assault ${q}`],
+    ["Documented group activity", `gang activity territory documented ${q}`],
+    ["Community safety reporting", `is ${q} safe at night neighborhood safety`],
   ];
-  const results = await Promise.allSettled(plan.map(([, q]) => placeSearch(q)));
+  const results: Array<PromiseSettledResult<WebHit[]>> = [];
+  for (let i = 0; i < plan.length; i += 2) {
+    const batch = plan.slice(i, i + 2).map(([, query]) => placeSearch(query));
+    results.push(...(await Promise.allSettled(batch)));
+  }
   const blocks: string[] = [];
   results.forEach((res, i) => {
     const [heading] = plan[i];
@@ -359,3 +391,4 @@ export async function collectAreaEvidence(label: string): Promise<string> {
   });
   return blocks.join("\n\n");
 }
+
