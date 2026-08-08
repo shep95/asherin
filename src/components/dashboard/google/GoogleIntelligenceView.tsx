@@ -34,12 +34,13 @@ import ContactVaultPane from "./modules/ContactVaultPane";
 import RideshareGuardian from "./modules/RideshareGuardian";
 import BluetoothSentinel from "./modules/BluetoothSentinel";
 import PhoneMessages from "./modules/PhoneMessages";
+import MeetVault from "./modules/MeetVault";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "guardian" | "sentinel" | "messages" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 /** A directorate is an analytic function, not a product category. */
