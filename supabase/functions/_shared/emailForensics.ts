@@ -432,12 +432,17 @@ export function analyzeMessage(msg: AnalyzeInput): MessageForensics {
   const mailer = one(H, "x-mailer") || one(H, "user-agent");
   const mailerFamily = mailer ? matchSig(mailer, MAILER_SIGNATURES) : null;
 
+  // Fingerprint the SENDING infrastructure only. Including every `by` host
+  // meant the operator's own receiving MTA (mx.google.com) matched first and
+  // every message on earth came back as "Google Workspace" — a fingerprint of
+  // the mailbox, not of the sender.
+  const originSide = hops.slice(0, 2).map((h) => h.from || "").join(" ");
   const infraText = [
-    ...hops.map((h) => `${h.from || ""} ${h.by || ""}`),
-    messageIdDomain || "", dkimDomain || "", returnPathDomain || "",
+    originSide, messageIdDomain || "", dkimDomain || "", returnPathDomain || "",
     one(H, "x-ses-outgoing") || "", one(H, "x-mailgun-sid") ? "mailgun" : "", one(H, "x-sg-eid") ? "sendgrid" : "",
   ].join(" ");
   const esp = matchSig(infraText, ESP_SIGNATURES);
+
 
   const listUnsub = one(H, "list-unsubscribe");
   const listId = one(H, "list-id");
