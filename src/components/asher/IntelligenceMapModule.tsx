@@ -1821,6 +1821,28 @@ const IntelligenceMapModule = () => {
         <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
       </div>
 
+      {/* RESIZE RAIL — pointer drag, arrow-key nudge, double-click reset */}
+      {!sidebar.collapsed && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize layer tree"
+          aria-valuenow={sidebar.width}
+          aria-valuemin={SIDEBAR_MIN}
+          aria-valuemax={SIDEBAR_MAX}
+          tabIndex={0}
+          onPointerDown={startResize}
+          onDoubleClick={() => nudgeWidth(SIDEBAR_DEFAULT - sidebar.width)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") { e.preventDefault(); nudgeWidth(-24); }
+            if (e.key === "ArrowRight") { e.preventDefault(); nudgeWidth(24); }
+          }}
+          className="z-[1001] w-1.5 shrink-0 cursor-col-resize bg-border/20 transition-colors hover:bg-[#c98b3a]/60 focus-visible:bg-[#c98b3a]/80 focus-visible:outline-none"
+        />
+      )}
+
+
+
 
 
 
