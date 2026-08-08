@@ -560,6 +560,6 @@ export function useSelfTracking(opts?: { onFix?: (f: SelfFix) => void; onFenceEv
     status, error, consent, pendingRequest, fix, trail, stats, fences, events, follow,
     requestFromAI, clearPending: () => setPendingRequest(null),
     grantConsent, revokeConsent, start, stop, setFollow,
-    addFence, removeFence, clearTrail,
+    addFence, removeFence, clearTrail, refine, refining,
   };
 }
