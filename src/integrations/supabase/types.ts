@@ -3024,6 +3024,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ble_owned_devices: {
+        Row: {
+          claimed_at: string
+          created_at: string
+          fingerprint: string
+          id: string
+          kind: string
+          label: string
+          missing_after_minutes: number
+          notes: string | null
+          recovered_at: string | null
+          state: string
+          stolen_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          created_at?: string
+          fingerprint: string
+          id?: string
+          kind?: string
+          label?: string
+          missing_after_minutes?: number
+          notes?: string | null
+          recovered_at?: string | null
+          state?: string
+          stolen_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          kind?: string
+          label?: string
+          missing_after_minutes?: number
+          notes?: string | null
+          recovered_at?: string | null
+          state?: string
+          stolen_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ble_sightings: {
         Row: {
           accuracy_m: number | null
@@ -3079,6 +3127,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ble_theft_audit: {
+        Row: {
+          created_at: string
+          detail: Json
+          event: string
+          fingerprint: string
+          id: string
+          label: string
+          last_lat: number | null
+          last_lng: number | null
+          last_seen_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event: string
+          fingerprint: string
+          id?: string
+          label?: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_seen_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event?: string
+          fingerprint?: string
+          id?: string
+          label?: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_seen_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       brains: {
         Row: {
@@ -11449,6 +11536,7 @@ export type Database = {
         Args: { _section: string; _uid: string }
         Returns: boolean
       }
+      ble_can_claim: { Args: { _fingerprint: string }; Returns: Json }
       delete_conversation: { Args: { p_conv_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -11516,6 +11604,33 @@ export type Database = {
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      locate_owned_device: {
+        Args: { _fingerprint: string; _hours?: number; _limit?: number }
+        Returns: {
+          accuracy_m: number
+          distance_m: number
+          lat: number
+          lng: number
+          rssi: number
+          seen_at: string
+        }[]
+      }
+      locate_owned_devices_group: {
+        Args: { _hours?: number }
+        Returns: {
+          accuracy_m: number
+          distance_m: number
+          fingerprint: string
+          fix_count: number
+          kind: string
+          label: string
+          last_seen_at: string
+          lat: number
+          lng: number
+          rssi: number
+          state: string
+        }[]
       }
       match_asher_code_chunks: {
         Args: {
