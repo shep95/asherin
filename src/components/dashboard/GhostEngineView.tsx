@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ghost, Loader2, Search, Fingerprint, AlertTriangle, Network, Clock, Layers,
-  Download, Archive, ChevronDown, Globe, Sparkle,
+  Download, Archive, ChevronDown, Sparkle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
