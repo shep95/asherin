@@ -260,13 +260,31 @@ export function readTrainNumber(text: string): string | null {
   return /\d/.test(v) ? v : null;
 }
 
+/**
+ * A record locator, not the first token that happens to follow the word
+ * "confirmation". Subject lines routinely read "Your trip confirmation: UA2402",
+ * so a single-shot match returns the flight number and every later dedupe keys
+ * on a value that is not a booking at all. Every cued candidate is therefore
+ * examined and flight-shaped or stopword candidates are discarded.
+ */
 export function readBookingRef(text: string): string | null {
-  const m = text.match(PNR_RE);
-  const v = m?.[1]?.toUpperCase();
-  if (!v || PNR_STOPWORDS.has(v)) return null;
-  // A locator is mixed or alphabetic in practice; a pure 5-8 digit run is a
-  // ticket/order number, which is still useful but must not be called a PNR.
-  return v;
+  // A fresh regex per call: a module-level /g regex carries lastIndex between
+  // callers and silently skips matches on the second email.
+  const scan = new RegExp(PNR_RE.source, "gi");
+  let digitsOnly: string | null = null;
+
+  for (const m of text.matchAll(scan)) {
+    const v = m[1]?.toUpperCase();
+    if (!v || PNR_STOPWORDS.has(v)) continue;
+    // Flight designators (UA2402) and train numbers share this shape and are
+    // captured elsewhere; they are never the locator.
+    if (/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\d{1,4}[A-Z]?$/.test(v)) continue;
+    // A pure digit run is a ticket/order number — usable, but only if nothing
+    // better appears later in the message.
+    if (/^\d+$/.test(v)) { digitsOnly ??= v; continue; }
+    return v;
+  }
+  return digitsOnly;
 }
 
 // ── Telemetry envelopes ────────────────────────────────────────────────────
