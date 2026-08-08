@@ -2039,11 +2039,17 @@ const IntelligenceMapModule = () => {
             className="w-full rounded-md border border-border/25 bg-background/50 px-2 py-1.5 text-[11px] font-light text-foreground outline-none focus:border-[#c98b3a]/50"
           />
         </div>
+        {/* One scroll owner for the complete layer tree. Previously only the
+            category list scrolled while every operational panel below it was
+            clipped by the sidebar's overflow-hidden boundary. */}
         <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 text-sm [-webkit-overflow-scrolling:touch]"
+          className="min-h-0 flex-1 overflow-y-scroll overscroll-contain [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]"
           style={{ touchAction: "pan-y" }}
+          tabIndex={0}
+          aria-label="Scrollable layer tree and map controls"
         >
-          {LAYER_TREE.map((cat) => {
+          <div className="px-3 py-3 text-sm">
+            {LAYER_TREE.map((cat) => {
             const needle = layerFilter.trim().toLowerCase();
             // A filter must not hide the answer behind a collapsed header, so a
             // matching category force-opens while the query is live.
@@ -2124,49 +2130,50 @@ const IntelligenceMapModule = () => {
                 )}
               </div>
             );
-          })}
-        </div>
+            })}
+          </div>
 
-        {showMyDevices && (
-          <MyDevicesPanel
-            devices={myDevices}
-            loading={myDevicesLoading}
-            focused={focusedDevice}
-            onRefresh={refreshMyDevices}
-            onFocus={focusDevice}
-            onFitAll={fitAllDevices}
-            onRoute={routeToDevice}
+          {showMyDevices && (
+            <MyDevicesPanel
+              devices={myDevices}
+              loading={myDevicesLoading}
+              focused={focusedDevice}
+              onRefresh={refreshMyDevices}
+              onFocus={focusDevice}
+              onFitAll={fitAllDevices}
+              onRoute={routeToDevice}
+            />
+          )}
+
+          <AnnotationPanel
+            annotations={annotations}
+            drawMode={drawMode}
+            draftPath={draftPath}
+            onSetDrawMode={(m) => { setDrawMode(m); setDraftPath([]); }}
+            onFinishDraft={finishDraft}
+            onCancelDraft={() => { setDrawMode("none"); setDraftPath([]); }}
+            onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
+            onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label, updatedAt: Date.now() } : x)), { action: "rename", detail: label })}
+            onClear={() => { mutateAnnotations(() => [], { action: "clear_all" }); setFocusedAnno(null); setViewshedOverlay(null); }}
+            onFocus={focusAnnotation}
           />
-        )}
 
-        <AnnotationPanel
-          annotations={annotations}
-          drawMode={drawMode}
-          draftPath={draftPath}
-          onSetDrawMode={(m) => { setDrawMode(m); setDraftPath([]); }}
-          onFinishDraft={finishDraft}
-          onCancelDraft={() => { setDrawMode("none"); setDraftPath([]); }}
-          onDelete={(id) => { mutateAnnotations((p) => p.filter((x) => x.id !== id), { action: "delete", detail: id }); setFocusedAnno((f) => (f === id ? null : f)); }}
-          onRename={(id, label) => mutateAnnotations((p) => p.map((x) => (x.id === id ? { ...x, label, updatedAt: Date.now() } : x)), { action: "rename", detail: label })}
-          onClear={() => { mutateAnnotations(() => [], { action: "clear_all" }); setFocusedAnno(null); setViewshedOverlay(null); }}
-          onFocus={focusAnnotation}
-        />
+          <AnalysisPanel
+            focus={entity ? { lat: entity.lat, lng: entity.lng } : { lat: coord.lat, lng: coord.lng }}
+            annotations={annotations}
+            activeCaseId={activeCaseId}
+            mapCenter={coord}
+            baseLayer={activeBase}
+            activeLayers={THREAT_IDS.filter((t) => activeThreats[t])}
+            onAddAnnotation={addAnnotation}
+            onViewshed={setViewshedOverlay}
+            onSwitchCase={switchCase}
+            onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
+            onFlyTo={flyTo}
+          />
 
-        <AnalysisPanel
-          focus={entity ? { lat: entity.lat, lng: entity.lng } : { lat: coord.lat, lng: coord.lng }}
-          annotations={annotations}
-          activeCaseId={activeCaseId}
-          mapCenter={coord}
-          baseLayer={activeBase}
-          activeLayers={THREAT_IDS.filter((t) => activeThreats[t])}
-          onAddAnnotation={addAnnotation}
-          onViewshed={setViewshedOverlay}
-          onSwitchCase={switchCase}
-          onRestoreSnapshot={(list) => { mutateAnnotations(() => list, { action: "restore_snapshot", detail: `${list.length} objects` }); setFocusedAnno(null); }}
-          onFlyTo={flyTo}
-        />
-
-        <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
+          <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
+        </div>
       </div>
 
       {/* RESIZE RAIL — pointer drag, arrow-key nudge, double-click reset */}
