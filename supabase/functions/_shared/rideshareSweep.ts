@@ -304,9 +304,9 @@ export async function collectDossier(
 
   return {
     context: blocks.join("\n\n"),
-    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits.${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits,
-    angles: ran,
+    angles: zophiel.hits > 0 ? [...ran, "Zophiel engine sweep"] : ran,
     candidates: pivot.candidates,
     residual: pivot.residual,
     resolved_name: pivot.bestFullName,
