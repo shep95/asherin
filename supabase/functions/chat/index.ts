@@ -1542,15 +1542,47 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── GHOST ENGINE — metadata substrate (Asherin Pro only) ────────────────
-    // Fires only when the operator's question is structurally about provenance
-    // (who made it, when, on what device, on whose infrastructure) AND a public
-    // URL is present. Failure is non-fatal: chat continues without the shell.
+    // Two doors into the same engine:
+    //   1. LEDGER — the operator asks to run their own Cloud Intelligence
+    //      (emails, texts, contacts) through Ghost. The ledger nominates the
+    //      hosts, Ghost probes them, findings come back joined to the exact
+    //      correspondence that produced them.
+    //   2. TARGET — the operator names a public URL and asks about provenance.
+    // Failure is non-fatal in both cases: chat continues without the shell.
     try {
       const ghostMsg = [...messages].reverse().find((m: any) => m.role === "user");
       const ghostText = String(ghostMsg?.content || "");
       const { needsGhostSweep, runGhostForChat, formatGhostContext } =
         await import("../_shared/ghostEngineBridge.ts");
-      if (ghostMsg && needsGhostSweep(ghostText)) {
+      const { classifyGhostLedgerIntent, runGhostLedger, formatGhostLedgerContext } =
+        await import("../_shared/ghostLedger.ts");
+
+      const ledgerIntent = classifyGhostLedgerIntent(ghostText);
+      let ledgerHandled = false;
+      if (ledgerIntent.active && authHeader) {
+        // Tier gate first — the ledger fusion is Pro-class like the rest of Ghost.
+        const { resolveAxrlenAccess } = await import("../_shared/proTierGate.ts");
+        const access = await resolveAxrlenAccess(req);
+        if (access.granted) {
+          const lb = await runGhostLedger(authHeader, {
+            windowDays: 90,
+            channel: ledgerIntent.channel,
+            focus: ledgerIntent.focus,
+            maxHosts: 10,
+            budgetMs: 45_000,
+          });
+          const ctx = formatGhostLedgerContext(lb);
+          if (ctx) {
+            webSearchContext = `${webSearchContext || ""}${ctx}`;
+            ledgerHandled = true;
+            console.log(
+              `[chat] Ghost ledger: scanned=${lb!.scanned}, probed=${lb!.hostsProbed}/${lb!.hostsConsidered}, ${lb!.elapsedMs}ms`,
+            );
+          }
+        }
+      }
+
+      if (!ledgerHandled && ghostMsg && needsGhostSweep(ghostText)) {
         const bundle = await runGhostForChat(req, ghostText);
         if (bundle) {
           webSearchContext = `${webSearchContext || ""}${formatGhostContext(bundle)}`;
@@ -1562,6 +1594,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     } catch (e) {
       console.error("[chat] Ghost bridge failed:", (e as Error).message);
     }
+
 
 
 

@@ -33,12 +33,14 @@ import {
   deriveFields, selectContent, ttlToExpiry, SelectorError,
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
+import { runGhostLedger } from "../_shared/ghostLedger.ts";
+
 
 const MAX_TARGETS = 24;
 const CONCURRENCY = 6;
 const BUCKET = "ghost-buffer";
 
-type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge";
+type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge" | "ledger";
 
 interface GhostRequest {
   action?: Action;
@@ -55,7 +57,13 @@ interface GhostRequest {
   sessionId?: string;
   /** action=search — which layers to consult. */
   scope?: "all" | "web" | "buffer";
+  /** action=ledger — Cloud Intelligence fusion parameters. */
+  windowDays?: number;
+  channel?: "gmail" | "sms" | null;
+  focus?: string | null;
+  maxHosts?: number;
 }
+
 
 /** A bare URL (with or without scheme) is a direct probe, not a sweep. */
 function asUrl(raw: string): string | null {
@@ -281,6 +289,34 @@ Deno.serve(async (req) => {
   // buffer's finitude is enforced on the request path, not by a cron that may
   // not have run.
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
+
+  // ── LEDGER — Cloud Intelligence fused into the Ghost Engine ────────────────
+  // The operator's own correspondence nominates the targets; Ghost probes the
+  // infrastructure named inside it. Read through the caller's own token, so a
+  // ledger the caller cannot see is a ledger this action cannot probe.
+  if (action === "ledger") {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader) return json({ error: "Authentication required" }, 401);
+    const bundle = await runGhostLedger(authHeader, {
+      windowDays: Number(body.windowDays) || 90,
+      channel: body.channel === "gmail" || body.channel === "sms" ? body.channel : null,
+      focus: body.focus ? String(body.focus).slice(0, 120) : null,
+      maxHosts: Number(body.maxHosts) || 14,
+      budgetMs: 60_000,
+    });
+    if (!bundle) {
+      return json({
+        action: "ledger",
+        empty: true,
+        message: "No correspondence in the selected window, or no Google account is connected yet.",
+      });
+    }
+    console.log(
+      `[ghost-engine] ledger · scanned=${bundle.scanned} · probed=${bundle.hostsProbed}/${bundle.hostsConsidered} · ${bundle.elapsedMs}ms`,
+    );
+    return json({ action: "ledger", tier: access.reason, ...bundle });
+  }
+
 
   // ── Buffer-only search — the shelf without a new sweep ─────────────────────
   if (action === "searchBuffer") {
