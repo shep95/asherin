@@ -406,6 +406,29 @@ Deno.serve(async (req) => {
       // deliberately NOT a MAC shape, so it can never collide with a real
       // access point or pollute evil-twin matching (which keys on SSID).
       const pseudoBssid = `uplink:${publicIp}`;
+
+      // Novelty is the whole point of an automatic watch: the first time a
+      // device egresses through a given operator is the moment worth telling
+      // the user about, whatever the score. Reading the prior row before the
+      // upsert is the only way to know that — after the upsert the row always
+      // exists and every network looks familiar.
+      const { data: prior } = await sb.from("wifi_networks")
+        .select("risk_level, enrichment, first_seen")
+        .eq("user_id", userId).eq("bssid", pseudoBssid).maybeSingle();
+
+      const priorEnrichment = (prior?.enrichment ?? {}) as Record<string, unknown>;
+      const priorLevel = (prior?.risk_level as string | undefined) ?? null;
+      const lastNotifiedAt = Number(priorEnrichment.lastNotifiedAt ?? 0) || 0;
+      const RANK: Record<string, number> = { low: 0, moderate: 1, high: 2, critical: 3 };
+      const firstSighting = !prior;
+      const worsened = !!priorLevel && (RANK[level] ?? 0) > (RANK[priorLevel] ?? 0);
+      // A familiar, unchanged uplink is re-stated at most once a day so a home
+      // network cannot become a notification firehose.
+      const REPEAT_MS = 24 * 60 * 60_000;
+      const staleEnough = Date.now() - lastNotifiedAt >= REPEAT_MS;
+      const dangerous = level === "critical" || level === "high";
+      const shouldNotify = force || firstSighting || worsened || (dangerous && staleEnough);
+
       const { error: upErr } = await sb.from("wifi_networks").upsert({
         user_id: userId,
         ssid: operator ? `${operator} uplink` : "Unattributed uplink",
@@ -415,47 +438,60 @@ Deno.serve(async (req) => {
         risk_score: score,
         risk_level: level,
         findings: f,
-        enrichment: { egress, linkType, effectiveType, mode: "uplink", isConnected: true },
+        enrichment: {
+          egress, linkType, effectiveType, mode: "uplink", isConnected: true,
+          lastNotifiedAt: shouldNotify ? Date.now() : lastNotifiedAt,
+        },
         latitude, longitude,
         last_seen: new Date().toISOString(),
       }, { onConflict: "user_id,bssid" });
       if (upErr) throw upErr;
 
-      // A manual run always delivers a report — the whole complaint was that
-      // asking for one produced silence. Automatic runs stay quiet unless the
-      // uplink is genuinely dangerous.
+      // A manual run always delivers a report. An automatic run speaks the
+      // first time an uplink is seen, whenever its grade worsens, and while it
+      // stays dangerous — and stays silent for a familiar, unchanged network.
       let notified = false;
-      const dangerous = level === "critical" || level === "high";
-      if (force || dangerous) {
+      if (shouldNotify) {
         const { data: prefs } = await sb.from("security_notification_prefs")
           .select("notify_wifi, notify_push, notify_email").eq("user_id", userId).maybeSingle();
         const wifiOn = prefs ? (prefs as any).notify_wifi !== false : true;
         if (wifiOn) {
+          const headline = dangerous
+            ? `Unsafe uplink — ${operator ?? publicIp}`
+            : firstSighting
+              ? `New network — ${operator ?? publicIp}`
+              : worsened
+                ? `Network grade changed — ${operator ?? publicIp}`
+                : `Network report — ${operator ?? publicIp}`;
           await notifyIntel({
             userId,
             userEmail: user.email ?? null,
             kind: "security",
             severity: level === "critical" ? "critical" : dangerous ? "notable" : "info",
-            title: dangerous
-              ? `Unsafe uplink — ${operator ?? publicIp}`
-              : `Network report — ${operator ?? publicIp}`,
+            title: headline,
             body:
               `Your device is egressing through ${operator ?? publicIp} on a ${linkType || "unknown"} link. ` +
-              `Risk ${score}/100 (${level}). ${f[0]?.detail ?? ""}`,
+              `Risk ${score}/100 (${level}).` +
+              (firstSighting ? " First time this uplink has been seen on your account." : "") +
+              (worsened ? ` Previously graded ${priorLevel}.` : "") +
+              ` ${f[0]?.detail ?? ""}`,
             source: "Asherin Wi-Fi Sentinel",
             url: "/dashboard/google?module=sentinel&tab=network",
             sections: f.slice(0, 8).map((x) => ({ label: `${x.severity.toUpperCase()} · ${x.title}`, value: x.detail })),
             findings: f.filter((x) => x.severity !== "info").map((x) => x.title),
             secondaryCta: { label: "Review all networks", url: "https://asherin.com/dashboard/google?module=sentinel&tab=network" },
+            // Manual runs are always delivered; automatic ones collapse per
+            // egress per grade per hour so a flapping link cannot duplicate.
             idempotencyKey: force
               ? `uplink-manual-${userId}-${publicIp}-${Date.now()}`
-              : `uplink-${userId}-${publicIp}-${Math.floor(Date.now() / 3_600_000)}`,
+              : `uplink-${userId}-${publicIp}-${level}-${Math.floor(Date.now() / 3_600_000)}`,
             skipPush: prefs ? (prefs as any).notify_push === false : false,
             skipEmail: prefs ? (prefs as any).notify_email === false : false,
           });
           notified = true;
         }
       }
+
 
       return json({
         ok: true, mode: "uplink", notified,
