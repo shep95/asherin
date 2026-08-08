@@ -132,6 +132,7 @@ const Sparkline = ({ data, labels }: { data: number[]; labels?: string[] }) => {
 const ContactIntelligence = () => {
   const { accounts, isConnected, fetchGoogleData } = useGoogleApi();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.id ?? "";
 
   const [loading, setLoading] = useState(false);
