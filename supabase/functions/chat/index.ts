@@ -1883,12 +1883,12 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const SUPABASE_URL2 = Deno.env.get("SUPABASE_URL") || "";
         const SERVICE_ROLE2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const storageUrl = `${SUPABASE_URL2}/storage/v1/object/vedic-knowledge/Vadic_Brain_1.txt`;
-        const brainResp = await fetch(storageUrl, {
-          headers: { Authorization: `Bearer ${SERVICE_ROLE2}` },
-        });
-        if (brainResp.ok) {
-          const fullText = await brainResp.text();
+        // Cached per isolate: the transcript is static, so re-downloading it on
+        // every sentence bought nothing but a round-trip the user waited through.
+        const fullText = await loadBrain(storageUrl, SERVICE_ROLE2);
+        if (fullText) {
           vedicBrainContent = `
+
 
 ## ═══════════════════════════════════════════════════════════════════
 ## VEDIC PRACTITIONER BRAIN — COMPLETE TRANSCRIPTS (MANDATORY REFERENCE)
