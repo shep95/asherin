@@ -385,11 +385,12 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
         if (thin && rec.file_size_bytes && rec.file_size_bytes > MAX_BIN_BYTES) {
           try {
             const from = Math.max(rec.file_size_bytes - MAX_BIN_BYTES, MAX_BIN_BYTES);
-            const tailRes = await fetch(rec.url, {
-              headers: { ...BASE_HEADERS, Range: `bytes=${from}-${rec.file_size_bytes - 1}` },
-              redirect: "follow",
-              signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-            });
+            const tailRes = await timedFetch(
+              current,
+              { headers: { "User-Agent": UA, accept: "*/*", Range: `bytes=${from}-${rec.file_size_bytes - 1}` } },
+              12000,
+            );
+
             if (tailRes.status === 206 || tailRes.status === 200) {
               const tail = new TextDecoder("latin1").decode(await readCapped(tailRes, MAX_BIN_BYTES));
               const tailInfo = parsePdfInfo(tail);
