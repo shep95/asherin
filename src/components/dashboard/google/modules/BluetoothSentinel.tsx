@@ -397,18 +397,22 @@ const BluetoothSentinel = () => {
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-[11px] text-muted-foreground space-y-1">
         <p>
           <strong className="text-foreground">Radio reality:</strong>{" "}
-          {mode === "continuous"
-            ? "Continuous advertisement scanning is available on this device."
-            : mode === "picker"
-              ? "This browser only exposes the one-shot Bluetooth picker — use Capture once, or Chrome on Android with experimental web platform features for continuous scanning."
-              : "Web Bluetooth is unavailable in this browser. Use Chrome on Android, or Bluefy on iOS."}
+          {mode === "native"
+            ? "Companion app detected — the radio keeps listening while the app is in the background and while the screen is off."
+            : mode === "continuous"
+              ? "Continuous advertisement scanning is available on this device."
+              : mode === "picker"
+                ? "This browser only exposes the one-shot Bluetooth picker — use Capture once, install the Asherin companion app, or use Chrome on Android with experimental web platform features."
+                : "Web Bluetooth is unavailable in this browser. Install the Asherin companion app, or use Chrome on Android."}
         </p>
         <p>
-          A web page can only listen while this tab is open and in front. It cannot scan with the phone powered off or the tab closed —
-          no browser can. The watch is wake-locked and auto-resumes when you return; alerts it has already raised still reach you by push and email anywhere.
+          {mode === "native"
+            ? "Background and screen-off sweeps run natively. No phone can listen while it is fully powered down — the radio has no power then — so the log resumes the moment the handset boots."
+            : "A web page can only listen while this tab is open and in front. It cannot scan with the tab closed — no browser can. The watch is wake-locked and auto-resumes when you return; alerts it has already raised still reach you by push and email anywhere."}
         </p>
         {watching && <p className="text-foreground">Watching · {liveCount} radio{liveCount === 1 ? "" : "s"} buffered {flushing && "· syncing"}</p>}
       </div>
+
 
       <Tabs defaultValue="devices">
         <TabsList>
