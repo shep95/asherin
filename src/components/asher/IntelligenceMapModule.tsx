@@ -1703,7 +1703,79 @@ const IntelligenceMapModule = () => {
       }`;
     }
 
+    /* ── Navigation & discovery ───────────────────────────────────────────
+       The model may only ask for a corridor; the road graph, the POI index
+       and the job boards remain the sole authority for what is returned, and
+       every failure degrades to an explicit sentence rather than a silent
+       empty map. */
+    if (a.type === "get_directions") {
+      const to = await resolveRef(a.to);
+      if (!to) return `Could not resolve the destination "${a.to?.place ?? "that place"}".`;
+      const from = a.from
+        ? await resolveRef(a.from)
+        : (track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : await resolveRef(undefined));
+      if (!from) return "No origin — give me a starting place or start location tracking.";
+      const res = await getDirections([from, to], { mode: a.mode || "driving", alternatives: true });
+      if (!res.routes.length) return "The road graph returned no route between those two points.";
+      const best = res.routes[0];
+      setSeedDest({ label: a.to?.place || `${to.lat.toFixed(5)}, ${to.lng.toFixed(5)}`, lat: to.lat, lng: to.lng });
+      handleRoutes({ routes: res.routes, activeId: best.id, highlight: null });
+      if (a.withCameras) void loadCameras({ path: best.path, radiusM: 900 });
+      return `${a.mode === "walking" ? "Walking" : a.mode === "cycling" ? "Cycling" : "Driving"} route plotted: ${fmtDistUnits(best.distanceM, units)} · ${fmtDurUnits(best.durationS)}, arriving about ${fmtEta(best.durationS)}${
+        res.routes.length > 1 ? ` (${res.routes.length - 1} alternative${res.routes.length > 2 ? "s" : ""} drawn dashed)` : ""
+      }.${best.degraded ? ` Caveat: ${best.degraded}` : ""} Source: ${res.attribution}.`;
+    }
+
+    if (a.type === "find_nearby") {
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to search around.";
+      const places = await searchNearby({
+        center: anchor,
+        category: (a.category as any) || "any",
+        query: a.query,
+        radiusM: a.radiusM ?? 2000,
+        openNowOnly: a.openNow,
+      });
+      setPlacePins(places);
+      setTool("places");
+      if (!places.length) return `Nothing matching ${a.query || a.category || "that"} is mapped within ${fmtDistUnits(a.radiusM ?? 2000, units)} of there.`;
+      flyTo(anchor.lat, anchor.lng, 15);
+      const top = places.slice(0, 5).map((p) => `${p.name}${p.distanceM !== undefined ? ` (${fmtDistUnits(p.distanceM, units)})` : ""}`).join("; ");
+      return `${places.length} pinned within ${fmtDistUnits(a.radiusM ?? 2000, units)}. Closest: ${top}. Source: OpenStreetMap live query.`;
+    }
+
+    if (a.type === "find_jobs") {
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to run the hiring sweep.";
+      const byok = getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("asher-jobs-nearby", {
+        body: { role: a.role, lat: anchor.lat, lng: anchor.lng, radiusMi: a.radiusMi ?? 10, ...(byok ? { byok: byok.apiKey } : {}) },
+      });
+      if (error) return `Job sweep failed: ${error.message}`;
+      if (!data?.success) return `Job sweep failed: ${data?.error || "boards unreachable"}.`;
+      const jobs: JobPosting[] = Array.isArray(data.jobs) ? data.jobs : [];
+      setJobPins(jobs);
+      setTool("jobs");
+      if (!jobs.length) return `No live "${a.role}" postings surfaced within ${a.radiusMi ?? 10} mi of there right now.`;
+      flyTo(anchor.lat, anchor.lng, 13);
+      const top = jobs.slice(0, 5).map((j) => `${j.employer} — ${j.title}${j.pay ? ` (${j.pay})` : ""}`).join("; ");
+      return `${jobs.length} live "${a.role}" postings within ${a.radiusMi ?? 10} mi. Top: ${top}. Each pin carries its source and apply link.`;
+    }
+
+    if (a.type === "street_cameras") {
+      const active = routeLayer.routes.find((r) => r.id === routeLayer.activeId);
+      if (a.alongRoute && active) {
+        await loadCameras({ path: active.path, radiusM: a.radiusM ?? 900 });
+        return `Camera sweep run along the plotted corridor. Click any camera pin for its live frame.`;
+      }
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to sweep for cameras.";
+      await loadCameras({ center: anchor, radiusM: a.radiusM ?? 4000 });
+      return `Camera sweep run around ${anchor.lat.toFixed(5)}, ${anchor.lng.toFixed(5)}. Public agency feeds only — click a pin for the live frame.`;
+    }
+
   };
+
 
 
 
