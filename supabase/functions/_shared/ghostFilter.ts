@@ -138,13 +138,29 @@ function scoreLead(lead: FilterableLead, ctx: FilterContext): { score: number; r
   let reason = "";
 
   // ── 1. Host class ─────────────────────────────────────────────────────────
-  if (anyMatch(host, HIGH_SIGNAL)) score += 10;
+  // The known-platform bonus is deliberately small. A large bonus makes the
+  // filter an authority ranker: every independent forum, club roster, parish
+  // bulletin or one-person blog scores zero against a mega-platform's +10 and
+  // falls under the floor, so the board fills with the same dozen corporations
+  // no matter who the selector names. Evidence is not a function of traffic.
+  const known = anyMatch(host, HIGH_SIGNAL);
+  const govEdu = /\.(gov|mil|edu)$/.test(host) || /\.gov\.[a-z]{2}$/.test(host);
+  if (known) score += 3;
   if (anyMatch(host, REFERENCE)) { score -= 9; reason = "generic reference corpus"; }
   if (anyMatch(host, FARM)) { score -= 8; reason = reason || "content farm"; }
   if (anyMatch(host, SHOPPING)) { score -= 10; reason = reason || "commerce listing"; }
   if (anyMatch(host, AGGREGATOR)) { score -= 8; reason = reason || "search aggregator"; }
   if (anyMatch(host, PARKED)) { score -= 12; reason = reason || "parked domain"; }
-  if (/\.(gov|mil|edu)$/.test(host) || /\.gov\.[a-z]{2}$/.test(host)) score += 6;
+  if (govEdu) score += 2;
+
+  // Long-tail credit. A host that belongs to no list at all is the open web:
+  // the personal site, the regional paper, the hobby forum, the small firm.
+  // These carry the material the platforms never mirrored, so they are given
+  // parity with the named platforms rather than being scored as unknowns.
+  const listed = known || govEdu ||
+    anyMatch(host, REFERENCE) || anyMatch(host, FARM) || anyMatch(host, SHOPPING) ||
+    anyMatch(host, AGGREGATOR) || anyMatch(host, PARKED);
+  if (!listed) score += 3;
 
   // ── 2. Path shape ─────────────────────────────────────────────────────────
   let path = "";
