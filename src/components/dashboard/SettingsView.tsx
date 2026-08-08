@@ -226,6 +226,12 @@ const SettingsView = () => {
 
   const saveProfile = async () => {
     if (!user || !displayName.trim()) return;
+    // Advisory check; public.tg_guard_display_name rejects the write regardless.
+    const nameCheck = validateDisplayName(displayName);
+    if (nameCheck.ok === false) {
+      toast({ title: "Choose a different name", description: nameCheck.reason, variant: "destructive" });
+      return;
+    }
     setSavingProfile(true);
     const { error } = await supabase
       .from("profiles")
@@ -233,7 +239,12 @@ const SettingsView = () => {
       .eq("user_id", user.id);
     setSavingProfile(false);
     if (error) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      const reserved = error.message.includes("reserved_display_name");
+      toast({
+        title: reserved ? "Choose a different name" : "Save failed",
+        description: reserved ? "That name is reserved. Please choose another." : error.message,
+        variant: "destructive",
+      });
     } else {
       setProfile((prev: any) => ({ ...prev, display_name: displayName.trim() }));
       toast({ title: "Profile saved", description: "Your display name has been updated." });
