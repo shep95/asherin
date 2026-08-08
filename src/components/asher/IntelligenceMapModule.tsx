@@ -13,7 +13,7 @@ import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
 import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
 import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
 import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
-import { streetViewUrl, type Place } from "@/lib/asher/places";
+import { searchNearby, streetViewUrl, type Place } from "@/lib/asher/places";
 import {
   getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
   type RouteOption, type TravelMode, type Units,
