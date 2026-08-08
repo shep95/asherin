@@ -1932,7 +1932,7 @@ const IntelligenceMapModule = () => {
               units={units}
               onUnitsChange={changeUnits}
               myFix={track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : null}
-              onRequestMyLocation={() => track.start?.()}
+              onRequestMyLocation={() => track.start()}
               seedDestination={seedDest}
               geocode={geocodeEndpoint}
               onRoutes={handleRoutes}
