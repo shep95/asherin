@@ -1937,7 +1937,7 @@ const IntelligenceMapModule = () => {
         {/* TOP BAR */}
         <div
           className="absolute top-3 left-3 z-[1000] flex items-center gap-2 transition-[right] duration-200 motion-reduce:transition-none"
-          style={{ right: aiDocked ? 396 : 12 }}
+          style={{ right: rightDockPx }}
         >
           <div className="flex min-w-0 flex-1 max-w-md items-center gap-2 rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
             <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
