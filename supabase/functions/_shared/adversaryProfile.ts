@@ -320,8 +320,26 @@ export function readAgent(ua: string | null): AgentRead {
       notes: ["No user-agent survived for this endpoint — the device cannot be characterised."],
     };
   }
+  // Session rows store a HUMANISED device label ("Desktop — Chrome / Windows
+  // 10/11"), not the raw header. Running spoof heuristics over a label the
+  // platform itself wrote would manufacture findings out of our own
+  // formatting, so a non-header string is graded as what it is: a summary
+  // that carries device class but no forensic detail.
+  const isRawHeader = /mozilla\/|applewebkit|gecko\/|curl\/|python-requests|okhttp|go-http|axios\//i.test(ua);
+  if (!isRawHeader) {
+    return {
+      automation: AUTOMATION.test(ua),
+      spoofSuspected: false,
+      notes: [
+        `Only a reconstructed device label survived for this endpoint ("${ua}") — the raw ` +
+        "request header was not retained. Device CLASS is usable; fingerprint-spoofing cannot be " +
+        "assessed either way from it, and its absence is not evidence of clean handling.",
+      ],
+    };
+  }
   const automation = AUTOMATION.test(ua);
   if (automation) {
+
     notes.push(
       "The request identified itself as automation rather than a browser. Either the actor is " +
       "driving the account with a script, or they did not bother to mask the tool — both point " +
