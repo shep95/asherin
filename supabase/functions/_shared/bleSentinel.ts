@@ -361,16 +361,20 @@ async function placeSearchNow(query: string, limit = 5, timeoutMs = 12_000): Pro
       if (!r.ok) {
         const retryable = r.status === 429 || r.status >= 500;
         console.error("place_search_http", { status: r.status, retryable, q: query.slice(0, 80) });
+        if (r.status === 429) searchGapMs = Math.min(searchGapMs * 2, 8000);
         if (!retryable || attempt === 2) return [];
         const after = Number(r.headers.get("retry-after")) || 0;
-        await new Promise((res) => setTimeout(res, after ? after * 1000 : 2000 * (attempt + 1)));
+        await new Promise((res) => setTimeout(res, after ? after * 1000 : searchGapMs * (attempt + 1)));
         continue;
       }
+      // A clean response means the lane can tighten back toward its floor.
+      searchGapMs = Math.max(1100, Math.round(searchGapMs * 0.8));
       const j = await r.json();
       const items = (j?.data?.web ?? j?.web ?? j?.data ?? []) as Array<Record<string, string>>;
       return (Array.isArray(items) ? items : [])
         .filter((x) => typeof x?.url === "string")
         .map((x) => ({ url: x.url, title: x.title || "", snippet: x.description || x.snippet || "" }));
+
     } catch (e) {
       console.error("place_search_failed", { attempt, msg: (e as Error).message?.slice(0, 120) });
       if (attempt === 2) return [];
