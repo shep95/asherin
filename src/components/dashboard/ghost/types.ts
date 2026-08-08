@@ -1,4 +1,4 @@
-// Ghost Engine — client-side mirror of the edge function's index contract.
+// Asherin Engine — client-side mirror of the edge function's index contract.
 // Kept structural only: nothing here ever holds page content.
 
 export interface GhostRecord {

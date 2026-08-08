@@ -117,7 +117,7 @@ const PLANS = [
         ],
       },
       {
-        title: "Asherin Ghost Engine (Pro exclusive)",
+        title: "Asherin Engine (Pro exclusive)",
         items: [
           "Metadata index over the shell — headers, DNS/ASN, redirects, containers",
           "Short full-take buffer: session bodies retained on a self-expiring TTL",

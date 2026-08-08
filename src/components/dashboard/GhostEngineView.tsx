@@ -216,7 +216,7 @@ const GhostEngineView = () => {
         const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
         const denied = /403|Pro/.test(detail) || /403/.test(error.message);
         toast({
-          title: denied ? "Ghost Engine is an Asherin Pro surface" : "Search failed",
+          title: denied ? "Asherin Engine is an Asherin Pro surface" : "Search failed",
           description: denied
             ? "Metadata indexing and the payload buffer are included with the $399 plan and its 6-month term."
             : detail.slice(0, 240) || error.message,
@@ -399,7 +399,7 @@ const GhostEngineView = () => {
         <div className="mx-auto max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
             <Ghost className="h-4 w-4 text-foreground/70" />
-            <h1 className="text-sm font-normal tracking-wide text-foreground">Asherin Ghost Engine</h1>
+            <h1 className="text-sm font-normal tracking-wide text-foreground">Asherin Engine</h1>
             <span className="rounded border border-border/25 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50">
               {capture ? "Metadata + buffer" : "Metadata only"}
             </span>
@@ -435,9 +435,9 @@ const GhostEngineView = () => {
                       : "Search a domain, a name, a phrase, a pattern…"
                 }
                 aria-label={
-                  mode === "origin" ? "Ghost Engine origin trace"
-                    : mode === "deeptime" ? "Ghost Engine archive reach-back"
-                      : "Ghost Engine search"
+                  mode === "origin" ? "Asherin Engine origin trace"
+                    : mode === "deeptime" ? "Asherin Engine archive reach-back"
+                      : "Asherin Engine search"
                 }
                 autoComplete="off"
                 className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"

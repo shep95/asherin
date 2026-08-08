@@ -23,7 +23,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 
 /**
- * The shell drawer. Deliberately shows metadata only — the Ghost Engine never
+ * The shell drawer. Deliberately shows metadata only — the Asherin Engine never
  * retrieves or renders page content, so there is nothing to sanitize here.
  */
 const GhostRecordPanel = ({ record: r, onClose }: Props) => {
@@ -118,7 +118,7 @@ const GhostRecordPanel = ({ record: r, onClose }: Props) => {
           )}
 
           <p className="mt-4 text-[10px] leading-relaxed text-muted-foreground/40">
-            Ghost Engine reads the shell only. No page body, image pixels, or document text was retrieved,
+            Asherin Engine reads the shell only. No page body, image pixels, or document text was retrieved,
             stored, or interpreted to produce this record.
           </p>
         </div>

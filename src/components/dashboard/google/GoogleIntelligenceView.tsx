@@ -96,7 +96,7 @@ const nexusModules: ModuleDef[] = [
   { id: "security", codename: "BULWARK", label: "Exposure & Threat", icon: Shield, mandate: "Breach exposure, phishing pressure, credential threat chaining and file audit", directorate: "COUNTERINTEL" },
   { id: "postmark", codename: "POSTMARK", label: "Envelope Forensics", icon: Fingerprint, mandate: "Header-only read of every inbound message: relay chain, authentication verdicts, origin network and geography, composing client and sender local time", directorate: "COUNTERINTEL" },
   { id: "voiceprint", codename: "VOICEPRINT", label: "Voice Envelope Forensics", icon: Voicemail, mandate: "Line attribution, authenticity of every Google Voice notification, and per-correspondent cadence, burst and overnight behaviour — hours stated in your own timezone, read from envelopes only", directorate: "COUNTERINTEL" },
-  { id: "ghostmail", codename: "GHOSTMAIL", label: "Ledger × Ghost Engine", icon: Ghost, mandate: "Runs every domain and link inside your email and phone ledger through the Asherin Ghost Engine — origin network, TLS posture, mail exchangers, lookalike and concealed-destination verdicts per correspondent", directorate: "COUNTERINTEL" },
+  { id: "ghostmail", codename: "GHOSTMAIL", label: "Ledger × Asherin Engine", icon: Ghost, mandate: "Runs every domain and link inside your email and phone ledger through the Asherin Engine — origin network, TLS posture, mail exchangers, lookalike and concealed-destination verdicts per correspondent", directorate: "COUNTERINTEL" },
   { id: "automation", codename: "RELAY", label: "Standing Orders", icon: Zap, mandate: "Conditional handling rules — triage, scheduling and location triggers", directorate: "COUNTERINTEL" },
 ];
 

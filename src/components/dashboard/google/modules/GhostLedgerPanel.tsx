@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// GHOSTMAIL — Cloud Intelligence run through the Asherin Ghost Engine
+// GHOSTMAIL — Cloud Intelligence run through the Asherin Engine
 //
 // The ledger says who wrote. Ghost says what wrote. This desk shows both in
 // one row: the correspondence volume on the left, the infrastructure verdict
@@ -112,9 +112,9 @@ export default function GhostLedgerPanel() {
       <header className="flex flex-wrap items-center gap-3">
         <Ghost className="h-4 w-4 text-muted-foreground" aria-hidden />
         <div className="mr-auto">
-          <h2 className="text-sm font-medium tracking-tight">GHOSTMAIL — Ledger through the Ghost Engine</h2>
+          <h2 className="text-sm font-medium tracking-tight">GHOSTMAIL — Ledger through the Asherin Engine</h2>
           <p className="text-xs text-muted-foreground">
-            Your correspondence nominates the hosts. The Ghost Engine probes them. No message body is read.
+            Your correspondence nominates the hosts. The Asherin Engine probes them. No message body is read.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={run} disabled={loading}>
@@ -183,7 +183,7 @@ export default function GhostLedgerPanel() {
 
           {!loading && !error && !data && (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              Run a sweep to fuse the ledger with the Ghost Engine.
+              Run a sweep to fuse the ledger with the Asherin Engine.
             </div>
           )}
 

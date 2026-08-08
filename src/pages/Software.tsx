@@ -321,7 +321,7 @@ const PRODUCTS: Product[] = [
     tier: "pro",
   },
   {
-    name: "Asherin Ghost Engine",
+    name: "Asherin Engine",
     tagline: "Metadata index with a short full-take buffer",
     description:
       "The card catalog and the shelf behind it. Ghost indexes the shell around information — transport headers, DNS/ASN posture, redirect topology, EXIF capture fields, document producers, embedded authorship and timestamps — then builds three indexes over it: inverted facets, a shared-dimension graph, and a phonetic identity fold. Arm retention and each session's body is held in a self-expiring buffer, searchable by dictionary and bounded regex, then destroyed. Metadata makes bulk traffic queryable; the buffer makes the matching payloads retrievable.",
