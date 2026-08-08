@@ -100,6 +100,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
 import AutoTripMount from "./components/AutoTripMount";
+import SentinelDaemon from "./components/dashboard/SentinelDaemon";
 import RouteSeo from "./components/RouteSeo";
 // DonationBanner removed — Aureon now runs on a monthly subscription model.
 
@@ -124,6 +125,7 @@ const App = () => (
           <CommandPalette />
           <RouteSessionTracker />
           <AutoTripMount />
+          <SentinelDaemon />
           <RouteSeo />
           <ByokRequiredDialog />
           {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}
