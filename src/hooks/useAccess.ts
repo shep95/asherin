@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { isAdminEmail } from "@/lib/adminEmail";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasZophielAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
@@ -26,7 +26,10 @@ const PRO_VIEWS: DashboardView[] = [
 const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial"];
 
 
-const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
+// Zophiel Search Intelligence tab and its sibling search surfaces. Included
+// with the $18/mo Asherin subscription (monthly + 6-month term) and above.
+export const ZOPHIEL_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
+const SEARCH_VIEWS: DashboardView[] = ZOPHIEL_VIEWS;
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
@@ -52,7 +55,9 @@ export function useAccess() {
 
   const tier = tierKey;
   const hasChat = !!tier;
-  const hasSearch = !!tier;
+  // Zophiel Search Intelligence — bundled with the $18 Asherin subscription
+  // (monthly + 6-month) and above; legacy chat holders retain their access.
+  const hasSearch = hasZophielAccess(tier);
   const hasAureon = tier === "monthly_aureon" || tier === "aureon" || tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasPro = tier === "monthly_pro" || tier === "pro" || tier === "lifetime" || tier === "algorithm";
   const hasMaximum = tier === "monthly_pro" || tier === "pro";

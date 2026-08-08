@@ -24,7 +24,7 @@ const PLANS = [
     period: "/month",
     tagline: "Core intelligence",
     description:
-      "Everything you need to think, code, search and ship — uncensored AI, elite coding engine, base Zophiel Search, persistent memory and a workspace built for one operator.",
+      "Everything you need to think, code, search and ship — uncensored AI, elite coding engine, the full Zophiel Search Intelligence engine, persistent memory and a workspace built for one operator.",
     cta: "Subscribe — $18 / month",
     highlight: false,
     groups: [
@@ -42,8 +42,16 @@ const PLANS = [
         ],
       },
       {
-        title: "Zophiel Search (Base)",
-        items: ["Real-time web search", "Standard recency", "Basic query limits"],
+        title: "Zophiel Search Intelligence (Full Engine)",
+        items: [
+          "Real-time web search with source-credibility + veracity scoring",
+          "Deep Search, Link Extract, Archives Harvester and page preview",
+          "Dark Web, Leaks, Onion and GhostChain sweeps",
+          "Google Dorking, XKeyscore operators and Data Engine",
+          "Intel Map, URL/Domain mapping and Zophiel V2 pipeline",
+          "Imagine Intelligence, File Scrapper and Cipher",
+          "Standard query throughput and recency",
+        ],
       },
       {
         title: "Google Cloud Intelligence",
@@ -117,8 +125,8 @@ const PLANS = [
         items: ["Daily briefings", "Industry customization"],
       },
       {
-        title: "Zophiel Search (Pro)",
-        items: ["Higher query limits", "Deeper crawling / broader coverage", "Priority latency"],
+        title: "Zophiel Search (Pro throughput)",
+        items: ["Same full engine as Asherin, with Pro limits", "Higher query limits", "Deeper crawl depth per query", "Priority latency"],
       },
       {
         title: "Collaboration (Pro)",

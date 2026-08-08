@@ -34,7 +34,8 @@ const ROWS: Row[] = [
   { group: "Core", label: "Persistent memory & projects", tiers: { chat: "Limited", aureon: true, pro: true, lifetime: true } },
   { group: "Core", label: "Unlimited messages (BYOK)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
 
-  { group: "Intelligence", label: "Zophiel Search (30+ sources)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Intelligence", label: "Zophiel Search Intelligence (full engine)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
+  { group: "Intelligence", label: "Dark web, leaks, dorking & intel mapping", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "NOMAD Intelligence (14-pass)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "Intelligence Briefings", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "Predictive Intelligence (Monte Carlo)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },

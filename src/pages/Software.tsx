@@ -69,15 +69,17 @@ const PRODUCTS: Product[] = [
   },
   {
     name: "Zophiel Search",
-    codename: "Base",
+    codename: "Full Engine",
     tagline: "OSINT-grade web search",
     description:
-      "Cross-validated intelligence search with Veracity Scores and triangulated truth extraction. Base tier limits — Pro unlocks 30-source deep crawl.",
+      "The complete Zophiel Search Intelligence tab — cross-validated intelligence search with Veracity Scores, dark-web and leak sweeps, dorking, archives, intel mapping and the V2 pipeline. Included with the $18 Asherin subscription (monthly and 6-month). Pro adds throughput and priority latency.",
     icon: Search,
     features: [
-      "Real-time web search",
-      "Source-credibility scoring",
-      "Basic query throughput",
+      "Real-time web search + source-credibility scoring",
+      "Deep Search, Link Extract, Archives Harvester",
+      "Dark Web, Leaks, Onion and GhostChain sweeps",
+      "Dorking, XKeyscore operators, Data Engine",
+      "Intel Map, URL/Domain mapping, Zophiel V2",
       "Citation-first answers",
     ],
     competitors: ["Perplexity", "Google", "Kagi"],
@@ -303,9 +305,9 @@ const PRODUCTS: Product[] = [
   },
   {
     name: "Zophiel Pro",
-    tagline: "30-source deep-crawl OSINT",
+    tagline: "Pro throughput on the same engine",
     description:
-      "Everything in Zophiel Base plus deeper crawl, broader coverage, higher query throughput, and priority latency.",
+      "The same full Zophiel engine that ships with the $18 Asherin subscription, running at Pro limits — deeper crawl depth per query, higher throughput, and priority latency.",
     icon: Search,
     features: [
       "30+ live sources triangulated",
