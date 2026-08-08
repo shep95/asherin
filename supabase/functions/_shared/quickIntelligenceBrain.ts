@@ -131,7 +131,8 @@ const QUICK_INTEL_PATTERNS: RegExp[] = [
   // Nearby / local discovery.
   /\b(near me|nearby|closest|nearest|around (here|me)|in my area|walking distance)\b/i,
   // Explicit web lookups.
-  /\b(look (this|that|it) up|find (me|this) (on|online|on the web)|search the web|check online|can you (look|check) (that|this|it) up)\b/i,
+  /\b(look (this|that|it) up|search the web|check online|can you (look|check) (that|this|it) up)\b/i,
+  /\b(find|look up|search)\b[^?\n]{0,60}\b(on the web|online|on google)\b/i,
   // Volatile facts with a clock attached.
   /\b(right now|as of (today|now)|currently|today'?s|tonight|this (morning|afternoon|evening|weekend))\b/i,
   /\b(how much (is|does|are)|what does .{0,40} cost|ticket price|current price)\b/i,
