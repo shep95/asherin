@@ -9,7 +9,7 @@
  * runs — then pushes and emails the verdict.
  *
  * Invariants that make it safe on a schedule:
- *   • Claim-before-work — next_scan_at moves forward in the same pass that
+ *   • Claim-before-work — next_due_at moves forward in the same pass that
  *     selects the batch, so two overlapping ticks never sweep one rider twice.
  *   • Message-id idempotency — a ride is bound to the Gmail id that produced
  *     it, so a re-scan of the same mailbox window reports nothing new.
@@ -64,7 +64,7 @@ function cfgForEmail(email: string | null): ZophielByokConfig | null {
 interface RiderRow {
   user_id: string;
   lookback_hours: number | null;
-  next_scan_at: string | null;
+  next_due_at: string | null;
 }
 
 /** Select and lock in one motion: the UPDATE re-asserts the due filter, so the
@@ -73,10 +73,10 @@ async function claimDue(sb: SupabaseClient): Promise<RiderRow[]> {
   const nowIso = new Date().toISOString();
   const { data: due, error } = await sb
     .from("rideshare_settings")
-    .select("user_id, lookback_hours, next_scan_at")
+    .select("user_id, lookback_hours, next_due_at")
     .eq("autopilot_enabled", true)
-    .or(`next_scan_at.is.null,next_scan_at.lte.${nowIso}`)
-    .order("next_scan_at", { ascending: true, nullsFirst: true })
+    .or(`next_due_at.is.null,next_due_at.lte.${nowIso}`)
+    .order("next_due_at", { ascending: true, nullsFirst: true })
     .limit(BATCH);
   if (error) throw new Error(`claim read: ${error.message}`);
   const rows = (due ?? []) as RiderRow[];
@@ -86,12 +86,12 @@ async function claimDue(sb: SupabaseClient): Promise<RiderRow[]> {
   const claimed: RiderRow[] = [];
   for (const r of rows) {
     const q = sb.from("rideshare_settings")
-      .update({ next_scan_at: next, last_scan_at: nowIso })
+      .update({ next_due_at: next, last_scan_at: nowIso })
       .eq("user_id", r.user_id)
       .eq("autopilot_enabled", true);
-    const { data, error: uErr } = r.next_scan_at
-      ? await (q.lte("next_scan_at", nowIso).select("user_id"))
-      : await (q.is("next_scan_at", null).select("user_id"));
+    const { data, error: uErr } = r.next_due_at
+      ? await (q.lte("next_due_at", nowIso).select("user_id"))
+      : await (q.is("next_due_at", null).select("user_id"));
     if (!uErr && data && data.length) claimed.push(r);
   }
   return claimed;
@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await anon.auth.getUser(authHeader.slice(7));
     if (!user) return json({ error: "unauthorized" }, 401, cors);
     // A manual run only ever touches the caller's own mailbox.
-    scope = [{ user_id: user.id, lookback_hours: null, next_scan_at: null }];
+    scope = [{ user_id: user.id, lookback_hours: null, next_due_at: null }];
   }
 
   try {
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
         // Hand the remainder straight back to the queue for the next tick.
         if (!scope) {
           await sb.from("rideshare_settings")
-            .update({ next_scan_at: new Date().toISOString() })
+            .update({ next_due_at: new Date().toISOString() })
             .eq("user_id", rider.user_id);
         }
         results.push({ userId: rider.user_id, status: "deferred" });
