@@ -2506,6 +2506,70 @@ const IntelligenceMapModule = () => {
                 </CircleMarker>
               );
             })}
+
+          {/* Cloud Intelligence overlays */}
+          {activeCloud["cloud-contacts"] && cloudLayer.contacts.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + f.confidence * 5)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#8b5cf6", fillOpacity: 0.85 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1.5 text-xs">
+                  <div className="font-semibold">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  <div className="opacity-70">Confidence: {(f.confidence * 100).toFixed(0)}%</div>
+                  {f.subjectName && f.subjectName !== f.label && <div className="opacity-80">{f.subjectName}</div>}
+                  {f.subjectEmail && <div className="opacity-80 font-mono text-[10px]">{f.subjectEmail}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-venues"] && cloudLayer.venues.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + (f.confidence ?? 0.5) * 5)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#f59e0b", fillOpacity: 0.85 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1 text-xs">
+                  <div className="font-semibold">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  {f.payload?.nextPredicted && <div className="text-emerald-400">Predicted next: {f.payload.nextPredicted}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-security"] && cloudLayer.security.map((f) => (
+            <CircleMarker
+              key={f.id}
+              center={[f.lat, f.lng]}
+              radius={Math.max(5, 6 + (f.confidence ?? 0.5) * 6)}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#ef4444", fillOpacity: 0.8 }}
+            >
+              <Popup>
+                <div className="min-w-[220px] space-y-1 text-xs">
+                  <div className="font-semibold text-red-400">{f.label}</div>
+                  <div className="opacity-80">{f.caption}</div>
+                  {f.occurredAt && <div className="opacity-70">{new Date(f.occurredAt).toLocaleString()}</div>}
+                  <div className="text-[10px] opacity-50">Source: {f.source}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+          {activeCloud["cloud-relationships"] && cloudLayer.relationships.map((f) => (
+            f.to && (
+              <Polyline
+                key={f.id}
+                positions={[[f.lat, f.lng], [f.to.lat, f.to.lng]]}
+                pathOptions={{ color: "#8b5cf6", weight: 2, opacity: 0.6, dashArray: "4 4" }}
+              />
+            )
+          ))}
         </MapContainer>
 
         {/* Always-visible tracking indicator. A live sensor must never be
