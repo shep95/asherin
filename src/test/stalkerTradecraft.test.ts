@@ -81,7 +81,17 @@ describe("tradecraft engine — true positives", () => {
     dists.forEach((d, i) => s.push(sight("closer", BASE + i * 12 * HOUR, `c${i}`, `p${i % 3}`, d)));
     const c = analyzeTradecraft([dev("closer", { closest_distance_m: 6 })], s, BASE + 6 * DAY);
     expect(codes(c)).toContain("LIFE_INVASION");
+    // Severity keys off the robust late-window median (15 m here), not the
+    // single closest sample — one lucky ping must not escalate a case.
+    expect(c.indicators.find((i) => i.code === "LIFE_INVASION")!.severity).toBe("serious");
+  });
+
+  it("escalates a closing approach to critical once the late median is intimate range", () => {
+    const s: TcSighting[] = [];
+    [60, 55, 50, 45, 7, 6, 5, 4].forEach((d, i) => s.push(sight("closer", BASE + i * 12 * HOUR, `c${i}`, `p${i % 3}`, d)));
+    const c = analyzeTradecraft([dev("closer", { closest_distance_m: 4 })], s, BASE + 6 * DAY);
     expect(c.indicators.find((i) => i.code === "LIFE_INVASION")!.severity).toBe("critical");
+    expect(c.tier).toBe("active");
   });
 
   it("flags a co-travelling cluster as an ABC / box pattern", () => {
