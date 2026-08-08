@@ -83,6 +83,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
+import { thinkingStore } from "@/hooks/useAureonThinking";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch, hydrateMessageBranches, restoreBranchesFromDB, saveBranchesToDB } from "@/components/dashboard/ConversationBranches";
@@ -1163,6 +1164,10 @@ const Dashboard = () => {
         brainContext,
         conversationId: convId,
         signal: controller.signal,
+        // Ghost Chain phase 1 — reasoning streams into the transparency panel.
+        onThinkingStart: () => thinkingStore.begin(assistantId),
+        onThinkingDelta: (chunk) => thinkingStore.append(assistantId, chunk),
+        onThinkingDone: () => thinkingStore.answering(assistantId),
         onDelta: (chunk) => {
           assistantContent += chunk;
           const current = assistantContent;
@@ -1187,6 +1192,7 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
+          thinkingStore.finish(assistantId);
           // Persist assistant message via upsert — idempotent so a retry on a
           // flaky network cannot create a duplicate row when the first insert
           // actually succeeded (BUG-FLOW-03).
@@ -1224,6 +1230,7 @@ const Dashboard = () => {
     } catch (e: any) {
       setIsStreaming(false);
       isStreamingRef.current = false;
+      thinkingStore.finish(assistantId);
       if (e.name === "AbortError") {
         if (assistantContent) {
           try {
