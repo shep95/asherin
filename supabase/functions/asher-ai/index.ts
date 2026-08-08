@@ -513,7 +513,7 @@ serve(async (req) => {
       const userText = latestUserText(cleaned);
       const { searchArchive, formatArchiveContext, shouldQueryArchive } =
         await import("../_shared/internetArchive.ts");
-      if (!mapEditFast && shouldQueryArchive(userText)) {
+      if (!mapEditFast && !cloudIntelFast && shouldQueryArchive(userText)) {
         const hits = await searchArchive(userText.slice(0, 200), { limit: 10, deepRead: 2 });
         archiveBlock = formatArchiveContext(userText.slice(0, 80), hits);
       }
