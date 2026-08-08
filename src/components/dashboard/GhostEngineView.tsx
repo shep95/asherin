@@ -284,7 +284,7 @@ const GhostEngineView = () => {
               {tab === "buffer" && <GhostBufferConsole key={bufferNonce} />}
 
 
-              {tab === "records" && (
+              {index && tab === "records" && (
                 <div className="space-y-2">
                   {index.records.map((r) => (
                     <button
@@ -314,7 +314,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "entities" && (
+              {index && tab === "entities" && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {index.cards.length === 0 && <p className="text-xs text-muted-foreground/45">No repeating identity dimension surfaced in this corpus.</p>}
                   {index.cards.map((c) => (
@@ -338,7 +338,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "graph" && (
+              {index && tab === "graph" && (
                 <div className="rounded-lg border border-border/12 bg-foreground/[0.015] p-3">
                   <GhostGraph
                     nodes={index.graph.nodes}
@@ -360,7 +360,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "timeline" && (
+              {index && tab === "timeline" && (
                 <ol className="relative space-y-2 border-l border-border/15 pl-4">
                   {index.timeline.length === 0 && <p className="text-xs text-muted-foreground/45">No timestamps survived publication in this corpus.</p>}
                   {index.timeline.map((e, i) => (
@@ -380,7 +380,7 @@ const GhostEngineView = () => {
                 </ol>
               )}
 
-              {tab === "anomalies" && (
+              {index && tab === "anomalies" && (
                 <div className="space-y-2">
                   {index.anomalies.length === 0 && (
                     <p className="text-xs text-muted-foreground/45">
@@ -404,7 +404,7 @@ const GhostEngineView = () => {
                 </div>
               )}
 
-              {tab === "facets" && (
+              {index && tab === "facets" && (
                 <div className="grid gap-1.5 sm:grid-cols-2">
                   {index.facets.map((f) => (
                     <div key={`${f.field}:${f.value}`} className="flex items-baseline justify-between gap-3 rounded-md border border-border/10 px-2.5 py-1.5">
