@@ -137,8 +137,9 @@ export async function pickOne(onAdvert: (a: RawAdvert) => void): Promise<void> {
   });
 }
 
-/** Pull cached/paired devices already permitted in this origin. */
+/** Pull paired/bonded devices already known to this origin or to the OS. */
 export async function listPaired(): Promise<RawAdvert[]> {
+  if (isNativeApp()) return listNativeBonded();
   const bt = (navigator as any)?.bluetooth;
   if (!bt || typeof bt.getDevices !== "function") return [];
   try {
