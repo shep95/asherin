@@ -21,12 +21,15 @@ export const TIER_SCOPES: Record<number, string[]> = {
   // T1 — Identity. Who you are. No content.
   1: ["openid", "email", "profile"],
   // T2 — Read. Content the mesh normalizes into the ledger.
+  // drive.readonly supersedes drive.metadata.readonly: the Meet vault has to
+  // stream recording bytes, which metadata-only consent cannot do.
   2: [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/contacts.readonly",
-    "https://www.googleapis.com/auth/drive.metadata.readonly",
+    "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/tasks.readonly",
+    "https://www.googleapis.com/auth/meetings.space.readonly",
   ],
   // T3 — Comprehension. Signals used to model rhythm, place and attention.
   3: [
