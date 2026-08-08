@@ -1,79 +1,84 @@
-## Goal
+# Rideshare Guardian — driver background intelligence, automatic and in the background
 
-Let the Aureon and Asher chat AIs decide when to run the Gematria engine (four ciphers, recursive reduction) mid-conversation. Every calculation is auto-persisted to the user's `gematria_entries` corpus and rendered as an inline result card inside the assistant message. No new tab needed on top of the existing Gematria tab — this is the in-chat surface.
+## The narrative
 
-## Two chat surfaces, two integration mechanics
+You order an Uber. Between the moment the driver is assigned and the moment you close the door, you have about ninety seconds of real decision time. Today you spend that window looking at a first name, a photo, a car model and a plate. Asherin already knows how to build a dossier on a person from a name plus a vehicle plus a city — it just has never been pointed at the one person you are about to get into a car with.
 
-### 1. Asher chat — native OpenAI tool_call
+Rideshare Guardian points it there. The moment a ride is assigned, Asherin captures the driver identity signal, runs a full Cloud Intelligence sweep in the background, scores the result against a rider-safety rubric, and pushes the verdict to your phone as a notification and to your inbox as a formal report — before the car arrives. You never open the app. The app opens itself only if something is wrong.
 
-`supabase/functions/asher-ai/index.ts` already streams `delta.tool_calls` SSE and the client (`AsherAIPanel`) already parses them. Add:
+### Where the driver signal comes from (the honest part)
 
-- **New tool in `TOOLS`:** `gematria_calculate({ phrase, note? })` — description tells the model to call it whenever the operator asks for the numeric/gematria/ordinal/reduced value of a word or phrase, or asks it to compare/match phrases numerically.
-- **System-prompt line** under `CAPABILITIES`: one line describing `gematria_calculate` and instructing the model to call it instead of computing values in text.
-- **Client handler** in `AsherAIPanel`: when a `tool_calls[0].function.name === "gematria_calculate"` frame arrives, run `computeAll(phrase)` from `src/lib/gematria.ts`, upsert into `gematria_entries` via `useGematria`, then render the same `<GematriaResultCard>` used in the tab, inline under the assistant bubble. Send a follow-up assistant message with the compact summary text so the model can reference it in later turns.
+Uber has no public rider API. There is no legitimate integration that hands us "your current driver." So the capture layer is deliberately plural, and every path is one the rider controls:
 
-### 2. Aureon chat — fenced-block convention (no tool_call infra in `chat`/`aureon-free-chat`)
+1. **Share sheet capture (primary).** Uber's "Share my trip" produces a public trip link with driver first name, photo, vehicle and plate. You share that link into Asherin — one tap from the Uber app. Asherin parses it server-side and starts the sweep.
+2. **Screenshot capture.** You screenshot the driver card, share it to Asherin. The Imagine v2 vision pipeline already reads plates, names and vehicle detail out of an image; it becomes the extractor.
+3. **Trip receipt email (fully automatic).** You already have Gmail wired into the Google Intelligence Substrate. Uber receipts and "your driver is arriving" mails land there. Mesh Sentinel watches for them, extracts driver name + plate + city, and fires the sweep with zero rider action. This is the path that makes the feature feel invisible.
+4. **Manual entry.** Name + plate + city, for anything the other three miss.
 
-The Aureon chat functions stream plain text and have no OpenAI tool_call plumbing. Rather than retrofit that surface, use a lightweight equivalent that keeps "AI decides":
+Path 3 is the one that satisfies "works in the background." Paths 1, 2 and 4 exist so the feature still works the first time, before a receipt has ever arrived.
 
-- Append a short block to the Aureon system prompt in `supabase/functions/chat/index.ts` and `supabase/functions/aureon-free-chat/index.ts`:
-  > When the operator asks for the gematria / numeric value / ordinal / reduced value of a word or phrase (or asks you to find phrases that share a value), emit a single fenced block on its own line: ` ```gematria\n{"phrase":"..."} \n``` `. Do not compute values in prose. One block per phrase. You may emit multiple blocks in one reply.
-- **Client parser** in `ChatView.tsx` message renderer: split assistant `content` on ` ```gematria …``` ` fences; for each one, parse JSON, run `computeAll(phrase)`, upsert via `useGematria`, and swap the fence for `<GematriaResultCard compact />`. Non-gematria text renders unchanged through the existing markdown renderer.
+### What the sweep actually does
 
-Both paths converge on the same `<GematriaResultCard>` and the same `useGematria` persistence hook, so behavior/UI is identical across chats.
+The driver record — first name, plate, vehicle, city, photo — enters the existing intelligence stack rather than a new one:
 
-## Result card (`src/components/gematria/GematriaResultCard.tsx`, new)
+- Plate to registration-state and vehicle-history surfaces where public.
+- Name + city through the jurisdictional identity resolver, which already produces ranked candidates instead of one guess. A first name and a city is thin evidence, so the resolver runs in candidate mode: it returns several possible humans with confidence bands, never a single confident accusation.
+- Court and public-record surfaces for the resolved candidates, weighted only where identity confidence clears a floor.
+- Face match between the Uber driver photo and any resolved public profile photo, as a confidence multiplier, not as a verdict.
+- Three-hop relationship expansion, capped, for pattern context only.
 
-Compact, chat-optimized version of the tab's result panel:
+The output is scored against a rider-specific rubric — violent history, vehicle/plate mismatch, identity that will not resolve at all, recent address instability near your pickup — and collapses into one of four states: **CLEAR**, **THIN** (not enough public record to say anything), **WATCH**, **AVOID**.
 
-- Header: phrase + "Saved to corpus" pill (only when the upsert succeeds; error → "Save failed — retry" ghost button).
-- 4-cipher row: Ordinal / Reduction / Reverse / Chaldean, each showing sum → reduced value (master numbers preserved).
-- Collapsible per-letter breakdown.
-- "Matches in your corpus (n)" line with up to 3 chip links; clicking opens the Gematria tab filtered to that value.
+### The flaws worth designing against, before any code
 
-## Persistence + idempotency
+- **False accusation is the real risk, not false comfort.** A common name in a large city will surface a stranger's felony record. The rubric must refuse to escalate above THIN when identity confidence is below a hard floor, and every alert must display the confidence band and the reason it was assigned, not just the verdict.
+- **Latency versus usefulness.** A report that lands after you are dropped off is theatre. The sweep runs in two phases: a fast pass (plate, vehicle, obvious flags) targeted under fifteen seconds, then the deep pass that fills in the emailed report. The notification fires on the fast pass and updates on the deep pass.
+- **Notification fatigue.** If every ride pings you, you stop reading. Default is silent-unless-flagged: CLEAR and THIN write to history without a push; WATCH and AVOID push loudly. The email report always sends, because that is the audit trail.
+- **Anxiety as a side effect.** An AVOID with no explanation makes a rider panic in a parking lot. Every alert carries a one-line reason and a "what to do" action — cancel, verify plate, share trip with a contact.
+- **Privacy of the driver.** The subject is a working person who did not consent. Reports are private to the rider, never shared or published, auto-expire, and are scrubbed of anything not relevant to rider safety.
+- **Abuse.** Rate-limited per rider, gated to the $399 Cloud Intelligence tier, and every sweep written to the audit log with its trigger source.
 
-- Auto-save uses the existing `useGematria.upsertPhrase()` on `(user_id, normalized)` — repeat calls in the same or later chat return the existing row instead of duplicating.
-- Idempotency key = `(user_id, normalized(phrase))`; note field defaults to `"chat:aureon"` or `"chat:asher"` so corpus filters can distinguish origin.
-- Failures (network, RLS, offline) surface as the inline "Save failed" affordance; the calc itself always renders from local computation so the chat never blocks on the DB.
+### Notifications — three channels, one payload
 
-## Guardrails
+- **In-app**, live via realtime subscription on the ride row.
+- **Device push**, Web Push with a service-worker handler, so the alert lands on the lock screen with the app closed. Riders on iOS must have added Asherin to the home screen; the UI states that plainly rather than silently failing.
+- **Email**, the formal report — House of Asher branded, the same generator already used for intelligence reports.
 
-- Phrase length capped at 200 chars server-side (tool arg schema) and client-side before compute — prevents pathological inputs.
-- HTML-escape phrase before render; card uses semantic tokens, no `dangerouslySetInnerHTML`.
-- Fence parser uses a non-greedy, non-stateful regex on a per-message string (no `/g` reuse across renders).
-- Skip empty/whitespace-only phrases silently.
-- Do not intercept fenced blocks in code contexts: only fences with the exact language tag `gematria` are consumed; standard ``` ```ts ``` /``` ```json ``` blocks pass through untouched.
+---
 
-## Files
+## Your phone-messages question
 
-**New**
-- `src/components/gematria/GematriaResultCard.tsx`
-- `src/lib/gematria/parseChatGematria.ts` (fence extractor + splitter used by `ChatView`)
+Cloud Intelligence cannot read your SMS, and no configuration will change that. The Google Substrate is wired to Gmail, Calendar, Drive, Contacts and location history — that is what `scopesForTier` requests. Google publishes no API that exposes phone SMS to a web app. Android Messages and iMessage are both closed to third-party servers; Google Voice has no public API either. So the gap is a platform boundary, not a bug in our code.
 
-**Edited**
-- `supabase/functions/asher-ai/index.ts` — add tool to `TOOLS`, one line in system prompt.
-- `supabase/functions/chat/index.ts` — append fenced-block instruction to system prompt.
-- `supabase/functions/aureon-free-chat/index.ts` — same fenced-block instruction.
-- `src/components/asher/AsherAIPanel.tsx` — handle `gematria_calculate` tool_call frames, render card, auto-save.
-- `src/components/dashboard/ChatView.tsx` — run assistant `content` through `parseChatGematria` in the message renderer; render `<GematriaResultCard>` for each block.
-- `src/hooks/useGematria.ts` — accept optional `source` note on upsert so chat-originated entries are tagged.
+Three routes actually exist, and the plan below only builds the first unless you say otherwise:
 
-**Unchanged**
-- `gematria_entries` schema — existing columns cover phrase, normalized, all four cipher sums, `created_at`; no migration needed.
-- Existing standalone `GematriaTab` — remains the corpus manager.
+1. **Paste or forward.** You forward a message thread into Asherin (or paste it); it is parsed, attributed, and written into the mesh vault as a message-source dossier — full report, same analysis depth as email threads.
+2. **A dedicated Asherin number (Twilio).** You get a real number inside Asherin. Anything sent to it is fully readable and fully analysed. It does not see your existing carrier messages.
+3. **An Android companion app.** The only path to your actual carrier SMS, and it needs Play Store review and a native build. Out of scope here.
 
-## Verification (live)
+---
 
-1. Aureon chat: send "What's the gematria of Aureon and Ziali?" — expect two inline cards (Aureon Ordinal 74, Ziali Ordinal 63); reload → both persisted in the Gematria tab tagged `chat:aureon`.
-2. Asher chat: same prompt → SSE frame carries `gematria_calculate` tool_call, card renders under assistant reply, entries tagged `chat:asher`.
-3. Repeat the same phrase in a new session → no duplicate rows (upsert path exercised).
-4. Send a phrase containing a triple-backtick code block plus a gematria request → code block renders as code, gematria card renders separately (fence-tag isolation).
-5. Sign out / sign in as a second account → first user's entries are not visible (RLS).
-6. Airplane-mode toggle mid-send → card still renders with "Save failed — retry" affordance; retry succeeds when connectivity returns.
+## Technical plan
 
-## Out of scope
+**Data**
+- `rideshare_rides` — rider_id, source (`share_link` | `screenshot` | `email` | `manual`), platform, driver_first_name, plate, vehicle, city, pickup point, status, verdict, confidence, created_at. RLS scoped to `auth.uid()`, GRANTs for `authenticated` + `service_role`.
+- `rideshare_reports` — ride_id, phase (`fast` | `deep`), payload jsonb, score, verdict, delivered_channels.
+- `push_subscriptions` — rider_id, endpoint, keys, user_agent.
+- `message_sources` — rider_id, channel (`sms_paste` | `sms_forward`), raw, parsed jsonb, dossier_id.
 
-- New tab or route (Gematria tab already exists).
-- Historical/temporal or medical interpretation.
-- Cross-user shared corpus.
+**Edge functions**
+- `rideshare-capture` — validates the four input shapes with Zod, resolves a share link server-side (SSRF allow-list on the Uber host only), inserts the ride, returns immediately, and kicks the sweep.
+- `rideshare-sweep` — two-phase. Reuses `jurisdictionalIntel`, `intelGraph`, `contactOsint` and the existing scoring instead of new engines. Bounded concurrency, per-branch timeout, idempotency key = (rider, plate, day) so a retry never re-bills.
+- `rideshare-notify` — Web Push via VAPID plus the existing email sender; records delivered channels so a retry cannot double-send.
+- `message-source-ingest` — parse/attribute pasted threads, produce the dossier.
+- Mesh Sentinel gains an Uber-receipt matcher on the Gmail path so path 3 needs no rider action.
+
+**Secrets** — `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`, generated, not asked for.
+
+**Frontend**
+- New `Guardian` module inside Cloud Intelligence: ride history, live verdict card with the four-state rubric, confidence band always visible, per-ride report view, alert-threshold settings.
+- Service worker `push` + `notificationclick` handlers, registered only in production, never in preview.
+- A Web Share Target manifest entry so Uber's share sheet lists Asherin directly.
+- Messages tab for paste/forward ingest and its dossiers.
+
+**Verification** — a real share-link parse, a real receipt-email parse through the Gmail path, a live sweep against a real plate/name pair with the verdict and confidence inspected, and a real push delivered to a device before this is called done.
