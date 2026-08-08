@@ -387,19 +387,32 @@ export async function deepTimeSweep(
   // The words the operator actually typed are what a document must corroborate.
   const terms = keywordTerms(selector, opts.terms ?? []);
 
-  const harvests = await Promise.allSettled(
-    legs.map((id) => harvestLeads(id, auth, {
-      maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000, perHostCap: 8,
-    })),
-  );
-
+  // Legs run through a bounded pool, not a stampede. Firing twenty era and
+  // document legs simultaneously exhausted the upstream rate window on the
+  // first two, and the rest returned 429 — which surfaced to the operator as
+  // "the harvest returned nothing to date". Three at a time, with an early stop
+  // once the lead pool is deep enough, keeps every leg productive.
   const leadByUrl = new Map<string, { url: string; title: string }>();
-  for (const h of harvests) {
-    if (h.status !== "fulfilled") continue;
-    for (const l of h.value.leads) {
-      if (!leadByUrl.has(l.url)) leadByUrl.set(l.url, { url: l.url, title: l.title });
+  const LEAD_CEILING = Math.max(probeBudget * 4, 160);
+  let legCursor = 0;
+  let anyLegOk = false;
+
+  const legWorkers = Array.from({ length: Math.min(3, legs.length) }, async () => {
+    while (legCursor < legs.length && leadByUrl.size < LEAD_CEILING) {
+      const id = legs[legCursor++];
+      try {
+        const h = await harvestLeads(id, auth, {
+          maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000, perHostCap: 8, concurrency: 3,
+        });
+        anyLegOk = true;
+        for (const l of h.leads) {
+          if (!leadByUrl.has(l.url)) leadByUrl.set(l.url, { url: l.url, title: l.title });
+        }
+      } catch { /* a dead leg is a finding, not a failure */ }
     }
-  }
+  });
+  await Promise.allSettled(legWorkers);
+
 
   // Seed hosts the caller already tied to the entity — probe their front doors
   // directly, since a root page usually carries the copyright range.
@@ -415,7 +428,7 @@ export async function deepTimeSweep(
   const leads = [...leadByUrl.values()].slice(0, probeBudget);
   report.corpora.push({
     name: "Ghost fan-out",
-    ok: harvests.some((h) => h.status === "fulfilled"),
+    ok: anyLegOk,
     records: leadByUrl.size,
     note: leadByUrl.size ? null : "The engine's harvest returned nothing to date.",
   });

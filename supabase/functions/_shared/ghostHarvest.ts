@@ -304,22 +304,78 @@ function canonicalUrl(raw: string): string | null {
   } catch { return null; }
 }
 
-async function runLegZophiel(bearer: string, supabaseUrl: string, leg: HarvestLeg, timeoutMs: number): Promise<EngineHit[]> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/zophiel-search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
-      body: JSON.stringify({ query: leg.query, mode: "web", fast: true }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) { console.log(`[ghostHarvest] zophiel leg "${leg.label}" -> HTTP ${res.status}`); return []; }
-    const j = await res.json() as { results?: Array<{ url: string; title?: string; snippet?: string; engine?: string }> };
-    return (j.results || []).slice(0, 40).map((r) => ({ url: r.url, title: r.title, snippet: r.snippet, engine: r.engine || "zophiel" }));
-  } catch (e) { console.log(`[ghostHarvest] zophiel leg "${leg.label}" failed: ${(e as Error).message}`); return []; }
-  finally { clearTimeout(t); }
+// ── Upstream pacing ──────────────────────────────────────────────────────────
+// The search substrate behind Zophiel is rate limited per trace. Deep Time used
+// to launch every era/document leg at once, so the first two legs consumed the
+// window and the remaining twenty came back 429 — the sweep then reported "no
+// records", which read as "nothing exists" when it actually meant "we were
+// throttled". A shared pacer spaces calls and a cooldown gate makes every other
+// leg wait out an observed 429 instead of stampeding into it.
+const MIN_SPACING_MS = 320;
+let nextSlot = 0;
+let cooldownUntil = 0;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, Math.max(0, ms)));
+
+async function paceUpstream(): Promise<void> {
+  const now = Date.now();
+  const start = Math.max(now, nextSlot, cooldownUntil);
+  nextSlot = start + MIN_SPACING_MS;
+  if (start > now) await sleep(start - now);
 }
+
+/** Retry-After may be seconds or an HTTP date; also parse the body hint. */
+function retryDelayMs(res: Response, bodyText: string): number {
+  const h = res.headers.get("retry-after");
+  if (h) {
+    const secs = Number(h);
+    if (Number.isFinite(secs)) return secs * 1000;
+    const at = Date.parse(h);
+    if (!Number.isNaN(at)) return at - Date.now();
+  }
+  const m = bodyText.match(/retry after (\d+)\s*ms/i);
+  if (m) return Number(m[1]);
+  return 1500;
+}
+
+async function runLegZophiel(bearer: string, supabaseUrl: string, leg: HarvestLeg, timeoutMs: number): Promise<EngineHit[]> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await paceUpstream();
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/zophiel-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
+        body: JSON.stringify({ query: leg.query, mode: "web", fast: true }),
+        signal: ctrl.signal,
+      });
+      if (res.status === 429 || res.status === 503) {
+        const body = await res.text().catch(() => "");
+        // Cap the wait: a 56s hint is longer than the worker's whole budget, so
+        // hold the line briefly and let the remaining legs ride the same pause.
+        const wait = Math.min(Math.max(retryDelayMs(res, body), 500), 4000);
+        cooldownUntil = Math.max(cooldownUntil, Date.now() + wait);
+        console.log(`[ghostHarvest] zophiel leg "${leg.label}" throttled (${res.status}); holding ${wait}ms`);
+        if (attempt === 0) continue;
+        return [];
+      }
+      if (!res.ok) { console.log(`[ghostHarvest] zophiel leg "${leg.label}" -> HTTP ${res.status}`); return []; }
+      const j = await res.json() as { results?: Array<{ url: string; title?: string; snippet?: string; engine?: string }> };
+      return (j.results || []).slice(0, 40).map((r) => ({ url: r.url, title: r.title, snippet: r.snippet, engine: r.engine || "zophiel" }));
+    } catch (e) {
+      const msg = (e as Error).message || "";
+      if (/rate limit/i.test(msg) && attempt === 0) {
+        cooldownUntil = Math.max(cooldownUntil, Date.now() + 2000);
+        continue;
+      }
+      console.log(`[ghostHarvest] zophiel leg "${leg.label}" failed: ${msg}`);
+      return [];
+    } finally { clearTimeout(t); }
+  }
+  return [];
+}
+
 
 async function runLegDdg(bearer: string, supabaseUrl: string, leg: HarvestLeg, timeoutMs: number): Promise<EngineHit[]> {
   const ctrl = new AbortController();
