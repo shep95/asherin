@@ -599,6 +599,8 @@ async function inspectArtifact(trace: OriginTrace, bytes: Uint8Array): Promise<v
 
   const stamps: OriginTimestamp[] = [];
   let docText = "";
+  let auxText = "";
+
 
   // 2. Container carving.
   if (trace.kind === "pdf" && bytes.length) {
