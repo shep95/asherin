@@ -3,6 +3,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import {
+  observeAndJudge, priceCents, STRIPE_PRODUCTS, FULL_PRICE_IDS,
+  type PppTier, type Term,
+} from "../_shared/ppp.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // Server-authoritative price ID whitelist. Client cannot purchase any
