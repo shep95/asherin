@@ -8,7 +8,7 @@ import {
 import {
   VOICE_QUERY, analyzeVoiceEnvelope, applyClockFrame, profilePeers, aggregateVoice,
   type VoiceEnvelope, type PeerProfile,
-} from "../_shared/voiceForensics.ts";
+} from "../_shared/voiceprint.ts";
 
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
