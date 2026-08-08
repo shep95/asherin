@@ -12,6 +12,8 @@ import DirectionsPanel, { type DirectionsEndpoint } from "@/components/asher/Dir
 import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
 import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
 import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
+import CameraIntelligencePanel from "@/components/asher/CameraIntelligencePanel";
+
 import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
 import { searchNearby, streetViewUrl, type Place } from "@/lib/asher/places";
 import {
