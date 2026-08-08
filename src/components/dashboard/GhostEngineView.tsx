@@ -121,6 +121,36 @@ const GhostEngineView = () => {
     setSelected(null);
     setReplay(null);
     try {
+      // ── ORIGIN path ──────────────────────────────────────────────────────
+      if (mode === "origin") {
+        setOrigin(null);
+        const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
+          body: { action: "origin", query: q },
+        });
+        if (controller.signal.aborted) return;
+        if (error) {
+          const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          toast({
+            title: /403|Pro/.test(detail) ? "Origin trace is an Asherin Pro surface" : "Trace failed",
+            description: detail.slice(0, 240) || error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+        const trace = (res as { trace?: OriginTrace })?.trace ?? null;
+        setOrigin(trace);
+        setData(null);
+        if (trace?.errors.length) {
+          toast({ title: "Trace incomplete", description: trace.errors[0] });
+        }
+        setRecent((prev) => {
+          const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
+          localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+          return next;
+        });
+        return;
+      }
+
       const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
         // No client-side aperture. The probe budget is the engine's to spend;
         // sending 12 was what capped a full-spectrum lookup at a page of links.
@@ -177,7 +207,7 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope]);
+  }, [loading, capture, scope, mode]);
 
 
   const index = data?.index ?? null;
@@ -286,8 +316,8 @@ const GhostEngineView = () => {
                 onFocus={() => setSuggestOpen(true)}
                 onBlur={() => setTimeout(() => setSuggestOpen(false), 120)}
                 onKeyDown={(e) => { if (e.key === "Escape") setSuggestOpen(false); }}
-                placeholder="Search a domain, a name, a phrase, a pattern…"
-                aria-label="Ghost Engine search"
+                placeholder={mode === "origin" ? "Paste a link to a PDF, image or page — trace where it was made…" : "Search a domain, a name, a phrase, a pattern…"}
+                aria-label={mode === "origin" ? "Ghost Engine origin trace" : "Ghost Engine search"}
                 autoComplete="off"
                 className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/35"
               />
@@ -312,7 +342,7 @@ const GhostEngineView = () => {
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/25 px-3 py-1 text-xs text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-35"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                {loading ? "Searching" : "Search"}
+                {loading ? (mode === "origin" ? "Tracing" : "Searching") : (mode === "origin" ? "Trace" : "Search")}
               </button>
             </form>
 
@@ -334,9 +364,29 @@ const GhostEngineView = () => {
             )}
           </div>
 
-          {/* Scope — the only knob, and it defaults to "both". */}
+          {/* Verb first, then scope. ORIGIN hides the scope knob because a
+              provenance trace consults neither the index nor the buffer. */}
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            {SCOPES.map((s) => (
+            <div className="mr-1 flex items-center gap-1 rounded-full border border-border/20 p-0.5">
+              {([
+                { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
+                { id: "origin" as const, label: "Origin", hint: "Trace one link or file back to when, where and on what it was made" },
+              ]).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setMode(m.id); localStorage.setItem(MODE_KEY, m.id); }}
+                  title={m.hint}
+                  aria-pressed={mode === m.id}
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
+                    mode === m.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/55 hover:text-foreground/85"
+                  }`}
+                >
+                  {m.id === "origin" ? <Crosshair className="h-3 w-3" /> : <Search className="h-3 w-3" />}
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {mode === "intercept" && SCOPES.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setScopePersist(s.id)}
@@ -351,7 +401,7 @@ const GhostEngineView = () => {
                 {s.label}
               </button>
             ))}
-            {index && (
+            {mode === "intercept" && index && (
               <button
                 onClick={() => exportJSON(
                   `ghost-search-${Date.now()}`,
