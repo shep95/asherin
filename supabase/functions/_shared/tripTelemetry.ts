@@ -691,9 +691,14 @@ function detectSpeeding(
     const lim = w?.maxspeedMps ?? null;
     const over = lim != null && points[i].spd > lim + SPEED_TOLERANCE_MPS;
     if (over) {
-      // A change of street ends the current run: an excess on one road cannot
-      // be carried onto the next, which has its own limit.
-      if (start >= 0 && way && w && way.id !== w.id) close(i - 1);
+      // A change of street ends the current run, because the next road carries
+      // its own limit. The comparison is on name and limit rather than on the
+      // OSM way id: a single avenue is cut into dozens of ways at every
+      // junction, and keying on the id shattered one continuous 46-second
+      // excess into a string of six-second fragments that each read as trivial.
+      const sameRoad = way && w && way.name === w.name && way.maxspeedMps === w.maxspeedMps;
+      if (start >= 0 && way && w && !sameRoad) close(i - 1);
+
       if (start < 0) { start = i; way = w; }
       peak = Math.max(peak, points[i].spd);
     } else if (start >= 0) {
