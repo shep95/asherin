@@ -64,7 +64,12 @@ export type MapAction =
   | { type: "find_nearby"; category?: string; query?: string; ref?: GeoRef; radiusM?: number; openNow?: boolean }
   | { type: "find_jobs"; role: string; ref?: GeoRef; radiusMi?: number }
   | { type: "street_cameras"; ref?: GeoRef; radiusM?: number; alongRoute?: boolean }
-  | { type: "locate_device"; name?: string };
+  | { type: "locate_device"; name?: string }
+  /* ── Cloud Intelligence overlays ───────────────────────────────────── */
+  | { type: "plot_cloud_contacts"; query?: string; limit?: number }
+  | { type: "plot_cloud_venues"; limit?: number }
+  | { type: "plot_cloud_security"; sinceDays?: number }
+  | { type: "focus_cloud_contact"; email?: string; name?: string };
 
 
 
