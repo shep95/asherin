@@ -1925,6 +1925,51 @@ const IntelligenceMapModule = () => {
       return `Camera sweep run around ${anchor.lat.toFixed(5)}, ${anchor.lng.toFixed(5)}. Public agency feeds only — click a pin for the live frame.`;
     }
 
+    /* ── Cloud Intelligence overlays ─────────────────────────────────────
+       The map is the spatial canvas for the user's Cloud Intelligence.
+       Contacts, calendar venues, and security signals are geocoded and plotted
+       as distinct layers with provenance-tagged popups. */
+    if (a.type === "plot_cloud_contacts") {
+      const limit = Math.max(1, Math.min(a.limit ?? 50, 200));
+      const layer = await loadCloudMapLayer({ contacts: true, venues: false, security: false, relationships: true, limit });
+      setCloudLayer((prev) => ({ ...prev, contacts: layer.contacts, relationships: layer.relationships }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-contacts": true, "cloud-relationships": true }));
+      if (!layer.contacts.length) return "No contact dossiers with geocodable locations found in Cloud Intelligence.";
+      if (layer.contacts.length === 1) flyTo(layer.contacts[0].lat, layer.contacts[0].lng, 14);
+      else fitFeatures(layer.contacts);
+      return `Plotted ${layer.contacts.length} contact dossiers and ${layer.relationships.length} inferred relationship links from Cloud Intelligence.`;
+    }
+    if (a.type === "plot_cloud_venues") {
+      const layer = await loadCloudMapLayer({ contacts: false, venues: true, security: false, relationships: false });
+      setCloudLayer((prev) => ({ ...prev, venues: layer.venues }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-venues": true }));
+      if (!layer.venues.length) return "No calendar venues or movement forecasts with geocodable locations found.";
+      fitFeatures(layer.venues);
+      return `Plotted ${layer.venues.length} calendar venues / movement forecasts from Cloud Intelligence.`;
+    }
+    if (a.type === "plot_cloud_security") {
+      const layer = await loadCloudMapLayer({ contacts: false, venues: false, security: true, relationships: false, sinceDays: a.sinceDays ?? 30 });
+      setCloudLayer((prev) => ({ ...prev, security: layer.security }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-security": true }));
+      if (!layer.security.length) return "No security events or signals with geocodable locations in the selected window.";
+      fitFeatures(layer.security);
+      return `Plotted ${layer.security.length} security events / signals from Cloud Intelligence.`;
+    }
+    if (a.type === "focus_cloud_contact") {
+      const { email, name } = a;
+      if (!email && !name) return "Need an email or name to focus a Cloud Intelligence contact.";
+      const layer = await loadCloudMapLayer({ contacts: true, limit: 200 });
+      const match = layer.contacts.find((c) =>
+        (email && c.subjectEmail && c.subjectEmail.toLowerCase() === email.toLowerCase()) ||
+        (name && c.label.toLowerCase().includes(name.toLowerCase()))
+      );
+      if (!match) return `No geocodable contact matching ${email || name} in Cloud Intelligence.`;
+      setCloudLayer((prev) => ({ ...prev, contacts: layer.contacts }));
+      setActiveCloud((prev) => ({ ...prev, "cloud-contacts": true }));
+      flyTo(match.lat, match.lng, 16);
+      return `Focused on ${match.label} — ${match.caption}. Source: ${match.source}.`;
+    }
+
   };
 
   /* Horizontal space the right-hand docks occupy, so the top bar never renders
