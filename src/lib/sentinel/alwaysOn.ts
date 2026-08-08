@@ -63,6 +63,8 @@ export interface SentinelState {
   blocked: string | null;
   area: AreaState | null;
   lastFlushAt: number | null;
+  /** Latest automatic uplink judgement, so the UI never needs to ask for one. */
+  network: { level: string; operator: string | null; checkedAt: number } | null;
 }
 
 type Listener = (s: SentinelState) => void;
@@ -78,6 +80,7 @@ let state: SentinelState = {
   blocked: null,
   area: null,
   lastFlushAt: null,
+  network: null,
 };
 
 const listeners = new Set<Listener>();
