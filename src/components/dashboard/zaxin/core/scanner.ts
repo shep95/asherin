@@ -10,7 +10,11 @@
 //
 // We never claim "scanning" if we can only do the picker.
 
-export type ScanMode = "continuous" | "picker" | "unsupported";
+//  • native: the Asherin companion app (Capacitor). Holds the radio while
+//    backgrounded and while the screen is off — the only mode that samples the
+//    hours a stalking pattern actually happens in.
+
+export type ScanMode = "native" | "continuous" | "picker" | "unsupported";
 
 export interface RawAdvert {
   id: string;
