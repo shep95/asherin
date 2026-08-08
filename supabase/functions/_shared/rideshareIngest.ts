@@ -24,6 +24,8 @@ export interface ParsedRideEmail {
   plate: string | null;
   city: string | null;
   pickup_label: string | null;
+  /** Where the ride ends — the anchor for the destination area briefing. */
+  dropoff_label: string | null;
   trip_url: string | null;
   kind: "dispatch" | "receipt" | "share";
   subject: string;
@@ -199,6 +201,7 @@ export function parseRideEmail(msg: {
   const plate = pickPlate(haystack);
   const city = pickCity(haystack);
   const pickup_label = pickPickup(haystack);
+  const dropoff_label = pickDropoff(haystack);
 
   // A trip email with neither a name nor a plate tells us nothing actionable.
   if (!driver_name && !plate && !shareUrl) return null;
@@ -218,6 +221,7 @@ export function parseRideEmail(msg: {
     plate,
     city,
     pickup_label,
+    dropoff_label,
     trip_url: shareUrl,
     kind,
     subject,
