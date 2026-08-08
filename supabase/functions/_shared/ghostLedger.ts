@@ -150,8 +150,14 @@ export function collectLedgerTargets(rows: LedgerSignal[], cap = 18): LedgerTarg
     // destination it conceals is the whole reason to look.
     if (origin === "shortener") { t.origin = "shortener"; if (url) t.url = url; }
     t.messages++;
-    if (r.direction === "inbound") t.inbound++;
-    else if (r.direction === "outbound") t.outbound++;
+    // The ledger writes "in"/"out"; older rows and some sources spell it out.
+    // Accept both, and treat an unlabelled row as neither rather than inbound —
+    // three risk rules key off inbound volume, so a miscount here would either
+    // silence them or fire them on the operator's own outbound mail.
+    const dir = (r.direction ?? "").toLowerCase();
+    if (dir === "in" || dir === "inbound" || dir === "received") t.inbound++;
+    else if (dir === "out" || dir === "outbound" || dir === "sent") t.outbound++;
+
     if (r.source && !t.channels.includes(r.source)) t.channels.push(r.source);
     if (r.actor_email && !t.senders.includes(r.actor_email) && t.senders.length < 8) t.senders.push(r.actor_email);
     if (r.source === "sms" && r.actor_email && /^\+?\d[\d\s()-]{5,}$/.test(r.actor_email) && !t.phones.includes(r.actor_email)) {
