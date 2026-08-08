@@ -5928,6 +5928,8 @@ export type Database = {
           id: string
           idempotency_key: string | null
           kind: string
+          photo_match: Json | null
+          photos: Json
           read_at: string | null
           sections: Json
           severity: string
@@ -5945,6 +5947,8 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           kind: string
+          photo_match?: Json | null
+          photos?: Json
           read_at?: string | null
           sections?: Json
           severity?: string
@@ -5962,6 +5966,8 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           kind?: string
+          photo_match?: Json | null
+          photos?: Json
           read_at?: string | null
           sections?: Json
           severity?: string
