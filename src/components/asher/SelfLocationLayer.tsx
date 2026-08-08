@@ -140,10 +140,10 @@ const SelfLocationLayer = ({ fix, trail, fences, onRemoveFence }: Props) => {
               pathOptions={{ color: BLUE, weight: 0, fillColor: BLUE, fillOpacity: 0.22 }}
             />
           )}
-          <CircleMarker
-            center={[fix.lat, fix.lng]}
-            radius={6}
-            pathOptions={{ color: "#0b1220", weight: 2, fillColor: fix.degraded ? "#f59e0b" : BLUE, fillOpacity: 1 }}
+          <Marker
+            position={[fix.lat, fix.lng]}
+            icon={selfIcon}
+            keyboard={false}
           >
             <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
               You · ±{Math.round(fix.accM)} m
