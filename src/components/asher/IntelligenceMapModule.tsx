@@ -619,6 +619,9 @@ const IntelligenceMapModule = () => {
   const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const [showTacticalBorders, setShowTacticalBorders] = useState(true);
+  const [cloudLayer, setCloudLayer] = useState<CloudMapLayer>({ contacts: [], venues: [], security: [], relationships: [] });
+  const [cloudLayerLoading, setCloudLayerLoading] = useState(false);
+  const [activeCloud, setActiveCloud] = useState<Record<string, boolean>>({ "cloud-contacts": false, "cloud-venues": false, "cloud-security": false, "cloud-relationships": false });
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [show3D, setShow3D] = useState(false);
