@@ -34,6 +34,7 @@ import {
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
 import { runGhostLedger } from "../_shared/ghostLedger.ts";
+import { traceOrigin } from "../_shared/ghostOrigin.ts";
 import {
   classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
 } from "../_shared/ghostHarvest.ts";
