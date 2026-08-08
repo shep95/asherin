@@ -6113,6 +6113,51 @@ export type Database = {
           },
         ]
       }
+      intel_autonomous_runs: {
+        Row: {
+          consensus_score: number | null
+          created_at: string
+          duration_ms: number | null
+          edges_created: number
+          entities_touched: number
+          id: string
+          kind: string | null
+          query: string
+          subject: string | null
+          summary: string | null
+          tools_fired: string[]
+          user_id: string
+        }
+        Insert: {
+          consensus_score?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          edges_created?: number
+          entities_touched?: number
+          id?: string
+          kind?: string | null
+          query: string
+          subject?: string | null
+          summary?: string | null
+          tools_fired?: string[]
+          user_id: string
+        }
+        Update: {
+          consensus_score?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          edges_created?: number
+          entities_touched?: number
+          id?: string
+          kind?: string | null
+          query?: string
+          subject?: string | null
+          summary?: string | null
+          tools_fired?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       intel_job_queue: {
         Row: {
           created_at: string
@@ -6145,6 +6190,102 @@ export type Database = {
           queue_position?: number | null
           started_at?: string | null
           status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      intel_memory_edges: {
+        Row: {
+          confidence: string
+          created_at: string
+          from_entity: string
+          id: string
+          relationship: string
+          source_theory: string | null
+          to_entity: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          from_entity: string
+          id?: string
+          relationship: string
+          source_theory?: string | null
+          to_entity: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          from_entity?: string
+          id?: string
+          relationship?: string
+          source_theory?: string | null
+          to_entity?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intel_memory_edges_from_entity_fkey"
+            columns: ["from_entity"]
+            isOneToOne: false
+            referencedRelation: "intel_memory_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intel_memory_edges_to_entity_fkey"
+            columns: ["to_entity"]
+            isOneToOne: false
+            referencedRelation: "intel_memory_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intel_memory_entities: {
+        Row: {
+          aliases: string[]
+          attributes: Json
+          canonical: string
+          confidence: string
+          first_seen: string
+          hit_count: number
+          id: string
+          kind: string
+          label: string
+          last_seen: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          attributes?: Json
+          canonical: string
+          confidence?: string
+          first_seen?: string
+          hit_count?: number
+          id?: string
+          kind: string
+          label: string
+          last_seen?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          aliases?: string[]
+          attributes?: Json
+          canonical?: string
+          confidence?: string
+          first_seen?: string
+          hit_count?: number
+          id?: string
+          kind?: string
+          label?: string
+          last_seen?: string
+          notes?: string | null
           user_id?: string
         }
         Relationships: []
