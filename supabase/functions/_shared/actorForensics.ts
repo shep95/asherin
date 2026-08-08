@@ -209,6 +209,7 @@ export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
       km: Math.round(km),
       minutes: Math.max(0, Math.round(minutes)),
       impliedKmh: Number.isFinite(impliedKmh) ? Math.round(impliedKmh) : -1,
+      infrastructureArtefact: looksLikeInfrastructure(a.ip) || looksLikeInfrastructure(b.ip),
     });
   }
 
@@ -226,16 +227,15 @@ export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
     if (minutes >= MIN_BORDER_MINUTES) continue;
     if (alreadyFlagged.has(`${a.at}|${b.at}`)) continue;
     borderHops++;
-    if (anomalies.length < 8) {
-      anomalies.push({
-        fromAt: a.at, toAt: b.at,
-        fromWhere: whereOf(a), toWhere: whereOf(b),
-        fromIp: a.ip, toIp: b.ip,
-        km: -1, // unknown: this track has no coordinates by construction
-        minutes: Math.max(0, Math.round(minutes)),
-        impliedKmh: -1,
-      });
-    }
+    anomalies.push({
+      fromAt: a.at, toAt: b.at,
+      fromWhere: whereOf(a), toWhere: whereOf(b),
+      fromIp: a.ip, toIp: b.ip,
+      km: -1, // unknown: this track has no coordinates by construction
+      minutes: Math.max(0, Math.round(minutes)),
+      impliedKmh: -1,
+      infrastructureArtefact: looksLikeInfrastructure(a.ip) || looksLikeInfrastructure(b.ip),
+    });
   }
 
   const ips = new Set(timeline.map((o) => o.ip).filter(Boolean) as string[]);
@@ -246,29 +246,44 @@ export function detectImpossibleTravel(timeline: Observation[]): JumpVerdict {
   ];
   const coverage = timeline.length ? Math.round((geo.length / timeline.length) * 100) : 0;
 
+  // Only hops between two human endpoints can prove the ACCOUNT HOLDER is
+  // tunnelling. Hops that touch the platform's own datacentre egress are an
+  // artefact of server-side execution and are surfaced separately, so the
+  // report never accuses someone of running a VPN because their app has a
+  // backend.
+  const human = anomalies.filter((a) => !a.infrastructureArtefact);
+  const artefacts = anomalies.length - human.length;
+
   const coverageNote =
     coverage < 40
       ? ` Coordinate coverage is thin (${coverage}% of ${timeline.length} observations carry a position), so the border-crossing track carries most of the weight here.`
       : "";
+  const artefactNote = artefacts
+    ? ` ${artefacts} further transition${artefacts > 1 ? "s were" : " was"} discarded as platform datacentre egress rather than movement by a person.`
+    : "";
 
-  const summary = anomalies.length
-    ? `${anomalies.length} impossible-travel transition${anomalies.length > 1 ? "s" : ""} across ${ips.size} distinct addresses` +
-      (borderHops ? ` (${borderHops} of them cross-border inside three hours)` : "") +
-      ` — at least one observed location is a tunnel exit, not a physical position.${coverageNote}`
+  const summary = human.length
+    ? `${human.length} impossible-travel transition${human.length > 1 ? "s" : ""} between human endpoints across ${ips.size} distinct addresses` +
+      (borderHops ? ` (${borderHops} cross-border inside three hours)` : "") +
+      ` — at least one observed location is a tunnel exit, not a physical position.${coverageNote}${artefactNote}`
     : ips.size > 1
-      ? `${ips.size} distinct addresses across ${countries.length || 1} countr${countries.length === 1 ? "y" : "ies"}, all consistent with physical travel — no tunnelling signature in this window.${coverageNote}`
-      : `Single origin address across the window — no location-jump signature available.${coverageNote}`;
+      ? `${ips.size} distinct addresses across ${countries.length || 1} countr${countries.length === 1 ? "y" : "ies"}, all consistent with physical travel — no tunnelling signature attributable to a person in this window.${coverageNote}${artefactNote}`
+      : `Single origin address across the window — no location-jump signature available.${coverageNote}${artefactNote}`;
 
+  // Human-attributable hops lead the list; artefacts follow so they remain
+  // auditable without dominating the report.
+  const ordered = [...human, ...anomalies.filter((a) => a.infrastructureArtefact)];
 
   return {
     observations: timeline.length,
     distinctIps: ips.size,
     distinctCountries: countries,
-    anomalies: anomalies.slice(0, 8),
-    tunnelled: anomalies.length > 0,
+    anomalies: ordered.slice(0, 8),
+    tunnelled: human.length > 0,
     summary,
   };
 }
+
 
 // ── actor correlation ──────────────────────────────────────────────────────
 
