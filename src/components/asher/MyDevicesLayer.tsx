@@ -38,7 +38,7 @@ const MyDevicesLayer = ({ devices, focusedFingerprint, breadcrumb, onFocus, onRo
         const color = STATE_COLOR[d.effectiveState];
         const focused = focusedFingerprint === d.fingerprint;
         return (
-          <div key={d.fingerprint} style={{ display: "contents" }}>
+          <Fragment key={d.fingerprint}>
             {/* Confidence halo — the honest answer, sized to fused error. */}
             <Circle
               center={[f.lat, f.lng]}
@@ -78,7 +78,7 @@ const MyDevicesLayer = ({ devices, focusedFingerprint, breadcrumb, onFocus, onRo
                 </div>
               </Popup>
             </CircleMarker>
-          </div>
+          </Fragment>
         );
       })}
     </>
