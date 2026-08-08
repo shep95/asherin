@@ -22,6 +22,7 @@ import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { callByokJsonWithRetry } from "../_shared/zophielByokRouter.ts";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "../_shared/jurisdictionalIntel.ts";
 import { notifyIntel, severityFromVerdict } from "../_shared/intelNotify.ts";
+import { runDeepSweep, loadSettings, admin } from "../_shared/rideshareSweep.ts";
 import {
   fastPass,
   parseShareLink,
@@ -40,7 +41,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-const admin = () => createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
 
 function json(body: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
