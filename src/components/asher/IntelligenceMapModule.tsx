@@ -1700,15 +1700,42 @@ const IntelligenceMapModule = () => {
 
   return (
     <div className="relative flex h-full w-full bg-background">
-      {/* LEFT LAYER PANEL */}
-      <div className="flex h-full w-96 flex-col border-r border-border/15 bg-card/30 backdrop-blur-md">
+      {/* LEFT LAYER PANEL — resizable, collapsible, searchable */}
+      <div
+        className="flex h-full flex-col border-r border-border/15 bg-card/30 backdrop-blur-md"
+        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined, overflow: sidebar.collapsed ? "hidden" : undefined }}
+        aria-hidden={sidebar.collapsed}
+      >
         <div className="border-b border-border/15 px-5 py-4 flex items-center gap-3">
-          <LayersIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">Layer Tree</p>
+          <LayersIcon className="h-5 w-5 text-muted-foreground shrink-0" strokeWidth={1.5} />
+          <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase truncate">Layer Tree</p>
+          <button
+            onClick={toggleSidebar}
+            aria-label="Collapse layer tree"
+            className="ml-auto rounded p-1 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="border-b border-border/10 px-3 py-2">
+          <input
+            value={layerFilter}
+            onChange={(e) => setLayerFilter(e.target.value)}
+            placeholder="Filter layers…"
+            aria-label="Filter layers"
+            className="w-full rounded-md border border-border/25 bg-background/50 px-2 py-1.5 text-[11px] font-light text-foreground outline-none focus:border-[#c98b3a]/50"
+          />
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-3 text-sm">
           {LAYER_TREE.map((cat) => {
-            const open = !!openCats[cat.id];
+            const needle = layerFilter.trim().toLowerCase();
+            // A filter must not hide the answer behind a collapsed header, so a
+            // matching category force-opens while the query is live.
+            const layers = needle
+              ? cat.layers.filter((l) => l.label.toLowerCase().includes(needle))
+              : cat.layers;
+            if (!layers.length) return null;
+            const open = needle ? true : !!openCats[cat.id];
             return (
               <div key={cat.id} className="mb-2">
                 <button
@@ -1717,11 +1744,11 @@ const IntelligenceMapModule = () => {
                 >
                   {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   <span className="text-xs font-medium tracking-[0.12em] text-foreground/90 uppercase">{cat.label}</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground/60">{cat.layers.length}</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground/60">{layers.length}</span>
                 </button>
                 {open && (
                   <div className="ml-6 mt-1 space-y-1">
-                    {cat.layers.map((l) => {
+                    {layers.map((l) => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
