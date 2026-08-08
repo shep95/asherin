@@ -33,7 +33,11 @@ import { buildIndex, type GhostIndex } from "./ghostIndex.ts";
 const SELF_HOSTS = new Set([
   "gmail.com", "googlemail.com", "google.com", "calendar.google.com",
   "drive.google.com", "mail.google.com", "youtube.com",
+  // First-party notification mail. Scoring our own alerts as suspect
+  // infrastructure would bury the correspondents that actually matter.
+  "asherin.com",
 ]);
+
 
 /** Shorteners hide the true destination — always worth a probe, never trusted. */
 const SHORTENERS = new Set([
@@ -111,8 +115,18 @@ const registrable = (host: string): string => {
   return parts.length > 2 ? parts.slice(-2).join(".") : parts.join(".");
 };
 
+/** Reserved and synthetic suffixes never resolve. The SMS normaliser mints
+ *  `+15551234@phone.invalid` for a number with no address, and probing that
+ *  would score a placeholder as hostile infrastructure. RFC 2606/6761 names
+ *  are excluded at nomination so no probe budget is spent proving they are
+ *  unreachable. */
+const RESERVED_SUFFIX = /\.(invalid|local|localhost|test|example|internal|arpa|onion|home|lan)$/i;
+
 const isProbeableHost = (host: string): boolean =>
-  /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host) && !SELF_HOSTS.has(registrable(host));
+  /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host) &&
+  !RESERVED_SUFFIX.test(host) &&
+  !SELF_HOSTS.has(registrable(host));
+
 
 /** Cheap edit distance, capped — used only for lookalike detection. */
 function editDistance(a: string, b: string): number {
@@ -150,8 +164,14 @@ export function collectLedgerTargets(rows: LedgerSignal[], cap = 18): LedgerTarg
     // destination it conceals is the whole reason to look.
     if (origin === "shortener") { t.origin = "shortener"; if (url) t.url = url; }
     t.messages++;
-    if (r.direction === "inbound") t.inbound++;
-    else if (r.direction === "outbound") t.outbound++;
+    // The ledger writes "in"/"out"; older rows and some sources spell it out.
+    // Accept both, and treat an unlabelled row as neither rather than inbound —
+    // three risk rules key off inbound volume, so a miscount here would either
+    // silence them or fire them on the operator's own outbound mail.
+    const dir = (r.direction ?? "").toLowerCase();
+    if (dir === "in" || dir === "inbound" || dir === "received") t.inbound++;
+    else if (dir === "out" || dir === "outbound" || dir === "sent") t.outbound++;
+
     if (r.source && !t.channels.includes(r.source)) t.channels.push(r.source);
     if (r.actor_email && !t.senders.includes(r.actor_email) && t.senders.length < 8) t.senders.push(r.actor_email);
     if (r.source === "sms" && r.actor_email && /^\+?\d[\d\s()-]{5,}$/.test(r.actor_email) && !t.phones.includes(r.actor_email)) {
@@ -365,7 +385,7 @@ export function formatGhostLedgerContext(b: GhostLedgerBundle | null): string {
   if (!b || !b.correspondents.length) return "";
   const lines: string[] = [
     "\n\n## GHOST LEDGER — CLOUD INTELLIGENCE RUN THROUGH THE GHOST ENGINE",
-    `Scope: ${b.scanned} ledger signals over ${b.windowDays} days · ${b.hostsConsidered} distinct hosts nominated · ${b.hostsProbed} probed${b.partial ? " (partial — budget reached)" : ""} · ${b.elapsedMs}ms.`,
+    `Scope: ${b.scanned} ledger signals over ${b.windowDays} days · ${b.hostsConsidered} distinct hosts nominated · ${b.hostsProbed} probed${b.partial ? " (not exhaustive — host cap or probe budget reached)" : ""} · ${b.elapsedMs}ms.`,
     "Every line below is observed infrastructure joined to correspondence the operator actually received. No message body was read.",
     "",
   ];

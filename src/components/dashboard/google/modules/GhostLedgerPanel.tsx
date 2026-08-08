@@ -161,7 +161,7 @@ export default function GhostLedgerPanel() {
       {data && !data.empty && (
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {data.scanned} signals · {data.windowDays}d · {data.hostsProbed}/{data.hostsConsidered} hosts probed
-          {data.partial ? " · partial (budget reached)" : ""} · {data.elapsedMs}ms
+          {data.partial ? " · not exhaustive" : ""} · {data.elapsedMs}ms
         </p>
       )}
 
