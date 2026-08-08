@@ -53,21 +53,66 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    const { priceId, mode, isGift, giftRecipientEmail, giftDurationMonths } = await req.json();
-    if (!priceId) throw new Error("Missing priceId");
-    // P0: reject any price ID not on the server-side allowlist.
-    if (!ALLOWED_PRICE_IDS.has(priceId)) {
-      logStep("REJECTED unknown priceId", { priceId });
-      return new Response(JSON.stringify({ error: "Invalid price selection" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+    const {
+      priceId, mode, isGift, giftRecipientEmail, giftDurationMonths, tier, term, visitorId,
+    } = await req.json();
+
+    // ── Path A: regional / term-based plan. Amount is computed here, never sent. ──
+    const planTier: PppTier | null =
+      tier === "monthly_aureon" || tier === "monthly_pro" ? tier : null;
+    const planTerm: Term = term === "semiannual" ? "semiannual" : "monthly";
+    let dynamicLineItem: any = null;
+    let pricingAudit: Record<string, string> = {};
+
+    if (planTier) {
+      const subjectId = typeof visitorId === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(visitorId)
+        ? visitorId
+        : user.id;
+      const verdict = await observeAndJudge(req, subjectId, user.id);
+      const amount = priceCents(planTier, planTerm, verdict.multiplier);
+      logStep("Regional price resolved", {
+        planTier, planTerm, amount, country: verdict.country,
+        multiplier: verdict.multiplier, vpnSuspected: verdict.vpnSuspected, reasons: verdict.reasons,
       });
+
+      const canonical = FULL_PRICE_IDS[planTier][planTerm];
+      if (verdict.multiplier >= 1 && canonical) {
+        dynamicLineItem = { price: canonical, quantity: 1 };
+      } else {
+        dynamicLineItem = {
+          price_data: {
+            currency: "usd",
+            product: STRIPE_PRODUCTS[planTier][planTerm],
+            unit_amount: amount,
+            recurring: { interval: "month", interval_count: planTerm === "semiannual" ? 6 : 1 },
+          },
+          quantity: 1,
+        };
+      }
+      pricingAudit = {
+        pricing_country: verdict.country ?? "unknown",
+        pricing_multiplier: String(verdict.multiplier),
+        pricing_term: planTerm,
+        pricing_integrity: verdict.vpnSuspected ? `flagged:${verdict.reasons.join("|")}`.slice(0, 480) : "clean",
+      };
+    } else {
+      if (!priceId) throw new Error("Missing priceId");
+      // P0: reject any price ID not on the server-side allowlist.
+      if (!ALLOWED_PRICE_IDS.has(priceId)) {
+        logStep("REJECTED unknown priceId", { priceId });
+        return new Response(JSON.stringify({ error: "Invalid price selection" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+        });
+      }
     }
-    const checkoutMode = mode === "payment" ? "payment" : "subscription";
+
+    const checkoutMode = planTier ? "subscription" : (mode === "payment" ? "payment" : "subscription");
     // P2: clamp gift duration to [1, 12] months
     const safeGiftMonths = isGift && giftDurationMonths
       ? Math.min(Math.max(parseInt(String(giftDurationMonths), 10) || 1, 1), 12)
       : 0;
-    logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, safeGiftMonths });
+    logStep("Price requested", { priceId, planTier, planTerm, checkoutMode, isGift, giftRecipientEmail, safeGiftMonths });
+
 
     // Validate gift recipient exists if this is a gift purchase
     if (isGift && giftRecipientEmail) {
