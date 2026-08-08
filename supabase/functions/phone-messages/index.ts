@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
       // Purge rows left behind by an earlier parse that truncated the body —
       // a message with no readable text is noise in every downstream fold.
       await sb.from("google_signals").delete()
-        .eq("user_id", user.id).eq("source", "sms").or("snippet.is.null,snippet.eq.<");
+        .eq("user_id", user.id).eq("source", "sms").or("snippet.is.null,snippet.eq.<,snippet.ilike.%forwarding number%,snippet.ilike.%Change to your Google Voice account%");
 
       return json({ ok: true, ingested, reports, elapsedMs: Date.now() - started }, 200, cors);
     }
