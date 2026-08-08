@@ -2130,9 +2130,18 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // and drops that posture as soon as the subject changes.
     const { ADAPTIVE_OPERATOR_ROUTER, parseRoutingHint, buildRouterEmphasis } =
       await import("../_shared/adaptiveOperatorRouter.ts");
-    const _routerEmphasis = buildRouterEmphasis(
-      parseRoutingHint(String(prunedMessages?.[prunedMessages.length - 1]?.content || "")),
+    const _lastUserText = String(prunedMessages?.[prunedMessages.length - 1]?.content || "");
+    const _routerEmphasis = buildRouterEmphasis(parseRoutingHint(_lastUserText));
+    // Quick intelligence — everyday practical questions answered at their own
+    // scale, with live grounding when the answer can change and an explicit
+    // "could not confirm" when the corpus came back empty.
+    const { QUICK_INTELLIGENCE_BRAIN, buildQuickIntelEmphasis } =
+      await import("../_shared/quickIntelligenceBrain.ts");
+    const _quickIntelEmphasis = buildQuickIntelEmphasis(
+      _lastUserText,
+      Boolean(webSearchContext && webSearchContext.trim()),
     );
+
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // PROMPT ASSEMBLY ORDER (recency-weighted):
     //   1. Core identity + static doctrine brains (foundation)
