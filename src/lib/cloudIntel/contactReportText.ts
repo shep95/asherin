@@ -451,7 +451,9 @@ export function renderContactReport(r: ContactReport, contactName: string, annex
   L.push("║            open sources. Not a consumer report; not for use in".padEnd(W + 1) + "║");
   L.push("║            hiring, credit, housing or insurance decisions.".padEnd(W + 1) + "║");
   L.push("║  Standards: Judgments per ICD 203; sourcing per ICD 206 with".padEnd(W + 1) + "║");
-  L.push("║            Admiralty reliability/credibility grading.".padEnd(W + 1) + "║");
+  L.push("║            Admiralty reliability/credibility grading. Competing".padEnd(W + 1) + "║");
+  L.push("║            hypotheses adjudicated per ACH; indicators of denial".padEnd(W + 1) + "║");
+  L.push("║            and deception considered and scored, not assumed away.".padEnd(W + 1) + "║");
   L.push(`║  Subject: ${contactName}`.padEnd(W + 1) + "║");
   L.push(`║  Generated: ${stamp} UTC`.padEnd(W + 1) + "║");
   L.push(`║  Window: ${r.windowDays ?? "—"} days | ${r.messagesAnalyzed} messages analysed | confidence ${r.confidence}%`.padEnd(W + 1) + "║");
