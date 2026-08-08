@@ -1,11 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap, CircleMarker, Popup } from "react-leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, TileLayer, useMap, CircleMarker, Polyline, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ChevronDown, ChevronRight, X, Search, Loader2, Pin,
   Layers as LayersIcon, Crosshair as CrosshairIcon, Save,
+  PanelLeftClose, PanelLeftOpen, Plus, Minus, LocateFixed, Copy, Share2,
+  Navigation2, Utensils, Briefcase, Camera as CameraIcon, Eye,
 } from "lucide-react";
+import DirectionsPanel, { type DirectionsEndpoint } from "@/components/asher/DirectionsPanel";
+import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
+import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
+import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
+import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
+import { searchNearby, streetViewUrl, type Place } from "@/lib/asher/places";
+import {
+  getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
+  type RouteOption, type TravelMode, type Units,
+} from "@/lib/asher/directions";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
@@ -534,9 +546,48 @@ interface SelectedEntity {
 const THREAT_IDS = ["h-quake", "h-fire", "h-air"] as const;
 type ThreatId = typeof THREAT_IDS[number];
 
+/* Sidebar geometry — persisted so the operator's chosen width survives a
+   reload. Clamped on read: a corrupted localStorage value must never render an
+   unusable 4px rail or a sidebar wider than the viewport. */
+const SIDEBAR_KEY = "asherin-maps.sidebar";
+const SIDEBAR_MIN = 240;
+const SIDEBAR_MAX = 620;
+const SIDEBAR_DEFAULT = 384;
+const UNITS_KEY = "asherin-maps.units";
+
+function readSidebar(): { width: number; collapsed: boolean } {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIDEBAR_KEY) || "null");
+    const width = Number(raw?.width);
+    return {
+      width: Number.isFinite(width) ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width)) : SIDEBAR_DEFAULT,
+      collapsed: !!raw?.collapsed,
+    };
+  } catch {
+    return { width: SIDEBAR_DEFAULT, collapsed: false };
+  }
+}
+
+function readUnits(): Units {
+  try { return localStorage.getItem(UNITS_KEY) === "metric" ? "metric" : "imperial"; } catch { return "imperial"; }
+}
+
 const IntelligenceMapModule = () => {
-  const [activeBase, setActiveBase] = useState<string>("carto-dark");
+  // Satellite is the operator default: parcel edges, roof detail and vehicle
+  // presence are the whole point of this surface, and none of them survive on
+  // a vector base map.
+  const [activeBase, setActiveBase] = useState<string>("esri-sat");
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true, threats: true });
+  const [layerFilter, setLayerFilter] = useState("");
+  const [sidebar, setSidebar] = useState(readSidebar);
+  const [units, setUnits] = useState<Units>(readUnits);
+  const [tool, setTool] = useState<null | "directions" | "places" | "jobs">(null);
+  const [seedDest, setSeedDest] = useState<DirectionsEndpoint | null>(null);
+  const [routeLayer, setRouteLayer] = useState<{ routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }>({ routes: [], activeId: null, highlight: null });
+  const [cameras, setCameras] = useState<StreetCamera[]>([]);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [placePins, setPlacePins] = useState<Place[]>([]);
+  const [jobPins, setJobPins] = useState<JobPosting[]>([]);
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -751,6 +802,115 @@ const IntelligenceMapModule = () => {
 
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
   };
+
+  /* ── Sidebar geometry ────────────────────────────────────────────────────
+     The drag is tracked on `document` (not the handle) so a fast pointer that
+     outruns the 6px rail keeps resizing, and pointer capture guarantees the
+     release fires even if the cursor leaves the window. Width is written to
+     state on every move but only flushed to storage on release — persisting
+     at 120 Hz would thrash localStorage on the main thread. */
+  const resizingRef = useRef(false);
+  const persistSidebar = useCallback((next: { width: number; collapsed: boolean }) => {
+    try { localStorage.setItem(SIDEBAR_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+  }, []);
+
+  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      if (!resizingRef.current) return;
+      const w = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, ev.clientX));
+      setSidebar((s) => (s.width === w ? s : { ...s, width: w }));
+    };
+    const up = () => {
+      resizingRef.current = false;
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      document.body.style.userSelect = "";
+      // Leaflet caches container size; a resized rail must be re-measured or
+      // tiles tear along the old edge.
+      setTimeout(() => mapRef.current?.invalidateSize(), 60);
+      setSidebar((s) => { persistSidebar(s); return s; });
+    };
+    document.body.style.userSelect = "none";
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }, [persistSidebar]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebar((s) => {
+      const next = { ...s, collapsed: !s.collapsed };
+      persistSidebar(next);
+      setTimeout(() => mapRef.current?.invalidateSize(), 260);
+      return next;
+    });
+  }, [persistSidebar]);
+
+  // Keyboard resize keeps the rail operable without a pointer (WCAG 2.1.1).
+  const nudgeWidth = useCallback((delta: number) => {
+    setSidebar((s) => {
+      const next = { ...s, width: Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, s.width + delta)) };
+      persistSidebar(next);
+      setTimeout(() => mapRef.current?.invalidateSize(), 60);
+      return next;
+    });
+  }, [persistSidebar]);
+
+  const changeUnits = useCallback((u: Units) => {
+    setUnits(u);
+    try { localStorage.setItem(UNITS_KEY, u); } catch { /* private mode */ }
+  }, []);
+
+  /* ── Directions / places / cameras plumbing ───────────────────────────── */
+  const mapCenter = useCallback(
+    () => {
+      const c = mapRef.current?.getCenter();
+      return c ? { lat: c.lat, lng: c.lng } : { lat: coord.lat, lng: coord.lng };
+    },
+    [coord.lat, coord.lng],
+  );
+
+  /* Endpoint resolution for the directions panel: rooftop precision beats a
+     higher-importance city centroid whenever the operator types a street
+     address, and a miss returns null so the panel can say so honestly. */
+  const geocodeEndpoint = useCallback(async (q: string): Promise<DirectionsEndpoint | null> => {
+    const hits = await nominatimSearch(q);
+    if (!hits.length) return null;
+    const h = hits.find(isRooftopHit) ?? hits[0];
+    return { label: h.display_name, lat: parseFloat(h.lat), lng: parseFloat(h.lon) };
+  }, []);
+
+  const openDirectionsTo = useCallback((dest: DirectionsEndpoint) => {
+    setSeedDest(dest);
+    setTool("directions");
+  }, []);
+
+  const handleRoutes = useCallback((payload: { routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }) => {
+    const { routes, activeId } = payload;
+    setRouteLayer(payload);
+    const active = routes.find((r) => r.id === activeId) ?? routes[0];
+    if (active && mapRef.current && active.path.length > 1) {
+      mapRef.current.fitBounds(L.latLngBounds(active.path.map((p) => [p.lat, p.lng] as [number, number])), {
+        padding: [60, 60], maxZoom: 16,
+      });
+    }
+  }, []);
+
+  const loadCameras = useCallback(async (opts: CameraQuery) => {
+    setCameraBusy(true);
+    try {
+      const sweep = await fetchStreetCameras(opts);
+      setCameras(sweep.cameras);
+      if (!sweep.cameras.length) toast.info(sweep.coverageNote || "No public traffic cameras published for that corridor.");
+    } catch (e: any) {
+      toast.error(e?.message || "Camera catalogue unavailable.");
+    } finally {
+      setCameraBusy(false);
+    }
+  }, []);
+
+
 
   /* ── Own-force tracking ──────────────────────────────────────────────────
      The sensor is owned by the operator, never by the model. Follow mode pans
@@ -1543,22 +1703,121 @@ const IntelligenceMapModule = () => {
       }`;
     }
 
+    /* ── Navigation & discovery ───────────────────────────────────────────
+       The model may only ask for a corridor; the road graph, the POI index
+       and the job boards remain the sole authority for what is returned, and
+       every failure degrades to an explicit sentence rather than a silent
+       empty map. */
+    if (a.type === "get_directions") {
+      const to = await resolveRef(a.to);
+      if (!to) return `Could not resolve the destination "${a.to?.place ?? "that place"}".`;
+      const from = a.from
+        ? await resolveRef(a.from)
+        : (track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : await resolveRef(undefined));
+      if (!from) return "No origin — give me a starting place or start location tracking.";
+      const res = await getDirections([from, to], { mode: a.mode || "driving", alternatives: true });
+      if (!res.routes.length) return "The road graph returned no route between those two points.";
+      const best = res.routes[0];
+      setSeedDest({ label: a.to?.place || `${to.lat.toFixed(5)}, ${to.lng.toFixed(5)}`, lat: to.lat, lng: to.lng });
+      handleRoutes({ routes: res.routes, activeId: best.id, highlight: null });
+      if (a.withCameras) void loadCameras({ path: best.path, radiusM: 900 });
+      return `${a.mode === "walking" ? "Walking" : a.mode === "cycling" ? "Cycling" : "Driving"} route plotted: ${fmtDistUnits(best.distanceM, units)} · ${fmtDurUnits(best.durationS)}, arriving about ${fmtEta(best.durationS)}${
+        res.routes.length > 1 ? ` (${res.routes.length - 1} alternative${res.routes.length > 2 ? "s" : ""} drawn dashed)` : ""
+      }.${best.degraded ? ` Caveat: ${best.degraded}` : ""} Source: ${res.attribution}.`;
+    }
+
+    if (a.type === "find_nearby") {
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to search around.";
+      const places = await searchNearby({
+        center: anchor,
+        category: (a.category as any) || "any",
+        query: a.query,
+        radiusM: a.radiusM ?? 2000,
+        openNowOnly: a.openNow,
+      });
+      setPlacePins(places);
+      setTool("places");
+      if (!places.length) return `Nothing matching ${a.query || a.category || "that"} is mapped within ${fmtDistUnits(a.radiusM ?? 2000, units)} of there.`;
+      flyTo(anchor.lat, anchor.lng, 15);
+      const top = places.slice(0, 5).map((p) => `${p.name}${p.distanceM !== undefined ? ` (${fmtDistUnits(p.distanceM, units)})` : ""}`).join("; ");
+      return `${places.length} pinned within ${fmtDistUnits(a.radiusM ?? 2000, units)}. Closest: ${top}. Source: OpenStreetMap live query.`;
+    }
+
+    if (a.type === "find_jobs") {
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to run the hiring sweep.";
+      const byok = getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("asher-jobs-nearby", {
+        body: { role: a.role, lat: anchor.lat, lng: anchor.lng, radiusMi: a.radiusMi ?? 10, ...(byok ? { byok: byok.apiKey } : {}) },
+      });
+      if (error) return `Job sweep failed: ${error.message}`;
+      if (!data?.success) return `Job sweep failed: ${data?.error || "boards unreachable"}.`;
+      const jobs: JobPosting[] = Array.isArray(data.jobs) ? data.jobs : [];
+      setJobPins(jobs);
+      setTool("jobs");
+      if (!jobs.length) return `No live "${a.role}" postings surfaced within ${a.radiusMi ?? 10} mi of there right now.`;
+      flyTo(anchor.lat, anchor.lng, 13);
+      const top = jobs.slice(0, 5).map((j) => `${j.employer} — ${j.title}${j.pay ? ` (${j.pay})` : ""}`).join("; ");
+      return `${jobs.length} live "${a.role}" postings within ${a.radiusMi ?? 10} mi. Top: ${top}. Each pin carries its source and apply link.`;
+    }
+
+    if (a.type === "street_cameras") {
+      const active = routeLayer.routes.find((r) => r.id === routeLayer.activeId);
+      if (a.alongRoute && active) {
+        await loadCameras({ path: active.path, radiusM: a.radiusM ?? 900 });
+        return `Camera sweep run along the plotted corridor. Click any camera pin for its live frame.`;
+      }
+      const anchor = await resolveRef(a.ref);
+      if (!anchor) return "Could not resolve where to sweep for cameras.";
+      await loadCameras({ center: anchor, radiusM: a.radiusM ?? 4000 });
+      return `Camera sweep run around ${anchor.lat.toFixed(5)}, ${anchor.lng.toFixed(5)}. Public agency feeds only — click a pin for the live frame.`;
+    }
+
   };
+
 
 
 
 
   return (
     <div className="relative flex h-full w-full bg-background">
-      {/* LEFT LAYER PANEL */}
-      <div className="flex h-full w-96 flex-col border-r border-border/15 bg-card/30 backdrop-blur-md">
+      {/* LEFT LAYER PANEL — resizable, collapsible, searchable */}
+      <div
+        className="flex h-full flex-col border-r border-border/15 bg-card/30 backdrop-blur-md"
+        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined, overflow: sidebar.collapsed ? "hidden" : undefined }}
+        aria-hidden={sidebar.collapsed}
+      >
         <div className="border-b border-border/15 px-5 py-4 flex items-center gap-3">
-          <LayersIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">Layer Tree</p>
+          <LayersIcon className="h-5 w-5 text-muted-foreground shrink-0" strokeWidth={1.5} />
+          <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase truncate">Layer Tree</p>
+          <button
+            onClick={toggleSidebar}
+            aria-label="Collapse layer tree"
+            className="ml-auto rounded p-1 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="border-b border-border/10 px-3 py-2">
+          <input
+            value={layerFilter}
+            onChange={(e) => setLayerFilter(e.target.value)}
+            placeholder="Filter layers…"
+            aria-label="Filter layers"
+            className="w-full rounded-md border border-border/25 bg-background/50 px-2 py-1.5 text-[11px] font-light text-foreground outline-none focus:border-[#c98b3a]/50"
+          />
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-3 text-sm">
           {LAYER_TREE.map((cat) => {
-            const open = !!openCats[cat.id];
+            const needle = layerFilter.trim().toLowerCase();
+            // A filter must not hide the answer behind a collapsed header, so a
+            // matching category force-opens while the query is live.
+            const layers = needle
+              ? cat.layers.filter((l) => l.label.toLowerCase().includes(needle))
+              : cat.layers;
+            if (!layers.length) return null;
+            const open = needle ? true : !!openCats[cat.id];
             return (
               <div key={cat.id} className="mb-2">
                 <button
@@ -1567,11 +1826,11 @@ const IntelligenceMapModule = () => {
                 >
                   {open ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   <span className="text-xs font-medium tracking-[0.12em] text-foreground/90 uppercase">{cat.label}</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground/60">{cat.layers.length}</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground/60">{layers.length}</span>
                 </button>
                 {open && (
                   <div className="ml-6 mt-1 space-y-1">
-                    {cat.layers.map((l) => {
+                    {layers.map((l) => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
@@ -1644,6 +1903,28 @@ const IntelligenceMapModule = () => {
         <SelfTrackPanel track={track} mapCenter={{ lat: coord.lat, lng: coord.lng }} />
       </div>
 
+      {/* RESIZE RAIL — pointer drag, arrow-key nudge, double-click reset */}
+      {!sidebar.collapsed && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize layer tree"
+          aria-valuenow={sidebar.width}
+          aria-valuemin={SIDEBAR_MIN}
+          aria-valuemax={SIDEBAR_MAX}
+          tabIndex={0}
+          onPointerDown={startResize}
+          onDoubleClick={() => nudgeWidth(SIDEBAR_DEFAULT - sidebar.width)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") { e.preventDefault(); nudgeWidth(-24); }
+            if (e.key === "ArrowRight") { e.preventDefault(); nudgeWidth(24); }
+          }}
+          className="z-[1001] w-1.5 shrink-0 cursor-col-resize bg-border/20 transition-colors hover:bg-[#c98b3a]/60 focus-visible:bg-[#c98b3a]/80 focus-visible:outline-none"
+        />
+      )}
+
+
+
 
 
 
@@ -1668,10 +1949,97 @@ const IntelligenceMapModule = () => {
               </button>
             )}
           </div>
-          <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-            Live · OSM · Nominatim · REST Countries · Open-Meteo · Overpass · Sunrise-Sunset
+          {sidebar.collapsed && (
+            <button
+              onClick={toggleSidebar}
+              aria-label="Open layer tree"
+              className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          )}
+          <div className="flex items-center gap-1 rounded-xl border border-border/30 bg-card/85 px-1.5 py-1.5 backdrop-blur-md">
+            {([
+              { id: "directions" as const, label: "Directions", Icon: Navigation2 },
+              { id: "places" as const, label: "Explore nearby", Icon: Utensils },
+              { id: "jobs" as const, label: "Hiring nearby", Icon: Briefcase },
+            ]).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => { setTool((t) => (t === id ? null : id)); if (id !== "directions") setSeedDest(null); }}
+                aria-pressed={tool === id}
+                title={label}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                  tool === id ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                <span className="hidden lg:inline">{label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => (cameras.length ? setCameras([]) : loadCameras({ center: mapCenter(), radiusM: 4000 }))}
+              aria-pressed={cameras.length > 0}
+              title="Live street cameras"
+              disabled={cameraBusy}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors disabled:opacity-50 ${
+                cameras.length ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+              }`}
+            >
+              {cameraBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" /> : <CameraIcon className="h-3.5 w-3.5" strokeWidth={1.6} />}
+              <span className="hidden lg:inline">Cameras{cameras.length ? ` · ${cameras.length}` : ""}</span>
+            </button>
+          </div>
+          <div className="ml-auto hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
+            Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · DOT CCTV
           </div>
         </div>
+
+        {/* TOOL PANELS */}
+        <div className="pointer-events-none absolute right-3 top-16 z-[1000] flex flex-col items-end gap-2">
+          <div className="pointer-events-auto">
+            <DirectionsPanel
+              open={tool === "directions"}
+              onClose={() => { setTool(null); setSeedDest(null); setRouteLayer({ routes: [], activeId: null, highlight: null }); }}
+              units={units}
+              onUnitsChange={changeUnits}
+              myFix={track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : null}
+              onRequestMyLocation={() => track.start()}
+              seedDestination={seedDest}
+              geocode={geocodeEndpoint}
+              onRoutes={handleRoutes}
+              onCameras={setCameras}
+              onFitPath={(path) => {
+                if (path.length > 1 && mapRef.current) {
+                  mapRef.current.fitBounds(L.latLngBounds(path.map((p) => [p.lat, p.lng] as [number, number])), { padding: [60, 60], maxZoom: 16 });
+                }
+              }}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <PlacesNearbyPanel
+              open={tool === "places"}
+              onClose={() => { setTool(null); setPlacePins([]); }}
+              center={mapCenter()}
+              units={units}
+              onResults={setPlacePins}
+              onFocus={(p) => flyTo(p.lat, p.lng, 18)}
+              onRoute={(p) => openDirectionsTo({ label: p.name, lat: p.lat, lng: p.lng })}
+            />
+          </div>
+          <div className="pointer-events-auto">
+            <JobsNearbyPanel
+              open={tool === "jobs"}
+              onClose={() => { setTool(null); setJobPins([]); }}
+              center={mapCenter()}
+              units={units}
+              onResults={setJobPins}
+              onFocus={(j) => { if (j.lat !== undefined && j.lng !== undefined) flyTo(j.lat, j.lng, 17); }}
+              onRoute={(j) => { if (j.lat !== undefined && j.lng !== undefined) openDirectionsTo({ label: j.employer, lat: j.lat, lng: j.lng }); }}
+            />
+          </div>
+        </div>
+
 
         {/* SEARCH RESULTS */}
         {searchResults.length > 0 && (
@@ -1726,6 +2094,94 @@ const IntelligenceMapModule = () => {
               className="asher-tactical-border-overlay"
             />
           )}
+
+          {/* ROUTE CORRIDOR — alternatives sit underneath the active line so a
+              click always lands on the route the operator is following. */}
+          {routeLayer.routes.map((r) => (
+            r.id === routeLayer.activeId ? null : (
+              <Polyline
+                key={`alt-${r.id}`}
+                positions={r.path.map((p) => [p.lat, p.lng] as [number, number])}
+                pathOptions={{ color: "#8b8b8b", weight: 4, opacity: 0.5, dashArray: "6 8" }}
+              />
+            )
+          ))}
+          {routeLayer.routes
+            .filter((r) => r.id === routeLayer.activeId)
+            .map((r) => (
+              <Polyline
+                key={`act-${r.id}`}
+                positions={r.path.map((p) => [p.lat, p.lng] as [number, number])}
+                pathOptions={{ color: "#c98b3a", weight: 6, opacity: 0.95 }}
+              >
+                <Popup>
+                  <div className="min-w-[170px] space-y-1 text-xs">
+                    <div className="font-semibold">{r.summary || "Route"}</div>
+                    <div>{fmtDistUnits(r.distanceM, units)} · {fmtDurUnits(r.durationS)}</div>
+                    <div className="opacity-70">Arrive ~{fmtEta(r.durationS)}</div>
+                    {r.degraded && <div className="text-amber-500">{r.degraded}</div>}
+                  </div>
+                </Popup>
+              </Polyline>
+            ))}
+          {routeLayer.highlight && routeLayer.highlight.length > 1 && (
+            <Polyline
+              positions={routeLayer.highlight.map((p) => [p.lat, p.lng] as [number, number])}
+              pathOptions={{ color: "#ffe0a3", weight: 9, opacity: 0.85 }}
+            />
+          )}
+
+          {/* LIVE STREET CAMERAS */}
+          <StreetCameraLayer cameras={cameras} />
+
+          {/* NEARBY PLACES */}
+          {placePins.map((p) => (
+            <CircleMarker
+              key={`place-${p.id}`}
+              center={[p.lat, p.lng]}
+              radius={6}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#c98b3a", fillOpacity: 0.95 }}
+            >
+              <Popup>
+                <div className="min-w-[190px] space-y-1 text-xs">
+                  <div className="font-semibold">{p.name}</div>
+                  {p.address && <div className="opacity-80">{p.address}</div>}
+                  {p.openNow !== null && p.openNow !== undefined && (
+                    <div className={p.openNow ? "text-emerald-600" : "text-red-500"}>{p.openNow ? "Open now" : "Closed now"}</div>
+                  )}
+                  {p.phone && <a href={`tel:${p.phone}`} className="block underline">{p.phone}</a>}
+                  {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" className="block underline">Website</a>}
+                  <div className="flex gap-2 pt-1">
+                    <button className="underline" onClick={() => openDirectionsTo({ label: p.name, lat: p.lat, lng: p.lng })}>Directions</button>
+                    <a className="underline" href={streetViewUrl(p.lat, p.lng)} target="_blank" rel="noopener noreferrer">Street view</a>
+                  </div>
+                  <div className="text-[10px] opacity-60">OpenStreetMap · live query</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
+          {/* HIRING PINS */}
+          {jobPins.filter((j) => j.lat !== undefined && j.lng !== undefined).map((j, i) => (
+            <CircleMarker
+              key={`job-${j.applyUrl || j.employer}-${i}`}
+              center={[j.lat as number, j.lng as number]}
+              radius={6}
+              pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#34d399", fillOpacity: 0.95 }}
+            >
+              <Popup>
+                <div className="min-w-[200px] space-y-1 text-xs">
+                  <div className="font-semibold">{j.title}</div>
+                  <div className="opacity-80">{j.employer}</div>
+                  {j.address && <div className="opacity-70">{j.address}</div>}
+                  {j.pay && <div className="text-emerald-600">{j.pay}</div>}
+                  {j.applyUrl && <a href={j.applyUrl} target="_blank" rel="noopener noreferrer" className="block underline">Apply · {j.source}</a>}
+                  <button className="underline" onClick={() => openDirectionsTo({ label: j.employer, lat: j.lat as number, lng: j.lng as number })}>Directions</button>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
           <MapClick onClick={handleMapClick} />
           <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
           <SelfLocationLayer
@@ -2070,11 +2526,83 @@ const IntelligenceMapModule = () => {
         )}
 
         {/* COORD WIDGET */}
+        {/* MAP CONTROLS — zoom, recenter on operator, copy/share the view */}
+        <div className="absolute bottom-24 right-3 z-[1000] flex flex-col gap-1.5">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md">
+            <button onClick={() => mapRef.current?.zoomIn()} aria-label="Zoom in" className="px-2.5 py-2 text-muted-foreground hover:bg-foreground/10 hover:text-foreground">
+              <Plus className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-border/30" />
+            <button onClick={() => mapRef.current?.zoomOut()} aria-label="Zoom out" className="px-2.5 py-2 text-muted-foreground hover:bg-foreground/10 hover:text-foreground">
+              <Minus className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              if (track.fix) { flyTo(track.fix.lat, track.fix.lng, Math.max(mapRef.current?.getZoom() ?? 15, 16)); track.setFollow(true); }
+              else track.start();
+            }}
+            aria-label="Centre on my location"
+            title={track.fix ? "Centre on my location" : "Start location tracking"}
+            className={`rounded-xl border px-2.5 py-2 backdrop-blur-md transition-colors ${
+              track.follow && track.status === "live"
+                ? "border-[#c98b3a]/50 bg-[#c98b3a]/20 text-[#e0a955]"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LocateFixed className="h-4 w-4" />
+          </button>
+          <button
+            onClick={async () => {
+              const c = mapCenter();
+              const text = `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`;
+              try { await navigator.clipboard.writeText(text); toast.success(`Copied ${text}`); }
+              catch { toast.error("Clipboard blocked by the browser."); }
+            }}
+            aria-label="Copy centre coordinates"
+            title="Copy centre coordinates"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+          <button
+            onClick={async () => {
+              const c = mapCenter();
+              const z = Math.round(mapRef.current?.getZoom() ?? coord.zoom);
+              const url = `${window.location.origin}${window.location.pathname}?lat=${c.lat.toFixed(6)}&lng=${c.lng.toFixed(6)}&z=${z}&base=${activeBase}`;
+              try { await navigator.clipboard.writeText(url); toast.success("Map view link copied."); }
+              catch { toast.error("Clipboard blocked by the browser."); }
+            }}
+            aria-label="Copy a link to this view"
+            title="Copy a link to this view"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <a
+            href={streetViewUrl(coord.lat, coord.lng)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open street-level imagery here"
+            title="Street-level imagery at map centre"
+            className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+          >
+            <Eye className="h-4 w-4" />
+          </a>
+        </div>
+
         <div className="absolute bottom-3 right-3 z-[1000] rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-wide text-muted-foreground space-y-0.5">
           <p><span className="text-muted-foreground/50">LAT/LNG:</span> {fmtCoord(coord.lat, coord.lng)}</p>
           <p><span className="text-muted-foreground/50">ZOOM:</span> {coord.zoom.toFixed(0)}</p>
           <p><span className="text-muted-foreground/50">SCALE:</span> 1:{Math.round(591657550.5 / Math.pow(2, coord.zoom)).toLocaleString()}</p>
+          <button
+            onClick={() => changeUnits(units === "imperial" ? "metric" : "imperial")}
+            className="pt-0.5 uppercase tracking-[0.18em] text-[9px] text-muted-foreground/70 hover:text-foreground"
+          >
+            Units · {units === "imperial" ? "mi / ft" : "km / m"}
+          </button>
         </div>
+
 
         {/* ENTITY DRAWER */}
         {entity && (
