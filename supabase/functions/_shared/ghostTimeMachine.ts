@@ -204,6 +204,10 @@ const PROOF_RANK: Record<DateProof, number> = {
   "doc-metadata": 7,
   jsonld: 6, "meta-published": 5, "time-element": 4, "url-path": 4,
   "http-last-modified": 3, copyright: 2, "body-text": 1,
+  // An undated lead is still a lead; it simply loses every rank comparison
+  // instead of being absent from the table and ranking as `undefined`.
+  undated: 0,
+
 };
 
 /**
