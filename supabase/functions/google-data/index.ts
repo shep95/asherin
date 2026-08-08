@@ -5,6 +5,11 @@ import {
   FORENSIC_HEADERS, analyzeMessage, geolocateIps, attachGeo, aggregate,
   type MessageForensics,
 } from "../_shared/emailForensics.ts";
+import {
+  VOICE_QUERY, analyzeVoiceEnvelope, applyClockFrame, profilePeers, aggregateVoice,
+  type VoiceEnvelope, type PeerProfile,
+} from "../_shared/voiceForensics.ts";
+
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 
@@ -183,6 +188,66 @@ async function fetchServiceData(service: string, params: any, headers: Record<st
       aggregate: aggregate(reports),
     };
   }
+
+  // ── VOICEPRINT — Google Voice envelope forensics ─────────────────────────
+  // Same shape of read as POSTMARK, aimed at the Voice mirror instead of the
+  // mailbox at large. `format=metadata` with no header allow-list returns the
+  // COMPLETE header set and never the body — which is exactly the contract we
+  // want: everything the switch stamped, nothing the correspondent wrote.
+  if (service === "voice_forensics") {
+    const maxResults = Math.max(1, Math.min(200, Number(params?.maxResults) || 120));
+    const days = Math.max(1, Math.min(365, Number(params?.days) || 90));
+    const extra = typeof params?.q === "string" && params.q.trim() ? ` ${params.q.trim()}` : "";
+    const q = `${VOICE_QUERY} newer_than:${days}d -in:spam -in:trash${extra}`;
+
+    const listRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&q=${encodeURIComponent(q)}`,
+      { headers }
+    );
+    const list = await listRes.json();
+    if (list.error) throw new Error(list.error.message);
+    const ids = (list.messages || []).slice(0, maxResults);
+
+    const raws = await pooled(ids, 8, async (msg: any) => {
+      try {
+        const r = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata`,
+          { headers }
+        );
+        if (!r.ok) return null;
+        return await r.json();
+      } catch {
+        // One malformed envelope must never void the sweep.
+        return null;
+      }
+    });
+
+    const envelopes = raws
+      .filter(Boolean)
+      .map((d: any) => analyzeVoiceEnvelope(d))
+      .filter(Boolean) as ReturnType<typeof analyzeVoiceEnvelope>[];
+    const clean = envelopes.filter((e): e is NonNullable<typeof e> => !!e);
+    clean.sort((a, b) => (b.internalDate ?? 0) - (a.internalDate ?? 0));
+    // Establish the operator's own clock BEFORE profiling — cadence, burst and
+    // overnight findings are all statements about their day, not about UTC.
+    const frame = applyClockFrame(clean);
+    const peers = profilePeers(clean);
+
+    return {
+      query: q,
+      days,
+      scannedEstimate: list.resultSizeEstimate || clean.length,
+      // Envelopes that matched the query but were not Voice conversation
+      // (account notices, forwarded mail) — reported, never silently dropped.
+      rejected: raws.filter(Boolean).length - clean.length,
+      messages: clean,
+      peers,
+      aggregate: aggregateVoice(clean, peers, frame),
+
+    };
+  }
+
+
 
 
   if (service === "gmail_stats") {
@@ -473,6 +538,32 @@ function mergeResults(service: string, results: any[]): any {
       aggregate: aggregate(allReports),
     };
   }
+
+  if (service === "voice_forensics") {
+    // One human texting two of the operator's Voice lines is ONE correspondent.
+    // Re-profiling over the union (rather than concatenating per-mailbox peer
+    // lists) is what makes the cadence, burst and reciprocity figures true.
+    const allEnvelopes: VoiceEnvelope[] = results.flatMap((r) =>
+      (r.messages || []).map((m: VoiceEnvelope) => ({ ...m, _account: r._account_email } as VoiceEnvelope))
+    );
+    allEnvelopes.sort((a, b) => (b.internalDate ?? 0) - (a.internalDate ?? 0));
+    // Re-resolve the frame over the union: two mailboxes can carry two Voice
+    // lines, and the dominant one across both is the operator's real clock.
+    const frame = applyClockFrame(allEnvelopes);
+    const peers: PeerProfile[] = profilePeers(allEnvelopes);
+    return {
+      query: results[0]?.query ?? null,
+      days: results[0]?.days ?? null,
+      scannedEstimate: results.reduce((s, r) => s + (r.scannedEstimate || 0), 0),
+      rejected: results.reduce((s, r) => s + (r.rejected || 0), 0),
+      messages: allEnvelopes,
+      peers,
+      aggregate: aggregateVoice(allEnvelopes, peers, frame),
+
+    };
+  }
+
+
 
 
 
