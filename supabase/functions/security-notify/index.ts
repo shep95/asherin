@@ -526,6 +526,8 @@ Deno.serve(async (req) => {
                 jumps,
                 preciseAddress: precise,
                 identity,
+                tradecraft,
+                cameras,
               }
             : undefined,
         }, 200, cors);
