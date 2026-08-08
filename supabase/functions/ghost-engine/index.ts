@@ -38,7 +38,7 @@ const MAX_TARGETS = 24;
 const CONCURRENCY = 6;
 const BUCKET = "ghost-buffer";
 
-type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge";
+type Action = "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload" | "purge" | "ledger";
 
 interface GhostRequest {
   action?: Action;
@@ -55,7 +55,13 @@ interface GhostRequest {
   sessionId?: string;
   /** action=search — which layers to consult. */
   scope?: "all" | "web" | "buffer";
+  /** action=ledger — Cloud Intelligence fusion parameters. */
+  windowDays?: number;
+  channel?: "gmail" | "sms" | null;
+  focus?: string | null;
+  maxHosts?: number;
 }
+
 
 /** A bare URL (with or without scheme) is a direct probe, not a sweep. */
 function asUrl(raw: string): string | null {
