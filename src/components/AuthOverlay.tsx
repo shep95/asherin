@@ -36,6 +36,13 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+    if (!isLogin && nameCheck.ok === false) {
+      // Surface the reason inline rather than round-tripping to the server for
+      // a rejection we can already prove locally.
+      setNameTouched(true);
+      toast({ title: "Choose a different name", description: nameCheck.reason, variant: "destructive" });
+      return;
+    }
     setLoading(true);
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -48,7 +55,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
     } else {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { data: { name }, emailRedirectTo: window.location.origin },
+        options: { data: { name: name.trim() }, emailRedirectTo: window.location.origin },
       });
       setLoading(false);
       if (error) {
