@@ -570,15 +570,3 @@ export function fenceMessages(lines: string[]): string {
     "<<<END_UNTRUSTED_MESSAGE_CORPUS>>>",
   ].join("\n");
 }
-
-export async function gfetchPeek(a: Acct, q = "from:txt.voice.google.com") {
-  const list = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1&q=${encodeURIComponent(q)}`, a.token);
-  const id = list.messages?.[0]?.id;
-  const d = await gfetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`, a.token);
-  const walk = (p: any, depth = 0): any => ({
-    mime: p?.mimeType, size: p?.body?.size,
-    sample: p?.body?.data ? decodeB64Url(p.body.data).slice(0, 900) : null,
-    parts: depth < 4 ? (p?.parts ?? []).map((x: any) => walk(x, depth + 1)) : [],
-  });
-  return { headers: d.payload?.headers?.filter((h: any) => /^(from|to|subject)$/i.test(h.name)), labels: d.labelIds, tree: walk(d.payload) };
-}
