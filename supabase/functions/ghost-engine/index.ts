@@ -429,8 +429,60 @@ Deno.serve(async (req) => {
     return json({ action: "timeline", identity: id, report });
   }
 
+  // ── IDENTIFIER — "everywhere this address or number actually appears" ──────
+  // INTERCEPT reports what the index offered. IDENTIFIER opens each candidate
+  // and demands the string be on the page before it counts as a sighting, then
+  // folds sightings into per-host surfaces with their own dated windows.
+  if (action === "identifier") {
+    const target = String(body.query || "").trim();
+    if (!target) return json({ error: "Give the engine an email address or a phone number." }, 400);
+    const report = await sweepIdentifier(target, {
+      authHeader: req.headers.get("Authorization"),
+      budgetMs: Math.min(Math.max(Number(body.budgetMs) || 100_000, 15_000), 170_000),
+      openCap: Math.min(Math.max(Number(body.limit) || 40, 4), 80),
+      maxLeads: Math.min(Math.max(Number(body.maxLeads) || 220, 40), 400),
+    });
 
+    // A sweep is an entity lookup, so it belongs on the same history rail the
+    // intercept writes to — otherwise the record of who was checked is split
+    // across two ledgers and neither one is complete.
+    if (sb && userId && report.identity.kind !== "freeform") {
+      try {
+        await sb.from("ghost_entity_history").insert({
+          user_id: userId,
+          entity_key: report.identity.key,
+          entity_kind: `sweep_${report.identity.kind}`,
+          entity_label: report.identity.label,
+          query: target,
+          scope: "identifier_sweep",
+          leads_found: report.leadsHarvested,
+          probed: report.opened,
+          anomalies: report.surfaces.filter(
+            (s) => s.surfaceClass === "breach-index" || s.surfaceClass === "paste",
+          ).length,
+          elapsed_ms: report.elapsedMs,
+          results: {
+            surfaces: report.surfaces.slice(0, 30).map((s) => ({
+              host: s.host, class: s.surfaceClass, sightings: s.sightings.length,
+              firstSeen: s.firstSeen, lastSeen: s.lastSeen, bestGrade: s.bestGrade,
+            })),
+          },
+          summary: {
+            confirmed: report.confirmed,
+            surfaces: report.surfaces.length,
+            firstSeen: report.firstSeen,
+            lastSeen: report.lastSeen,
+            byClass: report.byClass,
+            notes: report.notes.slice(0, 6),
+          },
+        });
+      } catch (e) {
+        console.warn("[ghost-engine] sweep history insert skipped:", (e as Error).message);
+      }
+    }
 
+    return json({ action: "identifier", report });
+  }
 
 
   // ── HISTORY — the second half of the dual sidebar ──────────────────────────
