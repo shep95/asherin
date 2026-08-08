@@ -200,7 +200,7 @@ export function parseRideEmail(msg: {
     kind,
     subject,
     gaps,
-    excerpt: text.slice(0, 600),
+    excerpt: text.slice(0, 3000),
   };
 }
 
