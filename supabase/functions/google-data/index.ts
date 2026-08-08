@@ -457,6 +457,25 @@ function mergeResults(service: string, results: any[]): any {
     return { totalMessages: results.reduce((s, r) => s + (r.totalMessages || 0), 0), messages: allMessages };
   }
 
+  if (service === "gmail_forensics") {
+    // Re-aggregate over the union rather than summing per-account rollups:
+    // domain reputation and country spread are only meaningful across the
+    // operator's whole correspondence, not per mailbox.
+    const allReports: MessageForensics[] = results.flatMap((r) =>
+      (r.messages || []).map((m: MessageForensics) => ({ ...m, _account: r._account_email } as MessageForensics))
+    );
+    allReports.sort((a, b) => (b.internalDate ?? 0) - (a.internalDate ?? 0));
+    return {
+      scannedEstimate: results.reduce((s, r) => s + (r.scannedEstimate || 0), 0),
+      query: results[0]?.query ?? null,
+      geoEnabled: results.some((r) => r.geoEnabled),
+      messages: allReports,
+      aggregate: aggregate(allReports),
+    };
+  }
+
+
+
   if (service === "gmail_stats") {
     // Every exact counter must survive the fold. Summing only the three legacy
     // keys was what forced the synthesis layer back onto estimates when more
