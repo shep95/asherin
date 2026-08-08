@@ -537,13 +537,32 @@ Deno.serve(async (req) => {
     return json({ photos: [], match }, 200, cors);
   }
 
-  // Context hint: locality / employer strings already in the dossier sharpen
-  // the search without inventing facts the report never asserted.
-  const hint = (Array.isArray(note.sections) ? (note.sections as any[]) : [])
-    .map((s) => String(s?.value ?? ""))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .slice(0, 120);
+  // A first name alone cannot be corroborated. Running the harvest anyway is
+  // how a dossier ends up illustrated with strangers, so refuse and say why.
+  if (!isQualifiedSubject(subject)) {
+    const match: PhotoMatch = {
+      verdict: "unavailable",
+      confidence: 0,
+      independentSources: 0,
+      reasoning:
+        `n/a — the subject of record is "${subject}", a given name with no family name. ` +
+        `An open-web image search on a given name alone returns unrelated people and non-photographic ` +
+        `artwork, so any gallery it produced would be decoration, not corroboration. No frames were harvested.`,
+      observations: [],
+      falsifier: "Supply a full name (or a registry-resolved surname) and re-run the cross-match.",
+      assessedAt: new Date().toISOString(),
+    };
+    await sb
+      .from("intel_notifications")
+      .update({ photos: [], photo_match: match })
+      .eq("id", note.id)
+      .eq("user_id", user.id);
+    return json({ photos: [], match }, 200, cors);
+  }
+
+  // Only person-locating context is carried into the query. Verdict prose and
+  // vehicle/plate strings are excluded — they steer the index toward listings.
+  const hint = anchorsFrom(note.sections);
 
   const queries = [
     `"${subject}" photo ${hint}`.trim(),
@@ -580,36 +599,52 @@ Deno.serve(async (req) => {
   console.log("photo_images", JSON.stringify({ refs: imageRefs.length }));
 
 
-  const stored: StoredPhoto[] = [];
-  const frames: Array<{ b64: string; type: string; host: string }> = [];
+  // Harvest into memory first. Nothing is written to storage or shown to the
+  // operator until the face gate has cleared it, so the gallery can never
+  // contain a bust, a book cover or a logo.
+  type Pending = { buf: ArrayBuffer; type: string; hash: string; ref: { imageUrl: string; pageUrl: string; title: string } };
+  const pending: Pending[] = [];
   const seen = new Set<string>();
 
   for (const ref of imageRefs) {
-    if (stored.length >= MAX_PHOTOS) break;
+    if (pending.length >= MAX_PHOTOS) break;
     const got = await fetchImage(ref.imageUrl);
     if (!got) continue;
     const hash = await sha256(got.buf);
     if (seen.has(hash)) continue; // same file re-syndicated is not a second source
     seen.add(hash);
+    pending.push({ buf: got.buf, type: got.type, hash, ref });
+  }
 
-    const path = `${user.id}/${note.id}/${hash.slice(0, 16)}.${extOf(got.type)}`;
+  const gate = await faceGate(
+    pending.map((p) => ({ b64: toBase64(p.buf), type: p.type, host: hostOf(p.ref.pageUrl) })),
+  );
+  const admitted = pending.filter((_, i) => gate[i]);
+  const rejected = pending.length - admitted.length;
+  console.log("photo_face_gate", JSON.stringify({ harvested: pending.length, admitted: admitted.length, rejected }));
+
+  const stored: StoredPhoto[] = [];
+  const frames: Array<{ b64: string; type: string; host: string }> = [];
+
+  for (const p of admitted) {
+    const path = `${user.id}/${note.id}/${p.hash.slice(0, 16)}.${extOf(p.type)}`;
     const { error: upErr } = await sb.storage
       .from(BUCKET)
-      .upload(path, got.buf, { contentType: got.type, upsert: true });
+      .upload(path, p.buf, { contentType: p.type, upsert: true });
     if (upErr) {
       console.error("photo_upload_failed", upErr.message);
       continue;
     }
     stored.push({
       path,
-      sourceUrl: ref.pageUrl,
-      sourceHost: hostOf(ref.pageUrl),
-      sourceTitle: ref.title.slice(0, 160),
-      contentType: got.type,
-      bytes: got.buf.byteLength,
-      hash,
+      sourceUrl: p.ref.pageUrl,
+      sourceHost: hostOf(p.ref.pageUrl),
+      sourceTitle: p.ref.title.slice(0, 160),
+      contentType: p.type,
+      bytes: p.buf.byteLength,
+      hash: p.hash,
     });
-    frames.push({ b64: toBase64(got.buf), type: got.type, host: hostOf(ref.pageUrl) });
+    frames.push({ b64: toBase64(p.buf), type: p.type, host: hostOf(p.ref.pageUrl) });
   }
 
   const match = await crossMatch(subject, frames);
