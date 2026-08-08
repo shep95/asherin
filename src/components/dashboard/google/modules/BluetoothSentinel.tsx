@@ -290,7 +290,7 @@ const BluetoothSentinel = () => {
   const captureOnce = async () => {
     sessionRef.current ||= `${Date.now().toString(36)}-manual`;
     try {
-      if (mode === "continuous") {
+      if (mode === "continuous" || mode === "native") {
         const paired = await listPaired();
         for (const a of paired) bufferRef.current.set(a.id, { ...a, ...(posRef.current || {}) });
       }
