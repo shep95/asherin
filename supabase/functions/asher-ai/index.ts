@@ -500,11 +500,13 @@ serve(async (req) => {
     // Sovereign Source Atlas policy: authoritative registries only.
     const leaksBlock = "";
 
-    // ── Map-edit fast lane ────────────────────────────────────────────────
-    // "pin this", "draw a 2km ring", "clear the overlay" are UI mutations, not
-    // investigations. Running the archive / jurisdictional / YouTube sweeps on
-    // them added up to 75s of dead latency before a one-line tool call. Skip.
+    // ── Map-edit / cloud-intel fast lane ───────────────────────────────────
+    // "pin this", "draw a 2km ring", "clear the overlay", "plot my cloud contacts"
+    // are UI mutations, not investigations. Running the archive / jurisdictional /
+    // YouTube sweeps on them added up to 75s of dead latency before a one-line
+    // tool call. Skip.
     const mapEditFast = detectMapEditIntent(latestUserText(cleaned));
+    const cloudIntelFast = detectCloudIntelIntent(latestUserText(cleaned));
 
     let archiveBlock = "";
     try {
