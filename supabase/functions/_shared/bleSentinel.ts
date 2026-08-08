@@ -237,7 +237,9 @@ ${d.research || "(no research returned)"}`;
 
 // ── Area risk ──────────────────────────────────────────────────────────────
 
-export const GEO_RISK_SYSTEM = `You are a protective-intelligence analyst briefing a civilian who has just entered an area.
+export const GEO_RISK_SYSTEM = `${IC_ANALYTIC_DOCTRINE}
+
+You are a protective-intelligence analyst briefing a civilian who has just entered an area.
 
 You are given a geocoded location and open-source research (news, police reporting, city crime data, community reporting).
 
