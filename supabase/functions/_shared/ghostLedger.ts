@@ -33,7 +33,11 @@ import { buildIndex, type GhostIndex } from "./ghostIndex.ts";
 const SELF_HOSTS = new Set([
   "gmail.com", "googlemail.com", "google.com", "calendar.google.com",
   "drive.google.com", "mail.google.com", "youtube.com",
+  // First-party notification mail. Scoring our own alerts as suspect
+  // infrastructure would bury the correspondents that actually matter.
+  "asherin.com",
 ]);
+
 
 /** Shorteners hide the true destination — always worth a probe, never trusted. */
 const SHORTENERS = new Set([
