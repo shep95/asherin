@@ -306,6 +306,7 @@ Deno.serve(async (req) => {
         // Recompute aggregates and run the recurrence doctrine.
         const alerts: any[] = [];
         let dossiersBuilt = 0;
+        let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
           const agg = await recompute(id, totalSessions);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
