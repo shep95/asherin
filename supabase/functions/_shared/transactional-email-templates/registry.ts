@@ -29,6 +29,7 @@ import { template as subscriptionWelcome } from './subscription-welcome.tsx'
 import { template as subscriptionEnding } from './subscription-ending.tsx'
 import { template as forumDailyDigest } from './forum-daily-digest.tsx'
 import { template as rideshareReport } from './rideshare-report.tsx'
+import { template as intelligenceReport } from './intelligence-report.tsx'
 
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
@@ -52,5 +53,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'subscription-ending': subscriptionEnding,
   'forum-daily-digest': forumDailyDigest,
   'rideshare-report': rideshareReport,
+  'intelligence-report': intelligenceReport,
 
 }
