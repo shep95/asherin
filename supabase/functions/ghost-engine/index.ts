@@ -52,7 +52,8 @@ const BUCKET = "ghost-buffer";
 
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
-  | "purge" | "ledger" | "history" | "historyDetail" | "forget";
+  | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin";
+
 
 interface GhostRequest {
   action?: Action;
