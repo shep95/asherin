@@ -16,6 +16,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { handOverMesh } from "@/lib/sentinel/background";
 
 const DEVICE_KEY = "asherin_device_id";
 
@@ -203,6 +204,15 @@ async function writeReport(fix: MeshFix | null, source: string): Promise<void> {
     .from("mesh_devices")
     .upsert(row as never, { onConflict: "user_id,device_id" });
   if (error) throw error;
+
+  // Leave the last true reading with the background worker, which cannot read
+  // the Battery Status API itself, so the fleet keeps updating after this tab
+  // is closed.
+  handOverMesh({
+    deviceId: String(row.device_id),
+    batteryPct: battery.pct,
+    charging: battery.charging,
+  });
 }
 
 /** Idempotent, throttled, never throws into a caller's render path. */
