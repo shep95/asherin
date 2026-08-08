@@ -1,3 +1,5 @@
+import { IC_ANALYTIC_DOCTRINE } from "../_shared/icTradecraft.ts";
+
 // Asher Eyes — Intelligence Dossier
 // Scrapes text from the current Asher Eyes result set, builds an in-memory
 // intelligence file, and answers operator questions with citations.
@@ -99,7 +101,9 @@ Deno.serve(async (req) => {
 
     const top = target;
 
-    const system = `You are ASHER EYES — Intelligence Dossier Analyst.
+    const system = `${IC_ANALYTIC_DOCTRINE}
+
+You are ASHER EYES — Intelligence Dossier Analyst.
 You have just scraped ${top.length} documents from a leaks index. Answer the operator's question using ONLY the provided dossier.
 
 RULES:
