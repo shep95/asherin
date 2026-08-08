@@ -9036,6 +9036,126 @@ export type Database = {
         }
         Relationships: []
       }
+      sentinel_cron_state: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          interval_minutes: number
+          last_error: string | null
+          last_finished_at: string | null
+          last_place_key: string | null
+          last_started_at: string | null
+          last_status: string | null
+          last_tier: string
+          next_due_at: string
+          runs: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          interval_minutes?: number
+          last_error?: string | null
+          last_finished_at?: string | null
+          last_place_key?: string | null
+          last_started_at?: string | null
+          last_status?: string | null
+          last_tier?: string
+          next_due_at?: string
+          runs?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          interval_minutes?: number
+          last_error?: string | null
+          last_finished_at?: string | null
+          last_place_key?: string | null
+          last_started_at?: string | null
+          last_status?: string | null
+          last_tier?: string
+          next_due_at?: string
+          runs?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sentinel_devices: {
+        Row: {
+          beacons: number
+          created_at: string
+          id: string
+          label: string | null
+          last_beacon_at: string | null
+          platform: string | null
+          revoked: boolean
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          beacons?: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_beacon_at?: string | null
+          platform?: string | null
+          revoked?: boolean
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          beacons?: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_beacon_at?: string | null
+          platform?: string | null
+          revoked?: boolean
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sentinel_presence: {
+        Row: {
+          accuracy: number | null
+          effective_type: string | null
+          fix_at: string | null
+          last_seen_at: string
+          last_source: string | null
+          lat: number | null
+          link_type: string | null
+          lng: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          effective_type?: string | null
+          fix_at?: string | null
+          last_seen_at?: string
+          last_source?: string | null
+          lat?: number | null
+          link_type?: string | null
+          lng?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          effective_type?: string | null
+          fix_at?: string | null
+          last_seen_at?: string
+          last_source?: string | null
+          lat?: number | null
+          link_type?: string | null
+          lng?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sentinel_settings: {
         Row: {
           ble_enabled: boolean
