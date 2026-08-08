@@ -12,6 +12,10 @@ import type { DashboardView } from "@/components/dashboard/types";
 export const CONNECTED_ACCOUNT_VIEWS: DashboardView[] = ["google"];
 /** @deprecated retained for legacy imports — the mesh is no longer maximum-only. */
 export const MAXIMUM_VIEWS: DashboardView[] = [];
+// Strict Pro surfaces — evaluated BEFORE the trial window so a free 24h trial
+// never opens them, keeping the client gate identical to the server gate
+// (supabase/functions/_shared/proTierGate.ts).
+const PRO_STRICT_VIEWS: DashboardView[] = ["ghost-engine"];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
@@ -70,6 +74,7 @@ export function useAccess() {
     // loading grace window: neither a 24h trial nor a slow subscription fetch
     // may open someone's linked Google mesh.
     if (CONNECTED_ACCOUNT_VIEWS.includes(view)) return hasAureon;
+    if (PRO_STRICT_VIEWS.includes(view)) return hasPro;
 
     if (trialActive) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;

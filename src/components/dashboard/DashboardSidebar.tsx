@@ -82,6 +82,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "geo-audit": Gauge,
   "zaxin": Layers,
   "zacoon": Ghost,
+  "ghost-engine": Ghost,
   "google": Globe,
   
   "reverse-engineer": Search,

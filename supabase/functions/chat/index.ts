@@ -1541,6 +1541,30 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
+    // ── GHOST ENGINE — metadata substrate (Asherin Pro only) ────────────────
+    // Fires only when the operator's question is structurally about provenance
+    // (who made it, when, on what device, on whose infrastructure) AND a public
+    // URL is present. Failure is non-fatal: chat continues without the shell.
+    try {
+      const ghostMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      const ghostText = String(ghostMsg?.content || "");
+      const { needsGhostSweep, runGhostForChat, formatGhostContext } =
+        await import("../_shared/ghostEngineBridge.ts");
+      if (ghostMsg && needsGhostSweep(ghostText)) {
+        const bundle = await runGhostForChat(req, ghostText);
+        if (bundle) {
+          webSearchContext = `${webSearchContext || ""}${formatGhostContext(bundle)}`;
+          console.log(
+            `[chat] Ghost shell: ${bundle.index.coverage.indexed} probes, ${bundle.index.anomalies.length} anomalies, ${bundle.elapsedMs}ms`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error("[chat] Ghost bridge failed:", (e as Error).message);
+    }
+
+
+
 
     // Library of Leaks / breach aggregators are PERMANENTLY DISABLED.
     // Sovereign Source Atlas policy: authoritative registries only.

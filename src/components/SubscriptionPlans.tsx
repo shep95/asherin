@@ -117,9 +117,21 @@ const PLANS = [
         ],
       },
       {
+        title: "Asherin Ghost Engine (Pro exclusive)",
+        items: [
+          "Metadata-only search — indexes the shell, never the content",
+          "EXIF capture fields, document producers, embedded authorship",
+          "DNS / ASN / TLS posture, redirect topology, origin geolocation",
+          "Shared-dimension graph with keystone detection",
+          "Timeline reconstruction + contradiction reports (hardware-date paradoxes, GPS leakage)",
+          "Wired into Asherin Chat as a provenance substrate",
+        ],
+      },
+      {
         title: "NOMAD Public Intelligence Agent",
         items: ["OSINT investigation tooling", "Public web intelligence + entity matching"],
       },
+
       {
         title: "Intelligence Briefings (Advanced)",
         items: ["Daily briefings", "Industry customization"],
