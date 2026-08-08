@@ -30,6 +30,20 @@ import {
   satelliteExportUrl,
   type ActorIntel,
 } from "../_shared/actorIntel.ts";
+import {
+  buildLocationTimeline,
+  detectImpossibleTravel,
+  rankActorCandidates,
+  traceChangeMechanism,
+  reverseGeocode,
+  traceActorIdentity,
+  type ActorCandidate,
+  type JumpVerdict,
+  type MechanismTrace,
+  type PreciseLocation,
+  type IdentityTrace,
+} from "../_shared/actorForensics.ts";
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
