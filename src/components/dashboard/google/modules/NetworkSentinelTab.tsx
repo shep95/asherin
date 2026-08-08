@@ -100,27 +100,17 @@ export default function NetworkSentinelTab() {
     }
   }, [load]);
 
-  // Automatic: once on mount and on any link transition, throttled so a
-  // flapping connection cannot spam the ledger or the alert channel.
+  // Automatic runs belong to the always-on daemon (src/lib/sentinel/alwaysOn.ts),
+  // which judges every uplink on boot, on link change, on reconnect and on a
+  // half-hourly cadence whether or not this tab was ever opened. Scheduling them
+  // here as well would double-fire and race the shared throttle, so this view
+  // only listens and renders.
   useEffect(() => {
     void load();
-    const auto = () => {
-      const last = Number(localStorage.getItem(throttleKey) ?? 0);
-      if (Date.now() - last < AUTO_THROTTLE_MS) return;
-      localStorage.setItem(throttleKey, String(Date.now()));
-      void run(false);
-    };
-    auto();
-    const c = (navigator as unknown as { connection?: EventTarget }).connection;
-    c?.addEventListener?.("change", auto);
-    window.addEventListener("online", auto);
-    return () => {
-      c?.removeEventListener?.("change", auto);
-      window.removeEventListener("online", auto);
-    };
-    // load/run are stable callbacks; this wires listeners exactly once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const onUpdated = () => { void load(); };
+    window.addEventListener("asherin-network-updated", onUpdated);
+    return () => window.removeEventListener("asherin-network-updated", onUpdated);
+  }, [load]);
 
   const forget = async (bssid: string) => {
     await supabase.functions.invoke("wifi-sentinel", { body: { action: "forget", bssid } });
