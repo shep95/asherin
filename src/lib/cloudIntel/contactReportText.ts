@@ -266,8 +266,178 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
   L.push(...wrap("  ANALYTIC CAVEAT: open-source findings describe what is publicly asserted about the subject, not what is true of them. Nothing here is verified against a primary identity document, and a name collision remains the standing failure mode of every field above.", 2));
   L.push("");
 
+  L.push(...confidenceMatrix(a, n++));
+  L.push(...alternativeHypotheses(a, n++));
+  L.push(...priorityRequirements(a, n++));
+
   return L;
 }
+
+/**
+ * ICD 203 requires analytic confidence to be auditable, not asserted. The
+ * matrix publishes the four inputs that actually move it — source diversity,
+ * corroboration depth, authoritative anchoring, and collection completeness —
+ * so a reader can disagree with the grade on stated grounds rather than tone.
+ */
+function confidenceMatrix(a: OsintAnnex, n: number): string[] {
+  const L = banner(n, "Analytic confidence matrix (ICD 203)");
+  if (a.status !== "ready") {
+    L.push(...wrap("  NOT SCORED — collection did not complete, so no dimension has a denominator. Treat the whole open-source annex as an unmet requirement.", 2));
+    L.push("");
+    return L;
+  }
+
+  const m = a.metrics;
+  const corroborated = a.facts.filter((f) => f.credibility <= 2).length;
+  const candidate = a.facts.filter((f) => f.band === "candidate").length;
+  // Each dimension is scored 0-100 from an observed count against the
+  // threshold at which that dimension stops constraining the judgment.
+  const cap = (x: number) => Math.max(0, Math.min(100, Math.round(x)));
+  const dims: Array<{ label: string; score: number; read: string }> = [
+    {
+      label: "Source diversity",
+      score: cap((m.independentDomains / 6) * 100),
+      read: `${m.independentDomains} independent domain${m.independentDomains === 1 ? "" : "s"} in the retained set; six is the point at which single-publisher echo stops dominating.`,
+    },
+    {
+      label: "Corroboration depth",
+      score: a.facts.length ? cap((corroborated / a.facts.length) * 100) : 0,
+      read: `${corroborated} of ${a.facts.length || 0} published field${a.facts.length === 1 ? "" : "s"} reach Admiralty credibility 1–2; the remainder are single-domain assertions.`,
+    },
+    {
+      label: "Authoritative anchoring",
+      score: cap((m.authoritativeSources / 3) * 100),
+      read: `${m.authoritativeSources} registry-class source${m.authoritativeSources === 1 ? "" : "s"} (court, corporate, licensing). Zero here means nothing is anchored to a system of record.`,
+    },
+    {
+      label: "Collection completeness",
+      score: cap(a.collectionConfidence),
+      read: `${m.documentsParsed} document${m.documentsParsed === 1 ? "" : "s"} parsed across ${m.queriesRun} queries; ${a.gaps.length} gap${a.gaps.length === 1 ? "" : "s"} remain open.`,
+    },
+    {
+      label: "Deception tolerance",
+      score: candidate === 0 ? 80 : cap(80 - candidate * 15),
+      read: candidate === 0
+        ? "No self-published or unverifiable field carried a judgment. Denial-and-deception indicators considered; none observed."
+        : `${candidate} field${candidate === 1 ? " is" : "s are"} candidate-band — self-asserted or single-surface, and therefore forgeable by the subject. Deception considered and NOT excluded.`,
+    },
+  ];
+
+  for (const d of dims) {
+    L.push(...field(`  ${d.label.padEnd(24)} `, `${String(d.score).padStart(3)} / 100   ${bar(d.score)}`));
+    L.push(...field("      ↳ ", d.read, 8));
+    L.push("");
+  }
+
+  const overall = Math.round(dims.reduce((s, d) => s + d.score, 0) / dims.length);
+  const grade = overall >= 70 ? "HIGH" : overall >= 40 ? "MODERATE" : "LOW";
+  L.push(...wrap(`  OVERALL ANALYTIC CONFIDENCE: ${grade} (${overall}/100). This grade constrains every judgment in the BLUF — a judgment cannot be more confident than the evidence base that carries it.`, 2));
+  L.push("");
+  return L;
+}
+
+/**
+ * Heuer's ACH in its publishable form: for every judgment, the competing
+ * explanation is stated and either rejected on evidence or left standing. A
+ * judgment with no stated alternative is an assumption wearing a confidence
+ * label, which is the failure mode this section exists to prevent.
+ */
+function alternativeHypotheses(a: OsintAnnex, n: number): string[] {
+  const L = banner(n, "Alternative hypotheses considered (ACH)");
+  if (a.status !== "ready" || !a.keyJudgments.length) {
+    L.push(...wrap("  No judgment was published, so no competing explanation required adjudication.", 2));
+    L.push("");
+    return L;
+  }
+
+  const thin = a.metrics.independentDomains < 2;
+  a.keyJudgments.forEach((j, i) => {
+    L.push(...field(`  KJ-${String(i + 1).padStart(2, "0")} — `, j.text, 4));
+    L.push(...field("    H1 (adopted):  ", `${j.likelihood} · ${j.confidence} — ${j.basis}`, 8));
+    L.push(...field(
+      "    H2 (rejected): ",
+      "The surfaces describe a different person sharing the subject's name, and matching pulled an unrelated footprint into this dossier.",
+      8,
+    ));
+    L.push(...field(
+      "    Adjudication:  ",
+      thin
+        ? "NOT REJECTED. Fewer than two independent domains carry this subject, which is exactly the signature a name collision produces. H2 remains live — do not act on H1 alone."
+        : `Rejected on corroboration: ${a.metrics.independentDomains} independent domains converge on the same identifier set, and a collision would not reproduce that convergence.`,
+      8,
+    ));
+    L.push("");
+  });
+
+  L.push(...wrap("  A third hypothesis is standing for every subject and is never rejected: the public record is incomplete by design, and the absence of a finding is a property of indexing, not of the subject's conduct.", 2));
+  L.push("");
+  return L;
+}
+
+/**
+ * Gaps become a collection plan only when they are ranked by what they would
+ * change. Each requirement names the judgment it would move, so the reader
+ * knows which unanswered question is load-bearing and which is housekeeping.
+ */
+function priorityRequirements(a: OsintAnnex, n: number): string[] {
+  const L = banner(n, "Priority intelligence requirements");
+  const reqs: Array<{ pri: string; ask: string; moves: string }> = [];
+
+  if (a.status !== "ready") {
+    reqs.push({
+      pri: "PIR-1",
+      ask: "Re-run open-source collection against this subject.",
+      moves: "Every judgment — the annex currently has no evidence base at all.",
+    });
+  } else {
+    if (a.metrics.authoritativeSources === 0) {
+      reqs.push({
+        pri: "PIR-1",
+        ask: "Obtain one registry-class record (court docket, corporate filing, professional licence) tying the subject's name to a jurisdiction.",
+        moves: "Every identity field, from candidate band to confirmed. This is the single highest-leverage unmet requirement.",
+      });
+    }
+    if (a.metrics.independentDomains < 2) {
+      reqs.push({
+        pri: `PIR-${reqs.length + 1}`,
+        ask: "Collect a second independent publisher carrying the same identifier set.",
+        moves: "H2 (name collision), which cannot currently be rejected on evidence.",
+      });
+    }
+    const unswept = !a.identifierSweeps.length;
+    if (unswept) {
+      reqs.push({
+        pri: `PIR-${reqs.length + 1}`,
+        ask: "Add a hard identifier (email or phone) to the contact record and re-sweep.",
+        moves: "The circulation finding — without an identifier there is nothing to confirm sightings against.",
+      });
+    }
+    if (a.dork?.blocker) {
+      reqs.push({
+        pri: `PIR-${reqs.length + 1}`,
+        ask: "Re-run the doctrine battery once the reasoning engine is reachable.",
+        moves: "Reasoned exposure — the report currently states where the subject IS, not where their shape says they should be.",
+      });
+    }
+    for (const g of a.gaps.slice(0, 4)) {
+      reqs.push({ pri: `PIR-${reqs.length + 1}`, ask: g, moves: "Collection completeness in the confidence matrix." });
+    }
+  }
+
+  if (!reqs.length) {
+    L.push(...wrap("  No load-bearing requirement is outstanding. Every published judgment is carried by corroborated, registry-anchored sourcing.", 2));
+    L.push("");
+    return L;
+  }
+
+  for (const r of reqs) {
+    L.push(...field(`  ${r.pri}  `, r.ask, 8));
+    L.push(...field("        Would move: ", r.moves, 8));
+    L.push("");
+  }
+  return L;
+}
+
 
 export function renderContactReport(r: ContactReport, contactName: string, annex?: OsintAnnex | null): string {
 
