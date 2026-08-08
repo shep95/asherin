@@ -2015,11 +2015,11 @@ const IntelligenceMapModule = () => {
     <div className="relative flex h-full w-full bg-background">
       {/* LEFT LAYER PANEL — resizable, collapsible, searchable */}
       <div
-        className="flex h-full flex-col border-r border-border/15 bg-card/30 backdrop-blur-md"
-        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined, overflow: sidebar.collapsed ? "hidden" : undefined }}
+        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border/15 bg-card/30 backdrop-blur-md"
+        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined }}
         aria-hidden={sidebar.collapsed}
       >
-        <div className="border-b border-border/15 px-5 py-4 flex items-center gap-3">
+        <div className="shrink-0 border-b border-border/15 px-5 py-4 flex items-center gap-3">
           <LayersIcon className="h-5 w-5 text-muted-foreground shrink-0" strokeWidth={1.5} />
           <p className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase truncate">Layer Tree</p>
           <button
@@ -2030,7 +2030,7 @@ const IntelligenceMapModule = () => {
             <PanelLeftClose className="h-4 w-4" />
           </button>
         </div>
-        <div className="border-b border-border/10 px-3 py-2">
+        <div className="shrink-0 border-b border-border/10 px-3 py-2">
           <input
             value={layerFilter}
             onChange={(e) => setLayerFilter(e.target.value)}
@@ -2039,7 +2039,10 @@ const IntelligenceMapModule = () => {
             className="w-full rounded-md border border-border/25 bg-background/50 px-2 py-1.5 text-[11px] font-light text-foreground outline-none focus:border-[#c98b3a]/50"
           />
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-3 text-sm">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 text-sm [-webkit-overflow-scrolling:touch]"
+          style={{ touchAction: "pan-y" }}
+        >
           {LAYER_TREE.map((cat) => {
             const needle = layerFilter.trim().toLowerCase();
             // A filter must not hide the answer behind a collapsed header, so a
