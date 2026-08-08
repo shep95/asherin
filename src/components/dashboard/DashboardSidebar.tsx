@@ -1,8 +1,8 @@
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasProAccess, hasMaximumAccess } from "@/contexts/SubscriptionContext";
-import { MAXIMUM_VIEWS } from "@/hooks/useAccess";
+import { useSubscription, hasSearchAccess, hasProAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
+import { CONNECTED_ACCOUNT_VIEWS } from "@/hooks/useAccess";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -214,10 +214,10 @@ const DashboardSidebar = ({
     if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
     if (item.adminOnly) return user?.email === ADMIN_EMAIL;
     if (user?.email === ADMIN_EMAIL) return true;
-    // Maximum Intelligence ($399/mo Asherin Pro). Checked ahead of the feature
-    // map because `tierHasFeature` is currently open to every tier — routing
-    // this surface through it would publish the entry to unentitled operators.
-    if (MAXIMUM_VIEWS.includes(item.id as DashboardView)) return hasMaximumAccess(tierKey);
+    // Connected-account surfaces ($18/mo Asherin and above). Checked ahead of
+    // the feature map because `tierHasFeature` is currently open to every tier —
+    // routing this surface through it would publish the entry to unentitled operators.
+    if (CONNECTED_ACCOUNT_VIEWS.includes(item.id as DashboardView)) return hasAureonAccess(tierKey);
     const featureId = VIEW_FEATURE_MAP[item.id as string];
     if (featureId) {
       return tierHasFeature(tierKey, featureId);

@@ -46,6 +46,24 @@ const PLANS = [
         items: ["Real-time web search", "Standard recency", "Basic query limits"],
       },
       {
+        title: "Google Cloud Intelligence",
+        items: [
+          "Connect multiple Google accounts (Gmail, Calendar, Drive, Meet)",
+          "Automated contact intelligence reports",
+          "Signed-in device mesh — battery, link and live location",
+          "Always-on Sentinel alerts by email and push",
+        ],
+      },
+      {
+        title: "Asherin Maps",
+        items: [
+          "Satellite-first tactical map with scalable layer tree",
+          "Live street-camera intelligence sweeps",
+          "Directions, explore nearby and hiring nearby",
+          "Find-My device locating across your signed-in fleet",
+        ],
+      },
+      {
         title: "Productivity",
         items: ["Code snippets library", "Keyboard shortcuts / command palette"],
       },
@@ -53,6 +71,7 @@ const PLANS = [
         title: "Workspace",
         items: ["Team workspace (limited)", "Basic sharing / collaboration"],
       },
+
       {
         title: "Memory + Privacy",
         items: [
@@ -78,7 +97,7 @@ const PLANS = [
     cta: "Subscribe — $399 / month",
     highlight: true,
     groups: [
-      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features"] },
+      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features", "Google Cloud Intelligence + Asherin Maps, with Pro-depth sweeps"] },
       {
         title: "Azplen Data Intelligence Platform",
         items: [

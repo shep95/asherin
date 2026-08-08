@@ -5,21 +5,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
 import type { DashboardView } from "@/components/dashboard/types";
 
-// Maximum Intelligence ($399/mo Asherin Pro) — strictly above PRO_VIEWS. These
-// surfaces read the operator's own connected accounts, so they are withheld
-// from the free trial as well: only a live maximum-tier subscription (or an
-// admin) opens them.
-export const MAXIMUM_VIEWS: DashboardView[] = ["google"];
+// Connected-account surfaces (Google Cloud Intelligence mesh). Included with
+// the $18/mo Asherin subscription (monthly and 6-month terms) and above, but
+// still evaluated ahead of the free trial: they read the operator's own linked
+// accounts, so an unpaid trial never opens them.
+export const CONNECTED_ACCOUNT_VIEWS: DashboardView[] = ["google"];
+/** @deprecated retained for legacy imports — the mesh is no longer maximum-only. */
+export const MAXIMUM_VIEWS: DashboardView[] = [];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
-  "teams", "geospatial", "plugins", "timeseries",
+  "teams", "plugins", "timeseries",
   "audit", "predictive", "security", "tracker",
   "pattern-analysis", "video-intelligence", "lavba", "cross",
   "zaplen", "zaxin", "zerlal", "knowledge-vault", "zacoon", "bulwark", "geo-audit",
 ];
-const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks"];
+// Asherin ($18/mo, monthly + 6-month) and above. Asherin Maps (`geospatial`)
+// ships with this tier alongside the Cloud Intelligence mesh above.
+const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial"];
+
 
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "file-scrapper", "cipher"];
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
@@ -56,9 +61,11 @@ export function useAccess() {
   const canAccess = useCallback((view: DashboardView): boolean => {
     if (!GATING_ENABLED) return true;
     if (isAdmin) return true;
-    // Maximum tier is evaluated before the trial and the loading grace window:
-    // neither a 24h trial nor a slow subscription fetch may open it.
-    if (MAXIMUM_VIEWS.includes(view)) return hasMaximum;
+    // Connected-account surfaces are evaluated before the trial and the
+    // loading grace window: neither a 24h trial nor a slow subscription fetch
+    // may open someone's linked Google mesh.
+    if (CONNECTED_ACCOUNT_VIEWS.includes(view)) return hasAureon;
+
     if (trialActive) return true;
     if (PUBLIC_VIEWS.includes(view)) return true;
     // Subscription still resolving — only forgive the flash for users who
