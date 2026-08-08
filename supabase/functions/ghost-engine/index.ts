@@ -358,6 +358,19 @@ Deno.serve(async (req) => {
   // not have run.
   if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
 
+  // ── ORIGIN — provenance of a single artefact ───────────────────────────────
+  // The sweep answers "what is on this host". ORIGIN answers "who wrote this
+  // file, when, on what machine, in which timezone" — a different question
+  // with a different evidence base (container metadata, not link topology).
+  if (action === "origin") {
+    const target = String(body.query || (body.urls?.[0] ?? "")).trim();
+    if (!target) return json({ error: "Give the engine a link to trace." }, 400);
+    const trace = await traceOrigin(target);
+    return json({ action: "origin", trace });
+  }
+
+
+
   // ── HISTORY — the second half of the dual sidebar ──────────────────────────
   // INTERCEPT is what the engine is pulling right now. HISTORY is what it has
   // ever pulled on this entity. They are different questions and they get
