@@ -12,7 +12,7 @@ import DirectionsPanel, { type DirectionsEndpoint } from "@/components/asher/Dir
 import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
 import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
 import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
-import { fetchStreetCameras, type StreetCamera } from "@/lib/asher/streetCameras";
+import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
 import { streetViewUrl, type Place } from "@/lib/asher/places";
 import {
   getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
@@ -879,19 +879,19 @@ const IntelligenceMapModule = () => {
   const handleRoutes = useCallback((routes: RouteOption[], activeId: string | null) => {
     setRouteLayer((prev) => ({ ...prev, routes, activeId }));
     const active = routes.find((r) => r.id === activeId) ?? routes[0];
-    if (active && mapRef.current && active.geometry.length > 1) {
-      mapRef.current.fitBounds(L.latLngBounds(active.geometry.map((p) => [p.lat, p.lng] as [number, number])), {
+    if (active && mapRef.current && active.path.length > 1) {
+      mapRef.current.fitBounds(L.latLngBounds(active.path.map((p) => [p.lat, p.lng] as [number, number])), {
         padding: [60, 60], maxZoom: 16,
       });
     }
   }, []);
 
-  const loadCameras = useCallback(async (opts: { near?: { lat: number; lng: number }; route?: Array<{ lat: number; lng: number }> }) => {
+  const loadCameras = useCallback(async (opts: CameraQuery) => {
     setCameraBusy(true);
     try {
-      const list = await fetchStreetCameras(opts);
-      setCameras(list);
-      if (!list.length) toast.info("No public traffic cameras published for that corridor.");
+      const sweep = await fetchStreetCameras(opts);
+      setCameras(sweep.cameras);
+      if (!sweep.cameras.length) toast.info(sweep.coverageNote || "No public traffic cameras published for that corridor.");
     } catch (e: any) {
       toast.error(e?.message || "Camera catalogue unavailable.");
     } finally {
