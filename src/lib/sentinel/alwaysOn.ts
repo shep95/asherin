@@ -94,6 +94,8 @@ let sessionId = "";
 let flushTimer: number | null = null;
 let areaTimer: number | null = null;
 let watchdogTimer: number | null = null;
+let netTimer: number | null = null;
+let tradeTimer: number | null = null;
 let lastRadioAttempt = 0;
 let booted = false;
 let geoEnabled = true;
@@ -463,6 +465,14 @@ async function engage(): Promise<void> {
     areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
     window.setTimeout(() => { void checkAreaNow(true); }, 8_000);
   }
+  if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
+  if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+
+  // First pass, staggered so a cold start does not fire four calls at once.
+  window.setTimeout(() => { void runNetworkCheck(false); }, 4_000);
+  window.setTimeout(() => { void runTradecraftSweep(true); }, 12_000);
+  void ensurePush();
+  armOnFirstGesture();
 }
 
 async function requestWake(): Promise<void> {
@@ -476,6 +486,8 @@ async function requestWake(): Promise<void> {
 async function disengage(): Promise<void> {
   if (flushTimer != null) { window.clearInterval(flushTimer); flushTimer = null; }
   if (areaTimer != null) { window.clearInterval(areaTimer); areaTimer = null; }
+  if (netTimer != null) { window.clearInterval(netTimer); netTimer = null; }
+  if (tradeTimer != null) { window.clearInterval(tradeTimer); tradeTimer = null; }
   stopGeo();
   await stopRadio();
   try { await wakeLock?.release?.(); } catch { /* noop */ }
@@ -494,6 +506,9 @@ async function watchdog(): Promise<void> {
   if (!bleEnabled && handle) await stopRadio();
   if (flushTimer == null) flushTimer = window.setInterval(() => { void flushSentinel(true); }, FLUSH_MS);
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
+  if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
+  if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  void ensurePush();
 }
 
 /** Called once from the app shell. Idempotent. */
@@ -513,10 +528,12 @@ export function bootSentinel(): void {
     if (document.visibilityState === "visible") resume();
     else void flushSentinel(true); // never lose a buffer to a backgrounded tab
   });
-  window.addEventListener("online", resume);
+  window.addEventListener("online", () => { resume(); void runNetworkCheck(false); });
   window.addEventListener("pageshow", resume);
   window.addEventListener("focus", resume);
   window.addEventListener("pagehide", () => { void flushSentinel(true); });
+  // A link transition is the one moment a new, unjudged network appears.
+  (navigator as any)?.connection?.addEventListener?.("change", () => { void runNetworkCheck(false); });
 
   watchdogTimer ??= window.setInterval(() => { void watchdog(); }, WATCHDOG_MS);
 
