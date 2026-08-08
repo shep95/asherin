@@ -25,13 +25,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { harvestVoiceMessages } from "./phoneMessages.ts";
 import {
   gfetch, hasScope, parseAddr, type MeshAccount,
 } from "./googleMesh.ts";
 
 // ── Row shape ──────────────────────────────────────────────────────────────
 
-export type SignalSource = "gmail" | "calendar" | "drive" | "contacts" | "tasks";
+export type SignalSource = "gmail" | "sms" | "calendar" | "drive" | "contacts" | "tasks";
 
 export interface SignalRow {
   user_id: string;
@@ -334,6 +335,9 @@ export interface SweepReport {
 
 const SCOPE_FOR: Record<SignalSource, string> = {
   gmail: "gmail.readonly",
+  // Google Voice publishes no API; it mirrors every text into the mailbox,
+  // so the SMS channel rides the mail scope already granted.
+  sms: "gmail.readonly",
   calendar: "calendar.readonly",
   drive: "drive.metadata.readonly",
   contacts: "contacts.readonly",
@@ -365,7 +369,7 @@ export async function runSweep(
   const budget = Math.max(10_000, Math.min(110_000, opts.budgetMs ?? 70_000));
   const wanted: SignalSource[] = opts.sources?.length
     ? opts.sources
-    : ["gmail", "calendar", "drive", "contacts", "tasks"];
+    : ["gmail", "sms", "calendar", "drive", "contacts", "tasks"];
 
   const selfEmails = new Set(accounts.map((a) => a.google_email.toLowerCase()));
   const reports: SweepReport[] = [];
@@ -382,6 +386,7 @@ export async function runSweep(
       try {
         let rows: SignalRow[] = [];
         if (source === "gmail") rows = await harvestGmail(userId, a, days, cap, selfEmails);
+        else if (source === "sms") rows = (await harvestVoiceMessages(userId, a, days, cap)) as unknown as SignalRow[];
         else if (source === "calendar") rows = await harvestCalendar(userId, a, days, 60, cap);
         else if (source === "drive") rows = await harvestDrive(userId, a, cap);
         else if (source === "contacts") rows = await harvestContactsSignals(userId, a, cap);
