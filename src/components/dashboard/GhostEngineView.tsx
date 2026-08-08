@@ -425,7 +425,23 @@ const GhostEngineView = () => {
       {/* ── Body ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <div className="mx-auto max-w-3xl">
-          {!data && !replay && !loading && (
+          {mode === "origin" && !loading && origin && <OriginPanel trace={origin} />}
+
+          {mode === "origin" && !loading && !origin && (
+            <div className="mt-14 text-center">
+              <Crosshair className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
+              <p className="text-sm font-light text-muted-foreground/70">Give the engine one link. It gives you the act of authorship.</p>
+              <p className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground/45">
+                A PDF carries the wall clock of the machine that wrote it, the UTC offset that machine was set to,
+                the software that produced it, the account that saved it, and — when a camera or scanner touched it —
+                the coordinates where the sensor stood. Origin recovers those fields, resolves the offset against
+                daylight saving for that exact date, reverse-geocodes any real coordinate to a building and street,
+                and converts everything into your own local time.
+              </p>
+            </div>
+          )}
+
+          {mode === "intercept" && !data && !replay && !loading && (
             <div className="mt-14 text-center">
               <Ghost className="mx-auto mb-4 h-8 w-8 text-foreground/20" />
               <p className="text-sm font-light text-muted-foreground/70">Ask the catalog. Then pull the book.</p>
@@ -468,7 +484,7 @@ const GhostEngineView = () => {
             </div>
           )}
 
-          {!loading && (data || replay) && (
+          {mode === "intercept" && !loading && (data || replay) && (
             <>
               {/* An archived run is not a live one; the surface must never
                   let the operator confuse the two. */}
