@@ -871,6 +871,16 @@ const IntelligenceMapModule = () => {
     [coord.lat, coord.lng],
   );
 
+  /* Endpoint resolution for the directions panel: rooftop precision beats a
+     higher-importance city centroid whenever the operator types a street
+     address, and a miss returns null so the panel can say so honestly. */
+  const geocodeEndpoint = useCallback(async (q: string): Promise<DirectionsEndpoint | null> => {
+    const hits = await nominatimSearch(q);
+    if (!hits.length) return null;
+    const h = hits.find(isRooftopHit) ?? hits[0];
+    return { label: h.display_name, lat: parseFloat(h.lat), lng: parseFloat(h.lon) };
+  }, []);
+
   const openDirectionsTo = useCallback((dest: DirectionsEndpoint) => {
     setSeedDest(dest);
     setTool("directions");
