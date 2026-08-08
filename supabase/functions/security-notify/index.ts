@@ -498,7 +498,7 @@ Deno.serve(async (req) => {
             label: "Not you? Lock the account",
             url: "https://asherin.com/dashboard/vault?panic=1",
           },
-          idempotencyKey: `security-${type}-${userId}-${bucket}${isRetro ? "-retro-v2" : ""}`,
+          idempotencyKey: `security-${type}-${userId}-${bucket}${isRetro ? "-retro-v3" : ""}`,
           skipPush: !pushOn,
           skipEmail: !emailOn,
         });
