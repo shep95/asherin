@@ -2339,6 +2339,9 @@ const IntelligenceMapModule = () => {
               }}
             />
           </div>
+        </div>
+
+
 
 
 
