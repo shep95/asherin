@@ -131,6 +131,27 @@ function pickPickup(text: string): string | null {
   return m ? m[1].trim().replace(/\s{2,}/g, " ").slice(0, 160) : null;
 }
 
+/**
+ * Where the trip ENDS. Operators phrase it four ways across dispatch notices,
+ * receipts and share forwards, so all four are tried in order of reliability.
+ * The label is the only destination signal available when the handset is off,
+ * which makes it the anchor for the destination area briefing.
+ */
+function pickDropoff(text: string): string | null {
+  const patterns: RegExp[] = [
+    /\b(?:drop ?off|dropped off at|destination|arriving at|to)\s*[:\-]?\s*([0-9][^\n]{4,70})/i,
+    /\bdrop ?off\s*[:\-]?\s*([A-Z][^\n]{4,70})/,
+    /\bdestination\s*[:\-]?\s*([A-Z][^\n]{4,70})/i,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    const v = m?.[1]?.trim().replace(/\s{2,}/g, " ");
+    if (v && v.length >= 5) return v.slice(0, 160);
+  }
+  return null;
+}
+
+
 const SHARE_URL_RE =
   /https:\/\/(?:t\.uber\.com|trip\.uber\.com|m\.uber\.com|ride\.lyft\.com)\/[A-Za-z0-9._~\-\/?=&%]+/;
 
