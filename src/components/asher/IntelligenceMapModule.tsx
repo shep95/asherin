@@ -908,6 +908,56 @@ const IntelligenceMapModule = () => {
     setTool("directions");
   }, []);
 
+  /* ── FIND-MY ─────────────────────────────────────────────────────────────
+     One round trip returns the newest fix per owned device. Polling is slow
+     (45 s) and only while the layer is visible: BLE sightings arrive on the
+     scanner's duty cycle, so a tighter loop would burn quota for no new truth. */
+  const refreshMyDevices = useCallback(async () => {
+    setMyDevicesLoading(true);
+    try {
+      const rows = await locateGroup(24);
+      setMyDevices(rows);
+      setFocusedDevice((prev) => (prev && rows.some((r) => r.fingerprint === prev) ? prev : null));
+    } catch (e: any) {
+      toast.error(`Find-My unavailable — ${e?.message ?? "unknown error"}`);
+    } finally {
+      setMyDevicesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showMyDevices) return;
+    let alive = true;
+    const tick = () => { if (alive) void refreshMyDevices(); };
+    tick();
+    const id = window.setInterval(tick, 45_000);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [showMyDevices, refreshMyDevices]);
+
+  const focusDevice = useCallback(async (fingerprint: string) => {
+    setFocusedDevice(fingerprint);
+    const d = myDevices.find((x) => x.fingerprint === fingerprint);
+    if (d?.fused) flyTo(d.fused.lat, d.fused.lng, 17);
+    try {
+      const { breadcrumb } = await locateDevice(fingerprint, 24);
+      setDeviceBreadcrumb(breadcrumb);
+    } catch {
+      setDeviceBreadcrumb([]);
+    }
+  }, [myDevices]);
+
+  const fitAllDevices = useCallback(() => {
+    const pts = myDevices.filter((d) => d.fused).map((d) => [d.fused!.lat, d.fused!.lng] as [number, number]);
+    if (!pts.length || !mapRef.current) return;
+    if (pts.length === 1) { flyTo(pts[0][0], pts[0][1], 17); return; }
+    try { mapRef.current.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 17 }); } catch {}
+  }, [myDevices]);
+
+  const routeToDevice = useCallback((d: LocatedDevice) => {
+    if (!d.fused) return;
+    openDirectionsTo({ label: d.label, lat: d.fused.lat, lng: d.fused.lng });
+  }, [openDirectionsTo]);
+
   const handleRoutes = useCallback((payload: { routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }) => {
     const { routes, activeId } = payload;
     setRouteLayer(payload);
@@ -1857,9 +1907,12 @@ const IntelligenceMapModule = () => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
+                      const isMyDevices = l.id === "my-devices";
                       const isActive = isBase
                         ? l.id === activeBase
-                        : isThreat ? !!activeThreats[l.id as ThreatId] : isBoundary ? showTacticalBorders : false;
+                        : isThreat ? !!activeThreats[l.id as ThreatId]
+                        : isBoundary ? showTacticalBorders
+                        : isMyDevices ? showMyDevices : false;
                       return (
                         <button
                           key={l.id}
@@ -1868,6 +1921,7 @@ const IntelligenceMapModule = () => {
                             if (isBase) setActiveBase(l.id);
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
+                            else if (isMyDevices) setShowMyDevices((p) => !p);
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors ${
@@ -1895,6 +1949,18 @@ const IntelligenceMapModule = () => {
             );
           })}
         </div>
+
+        {showMyDevices && (
+          <MyDevicesPanel
+            devices={myDevices}
+            loading={myDevicesLoading}
+            focused={focusedDevice}
+            onRefresh={refreshMyDevices}
+            onFocus={focusDevice}
+            onFitAll={fitAllDevices}
+            onRoute={routeToDevice}
+          />
+        )}
 
         <AnnotationPanel
           annotations={annotations}
@@ -2207,6 +2273,16 @@ const IntelligenceMapModule = () => {
               </Popup>
             </CircleMarker>
           ))}
+
+          {showMyDevices && (
+            <MyDevicesLayer
+              devices={myDevices}
+              focusedFingerprint={focusedDevice}
+              breadcrumb={focusedDevice ? deviceBreadcrumb : []}
+              onFocus={focusDevice}
+              onRoute={routeToDevice}
+            />
+          )}
 
           <MapClick onClick={handleMapClick} />
           <FollowGuard active={track.follow && track.status === "live"} onRelease={() => track.setFollow(false)} />
