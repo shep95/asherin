@@ -353,15 +353,21 @@ function linkFacts(): { linkType: string; effectiveType: string } {
   return { linkType: type && type !== "none" ? type : "unknown", effectiveType: c?.effectiveType ?? "" };
 }
 
-export async function runNetworkCheck(force = false): Promise<void> {
+export async function runNetworkCheck(force = false, opts?: { bypassThrottle?: boolean }): Promise<void> {
   if (!state.armed && !force) return;
+  // A link transition is the exact moment a *different* network appears, so the
+  // half-hourly cadence must not swallow it. A short anti-flap floor still
+  // stops a bouncing radio from firing a burst of checks.
+  const FLAP_MS = 45_000;
   if (!force) {
     let last = 0;
     try { last = Number(localStorage.getItem(NET_KEY) ?? 0); } catch { /* noop */ }
-    if (Date.now() - last < NET_MS) return;
+    const floor = opts?.bypassThrottle ? FLAP_MS : NET_MS;
+    if (Date.now() - last < floor) return;
   }
   if (!(await hasSession())) return;
   try { localStorage.setItem(NET_KEY, String(Date.now())); } catch { /* noop */ }
+
   try {
     const { linkType, effectiveType } = linkFacts();
     const { data, error } = await supabase.functions.invoke("wifi-sentinel", {
