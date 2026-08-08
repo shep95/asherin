@@ -410,6 +410,7 @@ export async function loadCloudMapLayer(q: CloudMapQuery = {}): Promise<CloudMap
 }
 
 const PENDING_VENUES_KEY = "asher-cloud-venues-pending";
+const PENDING_CONTACTS_KEY = "asher-cloud-contacts-pending";
 
 export function setPendingVenues(venues: Venue[]) {
   try {
@@ -431,6 +432,59 @@ export function clearPendingVenues() {
     localStorage.removeItem(PENDING_VENUES_KEY);
   } catch {}
 }
+
+export interface PendingContact {
+  name: string;
+  email?: string;
+  location?: string;
+  organization?: string;
+  source?: string;
+}
+
+export function setPendingContacts(contacts: PendingContact[]) {
+  try {
+    localStorage.setItem(PENDING_CONTACTS_KEY, JSON.stringify(contacts));
+  } catch {}
+}
+
+export function getPendingContacts(): PendingContact[] {
+  try {
+    const raw = localStorage.getItem(PENDING_CONTACTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearPendingContacts() {
+  try {
+    localStorage.removeItem(PENDING_CONTACTS_KEY);
+  } catch {}
+}
+
+export async function pendingContactFeatures(contacts: PendingContact[]): Promise<CloudMapFeature[]> {
+  const out: CloudMapFeature[] = [];
+  for (const c of contacts) {
+    if (!c.location) continue;
+    const g = await geocode(c.location);
+    if (!g) continue;
+    out.push({
+      id: `pending-contact-${c.email || c.name}-${g.lat.toFixed(4)}-${g.lng.toFixed(4)}`,
+      kind: "contact",
+      lat: g.lat,
+      lng: g.lng,
+      label: c.name,
+      caption: `${c.organization || "Contact"} · ${c.location}${c.email ? ` · ${c.email}` : ""}`,
+      confidence: 0.65,
+      source: c.source || "cloud_intelligence_pending",
+      subjectEmail: c.email,
+      subjectName: c.name,
+      payload: c,
+    });
+  }
+  return out;
+}
+
 
 export function clearCloudMapCache() {
   geoCache.clear();
