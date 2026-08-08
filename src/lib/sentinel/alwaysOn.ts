@@ -36,6 +36,8 @@ import {
 } from "@/components/dashboard/zaxin/core/scanner";
 import { toast } from "sonner";
 import { startBackgroundSentinel, handOverFix, beaconOnHide, stopBackgroundSentinel } from "./background";
+import { reportMeshDevice, bindBatteryReporting } from "@/lib/asher/meshDevices";
+
 
 const ARM_KEY = "asherin.sentinel.armed";
 const FLUSH_MS = 45_000;
