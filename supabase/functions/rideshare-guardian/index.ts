@@ -21,7 +21,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { callByokJsonWithRetry } from "../_shared/zophielByokRouter.ts";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "../_shared/jurisdictionalIntel.ts";
-import { sendWebPush } from "../_shared/webPush.ts";
+import { notifyIntel, severityFromVerdict } from "../_shared/intelNotify.ts";
 import {
   fastPass,
   parseShareLink,
@@ -123,18 +123,14 @@ async function deliver(
     // Push settings are honoured by the bus; a rider who muted push here must
     // stay muted there too.
     skipEmail: true,
+    skipPush: !settings.push_enabled,
   });
   // "in_app" is always present when the inbox write succeeded.
   for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
-  if (!settings.push_enabled) {
-    const i = delivered.indexOf("push");
-    if (i >= 0) delivered.splice(i, 1);
-  }
 
 
   if (settings.email_enabled && userEmail) {
     try {
-      const p = phase.payload as Record<string, any>;
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
         method: "POST",
         headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },

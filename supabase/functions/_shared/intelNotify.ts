@@ -61,6 +61,8 @@ export interface IntelNotice {
    * the alert can never exist on only one channel.
    */
   skipEmail?: boolean;
+  /** Set when the caller's own module preference has push muted. */
+  skipPush?: boolean;
 }
 
 export interface IntelDelivery {
@@ -204,7 +206,7 @@ export async function notifyIntel(notice: IntelNotice): Promise<IntelDelivery> {
   // ── 2. push + email, isolated and concurrent ─────────────────────────────
   const transports: Promise<string | null>[] = [];
 
-  if (prefs.push_enabled) {
+  if (prefs.push_enabled && !notice.skipPush) {
     transports.push((async () => {
       try {
         const { data: subs } = await sb
