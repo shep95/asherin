@@ -880,6 +880,21 @@ const ContactIntelligence = () => {
             <Network className="h-4 w-4" /> Identity Ledger
           </h3>
           <div className="flex items-center gap-2">
+            {dossiers.filter((d) => d.location).length > 0 && (
+              <button
+                onClick={() => {
+                  setPendingContacts(
+                    dossiers
+                      .filter((d) => d.location)
+                      .map((d) => ({ name: d.name, email: d.emails[0], location: d.location, organization: d.organization, source: "contact_intelligence" }))
+                  );
+                  navigate("/dashboard?tab=map");
+                }}
+                className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all"
+              >
+                <MapPin className="h-3 w-3" /> Plot contacts
+              </button>
+            )}
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
               <input
