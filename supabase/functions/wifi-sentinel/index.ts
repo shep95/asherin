@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
       // upsert is the only way to know that — after the upsert the row always
       // exists and every network looks familiar.
       const { data: prior } = await sb.from("wifi_networks")
-        .select("risk_level, enrichment, first_seen")
+        .select("risk_level, enrichment")
         .eq("user_id", userId).eq("bssid", pseudoBssid).maybeSingle();
 
       const priorEnrichment = (prior?.enrichment ?? {}) as Record<string, unknown>;
