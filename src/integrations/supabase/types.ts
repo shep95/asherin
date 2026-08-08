@@ -4783,6 +4783,137 @@ export type Database = {
         }
         Relationships: []
       }
+      google_meet_artifacts: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          drive_file_id: string
+          duration_ms: number | null
+          file_created_at: string | null
+          id: string
+          kind: string
+          mime_type: string | null
+          name: string | null
+          session_id: string | null
+          size_bytes: number | null
+          thumbnail_link: string | null
+          updated_at: string
+          user_id: string
+          web_view_link: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          drive_file_id: string
+          duration_ms?: number | null
+          file_created_at?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          name?: string | null
+          session_id?: string | null
+          size_bytes?: number | null
+          thumbnail_link?: string | null
+          updated_at?: string
+          user_id: string
+          web_view_link?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          drive_file_id?: string
+          duration_ms?: number | null
+          file_created_at?: string | null
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          name?: string | null
+          session_id?: string | null
+          size_bytes?: number | null
+          thumbnail_link?: string | null
+          updated_at?: string
+          user_id?: string
+          web_view_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_meet_artifacts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_meet_artifacts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "google_meet_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_meet_sessions: {
+        Row: {
+          account_id: string | null
+          conference_code: string | null
+          created_at: string
+          dedupe_key: string
+          ended_at: string | null
+          id: string
+          meet_link: string | null
+          organizer_email: string | null
+          participants: Json
+          source: string
+          space_name: string | null
+          started_at: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          conference_code?: string | null
+          created_at?: string
+          dedupe_key: string
+          ended_at?: string | null
+          id?: string
+          meet_link?: string | null
+          organizer_email?: string | null
+          participants?: Json
+          source?: string
+          space_name?: string | null
+          started_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          conference_code?: string | null
+          created_at?: string
+          dedupe_key?: string
+          ended_at?: string | null
+          id?: string
+          meet_link?: string | null
+          organizer_email?: string | null
+          participants?: Json
+          source?: string
+          space_name?: string | null
+          started_at?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_meet_sessions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "google_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_place_nodes: {
         Row: {
           created_at: string

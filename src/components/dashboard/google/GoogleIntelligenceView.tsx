@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
   Eye, TrendingUp, BarChart3, Clock,
-  FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar, MessageSquare,
+  FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar, MessageSquare, Video,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -34,12 +34,13 @@ import ContactVaultPane from "./modules/ContactVaultPane";
 import RideshareGuardian from "./modules/RideshareGuardian";
 import BluetoothSentinel from "./modules/BluetoothSentinel";
 import PhoneMessages from "./modules/PhoneMessages";
+import MeetVault from "./modules/MeetVault";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "guardian" | "sentinel" | "messages" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 /** A directorate is an analytic function, not a product category. */
@@ -70,6 +71,7 @@ const nexusModules: ModuleDef[] = [
   { id: "mesh", codename: "MESH", label: "Account Mesh", icon: Network, mandate: "Voiceprint, place cartography, attention ledger and drafting — composes, never transmits", directorate: "COLLECTION" },
   { id: "email", codename: "COURIER", label: "Correspondence Desk", icon: Mail, mandate: "Inbound triage, thread priority and reply drafting in the operator's own register", directorate: "COLLECTION" },
   { id: "messages", codename: "SIGNAL", label: "Phone Message Intelligence", icon: MessageSquare, mandate: "Google Voice texts, MMS and voicemail mirrored from the mailbox plus on-device Android SMS — folded per correspondent, joined to the address book and read for intent, obligation and pressure", directorate: "COLLECTION" },
+  { id: "meet", codename: "VAULT", label: "Meet Vault", icon: Video, mandate: "Every Google Meet reconstructed from calendar records, conference records and the Drive recordings folder — playable in place, downloadable, with transcripts bound to the meeting they belong to", directorate: "COLLECTION" },
   { id: "content", codename: "ARCHIVE", label: "Document & Media Intel", icon: FileText, mandate: "Document intelligence, image content read and file custody mapping", directorate: "COLLECTION" },
 
   { id: "contacts", codename: "LATTICE", label: "Contact Intelligence", icon: Users, mandate: "Correspondent fusion, reciprocity scoring, psycholinguistic profile and fade detection", directorate: "ANALYSIS" },
@@ -170,6 +172,7 @@ const GoogleIntelligenceView = () => {
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
       case "messages": return <PhoneMessages />;
+      case "meet": return <MeetVault />;
       case "scenarios": return <ScenarioEngine />;
       case "connected": return <ConnectedAppsView />;
       case "youtube": return <YouTubeDataView />;
