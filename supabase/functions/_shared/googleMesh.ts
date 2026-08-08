@@ -130,7 +130,7 @@ export function hasScope(acct: MeshAccount, scope: string): boolean {
 }
 
 // ── Bounded fetch: every outbound Google call has a timeout ────────────────
-export async function gfetch(url: string, token: string, init?: RequestInit, ms = 15_000): Promise<any> {
+async function gfetch(url: string, token: string, init?: RequestInit, ms = 15_000): Promise<any> {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), ms);
   try {
