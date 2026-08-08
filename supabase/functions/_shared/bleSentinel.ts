@@ -335,7 +335,7 @@ export async function placeSearch(query: string, limit = 5, timeoutMs = 12_000):
         console.error("place_search_http", { status: r.status, retryable, q: query.slice(0, 80) });
         if (!retryable || attempt === 2) return [];
         const after = Number(r.headers.get("retry-after")) || 0;
-        await new Promise((res) => setTimeout(res, after ? after * 1000 : 800 * (attempt + 1)));
+        await new Promise((res) => setTimeout(res, after ? after * 1000 : 2000 * (attempt + 1)));
         continue;
       }
       const j = await r.json();
