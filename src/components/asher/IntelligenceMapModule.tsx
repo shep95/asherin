@@ -585,6 +585,9 @@ const IntelligenceMapModule = () => {
   const [seedDest, setSeedDest] = useState<DirectionsEndpoint | null>(null);
   const [routeLayer, setRouteLayer] = useState<{ routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }>({ routes: [], activeId: null, highlight: null });
   const [cameras, setCameras] = useState<StreetCamera[]>([]);
+  /** True while the Asher AI dock is expanded — the top bar shrinks so no
+   *  control is ever rendered underneath the 380px dock. */
+  const [aiDocked, setAiDocked] = useState(true);
   const [cameraBusy, setCameraBusy] = useState(false);
   const [placePins, setPlacePins] = useState<Place[]>([]);
   const [jobPins, setJobPins] = useState<JobPosting[]>([]);
