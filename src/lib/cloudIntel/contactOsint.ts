@@ -555,16 +555,37 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       return emptyAnnex("unauthenticated", "Not signed in — the open-source leg requires an authenticated session.", name, email);
     }
 
-    const { data, error } = await supabase.functions.invoke("mesh-vault", {
-      body: {
-        action: "vault_for_contact",
-        name,
-        email,
-        identifiers: (req.identifiers ?? []).slice(0, 4),
-        location_hint: req.locationHint ?? null,
-        force: req.force === true,
-      },
-    });
+    // The hard identifiers on the contact record — the address it wrote from
+    // and any number attached to it. Deduplicated so a phone listed twice is
+    // not swept twice, and capped so a contact with a dozen aliases cannot
+    // fan out into a dozen concurrent sweeps.
+    const hardIdentifiers = Array.from(new Set(
+      [email, ...(req.identifiers ?? [])]
+        .map((v) => (v ?? "").trim())
+        .filter((v) => v.length >= 5 && (v.includes("@") || /\d{7,}/.test(v.replace(/\D/g, "")))),
+    )).slice(0, 3);
+
+    // The dossier leg and the exposure legs answer different questions and
+    // share no state, so they run together. Sequencing them would add the
+    // sweep's wall clock to every contact report for no benefit.
+    const [vaultResult, sweepResults] = await Promise.all([
+      supabase.functions.invoke("mesh-vault", {
+        body: {
+          action: "vault_for_contact",
+          name,
+          email,
+          identifiers: (req.identifiers ?? []).slice(0, 4),
+          location_hint: req.locationHint ?? null,
+          force: req.force === true,
+        },
+      }),
+      Promise.all(hardIdentifiers.map((id) => sweepIdentifierLeg(id, req.signal))),
+    ]);
+
+    const identifierSweeps = sweepResults.filter(
+      (r): r is IdentifierSweepSummary => r !== null,
+    );
+    const { data, error } = vaultResult;
 
     if (error) {
       // functions.invoke collapses every non-2xx into one opaque message; the
@@ -574,26 +595,35 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       if (ctx?.text) {
         try { detail = (await ctx.text()).slice(0, 300) || detail; } catch { /* body already consumed */ }
       }
-      return emptyAnnex("error", `Collection call failed: ${detail}`, name, email);
+      // The dossier failed, but a confirmed exposure register is still
+      // intelligence — it is carried onto the failure annex rather than
+      // discarded alongside the leg that did fail.
+      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps };
     }
 
     const payload = data as { status?: string; dossier?: WireDoc | null; confidence?: number; message?: string } | null;
     if (!payload?.dossier) {
-      return emptyAnnex(
-        (payload?.status as OsintStatus) || "absent",
-        payload?.message || "No dossier was produced for this subject.",
-        name,
-        email,
-      );
+      return {
+        ...emptyAnnex(
+          (payload?.status as OsintStatus) || "absent",
+          payload?.message || "No dossier was produced for this subject.",
+          name,
+          email,
+        ),
+        identifierSweeps,
+      };
     }
 
-    return toAnnex(payload.dossier, {
-      status: "ready",
-      blocker: null,
-      confidence: Number(payload.confidence ?? 0),
-      name,
-      email,
-    });
+    return {
+      ...toAnnex(payload.dossier, {
+        status: "ready",
+        blocker: null,
+        confidence: Number(payload.confidence ?? 0),
+        name,
+        email,
+      }),
+      identifierSweeps,
+    };
   } catch (e) {
     return emptyAnnex("error", `Collection aborted: ${(e as Error).message.slice(0, 200)}`, name, email);
   }
