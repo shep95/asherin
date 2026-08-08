@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
           if (actor.latitude == null && typeof s?.latitude === "number") actor.latitude = s.latitude as number;
           if (actor.longitude == null && typeof s?.longitude === "number") actor.longitude = s.longitude as number;
           if (actor.latitude != null && actor.longitude != null && !actor.satelliteUrl) {
-            const { satelliteExportUrl } = await import("../_shared/actorIntel.ts");
+            
             actor.satelliteUrl = satelliteExportUrl(actor.latitude, actor.longitude);
             actor.mapsUrl = `/dashboard/maps?lat=${actor.latitude.toFixed(5)}&lon=${actor.longitude.toFixed(5)}&z=15`;
           }
