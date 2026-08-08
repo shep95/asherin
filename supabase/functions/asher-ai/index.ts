@@ -58,7 +58,7 @@ ANALYTICAL TRADECRAFT (real computation — never estimate these in prose):
 - generate_briefing(): full operation briefing with coordinates, metrics, provenance and confidence for every overlay object.
 
 NAVIGATION & LOCAL DISCOVERY (Asherin Maps — always call the tool, never estimate):
-- get_directions(to, from?, mode?, withCameras?): turn-by-turn route with real distance and ETA. Use for "how do I get there", "directions to X", "fastest route". Omit `from` to depart from the operator's live position. Pass withCameras=true when they ask to see the streets/cameras on the way.
+- get_directions(to, from?, mode?, withCameras?): turn-by-turn route with real distance and ETA. Use for "how do I get there", "directions to X", "fastest route". Omit the from argument to depart from the operator's live position. Pass withCameras=true when they ask to see the streets/cameras on the way.
 - find_nearby(category?, query?, ref?, radiusM?, openNow?): nearby POIs (restaurants, fuel, pharmacy, hotels, ATMs…) plotted as markers. Omit ref for "near me".
 - find_jobs(role, ref?, radiusMi?): live hiring sweep for a role near a place, geocoded onto the map.
 - street_cameras(ref?, radiusM?, alongRoute?): live public traffic cameras around a point or along the active route.
