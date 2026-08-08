@@ -4,7 +4,7 @@
 // open-web board sweep, geocoded to map pins. Every posting keeps its source
 // URL; nothing is synthesised.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Briefcase, X, Loader2, ExternalLink, MapPin, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
