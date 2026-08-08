@@ -63,7 +63,8 @@ export type MapAction =
   | { type: "get_directions"; from?: GeoRef; to: GeoRef; mode?: "driving" | "walking" | "cycling"; withCameras?: boolean }
   | { type: "find_nearby"; category?: string; query?: string; ref?: GeoRef; radiusM?: number; openNow?: boolean }
   | { type: "find_jobs"; role: string; ref?: GeoRef; radiusMi?: number }
-  | { type: "street_cameras"; ref?: GeoRef; radiusM?: number; alongRoute?: boolean };
+  | { type: "street_cameras"; ref?: GeoRef; radiusM?: number; alongRoute?: boolean }
+  | { type: "locate_device"; name?: string };
 
 
 
@@ -287,6 +288,10 @@ const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
             radiusMi: num(args?.radiusMi ?? args?.radius),
           });
           return typeof r === "string" ? r : "Hiring sweep complete.";
+        }
+        case "locate_device": {
+          const r = await onAction({ type: "locate_device", name: str(args?.name ?? args?.device ?? args?.query) });
+          return typeof r === "string" ? r : "Device located.";
         }
         case "street_cameras": {
           const r = await onAction({

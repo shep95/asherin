@@ -1754,6 +1754,43 @@ const IntelligenceMapModule = () => {
       }
     }
 
+    /* FIND-MY — "where's my laptop". The roster is the only namespace the model
+       may address; an unmatched name returns the roster rather than guessing. */
+    if (a.type === "locate_device") {
+      setShowMyDevices(true);
+      let rows: LocatedDevice[];
+      try {
+        rows = await locateGroup(24);
+      } catch (e: any) {
+        return `Find-My is unavailable right now (${e?.message ?? "unknown error"}).`;
+      }
+      setMyDevices(rows);
+      if (!rows.length) return "You have no claimed devices yet. Tag one in the My Devices panel — it must have been heard within 5 m by your own scanner on two separate days.";
+
+      const needle = (a.name || "").trim().toLowerCase();
+      const match = needle
+        ? rows.find((d) => d.label.toLowerCase() === needle)
+          ?? rows.find((d) => d.label.toLowerCase().includes(needle))
+          ?? rows.find((d) => d.kind.toLowerCase() === needle)
+        : rows.length === 1 ? rows[0] : undefined;
+
+      if (!match) {
+        const list = rows.map((d) => `- ${d.label} (${d.kind}) — ${d.fused ? d.fused.caption : "no sighting in 24 h"}`).join("\n");
+        return `Name the device. Your roster:\n${list}`;
+      }
+      if (!match.fused) {
+        return `${match.label} has no sighting in the last 24 hours. Nothing on the mesh has heard it, so I will not invent a position. Last known state: ${match.effectiveState}.`;
+      }
+      setFocusedDevice(match.fingerprint);
+      flyTo(match.fused.lat, match.fused.lng, 17);
+      try {
+        const { breadcrumb } = await locateDevice(match.fingerprint, 24);
+        setDeviceBreadcrumb(breadcrumb);
+      } catch { setDeviceBreadcrumb([]); }
+      const f = match.fused;
+      return `${match.label} — ${f.lat.toFixed(6)}, ${f.lng.toFixed(6)}, confidence ±${f.radiusM} m. ${f.caption}. State: ${match.effectiveState}${match.state === "stolen" ? " (declared stolen — breadcrumb trail is live)" : ""}. Last heard ${fmtAge(f.lastSeenAt)}. Map is on it.`;
+    }
+
     if (a.type === "distance_from_me") {
       const f = track.fix;
       if (!f) return "No operator fix — start tracking before asking for range from your position.";
