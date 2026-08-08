@@ -1,217 +1,259 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GHOST ENGINE — TIME MACHINE ("what did the web hold about this, before now?")
+// GHOST ENGINE — DEEP TIME (native).
 //
-// The intercept layer reads the web as it exists this second. That is the
-// smaller half of the record. Most of what was ever published about a person,
-// a family, a company or a house is no longer served by anybody — the page was
-// deleted, the host expired, the forum closed, the newspaper repaved its CMS.
-// It survives only in capture archives.
+// No third-party capture archive is consulted here. Everything on this ladder
+// is produced by the Ghost Engine's own apparatus:
 //
-// This module reaches back to the first crawls (Internet Archive began taking
-// captures in 1996; Common Crawl's public index starts 2008) and reconstructs a
-// per-year record for a selector. Three independent corpora, because each one
-// misses different things:
+//   1. FAN-OUT   — the engine's own selector harvest (multi-engine surface),
+//                  re-run across coarse era buckets so the index is forced to
+//                  surrender old material instead of only the freshest page.
+//   2. PROBE     — the engine fetches each lead itself and reads the document,
+//                  exactly as the intercept layer does.
+//   3. DATE      — a page's own age is carved out of five independent places:
+//                  transport headers (Last-Modified), structured markup
+//                  (JSON-LD datePublished / article:published_time / <time>),
+//                  the URL path (/2004/07/…), the copyright range, and visible
+//                  date strings in the body. Whichever is oldest and provable
+//                  becomes the row's year.
+//   4. LIFESPAN  — DNS + a live probe decide whether a host that once carried
+//                  the selector still answers at all.
 //
-//   1. WAYBACK CDX   — every capture of a URL or an entire domain, with the
-//                      exact 14-digit timestamp. Authoritative for "when did
-//                      this host first exist and when did it die".
-//   2. ARCHIVE.ORG   — full-text search across scanned books, papers, court
-//                      filings, newspapers, microfilm, genealogy uploads and
-//                      archived web collections. This is the layer that answers
-//                      origin questions a live crawl cannot.
-//   3. COMMON CRAWL  — the raw crawl index, useful for hosts the Wayback
-//                      machine skipped and for confirming a page existed at a
-//                      given crawl even when no rendered capture survives.
-//
-// Nothing here is inferred. A year appears on the timeline only when a corpus
-// returned a dated record for it, and every era row keeps the URL that proves
-// it.
+// Nothing is interpolated. A year appears only when a document itself carried a
+// date for it, and every row keeps the URL and the field that proved it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { searchArchive, type IaHit } from "./internetArchive.ts";
+import { classifySelector, harvestLeads, type SelectorIdentity } from "./ghostHarvest.ts";
+import { pool } from "./ghostMetadata.ts";
 
-/** The web's own year zero for capture purposes. */
-export const ARCHIVE_EPOCH_YEAR = 1996;
+/** The web's own year zero — nothing predates this on a dated document. */
+export const ARCHIVE_EPOCH_YEAR = 1990;
 
-const CDX = "https://web.archive.org/cdx/search/cdx";
-const UA = "Asherin-GhostEngine/1.0 (+time-machine)";
+const UA = "Asherin-GhostEngine/1.0 (+deep-time)";
+const MAX_BODY = 900_000; // chars read per document
+
+export type DateProof =
+  | "http-last-modified"
+  | "jsonld"
+  | "meta-published"
+  | "time-element"
+  | "url-path"
+  | "copyright"
+  | "body-text";
 
 export interface TimeCapture {
   url: string;
-  /** Rendered capture, always replayable. */
-  wayback_url: string;
-  timestamp: string;        // ISO
+  /** The live document that proves the date. Always openable. */
+  evidence_url: string;
+  timestamp: string; // ISO
   year: number;
   status: string;
   mime: string;
-  digest: string;
-  source: "wayback" | "commoncrawl";
+  /** Which field carried the date. */
+  proof: DateProof;
+  /** The literal string the engine read. */
+  raw: string;
+  title: string;
+  source: "probe";
 }
 
 export interface TimeEra {
   year: number;
   captures: number;
   hosts: string[];
-  /** One proving link for the year. */
   sample_url: string | null;
-  sample_wayback: string | null;
+  sample_evidence: string | null;
+}
+
+export interface HostLifespan {
+  host: string;
+  first_year: number | null;
+  last_year: number | null;
+  documents: number;
+  alive: boolean;
+  resolves: boolean;
 }
 
 export interface TimeMachineReport {
   selector: string;
   kind: string;
-  /** Years actually searched. */
   window: { from: number; to: number };
   earliest: TimeCapture | null;
   latest: TimeCapture | null;
   eras: TimeEra[];
   captures: TimeCapture[];
-  archive_items: Array<{
-    id: string; title: string; creator: string; date: string;
-    mediatype: string; url: string; excerpt: string;
-  }>;
+  hosts: HostLifespan[];
   hosts_probed: string[];
-  /** Hosts that existed in the archive but serve nothing today. */
+  /** Hosts that carried the selector but no longer answer. */
   dead_hosts: string[];
+  /** The engine's own stages — never an outside corpus. */
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
   elapsed_ms: number;
-}
-
-async function timed<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
-  let t: number | undefined;
-  try {
-    return await Promise.race([
-      p,
-      new Promise<T>((resolve) => { t = setTimeout(() => resolve(fallback), ms); }),
-    ]);
-  } finally { if (t) clearTimeout(t); }
-}
-
-function cdxStampToIso(stamp: string): string {
-  const s = stamp.padEnd(14, "0");
-  return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(8, 10)}:${s.slice(10, 12)}:${s.slice(12, 14)}Z`;
 }
 
 function hostOf(url: string): string {
   try { return new URL(url.startsWith("http") ? url : `http://${url}`).hostname.replace(/^www\./, ""); } catch { return ""; }
 }
 
-/**
- * Every capture the Wayback machine holds for a host (or a single URL), from
- * the archive epoch forward. `collapse=timestamp:6` keeps one row per host per
- * month, which is what makes a full-domain query over 29 years affordable.
- */
-async function waybackCdx(
-  target: string,
-  opts: { matchType: "domain" | "prefix" | "exact"; limit: number; fromYear: number; timeoutMs: number },
-): Promise<{ rows: TimeCapture[]; error: string | null }> {
-  const params = new URLSearchParams({
-    url: target,
-    matchType: opts.matchType,
-    output: "json",
-    fl: "timestamp,original,statuscode,mimetype,digest",
-    collapse: "timestamp:6",
-    filter: "!statuscode:404",
-    from: String(opts.fromYear),
-    limit: String(opts.limit),
-  });
+async function timedFetch(url: string, init: RequestInit, ms: number): Promise<Response | null> {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
   try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), opts.timeoutMs);
-    const r = await fetch(`${CDX}?${params}`, { headers: { "user-agent": UA }, signal: ctl.signal });
-    clearTimeout(t);
-    if (!r.ok) return { rows: [], error: `CDX ${r.status}` };
-    const body = await r.json().catch(() => null) as string[][] | null;
-    if (!Array.isArray(body) || body.length < 2) return { rows: [], error: null };
-    const rows: TimeCapture[] = [];
-    for (const row of body.slice(1)) {
-      const [timestamp, original, statuscode, mimetype, digest] = row;
-      if (!timestamp || !original) continue;
-      const iso = cdxStampToIso(timestamp);
-      const year = Number(timestamp.slice(0, 4));
-      if (!Number.isFinite(year) || year < ARCHIVE_EPOCH_YEAR) continue;
-      rows.push({
-        url: original,
-        wayback_url: `https://web.archive.org/web/${timestamp}/${original}`,
-        timestamp: iso,
-        year,
-        status: statuscode || "",
-        mime: mimetype || "",
-        digest: digest || "",
-        source: "wayback",
-      });
-    }
-    return { rows, error: null };
-  } catch (e) {
-    return { rows: [], error: (e as Error).message };
-  }
+    return await fetch(url, { ...init, signal: ctl.signal, redirect: "follow" });
+  } catch { return null; } finally { clearTimeout(t); }
 }
 
-/** Common Crawl's public index — a second opinion on whether a host existed. */
-async function commonCrawl(host: string, timeoutMs: number): Promise<{ rows: TimeCapture[]; error: string | null }> {
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), timeoutMs);
-    const r = await fetch(
-      `https://index.commoncrawl.org/CC-MAIN-2024-33-index?url=${encodeURIComponent(`*.${host}`)}&output=json&limit=40`,
-      { headers: { "user-agent": UA }, signal: ctl.signal },
+/** Only accept a year that a document could plausibly carry. */
+function sane(year: number): boolean {
+  const now = new Date().getUTCFullYear();
+  return Number.isFinite(year) && year >= ARCHIVE_EPOCH_YEAR && year <= now + 1;
+}
+
+function isoFrom(value: string): { iso: string; year: number } | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  if (Number.isFinite(ms)) {
+    const d = new Date(ms);
+    const y = d.getUTCFullYear();
+    if (sane(y)) return { iso: d.toISOString(), year: y };
+  }
+  const m = raw.match(/\b(19[9]\d|20[0-4]\d)\b/);
+  if (m) {
+    const y = Number(m[1]);
+    if (sane(y)) return { iso: `${y}-01-01T00:00:00Z`, year: y };
+  }
+  return null;
+}
+
+interface Dated { iso: string; year: number; proof: DateProof; raw: string }
+
+/** Carve every date the document itself is willing to admit. */
+function carveDates(url: string, headers: Headers, html: string): Dated[] {
+  const out: Dated[] = [];
+  const push = (value: string | null | undefined, proof: DateProof) => {
+    if (!value) return;
+    const hit = isoFrom(value);
+    if (hit) out.push({ ...hit, proof, raw: value.slice(0, 120) });
+  };
+
+  // 1. Transport — the server's own claim about the file on disk.
+  push(headers.get("last-modified"), "http-last-modified");
+
+  // 2. URL path — /2004/07/slug is a publisher's own filing date.
+  const pathDate = url.match(/\/((?:19[9]\d|20[0-4]\d))\/(\d{1,2})(?:\/(\d{1,2}))?\//);
+  if (pathDate) {
+    const [, y, mo, d] = pathDate;
+    push(`${y}-${String(mo).padStart(2, "0")}-${String(d ?? "01").padStart(2, "0")}`, "url-path");
+  }
+
+  if (html) {
+    // 3. Structured markup.
+    for (const re of [
+      /<meta[^>]+(?:property|name)=["'](?:article:published_time|article:modified_time|datePublished|dateModified|date|DC\.date[^"']*|pubdate)["'][^>]+content=["']([^"']+)["']/gi,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:article:published_time|datePublished|pubdate)["']/gi,
+    ]) {
+      for (const m of html.matchAll(re)) push(m[1], "meta-published");
+    }
+    for (const m of html.matchAll(/"(?:datePublished|dateCreated|uploadDate|dateModified)"\s*:\s*"([^"]{4,40})"/gi)) {
+      push(m[1], "jsonld");
+    }
+    for (const m of html.matchAll(/<time[^>]+datetime=["']([^"']+)["']/gi)) push(m[1], "time-element");
+
+    // 4. Copyright range — the oldest year in "© 1998–2012" is a founding date.
+    for (const m of html.matchAll(/(?:©|&copy;|copyright)\s*:?\s*((?:19[9]\d|20[0-4]\d))/gi)) {
+      push(m[1], "copyright");
+    }
+
+    // 5. Visible prose dates — last resort, only long-form months.
+    const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " ");
+    const prose = text.match(
+      /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+((?:19[9]\d|20[0-4]\d))\b/g,
     );
-    clearTimeout(t);
-    if (!r.ok) return { rows: [], error: `CC ${r.status}` };
-    const text = await r.text();
-    const rows: TimeCapture[] = [];
-    for (const line of text.split("\n")) {
-      if (!line.trim()) continue;
-      let rec: Record<string, string>;
-      try { rec = JSON.parse(line); } catch { continue; }
-      const stamp = rec.timestamp || "";
-      if (!stamp || !rec.url) continue;
-      rows.push({
-        url: rec.url,
-        wayback_url: `https://web.archive.org/web/${stamp}/${rec.url}`,
-        timestamp: cdxStampToIso(stamp),
-        year: Number(stamp.slice(0, 4)),
-        status: rec.status || "",
-        mime: rec.mime || "",
-        digest: rec.digest || "",
-        source: "commoncrawl",
-      });
-    }
-    return { rows, error: null };
-  } catch (e) {
-    return { rows: [], error: (e as Error).message };
+    for (const p of (prose ?? []).slice(0, 6)) push(p, "body-text");
   }
+  return out;
 }
 
-/** Does the host answer today? A host in the archive but silent now is a lead. */
-async function hostAlive(host: string, timeoutMs: number): Promise<boolean> {
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), timeoutMs);
-    const r = await fetch(`https://${host}/`, { method: "HEAD", headers: { "user-agent": UA }, signal: ctl.signal, redirect: "follow" });
-    clearTimeout(t);
-    return r.status < 500;
-  } catch { return false; }
+const PROOF_RANK: Record<DateProof, number> = {
+  jsonld: 6, "meta-published": 5, "time-element": 4, "url-path": 4,
+  "http-last-modified": 3, copyright: 2, "body-text": 1,
+};
+
+/** Read one lead with the engine's own reader and date it. */
+async function probeLead(lead: { url: string; title: string }): Promise<TimeCapture[]> {
+  const res = await timedFetch(lead.url, { headers: { "user-agent": UA, accept: "text/html,*/*" } }, 11_000);
+  if (!res) return [];
+  const mime = (res.headers.get("content-type") || "").split(";")[0].trim();
+  let html = "";
+  if (res.ok && /html|xml|text|json/i.test(mime)) {
+    html = (await res.text().catch(() => "")).slice(0, MAX_BODY);
+  } else {
+    await res.body?.cancel().catch(() => {});
+  }
+  const dated = carveDates(lead.url, res.headers, html);
+  if (!dated.length) return [];
+
+  // One row per distinct year, keeping the strongest proof for that year.
+  const best = new Map<number, Dated>();
+  for (const d of dated) {
+    const prev = best.get(d.year);
+    if (!prev || PROOF_RANK[d.proof] > PROOF_RANK[prev.proof]) best.set(d.year, d);
+  }
+  return [...best.values()].map((d) => ({
+    url: lead.url,
+    evidence_url: lead.url,
+    timestamp: d.iso,
+    year: d.year,
+    status: String(res.status),
+    mime,
+    proof: d.proof,
+    raw: d.raw,
+    title: lead.title,
+    source: "probe" as const,
+  }));
+}
+
+/** Does the host still exist, and does it still answer? */
+async function hostPosture(host: string): Promise<{ resolves: boolean; alive: boolean }> {
+  const dns = await timedFetch(
+    `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`,
+    { headers: { accept: "application/dns-json" } },
+    6000,
+  );
+  let resolves = false;
+  if (dns?.ok) {
+    const j = await dns.json().catch(() => null);
+    resolves = Array.isArray(j?.Answer) && j.Answer.length > 0;
+  }
+  if (!resolves) return { resolves: false, alive: false };
+  const head = await timedFetch(`https://${host}/`, { method: "HEAD", headers: { "user-agent": UA } }, 6000);
+  return { resolves: true, alive: !!head && head.status < 500 };
 }
 
 export interface TimeMachineOptions {
-  /** Hosts already known for this selector (from the harvest or a document). */
   hosts?: string[];
   fromYear?: number;
-  /** Max captures retained in the response. */
   cap?: number;
-  timeoutMs?: number;
-  /** Skip the archive.org full-text leg (it is the slowest). */
-  skipFullText?: boolean;
+  /** Caller's Authorization header — the harvest runs on the engine's own surface. */
+  authHeader?: string | null;
+  /** How many documents the engine will open and read. */
+  probeBudget?: number;
+}
+
+/** Coarse era buckets — the index answers differently when a decade is named. */
+function eraLegs(selector: string, fromYear: number): string[] {
+  const now = new Date().getUTCFullYear();
+  const buckets: string[] = [];
+  for (let start = 1995; start <= now; start += 10) {
+    const end = Math.min(start + 9, now);
+    if (end < fromYear) continue;
+    buckets.push(`${selector} ${start}..${end}`);
+  }
+  return buckets.slice(0, 4);
 }
 
 /**
- * Reach back across the whole archived web for one selector.
- *
- * Strategy depends on what the selector IS, because the corpora index different
- * things: a domain is addressable by CDX directly, a person is not addressable
- * at all and has to be reached through full-text corpora and through the hosts
- * the live harvest already tied to them.
+ * Reach back across everything the engine can reach itself, and date it.
  */
 export async function deepTimeSweep(
   selector: string,
@@ -221,123 +263,104 @@ export async function deepTimeSweep(
   const t0 = Date.now();
   const fromYear = Math.max(ARCHIVE_EPOCH_YEAR, opts.fromYear ?? ARCHIVE_EPOCH_YEAR);
   const cap = opts.cap ?? 600;
-  const timeoutMs = opts.timeoutMs ?? 20_000;
+  const probeBudget = Math.max(20, Math.min(160, opts.probeBudget ?? 120));
   const nowYear = new Date().getUTCFullYear();
+  const auth = opts.authHeader ?? null;
 
   const report: TimeMachineReport = {
     selector, kind,
     window: { from: fromYear, to: nowYear },
     earliest: null, latest: null, eras: [], captures: [],
-    archive_items: [], hosts_probed: [], dead_hosts: [],
+    hosts: [], hosts_probed: [], dead_hosts: [],
     corpora: [], elapsed_ms: 0,
   };
 
-  // 1. Decide what is addressable by capture index.
+  // ── 1. FAN-OUT on the engine's own harvest, base selector + era buckets ───
+  const base: SelectorIdentity = classifySelector(selector);
+  const legs: SelectorIdentity[] = [base, ...eraLegs(selector, fromYear).map(classifySelector)];
+
+  const harvests = await Promise.allSettled(
+    legs.map((id) => harvestLeads(id, auth, { maxLeads: 120, noiseFilter: true, legTimeoutMs: 11_000 })),
+  );
+
+  const leadByUrl = new Map<string, { url: string; title: string }>();
+  for (const h of harvests) {
+    if (h.status !== "fulfilled") continue;
+    for (const l of h.value.leads) {
+      if (!leadByUrl.has(l.url)) leadByUrl.set(l.url, { url: l.url, title: l.title });
+    }
+  }
+
+  // Seed hosts the caller already tied to the entity — probe their front doors
+  // directly, since a root page usually carries the copyright range.
   const seedHosts = new Set<string>();
-  for (const h of opts.hosts ?? []) {
-    const clean = hostOf(h);
-    if (clean) seedHosts.add(clean);
-  }
-  let exactTarget: string | null = null;
-
-  if (kind === "domain" || /^https?:\/\//i.test(selector) || /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(selector)) {
-    const h = hostOf(selector);
-    if (h) seedHosts.add(h);
-    if (/^https?:\/\/.+\/.+/i.test(selector)) exactTarget = selector;
-  }
-  if (kind === "email") {
-    const domain = selector.split("@")[1];
-    if (domain) seedHosts.add(domain.toLowerCase());
+  for (const h of opts.hosts ?? []) { const c = hostOf(h); if (c) seedHosts.add(c); }
+  if (kind === "domain") { const c = hostOf(selector); if (c) seedHosts.add(c); }
+  if (kind === "email") { const d = selector.split("@")[1]; if (d) seedHosts.add(d.toLowerCase()); }
+  for (const h of seedHosts) {
+    const u = `https://${h}/`;
+    if (!leadByUrl.has(u)) leadByUrl.set(u, { url: u, title: h });
   }
 
-  const hosts = [...seedHosts].slice(0, 6);
-  report.hosts_probed = hosts;
-
-  // 2. Wayback — the spine of the timeline.
-  const cdxJobs: Promise<{ rows: TimeCapture[]; error: string | null }>[] = [];
-  if (exactTarget) cdxJobs.push(waybackCdx(exactTarget, { matchType: "prefix", limit: 400, fromYear, timeoutMs }));
-  for (const h of hosts) {
-    cdxJobs.push(waybackCdx(h, { matchType: "domain", limit: 400, fromYear, timeoutMs }));
-  }
-  const cdxResults = cdxJobs.length ? await Promise.all(cdxJobs) : [];
-  const waybackRows = cdxResults.flatMap((r) => r.rows);
+  const leads = [...leadByUrl.values()].slice(0, probeBudget);
   report.corpora.push({
-    name: "Wayback CDX",
-    ok: cdxResults.some((r) => !r.error),
-    records: waybackRows.length,
-    note: hosts.length || exactTarget
-      ? null
-      : "No addressable host for this selector — capture indexes are keyed by URL, not by person.",
+    name: "Ghost fan-out",
+    ok: harvests.some((h) => h.status === "fulfilled"),
+    records: leadByUrl.size,
+    note: leadByUrl.size ? null : "The engine's harvest returned nothing to date.",
   });
 
-  // 3. Common Crawl — only worth a call when a host exists to ask about.
-  const ccRows: TimeCapture[] = [];
-  if (hosts.length) {
-    const ccResults = await Promise.all(hosts.slice(0, 3).map((h) => timed(commonCrawl(h, 12_000), 13_000, { rows: [], error: "timeout" })));
-    for (const r of ccResults) ccRows.push(...r.rows);
-    report.corpora.push({ name: "Common Crawl index", ok: ccResults.some((r) => !r.error), records: ccRows.length, note: null });
-  }
+  // ── 2. PROBE + DATE ───────────────────────────────────────────────────────
+  const probed = await pool(leads, 8, (l) => probeLead(l).catch(() => [] as TimeCapture[]));
+  const all = probed.flat().filter((c) => c.year >= fromYear);
+  report.corpora.push({ name: "Direct probe", ok: true, records: leads.length, note: null });
+  report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
-  // 4. Full-text corpora — the only layer that can reach a person by name.
-  if (!opts.skipFullText) {
-    const quoted = /\s/.test(selector) ? `"${selector}"` : selector;
-    const hits: IaHit[] = await timed(
-      searchArchive(quoted, { limit: 30, deepRead: 2, timeoutMs: 15_000 }),
-      16_000,
-      [],
-    );
-    report.archive_items = hits.map((h) => ({
-      id: h.id,
-      title: h.title,
-      creator: h.creator,
-      date: h.date,
-      mediatype: h.mediatype,
-      url: h.details_url,
-      excerpt: (h.body || h.description || "").slice(0, 500),
-    }));
-    report.corpora.push({ name: "Internet Archive full text", ok: true, records: hits.length, note: null });
-  }
-
-  // 5. Fold the capture rows into one deduped, chronologically ordered record.
-  const seen = new Set<string>();
-  const all: TimeCapture[] = [];
-  for (const c of [...waybackRows, ...ccRows]) {
-    const k = `${c.year}|${c.digest || c.url}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    all.push(c);
-  }
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   report.captures = all.slice(0, cap);
   report.earliest = all[0] ?? null;
   report.latest = all[all.length - 1] ?? null;
 
+  // ── 3. Era ladder ─────────────────────────────────────────────────────────
   const byYear = new Map<number, { captures: number; hosts: Set<string>; sample: TimeCapture }>();
   for (const c of all) {
-    const bucket = byYear.get(c.year);
-    if (bucket) {
-      bucket.captures++;
-      bucket.hosts.add(hostOf(c.url));
-    } else {
-      byYear.set(c.year, { captures: 1, hosts: new Set([hostOf(c.url)]), sample: c });
-    }
+    const b = byYear.get(c.year);
+    if (b) { b.captures++; b.hosts.add(hostOf(c.url)); }
+    else byYear.set(c.year, { captures: 1, hosts: new Set([hostOf(c.url)]), sample: c });
   }
-  report.eras = [...byYear.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([year, b]) => ({
-      year,
-      captures: b.captures,
-      hosts: [...b.hosts].filter(Boolean).slice(0, 8),
-      sample_url: b.sample.url,
-      sample_wayback: b.sample.wayback_url,
-    }));
+  report.eras = [...byYear.entries()].sort((a, b) => a[0] - b[0]).map(([year, b]) => ({
+    year,
+    captures: b.captures,
+    hosts: [...b.hosts].filter(Boolean).slice(0, 8),
+    sample_url: b.sample.url,
+    sample_evidence: b.sample.evidence_url,
+  }));
 
-  // 6. A host the archive remembers but the present does not is the single
-  // highest-value lead in an origins search: the page is gone, the copy is not.
-  if (hosts.length) {
-    const alive = await Promise.all(hosts.map((h) => timed(hostAlive(h, 6000), 6500, false)));
-    report.dead_hosts = hosts.filter((_, i) => !alive[i] && report.eras.length > 0);
+  // ── 4. Host lifespans ─────────────────────────────────────────────────────
+  const hostAgg = new Map<string, { first: number; last: number; docs: number }>();
+  for (const c of all) {
+    const h = hostOf(c.url);
+    if (!h) continue;
+    const a = hostAgg.get(h);
+    if (a) { a.first = Math.min(a.first, c.year); a.last = Math.max(a.last, c.year); a.docs++; }
+    else hostAgg.set(h, { first: c.year, last: c.year, docs: 1 });
   }
+  for (const h of seedHosts) if (!hostAgg.has(h)) hostAgg.set(h, { first: 0, last: 0, docs: 0 });
+
+  const hostList = [...hostAgg.entries()]
+    .sort((a, b) => b[1].docs - a[1].docs)
+    .slice(0, 24);
+  const postures = await pool(hostList, 6, ([h]) => hostPosture(h).catch(() => ({ resolves: false, alive: false })));
+  report.hosts = hostList.map(([host, a], i) => ({
+    host,
+    first_year: a.first || null,
+    last_year: a.last || null,
+    documents: a.docs,
+    alive: postures[i].alive,
+    resolves: postures[i].resolves,
+  }));
+  report.hosts_probed = hostList.map(([h]) => h);
+  report.dead_hosts = report.hosts.filter((h) => !h.alive).map((h) => h.host);
 
   report.elapsed_ms = Date.now() - t0;
   return report;
