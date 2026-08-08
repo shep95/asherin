@@ -149,21 +149,26 @@ const all = (m: Map<string, string[]>, k: string): string[] => m.get(k) ?? [];
  * Pull the addr-spec out of an RFC 5322 mailbox. Deliberately linear and
  * anchored: no nested quantifiers, so a hostile 8 KB header cannot induce
  * catastrophic backtracking.
+ *
+ * The real address is the LAST angle-bracket pair, not the first. A spoofer
+ * writes `"Accounts Payable <ap@stripe.com>" <billing@evil.top>` precisely
+ * because a naive first-bracket parser reports the decoy and the whole
+ * analysis then vindicates the attacker.
  */
 export function parseAddress(value: string | null): { name: string | null; address: string | null } {
   if (!value) return { name: null, address: null };
   const v = value.slice(0, 2000).trim();
-  const angle = v.indexOf("<");
+  const angle = v.lastIndexOf("<");
   if (angle >= 0) {
     const close = v.indexOf(">", angle);
     const address = (close > angle ? v.slice(angle + 1, close) : v.slice(angle + 1)).trim().toLowerCase();
-    let name = v.slice(0, angle).trim().replace(/^"|"$/g, "").trim();
-    if (!name) name = null as unknown as string;
+    const name = v.slice(0, angle).trim().replace(/^"|"$/g, "").replace(/"$/, "").trim();
     return { name: name || null, address: address || null };
   }
   const bare = v.split(/[\s,;]+/).find((t) => t.includes("@"));
   return { name: null, address: bare ? bare.replace(/^<|>$/g, "").toLowerCase() : null };
 }
+
 
 export function domainOf(address: string | null): string | null {
   if (!address) return null;
