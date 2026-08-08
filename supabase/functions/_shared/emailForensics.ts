@@ -400,8 +400,9 @@ export function analyzeMessage(msg: AnalyzeInput): MessageForensics {
   const compauth = /compauth\s*=\s*([a-z]+)/i.exec(authText)?.[1]?.toLowerCase() ?? null;
 
   const hops = buildChain(all(H, "received"));
-  const declaredIp = parseAddress(one(H, "x-originating-ip") || "").address ??
-    (one(H, "x-originating-ip") || one(H, "x-sender-ip") || "").replace(/[\[\]]/g, "").trim() || null;
+  const declaredRaw = (one(H, "x-originating-ip") || one(H, "x-sender-ip") || "").replace(/[\[\]]/g, "").trim();
+  const declaredIp = declaredRaw || null;
+
   const originHop = hops.find((h) => h.ip);
   const originIp = (declaredIp && isPublicIp(declaredIp) ? declaredIp : null) ?? originHop?.ip ?? null;
 
