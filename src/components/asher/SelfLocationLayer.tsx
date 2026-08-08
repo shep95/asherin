@@ -1,11 +1,18 @@
-// SelfLocationLayer — own-force ("blue force") rendering on the Intelligence
-// Map: live fix, accuracy disc, heading cone, breadcrumb trail and geofences.
+// SelfLocationLayer — own-force rendering on Asherin Maps: live fix, accuracy
+// disc, heading cone, breadcrumb trail and geofences.
+//
+// The operator's own position is tagged with a GOLDEN-BROWN teardrop pin — the
+// small blue dot it replaced was invisible against satellite imagery, which is
+// now the default base layer. The pin is a Leaflet divIcon (real DOM), so it
+// keeps its size at every zoom instead of scaling away like a vector radius.
 //
 // Pure presentation. It never touches the sensor; every value arrives already
 // gated by the tracking engine, so a degraded fix renders visibly degraded
 // (hollow, dashed) rather than being drawn as a confident position.
 
-import { Circle, CircleMarker, Polygon, Polyline, Popup, Tooltip } from "react-leaflet";
+import { useMemo } from "react";
+import L from "leaflet";
+import { Circle, Marker, Polygon, Polyline, Popup, Tooltip } from "react-leaflet";
 import {
   compass16, fmtSpeed, type Geofence, type SelfFix,
 } from "@/lib/asher/selfTrack";
@@ -17,7 +24,44 @@ interface Props {
   onRemoveFence?: (id: string) => void;
 }
 
-const BLUE = "#38bdf8";
+/** Golden brown — the operator's own-force colour across Asherin Maps. */
+const GOLD = "#c98b3a";
+const GOLD_DEEP = "#8a5a1c";
+const GOLD_LIGHT = "#e6b96b";
+const DEGRADED = "#f59e0b";
+
+/** Teardrop pin with a pulse ring, built once per colour and cached. */
+function selfPinIcon(degraded: boolean): L.DivIcon {
+  const stroke = degraded ? DEGRADED : GOLD_DEEP;
+  const top = degraded ? "#fcd34d" : GOLD_LIGHT;
+  const mid = degraded ? DEGRADED : GOLD;
+  return L.divIcon({
+    className: "asher-self-pin",
+    iconSize: [30, 42],
+    iconAnchor: [15, 42],
+    popupAnchor: [0, -38],
+    tooltipAnchor: [0, -38],
+    html: `
+      <div style="position:relative;width:30px;height:42px;">
+        <span style="position:absolute;left:50%;top:36px;width:26px;height:26px;margin-left:-13px;margin-top:-13px;border-radius:9999px;background:radial-gradient(circle, rgba(201,139,58,.5) 0%, rgba(201,139,58,0) 70%);"></span>
+        <svg width="30" height="42" viewBox="0 0 30 42" aria-hidden="true" style="position:absolute;inset:0;filter:drop-shadow(0 4px 8px rgba(0,0,0,.7));">
+          <defs>
+            <linearGradient id="asher-self-grad${degraded ? "-d" : ""}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="${top}" />
+              <stop offset="50%" stop-color="${mid}" />
+              <stop offset="100%" stop-color="${stroke}" />
+            </linearGradient>
+          </defs>
+          <path d="M15 1.5C8.1 1.5 2.5 7.1 2.5 14c0 9.4 12.5 26.5 12.5 26.5S27.5 23.4 27.5 14C27.5 7.1 21.9 1.5 15 1.5z"
+                fill="url(#asher-self-grad${degraded ? "-d" : ""})" stroke="rgba(12,10,6,.85)" stroke-width="1.6"/>
+          <circle cx="15" cy="14" r="4.8" fill="rgba(12,10,6,.88)" />
+          <circle cx="15" cy="14" r="2" fill="${top}" />
+        </svg>
+      </div>`,
+  });
+}
+
+const BLUE = GOLD;
 const TRAIL = "#0ea5e9";
 
 /** Heading wedge: a 46° cone projected ~70 m ahead of the operator. */
