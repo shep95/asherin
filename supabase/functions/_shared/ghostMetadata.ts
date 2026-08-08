@@ -376,13 +376,37 @@ export async function extractGhostRecord(rawUrl: string): Promise<GhostRecord> {
           rec.geo_lat = exif.GPSLatitude; rec.geo_lng = exif.GPSLongitude; rec.geo_source = "exif";
         }
       } else if (rec.source_type.includes("pdf")) {
-        const txt = new TextDecoder("latin1").decode(await readCapped(res, MAX_BIN_BYTES));
-        const info = parsePdfInfo(txt);
+        const head = new TextDecoder("latin1").decode(await readCapped(res, MAX_BIN_BYTES));
+        let info = parsePdfInfo(head);
+        // The document-info dictionary is referenced by the trailer, which sits
+        // at the END of a PDF. Linearized files repeat it up front; most do not.
+        // When the leading window yields nothing, pull the tail by byte range.
+        const thin = !info.CreationDate && !info.ModDate && !info.Producer && !info.Author;
+        if (thin && rec.file_size_bytes && rec.file_size_bytes > MAX_BIN_BYTES) {
+          try {
+            const from = Math.max(rec.file_size_bytes - MAX_BIN_BYTES, MAX_BIN_BYTES);
+            const tailRes = await fetch(rec.url, {
+              headers: { ...BASE_HEADERS, Range: `bytes=${from}-${rec.file_size_bytes - 1}` },
+              redirect: "follow",
+              signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            });
+            if (tailRes.status === 206 || tailRes.status === 200) {
+              const tail = new TextDecoder("latin1").decode(await readCapped(tailRes, MAX_BIN_BYTES));
+              const tailInfo = parsePdfInfo(tail);
+              info = { ...info, ...tailInfo };
+            } else {
+              try { await tailRes.body?.cancel(); } catch { /* drained */ }
+            }
+          } catch (e) {
+            rec.errors.push(`pdf-tail: ${(e as Error).message}`);
+          }
+        }
         rec.container = info;
         rec.author = info.Author || null;
         rec.software = info.Producer || info.Creator || info.XMPCreatorTool || null;
         rec.created_at = pdfDate(info.CreationDate);
         rec.modified_at = pdfDate(info.ModDate) || rec.modified_at;
+
       } else if (rec.source_type.startsWith("text/html") || rec.source_type.includes("xml")) {
         const head = new TextDecoder().decode(await readCapped(res, MAX_HEAD_BYTES));
         const cut = head.search(/<\/head>/i);
