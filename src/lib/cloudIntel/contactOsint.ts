@@ -455,6 +455,8 @@ function toAnnex(
     // dossier itself has no view of identifier circulation.
     identifierSweeps: [],
     dork: null,
+    imagery: (doc.imagery ?? []).filter((i) => /^https:\/\//i.test(i?.url ?? "")).slice(0, 8),
+    kin: (doc.kin ?? []).slice(0, 24),
   };
 }
 
