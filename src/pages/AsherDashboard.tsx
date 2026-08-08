@@ -289,7 +289,11 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
 type AgentStoreEntry = { id: string; name: string; icon: string; entry_html: string | null; visibility: string };
 
 const AsherDashboard = () => {
-  const [active, setActive] = useState<AsherTab>("map");
+  const [searchParams] = useSearchParams();
+  const [active, setActive] = useState<AsherTab>(() => {
+    const t = searchParams.get("tab") as AsherTab;
+    return t && ["map"].includes(t) ? t : "map";
+  });
   const [vedicOpen, setVedicOpen] = useState(false);
   const selectTab = (id: AsherTab) => {
     if (id === "vedic") { setVedicOpen(true); return; }
