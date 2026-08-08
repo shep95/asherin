@@ -4,7 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
   Eye, TrendingUp, BarChart3, Clock,
-  FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar, MessageSquare, Video, Fingerprint, Ghost,
+  FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar, MessageSquare, Video, Fingerprint, Ghost, Voicemail,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,6 +24,7 @@ import LifePredictions from "./modules/LifePredictions";
 import AutomationSuite from "./modules/AutomationSuite";
 import SecurityIntelligence from "./modules/SecurityIntelligence";
 import EmailForensics from "./modules/EmailForensics";
+import VoiceForensics from "./modules/VoiceForensics";
 import ScenarioEngine from "./modules/ScenarioEngine";
 import ConnectedAppsView from "./modules/ConnectedAppsView";
 import YouTubeDataView from "./modules/YouTubeDataView";
@@ -42,7 +43,7 @@ import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "postmark" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 
@@ -94,6 +95,7 @@ const nexusModules: ModuleDef[] = [
   { id: "sentinel", codename: "SENTINEL", label: "Bluetooth & Area Sentinel", icon: Radar, mandate: "Logs nearby Bluetooth radios, flags the ones recurring across separate times and places as a following pattern, and warns on entry into areas with reported crime or documented group activity — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "security", codename: "BULWARK", label: "Exposure & Threat", icon: Shield, mandate: "Breach exposure, phishing pressure, credential threat chaining and file audit", directorate: "COUNTERINTEL" },
   { id: "postmark", codename: "POSTMARK", label: "Envelope Forensics", icon: Fingerprint, mandate: "Header-only read of every inbound message: relay chain, authentication verdicts, origin network and geography, composing client and sender local time", directorate: "COUNTERINTEL" },
+  { id: "voiceprint", codename: "VOICEPRINT", label: "Voice Envelope Forensics", icon: Voicemail, mandate: "Line attribution, authenticity of every Google Voice notification, and per-correspondent cadence, burst and overnight behaviour — hours stated in your own timezone, read from envelopes only", directorate: "COUNTERINTEL" },
   { id: "ghostmail", codename: "GHOSTMAIL", label: "Ledger × Ghost Engine", icon: Ghost, mandate: "Runs every domain and link inside your email and phone ledger through the Asherin Ghost Engine — origin network, TLS posture, mail exchangers, lookalike and concealed-destination verdicts per correspondent", directorate: "COUNTERINTEL" },
   { id: "automation", codename: "RELAY", label: "Standing Orders", icon: Zap, mandate: "Conditional handling rules — triage, scheduling and location triggers", directorate: "COUNTERINTEL" },
 ];
@@ -175,6 +177,7 @@ const GoogleIntelligenceView = () => {
       case "automation": return <AutomationSuite />;
       case "security": return <SecurityIntelligence />;
       case "postmark": return <EmailForensics />;
+      case "voiceprint": return <VoiceForensics />;
       case "ghostmail": return <GhostLedgerPanel />;
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
