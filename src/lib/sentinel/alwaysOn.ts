@@ -478,14 +478,20 @@ async function engage(): Promise<void> {
   }
   if (netTimer == null) netTimer = window.setInterval(() => { void runNetworkCheck(false); }, NET_MS);
   if (tradeTimer == null) tradeTimer = window.setInterval(() => { void runTradecraftSweep(true); }, TRADE_MS);
+  if (meshTimer == null) meshTimer = window.setInterval(() => { void reportMeshDevice(pos, { source: "heartbeat", force: true }); }, MESH_MS);
 
   // First pass, staggered so a cold start does not fire four calls at once.
   window.setTimeout(() => { void runNetworkCheck(false); }, 4_000);
   window.setTimeout(() => { void runTradecraftSweep(true); }, 12_000);
+  // Announce this device to the fleet immediately: a laptop that is lost five
+  // minutes from now must already be on the roster, not waiting out a timer.
+  void reportMeshDevice(pos, { source: "boot", force: true });
+  void bindBatteryReporting();
   void ensurePush();
   armOnFirstGesture();
   // Hand the watch to the runtimes that outlive this tab.
   void startBackgroundSentinel();
+
 }
 
 async function requestWake(): Promise<void> {
