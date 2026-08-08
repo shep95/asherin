@@ -541,6 +541,12 @@ function detectHarsh(points: CleanPoint[], roads: Array<OsmWay | null>): TripEve
  * away rather than reported as violent driving.
  */
 const SWERVE_NET_HEADING_MAX_DEG = 18;
+/**
+ * Minimum out-and-back amplitude. Below this the movement is inside the band a
+ * driver occupies just holding a lane on a crowned road, and reporting it would
+ * bury the deviations that actually mean something.
+ */
+const SWERVE_MIN_AMPLITUDE_DEG = 12;
 const LATERAL_PLAUSIBLE_MAX_MPS2 = 9.5; // ~0.97 g — beyond this it is sensor noise.
 
 function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripEvent[] {
@@ -582,6 +588,7 @@ function detectSwerves(points: CleanPoint[], roads: Array<OsmWay | null>): TripE
     const pt = points[c.i];
     const peak = Math.max(Math.abs(p.lat), Math.abs(c.lat));
     const amplitude = Math.max(Math.abs(p.dHead), Math.abs(c.dHead));
+    if (amplitude < SWERVE_MIN_AMPLITUDE_DEG) continue; // lane-holding wobble
     out.push({
       kind: "swerve",
       at: iso(p.t),
