@@ -2256,17 +2256,17 @@ const IntelligenceMapModule = () => {
               </button>
             ))}
             <button
-              onClick={() => (cameras.length ? setCameras([]) : loadCameras({ center: mapCenter(), radiusM: 4000 }))}
-              aria-pressed={cameras.length > 0}
-              title="Live street cameras"
-              disabled={cameraBusy}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors disabled:opacity-50 ${
-                cameras.length ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+              onClick={() => { if (tool === "cameras") { setTool(null); setCameras([]); } else setTool("cameras"); }}
+              aria-pressed={tool === "cameras"}
+              title="Camera intelligence"
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                tool === "cameras" || cameras.length ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
               }`}
             >
               {cameraBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" /> : <CameraIcon className="h-3.5 w-3.5" strokeWidth={1.6} />}
               <span className="hidden 2xl:inline">Cameras{cameras.length ? ` · ${cameras.length}` : ""}</span>
             </button>
+
           </div>
           <div className="ml-auto hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
             Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · DOT CCTV
