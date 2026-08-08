@@ -594,6 +594,160 @@ const BluetoothSentinel = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="tradecraft" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => runTradecraft(false)} disabled={analysing}>
+              {analysing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Crosshair className="h-3.5 w-3.5 mr-1" />}
+              Re-run analysis
+            </Button>
+            <Button size="sm" onClick={buildCase} disabled={buildingCase || !analysis}>
+              {buildingCase ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <FileText className="h-3.5 w-3.5 mr-1" />}
+              Build case file
+            </Button>
+            {caseFile && (
+              <Button size="sm" variant="ghost" onClick={downloadCase}>
+                <Download className="h-3.5 w-3.5 mr-1" /> Export markdown
+              </Button>
+            )}
+          </div>
+
+          {analysing && !analysis ? (
+            <div className="space-y-2">{[0, 1].map((i) => <Skeleton key={i} className="h-24 w-full" />)}</div>
+          ) : !analysis ? (
+            <p className="text-xs text-muted-foreground">Analysis unavailable. Run the watch first, then re-run.</p>
+          ) : (
+            <>
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">{analysis.headline}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Posture reads {analysis.posture} · {analysis.coverage.sessions} sessions · {analysis.coverage.days} days · {analysis.coverage.places} locations · {analysis.coverage.devices} radios
+                    </p>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider border rounded px-1.5 py-0.5 shrink-0">
+                    {analysis.tier} · {analysis.score}/100
+                  </span>
+                </div>
+                {/* Progress bar is a plain div so it can never animate on a
+                    reduced-motion preference. */}
+                <div className="h-1 w-full rounded bg-muted overflow-hidden" role="img" aria-label={`Tradecraft score ${analysis.score} of 100`}>
+                  <div className="h-full bg-foreground/70" style={{ width: `${analysis.score}%` }} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3" /> Tradecraft indicators
+                </p>
+                {analysis.indicators.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No indicator matched documented stalking or surveillance methodology in the current log. That is not the same as being safe — see the blind spots below.
+                  </p>
+                ) : (
+                  analysis.indicators.map((i) => (
+                    <div key={`${i.code}-${i.deviceIds.join("-")}`} className={`rounded-lg border p-3 space-y-2 ${SEVERITY_STYLE[i.severity]}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium">{i.title}</p>
+                        <span className="text-[10px] uppercase tracking-wider border rounded px-1.5 py-0.5 shrink-0">
+                          {i.severity} · {(i.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{i.finding}</p>
+                      <p className="text-[11px]"><span className="text-muted-foreground">Method matched: </span>{i.doctrine}</p>
+                      <details className="text-[11px] text-muted-foreground">
+                        <summary className="cursor-pointer select-none">Evidence &amp; innocent explanation</summary>
+                        <ul className="list-disc pl-4 mt-1">
+                          {i.evidence.map((e, n) => <li key={n}>{e}</li>)}
+                        </ul>
+                        <p className="mt-1 italic">Most likely innocent reading: {i.benign}</p>
+                      </details>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What to watch for</p>
+                        <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                          {i.watchFor.map((w, n) => <li key={n}>{w}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What this method cannot see</p>
+                <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                  {analysis.blindSpots.map((b, n) => <li key={n}>{b}</li>)}
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">Case note (optional)</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Anything you personally observed — a car, a time, a message. It is recorded as your statement, kept separate from the machine analysis, and never used to name anyone.
+                </p>
+                <textarea
+                  value={caseNote}
+                  maxLength={2000}
+                  onChange={(e) => setCaseNote(e.target.value)}
+                  rows={3}
+                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
+                  placeholder="e.g. Same silver estate parked opposite the entrance on Tuesday and Thursday around 23:00."
+                />
+              </div>
+
+              {caseFile && (
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <p className="text-sm font-semibold">{String(caseFile.case_reference || "Case file")}</p>
+                  <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">{String(caseFile.executive_summary || "")}</p>
+                  {Array.isArray(caseFile.next_24_hours) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Next 24 hours</p>
+                      <ol className="text-[11px] text-muted-foreground list-decimal pl-4">
+                        {caseFile.next_24_hours.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ol>
+                    </div>
+                  )}
+                  {Array.isArray(caseFile.evidence_preservation) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Evidence preservation</p>
+                      <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                        {caseFile.evidence_preservation.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(caseFile.reporting_package) && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Hand to police / advocate</p>
+                      <ul className="text-[11px] text-muted-foreground list-disc pl-4">
+                        {caseFile.reporting_package.map((s: string, n: number) => <li key={n}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {caseFile.narration_note && <p className="text-[10px] italic text-muted-foreground">{String(caseFile.narration_note)}</p>}
+                </div>
+              )}
+
+              {doctrine.length > 0 && (
+                <details className="rounded-lg border border-border/60 p-3">
+                  <summary className="text-[11px] uppercase tracking-wider text-muted-foreground cursor-pointer select-none flex items-center gap-1">
+                    <BookOpen className="h-3 w-3" /> How following is actually run — the methods this engine tests for
+                  </summary>
+                  <div className="mt-2 space-y-3">
+                    {doctrine.map((d) => (
+                      <div key={d.code} className="space-y-1">
+                        <p className="text-xs font-medium">{d.name} <span className="text-[10px] uppercase tracking-wider text-muted-foreground">· {d.school}</span></p>
+                        <p className="text-[11px] text-muted-foreground">{d.how}</p>
+                        <p className="text-[11px] text-muted-foreground"><span className="text-foreground/70">Radio signature: </span>{d.radioSignature}</p>
+                        <p className="text-[11px] text-muted-foreground"><span className="text-foreground/70">Counter: </span>{d.counter}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </>
+          )}
+        </TabsContent>
+
         <TabsContent value="area" className="space-y-3">
           <div className="flex gap-2">
             <Button size="sm" onClick={() => checkArea(false)} disabled={checkingArea}>
