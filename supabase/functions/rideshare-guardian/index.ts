@@ -22,6 +22,7 @@ import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { callByokJsonWithRetry } from "../_shared/zophielByokRouter.ts";
 import { classifyIntent, runJurisdictionalSearch, formatIntelContext } from "../_shared/jurisdictionalIntel.ts";
 import { notifyIntel, severityFromVerdict } from "../_shared/intelNotify.ts";
+import { runDeepSweep, loadSettings, admin } from "../_shared/rideshareSweep.ts";
 import {
   fastPass,
   parseShareLink,
@@ -40,7 +41,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-const admin = () => createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
 
 function json(body: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
@@ -55,118 +56,9 @@ const str = (v: unknown, max = 200): string | null => {
   return s || null;
 };
 
-interface Settings {
-  alert_threshold: Verdict;
-  push_enabled: boolean;
-  email_enabled: boolean;
-  auto_from_email: boolean;
-}
+// Settings, delivery and the deep sweep are shared with the autopilot so both
+// entry points enforce the same doctrine and emit the same dossier.
 
-const DEFAULT_SETTINGS: Settings = {
-  alert_threshold: "WATCH",
-  push_enabled: true,
-  email_enabled: true,
-  auto_from_email: true,
-};
-
-async function loadSettings(userId: string): Promise<Settings> {
-  const { data } = await admin()
-    .from("rideshare_settings")
-    .select("alert_threshold, push_enabled, email_enabled, auto_from_email")
-    .eq("user_id", userId)
-    .maybeSingle();
-  return { ...DEFAULT_SETTINGS, ...(data || {}) } as Settings;
-}
-
-/**
- * Alerting is best-effort by contract: a dead push endpoint must never cost the
- * rider their report, so every channel is isolated and its outcome recorded.
- *
- * In-app + push go through the shared intelligence bus (so a driver check lands
- * in the same inbox as every other Asherin report); the rideshare-specific
- * email stays here because it carries fields no generic template models.
- */
-async function deliver(
-  userId: string,
-  userEmail: string | null,
-  ride: RideInput,
-  phase: PhaseResult,
-  settings: Settings,
-  rideId: string,
-): Promise<string[]> {
-  const delivered: string[] = [];
-  // Threshold gate: substantive alerts only when the verdict is at or above
-  // what the rider asked for.
-  const meets = VERDICT_RANK[phase.verdict] >= VERDICT_RANK[settings.alert_threshold];
-  if (!meets) return delivered;
-
-  const p = phase.payload as Record<string, any>;
-  const bus = await notifyIntel({
-    userId,
-    userEmail,
-    kind: "rideshare",
-    severity: severityFromVerdict(phase.verdict),
-    title: `${phase.verdict} — ${phase.headline}`,
-    body: p.narrative || phase.headline,
-    subjectName: ride.driver_name || ride.plate || "unnamed driver",
-    source: "Rideshare Guardian",
-    url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${rideId}`,
-    sections: [
-      { label: "Identity confidence", value: `${Math.round(phase.confidence * 100)}%` },
-      { label: "Vehicle", value: `${ride.vehicle || "not captured"} · plate ${ride.plate || "not captured"}` },
-      { label: "Recommended action", value: p.recommended_action || "Verify the plate and driver photo before boarding." },
-    ],
-    findings: Array.isArray(p.flags)
-      ? p.flags.map((f: any) => `${String(f?.severity || "note").toUpperCase()}: ${f?.detail ?? ""}`)
-      : [],
-    idempotencyKey: `rideshare:${rideId}:${p.phase ?? "deep"}`,
-    // Push settings are honoured by the bus; a rider who muted push here must
-    // stay muted there too.
-    skipEmail: true,
-    skipPush: !settings.push_enabled,
-  });
-  // "in_app" is always present when the inbox write succeeded.
-  for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
-
-
-  if (settings.email_enabled && userEmail) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateName: "rideshare-report",
-          recipientEmail: userEmail,
-          idempotencyKey: `rideshare-${rideId}-${phase.payload.phase}`,
-          templateData: {
-            verdict: phase.verdict,
-            headline: phase.headline,
-            driverName: ride.driver_name || "not captured",
-            plate: ride.plate || "not captured",
-            vehicle: ride.vehicle || "not captured",
-            city: ride.city || "not captured",
-            platform: ride.platform,
-            identityConfidence: phase.confidence,
-            narrative: p.narrative || "",
-            recommendedAction: p.recommended_action || "",
-            vehicleCheck: p.vehicle_check || "",
-            limits: p.limits || "",
-            flags: p.flags || [],
-            candidates: p.candidates || [],
-            reportUrl: "https://asherin.com/dashboard",
-            generatedAt: new Date().toUTCString(),
-          },
-        }),
-      });
-      if (res.ok) delivered.push("email");
-      else console.error("guardian_email_failed", res.status, (await res.text()).slice(0, 300));
-    } catch (e) {
-      console.error("guardian_email_error", e instanceof Error ? e.message : e);
-    }
-  }
-
-  return delivered;
-}
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
@@ -234,14 +126,23 @@ Deno.serve(async (req) => {
         const threshold = ["CLEAR", "THIN", "WATCH", "AVOID"].includes(String(s.alert_threshold))
           ? String(s.alert_threshold)
           : "WATCH";
+        // Autopilot is opt-in: reading a mailbox on a schedule is a standing
+        // permission, so it defaults off and must be turned on explicitly.
+        const lookbackRaw = Number(s.lookback_hours);
+        const lookback = Number.isFinite(lookbackRaw)
+          ? Math.min(168, Math.max(1, Math.round(lookbackRaw)))
+          : 24;
         const { error } = await admin().from("rideshare_settings").upsert({
           user_id: userId,
           alert_threshold: threshold,
           push_enabled: s.push_enabled !== false,
           email_enabled: s.email_enabled !== false,
           auto_from_email: s.auto_from_email !== false,
+          autopilot_enabled: s.autopilot_enabled === true,
+          lookback_hours: lookback,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
         if (error) throw error;
         return json({ settings: await loadSettings(userId) }, 200, cors);
       }
@@ -349,7 +250,6 @@ Deno.serve(async (req) => {
           plate: row.plate, vehicle: row.vehicle, city: row.city,
           pickup_label: row.pickup_label, trip_url: row.trip_url,
         };
-        const fast = fastPass(ride);
 
         let key;
         try {
@@ -361,61 +261,19 @@ Deno.serve(async (req) => {
           ? { provider: "google" as const, model: "gemini-flash-latest", apiKey: key.geminiKey! }
           : key.byok!;
 
-        // Collection: only run a sweep when there is something nameable to
-        // sweep for. A plate alone produces noise, not intelligence.
-        let intelContext = "";
-        let collectionNote = "No name available — no public-record collection was attempted.";
-        if (ride.driver_name) {
-          const q = `background check on ${ride.driver_name}${ride.city ? ` in ${ride.city}` : ""}`;
-          const intent = classifyIntent(q);
-          if (intent.kind !== "none") {
-            const bundle = await runJurisdictionalSearch(intent);
-            intelContext = formatIntelContext(bundle);
-            collectionNote = `Collected ${bundle.totalHits ?? 0} open-source hits across ${bundle.jurisdictionLabel || "unspecified jurisdiction"}.`;
-          } else {
-            collectionNote = "Query could not be resolved to a jurisdiction — collection skipped.";
-          }
-        }
-
-        const raw = await callByokJsonWithRetry(
+        // One engine, two entry points: the desk and the autopilot must produce
+        // identical dossiers, so the sweep itself lives in the shared module.
+        const { deep, delivered } = await runDeepSweep({
+          userId,
+          userEmail,
+          rideId: row.id,
+          ride,
           cfg,
-          DEEP_SYSTEM_PROMPT,
-          buildDeepUserPrompt(ride, intelContext),
-          { temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 3 },
-        );
-
-        let parsedModel: unknown = {};
-        try {
-          parsedModel = JSON.parse(raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim());
-        } catch {
-          parsedModel = {};
-        }
-        const deep = enforceDoctrine(parsedModel, fast);
-        (deep.payload as Record<string, unknown>).collection_note = collectionNote;
-
-        const settings = await loadSettings(userId);
-        const delivered = await deliver(userId, userEmail, ride, deep, settings, row.id);
-
-        await admin().from("rideshare_reports").upsert({
-          ride_id: row.id,
-          user_id: userId,
-          phase: "deep",
-          verdict: deep.verdict,
-          confidence: deep.confidence,
-          score: deep.score,
-          headline: deep.headline,
-          payload: deep.payload,
-          delivered_channels: delivered,
-        }, { onConflict: "ride_id,phase" });
-
-        await admin().from("rideshare_rides").update({
-          status: "deep_done",
-          verdict: deep.verdict,
-          confidence: deep.confidence,
-          updated_at: new Date().toISOString(),
-        }).eq("id", row.id);
+          settings: await loadSettings(userId),
+        });
 
         return json({ deep, delivered, report_text: reportText(ride, deep) }, 200, cors);
+
       }
 
       case "ride.list": {

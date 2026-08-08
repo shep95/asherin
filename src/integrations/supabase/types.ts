@@ -7581,15 +7581,18 @@ export type Database = {
       }
       rideshare_rides: {
         Row: {
+          auto_captured: boolean
           city: string | null
           confidence: number | null
           created_at: string
           driver_name: string | null
+          email_message_id: string | null
           id: string
           idempotency_key: string | null
           pickup_label: string | null
           plate: string | null
           platform: string
+          ride_at: string | null
           source: string
           status: string
           trip_url: string | null
@@ -7599,15 +7602,18 @@ export type Database = {
           verdict: string | null
         }
         Insert: {
+          auto_captured?: boolean
           city?: string | null
           confidence?: number | null
           created_at?: string
           driver_name?: string | null
+          email_message_id?: string | null
           id?: string
           idempotency_key?: string | null
           pickup_label?: string | null
           plate?: string | null
           platform?: string
+          ride_at?: string | null
           source: string
           status?: string
           trip_url?: string | null
@@ -7617,15 +7623,18 @@ export type Database = {
           verdict?: string | null
         }
         Update: {
+          auto_captured?: boolean
           city?: string | null
           confidence?: number | null
           created_at?: string
           driver_name?: string | null
+          email_message_id?: string | null
           id?: string
           idempotency_key?: string | null
           pickup_label?: string | null
           plate?: string | null
           platform?: string
+          ride_at?: string | null
           source?: string
           status?: string
           trip_url?: string | null
@@ -7640,7 +7649,13 @@ export type Database = {
         Row: {
           alert_threshold: string
           auto_from_email: boolean
+          autopilot_enabled: boolean
           email_enabled: boolean
+          last_scan_at: string | null
+          last_scan_detail: string | null
+          last_scan_status: string | null
+          lookback_hours: number
+          next_due_at: string
           push_enabled: boolean
           updated_at: string
           user_id: string
@@ -7648,7 +7663,13 @@ export type Database = {
         Insert: {
           alert_threshold?: string
           auto_from_email?: boolean
+          autopilot_enabled?: boolean
           email_enabled?: boolean
+          last_scan_at?: string | null
+          last_scan_detail?: string | null
+          last_scan_status?: string | null
+          lookback_hours?: number
+          next_due_at?: string
           push_enabled?: boolean
           updated_at?: string
           user_id: string
@@ -7656,7 +7677,13 @@ export type Database = {
         Update: {
           alert_threshold?: string
           auto_from_email?: boolean
+          autopilot_enabled?: boolean
           email_enabled?: boolean
+          last_scan_at?: string | null
+          last_scan_detail?: string | null
+          last_scan_status?: string | null
+          lookback_hours?: number
+          next_due_at?: string
           push_enabled?: boolean
           updated_at?: string
           user_id?: string

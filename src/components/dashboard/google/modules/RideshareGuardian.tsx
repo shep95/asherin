@@ -110,12 +110,19 @@ const RideshareGuardian = () => {
   const [sweeping, setSweeping] = useState<string | null>(null);
   const [analysing, setAnalysing] = useState(false);
   const [push, setPush] = useState<PushStatus>({ state: "prompt" });
+  const [scanning, setScanning] = useState(false);
   const [settings, setSettings] = useState({
     alert_threshold: "WATCH" as Verdict,
     push_enabled: true,
     email_enabled: true,
     auto_from_email: true,
+    autopilot_enabled: false,
+    lookback_hours: 24,
+    last_scan_at: null as string | null,
+    last_scan_status: null as string | null,
+    last_scan_detail: null as string | null,
   });
+
 
   const [form, setForm] = useState({
     trip_url: "", driver_name: "", plate: "", vehicle: "", city: "", pickup_label: "",
@@ -210,6 +217,34 @@ const RideshareGuardian = () => {
     setSettings(next);
     await supabase.functions.invoke("rideshare-guardian", { body: { action: "settings.set", settings: next } });
   };
+
+  /** Manual trigger for the same sweeper the scheduler runs — scoped by the
+   *  server to the caller's own mailbox. */
+  const runScanNow = async () => {
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("rideshare-autopilot", { body: {} });
+      if (error) throw error;
+      const r = (data?.results?.[0] ?? {}) as { found?: number; swept?: number; status?: string };
+      toast.success(
+        r.swept ? `${r.swept} ride${r.swept === 1 ? "" : "s"} assessed` : "Mailbox read",
+        {
+          description: r.swept
+            ? "The dossier is in your inbox and on your device."
+            : r.status === "no_rides"
+              ? "No Uber or Lyft trip mail in the window."
+              : `Scan finished (${r.status ?? "ok"}).`,
+        },
+      );
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "The mailbox could not be read.");
+
+    } finally {
+      setScanning(false);
+    }
+  };
+
 
   const removeRide = async (id: string) => {
     setRides((prev) => prev.filter((r) => r.id !== id));
@@ -511,6 +546,34 @@ const RideshareGuardian = () => {
               </div>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
+              <div className="pr-4">
+                <p className="text-sm text-foreground">Autopilot — read rides from my mail</p>
+                <p className="text-xs text-muted-foreground">
+                  Scans your connected Google mailbox every 15 minutes for Uber and Lyft trip mail,
+                  rebuilds the ride card, and runs the full dossier without you pasting anything.
+                </p>
+              </div>
+              <Switch
+                checked={settings.autopilot_enabled}
+                onCheckedChange={(v) => saveSettings({ ...settings, autopilot_enabled: v })}
+              />
+            </div>
+            {settings.autopilot_enabled && (
+              <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
+                <div>
+                  <p className="text-sm text-foreground">Run a scan now</p>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.last_scan_at
+                      ? `Last read ${new Date(settings.last_scan_at).toLocaleString()} — ${settings.last_scan_detail || settings.last_scan_status || "no detail"}`
+                      : "Your mailbox has not been read yet."}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" disabled={scanning} onClick={runScanNow}>
+                  {scanning ? "Scanning…" : "Scan mailbox"}
+                </Button>
+              </div>
+            )}
+            <div className="flex items-center justify-between rounded-lg border border-border/25 px-4 py-3">
               <div>
                 <p className="text-sm text-foreground">Device notifications</p>
                 <p className="text-xs text-muted-foreground">Arrives even when Asherin is closed.</p>
@@ -525,6 +588,7 @@ const RideshareGuardian = () => {
               <Switch checked={settings.email_enabled} onCheckedChange={(v) => saveSettings({ ...settings, email_enabled: v })} />
             </div>
           </div>
+
         </TabsContent>
       </Tabs>
     </div>
