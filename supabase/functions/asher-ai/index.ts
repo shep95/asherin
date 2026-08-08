@@ -526,7 +526,7 @@ serve(async (req) => {
       const userText = latestUserText(cleaned);
       const { classifyIntent, runJurisdictionalSearch, formatIntelContext, formatClarifyContext } =
         await import("../_shared/jurisdictionalIntel.ts");
-      const intent = mapEditFast ? { kind: "none" } as any : classifyIntent(userText);
+      const intent = (mapEditFast || cloudIntelFast) ? { kind: "none" } as any : classifyIntent(userText);
       if (intent.kind !== "none") {
 
         console.log("[asher-ai] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
