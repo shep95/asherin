@@ -210,12 +210,17 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const toggleNarrative = useCallback(() => {
     setNarrativeMode(prev => { const next = !prev; saveNarrativeMode(next); return next; });
   }, []);
-  // LAW mode — legal-advisor directive with deep-jurisdiction + old-law
-  // supersession research. Mutually independent of NAR.
-  const [legalMode, setLegalMode] = useState<boolean>(() => loadLegalMode());
+  // LAW switch — tri-state. AUTO (default) arms the legal-advisor directive only
+  // on messages that actually read as legal questions and stands down on the very
+  // next non-legal message. ON forces it, OFF suppresses it entirely.
+  const [lawSwitch, setLawSwitch] = useState<LawSwitch>(() => loadLawSwitch());
   const toggleLegal = useCallback(() => {
-    setLegalMode(prev => { const next = !prev; saveLegalMode(next); return next; });
+    setLawSwitch(prev => { const next = cycleLawSwitch(prev); saveLawSwitch(next); return next; });
   }, []);
+  // Live read of the current draft — drives the AUTO badge without touching send.
+  const reading = useMemo(() => classifyMessage(value), [value]);
+  const autoLegalArmed = lawSwitch === "auto" && shouldAutoArmLegal(reading);
+  const legalActive = lawSwitch === "on" || autoLegalArmed;
 
   useEffect(() => {
     const handler = () => {
