@@ -167,12 +167,18 @@ function parseQueries(raw: string): Array<{ q: string; why: string }> {
   }
 }
 
-// ── Generate 100 theories in 8 parallel calls ───────────────────────────────
+// ── Generate 100+ theories in 9 parallel calls (8 canonical + 1 synthesis) ─
 async function generateTheories(target: DorkTarget, geminiKey: string): Promise<{ theories: DorkTheory[]; via: string }> {
   const user = targetToUser(target);
-  const results = await Promise.allSettled(
-    CAT_PROMPTS.map((c) => callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw }))),
+  // The synthesis call gets the doctrine digest appended so Gemini reasons
+  // over all 55 domains + 10 root causes, not just the target line.
+  const synthesisUser = `${user}\n\n---\n${doctrineDigest()}\n---\n\nProduce the 10 NOVEL cross-domain dorks now.`;
+  const canonical = CAT_PROMPTS.map((c) =>
+    callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw })),
   );
+  const synthesis = callGemini(geminiKey, NOVEL_SYNTHESIS_SYSTEM, synthesisUser)
+    .then((raw) => ({ cat: "novel_synthesis" as DorkCategory, raw }));
+  const results = await Promise.allSettled([...canonical, synthesis]);
   const theories: DorkTheory[] = [];
   const seen = new Set<string>();
   let successes = 0;
@@ -195,7 +201,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       });
     }
   }
-  return { theories, via: successes >= 4 ? "gemini_parallel" : successes > 0 ? "gemini_partial" : "gemini_failed" };
+  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed" };
 }
 
 // ── zophiel-search delegation ───────────────────────────────────────────────
