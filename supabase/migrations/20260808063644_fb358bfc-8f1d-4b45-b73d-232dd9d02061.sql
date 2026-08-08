@@ -1,0 +1,4 @@
+INSERT INTO public.intel_notifications (id, user_id, kind, severity, title, body, subject_name, source, sections)
+VALUES
+ ('11111111-1111-4111-8111-111111111111','483b8000-cc19-43f7-9598-3825393562e8','rideshare','warning','Gate test — mononym','test','Marcus','Verification','[{"label":"Vehicle","value":"Toyota Camry · plate T117661C"},{"label":"Verdict","value":"WATCH 50%"}]'::jsonb),
+ ('22222222-2222-4222-8222-222222222222','483b8000-cc19-43f7-9598-3825393562e8','dossier','info','Gate test — full name','test','Sundar Pichai','Verification','[{"label":"Employer","value":"Google"},{"label":"City","value":"Mountain View"}]'::jsonb);
