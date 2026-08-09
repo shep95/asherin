@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
 
         const touched: string[] = [];
         for (const a of adverts) {
-          if (typeof a?.rssi === "number" && a.rssi < settings.min_rssi) continue;
+          if (typeof a?.rssi === "number" && a.rssi < -100) continue;
           const fp = await fingerprint(a);
           const uuids = Array.isArray(a.serviceUuids) ? a.serviceUuids.slice(0, 12).map(String) : [];
           const kind: DeviceKind = classifyKind(a.name ?? null, a.manufacturer ?? null, uuids);
@@ -344,8 +344,10 @@ Deno.serve(async (req) => {
             seen_at: new Date(a.ts || Date.now()).toISOString(),
             rssi: typeof a.rssi === "number" ? Math.round(a.rssi) : null,
             distance_m: dist,
-            lat: typeof a.lat === "number" ? a.lat : null,
-            lng: typeof a.lng === "number" ? a.lng : null,
+            // R9 — coordinates are stored at ~100 m precision. The product never
+            // needs a metre-accurate movement log of its own user.
+            lat: typeof a.lat === "number" ? Math.round(a.lat * 1000) / 1000 : null,
+            lng: typeof a.lng === "number" ? Math.round(a.lng * 1000) / 1000 : null,
             accuracy_m: typeof a.accuracy === "number" ? a.accuracy : null,
             place_key: pk,
             scanner_label: scannerLabel,
