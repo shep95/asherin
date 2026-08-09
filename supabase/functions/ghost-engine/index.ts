@@ -229,6 +229,23 @@ interface SearchResult {
   via?: string;
   /** Distinct engines/legs that independently returned this URL. */
   corroboration?: number;
+  /**
+   * The contradictions this shell carries, in full. A count told the operator
+   * that *something* was wrong and then made them go hunting for it in another
+   * tab; the reason is the finding, so the reason travels with the row.
+   */
+  anomalies?: { code: string; severity: string; title: string; detail: string }[];
+  /** Sum of the severity weights behind `anomalies` — the score's own witness. */
+  anomaly_weight?: number;
+  /** One line naming what put this row where it is. Ranking, made auditable. */
+  rank_basis?: string;
+  /**
+   * Set when the same URL was found on the shelf AND on the live web in the
+   * same run. Two independent layers agreeing is the strongest signal the
+   * engine can produce, and it used to be invisible: the buffer copy simply
+   * outranked everything and the web copy sat below it as a near-duplicate.
+   */
+  layers?: ("web" | "buffer")[];
 }
 
 function leadResult(l: HarvestLead): SearchResult {
