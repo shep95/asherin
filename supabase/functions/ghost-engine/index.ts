@@ -526,6 +526,48 @@ Deno.serve(async (req) => {
       maxLeads: Math.min(Math.max(Number(body.maxLeads) || 220, 40), 400),
     });
 
+    // ── Automatic IDENTIFIER → ORIGIN chain ────────────────────────────────
+    // A sweep proves an identifier is ON a document. It says nothing about
+    // where that document CAME FROM — and that is the next question every
+    // single time. Making the operator copy the URL, switch verbs and re-run
+    // turned a one-question workflow into three, and in practice meant the
+    // provenance was simply never pulled.
+    //
+    // The chain runs on documents only. An HTML surface's provenance is its
+    // hosting, which the intercept already reports; a PDF, an office package
+    // or a photograph carries the authoring machine, the wall clock, the UTC
+    // offset and often the coordinate — that is what is worth a round trip.
+    // It is bounded to three traces so a chained sweep never blows the wall
+    // clock the un-chained one was budgeted for.
+    const CHAIN_CAP = 3;
+    let provenance: Array<{ url: string; host: string; grade: string; trace: unknown }> = [];
+    if (body.chain !== false) {
+      const docish = report.surfaces
+        .flatMap((s) => s.sightings)
+        .filter((s) => s.docClass === "pdf" || s.docClass === "office" || s.docClass === "image")
+        // Strongest evidence first: a body-grade sighting inside a PDF is a far
+        // better provenance candidate than a URL-only match on a listing page.
+        .sort((a, b) => {
+          const g = { body: 4, markup: 3, title: 2, metadata: 1, url: 0 } as Record<string, number>;
+          return (g[b.grade] ?? 0) - (g[a.grade] ?? 0) || b.occurrences - a.occurrences;
+        })
+        .slice(0, CHAIN_CAP);
+      if (docish.length) {
+        const traces = await pool(docish, 3, async (s) => {
+          try { return { url: s.url, host: s.host, grade: s.grade, trace: await traceOrigin(s.url) }; }
+          catch { return null; }
+        });
+        provenance = traces.filter(Boolean) as typeof provenance;
+        if (provenance.length) {
+          report.notes.push(
+            `${provenance.length} document sighting${provenance.length === 1 ? " was" : "s were"} chained ` +
+            `into an origin trace automatically — authoring clock, producing software and lineage are attached.`,
+          );
+        }
+      }
+    }
+
+
     // A sweep is an entity lookup, so it belongs on the same history rail the
     // intercept writes to — otherwise the record of who was checked is split
     // across two ledgers and neither one is complete.
