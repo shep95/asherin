@@ -1340,15 +1340,19 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   };
 
 
-  // Surface
-  addResults(firecrawlResults, 'firecrawl', 'surface');
-  addResults(ddgResults, 'ddg', 'surface');
+  // Surface — the wave is added hit-by-hit so each result keeps the engine that
+  // actually found it (bing-rss / brave / marginalia / google-news / firecrawl /
+  // ddg / mojeek), preserving true independence counting.
+  if (surfaceResults.status === 'fulfilled') {
+    for (const r of surfaceResults.value) {
+      addResults({ status: 'fulfilled', value: [r] } as PromiseSettledResult<SearchResult[]>,
+        r.engine || 'surface-wave', 'surface');
+    }
+  }
   addResults(searxResults, 'searxng', 'surface');
-  addResults(mojeekResults, 'mojeek', 'surface');
   // metager/gigablast retired: Gigablast is defunct and MetaGer bot-blocks edge
   // IPs, so both contributed only latency and a false independence class.
   addResults(wikiResults, 'wikipedia', 'surface');
-  addResults(braveResults, 'brave', 'surface');
   addResults(yandexResults, 'yandex', 'surface');
   // PANTHEON layers (already tagged inside their fetchers)
   addResults(commonCrawlResults, 'common-crawl', 'deep');
