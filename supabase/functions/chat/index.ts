@@ -2437,7 +2437,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _routerEmphasis,
       QUICK_INTELLIGENCE_BRAIN,
       _quickIntelEmphasis,
-      ANALYTICS_LOGIC_MATRIX,
+      // The 40KB roster of 30 analytical identities is the single heaviest
+      // block in the prompt. The per-message emphasis (which names the two or
+      // three logics this turn demands) always ships; the full roster only
+      // when the turn is genuinely analytical.
+      _R.analytics ? ANALYTICS_LOGIC_MATRIX : "",
       _logicEmphasis,
 
 
