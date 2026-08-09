@@ -103,22 +103,34 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
       const raw = await callByokJsonWithRetry(cfg as any, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
         temperature: 0.15,
         jsonMode: true,
-        maxOutputTokens: fast ? 1536 : 4096,
+        // Do NOT trim the output budget on the arrival path. Latency here is
+        // dominated by research and time-to-first-token, not by length, and a
+        // short cap simply truncates the JSON mid-object — which the loose
+        // parser then salvages into an empty-but-valid verdict. That reads as
+        // "this place is fine" and is far worse than being slow.
+        maxOutputTokens: 4096,
         // 90s x 2 attempts is three minutes of model time on its own — that
         // alone blows an arrival budget. The arrival path gets one short shot.
-        timeoutMs: fast ? 35_000 : 90_000,
+        timeoutMs: fast ? 45_000 : 90_000,
         attempts: fast ? 1 : 2,
       });
       parsed = parseJsonLoose(raw);
     } catch (e) {
       console.error("[areaSentinel] model call failed", fast ? "fast" : "deep", e instanceof Error ? e.message : e);
     }
-    if (!parsed) {
-      // No verdict. On the arrival path, say so and leave the cell unwritten so
-      // the very next unattended pass tries again with the long clock.
-      return { assessment: cached ?? null, notified: false, reason: fast ? "fast_timeout" : "assessment_failed" };
+    const level = String(parsed?.risk_level || "").toUpperCase();
+    const summary = String(parsed?.summary || parsed?.headline || "").trim();
+    // A parse that yields no level AND no prose is a failed sweep wearing the
+    // shape of an answer. Banking it would cache silence over the cell and mute
+    // the very alert this path exists to deliver.
+    if (!parsed || (!RISK_LEVELS.includes(level) && !summary)) {
+      return {
+        assessment: cached ?? null,
+        notified: false,
+        reason: fast ? "fast_timeout" : "assessment_failed",
+      };
     }
-    const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
+
     const { data: saved } = await db.from("geo_risk_assessments").upsert({
       place_key: pk, lat, lng, place_label: label,
       risk_level: RISK_LEVELS.includes(level) ? level : "UNKNOWN",
