@@ -98,7 +98,7 @@ export function classifyVaultIntent(text: string): VaultIntent {
 
 // ── Retrieval ──────────────────────────────────────────────────────────────
 
-interface DossierRow {
+export interface DossierRow {
   subject_name: string;
   subject_email: string | null;
   hop: number;
@@ -341,4 +341,100 @@ export function formatVaultContext(b: VaultBundle | null): string {
   }
 
   return L.join("\n");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VAULT PRIOR — the check that should happen before any fresh sweep
+//
+// The bridge above only fires on vault-SHAPED phrasing ("my vault", "who
+// emailed me"). That left a hole big enough to drive a minute of latency
+// through: a plain outward lookup — "who is Asher Shepherd Newton in Cape
+// Coral" — never consulted the vault at all, so a subject the operator
+// already has a finished, high-confidence dossier on was re-investigated
+// from zero by two separate research engines.
+//
+// This is the cheap read that closes it: one indexed lookup by email or
+// name, no sweep, no build, no network beyond the operator's own database,
+// bounded so it can never itself become the thing that makes the turn slow.
+// A hit short-circuits the expensive path; a miss costs single-digit
+// milliseconds and changes nothing.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface VaultPrior {
+  subject: DossierRow;
+  /** Confidence high enough to answer from without a fresh sweep. */
+  authoritative: boolean;
+  ageDays: number;
+  elapsedMs: number;
+}
+
+/** Below this the dossier is a lead, not an answer — the sweep still runs. */
+const PRIOR_CONFIDENCE_FLOOR = 0.7;
+/** Past this the world has moved on; the dossier informs but does not replace. */
+const PRIOR_MAX_AGE_DAYS = 45;
+/** A prior lookup that cannot answer in this long is not worth waiting for. */
+const PRIOR_BUDGET_MS = 2_500;
+
+export async function lookupVaultPrior(
+  authHeader: string | null,
+  needle: { name?: string; email?: string },
+): Promise<VaultPrior | null> {
+  const started = Date.now();
+  const name = String(needle.name ?? "").trim();
+  const email = String(needle.email ?? "").trim().toLowerCase();
+  if (!authHeader || (!name && !email)) return null;
+  // A one-word "name" matches half the ledger; only a real subject qualifies.
+  if (!email && name.split(/\s+/).length < 2) return null;
+
+  try {
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) return null;
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const sb = createClient(url, anon, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const row = await Promise.race([
+      fetchSubject(sb, { email: email || undefined, name: name || undefined }),
+      new Promise<null>((r) => setTimeout(() => r(null), PRIOR_BUDGET_MS)),
+    ]);
+    if (!row) return null;
+    if (String(row.status).toLowerCase() !== "ready") return null;
+
+    const built = row.built_at ? new Date(row.built_at).getTime() : 0;
+    const ageDays = built ? (Date.now() - built) / 86_400_000 : Number.POSITIVE_INFINITY;
+    const confidence = Number(row.confidence ?? 0);
+
+    return {
+      subject: row,
+      authoritative: confidence >= PRIOR_CONFIDENCE_FLOOR && ageDays <= PRIOR_MAX_AGE_DAYS,
+      ageDays,
+      elapsedMs: Date.now() - started,
+    };
+  } catch (_e) {
+    // A prior is an optimisation. Its failure must never cost the turn.
+    return null;
+  }
+}
+
+/**
+ * Render a prior for the prompt. `authoritative` decides the instruction the
+ * model receives: answer from this, or treat it as a starting position that
+ * the live sweep is expected to confirm or correct.
+ */
+export function formatVaultPriorContext(p: VaultPrior | null): string {
+  if (!p) return "";
+  const s = p.subject;
+  const b: VaultBundle = {
+    subjects: [s], roster: [], counts: { ready: 0, queued: 0, building: 0, failed: 0, total: 0 },
+    devices: [], settings: null, built: [], inFlight: [], notFound: [], elapsedMs: p.elapsedMs,
+  };
+  const body = formatVaultContext(b);
+  const age = Number.isFinite(p.ageDays) ? `${Math.round(p.ageDays)} day(s) old` : "age unknown";
+  const head = p.authoritative
+    ? `\n\n## KNOWN SUBJECT — ANSWER FROM THE VAULT\nThis person is already a resolved subject in the operator's own Cloud Intelligence vault at ${Math.round(Number(s.confidence ?? 0) * 100)}% confidence (${age}). No fresh sweep was run: re-investigating a subject you already hold is wasted time the operator pays for in latency. Answer from the dossier below, cite its sources, and state the build date so the operator can judge staleness. Offer a re-sweep only if they ask for something the dossier does not contain.`
+    : `\n\n## KNOWN SUBJECT — VAULT PRIOR (not yet authoritative)\nThe vault already holds a dossier on this subject at ${Math.round(Number(s.confidence ?? 0) * 100)}% confidence (${age}) — below the bar to answer from alone, so live collection ran alongside it. Use this as the prior: where live evidence agrees, say so and raise confidence; where it disagrees, prefer the live source and say the vault is out of date.`;
+  return `${head}\n${body}`;
 }

@@ -1325,147 +1325,123 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       intelIntent = null;
     }
 
-    // ── Google Mesh: the inward-facing sensor array ──────────────────────
-    // Zophiel answers "who is X in the world". The Mesh answers "what is true
-    // about ME" — and only when the turn is first-person AND the caller is a
-    // verified signed-in user with connected accounts. Anything less returns
-    // null and the turn proceeds exactly as before.
+    // ── BRIDGE FAN-OUT — six independent sensors, one wave ────────────────
+    //
+    // These six bridges answer six unrelated questions: what is in my Google
+    // accounts, what is in my dossier vault, what is in my resume ledger, what
+    // is in the indexed substrate, what is in Azplen, and what is behind this
+    // social link. None of them reads another's output. They were nonetheless
+    // awaited one after another, so a turn none of them owned — which is most
+    // turns — still paid six sequential async round-trips before the retrieval
+    // layer was even reached.
+    //
+    // They now fire together. Every leg owns its own try/catch and resolves to
+    // its own slice of context, so one bridge failing or hanging cannot take
+    // the wave down (allSettled, never all) and the ordering of the assembled
+    // prompt is unchanged — order is decided at assembly, not by arrival.
+    //
+    // Two flags survive the wave because later stages depend on them:
+    //   meshOwnsTurn  — an inward Google turn must not be re-read as an
+    //                   outward identity lookup ("any recent emails" was once
+    //                   web-searched as if it were a person).
+    //   vaultOwnsTurn — same, for vault-shaped phrasing.
     let googleMeshContext = "";
-    // An inward Google turn ("any recent emails") must not be re-read as an
-    // outward identity lookup — that is exactly how "Any Recent Emails" ended
-    // up being web-searched as if it were a person.
     let meshOwnsTurn = false;
-    try {
-      const lastUserForMesh = [...messages].reverse().find((m: any) => m.role === "user");
-      const meshQ = String(lastUserForMesh?.content || "");
-      const { classifyMeshIntent, runGoogleMesh, formatMeshContext } =
-        await import("../_shared/googleMeshBridge.ts");
-      const meshIntent = classifyMeshIntent(meshQ);
-      if (meshIntent.active && authHeader) {
-        meshOwnsTurn = true;
-        const meshBundle = await runGoogleMesh(authHeader, meshQ, meshIntent);
+    let meshVaultContext = "";
+    let vaultOwnsTurn = false;
+    let resumeContext = "";
+    let googleSubstrateContext = "";
+    let azplenContext = "";
+    let socialContext = "";
+
+    {
+      const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
+      const bridgeQ = String(lastUserForBridges?.content || "");
+      const bridgeStarted = Date.now();
+
+      // ── Leg 1: Google Mesh — the inward-facing live sensor array ────────
+      const meshLeg = (async () => {
+        const { classifyMeshIntent, runGoogleMesh, formatMeshContext } =
+          await import("../_shared/googleMeshBridge.ts");
+        const meshIntent = classifyMeshIntent(bridgeQ);
+        if (!meshIntent.active || !authHeader) return;
+        const meshBundle = await runGoogleMesh(authHeader, bridgeQ, meshIntent);
         googleMeshContext = formatMeshContext(meshBundle);
         if (meshBundle) {
+          // Only a bundle with live accounts owns the turn. Intent alone does
+          // not: with no connected account the outward engine is still a
+          // better answer than silence.
+          meshOwnsTurn = true;
           console.log(
             `[chat] Google Mesh: accounts=${meshBundle.accounts.length}, mail=${meshBundle.mail.length}, events=${meshBundle.events.length}, places=${meshBundle.places.length}, ${meshBundle.elapsedMs}ms`,
           );
         } else {
-          // No verified caller or no connected account — the outward engine is
-          // still the better answer than silence.
-          meshOwnsTurn = false;
           console.log("[chat] Google Mesh: intent active but no live accounts");
         }
-      }
-    } catch (e) {
-      console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
-    }
+      })();
 
-
-    // ── Cloud Intelligence Mesh vault: the persisted dossier ledger ───────
-    // The live Mesh answers "what is happening in my accounts". The vault
-    // answers "what do we already know about the human on the other end".
-    // Fires only on a vault-shaped turn for a verified caller, reads through
-    // that caller's own token (RLS is the boundary), and will run at most one
-    // bounded on-demand sweep when the operator explicitly asked for one.
-    let meshVaultContext = "";
-    // An inward vault turn ("my vault", "my devices", "who emailed me") must
-    // not be re-read as an outward identity lookup: the jurisdictional engine
-    // would parse the operator's own phrasing as a person's name and answer a
-    // question nobody asked. When the vault owns the turn, that path stands down.
-    let vaultOwnsTurn = false;
-    try {
-      const lastUserForVault = [...messages].reverse().find((m: any) => m.role === "user");
-      const vq = String(lastUserForVault?.content || "");
-      const { classifyVaultIntent, runVaultPull, formatVaultContext } =
-        await import("../_shared/meshVaultBridge.ts");
-      const vaultIntent = classifyVaultIntent(vq);
-      if (vaultIntent.active && authHeader) {
-        vaultOwnsTurn = vaultIntent.roster || vaultIntent.devices;
+      // ── Leg 2: Cloud Intelligence vault — the persisted dossier ledger ──
+      const vaultLeg = (async () => {
+        const { classifyVaultIntent, runVaultPull, formatVaultContext } =
+          await import("../_shared/meshVaultBridge.ts");
+        const vaultIntent = classifyVaultIntent(bridgeQ);
+        if (!vaultIntent.active || !authHeader) return;
+        const ownsByShape = vaultIntent.roster || vaultIntent.devices;
         const vaultBundle = await runVaultPull(authHeader, vaultIntent);
         meshVaultContext = formatVaultContext(vaultBundle);
+        // A vault hit is authoritative for its subject; a vault miss is not,
+        // so on a miss the outward engine stays available to answer.
+        vaultOwnsTurn = ownsByShape || Boolean(vaultBundle?.subjects.length);
         if (vaultBundle) {
-          // A vault hit is authoritative for this subject; a vault miss is not,
-          // so the outward engine stays available to answer that case.
-          if (vaultBundle.subjects.length) vaultOwnsTurn = true;
           console.log(
             `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, inflight=${vaultBundle.inFlight.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Resume & Job Operator ledger ─────────────────────────────────────
-    // The operator's own resume, open gap questions, job leads and dispatch
-    // history. Read-only, RLS-scoped, and deliberately narrow: a generic
-    // "write me a resume" turn must not pull this person's private document.
-    let resumeContext = "";
-    try {
-      const lastUserForResume = [...messages].reverse().find((m: any) => m.role === "user");
-      const rq = String(lastUserForResume?.content || "");
-      const { classifyResumeIntent, runResumePull, formatResumeContext } =
-        await import("../_shared/resumeBridge.ts");
-      const rIntent = classifyResumeIntent(rq);
-      if (rIntent.active && authHeader) {
+      // ── Leg 3: Resume & Job Operator ledger ─────────────────────────────
+      // Deliberately narrow: a generic "write me a resume" turn must not pull
+      // this person's private document.
+      const resumeLeg = (async () => {
+        const { classifyResumeIntent, runResumePull, formatResumeContext } =
+          await import("../_shared/resumeBridge.ts");
+        const rIntent = classifyResumeIntent(bridgeQ);
+        if (!rIntent.active || !authHeader) return;
         const rBundle = await runResumePull(authHeader, rIntent);
         resumeContext = formatResumeContext(rBundle, rIntent);
+        if (rBundle?.resume) {
+          // A resume turn is inward-facing; the outward identity engine would
+          // otherwise treat the operator's own name as a lookup target.
+          vaultOwnsTurn = true;
+        }
         if (rBundle) {
-          // A resume turn is inward-facing; the outward identity engine has
-          // nothing to add and would otherwise treat the operator's own name
-          // as a lookup target.
-          if (rBundle.resume) vaultOwnsTurn = true;
           console.log(
             `[chat] Resume bridge: resume=${rBundle.resume ? "yes" : "none"}, gaps=${rBundle.gaps.length}, leads=${rBundle.leadCounts.total}, walkable=${rBundle.leadCounts.walkable}, apps=${rBundle.applications.length}, ${rBundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Resume bridge failed:", (e as Error).message);
-    }
+      })();
 
-
-
-
-
-    // ── Google Substrate: the indexed ledger ─────────────────────────────
-    // Pull, never push. The Mesh calls Google live; the Substrate reads what
-    // was already harvested — milliseconds instead of seconds, and it can see
-    // across months. Fires only on an explicit self/ledger-shaped turn, and
-    // only for a verified caller with a non-empty ledger.
-    let googleSubstrateContext = "";
-    try {
-      const lastUserForSub = [...messages].reverse().find((m: any) => m.role === "user");
-      const subQ = String(lastUserForSub?.content || "");
-      const { classifySubstrateIntent, runSubstratePull, formatSubstrateContext } =
-        await import("../_shared/googleSubstrateBridge.ts");
-      const subIntent = classifySubstrateIntent(subQ);
-      if (subIntent.active && authHeader) {
-        const bundle = await runSubstratePull(authHeader, subQ, subIntent);
+      // ── Leg 4: Google Substrate — the indexed ledger (pull, never push) ──
+      const substrateLeg = (async () => {
+        const { classifySubstrateIntent, runSubstratePull, formatSubstrateContext } =
+          await import("../_shared/googleSubstrateBridge.ts");
+        const subIntent = classifySubstrateIntent(bridgeQ);
+        if (!subIntent.active || !authHeader) return;
+        const bundle = await runSubstratePull(authHeader, bridgeQ, subIntent);
         googleSubstrateContext = formatSubstrateContext(bundle);
         if (bundle) {
           console.log(
             `[chat] Substrate: signals=${bundle.signals}, insights=${bundle.insights.length}, hits=${bundle.hits.length}, ${bundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Google Substrate bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Azplen: the ingest platform's own voice ──────────────────────────
-    // The operator should be able to run the data platform by talking to it.
-    // Fires only on an Azplen-shaped turn, reads only the caller's own rows
-    // through their token (RLS enforced), and injects real counts — never a
-    // model-invented inventory.
-    let azplenContext = "";
-    try {
-      const lastUserForAz = [...messages].reverse().find((m: any) => m.role === "user");
-      const azQ = String(lastUserForAz?.content || "");
-      const { classifyAzplenIntent, runAzplenPull, formatAzplenContext, formatAzplenCapabilities } =
-        await import("../_shared/azplenBridge.ts");
-      const azIntent = classifyAzplenIntent(azQ);
-      if (azIntent.active) {
+      // ── Leg 5: Azplen — the ingest platform's own control surface ───────
+      const azplenLeg = (async () => {
+        const { classifyAzplenIntent, runAzplenPull, formatAzplenContext, formatAzplenCapabilities } =
+          await import("../_shared/azplenBridge.ts");
+        const azIntent = classifyAzplenIntent(bridgeQ);
+        if (!azIntent.active) return;
         const parts: string[] = [];
         if (azIntent.capability || azIntent.explicit) parts.push(formatAzplenCapabilities());
         if (authHeader) {
@@ -1475,39 +1451,119 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           console.log(`[chat] Azplen: datasets=${azBundle?.datasets.length ?? 0}, entities=${azBundle?.entityCount ?? 0}, ${azBundle?.elapsedMs ?? 0}ms`);
         }
         azplenContext = parts.join("\n\n");
-      }
-    } catch (e) {
-      console.error("[chat] Azplen bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Social layer ───────────────────────────────────────────────────────
-    // Deliberately outside shouldSearch(): a pasted profile link is an
-    // unambiguous request for social data, and gating it behind the general
-    // web-search heuristic would drop the very turns it exists to serve.
-    // It still only fires when a platform is named or a link is pasted, so a
-    // scarce Instagram read is never spent speculatively.
-    let socialContext = "";
-    try {
-      const socialUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-      const sq = String(socialUserMsg?.content || "").slice(0, 600);
-      if (sq) {
+      // ── Leg 6: Social ───────────────────────────────────────────────────
+      // Outside shouldSearch() on purpose: a pasted profile link is an
+      // unambiguous request for social data and the general web-search
+      // heuristic would drop exactly the turns this exists to serve.
+      const socialLeg = (async () => {
+        const sq = bridgeQ.slice(0, 600);
+        if (!sq) return;
         const { needsSocialLayer, extractSocialTargets, runSocialIntel, formatSocialContext } =
           await import("../_shared/socialChatBridge.ts");
-        if (needsSocialLayer(sq)) {
-          const socialTargets = extractSocialTargets(sq);
-          if (socialTargets.length) {
-            const socialBundle = await runSocialIntel(socialTargets);
-            socialContext = formatSocialContext(socialBundle);
-            console.log(
-              `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
-            );
-          }
+        if (!needsSocialLayer(sq)) return;
+        const socialTargets = extractSocialTargets(sq);
+        if (!socialTargets.length) return;
+        const socialBundle = await runSocialIntel(socialTargets);
+        socialContext = formatSocialContext(socialBundle);
+        console.log(
+          `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
+        );
+      })();
+
+      const legs: Array<[string, Promise<void>]> = [
+        ["mesh", meshLeg], ["vault", vaultLeg], ["resume", resumeLeg],
+        ["substrate", substrateLeg], ["azplen", azplenLeg], ["social", socialLeg],
+      ];
+      const settled = await Promise.allSettled(legs.map(([, p]) => p));
+      settled.forEach((s, i) => {
+        if (s.status === "rejected") {
+          console.error(`[chat] ${legs[i][0]} bridge failed:`, (s.reason as Error)?.message ?? s.reason);
         }
-      }
-    } catch (e) {
-      console.error("[chat] Social bridge failed:", (e as Error).message);
+      });
+      console.log(`[chat] Bridge wave: 6 legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
     }
 
+    // ── FUSED IDENTITY RETRIEVAL — launched here, awaited below ───────────
+    //
+    // Zophiel and the jurisdictional dossier engine are two research systems
+    // that, on an identity turn, go looking for the same person. They ran
+    // strictly one after the other: the web sweep completed, and only then did
+    // the jurisdictional engine start its own — with a 75 second ceiling on
+    // top. A chat turn has nowhere near that much patience, and the second
+    // engine was rarely finding a subject the first had missed; it was mostly
+    // paying twice for depth on the same name.
+    //
+    // The jurisdictional leg is therefore STARTED here and awaited after the
+    // web sweep, so the two run concurrently and an identity turn costs the
+    // slower of the two rather than their sum. Its ceiling drops from 75s to
+    // 24s: past that the turn has already failed as a conversation, and the
+    // operator is better served by a grounded partial answer that says what is
+    // still collecting than a complete one that arrives after they left.
+    //
+    // Before either engine spends a second, the operator's own vault is
+    // checked. A subject they already hold a finished, high-confidence dossier
+    // on does not need re-investigating from zero — that was the most
+    // expensive possible way to answer a question their own database could
+    // answer immediately.
+    let jurisdictionalContext = "";
+    let isIntelTurn = false;
+    let vaultPriorHit = false;
+
+    const identityLeg: Promise<void> = (async () => {
+      try {
+        const { runJurisdictionalSearch, formatIntelContext, formatClarifyContext, classifyIntent } =
+          await import("../_shared/jurisdictionalIntel.ts");
+        const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+        // Reuse the classification computed for the retrieval router above; only
+        // re-derive it if that pass failed, so both layers agree on the turn type.
+        const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
+        if (isDefensiveSecurityAuditRequest || vaultOwnsTurn || meshOwnsTurn || intent.kind === "none") return;
+
+        isIntelTurn = true;
+        console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
+
+        if (intent.needsClarification) {
+          jurisdictionalContext = formatClarifyContext(intent);
+          return;
+        }
+
+        // Vault prior — a bounded read of the operator's own ledger, never a sweep.
+        if (authHeader && intent.kind === "person" && intent.subject) {
+          try {
+            const { lookupVaultPrior, formatVaultPriorContext } =
+              await import("../_shared/meshVaultBridge.ts");
+            const prior = await lookupVaultPrior(authHeader, { name: intent.subject });
+            if (prior) {
+              jurisdictionalContext = formatVaultPriorContext(prior);
+              vaultPriorHit = prior.authoritative;
+              console.log(
+                `[chat] Vault prior: hit on "${intent.subject}" — ${Math.round(Number(prior.subject.confidence ?? 0) * 100)}% confidence, ${Math.round(prior.ageDays)}d old, authoritative=${prior.authoritative}, ${prior.elapsedMs}ms`,
+              );
+              // Authoritative prior: the answer already exists. Both research
+              // engines stand down for this turn.
+              if (prior.authoritative) return;
+            }
+          } catch (e) {
+            console.error("[chat] Vault prior failed:", (e as Error).message);
+          }
+        }
+
+        const bundle = await Promise.race([
+          runJurisdictionalSearch(intent),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 24000)),
+        ]);
+        const live = bundle ? formatIntelContext(bundle) : "";
+        if (live) jurisdictionalContext = jurisdictionalContext ? `${jurisdictionalContext}\n${live}` : live;
+        else if (!jurisdictionalContext) {
+          jurisdictionalContext =
+            "\n\n## JURISDICTIONAL SWEEP — INCOMPLETE\nThe records sweep did not return inside this turn's collection window. Answer from the live web corpus above and say plainly that the records layer is still collecting — never present general knowledge as a sourced record.";
+        }
+      } catch (e) {
+        console.error("[chat] Jurisdictional intel failed:", (e as Error).message);
+      }
+    })();
 
     if (shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
@@ -1633,38 +1689,17 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Internet Archive lookup failed:", e);
     }
 
-    // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
+    // ── Jurisdictional Intel Sweep — join the leg launched above ───────────
     // An intel turn is EVIDENCE-ONLY: cross-conversation memory, learned profile
     // traits and vault RAG are all suppressed below so priors can never be
-    // reported as if they were sourced public records.
-    let jurisdictionalContext = "";
-    let isIntelTurn = false;
-    try {
-      const { runJurisdictionalSearch, formatIntelContext, formatClarifyContext, classifyIntent } =
-        await import("../_shared/jurisdictionalIntel.ts");
-      const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
-      // Reuse the classification computed for the retrieval router above; only
-      // re-derive it if that pass failed, so both layers agree on the turn type.
-      const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
-
-      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && !meshOwnsTurn && intent.kind !== "none") {
-        isIntelTurn = true;
-        console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
-
-        if (intent.needsClarification) {
-          jurisdictionalContext = formatClarifyContext(intent);
-        } else {
-          // Wall-clock ceiling: never let jurisdictional intel push /chat past the 150s edge limit.
-          const bundle = await Promise.race([
-            runJurisdictionalSearch(intent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 75000)),
-          ]);
-          jurisdictionalContext = bundle ? formatIntelContext(bundle) : "";
-        }
-      }
-    } catch (e) {
-      console.error("[chat] Jurisdictional intel failed:", (e as Error).message);
+    // reported as if they were sourced public records. The sweep itself has
+    // been running concurrently with the web corpus since before that sweep
+    // started; this is only where its result is collected.
+    await identityLeg;
+    if (isIntelTurn) {
+      console.log(`[chat] Identity leg joined: vaultPrior=${vaultPriorHit ? "authoritative" : "no"}, context=${jurisdictionalContext.length}b`);
     }
+
 
     // ── Asherin Engine — Dork Battery (100-theory OSINT sweep) ─────────────
     // Fires when the last user turn has a hard dork trigger ("dork",
@@ -1691,7 +1726,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         try {
           const selfAuth = req.headers.get("Authorization");
           const selfUser = selfAuth
-            ? await resolveCallerCached(selfAuth, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "")
+            ? await resolveCallerCached(selfAuth, (Deno.env.get("SUPABASE_URL") || ""), Deno.env.get("SUPABASE_ANON_KEY") || "")
             : null;
           if (selfUser?.email) resolvedSubject = String(selfUser.email).toLowerCase();
         } catch (_e) { /* fall through to the no-subject guard below */ }
@@ -2289,6 +2324,37 @@ The operator is requesting a defensive security audit / flaw check of their own 
       await import("../_shared/analyticsLogicMatrix.ts");
     const _logicEmphasis = buildAnalyticsLogicEmphasis(_lastUserText);
 
+    // ── TURN RELEVANCE — decide what this message actually needs ──────────
+    // The prompt below used to be unconditional: every message, including
+    // "hey", carried the comedy brain, the Vedic corpus, forensic linguistics,
+    // war-strategy doctrine and the 40KB analytics matrix. Prefill on that much
+    // text is paid before the first token of the answer exists, on every turn.
+    // Classify once, attach only what can change the answer. Identity, doctrine,
+    // and everything the operator themselves configured are never gated.
+    const { classifyTurnRelevance } = await import("../_shared/promptRelevance.ts");
+    const _recentTail = (prunedMessages || [])
+      .slice(-4)
+      .map((m: any) => (typeof m?.content === "string" ? m.content : ""))
+      .join("\n");
+    const _hasImageAttachment = (prunedMessages || []).some((m: any) =>
+      (m?.attachments || []).some((a: any) => String(a?.type || "").startsWith("image/")));
+    const _R = classifyTurnRelevance({
+      text: _lastUserText,
+      recent: _recentTail,
+      mode,
+      responseDepth,
+      hasImageAttachment: _hasImageAttachment,
+      hasChartAttachment,
+      hasCodeAttachment: Boolean(zophielCodingBrainContent),
+      hasEvidence: Boolean(
+        (webSearchContext && webSearchContext.trim()) ||
+        (jurisdictionalContext && jurisdictionalContext.trim()) ||
+        (dorkContext && dorkContext.trim()),
+      ),
+      isIntelTurn,
+    });
+    console.log(`[chat] Turn relevance: trivial=${_R.trivial} deep=${_R.deep} → ${_R.attached.join(",") || "voice only"}`);
+
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // PROMPT ASSEMBLY ORDER (recency-weighted):
     //   1. Core identity + static doctrine brains (foundation)
@@ -2304,41 +2370,47 @@ The operator is requesting a defensive security audit / flaw check of their own 
       HYPOTHETICAL_REALISM_DOCTRINE,
       _temporalBlock,
       AUREON_CORE_IDENTITY,
-      SYSTEM_TWO_FORCING_BRAIN,
-      CODE_NARRATIVE_PROTOCOL,
-      BRAIN_ORCHESTRATOR,
+      // Deliberate reasoning is dropped only where there is nothing to reason
+      // about — a greeting does not need System-2 forcing.
+      _R.trivial ? "" : SYSTEM_TWO_FORCING_BRAIN,
+      _R.coding || _R.deep ? CODE_NARRATIVE_PROTOCOL : "",
+      _R.trivial ? "" : BRAIN_ORCHESTRATOR,
       WORKFLOW_SECRECY_DIRECTIVE,
       cognitiveWorkflowDirective,
-      AUREON_SCENARIO_MATRIX,
-      AUREON_DEBUGGING_PROTOCOLS,
-      AUREON_CODING_MASTERY,
-      NARRATIVE_FORGE_BRAIN,
-      QUANTUM_ORCHESTRATION_BRAIN,
-      BUTTERFLY_PROTOCOL_BRAIN,
-      COMEDY_BRAIN,
-      ASHER_LOGIC_BRAIN,
+      _R.strategic || _R.intel || _R.deep ? AUREON_SCENARIO_MATRIX : "",
+      _R.coding ? AUREON_DEBUGGING_PROTOCOLS : "",
+      _R.coding ? AUREON_CODING_MASTERY : "",
+      _R.creative ? NARRATIVE_FORGE_BRAIN : "",
+      _R.deep || _R.strategic || _R.analytics ? QUANTUM_ORCHESTRATION_BRAIN : "",
+      _R.deep || _R.strategic ? BUTTERFLY_PROTOCOL_BRAIN : "",
+      // Humor is a register, not a capability the model lacks: it only needs
+      // the brain when the turn is actually asking to be funny.
+      _R.humor ? COMEDY_BRAIN : "",
+      _R.trivial ? "" : ASHER_LOGIC_BRAIN,
       PROMPT_INTELLIGENCE_PROTOCOL,
-      EMOTIONAL_PERSONA_BRAIN,
-      SYNTHESIS_ENGINE_BRAIN,
-      VISUAL_INTELLIGENCE_BRAIN,
-      SOCIAL_AWARENESS_BRAIN,
-      DEEP_TRAINING_ARCHITECTURE_BRAIN,
-      GEOLOCATION_BRAIN,
-      AUREON_PSYCHOLOGY_ENGINE,
-      AUREON_FORENSIC_LINGUISTICS,
-      AUREON_VEDIC_INTELLIGENCE,
-      vedicBrainContent,
-      warStrategyBrainContent,
-      strategicDoctrineBrainContent,
+      _R.psychology || _R.creative || _R.trivial ? EMOTIONAL_PERSONA_BRAIN : "",
+      _R.deep || _R.analytics || _R.intel ? SYNTHESIS_ENGINE_BRAIN : "",
+      _R.visual ? VISUAL_INTELLIGENCE_BRAIN : "",
+      _R.social ? SOCIAL_AWARENESS_BRAIN : "",
+      _R.deep || _R.coding ? DEEP_TRAINING_ARCHITECTURE_BRAIN : "",
+      _R.geo || _R.intel ? GEOLOCATION_BRAIN : "",
+      _R.psychology || _R.intel ? AUREON_PSYCHOLOGY_ENGINE : "",
+      _R.linguistics || _R.intel ? AUREON_FORENSIC_LINGUISTICS : "",
+      // Astrology and gematria are opt-in: they answer only to their own
+      // vocabulary, never to a turn merely being long.
+      _R.vedic ? AUREON_VEDIC_INTELLIGENCE : "",
+      _R.vedic ? vedicBrainContent : "",
+      _R.strategic ? warStrategyBrainContent : "",
+      _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
-      AUREON_IMAGE_INTELLIGENCE,
-      hasChartAttachment ? MARKET_STRUCTURE_VISION_BRAIN : "",
+      _R.visual ? AUREON_IMAGE_INTELLIGENCE : "",
+      hasChartAttachment || _R.market ? MARKET_STRUCTURE_VISION_BRAIN : "",
       // Grounding: any attached image is answered from cited observables, not impressions.
-      hasChartAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
+      hasChartAttachment || _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
-      AUREON_VISUAL_DOMINANCE,
+      _R.visual ? AUREON_VISUAL_DOMINANCE : "",
       CONTEXT_INTELLIGENCE_PROMPT,
-      GEMATRIA_CHAT_DIRECTIVE,
+      _R.gematria ? GEMATRIA_CHAT_DIRECTIVE : "",
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),
@@ -2365,7 +2437,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _routerEmphasis,
       QUICK_INTELLIGENCE_BRAIN,
       _quickIntelEmphasis,
-      ANALYTICS_LOGIC_MATRIX,
+      // The 40KB roster of 30 analytical identities is the single heaviest
+      // block in the prompt. The per-message emphasis (which names the two or
+      // three logics this turn demands) always ships; the full roster only
+      // when the turn is genuinely analytical.
+      _R.analytics ? ANALYTICS_LOGIC_MATRIX : "",
       _logicEmphasis,
 
 
