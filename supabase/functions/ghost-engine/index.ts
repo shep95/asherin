@@ -652,7 +652,11 @@ Deno.serve(async (req) => {
     if (!authHeader) return json({ error: "Authentication required" }, 401);
     const bundle = await runGhostLedger(authHeader, {
       windowDays: Number(body.windowDays) || 90,
-      channel: body.channel === "gmail" || body.channel === "sms" ? body.channel : null,
+      // No channel means every channel. Mail and messages were the only two the
+      // fusion ever read, which quietly excluded Drive shares, calendar invites
+      // and contact records that live in the very same ledger.
+      channel: (Array.isArray(body.channel) ? body.channel : body.channel ? [body.channel] : [])
+        .filter(isLedgerChannel),
       focus: body.focus ? String(body.focus).slice(0, 120) : null,
       maxHosts: Number(body.maxHosts) || 14,
       budgetMs: 60_000,
