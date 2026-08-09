@@ -20,7 +20,7 @@ import NetworkSentinelTab from "@/components/dashboard/google/modules/NetworkSen
 
 import {
   Radar, ShieldAlert, MapPin, Loader2, RefreshCw, EyeOff, UserCheck, FileText, Radio,
-  Crosshair, BookOpen, Download,
+  Crosshair, BookOpen, Download, AlertTriangle,
 } from "lucide-react";
 
 /**
@@ -417,6 +417,38 @@ const BluetoothSentinel = () => {
           )}
         </div>
       </div>
+
+      {/*
+        SILENT-DEAF BANNER.
+
+        The most dangerous state this panel can render is "Armed" over a radio
+        that has never produced a single sample: the operator reads it as
+        protection and waits for alerts that are arithmetically impossible,
+        because recurrence needs sightings and there are none. Desktop Chrome
+        exposes only the one-shot picker — no passive advertisement scanning —
+        so on that runtime the log stays empty forever and nothing here is
+        broken, it simply cannot hear. Say that loudly, above the fold, instead
+        of leaving it to a muted line further down.
+      */}
+      {watching && !loading && devices.length === 0 && liveCount === 0 &&
+        (mode === "picker" || mode === "unsupported") && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-1.5">
+          <p className="flex items-center gap-2 font-semibold text-foreground">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            No radio has ever been heard on this device — stalking alerts cannot fire here.
+          </p>
+          <p className="text-muted-foreground">
+            {mode === "picker"
+              ? "This browser only exposes the one-shot Bluetooth picker. It cannot listen passively, so no advertisements are ever logged, so recurrence can never be computed. Area-risk and network legs are unaffected and still running."
+              : "Web Bluetooth is unavailable in this browser, so the radio leg never starts. Area-risk and network legs are unaffected and still running."}
+          </p>
+          <p className="text-muted-foreground">
+            Continuous sweeps need the Asherin companion app, or Chrome on Android with experimental
+            web platform features enabled. Use <strong className="text-foreground">Capture</strong> below
+            for a manual one-shot reading in the meantime.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-[11px] text-muted-foreground space-y-1">
         <p>
