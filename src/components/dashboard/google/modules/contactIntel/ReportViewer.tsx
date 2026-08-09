@@ -6,8 +6,24 @@ import { downloadText } from "./localVault";
 interface Props {
   name: string;
   text: string;
+  /** Face imagery captured by the OSINT leg. URLs only; never hot-linked. */
+  images?: Array<{ url: string; attributedTo: string }>;
   onClose: () => void;
 }
+
+/**
+ * Face images are routed through the SSRF-guarded intel-avatar edge function
+ * so the operator's browser never issues a request to a third-party host that
+ * the collection layer surfaced. A null return degrades the tile to blank
+ * rather than falling back to a direct fetch.
+ */
+function proxied(url: string): string | null {
+  if (!url || !url.startsWith("https://")) return null;
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (!base) return null;
+  return `${base}/functions/v1/intel-avatar?u=${encodeURIComponent(url)}`;
+}
+
 
 /**
  * Full-screen reader for a rendered contact report.
