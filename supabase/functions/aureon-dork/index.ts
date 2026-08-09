@@ -55,7 +55,7 @@ serve(async (req) => {
     console.log("[aureon-dork] running", t.kind, "→", t.subject);
     const report = await runAureonDork(t, {
       geminiKey,
-      testCap: Math.max(10, Math.min(60, Number(testCap) || 50)),
+      testCap: Math.max(10, Math.min(200, Number(testCap) || 999)),
       concurrency: 15,
       perQueryTimeoutMs: 16000,
       skipBrief: !!skipBrief,

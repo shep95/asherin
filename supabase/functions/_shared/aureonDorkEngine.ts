@@ -336,7 +336,7 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
   const totalHits = theories.reduce((a, t) => a + t.hits.length, 0);
   const byCategory = {} as Record<DorkCategory, DorkTheory[]>;
   for (const t of theories) (byCategory[t.category] ||= []).push(t);
-  const topExposures = [...theories].filter((t) => t.tested).sort((a, b) => b.yieldScore - a.yieldScore).slice(0, 20);
+  const topExposures = [...theories].filter((t) => t.tested).sort((a, b) => b.yieldScore - a.yieldScore);
 
   const partial: Omit<DorkReport, "brief" | "defensiveGuidance" | "elapsedMs" | "via"> = {
     target,
@@ -354,18 +354,40 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
 }
 
 // Compact context injectable back into Aureon's system prompt.
+// Every hit is rendered as a real markdown link so the operator gets
+// clickable evidence, not just a paraphrased summary of what was found.
 export function formatDorkContext(r: DorkReport): string {
   const lines: string[] = [];
+  const withHits = r.topExposures.filter((t) => t.hits.length > 0);
+  const dry = r.topExposures.filter((t) => t.tested && t.hits.length === 0);
+
   lines.push(`### ASHERIN ENGINE — DORK BATTERY (${r.theoriesGenerated} theories, ${r.theoriesTested} tested, ${r.totalHits} hits, ${(r.elapsedMs / 1000).toFixed(1)}s)`);
   lines.push(`Target: **${r.target.subject}** (${r.target.kind})`);
   lines.push("");
-  lines.push("**Top exposures (by yield score):**");
-  const top = r.topExposures.slice(0, 8);
-  if (top.length === 0) lines.push("- _No tested theory produced a hit — surface reads clean._");
-  else for (const [i, t] of top.entries()) {
-    lines.push(`${i + 1}. \`${t.query}\` · ${t.category} · score=${t.yieldScore} · markers=[${t.markers.join(", ") || "—"}]`);
-    for (const h of t.hits.slice(0, 3)) lines.push(`   - ${h.title || h.host || "(untitled)"} — ${h.url}`);
+
+  lines.push(`**Theories that returned evidence (${withHits.length}):**`);
+  if (withHits.length === 0) {
+    lines.push("- _No tested theory produced a hit — surface reads clean._");
+  } else {
+    for (const [i, t] of withHits.entries()) {
+      lines.push(`${i + 1}. \`${t.query}\` · ${t.category} · score=${t.yieldScore} · markers=[${t.markers.join(", ") || "—"}]`);
+      // Every hit as a clickable markdown link with host + snippet.
+      for (const h of t.hits) {
+        const label = (h.title || h.host || h.url).replace(/[\[\]]/g, "").slice(0, 140);
+        const snip = h.snippet ? ` — ${h.snippet.slice(0, 180)}` : "";
+        lines.push(`   - [${label}](${h.url}) \`${h.host}\`${snip}`);
+      }
+    }
   }
+
+  if (dry.length) {
+    lines.push("");
+    lines.push(`**Theories tested with zero hits (${dry.length}):** _absence-of-evidence, still probative._`);
+    for (const t of dry.slice(0, 40)) {
+      lines.push(`- \`${t.query}\` · ${t.category}`);
+    }
+  }
+
   if (r.brief) {
     lines.push("");
     lines.push("**Analyst brief:**");
