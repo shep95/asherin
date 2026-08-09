@@ -361,7 +361,7 @@ Deno.serve(async (req) => {
         let dossiersBuilt = 0;
         let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
-          const agg = await recompute(id, totalSessions, windowHours);
+          const agg = await recompute(id, totalSessions, windowHours, strikeRssi);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
           if (!row) continue;
 
@@ -378,9 +378,12 @@ Deno.serve(async (req) => {
             closestMeters: agg.window_closest_m ?? agg.closest_distance_m,
             threshold: settings.recurrence_threshold,
             ignoreAudio: settings.ignore_audio,
-            windowEncounters: agg.window_encounters,
+            windowStrikes: agg.window_strikes,
+            rapidStrikes: agg.rapid_strikes,
+            spreadMeters: agg.spread_meters,
             windowHours,
             windowSpanMinutes: agg.window_span_minutes,
+            isInfrastructure: isInfrastructure(row.manufacturer ?? null, row.raw_name ?? null, row.inferred_kind as DeviceKind),
           });
 
           const patch: Record<string, unknown> = {
@@ -395,14 +398,15 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          // Re-alert when the window doctrine fires again after a full cooldown,
-          // or when the all-time pattern deepens. Never on every ping.
+          // R10 — one alert per device, then silence for the cooldown. After the
+          // cooldown, if the radio is still striking, re-alert with escalated
+          // copy rather than repeating the original notice.
           const lastAlertMs = row.last_alert_at ? Date.parse(String(row.last_alert_at)) : NaN;
-          const cooledDown = !Number.isFinite(lastAlertMs) ||
-            Date.now() - lastAlertMs >= windowHours * 3_600_000;
-          const escalated = verdict.shouldAlert &&
-            (cooledDown ||
-              agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+          const firstAlert = !Number.isFinite(lastAlertMs);
+          const cooledDown = firstAlert || Date.now() - lastAlertMs >= ALERT_COOLDOWN_MIN * 60_000;
+          const escalated = verdict.shouldAlert && cooledDown;
+          const stillFollowing = escalated && !firstAlert;
+
 
 
           if (escalated && dossiersBuilt < 1) {
