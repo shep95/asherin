@@ -400,6 +400,32 @@ export function buildQueryPlan(raw: string): QueryPlan {
     requiredOut = requiredFinal.filter((t) => (confidence.get(t)?.confidence ?? 0) >= 0.9);
   }
 
+  // A span may have been captured with a leading/trailing function word — a
+  // natural question such as "who is the CEO of Reuters" yielded the selector
+  // "of reuters", which no page ever contains as written and which therefore
+  // gated the correct answer out. Trim the carrier words; keep the selector.
+  const CARRIER = new Set(["of", "the", "a", "an", "in", "at", "on", "for", "to", "by", "from", "with", "is", "are", "was", "were"]);
+  const trimCarrier = (t: string): string => {
+    let parts = t.split(/\s+/);
+    while (parts.length > 1 && CARRIER.has(parts[0].toLowerCase())) parts = parts.slice(1);
+    while (parts.length > 1 && CARRIER.has(parts[parts.length - 1].toLowerCase())) parts = parts.slice(0, -1);
+    return parts.join(" ");
+  };
+  const trimmedSeen = new Set<string>();
+  requiredOut = requiredOut
+    .map((t) => {
+      const trimmedTerm = trimCarrier(t);
+      if (trimmedTerm !== t && confidence.has(t) && !confidence.has(trimmedTerm)) {
+        confidence.set(trimmedTerm, confidence.get(t)!);
+      }
+      return trimmedTerm;
+    })
+    .filter((t) => {
+      if (!t || CARRIER.has(t.toLowerCase()) || trimmedSeen.has(t)) return false;
+      trimmedSeen.add(t);
+      return true;
+    });
+
   const requiredWeighted: WeightedTerm[] = requiredOut.map((t) => ({
     term: t,
     confidence: Math.max(0.3, Math.min(1, confidence.get(t)?.confidence ?? 0.7)),
