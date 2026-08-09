@@ -91,22 +91,28 @@ function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
   const where = ride.city ? ` in ${ride.city}` : "";
   if (!name) return [];
 
-  if (!bound) {
-    // First-name-only and the pivot did not resolve a surname. The
-    // jurisdictional identity collector needs a bindable person, so nothing it
-    // returns here would be admissible; the open-web fallback runs instead.
-    return [];
-  }
-
+  // First-name-only rides still get discovery collection. Suppressing every
+  // name angle created a chicken-and-egg failure: the search that could discover
+  // a surname required a surname before it would run. Exact ride anchors narrow
+  // the corpus; downstream identity doctrine still forbids attribution until
+  // two independent identifiers bind the result to this driver.
+  const anchors = !bound
+    ? [ride.plate ? `"${ride.plate}"` : "", ride.vehicle ? `"${ride.vehicle}"` : "", ride.platform]
+        .filter(Boolean).join(" ")
+    : "";
+  const subject = bound ? name : `"${name}" ${anchors}`.trim();
+  const prefix = bound ? "" : "Discovery — ";
 
   const angles: Angle[] = [
-    { label: "Identity & residence", query: `who is ${name}${where} address phone email background` },
-    { label: "Court & criminal record", query: `${name}${where} court records criminal charges arrest case docket` },
-    { label: "Driving & licensing", query: `${name}${where} driver license record traffic violations DUI commercial license` },
-    { label: "Employment history", query: `${name}${where} employment history current job employer work` },
-    { label: "Reputation & complaints", query: `${name}${where} uber lyft driver reviews complaints rating passenger` },
-    { label: "Associates & relationships", query: `${name}${where} family relatives associates known connections` },
+    { label: `${prefix}identity`, query: `who is ${subject}${where} rideshare driver profile` },
+    { label: `${prefix}court & safety record`, query: `${subject}${where} court records criminal charges arrest case docket` },
+    { label: `${prefix}driving & licensing`, query: `${subject}${where} driver license traffic violations DUI commercial license` },
+    { label: `${prefix}employment`, query: `${subject}${where} rideshare employment current employer work` },
+    { label: `${prefix}reputation & complaints`, query: `${subject}${where} uber lyft driver reviews complaints rating passenger` },
   ];
+  if (bound) {
+    angles.push({ label: "Associates & relationships", query: `${name}${where} family relatives associates known connections` });
+  }
   if (ride.plate) {
     angles.push({ label: "Vehicle registration", query: `license plate ${ride.plate}${where} vehicle registration record` });
   }
@@ -137,10 +143,21 @@ async function zophielLayer(
   const bound = Boolean(resolvedName) || raw.split(/\s+/).length > 1;
   const where = ride.city ? ` ${ride.city}` : "";
 
+  // A first name must not be discarded. It is not enough to attribute a record,
+  // but it is still a useful discovery anchor when fenced by the exact plate,
+  // vehicle, platform and locality. Results remain explicitly UNBOUND until an
+  // independent source supplies a surname or another unique identifier.
+  const unboundAnchors = [
+    name ? `"${name}"` : "",
+    ride.plate ? `"${ride.plate}"` : "",
+    ride.vehicle ? `"${ride.vehicle}"` : "",
+    ride.platform,
+    ride.city || "",
+  ].filter(Boolean).join(" ");
   const query = bound && name
     ? `${name}${where} rideshare driver background court record reviews complaints associates`
-    : ride.plate
-      ? `license plate ${ride.plate}${where} vehicle registration rideshare driver`
+    : unboundAnchors
+      ? `${unboundAnchors} driver profile reviews complaints rideshare`
       : "";
 
   if (!query || budgetMs < 8_000) {
@@ -175,7 +192,7 @@ async function zophielLayer(
       "### Zophiel engine sweep",
       bound
         ? "Identity-bound query against the Zophiel multi-index corpus. Tier 1 is a primary source; treat weak-match warnings as disqualifying unless corroborated."
-        : "Identity is UNBOUND — this corpus was retrieved on the plate/vehicle only. Nothing here may be attributed to a named person.",
+        : `Identity is UNBOUND — this is a discovery sweep using the displayed first name plus the ride's plate, vehicle, platform and locality. Nothing may be attributed to ${name || "the displayed driver"} unless an independent source binds another unique identifier.`,
       body,
     ].join("\n"),
     hits,
@@ -381,8 +398,6 @@ export async function deliver(
   rideId: string,
 ): Promise<string[]> {
   const delivered: string[] = [];
-  if (VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) return delivered;
-
   const p = phase.payload as Record<string, any>;
 
   // The alert threshold governs the IDENTITY verdict, which is THIN on almost

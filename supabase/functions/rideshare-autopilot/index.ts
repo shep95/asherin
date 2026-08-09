@@ -1,5 +1,5 @@
 /**
- * RIDESHARE AUTOPILOT — the sweep that runs while the rider is in the car.
+ * RIDESHARE AUTOPILOT — the sweep that must reach the rider before boarding.
  *
  * The rider should never paste a link. Uber and Lyft already write the trip to
  * the mailbox: dispatch notice, receipt, share forward. This function claims
@@ -87,7 +87,11 @@ async function claimDue(sb: SupabaseClient): Promise<RiderRow[]> {
   const rows = (due ?? []) as RiderRow[];
   if (!rows.length) return [];
 
-  const next = new Date(Date.now() + 15 * 60_000).toISOString();
+  // Dispatch cards have a short useful life. A fifteen-minute claim window was
+  // long enough for the vehicle to arrive, complete a short trip, and generate
+  // a receipt before the next scan. One minute keeps overlapping cron ticks
+  // idempotent while preserving the pre-boarding window.
+  const next = new Date(Date.now() + 60_000).toISOString();
   const claimed: RiderRow[] = [];
   for (const r of rows) {
     const q = sb.from("rideshare_settings")
@@ -206,6 +210,34 @@ async function sweepRider(
         email_excerpt: r.excerpt,
       },
     }, { onConflict: "ride_id,phase" });
+
+    // Beat the deep sweep to the lock screen. The deterministic card arrives as
+    // soon as an assignment/dispatch email is parsed; the sourced dossier then
+    // replaces it. Receipts are historical evidence and must never masquerade
+    // as a pre-boarding alert after the ride has ended.
+    if (r.kind !== "receipt") {
+      await notifyIntel({
+        userId,
+        userEmail,
+        kind: "rideshare",
+        severity: "notable",
+        title: `VERIFY BEFORE BOARDING — ${ride.driver_name || ride.plate || "incoming ride"}`,
+        body: `Assigned ${ride.vehicle || "vehicle not captured"} · plate ${ride.plate || "not captured"}. The full driver and vehicle sweep is running now.`,
+        subjectName: ride.driver_name || ride.plate || "assigned driver",
+        source: "Rideshare Guardian · Pre-boarding",
+        url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${row.id}`,
+        sections: [
+          { label: "Driver shown", value: ride.driver_name || "not captured — compare the app photo" },
+          { label: "Assigned vehicle", value: ride.vehicle || "not captured — compare the app card" },
+          { label: "Assigned plate", value: ride.plate || "not captured — do not board until confirmed" },
+          { label: "Immediate check", value: "Match the face, vehicle and every plate character. Ask the driver to say your name." },
+        ],
+        findings: r.gaps.length ? [`Still collecting: ${r.gaps.join(", ")}`] : [],
+        idempotencyKey: `rideshare:preboard:${row.id}`,
+        skipPush: !settings.push_enabled,
+        skipEmail: !settings.email_enabled,
+      }).catch((e) => log("preboard brief failed", { userId, msg: (e as Error).message?.slice(0, 160) }));
+    }
 
     let deep: { verdict: string; headline: string; confidence: number; delivered: string[] } | null = null;
     try {
