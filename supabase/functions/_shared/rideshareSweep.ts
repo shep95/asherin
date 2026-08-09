@@ -434,8 +434,12 @@ export async function deliver(
     idempotencyKey: `rideshare:${rideId}:${p.phase ?? "deep"}`,
     skipEmail: true,
     skipPush: !settings.push_enabled,
-    // Lock screens are read by whoever is standing next to the rider.
-    pushBody: `${phase.headline}. Open Asherin for the assessment.`,
+    // Lock screens are read by whoever is standing next to the rider, and are
+    // often the only thing read at all. It carries the decision and the plate —
+    // the two facts that change what the rider physically does next.
+    pushBody: decision === "BOARD"
+      ? `Plate ${ride.plate || "—"}. Match plate, car and face, then get in the back.`
+      : `${decisionLabel}. Plate ${ride.plate || "not captured"}. ${protocol[0] || "Verify before you open the door."}`,
   });
   for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
 
