@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2, X, ExternalLink, Archive, Globe, SlidersHorizontal, Download, AlertTriangle,
+  Loader2, X, ExternalLink, Archive, Globe, SlidersHorizontal, Download, AlertTriangle, Layers,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
