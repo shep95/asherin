@@ -606,7 +606,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ action: "identifier", report });
+    return json({ action: "identifier", report, provenance });
   }
 
 
