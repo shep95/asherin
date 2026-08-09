@@ -1325,147 +1325,123 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       intelIntent = null;
     }
 
-    // ── Google Mesh: the inward-facing sensor array ──────────────────────
-    // Zophiel answers "who is X in the world". The Mesh answers "what is true
-    // about ME" — and only when the turn is first-person AND the caller is a
-    // verified signed-in user with connected accounts. Anything less returns
-    // null and the turn proceeds exactly as before.
+    // ── BRIDGE FAN-OUT — six independent sensors, one wave ────────────────
+    //
+    // These six bridges answer six unrelated questions: what is in my Google
+    // accounts, what is in my dossier vault, what is in my resume ledger, what
+    // is in the indexed substrate, what is in Azplen, and what is behind this
+    // social link. None of them reads another's output. They were nonetheless
+    // awaited one after another, so a turn none of them owned — which is most
+    // turns — still paid six sequential async round-trips before the retrieval
+    // layer was even reached.
+    //
+    // They now fire together. Every leg owns its own try/catch and resolves to
+    // its own slice of context, so one bridge failing or hanging cannot take
+    // the wave down (allSettled, never all) and the ordering of the assembled
+    // prompt is unchanged — order is decided at assembly, not by arrival.
+    //
+    // Two flags survive the wave because later stages depend on them:
+    //   meshOwnsTurn  — an inward Google turn must not be re-read as an
+    //                   outward identity lookup ("any recent emails" was once
+    //                   web-searched as if it were a person).
+    //   vaultOwnsTurn — same, for vault-shaped phrasing.
     let googleMeshContext = "";
-    // An inward Google turn ("any recent emails") must not be re-read as an
-    // outward identity lookup — that is exactly how "Any Recent Emails" ended
-    // up being web-searched as if it were a person.
     let meshOwnsTurn = false;
-    try {
-      const lastUserForMesh = [...messages].reverse().find((m: any) => m.role === "user");
-      const meshQ = String(lastUserForMesh?.content || "");
-      const { classifyMeshIntent, runGoogleMesh, formatMeshContext } =
-        await import("../_shared/googleMeshBridge.ts");
-      const meshIntent = classifyMeshIntent(meshQ);
-      if (meshIntent.active && authHeader) {
-        meshOwnsTurn = true;
-        const meshBundle = await runGoogleMesh(authHeader, meshQ, meshIntent);
+    let meshVaultContext = "";
+    let vaultOwnsTurn = false;
+    let resumeContext = "";
+    let googleSubstrateContext = "";
+    let azplenContext = "";
+    let socialContext = "";
+
+    {
+      const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
+      const bridgeQ = String(lastUserForBridges?.content || "");
+      const bridgeStarted = Date.now();
+
+      // ── Leg 1: Google Mesh — the inward-facing live sensor array ────────
+      const meshLeg = (async () => {
+        const { classifyMeshIntent, runGoogleMesh, formatMeshContext } =
+          await import("../_shared/googleMeshBridge.ts");
+        const meshIntent = classifyMeshIntent(bridgeQ);
+        if (!meshIntent.active || !authHeader) return;
+        const meshBundle = await runGoogleMesh(authHeader, bridgeQ, meshIntent);
         googleMeshContext = formatMeshContext(meshBundle);
         if (meshBundle) {
+          // Only a bundle with live accounts owns the turn. Intent alone does
+          // not: with no connected account the outward engine is still a
+          // better answer than silence.
+          meshOwnsTurn = true;
           console.log(
             `[chat] Google Mesh: accounts=${meshBundle.accounts.length}, mail=${meshBundle.mail.length}, events=${meshBundle.events.length}, places=${meshBundle.places.length}, ${meshBundle.elapsedMs}ms`,
           );
         } else {
-          // No verified caller or no connected account — the outward engine is
-          // still the better answer than silence.
-          meshOwnsTurn = false;
           console.log("[chat] Google Mesh: intent active but no live accounts");
         }
-      }
-    } catch (e) {
-      console.error("[chat] Google Mesh bridge failed:", (e as Error).message);
-    }
+      })();
 
-
-    // ── Cloud Intelligence Mesh vault: the persisted dossier ledger ───────
-    // The live Mesh answers "what is happening in my accounts". The vault
-    // answers "what do we already know about the human on the other end".
-    // Fires only on a vault-shaped turn for a verified caller, reads through
-    // that caller's own token (RLS is the boundary), and will run at most one
-    // bounded on-demand sweep when the operator explicitly asked for one.
-    let meshVaultContext = "";
-    // An inward vault turn ("my vault", "my devices", "who emailed me") must
-    // not be re-read as an outward identity lookup: the jurisdictional engine
-    // would parse the operator's own phrasing as a person's name and answer a
-    // question nobody asked. When the vault owns the turn, that path stands down.
-    let vaultOwnsTurn = false;
-    try {
-      const lastUserForVault = [...messages].reverse().find((m: any) => m.role === "user");
-      const vq = String(lastUserForVault?.content || "");
-      const { classifyVaultIntent, runVaultPull, formatVaultContext } =
-        await import("../_shared/meshVaultBridge.ts");
-      const vaultIntent = classifyVaultIntent(vq);
-      if (vaultIntent.active && authHeader) {
-        vaultOwnsTurn = vaultIntent.roster || vaultIntent.devices;
+      // ── Leg 2: Cloud Intelligence vault — the persisted dossier ledger ──
+      const vaultLeg = (async () => {
+        const { classifyVaultIntent, runVaultPull, formatVaultContext } =
+          await import("../_shared/meshVaultBridge.ts");
+        const vaultIntent = classifyVaultIntent(bridgeQ);
+        if (!vaultIntent.active || !authHeader) return;
+        const ownsByShape = vaultIntent.roster || vaultIntent.devices;
         const vaultBundle = await runVaultPull(authHeader, vaultIntent);
         meshVaultContext = formatVaultContext(vaultBundle);
+        // A vault hit is authoritative for its subject; a vault miss is not,
+        // so on a miss the outward engine stays available to answer.
+        vaultOwnsTurn = ownsByShape || Boolean(vaultBundle?.subjects.length);
         if (vaultBundle) {
-          // A vault hit is authoritative for this subject; a vault miss is not,
-          // so the outward engine stays available to answer that case.
-          if (vaultBundle.subjects.length) vaultOwnsTurn = true;
           console.log(
             `[chat] Mesh vault: subjects=${vaultBundle.subjects.length}, roster=${vaultBundle.roster.length}, tracked=${vaultBundle.counts.total}, devices=${vaultBundle.devices.length}, built=${vaultBundle.built.length}, inflight=${vaultBundle.inFlight.length}, miss=${vaultBundle.notFound.length}, ${vaultBundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Mesh vault bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Resume & Job Operator ledger ─────────────────────────────────────
-    // The operator's own resume, open gap questions, job leads and dispatch
-    // history. Read-only, RLS-scoped, and deliberately narrow: a generic
-    // "write me a resume" turn must not pull this person's private document.
-    let resumeContext = "";
-    try {
-      const lastUserForResume = [...messages].reverse().find((m: any) => m.role === "user");
-      const rq = String(lastUserForResume?.content || "");
-      const { classifyResumeIntent, runResumePull, formatResumeContext } =
-        await import("../_shared/resumeBridge.ts");
-      const rIntent = classifyResumeIntent(rq);
-      if (rIntent.active && authHeader) {
+      // ── Leg 3: Resume & Job Operator ledger ─────────────────────────────
+      // Deliberately narrow: a generic "write me a resume" turn must not pull
+      // this person's private document.
+      const resumeLeg = (async () => {
+        const { classifyResumeIntent, runResumePull, formatResumeContext } =
+          await import("../_shared/resumeBridge.ts");
+        const rIntent = classifyResumeIntent(bridgeQ);
+        if (!rIntent.active || !authHeader) return;
         const rBundle = await runResumePull(authHeader, rIntent);
         resumeContext = formatResumeContext(rBundle, rIntent);
+        if (rBundle?.resume) {
+          // A resume turn is inward-facing; the outward identity engine would
+          // otherwise treat the operator's own name as a lookup target.
+          vaultOwnsTurn = true;
+        }
         if (rBundle) {
-          // A resume turn is inward-facing; the outward identity engine has
-          // nothing to add and would otherwise treat the operator's own name
-          // as a lookup target.
-          if (rBundle.resume) vaultOwnsTurn = true;
           console.log(
             `[chat] Resume bridge: resume=${rBundle.resume ? "yes" : "none"}, gaps=${rBundle.gaps.length}, leads=${rBundle.leadCounts.total}, walkable=${rBundle.leadCounts.walkable}, apps=${rBundle.applications.length}, ${rBundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Resume bridge failed:", (e as Error).message);
-    }
+      })();
 
-
-
-
-
-    // ── Google Substrate: the indexed ledger ─────────────────────────────
-    // Pull, never push. The Mesh calls Google live; the Substrate reads what
-    // was already harvested — milliseconds instead of seconds, and it can see
-    // across months. Fires only on an explicit self/ledger-shaped turn, and
-    // only for a verified caller with a non-empty ledger.
-    let googleSubstrateContext = "";
-    try {
-      const lastUserForSub = [...messages].reverse().find((m: any) => m.role === "user");
-      const subQ = String(lastUserForSub?.content || "");
-      const { classifySubstrateIntent, runSubstratePull, formatSubstrateContext } =
-        await import("../_shared/googleSubstrateBridge.ts");
-      const subIntent = classifySubstrateIntent(subQ);
-      if (subIntent.active && authHeader) {
-        const bundle = await runSubstratePull(authHeader, subQ, subIntent);
+      // ── Leg 4: Google Substrate — the indexed ledger (pull, never push) ──
+      const substrateLeg = (async () => {
+        const { classifySubstrateIntent, runSubstratePull, formatSubstrateContext } =
+          await import("../_shared/googleSubstrateBridge.ts");
+        const subIntent = classifySubstrateIntent(bridgeQ);
+        if (!subIntent.active || !authHeader) return;
+        const bundle = await runSubstratePull(authHeader, bridgeQ, subIntent);
         googleSubstrateContext = formatSubstrateContext(bundle);
         if (bundle) {
           console.log(
             `[chat] Substrate: signals=${bundle.signals}, insights=${bundle.insights.length}, hits=${bundle.hits.length}, ${bundle.elapsedMs}ms`,
           );
         }
-      }
-    } catch (e) {
-      console.error("[chat] Google Substrate bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Azplen: the ingest platform's own voice ──────────────────────────
-    // The operator should be able to run the data platform by talking to it.
-    // Fires only on an Azplen-shaped turn, reads only the caller's own rows
-    // through their token (RLS enforced), and injects real counts — never a
-    // model-invented inventory.
-    let azplenContext = "";
-    try {
-      const lastUserForAz = [...messages].reverse().find((m: any) => m.role === "user");
-      const azQ = String(lastUserForAz?.content || "");
-      const { classifyAzplenIntent, runAzplenPull, formatAzplenContext, formatAzplenCapabilities } =
-        await import("../_shared/azplenBridge.ts");
-      const azIntent = classifyAzplenIntent(azQ);
-      if (azIntent.active) {
+      // ── Leg 5: Azplen — the ingest platform's own control surface ───────
+      const azplenLeg = (async () => {
+        const { classifyAzplenIntent, runAzplenPull, formatAzplenContext, formatAzplenCapabilities } =
+          await import("../_shared/azplenBridge.ts");
+        const azIntent = classifyAzplenIntent(bridgeQ);
+        if (!azIntent.active) return;
         const parts: string[] = [];
         if (azIntent.capability || azIntent.explicit) parts.push(formatAzplenCapabilities());
         if (authHeader) {
@@ -1475,38 +1451,40 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           console.log(`[chat] Azplen: datasets=${azBundle?.datasets.length ?? 0}, entities=${azBundle?.entityCount ?? 0}, ${azBundle?.elapsedMs ?? 0}ms`);
         }
         azplenContext = parts.join("\n\n");
-      }
-    } catch (e) {
-      console.error("[chat] Azplen bridge failed:", (e as Error).message);
-    }
+      })();
 
-    // ── Social layer ───────────────────────────────────────────────────────
-    // Deliberately outside shouldSearch(): a pasted profile link is an
-    // unambiguous request for social data, and gating it behind the general
-    // web-search heuristic would drop the very turns it exists to serve.
-    // It still only fires when a platform is named or a link is pasted, so a
-    // scarce Instagram read is never spent speculatively.
-    let socialContext = "";
-    try {
-      const socialUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
-      const sq = String(socialUserMsg?.content || "").slice(0, 600);
-      if (sq) {
+      // ── Leg 6: Social ───────────────────────────────────────────────────
+      // Outside shouldSearch() on purpose: a pasted profile link is an
+      // unambiguous request for social data and the general web-search
+      // heuristic would drop exactly the turns this exists to serve.
+      const socialLeg = (async () => {
+        const sq = bridgeQ.slice(0, 600);
+        if (!sq) return;
         const { needsSocialLayer, extractSocialTargets, runSocialIntel, formatSocialContext } =
           await import("../_shared/socialChatBridge.ts");
-        if (needsSocialLayer(sq)) {
-          const socialTargets = extractSocialTargets(sq);
-          if (socialTargets.length) {
-            const socialBundle = await runSocialIntel(socialTargets);
-            socialContext = formatSocialContext(socialBundle);
-            console.log(
-              `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
-            );
-          }
+        if (!needsSocialLayer(sq)) return;
+        const socialTargets = extractSocialTargets(sq);
+        if (!socialTargets.length) return;
+        const socialBundle = await runSocialIntel(socialTargets);
+        socialContext = formatSocialContext(socialBundle);
+        console.log(
+          `[chat] Social sweep: ${socialBundle?.results.length ?? 0} target(s), ${socialBundle?.edges.length ?? 0} edge(s), ${socialBundle?.elapsedMs ?? 0}ms`,
+        );
+      })();
+
+      const legs: Array<[string, Promise<void>]> = [
+        ["mesh", meshLeg], ["vault", vaultLeg], ["resume", resumeLeg],
+        ["substrate", substrateLeg], ["azplen", azplenLeg], ["social", socialLeg],
+      ];
+      const settled = await Promise.allSettled(legs.map(([, p]) => p));
+      settled.forEach((s, i) => {
+        if (s.status === "rejected") {
+          console.error(`[chat] ${legs[i][0]} bridge failed:`, (s.reason as Error)?.message ?? s.reason);
         }
-      }
-    } catch (e) {
-      console.error("[chat] Social bridge failed:", (e as Error).message);
+      });
+      console.log(`[chat] Bridge wave: 6 legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
     }
+
 
 
     if (shouldSearch(messages, mode)) {
