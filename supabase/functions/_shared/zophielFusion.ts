@@ -525,11 +525,13 @@ export function analyzeAnomalies(docs: FusionDoc[], claims: Claim[]): AnomalyRep
       conforms,
       observed,
       expected: BENFORD_EXPECTED,
-      note: sample < 60
-        ? "Sample too small for a Benford verdict (need ≥60 numbers)."
-        : conforms
-          ? "First-digit distribution is consistent with naturally occurring figures."
-          : "First-digit distribution deviates from Benford — figures in this corpus may be fabricated, rounded, or machine-generated.",
+      note: identifierHeavy
+        ? "No verdict: this corpus is dominated by identifier-bearing sources (DOIs, filings), whose numbers are assigned rather than measured."
+        : sample < 120
+          ? `Sample too small for a Benford verdict (${sample} usable numbers, need ≥120).`
+          : conforms
+            ? "First-digit distribution is consistent with naturally occurring figures."
+            : "First-digit distribution deviates from Benford — figures in this corpus may be fabricated, rounded, or machine-generated.",
     },
     outliers: outliers.slice(0, 12),
     temporalAnomalies: temporalAnomalies.slice(0, 12),
