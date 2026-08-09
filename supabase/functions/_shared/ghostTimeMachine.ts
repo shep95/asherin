@@ -70,6 +70,16 @@ export interface TimeCapture {
   terms: TermHit[];
   /** Bytes the engine actually read. */
   bytes: number;
+  /**
+   * 0–100 certainty in THIS date. Two forces set it: how the date was obtained
+   * (a producing application's /CreationDate outranks a copyright line by a
+   * wide margin) and how far back the claim reaches (a 1998 body-text date has
+   * survived twenty-eight years of re-templating, re-hosting and CMS migration
+   * — the further back an untrustworthy carve reaches, the less it is worth).
+   */
+  confidence?: number;
+  /** Plain-language name for the carve method behind `proof`. */
+  carve?: string;
 }
 
 export interface TimeEra {
