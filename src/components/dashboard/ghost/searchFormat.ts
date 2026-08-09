@@ -91,6 +91,8 @@ export interface GhostHistoryRun {
   created_at: string;
   results?: GhostSearchResult[];
   summary?: { legs?: number; hosts?: string[]; facets?: { field: string; value: string; count: number }[] };
+  /** Present on historyDetail rows that had a predecessor to compare against. */
+  diff?: GhostRunDiff | null;
 }
 
 /** Runs collapsed by entity — the HISTORY rail's row model. */
