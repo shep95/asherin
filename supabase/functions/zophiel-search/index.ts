@@ -1701,83 +1701,98 @@ Deno.serve(async (req) => {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PANTHEON v4 — ENTITY FUSION LAYER
-    // Extract entities across all results, build co-occurrence graph,
-    // rank by frequency × source tier (poor man's Neo4j).
+    // PANTHEON v5 — UNIFIED FUSION LAYER
+    // The inline regex extractor that used to live here duplicated (and
+    // disagreed with) serpEntityEngine. There is now ONE extractor: fuseCorpus
+    // runs serpEntityEngine, then derives PageRank centrality, story clusters,
+    // per-claim veracity, contradictions and numeric anomalies from the same
+    // corpus in a single pass. Nothing below is a model output.
     // ═══════════════════════════════════════════════════════════════════════
-    const ENTITY_PATTERNS: Record<string, RegExp> = {
-      email:    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-      ipv4:     /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g,
-      btc:      /\b(?:bc1[a-z0-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b/g,
-      eth:      /\b0x[a-fA-F0-9]{40}\b/g,
-      cve:      /\bCVE-\d{4}-\d{4,7}\b/gi,
-      sha256:   /\b[a-f0-9]{64}\b/gi,
-      domain:   /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|ai|gov|edu|mil|co|uk|de|fr|jp|cn|ru|br|in|onion)\b/gi,
-      phone:    /\b\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}\b/g,
-    };
+    const fusion = fuseCorpus(trimmed, filtered.map(r => ({
+      url: r.url,
+      title: r.title,
+      snippet: r.snippet,
+      domain: extractDomain(r.url),
+      tier: r.tier,
+      engine: r.engine,
+      engines: r.engines,
+      layer: r.layer,
+      onion: r.onion,
+      publishDate: r.publishDate,
+    })));
 
-    type EntityHit = { value: string; type: string; count: number; tierSum: number; sources: string[] };
-    const entityMap = new Map<string, EntityHit>();
+    // Stamp each result with its data TYPE so the UI can group by what a source
+    // IS (filing / breach record / social profile) rather than by which engine
+    // happened to return it.
+    for (const r of filtered) (r as any).dataType = fusion.dataTypes[r.url] || 'web';
 
-    for (const r of filtered) {
-      const text = `${r.title} ${r.snippet}`;
-      const tier = (r as any).tier || 4;
-      for (const [type, pattern] of Object.entries(ENTITY_PATTERNS)) {
-        const matches = text.match(pattern);
-        if (!matches) continue;
-        for (const raw of matches) {
-          const val = raw.toLowerCase();
-          // skip the query domain itself to avoid noise
-          if (type === 'domain' && trimmed.toLowerCase().includes(val)) continue;
-          const key = `${type}::${val}`;
-          const hit = entityMap.get(key);
-          if (hit) {
-            hit.count++;
-            hit.tierSum += (6 - tier);
-            if (!hit.sources.includes(r.url) && hit.sources.length < 5) hit.sources.push(r.url);
-          } else {
-            entityMap.set(key, { value: val, type, count: 1, tierSum: 6 - tier, sources: [r.url] });
-          }
-        }
-      }
-    }
+    const centralityById = new Map(fusion.centrality.map(c => [c.id, c]));
 
-    // Rank: entities mentioned in 2+ results OR by tier-1/2 sources
-    const entities = Array.from(entityMap.values())
-      .filter(e => e.count >= 2 || e.tierSum >= 4)
-      .sort((a, b) => (b.count * b.tierSum) - (a.count * a.tierSum))
-      .slice(0, 50)
-      .map(e => ({
-        value: e.value,
-        type: e.type,
-        mentions: e.count,
-        weight: e.count * e.tierSum,
-        corroborated: e.count >= 2,
-        sources: e.sources,
-      }));
+    // Legacy-compatible entity shape (`value/type/mentions/weight/...`) so the
+    // existing UI keeps rendering, now carrying centrality + resolution.
+    const entities = fusion.intel.entities.slice(0, 60).map((e) => {
+      const c = centralityById.get(e.id);
+      return {
+        value: e.label.toLowerCase(),
+        label: e.label,
+        type: e.kind,
+        mentions: e.mentions,
+        weight: Math.round((c?.pagerank ?? 0) * 10000),
+        pagerank: c?.pagerank ?? 0,
+        degree: c?.degree ?? 0,
+        confidence: e.confidence,
+        corroborated: e.sources.length >= 2,
+        sources: e.sources.slice(0, 5),
+      };
+    });
 
-    // Build co-occurrence edges: entities appearing in same result
-    const edges: Array<{ from: string; to: string; weight: number }> = [];
-    const edgeMap = new Map<string, number>();
-    for (const r of filtered) {
-      const text = `${r.title} ${r.snippet}`.toLowerCase();
-      const present = entities.filter(e => text.includes(e.value));
-      for (let i = 0; i < present.length; i++) {
-        for (let j = i + 1; j < present.length; j++) {
-          const k = `${present[i].type}::${present[i].value}__${present[j].type}::${present[j].value}`;
-          edgeMap.set(k, (edgeMap.get(k) || 0) + 1);
-        }
-      }
-    }
-    for (const [k, w] of edgeMap.entries()) {
-      if (w < 2) continue;
-      const [from, to] = k.split('__');
-      edges.push({ from, to, weight: w });
-    }
-    edges.sort((a, b) => b.weight - a.weight);
+    const edges = fusion.intel.edges.slice(0, 120);
 
     const entityCounts: Record<string, number> = {};
     for (const e of entities) entityCounts[e.type] = (entityCounts[e.type] || 0) + 1;
+
+    const rankingQuality = computeRankingQuality(filtered.map(r => ({
+      url: r.url, title: r.title, snippet: r.snippet, domain: extractDomain(r.url),
+      tier: r.tier, engine: r.engine, engines: r.engines,
+      relevance: r.relevance, veracity: r.veracity,
+      dataType: fusion.dataTypes[r.url],
+    })));
+
+    // ── Query-outcome feedback loop ────────────────────────────────────────
+    // Every search writes its own report card. Without this the engine can
+    // never answer "is ranking getting better or worse", which is the only way
+    // a heuristic ranker stays honest over time. Best-effort: never blocks.
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        const sb = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          await sb.from('zophiel_query_outcomes').insert({
+            user_id: user.id,
+            query: trimmed.slice(0, 500),
+            mode,
+            query_shape: plan.shape,
+            entity_kind: plan.entity,
+            result_count: filtered.length,
+            avg_relevance: rankingQuality.avgRelevance,
+            on_target_rate: rankingQuality.onTargetRate,
+            rescue_used: rescueUsed,
+            engine_hit_rate: rankingQuality.engineHitRate,
+            independence_classes: rankingQuality.independenceClasses,
+            data_type_distribution: rankingQuality.dataTypeDistribution,
+            contradiction_count: fusion.contradictions.length,
+            claim_count: fusion.claims.length,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[zophiel] outcome log failed (non-fatal)', e instanceof Error ? e.message : String(e));
+    }
 
     return new Response(
       JSON.stringify({
