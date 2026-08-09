@@ -1311,8 +1311,8 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   addResults(ddgResults, 'ddg', 'surface');
   addResults(searxResults, 'searxng', 'surface');
   addResults(mojeekResults, 'mojeek', 'surface');
-  addResults(metagerResults, 'metager', 'surface');
-  addResults(gigablastResults, 'gigablast', 'surface');
+  // metager/gigablast retired: Gigablast is defunct and MetaGer bot-blocks edge
+  // IPs, so both contributed only latency and a false independence class.
   addResults(wikiResults, 'wikipedia', 'surface');
   addResults(braveResults, 'brave', 'surface');
   addResults(yandexResults, 'yandex', 'surface');
