@@ -20,6 +20,10 @@ import {
   projectRecords, suggestFromIndex,
   type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
 } from "./ghost/searchFormat";
+import {
+  resolveRoute, MODE_LABEL, MODE_BLURB,
+  type GhostMode, type GhostRoute,
+} from "./ghost/modeRouting";
 import { SEVERITY_STYLE, type GhostRecord } from "./ghost/types";
 
 
