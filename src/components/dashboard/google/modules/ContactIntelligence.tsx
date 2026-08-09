@@ -1104,7 +1104,7 @@ const ContactIntelligence = () => {
       </div>
 
       {report && (
-        <ReportViewer name={report.name} text={report.text} onClose={() => setReportKey(null)} />
+        <ReportViewer name={report.name} text={report.text} images={report.images} onClose={() => setReportKey(null)} />
       )}
 
       <p className="text-[10px] font-extralight text-muted-foreground/40 flex items-start gap-1.5 px-1">
