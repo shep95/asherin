@@ -580,11 +580,42 @@ const GhostEngineView = () => {
             )}
           </div>
 
+          {/* ── Routing banner ────────────────────────────────────────────
+              The engine now says which of its four engines it is about to
+              hand this input to, and why, BEFORE the operator spends a
+              budgeted run finding out. Silent mis-routing was the single
+              most expensive failure on this surface. */}
+          {query.trim() && (
+            <div
+              aria-live="polite"
+              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border/15 bg-foreground/[0.02] px-3 py-1.5 text-[11px]"
+            >
+              <span className="text-muted-foreground/45">
+                {routing.auto ? "Auto →" : "Held →"}
+              </span>
+              <span className="font-medium text-foreground/85">{MODE_LABEL[mode]}</span>
+              <span className="text-muted-foreground/55">· {routing.reason}</span>
+              {routing.auto && routing.confidence < 65 && (
+                <span className="text-muted-foreground/40">· low certainty, correct it if this is wrong</span>
+              )}
+              {!routing.auto && (
+                <button
+                  type="button"
+                  onClick={() => pickRoute("auto")}
+                  className="ml-auto rounded-full border border-border/25 px-2 py-0.5 text-[10px] text-muted-foreground/60 transition-colors hover:border-foreground/35 hover:text-foreground"
+                >
+                  Return to auto
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Verb first, then scope. ORIGIN hides the scope knob because a
               provenance trace consults neither the index nor the buffer. */}
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             <div className="mr-1 flex items-center gap-1 rounded-full border border-border/20 p-0.5">
               {([
+                { id: "auto" as const, label: "Auto", hint: "Read the input and pick the verb — shown above the dial, overridable in one click" },
                 { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
                 { id: "origin" as const, label: "Origin", hint: "Trace one link or attached file back to when, where and on what it was made" },
                 { id: "deeptime" as const, label: "Deep time", hint: "Reach into the capture archives — every year from 1996 to today" },
@@ -594,12 +625,19 @@ const GhostEngineView = () => {
                   key={m.id}
                   onClick={() => pickRoute(m.id)}
                   title={m.hint}
-                  aria-pressed={mode === m.id}
+                  aria-pressed={route === m.id}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
-                    mode === m.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/55 hover:text-foreground/85"
+                    route === m.id
+                      ? "bg-foreground/10 text-foreground"
+                      : m.id !== "auto" && route === "auto" && mode === m.id
+                        // Auto is driving and this is where it landed: show the
+                        // destination without claiming it was chosen by hand.
+                        ? "text-foreground/70 ring-1 ring-inset ring-foreground/15"
+                        : "text-muted-foreground/55 hover:text-foreground/85"
                   }`}
                 >
-                  {m.id === "origin" ? <Crosshair className="h-3 w-3" />
+                  {m.id === "auto" ? <Sparkle className="h-3 w-3" />
+                    : m.id === "origin" ? <Crosshair className="h-3 w-3" />
                     : m.id === "deeptime" ? <Hourglass className="h-3 w-3" />
                       : m.id === "identifier" ? <Fingerprint className="h-3 w-3" />
                         : <Search className="h-3 w-3" />}
