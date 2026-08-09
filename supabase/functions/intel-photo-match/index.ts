@@ -500,19 +500,36 @@ Deno.serve(async (req) => {
 
   const notificationId = typeof body?.notificationId === "string" ? body.notificationId.trim() : "";
   const refresh = body?.refresh === true;
-  if (!/^[0-9a-f-]{36}$/i.test(notificationId)) {
-    return json({ error: "notificationId required" }, 400, cors);
+
+  // ── AD-HOC SUBJECT MODE ────────────────────────────────────────────────
+  // The contact-report sweep has no notification row to hang off: it is asking
+  // the same question ("do independent surfaces carry the same face for this
+  // name?") about a correspondent it is profiling right now. Rather than
+  // fabricate a notification to satisfy the old contract, the function accepts
+  // a named subject directly. Nothing is persisted in that mode — the caller
+  // owns the artifact — and the storage path is still scoped to the caller's
+  // own folder, so this can never become an open image proxy.
+  const adhocSubject = typeof body?.subject === "string" ? body.subject.trim().slice(0, 120) : "";
+  const adhocHint = typeof body?.hint === "string" ? body.hint.trim().slice(0, 80) : "";
+  const adhoc = !notificationId && adhocSubject.length >= 3;
+
+  if (!adhoc && !/^[0-9a-f-]{36}$/i.test(notificationId)) {
+    return json({ error: "notificationId or subject required" }, 400, cors);
   }
 
-  // Ownership gate BEFORE any outbound egress.
-  const { data: note, error: noteErr } = await sb
-    .from("intel_notifications")
-    .select("id, user_id, subject_name, title, body, sections, photos, photo_match")
-    .eq("id", notificationId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (noteErr) return json({ error: "lookup failed" }, 500, cors);
-  if (!note) return json({ error: "not found" }, 404, cors);
+  let note: { id: string; subject_name: string | null; sections: unknown; photos: unknown; photo_match: unknown } | null = null;
+  if (!adhoc) {
+    // Ownership gate BEFORE any outbound egress.
+    const { data, error: noteErr } = await sb
+      .from("intel_notifications")
+      .select("id, user_id, subject_name, title, body, sections, photos, photo_match")
+      .eq("id", notificationId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (noteErr) return json({ error: "lookup failed" }, 500, cors);
+    if (!data) return json({ error: "not found" }, 404, cors);
+    note = data as typeof note;
+  }
 
   const sign = async (photos: StoredPhoto[]) => {
     const out: Array<StoredPhoto & { url: string | null }> = [];
@@ -523,12 +540,12 @@ Deno.serve(async (req) => {
     return out;
   };
 
-  const existing: StoredPhoto[] = Array.isArray(note.photos) ? (note.photos as StoredPhoto[]) : [];
-  if (existing.length && note.photo_match && !refresh) {
+  const existing: StoredPhoto[] = !adhoc && Array.isArray(note?.photos) ? (note!.photos as StoredPhoto[]) : [];
+  if (!adhoc && existing.length && note?.photo_match && !refresh) {
     return json({ photos: await sign(existing), match: note.photo_match, cached: true }, 200, cors);
   }
 
-  const subject = String(note.subject_name || "").trim();
+  const subject = adhoc ? adhocSubject : String(note?.subject_name || "").trim();
   if (!subject) {
     const match: PhotoMatch = {
       verdict: "inconclusive",
@@ -539,9 +556,10 @@ Deno.serve(async (req) => {
       falsifier: "Name the subject and re-run the cross-match.",
       assessedAt: new Date().toISOString(),
     };
-    await sb.from("intel_notifications").update({ photo_match: match }).eq("id", note.id);
+    if (note) await sb.from("intel_notifications").update({ photo_match: match }).eq("id", note.id);
     return json({ photos: [], match }, 200, cors);
   }
+
 
   // A first name alone cannot be corroborated. Running the harvest anyway is
   // how a dossier ends up illustrated with strangers, so refuse and say why.
@@ -558,17 +576,20 @@ Deno.serve(async (req) => {
       falsifier: "Supply a full name (or a registry-resolved surname) and re-run the cross-match.",
       assessedAt: new Date().toISOString(),
     };
-    await sb
-      .from("intel_notifications")
-      .update({ photos: [], photo_match: match })
-      .eq("id", note.id)
-      .eq("user_id", user.id);
+    if (note) {
+      await sb
+        .from("intel_notifications")
+        .update({ photos: [], photo_match: match })
+        .eq("id", note.id)
+        .eq("user_id", user.id);
+    }
     return json({ photos: [], match }, 200, cors);
   }
 
   // Only person-locating context is carried into the query. Verdict prose and
   // vehicle/plate strings are excluded — they steer the index toward listings.
-  const hint = anchorsFrom(note.sections);
+  const hint = adhoc ? adhocHint : anchorsFrom(note!.sections);
+
 
   const queries = [
     `"${subject}" photo ${hint}`.trim(),
@@ -632,8 +653,15 @@ Deno.serve(async (req) => {
   const stored: StoredPhoto[] = [];
   const frames: Array<{ b64: string; type: string; host: string }> = [];
 
+  // Ad-hoc frames live under a subject-derived folder inside the caller's own
+  // prefix, so a repeated sweep of the same correspondent overwrites its own
+  // frames instead of accumulating a new folder on every contact report.
+  const scope = adhoc
+    ? `adhoc/${subject.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48) || "subject"}`
+    : note!.id;
+
   for (const p of admitted) {
-    const path = `${user.id}/${note.id}/${p.hash.slice(0, 16)}.${extOf(p.type)}`;
+    const path = `${user.id}/${scope}/${p.hash.slice(0, 16)}.${extOf(p.type)}`;
     const { error: upErr } = await sb.storage
       .from(BUCKET)
       .upload(path, p.buf, { contentType: p.type, upsert: true });
@@ -662,11 +690,14 @@ Deno.serve(async (req) => {
       `(no comparable human face — artwork, logo, product or scene).`.trim();
   }
 
-  await sb
-    .from("intel_notifications")
-    .update({ photos: stored, photo_match: match })
-    .eq("id", note.id)
-    .eq("user_id", user.id);
+  if (note) {
+    await sb
+      .from("intel_notifications")
+      .update({ photos: stored, photo_match: match })
+      .eq("id", note.id)
+      .eq("user_id", user.id);
+  }
+
 
   return json({ photos: await sign(stored), match, cached: false }, 200, cors);
 });

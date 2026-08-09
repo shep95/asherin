@@ -178,6 +178,46 @@ export interface OsintAnnex {
   imagery: Array<{ url: string; attributedTo: string; clusterScore: number }>;
   /** Claimed relatives from the cluster's people-directory documents. */
   kin: string[];
+  /**
+   * Fourth collection leg. Text sightings confirm that a NAME appears on a
+   * surface; they cannot confirm that the same PERSON appears on two of them.
+   * The visual leg harvests independent portraits and asks whether they carry
+   * the same face — the only corroboration axis the other three legs cannot
+   * reach. Null when the leg was not run; never silently omitted.
+   */
+  photo: PhotoCorroboration | null;
+  /**
+   * The re-sweep policy this product was served under. A dossier read today
+   * may have been collected a fortnight ago; the cache decision was real and
+   * invisible, so it is now stated with the report rather than inferred.
+   */
+  staleness: SweepPolicy | null;
+}
+
+/** Visual corroboration verdict folded down for report rendering. */
+export interface PhotoCorroboration {
+  verdict: "same_person" | "likely_same" | "inconclusive" | "conflict" | "unavailable";
+  confidence: number;
+  independentSources: number;
+  reasoning: string;
+  observations: string[];
+  /** What observation would overturn the verdict — Rule 18, enforced. */
+  falsifier: string;
+  frames: Array<{ url: string | null; sourceHost: string; sourceUrl: string; sourceTitle: string }>;
+  /** Null when the leg ran clean; otherwise why it is thin. */
+  blocker: string | null;
+}
+
+/** Cache/refresh posture surfaced from the vault. */
+export interface SweepPolicy {
+  source: "cache" | "fresh" | "unknown";
+  ageDays: number | null;
+  maxAgeDays: number;
+  nextAutoSweepDays: number;
+  fresh: boolean;
+  forced: boolean;
+  note: string;
+
 }
 
 /** A per-identifier exposure register, folded down for report rendering. */
@@ -457,6 +497,10 @@ function toAnnex(
     dork: null,
     imagery: (doc.imagery ?? []).filter((i) => /^https:\/\//i.test(i?.url ?? "")).slice(0, 8),
     kin: (doc.kin ?? []).slice(0, 24),
+    // Both are filled by legs that run outside the vault dossier.
+    photo: null,
+    staleness: null,
+
   };
 }
 
@@ -730,6 +774,9 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     dork: null,
     imagery: [],
     kin: [],
+    photo: null,
+    staleness: null,
+
   };
 }
 
@@ -758,7 +805,114 @@ export interface OsintRequest {
  * it is returned as an annex with a stated blocker rather than as an exception
  * that would delete the annex from the report entirely.
  */
+/**
+ * Fourth collection leg — visual corroboration.
+ *
+ * The other three legs all read text. Text can only establish that a NAME is
+ * present on a surface, which is exactly the failure mode that lets two people
+ * with one name collapse into a single false dossier. Harvesting independent
+ * portraits and asking whether they carry the same face is the only axis that
+ * can break that tie, so it runs as a peer of the other legs rather than as an
+ * optional enrichment.
+ *
+ * Never throws. A visual leg that dies must degrade the report to "no visual
+ * corroboration" — a stated gap — not take the background check down with it.
+ */
+async function photoCorroborationLeg(
+  subject: string,
+  hint: string | null,
+  signal?: AbortSignal,
+): Promise<PhotoCorroboration | null> {
+  // A single token ("Bruno", "support") is not a face-matchable identity; the
+  // harvest would return strangers and the verdict would be noise dressed as
+  // evidence. Two name parts is the floor.
+  if (subject.trim().split(/\s+/).filter((p) => p.length > 1).length < 2) return null;
+
+  const unavailable = (blocker: string): PhotoCorroboration => ({
+    verdict: "unavailable",
+    confidence: 0,
+    independentSources: 0,
+    reasoning: "n/a — no comparable portrait was retrieved, so no visual claim is made.",
+    observations: [],
+    falsifier: "Supply a known portrait of the subject and re-run the cross-match.",
+    frames: [],
+    blocker,
+  });
+
+  try {
+    const { data, error } = await supabase.functions.invoke("intel-photo-match", {
+      body: { subject: subject.slice(0, 120), hint: (hint ?? "").slice(0, 80) },
+    });
+    if (signal?.aborted) return null;
+    if (error) {
+      let detail = error.message ?? "unknown error";
+      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
+      if (ctx?.text) {
+        try { detail = (await ctx.text()).slice(0, 200) || detail; } catch { /* consumed */ }
+      }
+      return unavailable(`Visual cross-match unavailable: ${detail}`);
+    }
+
+    const payload = data as {
+      photos?: Array<{ url?: string | null; sourceHost?: string; sourceUrl?: string; sourceTitle?: string }>;
+      match?: {
+        verdict?: string; confidence?: number; independentSources?: number;
+        reasoning?: string; observations?: string[]; falsifier?: string;
+      } | null;
+    } | null;
+
+    const m = payload?.match;
+    if (!m) return unavailable("Visual cross-match returned no verdict.");
+
+    const frames = (payload?.photos ?? [])
+      .filter((p) => typeof p?.sourceUrl === "string")
+      .slice(0, 8)
+      .map((p) => ({
+        url: p.url ?? null,
+        sourceHost: p.sourceHost ?? "unknown",
+        sourceUrl: p.sourceUrl as string,
+        sourceTitle: (p.sourceTitle ?? "").slice(0, 160),
+      }));
+
+    const allowed = new Set(["same_person", "likely_same", "inconclusive", "conflict", "unavailable"]);
+    const verdict = allowed.has(String(m.verdict))
+      ? (m.verdict as PhotoCorroboration["verdict"])
+      : "inconclusive";
+
+    return {
+      verdict,
+      confidence: Math.max(0, Math.min(100, Math.round(Number(m.confidence ?? 0)))),
+      independentSources: Math.max(0, Number(m.independentSources ?? frames.length)),
+      reasoning: String(m.reasoning ?? "").slice(0, 900),
+      observations: (m.observations ?? []).slice(0, 8).map((o) => String(o).slice(0, 240)),
+      falsifier: String(m.falsifier ?? "Locate a dated portrait from a source independent of the ones above."),
+      frames,
+      blocker: frames.length === 0 ? "No portrait passed the face gate on the reachable public web." : null,
+    };
+  } catch (e) {
+    if (signal?.aborted) return null;
+    return unavailable(`Visual cross-match aborted: ${(e as Error).message.slice(0, 160)}`);
+  }
+}
+
+/** Fold the vault's stated cache posture into the annex. */
+function readPolicy(raw: unknown, source: string | undefined): SweepPolicy | null {
+  const p = raw as Partial<SweepPolicy> | null | undefined;
+  if (!p || typeof p !== "object") return null;
+  const maxAgeDays = Number(p.maxAgeDays ?? 14);
+  return {
+    source: source === "cache" || source === "fresh" ? source : "unknown",
+    ageDays: p.ageDays === null || p.ageDays === undefined ? null : Number(p.ageDays),
+    maxAgeDays,
+    nextAutoSweepDays: Math.max(0, Number(p.nextAutoSweepDays ?? 0)),
+    fresh: p.fresh === true,
+    forced: p.forced === true,
+    note: String(p.note ?? "").slice(0, 400),
+  };
+}
+
 export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex> {
+
   const name = (req.name || "").trim();
   const email = (req.email || "").trim().toLowerCase() || null;
   if (!name && !email) {
@@ -781,10 +935,11 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
         .filter((v) => v.length >= 5 && (v.includes("@") || /\d{7,}/.test(v.replace(/\D/g, "")))),
     )).slice(0, 5);
 
-    // The dossier leg and the exposure legs answer different questions and
-    // share no state, so they run together. Sequencing them would add the
-    // sweep's wall clock to every contact report for no benefit.
-    const [vaultResult, sweepResults, dork] = await Promise.all([
+    // The dossier leg, the exposure legs, the dork battery and the visual
+    // cross-match answer different questions and share no state, so they run
+    // together. Sequencing them would add each leg's wall clock to every
+    // contact report for no benefit.
+    const [vaultResult, sweepResults, dork, photo] = await Promise.all([
       supabase.functions.invoke("mesh-vault", {
         body: {
           action: "vault_for_contact",
@@ -807,6 +962,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
         },
         req.signal,
       ),
+      photoCorroborationLeg(name, req.locationHint ?? null, req.signal),
     ]);
 
     const identifierSweeps = sweepResults.filter(
@@ -825,10 +981,15 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       // The dossier failed, but a confirmed exposure register is still
       // intelligence — it is carried onto the failure annex rather than
       // discarded alongside the leg that did fail.
-      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps, dork };
+      return { ...emptyAnnex("error", `Collection call failed: ${detail}`, name, email), identifierSweeps, dork, photo };
     }
 
-    const payload = data as { status?: string; dossier?: WireDoc | null; confidence?: number; message?: string } | null;
+    const payload = data as {
+      status?: string; dossier?: WireDoc | null; confidence?: number; message?: string;
+      source?: string; policy?: unknown;
+    } | null;
+    const staleness = readPolicy(payload?.policy, payload?.source);
+
     if (!payload?.dossier) {
       return {
         ...emptyAnnex(
@@ -839,6 +1000,8 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
         ),
         identifierSweeps,
         dork,
+        photo,
+        staleness,
       };
     }
 
@@ -852,7 +1015,10 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       }),
       identifierSweeps,
       dork,
+      photo,
+      staleness,
     };
+
 
   } catch (e) {
     return emptyAnnex("error", `Collection aborted: ${(e as Error).message.slice(0, 200)}`, name, email);

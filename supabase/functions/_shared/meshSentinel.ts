@@ -39,7 +39,29 @@ export interface ChannelTarget {
   reason: string;
   /** Verbatim first-party facts, persisted on the dossier row. */
   profile: Record<string, unknown>;
+  /**
+   * Every channel this same human arrived on. Per-channel first contact is a
+   * weak signal on its own; the same stranger appearing cold on two separate
+   * channels inside one sweep is the strong one, and it used to dissolve into
+   * whichever half-signal happened to win the merge.
+   */
+  channels?: ContactChannel[];
+  /** True once two or more distinct channels resolved to this subject. */
+  crossChannel?: boolean;
 }
+
+/**
+ * Priority uplift for a subject that appears cold on more than one channel.
+ * Two channels is a coincidence worth ranking above a single-channel stranger;
+ * three or more is a person deliberately reaching you through every surface
+ * they can find, which is the highest-value cold signal the sentinel produces.
+ */
+function crossChannelUplift(channelCount: number): number {
+  if (channelCount >= 3) return 30;
+  if (channelCount === 2) return 15;
+  return 0;
+}
+
 
 // ── Phone normalization ────────────────────────────────────────────────────
 
@@ -306,12 +328,32 @@ export function dedupeByIdentity(targets: ChannelTarget[]): ChannelTarget[] {
     into.identifiers = [...new Set([...into.identifiers, ...from.identifiers])].slice(0, 4);
     into.locationHint = into.locationHint ?? from.locationHint;
     into.email = into.email ?? from.email;
-    into.priority = Math.max(into.priority, from.priority);
     into.profile = { ...from.profile, ...into.profile, mergedFrom: from.channel };
-    into.reason = `${into.reason} · also ${from.channel}`;
+
+    // CROSS-CHANNEL FIRST CONTACT. The merge used to keep the higher of two
+    // priorities and drop the fact that two different surfaces produced this
+    // stranger — so a cold emailer who also appeared on a calendar invite
+    // ranked exactly like a cold emailer who did not. The channel set is now
+    // carried, and the subject is re-scored on the breadth of the approach,
+    // not just on the strongest single channel.
+    const channels = [...new Set([
+      ...(into.channels ?? [into.channel]),
+      ...(from.channels ?? [from.channel]),
+    ])];
+    into.channels = channels;
+    into.crossChannel = channels.length > 1;
+    into.priority = Math.min(
+      100,
+      Math.max(into.priority, from.priority) + crossChannelUplift(channels.length),
+    );
+    into.reason = into.crossChannel
+      ? `${into.reason} · cross-channel first contact on ${channels.join(" + ")}`
+      : `${into.reason} · also ${from.channel}`;
   };
 
   for (const t of [...targets].sort((a, b) => b.priority - a.priority)) {
+    t.channels = t.channels ?? [t.channel];
+    t.crossChannel = t.crossChannel ?? false;
     const em = t.email?.toLowerCase() ?? null;
     if (em) {
       const prev = byEmail.get(em);
@@ -327,5 +369,6 @@ export function dedupeByIdentity(targets: ChannelTarget[]): ChannelTarget[] {
     if (em) byEmail.set(em, t);
     byName.set(nk, [...siblings, t]);
   }
+
   return out.sort((a, b) => b.priority - a.priority);
 }

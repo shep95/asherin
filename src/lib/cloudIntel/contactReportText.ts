@@ -241,6 +241,42 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push("");
   }
 
+  // Visual corroboration is a distinct evidentiary axis from every section
+  // above: those establish that a NAME is carried on a surface, this asks
+  // whether the SAME FACE is carried on two independent ones. It is published
+  // even when it fails, because a silent visual leg reads as "no doubt" when
+  // it actually means "no attempt".
+  L.push(...banner(n++, "Visual corroboration (independent portraits)"));
+  {
+    const p = a.photo;
+    if (!p) {
+      L.push(...wrap("  n/a — the subject line carries no two-part personal name, so a face cross-match would have harvested strangers rather than corroborated an identity.", 2));
+      L.push("");
+    } else {
+      const verdictText: Record<string, string> = {
+        same_person: "SAME PERSON — independent portraits carry one consistent face.",
+        likely_same: "LIKELY SAME — consistent face, but the independent-source count is thin.",
+        inconclusive: "INCONCLUSIVE — the retrieved frames do not settle the question.",
+        conflict: "CONFLICT — the retrieved portraits carry more than one distinct face under this name.",
+        unavailable: "UNAVAILABLE — no comparable portrait was retrieved.",
+      };
+      L.push(...field("  Verdict:      ", verdictText[p.verdict] ?? p.verdict, 16));
+      L.push(...field("  Confidence:   ", `${p.confidence}% · ${p.independentSources} independent source${p.independentSources === 1 ? "" : "s"}`, 16));
+      if (p.blocker) L.push(...field("  Collection:   ", p.blocker, 16));
+      if (p.reasoning) L.push(...field("  Reading:      ", p.reasoning, 16));
+      for (const o of p.observations) L.push(...field("    • ", o, 6));
+      if (p.frames.length) {
+        L.push("  Frames assessed:");
+        for (const f of p.frames) L.push(...field("    • ", `${f.sourceHost} — ${f.sourceTitle || "untitled"} — ${f.sourceUrl}`, 6));
+      }
+      L.push(...field("  Falsifier:    ", p.falsifier, 16));
+      L.push("");
+      L.push(...wrap("  A face match raises identity confidence; it never establishes conduct. Two portraits agreeing means the name resolves to one person, not that the assessments above are correct about them.", 2));
+      L.push("");
+    }
+  }
+
+
   // Chronology is derived, never invented: every row below is a date the
   // collection layer actually recorded against a surface. Undated sightings
   // are counted and named as undated rather than being given a guessed slot,
@@ -715,7 +751,23 @@ export function renderContactReport(r: ContactReport, contactName: string, annex
       `  Open-source: ${annex.status.toUpperCase()} | ${annex.metrics.documentsParsed} documents | ` +
       `${annex.sources.length} sources retained | collection confidence ${annex.collectionConfidence}%`,
     );
+    // RE-SWEEP POSTURE. A report served from a two-week-old cache and one
+    // collected sixty seconds ago used to be typographically identical. The
+    // age of the product is now stated on the product.
+    const s = annex.staleness;
+    if (s) {
+      L.push(
+        `  Collection posture: ${s.source.toUpperCase()} | ` +
+        `${s.ageDays === null ? "collected now" : `${s.ageDays} day(s) old`} | ` +
+        `half-life ${s.maxAgeDays} day(s) | auto re-sweep in ${s.nextAutoSweepDays} day(s)` +
+        `${s.forced ? " | refresh forced by operator" : ""}`,
+      );
+      if (s.note) L.push(...wrap(`  ${s.note}`, 2));
+    } else {
+      L.push("  Collection posture: UNKNOWN — the collection layer did not state its cache age for this product.");
+    }
   }
+
   L.push(HR);
   L.push("  ASHERIN INTELLIGENCE / CONTACT REPORT v2.0 (OSINT-FUSED)");
   L.push("  LATTICE MODULE — CONTACT ANALYSIS ENGINE + ZOPHIEL COLLECTION");
