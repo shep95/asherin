@@ -468,14 +468,15 @@ export function analyzeAnomalies(docs: FusionDoc[], claims: Claim[]): AnomalyRep
 
 
   let chi = 0;
+  const testable = sample >= 120 && !identifierHeavy;
   const observed = digits.map((c) => (sample ? Math.round((c / sample) * 1000) / 1000 : 0));
-  if (sample >= 60) {
+  if (testable) {
     for (let i = 0; i < 9; i++) {
       const exp = BENFORD_EXPECTED[i] * sample;
       chi += ((digits[i] - exp) ** 2) / exp;
     }
   }
-  const conforms = sample >= 60 ? chi <= 15.51 : null;
+  const conforms = testable ? chi <= 15.51 : null;
 
   // ── Robust outliers on numeric claim values (median absolute deviation).
   const numeric = claims
