@@ -160,12 +160,14 @@ Deno.serve(async (req) => {
 
       // A device that just reported a *new* position deserves an immediate
       // sweep rather than waiting out the interval — that is the whole point
-      // of a background heartbeat.
+      // of a background heartbeat. The server tick now runs every minute, so
+      // "due now" is due within the minute rather than within the quarter hour.
       if (hasFix) {
         await db.from("sentinel_cron_state")
           .upsert({ user_id: dev.user_id, next_due_at: nowIso }, { onConflict: "user_id" });
       }
-      return json({ ok: true, fix: hasFix }, 200, cors);
+      return json({ ok: true, fix: hasFix, arrived: arrivedNew }, 200, cors);
+
     }
 
     return json({ error: "unknown_action" }, 400, cors);
