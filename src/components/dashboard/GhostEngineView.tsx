@@ -14,7 +14,10 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
-import { IdentifierSweepPanel, type IdentifierSweepReport } from "./ghost/IdentifierSweepPanel";
+import {
+  IdentifierSweepPanel,
+  type ChainedProvenance, type IdentifierSweepReport,
+} from "./ghost/IdentifierSweepPanel";
 import { DeepTimePanel, type TimeMachineReport } from "./ghost/DeepTimePanel";
 import {
   projectRecords, suggestFromIndex,
@@ -138,6 +141,9 @@ const GhostEngineView = () => {
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
   const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
+  // Origin traces the engine ran off this sweep's document sightings, in the
+  // same round trip — a sighting is a location, provenance is a lead.
+  const [sweepProvenance, setSweepProvenance] = useState<ChainedProvenance[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -210,6 +216,7 @@ const GhostEngineView = () => {
       // by design — the wait buys confirmation instead of a list of maybes.
       if (mode === "identifier") {
         setSweep(null);
+        setSweepProvenance([]);
         const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
           body: { action: "identifier", query: q },
         });
@@ -225,6 +232,7 @@ const GhostEngineView = () => {
         }
         const report = (res as { report?: IdentifierSweepReport })?.report ?? null;
         setSweep(report);
+        setSweepProvenance((res as { provenance?: ChainedProvenance[] })?.provenance ?? []);
         setData(null);
         setRecent((prev) => {
           const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
@@ -745,7 +753,7 @@ const GhostEngineView = () => {
           )}
 
           {/* IDENTIFIER — the register of confirmed sightings. */}
-          {mode === "identifier" && !loading && sweep && <IdentifierSweepPanel report={sweep} />}
+          {mode === "identifier" && !loading && sweep && <IdentifierSweepPanel report={sweep} provenance={sweepProvenance} />}
 
           {mode === "identifier" && loading && (
             <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
