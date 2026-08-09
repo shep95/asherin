@@ -81,7 +81,7 @@ interface GhostRequest {
   filterFloor?: number;
   /** action=ledger — Cloud Intelligence fusion parameters. */
   windowDays?: number;
-  channel?: "gmail" | "sms" | null;
+  channel?: LedgerChannel | LedgerChannel[] | null;
   focus?: string | null;
   maxHosts?: number;
   /** action=upload — an artefact the operator holds rather than a link. */
