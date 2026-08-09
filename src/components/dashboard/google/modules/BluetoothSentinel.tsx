@@ -189,9 +189,9 @@ const BluetoothSentinel = () => {
   const [caseNote, setCaseNote] = useState("");
   const [settings, setSettings] = useState({
     recurrence_threshold: 3,
-    recurrence_window_hours: 12,
+    recurrence_window_hours: 2,
     ignore_audio: true,
-    min_rssi: -95,
+    min_rssi: -80,
     ble_enabled: true,
     geo_enabled: true,
     push_enabled: true,
