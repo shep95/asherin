@@ -278,7 +278,17 @@ export interface MeshDossierDoc {
     timedOut?: boolean;
     error?: string;
   } | null;
+  /** Outcome of the organisational pass, when an anchor was bound. */
+  org?: {
+    anchor: string;
+    kind: "domain" | "name";
+    factsAdded: number;
+    hits: number;
+    timedOut?: boolean;
+    error?: string;
+  } | null;
 }
+
 
 
 const FIELD_LABEL: Record<string, string> = {
@@ -375,9 +385,19 @@ export interface BuildOptions {
   identifiers?: string[];
   /** Ceiling for the reverse pass. Defaults to 35s. */
   reverseBudgetMs?: number;
+  /**
+   * Organisational anchors bound to the subject — an employer name, or the
+   * registrable domain of the organisation they work for. A person on a
+   * corporate address gets their employer's public footprint for free because
+   * the address itself names the org; a person on a consumer mailbox does not,
+   * and that asymmetry is why freemail contacts read thin. These anchors
+   * restore the organisational axis for those subjects.
+   */
+  orgAnchors?: string[];
   /** How this subject reached the user. Recorded on the dossier. */
   channel?: string;
 }
+
 
 
 export async function buildDossier(
@@ -561,10 +581,80 @@ export async function buildDossier(
     }
   }
 
+  // ── Organisational pass ───────────────────────────────────────────────
+  // A corporate address carries its own org query: the domain IS the employer,
+  // so the name sweep incidentally collects the company's registry filings,
+  // leadership pages and press. A consumer mailbox carries none of that, and
+  // the resulting dossier reads thin for reasons that have nothing to do with
+  // the subject's actual public footprint. One bounded extra pass on a bound
+  // organisational anchor closes that asymmetry.
+  const anchors = [...new Set(
+    (opts.orgAnchors ?? []).map((s) => String(s).trim()).filter((s) => s.length >= 3 && s.length <= 80),
+  )].slice(0, 2);
+  const orgSpent = Date.now() - started;
+  if (anchors.length && orgSpent < 95_000) {
+    const anchor = anchors[0];
+    const isDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(anchor);
+    try {
+      const oIntent = classifyIntent(
+        isDomain
+          ? `${anchor} company registration leadership staff ${name}`
+          : `${name} at ${anchor} employer company profile`,
+      );
+      oIntent.kind = "person";
+      oIntent.subject = name;
+      oIntent.needsClarification = false;
+      const org = await Promise.race([
+        runJurisdictionalSearch(oIntent),
+        new Promise<null>((res) => setTimeout(() => res(null), 30_000)),
+      ]);
+      if (org) {
+        let added = 0;
+        // Organisational collection corroborates the SUBJECT; it is never
+        // allowed to overwrite a confirmed personal fact, only to extend the
+        // record with values the name sweep never reached.
+        for (const [kind, fields] of Object.entries(org.fieldLedger?.confirmed ?? {})) {
+          if (!fields?.length) continue;
+          const label = FIELD_LABEL[kind] ?? kind;
+          const bucket = (identity[label] ??= []);
+          const have = new Set(bucket.map((f) => normKey(f.value)));
+          for (const f of fields.slice(0, 6)) {
+            const fact = factOf(f);
+            if (have.has(normKey(fact.value))) continue;
+            have.add(normKey(fact.value));
+            bucket.push(fact);
+            added++;
+          }
+        }
+        const known = new Set(doc.sources.map((s) => s.url));
+        for (const hits of Object.values(org.buckets) as any[][]) {
+          for (const h of hits ?? []) {
+            if (!h?.url || known.has(h.url) || h.identityBand === "rejected") continue;
+            known.add(h.url);
+            doc.sources.push({ domain: h.domain, url: h.url, title: (h.title ?? "").slice(0, 160), bucket: h.bucket ?? "web" });
+          }
+        }
+        doc.sources = doc.sources.slice(0, 120);
+        doc.metrics.totalHits += org.totalHits ?? 0;
+        doc.metrics.queriesRun += org.queriesRun ?? 0;
+        doc.metrics.independentDomains = new Set(doc.sources.map((s) => s.domain)).size;
+        doc.org = { anchor, kind: isDomain ? "domain" : "name", factsAdded: added, hits: org.totalHits ?? 0 };
+      } else {
+        doc.org = { anchor, kind: isDomain ? "domain" : "name", factsAdded: 0, hits: 0, timedOut: true };
+      }
+    } catch (e) {
+      doc.org = { anchor, kind: isDomain ? "domain" : "name", factsAdded: 0, hits: 0, error: (e as Error).message.slice(0, 120) };
+    }
+  }
+
   doc.gaps = findGaps(doc, bundle);
   if (ident.length && !doc.reverse) {
     doc.gaps.push(`Reverse lookup on ${ident[0]} skipped — the name sweep already resolved the record.`);
   }
+  if (!anchors.length) {
+    doc.gaps.push("No organisational anchor was bound to this subject — employer footprint was not collectable from the address alone.");
+  }
+
 
   return { doc, summary: summarize(doc, relationship), confidence: scoreConfidence(doc) };
 }
