@@ -23,6 +23,12 @@ import { runZophielIntel, formatZophielContext } from "./zophielChatBridge.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { notifyIntel, severityFromVerdict } from "./intelNotify.ts";
 import {
+  assembleRiderSafety,
+  type RiderSafetyBriefing,
+  type SafetyFinding,
+  type BoardingDecision,
+} from "./riderSafety.ts";
+import {
   fastPass,
   buildDeepUserPrompt,
   DEEP_SYSTEM_PROMPT,
@@ -187,6 +193,8 @@ export interface CollectionResult {
   resolved_name: string | null;
   /** Deterministic regulator evidence; the authority for identity binding. */
   registry: RegistryResult;
+  /** The rider-safety substrate — always present, never gated on identity. */
+  safety: RiderSafetyBriefing;
 }
 
 /**
