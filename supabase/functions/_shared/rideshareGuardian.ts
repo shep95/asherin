@@ -338,7 +338,21 @@ OUTPUT — strict JSON only, no prose outside it:
   "limits": "what this check could not see"
 }
 Leave any array empty and any string blank when the collection does not evidence it. An empty field is
-a correct answer; a plausible-sounding invention is a failure.`;
+a correct answer; a plausible-sounding invention is a failure.
+
+COMPOSITION RULES FOR THE READER AT THE KERB
+- "headline": lead with the computed boarding decision and the car, e.g.
+  "VERIFY BEFORE BOARDING — silver 2019 Toyota Camry, plate 9NMB162". Never lead with the identity verdict.
+- "narrative": sentence one states the boarding decision and why. Sentence two describes the exact car the
+  rider is looking for. Then the vehicle record, the local picture, and the rider's own history with the car.
+  The identity gap comes LAST and is stated as a legal limit of the method, in one sentence, without alarm.
+- "recommended_action": physical, sequential, and specific to this ride — match the plate character by
+  character, match make/model/colour, confirm the driver's face against the app photo, ask the driver to say
+  the rider's name rather than offering it, ride in the back seat, share the trip. Never write generic advice
+  when the collection gave you the plate and the car to name.
+- "gaps"/"limits": the sealed plate-to-owner linkage belongs here, not in "flags". Never emit a flag whose
+  substance is "we could not identify the driver".`;
+
 
 export function buildDeepUserPrompt(ride: RideInput, intelContext: string): string {
   return [
