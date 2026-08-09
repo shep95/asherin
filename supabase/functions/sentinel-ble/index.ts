@@ -159,7 +159,7 @@ async function alertDevice(userId: string, userEmail: string | null, row: any, v
 
 // ── Aggregate recompute for one device ─────────────────────────────────────
 
-async function recompute(deviceId: string, totalSessions: number) {
+async function recompute(deviceId: string, totalSessions: number, windowHours = 12) {
   const { data } = await admin()
     .from("ble_sightings")
     .select("session_id, seen_at, place_key, distance_m, rssi")
@@ -172,15 +172,33 @@ async function recompute(deviceId: string, totalSessions: number) {
   const places = new Set<string>();
   let closest: number | null = null;
   const rssis: number[] = [];
+
+  // Rolling-window state: "near me N separate times in the last X hours".
+  const cutoff = Date.now() - windowHours * 3_600_000;
+  const windowSessions = new Set<string>();
+  const windowPlaces = new Set<string>();
+  let winFirst = Infinity, winLast = -Infinity, winClosest: number | null = null;
+
   for (const r of rows) {
     if (r.session_id) sessions.add(r.session_id);
     if (r.seen_at) days.add(String(r.seen_at).slice(0, 10));
     if (r.place_key) places.add(r.place_key);
-    if (r.distance_m != null) {
-      const d = Number(r.distance_m);
+    const d = r.distance_m != null ? Number(r.distance_m) : null;
+    if (d != null && Number.isFinite(d)) {
       if (closest == null || d < closest) closest = d;
     }
     if (typeof r.rssi === "number") rssis.push(r.rssi);
+
+    const t = r.seen_at ? Date.parse(String(r.seen_at)) : NaN;
+    if (Number.isFinite(t) && t >= cutoff) {
+      // A sighting without a session id still counts as its own encounter,
+      // keyed by minute so a burst never inflates the count.
+      windowSessions.add(r.session_id || `t:${Math.floor(t / 60_000)}`);
+      if (r.place_key) windowPlaces.add(r.place_key);
+      if (t < winFirst) winFirst = t;
+      if (t > winLast) winLast = t;
+      if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
+    }
   }
   rssis.sort((a, b) => a - b);
   const median = rssis.length ? rssis[Math.floor(rssis.length / 2)] : null;
@@ -192,8 +210,15 @@ async function recompute(deviceId: string, totalSessions: number) {
     closest_distance_m: closest,
     presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
     median_rssi: median,
+    window_encounters: windowSessions.size,
+    window_places: windowPlaces.size,
+    window_closest_m: winClosest,
+    window_span_minutes: Number.isFinite(winFirst) && Number.isFinite(winLast)
+      ? Math.round((winLast - winFirst) / 60_000)
+      : 0,
   };
 }
+
 
 // ── Tradecraft: behavioural read across the whole log ──────────────────────
 //
