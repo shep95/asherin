@@ -375,14 +375,50 @@ export function buildQueryPlan(raw: string): QueryPlan {
     .trim();
   const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
+  // 9. SHAPE ROUTING — decided last, because it depends on everything above.
+  const bareTokens = input.trim().split(/\s+/).filter(Boolean);
+  let shape: QueryShape;
+  if (operators.length > 0) shape = "operator-dork";
+  else if (bareTokens.length === 1) shape = "single-token";
+  else if (relations.length > 0) shape = "relationship";
+  else if (cve || wallet || email || (domainHit && bareTokens.length <= 3)) shape = "identifier";
+  else if (requiredFinal.length === 0) shape = "topic";
+  else if (/^(who|what|where|when|why|how|which|is|are|did|does|can)\b/i.test(input) || bareTokens.length >= 6) shape = "natural-question";
+  else shape = "topic";
+
+  // A single bare word IS the query — gating it against itself adds nothing and
+  // only penalises pages that paraphrase. Drop the gate, keep the term as
+  // context so relevance still ranks on it.
+  let requiredOut = requiredFinal;
+  if (shape === "single-token") {
+    for (const t of requiredFinal) optional.add(t);
+    requiredOut = [];
+  }
+  // Under a dork string the operators ARE the constraint; word gating on top
+  // of `site:` double-penalises pages the operator already selected.
+  if (shape === "operator-dork") {
+    requiredOut = requiredFinal.filter((t) => (confidence.get(t)?.confidence ?? 0) >= 0.9);
+  }
+
+  const requiredWeighted: WeightedTerm[] = requiredOut.map((t) => ({
+    term: t,
+    confidence: Math.max(0.3, Math.min(1, confidence.get(t)?.confidence ?? 0.7)),
+    basis: confidence.get(t)?.basis ?? "derived",
+  }));
 
   return {
     raw: input,
-    required: requiredFinal,
-    optional: [...optional],
+    required: requiredOut,
+    requiredWeighted,
+    optional: [...optional].filter((t) => !requiredOut.includes(t) || shape === "single-token"),
     negative,
     phrases,
     entity,
+    shape,
+    relations,
+    scriptNote: detectScript(input)
+      ? `Non-Latin script (${detectScript(input)}) detected — name/org detection is Latin-only, so entity gating falls back to relevance.`
+      : undefined,
     operators,
     wireQuery,
   };
