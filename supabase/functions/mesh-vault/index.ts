@@ -245,6 +245,13 @@ Deno.serve(async (req) => {
         ...(Array.isArray(rel?.phones) ? rel.phones : []),
       ].map((s: unknown) => String(s).slice(0, 60)).filter(Boolean).slice(0, 3);
       const hint = String(rel?.locationHint || body.location_hint || "").slice(0, 80);
+      // Organisational anchors bound by the caller (employer string, or the
+      // corporate domains observed alongside this subject). Validated and
+      // capped here so a client can never fan the org pass out unbounded.
+      const orgAnchors = (Array.isArray(body.org_anchors) ? body.org_anchors : [])
+        .map((s: unknown) => String(s).trim().slice(0, 80))
+        .filter((s: string) => s.length >= 3)
+        .slice(0, 2);
 
       await sb.from("mesh_dossiers").upsert({
         user_id: userId,
@@ -263,6 +270,7 @@ Deno.serve(async (req) => {
           buildDossier(name || email!, email, rel && rel.email ? rel : null, {
             locationHint: hint,
             identifiers,
+            orgAnchors,
             channel: rel?.channel ?? "address_book",
           }),
           PER_SUBJECT_MS,
