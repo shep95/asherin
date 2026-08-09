@@ -408,36 +408,44 @@ Deno.serve(async (req) => {
           const stillFollowing = escalated && !firstAlert;
 
 
-
-          if (escalated && dossiersBuilt < 1) {
-            let key;
-            try { key = await resolveKey(req, body.byok); } catch { key = null; }
-            if (key) {
-              const merged = { ...row, ...patch };
-              // Behavioural read, computed once per ingest and only when an
-              // alert is actually being raised.
-              tcCache ??= await loadTradecraft(userId).catch(() => null);
-              const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
-              const dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch((e) => ({
-                headline: `${row.display_name} — dossier build failed`,
-                grade: "THIN",
-                assessment: `Recurrence confirmed: ${verdict.reason} Open-source enrichment failed (${(e as Error).message?.slice(0, 100)}).`,
-                actions: ["Run your phone's built-in unwanted-tracker scan.", "Physically sweep bag, coat linings and vehicle wheel wells."],
-              }));
-              if (tcCache) {
-                (dossier as any).tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
-                (dossier as any).tradecraft_tier = tcCache.campaign.tier;
+          if (escalated) {
+            const merged = { ...row, ...patch };
+            // The dossier is enrichment. A safety alert must never depend on a
+            // model being reachable, so enrichment is attempted at most once per
+            // ingest and the alert fires either way.
+            let dossier: Record<string, any> = {
+              headline: `${row.display_name} — recurring nearby radio`,
+              grade: "THIN",
+              assessment: verdict.reason,
+              actions: [
+                "Run your phone's built-in unwanted-tracker scan.",
+                "Physically sweep bag, coat linings and vehicle wheel wells.",
+                "Change your route and see whether the same radio follows.",
+              ],
+            };
+            if (dossiersBuilt < 1) {
+              let key;
+              try { key = await resolveKey(req, body.byok); } catch { key = null; }
+              if (key) {
+                dossiersBuilt++;
+                tcCache ??= await loadTradecraft(userId).catch(() => null);
+                const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
+                dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch(() => dossier);
+                if (tcCache) {
+                  dossier.tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
+                  dossier.tradecraft_tier = tcCache.campaign.tier;
+                }
+                patch.dossier = dossier;
+                patch.dossier_at = new Date().toISOString();
               }
-              patch.dossier = dossier;
-              patch.dossier_at = new Date().toISOString();
-              patch.alert_count = (row.alert_count || 0) + 1;
-              patch.last_alert_at = new Date().toISOString();
-              dossiersBuilt++;
-              await alertDevice(userId, userEmail, { ...merged, ...patch }, verdict, dossier, settings).catch((e) =>
-                console.error("sentinel_alert_failed", e instanceof Error ? e.message : e));
-              alerts.push({ deviceId: id, name: row.display_name, tier: verdict.tier, reason: verdict.reason });
             }
+            patch.alert_count = (row.alert_count || 0) + 1;
+            patch.last_alert_at = new Date().toISOString();
+            await alertDevice(userId, userEmail, { ...merged, ...patch }, verdict, dossier, settings, stillFollowing).catch((e) =>
+              console.error("sentinel_alert_failed", e instanceof Error ? e.message : e));
+            alerts.push({ deviceId: id, name: row.display_name, tier: verdict.tier, reason: verdict.reason, stillFollowing });
           }
+
           await db.from("ble_devices").update(patch).eq("id", id);
         }
 
