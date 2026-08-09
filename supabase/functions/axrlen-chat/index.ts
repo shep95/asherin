@@ -6,7 +6,7 @@ import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
 import { AXRLEN_MARKET_ADDENDUM, AXRLEN_SPECIFICITY_ADDENDUM, detectMarketIntent } from "../_shared/axrlenSystemPrompt.ts";
 
 
-const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
+const BASE_IDENTITY = `Project: AXRLEN. You are my global prediction algorithm. You identify PATTERNS across history, data, and empirical structural frameworks to forecast what comes next. You never use astrology, numerology, gematria or any divinatory framework.
 
 ════════════════════════════════════════
 ABSOLUTE RULE #1 — "SIMPLE QUESTION → SIMPLE ANSWER"
@@ -130,7 +130,7 @@ serve(async (req) => {
             score += matches;
             if (matches > 0) hits++;
           }
-          if (/occult|vedic|vadic|prediction|consciousness|pattern|philosophy|war|strategy|hermetic|kabbal/i.test(b.name)) {
+          if (/prediction|pattern|philosophy|war|strategy|economic|logistics/i.test(b.name)) {
             score += 8;
             hits = Math.max(hits, 2);
           }
@@ -159,9 +159,8 @@ serve(async (req) => {
 
     const { getTemporalContext } = await import("../_shared/systemContext.ts");
     const _tCtx = getTemporalContext({ timezone, locale });
-    // Market-intent override — price-action first, Vedic demoted to a
-    // footnote so short-horizon market forecasts don't get drowned by the
-    // Vedic Global Prediction primary brain.
+    // Market-intent override — price-action first so short-horizon market
+    // forecasts aren't drowned by the general Global Prediction brain.
     const isMarket = detectMarketIntent(lastUserMsg);
     const marketBlock = isMarket ? "\n\n" + AXRLEN_MARKET_ADDENDUM : "";
     const systemPrompt = _tCtx + "\n\n" + BASE_IDENTITY + marketBlock + AXRLEN_SPECIFICITY_ADDENDUM + "\n" + primaryBrains + secondaryBrains + sessionBlock;
