@@ -68,9 +68,21 @@ const strip = (html: string): string =>
 /** Registration shapes only. A loose token like "2019" must never become a plate. */
 const PLATE_RE = /\b([A-Z]{1,3}[- ]?[A-Z0-9]{2,9}|[0-9]{1,3}[- ]?[A-Z]{2,4}[- ]?[0-9]{0,4})\b/;
 
-/** Uber/Lyft vehicles read "2019 Toyota Camry" or "Toyota Camry · Silver". */
+/**
+ * Uber/Lyft vehicles read "2019 Toyota Camry", "Toyota Camry · Silver",
+ * "Silver Tesla Model 3" or "Honda CR-V".
+ *
+ * The previous pattern required a capitalised model token immediately after a
+ * make drawn from a 32-entry list. It therefore dropped every hyphenated model
+ * (CR-V, MDX), every alphanumeric model (RAV4, CX-5, Model 3, ID.4), every
+ * newer marque (Rivian, Lucid, Polestar, Genesis) and every colour-first
+ * rendering — and a dropped vehicle is not a cosmetic loss. The assigned car is
+ * the field the impersonation check runs on, so losing it is what produced
+ * "vehicle: not captured" on a live briefing and disabled the single most
+ * important verification a rider performs.
+ */
 const VEHICLE_RE =
-  /\b((?:19|20)\d{2}\s+)?(Toyota|Honda|Nissan|Hyundai|Kia|Ford|Chevrolet|Chevy|Tesla|BMW|Mercedes(?:-Benz)?|Audi|Volkswagen|VW|Mazda|Subaru|Lexus|Acura|Infiniti|Dodge|Chrysler|Jeep|GMC|Buick|Cadillac|Volvo|Mitsubishi|Suzuki|Renault|Peugeot|Skoda|Fiat|Seat|Maruti|Tata|Mahindra)\s+([A-Z][A-Za-z0-9-]{1,14}(?:\s[A-Z][A-Za-z0-9-]{1,10})?)/;
+  /\b((?:19|20)\d{2}\s+)?(?:(black|white|silver|grey|gray|red|blue|green|brown|beige|gold|yellow|orange|purple|maroon|tan|charcoal)\s+)?(Toyota|Honda|Nissan|Hyundai|Kia|Ford|Chevrolet|Chevy|Tesla|BMW|Mercedes(?:-Benz)?|Audi|Volkswagen|VW|Mazda|Subaru|Lexus|Acura|Infiniti|Dodge|Chrysler|Jeep|GMC|Buick|Cadillac|Volvo|Mitsubishi|Suzuki|Genesis|Rivian|Lucid|Polestar|Porsche|Jaguar|Land\s?Rover|Mini|Lincoln|Ram|Alfa\s?Romeo|Maserati|Scion|Pontiac|Saturn|Renault|Peugeot|Skoda|Fiat|Seat|Maruti|Tata|Mahindra)\s+([A-Za-z][A-Za-z0-9.\-]{0,14}(?:\s[A-Za-z0-9][A-Za-z0-9.\-]{0,10})?)/i;
 
 const NAME_PATTERNS: RegExp[] = [
   // "You rode with Jordan" / "Thanks for riding with Jordan"
@@ -194,9 +206,17 @@ export function parseRideEmail(msg: {
   const kind = classify(subject, haystack);
   const driver_name = pickName(haystack);
   const shareUrl = haystack.match(SHARE_URL_RE)?.[0] ?? null;
+  // Groups: 1 year · 2 colour · 3 make · 4 model. Colour is preserved because
+  // "the plate matched but the car was black, not silver" is exactly the
+  // discrepancy a swapped-tag check is looking for.
   const vehicleMatch = haystack.match(VEHICLE_RE);
   const vehicle = vehicleMatch
-    ? `${vehicleMatch[1] ?? ""}${vehicleMatch[2]} ${vehicleMatch[3]}`.replace(/\s+/g, " ").trim().slice(0, 80)
+    ? [vehicleMatch[1], vehicleMatch[2], vehicleMatch[3], vehicleMatch[4]]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80)
     : null;
   const plate = pickPlate(haystack);
   const city = pickCity(haystack);

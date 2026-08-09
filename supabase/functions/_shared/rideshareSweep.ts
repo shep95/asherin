@@ -23,6 +23,12 @@ import { runZophielIntel, formatZophielContext } from "./zophielChatBridge.ts";
 import { callByokJsonWithRetry, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { notifyIntel, severityFromVerdict } from "./intelNotify.ts";
 import {
+  assembleRiderSafety,
+  type RiderSafetyBriefing,
+  type SafetyFinding,
+  type BoardingDecision,
+} from "./riderSafety.ts";
+import {
   fastPass,
   buildDeepUserPrompt,
   DEEP_SYSTEM_PROMPT,
@@ -187,22 +193,32 @@ export interface CollectionResult {
   resolved_name: string | null;
   /** Deterministic regulator evidence; the authority for identity binding. */
   registry: RegistryResult;
+  /** The rider-safety substrate — always present, never gated on identity. */
+  safety: RiderSafetyBriefing;
 }
 
 /**
  * Run the plan with bounded concurrency and a hard wall-clock budget.
  *
- * Order matters: the plate pivot runs FIRST because its output changes the
- * plan. A resolved surname turns six vague first-name queries into six bound
- * ones; an unresolved plate collapses the plan to the single angle that still
- * means something. Angles resolve independently and each carries its own
- * timeout, so a source that hangs costs its slice of the budget and nothing
- * more — the previous failure mode was one 68-second identity search eating the
- * whole sweep and the request with it.
+ * ORDER OF PRECEDENCE — the correction that matters most in this file.
+ * The rider-safety substrate launches FIRST and independently of everything
+ * else, because it is the only part of this collection that reliably returns
+ * anything. Identity resolution used to own the whole wall clock and gate every
+ * other angle behind a binding that, measured on live rides, never occurs — a
+ * US plate does not resolve to an owner on the open web and no query shape
+ * changes that. So identity is now the tail, not the trunk: it runs with
+ * whatever budget the safety layers did not need, it thickens the dossier when
+ * it succeeds, and its silence is reported as a legal limit rather than as an
+ * ominous blank.
+ *
+ * Within the identity tail the old ordering still holds: the plate pivot runs
+ * before the angles because its output reshapes them, and each angle carries
+ * its own timeout so one hanging source costs its slice and nothing more.
  */
 export async function collectDossier(
   ride: RideInput,
   budgetMs = 55_000,
+  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string },
 ): Promise<CollectionResult> {
   const started = Date.now();
   const blocks: string[] = [];
@@ -210,23 +226,36 @@ export async function collectDossier(
   let hits = 0;
   let jurisdiction = "";
 
-  // ── Phase A: plate-anchored pivot (fast, always attempted) ───────────────
-  const pivot = await plateAnchoredIdentity(ride, Math.min(18_000, Math.floor(budgetMs * 0.3)));
+  // ── Phase 0: rider safety, launched immediately and never blocked ────────
+  // This is what the rider actually reads. It is deliberately not awaited here
+  // so the identity work overlaps it rather than queueing behind it.
+  const safetyPromise = ctx
+    ? assembleRiderSafety({ db: ctx.db, userId: ctx.userId, rideId: ctx.rideId, ride, budgetMs: 22_000 })
+    : assembleRiderSafety({ db: admin(), userId: "", rideId: "", ride, budgetMs: 22_000 });
+
+  // ── Phase A: plate-anchored pivot (bounded, best-effort) ─────────────────
+  const pivot = await plateAnchoredIdentity(ride, Math.min(14_000, Math.floor(budgetMs * 0.22)));
   blocks.push(pivot.block);
   hits += pivot.evidence.hits.length;
 
   if (!ride.driver_name && !pivot.bestFullName) {
+    // No bindable person. That used to end the collection with an empty
+    // dossier; it no longer does, because none of the rider-safety layers
+    // needed a name in the first place.
+    const safety = await safetyPromise;
     return {
-      context: blocks.join("\n\n"),
-      note: `No driver name captured. ${pivot.evidence.note}`,
+      context: [safety.block, ...blocks].join("\n\n"),
+      note: `No driver name captured — identity collection was not attempted. ${safety.note}`,
       hits,
-      angles: [],
+      angles: ["Rider-safety substrate"],
       candidates: pivot.candidates,
       residual: pivot.residual,
       resolved_name: null,
       registry: pivot.registry,
+      safety,
     };
   }
+
 
   // ── Phase B: identity collection, re-seeded by the pivot ─────────────────
   const plan = collectionPlan(ride, pivot.bestFullName);
@@ -302,15 +331,37 @@ export async function collectDossier(
       ? `Plate pivot produced ${pivot.candidates.length} weighted surname candidate(s), best ${(pivot.candidates[0].posterior * 100).toFixed(0)}% — below the 55% floor, so identity-bound angles were withheld.`
       : `Plate pivot resolved no surname; identity-bound angles were withheld as unbindable.`;
 
+  // The safety substrate leads the context. Ordering is not cosmetic here: the
+  // model reads top-down, and the first thing it must see is the material that
+  // actually answers the rider's question.
+  const safety = await safetyPromise;
+
+  const identitySilent = !pivot.bestFullName && !pivot.registry.best_name;
+
   return {
-    context: blocks.join("\n\n"),
-    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
-    hits,
-    angles: zophiel.hits > 0 ? [...ran, "Zophiel engine sweep"] : ran,
+    context: [
+      safety.block,
+      identitySilent
+        ? "### Identity resolution — statutory limit, not a suspicious gap\nThe driver's surname could not be bound. In the United States the plate-to-owner linkage is sealed by the Driver's Privacy Protection Act and is not published on the open web, so this outcome is the expected one for nearly every ride. Report it as a limit of the method. Do NOT describe it as a red flag, and do NOT let it depress the boarding decision, which was computed from evidence that does not depend on it."
+        : "",
+      ...blocks,
+    ].filter(Boolean).join("\n\n"),
+    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    hits: hits + safety.corridorHits,
+    angles: [
+      "Rider-safety substrate",
+      "Vehicle truth (NHTSA)",
+      "Plate coherence",
+      "Corridor threat",
+      "Personal ride ledger",
+      ...ran,
+      ...(zophiel.hits > 0 ? ["Zophiel engine sweep"] : []),
+    ],
     candidates: pivot.candidates,
     residual: pivot.residual,
     resolved_name: pivot.bestFullName,
     registry: pivot.registry,
+    safety,
   };
 }
 
@@ -333,20 +384,49 @@ export async function deliver(
   if (VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) return delivered;
 
   const p = phase.payload as Record<string, any>;
+
+  // The alert threshold governs the IDENTITY verdict, which is THIN on almost
+  // every ride by construction. Gating delivery on it alone is what silenced
+  // genuinely actionable briefings. A boarding decision that is not BOARD is
+  // always delivered, regardless of threshold — it is the whole product.
+  const decision: BoardingDecision = (p.boarding_decision as BoardingDecision) || "VERIFY";
+  const decisionForces = decision !== "BOARD";
+  if (!decisionForces && VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) {
+    return delivered;
+  }
+
+  const protocol: string[] = Array.isArray(p.boarding_protocol) ? p.boarding_protocol : [];
+  const decisionLabel = decision === "DO_NOT_BOARD"
+    ? "DO NOT BOARD"
+    : decision === "VERIFY"
+      ? "VERIFY BEFORE BOARDING"
+      : "CLEAR TO BOARD";
+
   const bus = await notifyIntel({
     userId,
     userEmail,
     kind: "rideshare",
-    severity: severityFromVerdict(phase.verdict),
-    title: `${phase.verdict} — ${phase.headline}`,
+    severity: decision === "DO_NOT_BOARD" ? "critical" : severityFromVerdict(phase.verdict),
+    // The rider reads the first four words on a lock screen. They must be the
+    // decision, never the identity verdict.
+    title: `${decisionLabel} — ${p.vehicle_expected || ride.plate || "your ride"}`,
     body: p.narrative || phase.headline,
     subjectName: ride.driver_name || ride.plate || "unnamed driver",
     source: "Rideshare Guardian",
     url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${rideId}`,
     sections: [
-      { label: "Identity confidence", value: `${Math.round(phase.confidence * 100)}%` },
-      { label: "Vehicle", value: `${ride.vehicle || "not captured"} · plate ${ride.plate || "not captured"}` },
-      { label: "Recommended action", value: p.recommended_action || "Verify the plate and driver photo before boarding." },
+      { label: "Decision", value: decisionLabel },
+      { label: "Why", value: String(p.boarding_basis || "Complete the boarding protocol before you get in.") },
+      { label: "Car you are looking for", value: String(p.vehicle_expected || "not disclosed by the platform — confirm in the app") },
+      { label: "Plate check", value: String(p.plate_check || "Match every character against the app.") },
+      { label: "Vehicle safety record", value: String(p.vehicle_record_line || "Government vehicle index not reached.") },
+      { label: "Area", value: String(p.corridor_line || "No local threat picture available.") },
+      { label: "Your history with this car", value: String(p.ledger_line || "First recorded ride in this vehicle.") },
+      {
+        label: "Do this now",
+        value: protocol.length ? protocol.slice(0, 3).join("  •  ") : (p.recommended_action || "Verify the plate and driver photo before boarding."),
+      },
+
     ],
     findings: Array.isArray(p.flags)
       ? p.flags.map((f: any) => `${String(f?.severity || "note").toUpperCase()}: ${f?.detail ?? ""}`)
@@ -354,8 +434,12 @@ export async function deliver(
     idempotencyKey: `rideshare:${rideId}:${p.phase ?? "deep"}`,
     skipEmail: true,
     skipPush: !settings.push_enabled,
-    // Lock screens are read by whoever is standing next to the rider.
-    pushBody: `${phase.headline}. Open Asherin for the assessment.`,
+    // Lock screens are read by whoever is standing next to the rider, and are
+    // often the only thing read at all. It carries the decision and the plate —
+    // the two facts that change what the rider physically does next.
+    pushBody: decision === "BOARD"
+      ? `Plate ${ride.plate || "—"}. Match plate, car and face, then get in the back.`
+      : `${decisionLabel}. Plate ${ride.plate || "not captured"}. ${protocol[0] || "Verify before you open the door."}`,
   });
   for (const c of bus.channels) if (!delivered.includes(c)) delivered.push(c);
 
@@ -430,19 +514,30 @@ export async function runDeepSweep(opts: {
 }): Promise<{ deep: PhaseResult; delivered: string[] }> {
   const { userId, userEmail, rideId, ride, cfg, settings } = opts;
   const fast = fastPass(ride);
-  const collection = await collectDossier(ride, opts.collectionBudgetMs ?? 55_000);
+  const collection = await collectDossier(ride, opts.collectionBudgetMs ?? 55_000, {
+    db: admin(),
+    userId,
+    rideId,
+  });
 
   // Registry cross-checks are arithmetic over a government record, not model
   // opinion, so they enter the doctrine through the deterministic fast-pass
   // channel: a HIGH registry flag (licence expired, licensee is not the person
   // shown, VIN decodes to a different car) escalates the verdict on its own,
   // even if the model was lenient or the collection was otherwise silent.
+  //
+  // The rider-safety findings enter through the same channel and for the same
+  // reason: a plate that cannot exist in its state, or a make the government
+  // vehicle index does not recognise, is arithmetic we performed ourselves. It
+  // must survive a lenient model, and it must not be gated behind an identity
+  // binding it never depended on.
   const fastFlags = (fast.payload as Record<string, unknown>).flags as Array<Record<string, unknown>>;
-  for (const f of collection.registry.flags) {
+  for (const f of [...collection.registry.flags, ...collection.safety.findings]) {
     if (!fastFlags.some((x) => x.code === f.code)) {
       fastFlags.push({ code: f.code, severity: f.severity, detail: f.detail, evidence: f.evidence });
     }
   }
+
 
   const raw = await callByokJsonWithRetry(
     cfg,
@@ -476,6 +571,39 @@ export async function runDeepSweep(opts: {
 
   const deep = enforceDoctrine(parsedModel, fast);
   const payload = deep.payload as Record<string, unknown>;
+
+  // ── Rider-safety payload: computed in code, authoritative over the model ──
+  // These are the fields the card, the push and the email render. None of them
+  // is derived from anything the model said, so a hallucinating, truncated or
+  // entirely failed model degrades the narrative and leaves the actionable
+  // briefing intact.
+  const s = collection.safety;
+  const veh = s.vehicle.parsed;
+  payload.boarding_decision = s.decision;
+  payload.boarding_basis = s.decisionBasis;
+  payload.boarding_protocol = s.protocol;
+  payload.safety_findings = s.findings;
+  payload.vehicle_expected = [veh.color, veh.year, veh.make, veh.model].filter(Boolean).join(" ")
+    || ride.vehicle
+    || "";
+  payload.plate_check = s.coherence.line;
+  payload.vehicle_record_line = s.vehicle.makeValidated
+    ? `${s.vehicle.recalls.length} open recall(s) on this model year${s.vehicle.safetyRating?.overall && s.vehicle.safetyRating.overall !== "not published" ? ` · NCAP overall ${s.vehicle.safetyRating.overall}` : ""}${typeof s.vehicle.complaintCount === "number" ? ` · ${s.vehicle.complaintCount} owner complaint(s)` : ""}.`
+    : s.vehicle.note;
+  payload.corridor_line = s.corridorHits > 0
+    ? `${s.corridorHits} current local report(s) reviewed for ${ride.city || "this area"}.`
+    : `No current local reporting surfaced for ${ride.city || "this area"} — no-signal, not an all-clear.`;
+  payload.ledger_line = s.ledger.priorSamePlate > 0
+    ? `You have ridden in this exact car ${s.ledger.priorSamePlate} time(s) before.`
+    : "First recorded ride in this vehicle.";
+  payload.vehicle_safety = {
+    parsed: veh,
+    validated: s.vehicle.makeValidated,
+    recalls: s.vehicle.recalls,
+    complaints: s.vehicle.complaintCount,
+    rating: s.vehicle.safetyRating,
+  };
+
   payload.collection_note = collection.note;
   payload.collection_angles = collection.angles;
   payload.plate_candidates = collection.candidates;
@@ -490,14 +618,30 @@ export async function runDeepSweep(opts: {
     bound_name: collection.registry.best_name,
     binding_confidence: collection.registry.confidence,
   };
-  // Registry flags must appear to the reader even when the model omitted them.
+  // Registry and rider-safety flags must appear to the reader even when the
+  // model omitted them.
   {
     const existing = Array.isArray(payload.flags) ? (payload.flags as Array<Record<string, unknown>>) : [];
-    for (const f of collection.registry.flags) {
+    for (const f of [...collection.registry.flags, ...s.findings]) {
       if (!existing.some((x) => x.code === f.code)) existing.push({ ...f });
     }
     payload.flags = existing;
   }
+
+  // The headline is the decision, not the identity verdict. "THIN — not enough
+  // public record to say anything" is a true sentence that helps nobody at a
+  // kerb; "VERIFY BEFORE BOARDING — silver 2019 Toyota Camry, plate 9NMB162" is
+  // the same honesty pointed at something the rider can act on.
+  if (s.decision !== "BOARD" || !String(deep.headline || "").trim()) {
+    const label = s.decision === "DO_NOT_BOARD"
+      ? "DO NOT BOARD"
+      : s.decision === "VERIFY"
+        ? "VERIFY BEFORE BOARDING"
+        : "CLEAR TO BOARD";
+    const car = String(payload.vehicle_expected || "").trim();
+    deep.headline = `${label} — ${[car, ride.plate ? `plate ${ride.plate}` : ""].filter(Boolean).join(", ") || "confirm the car in the app"}`.slice(0, 120);
+  }
+
   if (collection.registry.best_name && !(payload.subject_profile as any)?.resolved_name) {
     (payload.subject_profile as any) = {
       ...((payload.subject_profile as any) || {}),
