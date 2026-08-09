@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { OriginTrace } from "./OriginPanel";
 import {
   Fingerprint, ExternalLink, ShieldAlert, FileText, Users, Code2, Landmark,
   MessagesSquare, Globe, ClipboardList, ChevronDown, AlertTriangle, Clock,
@@ -194,10 +195,7 @@ export interface ChainedProvenance {
   url: string;
   host: string;
   grade: string;
-  trace: {
-    origin?: { author?: string | null; software?: string | null; created?: string | null; device?: string | null } | null;
-    summary?: string | null;
-  } | null;
+  trace: OriginTrace | null;
 }
 
 export const IdentifierSweepPanel = (
@@ -303,13 +301,16 @@ export const IdentifierSweepPanel = (
           </p>
           <ul className="space-y-2">
             {provenance.map((p) => {
-              const o = p.trace?.origin ?? null;
+              const t = p.trace;
               const facts = [
-                o?.author ? `authored by ${o.author}` : null,
-                o?.software ? `produced with ${o.software}` : null,
-                o?.created ? `created ${String(o.created).slice(0, 16).replace("T", " ")}` : null,
-                o?.device ? `device ${o.device}` : null,
-              ].filter(Boolean);
+                t?.identity?.author ? `authored by ${t.identity.author}` : null,
+                t?.identity?.company ? `org ${t.identity.company}` : null,
+                t?.toolchain?.producer ? `produced with ${t.toolchain.producer}` : null,
+                t?.toolchain?.device ? `device ${t.toolchain.device}` : null,
+                t?.created?.value ? `created ${String(t.created.value).slice(0, 16).replace("T", " ")}` : null,
+                t?.zone_candidates?.length ? `timezone ${t.zone_candidates[0]}` : null,
+                (t?.redirect_chain?.length ?? 0) > 1 ? `${t!.redirect_chain.length} hops` : null,
+              ].filter(Boolean) as string[];
               return (
                 <li key={p.url} className="min-w-0">
                   <a
@@ -324,8 +325,7 @@ export const IdentifierSweepPanel = (
                   <p className="text-[10.5px] leading-snug text-muted-foreground/60">
                     {facts.length
                       ? facts.join(" · ")
-                      : p.trace?.summary ||
-                        "Traced — the producer stripped every authoring field before publication."}
+                      : "Traced — the producer stripped every authoring field before publication."}
                   </p>
                 </li>
               );
