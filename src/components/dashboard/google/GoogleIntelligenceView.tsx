@@ -124,6 +124,14 @@ const CAPABILITIES = [
 
 const GoogleIntelligenceView = () => {
   const [activeModule, setActiveModule] = useState<GoogleModule>("overview");
+  // The directorate is stored, not derived, so the sub-strip survives jumping
+  // to a raw data feed (which belongs to no directorate) and returning.
+  const [directorate, setDirectorate] = useState<Directorate>("COLLECTION");
+  // A desk selected from the overview grid must pull its directorate with it,
+  // otherwise the sub-strip would show a group the open desk is not in.
+  const activeDirectorate =
+    nexusModules.find((m) => m.id === activeModule)?.directorate ?? directorate;
+
   const [isConnecting, setIsConnecting] = useState(false);
 
   const activeLabel = activeModule === "overview"
