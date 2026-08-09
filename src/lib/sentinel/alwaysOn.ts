@@ -361,10 +361,12 @@ function onFix(next: { lat: number; lng: number; accuracy?: number }) {
 }
 
 function startGeo() {
-  if (geoWatchId != null || typeof navigator === "undefined" || !("geolocation" in navigator)) return;
-  geoWatchId = navigator.geolocation.watchPosition(
-    (p) => {
-      pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+  if (geoWatch) return;
+  // Native runtime uses the OS plugin, which keeps emitting while the app is
+  // backgrounded; the web runtime falls back to navigator.geolocation.
+  geoWatch = watchPosition(
+    (fix) => {
+      pos = { lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy };
       if (!state.positioned) emit({ positioned: true });
       onFix(pos);
       // Tier B needs a fix it can report after this tab is gone. Handing it
@@ -376,18 +378,15 @@ function startGeo() {
       void reportMeshDevice(pos, { source: "geo" });
     },
     () => { if (state.positioned) emit({ positioned: false }); },
-    // A minute-old cached fix used to be acceptable because nothing was racing
-    // a deadline. On the arrival path it is a minute straight off the budget.
-    { enableHighAccuracy: false, maximumAge: 15_000, timeout: 20_000 },
   );
-
 }
 
 function stopGeo() {
-  if (geoWatchId != null) {
-    try { navigator.geolocation.clearWatch(geoWatchId); } catch { /* noop */ }
-    geoWatchId = null;
+  if (geoWatch) {
+    geoWatch.stop();
+    geoWatch = null;
   }
+
   if (dwellTimer != null) { clearTimeout(dwellTimer); dwellTimer = null; }
   anchor = null;
   anchorAssessed = false;
