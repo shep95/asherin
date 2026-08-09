@@ -2066,10 +2066,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.geo || _R.intel ? GEOLOCATION_BRAIN : "",
       _R.psychology || _R.intel ? AUREON_PSYCHOLOGY_ENGINE : "",
       _R.linguistics || _R.intel ? AUREON_FORENSIC_LINGUISTICS : "",
-      // Astrology and gematria are opt-in: they answer only to their own
       // vocabulary, never to a turn merely being long.
-      _R.vedic ? AUREON_VEDIC_INTELLIGENCE : "",
-      _R.vedic ? vedicBrainContent : "",
       _R.strategic ? warStrategyBrainContent : "",
       _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
@@ -2080,7 +2077,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       AUREON_ADVANCED_PROTOCOLS,
       _R.visual ? AUREON_VISUAL_DOMINANCE : "",
       CONTEXT_INTELLIGENCE_PROMPT,
-      _R.gematria ? GEMATRIA_CHAT_DIRECTIVE : "",
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),
