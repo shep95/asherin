@@ -206,9 +206,17 @@ export function parseRideEmail(msg: {
   const kind = classify(subject, haystack);
   const driver_name = pickName(haystack);
   const shareUrl = haystack.match(SHARE_URL_RE)?.[0] ?? null;
+  // Groups: 1 year · 2 colour · 3 make · 4 model. Colour is preserved because
+  // "the plate matched but the car was black, not silver" is exactly the
+  // discrepancy a swapped-tag check is looking for.
   const vehicleMatch = haystack.match(VEHICLE_RE);
   const vehicle = vehicleMatch
-    ? `${vehicleMatch[1] ?? ""}${vehicleMatch[2]} ${vehicleMatch[3]}`.replace(/\s+/g, " ").trim().slice(0, 80)
+    ? [vehicleMatch[1], vehicleMatch[2], vehicleMatch[3], vehicleMatch[4]]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80)
     : null;
   const plate = pickPlate(haystack);
   const city = pickCity(haystack);
