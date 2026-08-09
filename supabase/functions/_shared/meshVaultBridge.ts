@@ -98,7 +98,7 @@ export function classifyVaultIntent(text: string): VaultIntent {
 
 // ── Retrieval ──────────────────────────────────────────────────────────────
 
-interface DossierRow {
+export interface DossierRow {
   subject_name: string;
   subject_email: string | null;
   hop: number;
