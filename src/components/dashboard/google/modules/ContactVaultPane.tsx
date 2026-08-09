@@ -365,10 +365,45 @@ const ContactVaultPane = () => {
     finally { setBusy(null); }
   };
 
-  const grouped = useMemo(() => ({
-    hop1: (rows ?? []).filter((r) => r.hop === 1),
-    hop2: (rows ?? []).filter((r) => r.hop === 2),
-  }), [rows]);
+  // QUERYABLE CONFIDENCE MATRIX.
+  // The index used to be a fixed list in insertion order, so the two questions
+  // an analyst actually asks it — "which subjects are weakly established?" and
+  // "which of these hundreds is the one I mean?" — could only be answered by
+  // scrolling. Query, floor and sort are applied before grouping so both hop
+  // bands stay consistent with the same filter.
+  const [q, setQ] = useState("");
+  const [minConf, setMinConf] = useState(0);
+  const [sortBy, setSortBy] = useState<"confidence" | "name" | "status">("confidence");
+
+  const grouped = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const pass = (r: Row) => {
+      // A queued row has no confidence yet; excluding it on a floor would hide
+      // work in flight rather than filter weak evidence, so only ready rows
+      // are subject to the floor.
+      if (minConf > 0 && r.status === "ready" && Number(r.confidence ?? 0) < minConf) return false;
+      if (minConf > 0 && r.status !== "ready") return false;
+      if (!needle) return true;
+      return (
+        r.subject_name.toLowerCase().includes(needle) ||
+        (r.subject_email ?? "").toLowerCase().includes(needle) ||
+        (r.summary ?? "").toLowerCase().includes(needle)
+      );
+    };
+    const order = (a: Row, b: Row) => {
+      if (sortBy === "name") return a.subject_name.localeCompare(b.subject_name);
+      if (sortBy === "status") return String(a.status).localeCompare(String(b.status));
+      return Number(b.confidence ?? 0) - Number(a.confidence ?? 0);
+    };
+    const all = (rows ?? []).filter(pass);
+    return {
+      hop1: all.filter((r) => r.hop === 1).sort(order),
+      hop2: all.filter((r) => r.hop === 2).sort(order),
+      matched: all.length,
+      total: (rows ?? []).length,
+    };
+  }, [rows, q, minConf, sortBy]);
+
 
   const openDossier = (row: Row) =>
     run(`open:${row.id}`, async () => {
