@@ -1272,24 +1272,22 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   }
 
   // PANTHEON v3: surface engines + deep/code/academic/social/chain/breach/iot/vuln in parallel.
+  // The five separate surface scrapers collapsed into one hardened wave; each
+  // hit still carries its originating engine, so independence classes and the
+  // corroboration bonus below are computed exactly as before.
   const [
-    firecrawlResults,
-    ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults,
-    wikiResults, braveResults, yandexResults,
+    surfaceResults,
+    searxResults,
+    wikiResults, yandexResults,
     // PANTHEON layers
     commonCrawlResults, waybackResults, githubResults, edgarResults,
     crossrefResults, openalexResults,
     hnResults, redditResults,
     chainResults, breachResults, shodanResults, cveResults, booksResults,
   ] = await Promise.allSettled([
-    searchFirecrawl(query, 15),
-    searchDDG(query, page, dateFilter),
+    surfaceTier(query, 18, true),
     searchSearXNG(query),
-    searchMojeek(query),
-    Promise.resolve([] as SearchResult[]),
-    Promise.resolve([] as SearchResult[]),
     searchWikipedia(query),
-    searchBrave(query),
     searchYandex(query),
     // PANTHEON
     searchCommonCrawl(query),
