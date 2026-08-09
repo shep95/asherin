@@ -82,9 +82,16 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const input = (raw || "").trim();
   const phrases: string[] = [];
   const negative: string[] = [];
+  const operators: string[] = [];
+
+  // 0. Search operators come off FIRST and go back on the wire verbatim.
+  let residue = input.replace(OPERATOR_RE, (_m, lead, neg, key, val) => {
+    operators.push(`${neg || ""}${String(key).toLowerCase()}:${val}`);
+    return String(lead || " ");
+  });
 
   // 1. Quoted phrases are extracted verbatim (hard signal).
-  let residue = input.replace(/"([^"]{2,120})"/g, (_m, p) => {
+  residue = residue.replace(/"([^"]{2,120})"/g, (_m, p) => {
     phrases.push(String(p).trim());
     return " ";
   });
@@ -94,6 +101,7 @@ export function buildQueryPlan(raw: string): QueryPlan {
     negative.push(normalizeTerm(String(t)));
     return " ";
   });
+
 
   const required = new Set<string>();
   const optional = new Set<string>();
