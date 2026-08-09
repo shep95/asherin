@@ -2282,6 +2282,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _lastUserText,
       Boolean(webSearchContext && webSearchContext.trim()),
     );
+    // Cognitive personality matrix — the roster is resident so the model knows
+    // its own instrument panel; only the two-to-three logics this message
+    // actually demands get their full dossier loaded (relevance gating).
+    const { ANALYTICS_LOGIC_MATRIX, buildAnalyticsLogicEmphasis } =
+      await import("../_shared/analyticsLogicMatrix.ts");
+    const _logicEmphasis = buildAnalyticsLogicEmphasis(_lastUserText);
 
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // PROMPT ASSEMBLY ORDER (recency-weighted):
