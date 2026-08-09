@@ -700,6 +700,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               {/* Standard search results */}
               {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (
                 <>
+                  {/* Deterministic corpus analysis — claims, conflicts, graph, forensics */}
+                  {!loading && results.length > 0 && fusion && (
+                    <Suspense fallback={null}>
+                      <ZophielFusionPanel data={fusion} />
+                    </Suspense>
+                  )}
                   {/* Meta */}
                   {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
