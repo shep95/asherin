@@ -33,6 +33,7 @@ import { buildContactReport } from "@/lib/cloudIntel/contactReport";
 import { renderContactReport } from "@/lib/cloudIntel/contactReportText";
 import { collectContactOsint, emptyAnnex, type OsintAnnex } from "@/lib/cloudIntel/contactOsint";
 import { setPendingContacts } from "@/lib/cloudIntel/mapBridge";
+import { deriveOrgAnchors } from "@/lib/cloudIntel/orgAnchor";
 
 
 
@@ -434,11 +435,24 @@ const ContactIntelligence = () => {
         .map((v) => (v || "").trim())
         .filter(Boolean)
         .join(" · ") || null;
+      // The organisational axis. A corporate address carries its employer
+      // implicitly; a consumer mailbox does not, and that single asymmetry is
+      // why one contact's report came back with their whole company footprint
+      // and the rest read thin. The anchors are recovered from the record and
+      // from the mail graph instead.
+      const orgAnchors = deriveOrgAnchors({
+        emails: d.emails,
+        organization: d.organization,
+        urls: d.urls,
+        messages: corpus.messages,
+        ownAddresses: own,
+      }).map((a) => a.value);
       return {
         name: d.name,
         email: d.emails[0] ?? null,
         identifiers,
         locationHint,
+        orgAnchors,
         r: buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers }),
       };
     } catch (e) {
@@ -466,6 +480,7 @@ const ContactIntelligence = () => {
       email: baseReport.email,
       identifiers: baseReport.identifiers,
       locationHint: baseReport.locationHint,
+      orgAnchors: baseReport.orgAnchors,
       signal: controller.signal,
     })
       .then((a) => { if (!cancelled) setAnnex({ key: reportKey, value: a }); })
