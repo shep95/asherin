@@ -814,6 +814,29 @@ function tagLayer(r: SearchResult, layer: PantheonLayer, engine: string): Search
   return r;
 }
 
+// ── HARDENED SURFACE TIER ───────────────────────────────────────────────────
+// The individual scrapers below (DDG/Brave/Mojeek/Yandex/SearXNG) are kept for
+// reference but are no longer called directly: from edge IPs they either 403 or
+// answer 2xx with a challenge page, which read as "the web has nothing" instead
+// of "we were blocked". `runSurfaceWave` challenge-checks every body, breaks the
+// circuit on repeatedly blocked providers, and escalates to a reserve wave when
+// the lead wave under-delivers — so the open-web layer stops silently collapsing
+// onto the registry/gov sources.
+let lastSurfaceTelemetry: SurfaceWave["telemetry"] = [];
+
+async function surfaceTier(query: string, limit: number, includeReserve = true): Promise<SearchResult[]> {
+  const wave = await runSurfaceWave(query, { limit, includeReserve });
+  lastSurfaceTelemetry = wave.telemetry;
+  const out: SearchResult[] = [];
+  for (const h of wave.hits) {
+    const built = buildSearchResult(h.title, h.url, h.snippet);
+    if (built) out.push(tagLayer(built, 'surface', h.engine));
+  }
+  return out;
+}
+
+
+
 // ── DEEP WEB: Common Crawl Index (petabyte-scale historical web archive) ─────
 async function searchCommonCrawl(query: string, limit = 10): Promise<SearchResult[]> {
   // CDX API — query the most recent index for URLs matching the term as a host substring.
