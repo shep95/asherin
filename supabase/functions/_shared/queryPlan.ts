@@ -109,6 +109,56 @@ const WALLET_RE = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0
 const DOMAIN_RE = /\b([a-z0-9-]+\.)+[a-z]{2,}\b/i;
 const ORG_SUFFIX = /\b(inc|llc|ltd|corp|corporation|company|gmbh|plc|sa|nv|ag|holdings|group|labs|foundation)\b/i;
 const PLACE_HINT = /\b(city|county|state|province|country|island|district|street|avenue|road)\b/i;
+const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
+
+// ── Rarity lexicon ──────────────────────────────────────────────────────────
+// Name/org detection used to fire ONLY on capitalization, so "asher newton"
+// scored the same as "the weather today". Capitalization is now one signal
+// among several; token RARITY (a token that is not ordinary English) is the
+// load-bearing one, which is what makes a lowercase name still register.
+const COMMON_WORDS = new Set([
+  ...STOPWORDS,
+  "after","again","all","also","any","back","because","been","before","being","best","between",
+  "both","call","came","come","could","day","did","different","does","down","each","early","even",
+  "every","first","found","free","good","great","group","help","here","high","home","just","keep",
+  "know","large","last","late","left","less","life","like","little","long","made","make","many",
+  "may","more","most","much","must","need","never","new","next","night","now","number","off","old",
+  "one","only","open","other","our","out","own","part","people","place","point","price","problem",
+  "public","put","real","report","right","said","same","see","seem","set","should","since","small",
+  "some","state","still","such","system","take","think","three","through","time","today","two",
+  "under","until","up","use","used","very","want","water","way","week","well","went","were","while",
+  "work","world","would","year","years","yes","news","best","top","list","free","online","near",
+  "cost","review","reviews","guide","vs","versus","company","business","service","services",
+]);
+
+/** A token is "rare" when it is alphabetic, long enough, and not ordinary English. */
+function isRareToken(tok: string): boolean {
+  if (!/^[a-z][a-z'’-]{2,}$/.test(tok)) return false;
+  if (COMMON_WORDS.has(tok)) return false;
+  // Ordinary inflections of common words are still common.
+  for (const suf of ["s", "es", "ed", "ing", "ly"]) {
+    if (tok.endsWith(suf) && COMMON_WORDS.has(tok.slice(0, -suf.length))) return false;
+  }
+  return true;
+}
+
+// ── Relation library ────────────────────────────────────────────────────────
+// Generalises "who lives in X" into [entity] <relation> [entity]. Matched
+// case-insensitively so a lowercase query is handled identically.
+const RELATION_PHRASES: { re: RegExp; kind: QueryRelation["objectKind"] }[] = [
+  { re: /\b(lives?\s+in|living\s+in|based\s+in|located\s+in|resides?\s+in|from|near)\b/i, kind: "location" },
+  { re: /\b(works?\s+at|worked\s+at|employed\s+by|employee\s+of|founder\s+of|co-?founder\s+of|ceo\s+of|cto\s+of|cfo\s+of|director\s+of|owner\s+of|partner\s+at|works?\s+for)\b/i, kind: "organization" },
+  { re: /\b(married\s+to|wife\s+of|husband\s+of|son\s+of|daughter\s+of|brother\s+of|sister\s+of|related\s+to|connected\s+to|associated\s+with|linked\s+to|friends?\s+with)\b/i, kind: "person" },
+];
+
+/** Non-Latin scripts bypass every capitalization heuristic in this file. */
+function detectScript(input: string): string | undefined {
+  if (/[\u0400-\u04FF]/.test(input)) return "cyrillic";
+  if (/[\u0600-\u06FF]/.test(input)) return "arabic";
+  if (/[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(input)) return "cjk";
+  if (/[\u0900-\u097F]/.test(input)) return "devanagari";
+  return undefined;
+}
 
 /**
  * Stage 1 — Query Understanding. Pure lexical parse, no network, no model.
