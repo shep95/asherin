@@ -19,6 +19,7 @@ const PagePreviewPanel = lazy(() => import("./search/PagePreviewPanel"));
 const DeepSearchPanel = lazy(() => import("./search/DeepSearchPanel"));
 const IntelMapPanel = lazy(() => import("./search/IntelMapPanel"));
 const IntelligenceSuitePanel = lazy(() => import("./search/intel/IntelligenceSuitePanel"));
+const ZophielFusionPanel = lazy(() => import("./search/ZophielFusionPanel"));
 const ArchivesHarvesterPanel = lazy(() => import("./search/ArchivesHarvesterPanel"));
 const UrlIntelMapPanel = lazy(() => import("./search/UrlIntelMapPanel"));
 const IntelMapByokPanel = lazy(() => import("./search/IntelMapByokPanel"));
