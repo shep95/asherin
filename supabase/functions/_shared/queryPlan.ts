@@ -30,9 +30,21 @@ export interface QueryPlan {
   /** Quoted "..." phrases — exact-match bonus. */
   phrases: string[];
   entity: EntityKind;
+  /** Search operators (`site:`, `filetype:`, `-site:` …) preserved verbatim. */
+  operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
   wireQuery: string;
 }
+
+/**
+ * Dork operators must survive the planner untouched. Before this guard the
+ * tokenizer split `site:linkedin.com` on the colon, quoted "linkedin.com" as a
+ * proper noun and left a dangling `site:` on the wire — every operator-driven
+ * dork leg silently degraded into a bag-of-words search.
+ */
+const OPERATOR_RE =
+  /(^|\s)(-?)(site|filetype|ext|inurl|allinurl|intitle|allintitle|intext|allintext|related|cache|link|before|after|lang|loc|location|source|around|imagesize)\s*:\s*("[^"]{1,120}"|[^\s]{1,120})/gi;
+
 
 const STOPWORDS = new Set([
   "a","an","and","are","as","at","be","but","by","for","from","has","have","he","her","his",
@@ -70,9 +82,16 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const input = (raw || "").trim();
   const phrases: string[] = [];
   const negative: string[] = [];
+  const operators: string[] = [];
+
+  // 0. Search operators come off FIRST and go back on the wire verbatim.
+  let residue = input.replace(OPERATOR_RE, (_m, lead, neg, key, val) => {
+    operators.push(`${neg || ""}${String(key).toLowerCase()}:${val}`);
+    return String(lead || " ");
+  });
 
   // 1. Quoted phrases are extracted verbatim (hard signal).
-  let residue = input.replace(/"([^"]{2,120})"/g, (_m, p) => {
+  residue = residue.replace(/"([^"]{2,120})"/g, (_m, p) => {
     phrases.push(String(p).trim());
     return " ";
   });
@@ -82,6 +101,7 @@ export function buildQueryPlan(raw: string): QueryPlan {
     negative.push(normalizeTerm(String(t)));
     return " ";
   });
+
 
   const required = new Set<string>();
   const optional = new Set<string>();
@@ -182,6 +202,7 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const multi = requiredFinal.filter((r) => r.includes(" "));
   const quoted = multi.map((r) => `"${surfaceForm.get(r) || r}"`);
   let rest = input
+    .replace(OPERATOR_RE, " ")
     .replace(/"([^"]{2,120})"/g, " ")
     .replace(/(^|\s)-([A-Za-z0-9][\w.-]{1,40})/g, " ");
   for (const term of multi) {
@@ -190,10 +211,13 @@ export function buildQueryPlan(raw: string): QueryPlan {
   }
   rest = rest
     .split(/\s+/)
-    .filter((w) => w && !STOPWORDS.has(w.toLowerCase().replace(/[^a-z0-9]/g, "")))
+    // Uppercase OR is a boolean the SERP understands — the stopword filter used
+    // to eat it and collapse `A OR B` into an implicit AND.
+    .filter((w) => w && (w === "OR" || !STOPWORDS.has(w.toLowerCase().replace(/[^a-z0-9]/g, ""))))
     .join(" ")
+    .replace(/^(OR\s+)+|(\s+OR)+$/g, "")
     .trim();
-  const wireQuery = [...quoted, rest].filter(Boolean).join(" ").trim() || input;
+  const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
 
   return {
@@ -203,8 +227,10 @@ export function buildQueryPlan(raw: string): QueryPlan {
     negative,
     phrases,
     entity,
+    operators,
     wireQuery,
   };
+
 }
 
 /** Relaxed re-issue string for the rescue pass: drop quoting + optional noise. */
