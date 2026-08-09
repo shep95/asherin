@@ -2066,7 +2066,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.geo || _R.intel ? GEOLOCATION_BRAIN : "",
       _R.psychology || _R.intel ? AUREON_PSYCHOLOGY_ENGINE : "",
       _R.linguistics || _R.intel ? AUREON_FORENSIC_LINGUISTICS : "",
-      // vocabulary, never to a turn merely being long.
       _R.strategic ? warStrategyBrainContent : "",
       _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
