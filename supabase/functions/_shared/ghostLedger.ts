@@ -397,6 +397,9 @@ export async function runGhostLedger(
     index: buildIndex(clean),
     partial: probeList.length < targets.length || clean.length < probeList.length,
     elapsedMs: Date.now() - started,
+    channels: [...rows.reduce((m, r) => m.set(r.source, (m.get(r.source) ?? 0) + 1), new Map<string, number>())]
+      .map(([source, signals]) => ({ source, signals }))
+      .sort((a, b) => b.signals - a.signals),
   };
 }
 
