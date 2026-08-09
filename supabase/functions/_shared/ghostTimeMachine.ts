@@ -220,6 +220,45 @@ const PROOF_RANK: Record<DateProof, number> = {
 
 };
 
+/** Plain-language name for each carve method, shown next to the date it produced. */
+const PROOF_LABEL: Record<DateProof, string> = {
+  "doc-metadata": "authoring stamp inside the file",
+  jsonld: "structured publishing markup",
+  "meta-published": "declared publish date",
+  "time-element": "dated <time> element",
+  "url-path": "date encoded in the address",
+  "http-last-modified": "server Last-Modified header",
+  copyright: "copyright line",
+  "body-text": "date read out of the prose",
+  undated: "no date recoverable",
+};
+
+/**
+ * Confidence in a carved date, 0–100.
+ *
+ * A date is two claims stacked: *this string is a date* and *this date belongs
+ * to this document*. The carve method settles the first. Reach-back distance
+ * attacks the second — a page served today whose only date evidence is a
+ * copyright line reading 2001 has, far more often than not, been re-templated,
+ * migrated between CMSes, or had a boilerplate footer overwritten. So the weak
+ * carves decay hard with age while the strong ones barely move: a PDF's
+ * /CreationDate is written once, by the producing application, and no amount
+ * of re-hosting rewrites it.
+ */
+export function dateConfidence(proof: DateProof, year: number): number {
+  const rank = PROOF_RANK[proof] ?? 0;
+  if (rank === 0 || !year) return 0;
+  // Base certainty in the method itself, before any time has passed.
+  const base = 24 + rank * 10;                                   // 34 … 94
+  const yearsBack = Math.max(0, new Date().getUTCFullYear() - year);
+  // Strong carves are near-immune to age; weak ones are not. A rank-7 stamp
+  // loses ~0.15 pts/year, a rank-1 body-text date loses ~1.5 pts/year.
+  const perYear = Math.max(0.15, (8 - rank) * 0.25);
+  return Math.max(5, Math.round(base - yearsBack * perYear));
+}
+
+
+
 /**
  * Read one lead as a DOCUMENT and date it.
  *
