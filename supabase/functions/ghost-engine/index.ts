@@ -643,7 +643,66 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) return json({ error: "History read failed", details: error.message }, 500);
-      return json({ action: "historyDetail", entity_key: key, runs: data || [] });
+
+      // ── Run-over-run diff ──────────────────────────────────────────────
+      // The rail listed runs. Runs are not the finding — the DELTA is. An
+      // operator re-sweeps an identifier precisely to learn what moved since
+      // last time, and reading that off two 40-row result lists side by side
+      // is work a machine should be doing. Each run now carries what appeared,
+      // what disappeared and which hosts changed their evidentiary posture
+      // relative to the run immediately before it.
+      const runs = (data || []) as Array<Record<string, unknown>>;
+      const urlsOf = (run: Record<string, unknown>) => {
+        const rows = Array.isArray(run.results) ? run.results as Array<Record<string, unknown>> : [];
+        const m = new Map<string, { title: string; score: number; host: string }>();
+        for (const r of rows) {
+          const url = typeof r.url === "string" ? r.url.replace(/[#?].*$/, "").replace(/\/+$/, "") : "";
+          if (!url) continue;
+          m.set(url, {
+            title: String(r.title ?? url),
+            score: Number(r.score ?? 0),
+            host: String(r.host ?? ""),
+          });
+        }
+        return m;
+      };
+
+      const withDiff = runs.map((run, i) => {
+        // runs are newest-first, so the comparison baseline is the NEXT index.
+        const prior = runs[i + 1];
+        if (!prior) return { ...run, diff: null };
+        const now = urlsOf(run);
+        const then = urlsOf(prior);
+        const appeared: { url: string; title: string; host: string }[] = [];
+        const changed: { url: string; title: string; from: number; to: number }[] = [];
+        for (const [url, cur] of now) {
+          const was = then.get(url);
+          if (!was) appeared.push({ url, title: cur.title, host: cur.host });
+          // A score move of a point or two is scoring noise, not a finding.
+          else if (Math.abs(was.score - cur.score) >= 8) {
+            changed.push({ url, title: cur.title, from: was.score, to: cur.score });
+          }
+        }
+        const vanished = [...then].filter(([url]) => !now.has(url))
+          .map(([url, was]) => ({ url, title: was.title, host: was.host }));
+        return {
+          ...run,
+          diff: {
+            since: prior.created_at ?? null,
+            appeared: appeared.slice(0, 25),
+            vanished: vanished.slice(0, 25),
+            changed: changed.sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from)).slice(0, 15),
+            counts: {
+              appeared: appeared.length,
+              vanished: vanished.length,
+              changed: changed.length,
+              anomalyDelta: Number(run.anomalies ?? 0) - Number(prior.anomalies ?? 0),
+            },
+          },
+        };
+      });
+
+      return json({ action: "historyDetail", entity_key: key, runs: withDiff });
     }
 
     const { data, error } = await sb
