@@ -331,15 +331,37 @@ export async function collectDossier(
       ? `Plate pivot produced ${pivot.candidates.length} weighted surname candidate(s), best ${(pivot.candidates[0].posterior * 100).toFixed(0)}% — below the 55% floor, so identity-bound angles were withheld.`
       : `Plate pivot resolved no surname; identity-bound angles were withheld as unbindable.`;
 
+  // The safety substrate leads the context. Ordering is not cosmetic here: the
+  // model reads top-down, and the first thing it must see is the material that
+  // actually answers the rider's question.
+  const safety = await safetyPromise;
+
+  const identitySilent = !pivot.bestFullName && !pivot.registry.best_name;
+
   return {
-    context: blocks.join("\n\n"),
-    note: `${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
-    hits,
-    angles: zophiel.hits > 0 ? [...ran, "Zophiel engine sweep"] : ran,
+    context: [
+      safety.block,
+      identitySilent
+        ? "### Identity resolution — statutory limit, not a suspicious gap\nThe driver's surname could not be bound. In the United States the plate-to-owner linkage is sealed by the Driver's Privacy Protection Act and is not published on the open web, so this outcome is the expected one for nearly every ride. Report it as a limit of the method. Do NOT describe it as a red flag, and do NOT let it depress the boarding decision, which was computed from evidence that does not depend on it."
+        : "",
+      ...blocks,
+    ].filter(Boolean).join("\n\n"),
+    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    hits: hits + safety.corridorHits,
+    angles: [
+      "Rider-safety substrate",
+      "Vehicle truth (NHTSA)",
+      "Plate coherence",
+      "Corridor threat",
+      "Personal ride ledger",
+      ...ran,
+      ...(zophiel.hits > 0 ? ["Zophiel engine sweep"] : []),
+    ],
     candidates: pivot.candidates,
     residual: pivot.residual,
     resolved_name: pivot.bestFullName,
     registry: pivot.registry,
+    safety,
   };
 }
 
