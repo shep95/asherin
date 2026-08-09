@@ -7826,6 +7826,54 @@ export type Database = {
         }
         Relationships: []
       }
+      postmark_baselines: {
+        Row: {
+          asns: Json
+          auth_pass_rate: number
+          countries: Json
+          created_at: string
+          domain: string
+          esps: Json
+          established_at: string
+          id: string
+          last_confirmed_at: string
+          mailers: Json
+          sample_size: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asns?: Json
+          auth_pass_rate?: number
+          countries?: Json
+          created_at?: string
+          domain: string
+          esps?: Json
+          established_at?: string
+          id?: string
+          last_confirmed_at?: string
+          mailers?: Json
+          sample_size?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asns?: Json
+          auth_pass_rate?: number
+          countries?: Json
+          created_at?: string
+          domain?: string
+          esps?: Json
+          established_at?: string
+          id?: string
+          last_confirmed_at?: string
+          mailers?: Json
+          sample_size?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       prediction_history: {
         Row: {
           company: string
