@@ -1677,6 +1677,20 @@ Deno.serve(async (req) => {
       filtered.forEach((r, i) => { r.rank = i + 1; });
     }
 
+    // ── Relevance floor ────────────────────────────────────────────────────
+    // The always-on academic/filings layers answer every query with something,
+    // so a person lookup used to ship 45 off-topic filings behind 5 correct
+    // hits. Anything that scores below the floor is pruned — but only while a
+    // usable head survives, so a genuinely sparse query still returns its tail.
+    const RELEVANCE_FLOOR = 0.12;
+    const survivors = filtered.filter(r => (r.relevance ?? 0) >= RELEVANCE_FLOOR);
+    let prunedCount = 0;
+    if (survivors.length >= 8 && survivors.length < filtered.length) {
+      prunedCount = filtered.length - survivors.length;
+      filtered = survivors;
+      filtered.forEach((r, i) => { r.rank = i + 1; });
+    }
+
 
     // Group results by category
     const grouped: Record<string, SearchResult[]> = {};
