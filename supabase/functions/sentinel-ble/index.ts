@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
         let dossiersBuilt = 0;
         let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
-          const agg = await recompute(id, totalSessions);
+          const agg = await recompute(id, totalSessions, windowHours);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
           if (!row) continue;
 
@@ -349,9 +349,12 @@ Deno.serve(async (req) => {
             kind: row.inferred_kind as DeviceKind,
             isSelf,
             isIgnored: row.is_ignored,
-            closestMeters: agg.closest_distance_m,
+            closestMeters: agg.window_closest_m ?? agg.closest_distance_m,
             threshold: settings.recurrence_threshold,
             ignoreAudio: settings.ignore_audio,
+            windowEncounters: agg.window_encounters,
+            windowHours,
+            windowSpanMinutes: agg.window_span_minutes,
           });
 
           const patch: Record<string, unknown> = {
@@ -366,9 +369,15 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          // Re-alert only when the pattern deepens, never on every ping.
+          // Re-alert when the window doctrine fires again after a full cooldown,
+          // or when the all-time pattern deepens. Never on every ping.
+          const lastAlertMs = row.last_alert_at ? Date.parse(String(row.last_alert_at)) : NaN;
+          const cooledDown = !Number.isFinite(lastAlertMs) ||
+            Date.now() - lastAlertMs >= windowHours * 3_600_000;
           const escalated = verdict.shouldAlert &&
-            (!row.last_alert_at || agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+            (cooledDown ||
+              agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+
 
           if (escalated && dossiersBuilt < 1) {
             let key;
