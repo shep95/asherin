@@ -169,7 +169,9 @@ export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "truth", name: "The Truth Engine", icon: "shield", Icon: Shield, description: "Uncensored. Direct. Raw.", systemPrompt: "", builtIn: true },
   { id: "writer", name: "The Writer", icon: "pen", Icon: PenTool, description: "Voice-matched. Adapts to your writing style.", systemPrompt: "", builtIn: true },
   { id: "researcher", name: "The Researcher", icon: "book", Icon: BookOpen, description: "Source-heavy. Cites everything. Academic rigor.", systemPrompt: "", builtIn: true },
+  { id: "asherin", name: "Asherin", icon: "eye", Icon: Eye, description: "Humble spiritual guide. Lowercase. Points back to God.", systemPrompt: ASHERIN_SEER_PROMPT, builtIn: true },
 ];
+
 
 export const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
   { id: "target", Icon: Target },
