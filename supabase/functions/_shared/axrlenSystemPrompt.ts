@@ -114,11 +114,10 @@ For any asset in TIER 3, give specific price targets per scenario across 24h/72h
 `;
 
 // ─── MARKET-INTENT OVERRIDE ────────────────────────────────────────────────
-// The unified NEXUS-PRIME core is Vedic-heavy (great for geopolitics, but it
-// buries order-flow / momentum / liquidity when the user asks about price).
-// For market queries we swap in a price-action-first addendum that demotes
-// Vedic to a one-line footnote and raises temperature so AXRLEN reasons like
-// its pre-unification self on markets. Shared by BOTH:
+// The unified NEXUS-PRIME core is geopolitics-weighted, which buries
+// order-flow / momentum / liquidity when the user asks about price.
+// For market queries we swap in a price-action-first addendum and raise
+// temperature so AXRLEN reasons like a discretionary trader. Shared by BOTH:
 //   - _shared/axrlenBridge.ts (inline Aureon / Asher chat)
 //   - axrlen-chat/index.ts    (standalone dashboard chat)
 
