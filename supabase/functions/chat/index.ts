@@ -1703,10 +1703,14 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             : trig.kind === "topic" ? "topic"
               : "person"; // email / phone / handle / person all pivot on an identity
 
-      if (trig.fire && resolvedSubject && !isDefensiveSecurityAuditRequest) {
+      // NOTE: the battery IS the authorized self-audit path. It must fire even
+      // when the turn also matches the defensive-security regex (which was
+      // previously suppressing it — a self-collision that produced silent
+      // "refusals" on phrases like "security audit on my email").
+      if (trig.fire && resolvedSubject) {
         dorkIntentFired = true;
         dorkSubject = resolvedSubject;
-        console.log("[chat] Asherin dork battery firing:", engineKind, resolvedSubject, "self=", trig.selfTarget);
+        console.log("[chat] Asherin exposure sweep firing:", engineKind, resolvedSubject, "self=", trig.selfTarget);
         const { runAureonDork, formatDorkContext } = await import("../_shared/aureonDorkEngine.ts");
         const report = await Promise.race([
           runAureonDork(
@@ -1716,15 +1720,21 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
         if (report) {
+          // Extract every URL so the answer is forced to render a Sources section
+          // even if the depth prompt tries to summarize the body away.
+          const urls: string[] = [];
+          for (const t of report.topExposures) for (const h of t.hits) if (h.url) urls.push(`- [${(h.host || h.url)}](${h.url})`);
+          const sources = urls.length ? `\n\n**SOURCES (${urls.length}) — reproduce verbatim in the answer under a "### Sources" heading:**\n${urls.slice(0, 60).join("\n")}` : "";
           dorkContext = formatDorkContext(report) + "\n\n" + report.defensiveGuidance +
-            "\n\n> **URL PRESERVATION RULE:** when relaying the battery to the operator, reproduce every markdown link `[title](url)` verbatim — never paraphrase away the URLs, never collapse them to just the query line. A dork finding without its source URL is useless.";
+            "\n\n> **URL PRESERVATION RULE:** reproduce every markdown link `[title](url)` verbatim. End the reply with a `### Sources` list of every URL below. A finding without its source URL is useless." +
+            sources;
         } else {
-          dorkContext = `\n\n[ASHERIN ENGINE — dork battery on "${resolvedSubject}" timed out or the AI key was unavailable this turn. Report the outage plainly to the operator and offer to re-run. Do NOT tell the operator to run dorks themselves in Google — that inverts the platform's purpose.]`;
+          dorkContext = `\n\n[ASHERIN ENGINE — exposure sweep on "${resolvedSubject}" timed out or the AI key was unavailable this turn. Report the outage plainly to the operator and offer to re-run. Do NOT tell the operator to run queries themselves in Google — that inverts the platform's purpose.]`;
         }
-      } else if (trig.fire && !resolvedSubject && !isDefensiveSecurityAuditRequest) {
+      } else if (trig.fire && !resolvedSubject) {
         // Trigger fired but no anchor exists — ask for one identifier instead
-        // of dorking the instruction line and returning unrelated noise.
-        dorkContext = `\n\n[ASHERIN ENGINE — the operator asked for a dork sweep but no target anchor was resolvable from this turn. Ask them for ONE anchor (email, phone, full name, handle, or domain) in a single short line, then run the battery. Do NOT invent a subject, do NOT return unrelated findings, and do NOT tell them to run dorks themselves.]`;
+        // of sweeping the instruction line and returning unrelated noise.
+        dorkContext = `\n\n[ASHERIN ENGINE — the operator asked for an exposure sweep but no target anchor was resolvable from this turn. Ask them for ONE anchor (email, phone, full name, handle, or domain) in a single short line, then run the battery. Do NOT invent a subject, do NOT return unrelated findings, and do NOT tell them to run queries themselves.]`;
       }
     } catch (e) {
       console.error("[chat] Asherin dork failed:", (e as Error).message);
