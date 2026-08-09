@@ -19,7 +19,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { resolveAxrlenAccess, type AxrlenAccess } from "./proTierGate.ts";
-import { buildVedicContext, vedicContextAsPromptBlock } from "./vedicContext.ts";
 import { nexusPrimeCore, AXRLEN_INLINE_ADDENDUM, AXRLEN_MARKET_ADDENDUM, AXRLEN_SPECIFICITY_ADDENDUM, detectMarketIntent } from "./axrlenSystemPrompt.ts";
 
 // ── Region detection — mirrors axrlen-analyze's REGION_MAP so the bridge
@@ -379,18 +378,6 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   // raise temperature. Restores AXRLEN's pre-unification price behavior.
   const isMarket = detectMarketIntent(userMessage);
 
-  // Live Vedic snapshot (real ephemeris) + upcoming eclipse capitals — only
-  // for non-market queries. Region-scoped when the user names a country.
-  const regionCode = detectRegionCode(userMessage);
-  let vedicBlock = "";
-  if (!isMarket) {
-    try {
-      const ctx = buildVedicContext(regionCode, new Date());
-      vedicBlock = "\n\n" + vedicContextAsPromptBlock(ctx) + "\n\n" + eclipsesPromptBlock();
-    } catch (e) {
-      console.error("[axrlen bridge] vedic snapshot failed:", (e as Error).message);
-    }
-  }
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const systemPrompt =
     nexusPrimeCore(today) +
