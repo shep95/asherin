@@ -313,6 +313,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         setGrouped(res.grouped);
         setInstantAnswer(res.instantAnswer);
         setFreshnessAlerts(res.freshnessAlerts || {});
+        // PANTHEON v5 analysis rides along with the results, so the operator
+        // never has to re-run the corpus through a second panel to see it.
+        const f = res as unknown as import("./search/ZophielFusionPanel").FusionPayload;
+        setFusion({
+          centrality: f.centrality,
+          clusters: f.clusters,
+          claims: f.claims,
+          contradictions: f.contradictions,
+          anomalies: f.anomalies,
+          rankingQuality: f.rankingQuality,
+          prunedBelowFloor: f.prunedBelowFloor,
+        });
       }
     } catch (e: any) {
       console.error("Search failed:", e);
