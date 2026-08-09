@@ -194,21 +194,27 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const optional = new Set<string>();
   /** normalized term → the operator's original spelling (for the wire query). */
   const surfaceForm = new Map<string, string>();
-  const addRequired = (norm: string, original: string) => {
+  /** normalized term → how sure we are it is a selector, and why. */
+  const confidence = new Map<string, { confidence: number; basis: string }>();
+  const addRequired = (norm: string, original: string, conf = 1, basis = "explicit") => {
     if (!norm) return;
     required.add(norm);
     if (!surfaceForm.has(norm)) surfaceForm.set(norm, original.trim());
+    const prev = confidence.get(norm);
+    if (!prev || prev.confidence < conf) confidence.set(norm, { confidence: conf, basis });
   };
 
-  for (const p of phrases) addRequired(normalizeTerm(p), p);
+  for (const p of phrases) addRequired(normalizeTerm(p), p, 1, "quoted-phrase");
 
   // 3. Structured identifiers are always required.
   const cve = input.match(CVE_RE);
-  if (cve) addRequired(normalizeTerm(cve[0]), cve[0]);
+  if (cve) addRequired(normalizeTerm(cve[0]), cve[0], 1, "cve");
   const wallet = input.match(WALLET_RE);
-  if (wallet) addRequired(wallet[0].toLowerCase(), wallet[0]);
+  if (wallet) addRequired(wallet[0].toLowerCase(), wallet[0], 1, "wallet");
+  const email = input.match(EMAIL_RE);
+  if (email) addRequired(normalizeTerm(email[0]), email[0], 1, "email");
   const domainHit = residue.match(DOMAIN_RE);
-  if (domainHit) addRequired(normalizeTerm(domainHit[0]), domainHit[0]);
+  if (domainHit) addRequired(normalizeTerm(domainHit[0]), domainHit[0], 0.95, "domain");
 
   // 4. Capitalized runs = proper nouns → required as one atomic term.
   //    "Asher Shepherd Newton" becomes a single required term, not three.
@@ -235,7 +241,9 @@ export function buildQueryPlan(raw: string): QueryPlan {
       const original = seg.join(" ");
       const n = normalizeTerm(original);
       if (!n || n.length < 2) continue;
-      if (seg.length >= 2 || ACRONYM.test(seg[0])) addRequired(n, original);
+      if (seg.length >= 2) addRequired(n, original, 0.9, "capitalized-run");
+      else if (ACRONYM.test(seg[0])) addRequired(n, original, 0.75, "acronym");
+      else if (isRareToken(n)) addRequired(n, original, 0.6, "capitalized-rare-token");
       else optional.add(n);
     }
   }
@@ -243,7 +251,52 @@ export function buildQueryPlan(raw: string): QueryPlan {
   // 5. Bare uppercase tickers.
   for (const tok of residue.split(/\s+/)) {
     const t = tok.replace(/[^A-Za-z$]/g, "");
-    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) addRequired(normalizeTerm(t), t);
+    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) addRequired(normalizeTerm(t), t, 0.8, "ticker");
+  }
+
+  // 6a. LOWERCASE ENTITY RECOVERY — the fix for the capitalization hard gate.
+  //     Adjacent rare tokens ("asher newton", "punita budhiraja") are a probable
+  //     name even with no capital letters. They enter as MEDIUM confidence, so
+  //     they gate softly instead of either vanishing or over-constraining.
+  {
+    const toks = normalizeTerm(residue).split(" ").filter(Boolean);
+    let run: string[] = [];
+    const flush = () => {
+      if (run.length >= 2) {
+        const n = run.join(" ");
+        if (!required.has(n)) addRequired(n, n, 0.55, "lowercase-rare-run");
+      } else if (run.length === 1 && run[0].length >= 5) {
+        const n = run[0];
+        if (!required.has(n)) addRequired(n, n, 0.4, "lowercase-rare-token");
+      }
+      run = [];
+    };
+    for (const t of toks) {
+      if (isRareToken(t)) run.push(t); else flush();
+    }
+    flush();
+  }
+
+  // 6b. RELATION LAYER — [subject] <relation phrase> [object]. Both sides are
+  //     anchored as required, which is what makes "who is X at Y" work the same
+  //     way as "did X work for Y" without hardcoding either.
+  const relations: QueryRelation[] = [];
+  for (const { re, kind } of RELATION_PHRASES) {
+    const m = residue.match(re);
+    if (!m || m.index === undefined) continue;
+    const subjRaw = residue.slice(0, m.index).trim();
+    const objRaw = residue.slice(m.index + m[0].length).trim();
+    const pickSide = (side: string): string => {
+      const toks = normalizeTerm(side).split(" ").filter((t) => t && !STOPWORDS.has(t));
+      const rare = toks.filter(isRareToken);
+      return (rare.length ? rare : toks).slice(-3).join(" ");
+    };
+    const subject = pickSide(subjRaw);
+    const object = pickSide(objRaw);
+    if (!subject || !object) continue;
+    relations.push({ subject, relation: m[0].trim().toLowerCase(), objectKind: kind, object });
+    addRequired(subject, subject, Math.max(0.7, confidence.get(subject)?.confidence ?? 0), "relation-subject");
+    addRequired(object, object, Math.max(0.7, confidence.get(object)?.confidence ?? 0), "relation-object");
   }
 
   // 6. Everything else that survives stopword removal is optional context.
