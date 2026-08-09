@@ -1680,14 +1680,19 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         console.log("[chat] Asherin dork battery firing:", trig.kind, trig.subject);
         const { runAureonDork, formatDorkContext } = await import("../_shared/aureonDorkEngine.ts");
         // Wall-clock ceiling: never push past the 150s edge limit.
+        // Test EVERY generated theory (testCap 999 = uncapped) at raised
+        // concurrency so a full 100-theory battery still lands under 120s.
         const report = await Promise.race([
           runAureonDork(
             { subject: trig.subject, kind: trig.kind, hints: trig.hints },
-            { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 40, concurrency: 15, perQueryTimeoutMs: 12000, skipBrief: false },
+            { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 999, concurrency: 24, perQueryTimeoutMs: 10000, skipBrief: false },
           ),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 90000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
-        if (report) dorkContext = formatDorkContext(report) + "\n\n" + report.defensiveGuidance;
+        if (report) {
+          dorkContext = formatDorkContext(report) + "\n\n" + report.defensiveGuidance +
+            "\n\n> **URL PRESERVATION RULE:** when relaying the battery to the operator, reproduce every markdown link `[title](url)` verbatim — never paraphrase away the URLs, never collapse them to just the query line. A dork finding without its source URL is useless.";
+        }
       }
     } catch (e) {
       console.error("[chat] Asherin dork failed:", (e as Error).message);
