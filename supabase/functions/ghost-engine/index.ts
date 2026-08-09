@@ -320,13 +320,32 @@ function bufferResult(h: {
   };
 }
 
+/** What each severity is worth to the rank, and how loudly it is stated. */
+const ANOMALY_WEIGHT: Record<string, number> = { critical: 26, high: 16, medium: 8, low: 3 };
+
 /**
  * Fold a metadata shell into the flat result shape the search list renders.
  * When the harvest supplied a title/snippet for this URL, that human-readable
  * context is preferred for the headline and appended to the forensic facts —
  * a bare hostname told the operator nothing about *why* the hit matched.
+ *
+ * Anomalies are no longer a tally. "3 anomalies" is a number an operator has to
+ * go and re-derive somewhere else; a contradicted creation timestamp, a device
+ * ID that does not match the declared producer and a coordinate inside a
+ * country the host claims not to serve are three *different* findings with
+ * three different weights. Each one travels with the row, stated in the words
+ * the detector used, and its severity — not its existence — sets the rank.
  */
-function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): SearchResult {
+function webResult(
+  r: GhostRecord,
+  anomalies: { severity: string; code: string; title: string; detail: string }[],
+  lead?: HarvestLead,
+): SearchResult {
+  const weight = anomalies.reduce((n, a) => n + (ANOMALY_WEIGHT[a.severity] ?? 3), 0);
+  const worst = anomalies.slice().sort(
+    (a, b) => (ANOMALY_WEIGHT[b.severity] ?? 0) - (ANOMALY_WEIGHT[a.severity] ?? 0),
+  )[0];
+
   const badges = [
     r.status ? String(r.status) : "unreachable",
     (r.source_type || "").split(";")[0],
@@ -337,7 +356,9 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     r.software || "",
     lead?.via ? `via ${lead.via}` : "",
     lead && lead.corroboration > 1 ? `x${lead.corroboration}` : "",
-    anomalyCount ? `${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"}` : "",
+    // The badge names the finding, not the count.
+    worst ? `anomaly: ${worst.title}` : "",
+    anomalies.length > 1 ? `+${anomalies.length - 1} more anomal${anomalies.length === 2 ? "y" : "ies"}` : "",
   ].filter(Boolean);
 
   const facts = [
@@ -350,14 +371,23 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     r.dns.ns.length ? `ns ${r.dns.ns.slice(0, 2).join(", ")}` : null,
   ].filter(Boolean) as string[];
 
-  // Rank by evidentiary richness: a shell that carries authorship, a device, a
-  // coordinate or a contradiction outranks a bare 200 with nothing embedded.
-  const score =
-    (r.status && r.status < 400 ? 20 : 0) +
-    (r.author ? 30 : 0) + (r.device_id ? 25 : 0) + (r.software ? 12 : 0) +
-    (r.geo_lat != null ? 25 : 0) + (r.created_at ? 10 : 0) +
-    anomalyCount * 18 + Math.min(facts.length, 6) * 3 +
-    Math.min(lead?.corroboration ?? 0, 8) * 2;
+  // Rank by evidentiary richness, on the same 0–100 scale the shelf uses so the
+  // two layers are actually comparable.
+  const raw =
+    (r.status && r.status < 400 ? 14 : 0) +
+    (r.author ? 20 : 0) + (r.device_id ? 17 : 0) + (r.software ? 8 : 0) +
+    (r.geo_lat != null ? 17 : 0) + (r.created_at ? 7 : 0) +
+    weight + Math.min(facts.length, 6) * 2 +
+    Math.min(lead?.corroboration ?? 0, 8) * 1.5;
+  const score = Math.max(4, Math.min(96, Math.round(raw)));
+
+  const basis = [
+    r.author ? "authorship carved" : null,
+    r.device_id ? "device identified" : null,
+    r.geo_lat != null ? "coordinate embedded" : null,
+    weight ? `${anomalies.length} anomal${anomalies.length === 1 ? "y" : "ies"} (weight ${weight})` : null,
+    (lead?.corroboration ?? 0) > 1 ? `${lead?.corroboration} legs agreed` : null,
+  ].filter(Boolean);
 
   const forensic = facts.join(" · ");
   const context = (lead?.snippet || "").trim();
@@ -375,6 +405,12 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     snippet,
     badges,
     score,
+    anomalies: anomalies.map((a) => ({
+      code: a.code, severity: a.severity, title: a.title, detail: a.detail,
+    })),
+    anomaly_weight: weight,
+    rank_basis: basis.length ? basis.join(" · ") : "reachable shell, nothing embedded",
+    layers: ["web"],
     entity_id: r.entity_id,
     via: lead?.via,
     corroboration: lead?.corroboration,
