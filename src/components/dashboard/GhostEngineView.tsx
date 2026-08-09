@@ -337,8 +337,8 @@ const GhostEngineView = () => {
     }
     setUploading(true);
     setOrigin(null);
-    setMode("origin");
-    localStorage.setItem(MODE_KEY, "origin");
+    // An attached file has no URL, so ORIGIN is the only verb that can read it.
+    pickRoute("origin");
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
       // Chunked conversion — String.fromCharCode on a multi-MB spread blows the
@@ -584,7 +584,7 @@ const GhostEngineView = () => {
               ]).map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => { setMode(m.id); localStorage.setItem(MODE_KEY, m.id); }}
+                  onClick={() => pickRoute(m.id)}
                   title={m.hint}
                   aria-pressed={mode === m.id}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
@@ -671,7 +671,7 @@ const GhostEngineView = () => {
           {mode === "origin" && !loading && !uploading && origin && (
             <OriginPanel
               trace={origin}
-              onPivot={(sel) => { setMode("intercept"); localStorage.setItem(MODE_KEY, "intercept"); setQuery(sel); void run(sel); }}
+              onPivot={(sel) => { pickRoute("intercept"); setQuery(sel); void run(sel, undefined, "intercept"); }}
             />
           )}
 
