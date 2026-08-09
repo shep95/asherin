@@ -1675,17 +1675,42 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let dorkSubject = "";
     try {
       const lastUserForDork = [...messages].reverse().find((m: any) => m.role === "user");
-      const dorkText = lastUserForDork?.content || "";
+      const dorkText = typeof lastUserForDork?.content === "string"
+        ? lastUserForDork.content
+        : Array.isArray(lastUserForDork?.content)
+          ? lastUserForDork.content.map((p: any) => (typeof p === "string" ? p : p?.text || "")).join("\n")
+          : "";
       const { detectDorkIntent } = await import("../_shared/dorkIntent.ts");
       const trig = detectDorkIntent(dorkText);
-      if (trig.fire && !isDefensiveSecurityAuditRequest) {
+
+      // Self-target binding: "dork for my information" carries no literal
+      // subject — resolve the operator's own identifier instead of dorking the
+      // instruction line (which produced unrelated noise before).
+      let resolvedSubject = trig.subject;
+      if (trig.fire && trig.selfTarget && !resolvedSubject) {
+        try {
+          const selfAuth = req.headers.get("Authorization");
+          const selfUser = selfAuth
+            ? await resolveCallerCached(selfAuth, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "")
+            : null;
+          if (selfUser?.email) resolvedSubject = String(selfUser.email).toLowerCase();
+        } catch (_e) { /* fall through to the no-subject guard below */ }
+      }
+
+      const engineKind: "person" | "domain" | "organization" | "topic" =
+        trig.kind === "domain" ? "domain"
+          : trig.kind === "organization" ? "organization"
+            : trig.kind === "topic" ? "topic"
+              : "person"; // email / phone / handle / person all pivot on an identity
+
+      if (trig.fire && resolvedSubject && !isDefensiveSecurityAuditRequest) {
         dorkIntentFired = true;
-        dorkSubject = trig.subject;
-        console.log("[chat] Asherin dork battery firing:", trig.kind, trig.subject);
+        dorkSubject = resolvedSubject;
+        console.log("[chat] Asherin dork battery firing:", engineKind, resolvedSubject, "self=", trig.selfTarget);
         const { runAureonDork, formatDorkContext } = await import("../_shared/aureonDorkEngine.ts");
         const report = await Promise.race([
           runAureonDork(
-            { subject: trig.subject, kind: trig.kind, hints: trig.hints },
+            { subject: resolvedSubject, kind: engineKind, hints: trig.hints },
             { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 999, concurrency: 24, perQueryTimeoutMs: 10000, skipBrief: false },
           ),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
