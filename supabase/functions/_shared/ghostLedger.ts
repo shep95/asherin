@@ -345,7 +345,10 @@ export async function runGhostLedger(
     .gte("occurred_at", since)
     .order("occurred_at", { ascending: false })
     .limit(rowLimit);
-  if (opts.channel) q = q.eq("source", opts.channel);
+  const channels = (Array.isArray(opts.channel) ? opts.channel : opts.channel ? [opts.channel] : [])
+    .filter(isLedgerChannel);
+  if (channels.length === 1) q = q.eq("source", channels[0]);
+  else if (channels.length > 1) q = q.in("source", channels);
   if (opts.focus) {
     const f = opts.focus.replace(/[%,]/g, " ").trim().slice(0, 120);
     if (f) q = q.or(`actor_email.ilike.%${f}%,subject.ilike.%${f}%,snippet.ilike.%${f}%`);
