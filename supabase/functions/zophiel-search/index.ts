@@ -7,6 +7,7 @@ import {
 } from "../_shared/queryPlan.ts";
 import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
 import { runSurfaceWave, type SurfaceWave } from "../_shared/surfaceRetrieval.ts";
+import { resolveVaultPrior, formatVaultPrior, type VaultPrior } from "../_shared/vaultPrior.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1527,8 +1528,47 @@ Deno.serve(async (req) => {
     // ── Stage 1: Query Understanding (pure lexical, sub-ms, no model call) ──
     const plan = buildQueryPlan(trimmed);
 
-    const builtQuery = buildSearchQuery(plan, mode, semanticIntent, filters, operatorOverrides);
+    // ── Stage 1b: Vault prior ──────────────────────────────────────────────
+    // Before spending a search budget re-deriving who this person is, ask the
+    // operator's own Cloud Intelligence vault whether it already knows. A hit
+    // supplies disambiguation anchors — an employer, a city, a domain — which
+    // is the difference between "Robert Vance" returning forty strangers and
+    // returning the one the operator actually corresponds with.
+    //
+    // Gated to person-shaped, non-fast queries: an anchor bolted onto a
+    // technical or news query narrows it to nothing.
+    let vaultPrior: VaultPrior = { ...({ found: false } as VaultPrior) };
+    const priorEligible = !fast && (plan.entity === 'person' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed));
+    if (priorEligible) {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        try {
+          const sbPrior = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+            { global: { headers: { Authorization: authHeader } } },
+          );
+          const { data: { user } } = await sbPrior.auth.getUser();
+          if (user) vaultPrior = await resolveVaultPrior(sbPrior, user.id, trimmed);
+        } catch (e) {
+          console.warn('[zophiel] vault prior lookup failed (non-fatal)', e instanceof Error ? e.message : String(e));
+        }
+      }
+    }
+
+    let builtQuery = buildSearchQuery(plan, mode, semanticIntent, filters, operatorOverrides);
+    // At most two anchors. Three starts excluding pages that are about the
+    // right person but do not happen to name the employer AND the city.
+    if (vaultPrior.found && !vaultPrior.stale && vaultPrior.anchors.length) {
+      const chosen = vaultPrior.anchors
+        .filter((a) => !new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(builtQuery))
+        .slice(0, 2);
+      if (chosen.length) {
+        builtQuery = `${builtQuery} (${chosen.map((a) => `"${a.replace(/"/g, '')}"`).join(' OR ')})`;
+      }
+    }
     const instantAnswerType = detectInstantAnswerType(trimmed);
+
 
     // Run multi-engine search + instant answer + always-on onion search in parallel.
     // Onion is gated to text/research modes — never runs for code/docs/data lookups
@@ -1879,6 +1919,24 @@ Deno.serve(async (req) => {
         },
         rescueUsed,
         prunedBelowFloor: prunedCount,
+        // Vault prior — disclosed on every run that consulted one, so the
+        // operator can see which beliefs the search inherited and how old
+        // they were. Silence here means a genuine cold start.
+        vaultPrior: vaultPrior.found
+          ? {
+              dossierId: vaultPrior.dossierId,
+              subjectName: vaultPrior.subjectName,
+              builtAt: vaultPrior.builtAt,
+              ageDays: vaultPrior.ageDays,
+              confidence: vaultPrior.confidence,
+              confidenceRaw: vaultPrior.confidenceRaw,
+              stale: vaultPrior.stale,
+              anchorsApplied: vaultPrior.stale ? [] : vaultPrior.anchors.slice(0, 2),
+              knownDomains: vaultPrior.knownDomains.length,
+              disclosure: vaultPrior.disclosure,
+              brief: formatVaultPrior(vaultPrior),
+            }
+          : null,
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,

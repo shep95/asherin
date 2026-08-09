@@ -2965,6 +2965,42 @@ Examples that are ready to investigate:
       } catch (err) { console.error('Prior investigation lookup error:', err); }
     }
 
+    // ── Vault prior: the operator's own dossier as a first-class input ──────
+    //
+    // Nomad's "prior investigation memory" above only remembers what NOMAD did.
+    // It was blind to Cloud Intelligence, so a subject the operator has been
+    // corresponding with for two years — with a built, graded, sourced dossier
+    // sitting in the vault — was investigated from a cold start, and the two
+    // products could then disagree with no way to tell which was older.
+    //
+    // The prior enters as hypothesis, never as finding: STRONG-band fields are
+    // corroboration targets to re-test, POSSIBLE-band fields are query anchors
+    // only, and anything past the staleness horizon is disclosed but not used.
+    let vaultPriorContext = '';
+    if (userId && _authHeader?.startsWith('Bearer ')) {
+      try {
+        const { resolveVaultPrior, formatVaultPrior } = await import('../_shared/vaultPrior.ts');
+        const sbPrior = (await import('https://esm.sh/@supabase/supabase-js@2.49.4')).createClient(
+          Deno.env.get('SUPABASE_URL') || '',
+          Deno.env.get('SUPABASE_ANON_KEY') || '',
+          { global: { headers: { Authorization: _authHeader } } },
+        );
+        const prior = await resolveVaultPrior(sbPrior as any, userId, lastUserMessage.slice(0, 200));
+        if (prior.found) {
+          vaultPriorContext =
+            `\n\n═══ VAULT PRIOR (Cloud Intelligence) ═══\n${formatVaultPrior(prior)}\n` +
+            `RULES FOR THIS BLOCK: treat every line as a hypothesis carried in from a previous collection, not as a finding of this ` +
+            `investigation. Re-test STRONG-band facts against what you collected here and say explicitly where they AGREE, CONFLICT, or ` +
+            `were NOT RE-OBSERVED. Never restate a POSSIBLE-band line as established. If this investigation contradicts the prior, say so ` +
+            `plainly and give the age of the prior as part of the reasoning.\n═══ END VAULT PRIOR ═══`;
+          console.log('[nomad] vault prior applied', JSON.stringify({ dossierId: prior.dossierId, ageDays: prior.ageDays, stale: prior.stale }));
+        }
+      } catch (err) {
+        console.warn('[nomad] vault prior lookup failed (non-fatal):', err instanceof Error ? err.message : String(err));
+      }
+    }
+
+
     // 2a. Collect images in parallel
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
 
@@ -3387,6 +3423,7 @@ RAW INTELLIGENCE DATA:
 ${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
 ${priorInvestigationContext}
+${vaultPriorContext}
 
 INSTRUCTIONS:
 Produce a NOMAD v8.0 response following the mandatory output format. Include:

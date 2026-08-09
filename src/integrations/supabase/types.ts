@@ -2395,6 +2395,60 @@ export type Database = {
           },
         ]
       }
+      augur_falsifiers: {
+        Row: {
+          checks: number
+          confidence: number
+          created_at: string
+          evidence: string | null
+          falsifier: string
+          forecast_key: string
+          horizon_days: number
+          id: string
+          last_checked_at: string | null
+          prediction: string
+          resolved_at: string | null
+          status: string
+          surface: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checks?: number
+          confidence?: number
+          created_at?: string
+          evidence?: string | null
+          falsifier: string
+          forecast_key: string
+          horizon_days?: number
+          id?: string
+          last_checked_at?: string | null
+          prediction: string
+          resolved_at?: string | null
+          status?: string
+          surface?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checks?: number
+          confidence?: number
+          created_at?: string
+          evidence?: string | null
+          falsifier?: string
+          forecast_key?: string
+          horizon_days?: number
+          id?: string
+          last_checked_at?: string | null
+          prediction?: string
+          resolved_at?: string | null
+          status?: string
+          surface?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       aureon_vault_chunks: {
         Row: {
           chunk_index: number

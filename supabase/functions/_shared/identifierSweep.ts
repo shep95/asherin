@@ -100,6 +100,31 @@ export interface UnconfirmedLead {
   reason: string;
 }
 
+/**
+ * What the sweep actually spent, and why.
+ *
+ * A sweep that was cut short and a sweep that found nothing look identical in
+ * a bare result list. This record keeps them distinguishable: the operator can
+ * see the wave count, the density that justified each extension, and the
+ * ceiling that stopped it.
+ */
+export interface SweepBudget {
+  /** Documents the sweep was authorised to open when it started. */
+  openCapInitial: number;
+  /** Documents it was authorised to open when it finished. */
+  openCapFinal: number;
+  /** Wall-clock it started with, in ms. */
+  budgetMsInitial: number;
+  /** Wall-clock it ended with, in ms — never above the hard ceiling. */
+  budgetMsFinal: number;
+  /** Confirm waves run. One means the aperture was never widened. */
+  waves: number;
+  /** confirmed / opened at the end of each wave, in order. */
+  densityByWave: number[];
+  /** Why the sweep stopped: ceiling, exhausted candidates, or low density. */
+  stoppedBecause: "hard-ceiling" | "candidates-exhausted" | "density-floor" | "time-budget";
+}
+
 export interface IdentifierSweepReport {
   identity: SelectorIdentity;
   /** Every written form the sweep searched for. */
@@ -116,6 +141,8 @@ export interface IdentifierSweepReport {
   /** Stated shortfalls: deadline hit, leads skipped, hosts unreachable. */
   notes: string[];
   elapsedMs: number;
+  /** Populated on every sweep that reached the confirm pass. */
+  budget?: SweepBudget;
 }
 
 export interface SweepOptions {
@@ -127,7 +154,21 @@ export interface SweepOptions {
   authHeader?: string | null;
   /** Harvest aperture. Batch callers (Cloud Intelligence) run narrower. */
   maxLeads?: number;
+  /**
+   * Let the sweep widen its own aperture when the target proves dense.
+   *
+   * A flat budget spends the same effort on a ghost as on a subject whose
+   * address is on forty pages — it over-serves the empty target and truncates
+   * the rich one exactly where the evidence was accumulating. Default on.
+   */
+  adaptive?: boolean;
+  /**
+   * Ceiling the adaptive extension may never cross, in ms. Edge invocations
+   * die at ~180s wall clock, so the default leaves headroom for the fold.
+   */
+  hardCeilingMs?: number;
 }
+
 
 // ── 1. VARIANTS ──────────────────────────────────────────────────────────────
 
@@ -409,10 +450,16 @@ export async function sweepIdentifier(
   opts: SweepOptions = {},
 ): Promise<IdentifierSweepReport> {
   const started = Date.now();
-  const budgetMs = Math.min(Math.max(opts.budgetMs ?? 90_000, 15_000), 170_000);
-  const openCap = Math.min(Math.max(opts.openCap ?? 40, 4), 80);
+  const hardCeilingMs = Math.min(Math.max(opts.hardCeilingMs ?? 170_000, 20_000), 170_000);
+  const budgetMsInitial = Math.min(Math.max(opts.budgetMs ?? 90_000, 15_000), hardCeilingMs);
+  const openCapInitial = Math.min(Math.max(opts.openCap ?? 40, 4), 80);
   const concurrency = Math.min(Math.max(opts.concurrency ?? 6, 2), 10);
-  const deadline = started + budgetMs;
+  const adaptive = opts.adaptive !== false;
+  // Mutable: the adaptive pass moves both of these upward, never downward.
+  let budgetMs = budgetMsInitial;
+  let openCap = openCapInitial;
+  let deadline = started + budgetMs;
+
 
   const identity = classifySelector(raw.trim());
   const notes: string[] = [];
@@ -466,18 +513,37 @@ export async function sweepIdentifier(
   // Corroborated leads first: a URL two independent legs both returned is the
   // better use of a limited open budget than the tail of a single leg.
   const ordered = [...harvest.leads].sort((a, b) => b.corroboration - a.corroboration);
-  const queue = ordered.slice(0, openCap);
-  if (ordered.length > queue.length) {
-    notes.push(`${ordered.length - queue.length} further candidate pages were harvested but not opened — the confirm budget was ${openCap} documents.`);
-  }
 
   // ── Confirm ───────────────────────────────────────────────────────────────
+  //
+  // ADAPTIVE APERTURE
+  //
+  // A fixed budget is wrong in both directions at once. On an identifier with
+  // no public footprint it burns forty document reads to learn what the first
+  // eight already proved; on an identifier that is genuinely exposed it stops
+  // at forty precisely because the evidence was still accumulating — and the
+  // report then reads "40 opened, 31 confirmed" as though that were the whole
+  // internet rather than the point where the clock ran out.
+  //
+  // So the confirm pass runs in waves. Each wave measures its own hit density
+  // (confirmed ÷ opened). Density at or above the floor buys another wave and
+  // more wall clock; density below it stops the sweep and says so. The hard
+  // ceiling is never crossed, because the runtime kills the invocation at
+  // ~180s and a killed sweep reports nothing at all.
+  const DENSITY_FLOOR = 0.2;   // one confirmed sighting per five documents opened
+  const WAVE_OPEN_STEP = 24;   // extra documents an earned wave may open
+  const WAVE_TIME_STEP = 30_000;
+
   const sightings: Sighting[] = [];
   const unconfirmed: UnconfirmedLead[] = [];
+  const densityByWave: number[] = [];
   let opened = 0;
+  let cursor = 0;
+  let waves = 0;
   let deadlineHit = false;
+  let stoppedBecause: SweepBudget["stoppedBecause"] = "candidates-exhausted";
 
-  await pool(queue, concurrency, async (lead) => {
+  const confirmLead = async (lead: typeof ordered[number]) => {
     if (Date.now() > deadline) { deadlineHit = true; return; }
     const host = hostOf(lead.url);
     if (!host) return;
@@ -525,11 +591,68 @@ export async function sweepIdentifier(
       corroboration: lead.corroboration,
       bytes: read.bytes,
     });
-  });
+  };
+
+  while (cursor < ordered.length && cursor < openCap) {
+    const wave = ordered.slice(cursor, openCap);
+    cursor = Math.min(openCap, ordered.length);
+    waves += 1;
+
+    const openedBefore = opened;
+    const confirmedBefore = sightings.length;
+    await pool(wave, concurrency, confirmLead);
+
+    const openedThisWave = opened - openedBefore;
+    const confirmedThisWave = sightings.length - confirmedBefore;
+    const density = openedThisWave ? confirmedThisWave / openedThisWave : 0;
+    densityByWave.push(Number(density.toFixed(3)));
+
+    if (deadlineHit) { stoppedBecause = "time-budget"; break; }
+    if (!adaptive) { stoppedBecause = cursor >= ordered.length ? "candidates-exhausted" : "time-budget"; break; }
+    if (cursor >= ordered.length) { stoppedBecause = "candidates-exhausted"; break; }
+    if (density < DENSITY_FLOOR) { stoppedBecause = "density-floor"; break; }
+
+    // The wave earned more. Extend both dimensions together — extra documents
+    // with no extra clock would only reproduce the truncation one wave later.
+    const ceilingDeadline = started + hardCeilingMs;
+    if (Date.now() >= ceilingDeadline - 8_000) { stoppedBecause = "hard-ceiling"; break; }
+
+    openCap = Math.min(openCap + WAVE_OPEN_STEP, 160, ordered.length);
+    budgetMs = Math.min(budgetMs + WAVE_TIME_STEP, hardCeilingMs);
+    deadline = Math.min(started + budgetMs, ceilingDeadline);
+    notes.push(
+      `Wave ${waves} confirmed ${confirmedThisWave} of ${openedThisWave} documents opened (${Math.round(density * 100)}% density) — ` +
+      `above the ${Math.round(DENSITY_FLOOR * 100)}% floor, so the aperture widened to ${openCap} documents and ${Math.round(budgetMs / 1000)}s.`,
+    );
+  }
 
   if (deadlineHit) {
     notes.push("The confirm pass reached its time budget; the pages already opened are reported and the remainder are listed as un-opened candidates.");
   }
+  if (stoppedBecause === "density-floor") {
+    notes.push(
+      `The sweep stopped short of its candidate list on purpose: the last wave confirmed ${Math.round((densityByWave.at(-1) ?? 0) * 100)}% of what it opened, ` +
+      `below the ${Math.round(DENSITY_FLOOR * 100)}% floor. Further reading was returning index noise, not sightings.`,
+    );
+  }
+  if (stoppedBecause === "hard-ceiling") {
+    notes.push("The sweep hit its absolute wall-clock ceiling while density was still high — this identifier has more exposure than one run can confirm. Re-run to continue.");
+  }
+  if (ordered.length > cursor) {
+    notes.push(`${ordered.length - cursor} further candidate pages were harvested but not opened.`);
+  }
+
+  base.budget = {
+    openCapInitial,
+    openCapFinal: openCap,
+    budgetMsInitial,
+    budgetMsFinal: budgetMs,
+    waves,
+    densityByWave,
+    stoppedBecause,
+  };
+
+
 
   // ── Fold ──────────────────────────────────────────────────────────────────
   const byHost = new Map<string, Surface>();
@@ -603,6 +726,7 @@ export async function sweepIdentifier(
     lastSeen: allDates[allDates.length - 1] ?? null,
     notes,
     elapsedMs: Date.now() - started,
+    budget: base.budget,
   };
 }
 
@@ -617,6 +741,15 @@ export function formatSweep(r: IdentifierSweepReport): string {
   if (r.firstSeen || r.lastSeen) {
     lines.push(`Dated window: ${r.firstSeen?.slice(0, 10) ?? "—"} → ${r.lastSeen?.slice(0, 10) ?? "—"}.`);
   }
+  if (r.budget) {
+    const b = r.budget;
+    const widened = b.openCapFinal > b.openCapInitial;
+    lines.push(
+      `Effort: ${b.waves} confirm wave${b.waves === 1 ? "" : "s"}, density ${b.densityByWave.map((d) => `${Math.round(d * 100)}%`).join(" → ") || "n/a"}, ` +
+      `aperture ${b.openCapInitial}${widened ? ` → ${b.openCapFinal}` : ""} documents / ${Math.round(b.budgetMsFinal / 1000)}s. Stopped: ${b.stoppedBecause}.`,
+    );
+  }
+
   for (const s of r.surfaces.slice(0, 20)) {
     const window = s.firstSeen || s.lastSeen
       ? ` [${s.firstSeen?.slice(0, 10) ?? "—"} → ${s.lastSeen?.slice(0, 10) ?? "—"}]`
