@@ -1233,8 +1233,14 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   // bot-blocked (DDG/Brave/Mojeek/MetaGer/Gigablast/Yandex/SearXNG) plus the
   // academic/blockchain/IoT layers that are irrelevant to a person lookup.
   if (fast) {
-    const [fc, wiki, edgar, gh] = await Promise.allSettled([
-      searchFirecrawl(query, 20),
+    // Fast mode now leads with the hardened surface wave (Bing RSS / Brave /
+    // Marginalia / Google News) instead of Firecrawl alone: those four answer
+    // datacenter egress, run in parallel under an 8-9s per-provider timeout,
+    // and give the sweep real open-web breadth inside the chat deadline. The
+    // reserve wave (Firecrawl, DDG, Mojeek) is suppressed here because its
+    // latency is what used to blow the 10s abort.
+    const [surface, wiki, edgar, gh] = await Promise.allSettled([
+      surfaceTier(query, 20, false),
       searchWikipedia(query),
       searchEDGAR(query),
       searchGitHubCode(query),
@@ -1252,10 +1258,16 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
         out.push(r);
       }
     };
-    push(fc, 'firecrawl', 'surface');
+    push(surface, 'surface-wave', 'surface');
     push(wiki, 'wikipedia', 'surface');
     push(edgar, 'sec-edgar', 'deep');
     push(gh, 'github', 'code');
+    // A fast run that still saw no open web falls back to Firecrawl rather than
+    // returning a registry-only corpus — thin is acceptable, misleading is not.
+    if (out.filter((r) => r.layer === 'surface').length < 3) {
+      const fc = await searchFirecrawl(query, 20).catch(() => [] as SearchResult[]);
+      push({ status: 'fulfilled', value: fc } as PromiseSettledResult<SearchResult[]>, 'firecrawl', 'surface');
+    }
     return out;
   }
 
