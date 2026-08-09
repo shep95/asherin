@@ -281,6 +281,7 @@ Deno.serve(async (req) => {
       // ── Ingest one scan session ─────────────────────────────────────────
       case "ble.ingest": {
         const settings = await loadSettings(userId);
+        const windowHours = Math.min(168, Math.max(1, Number(settings.recurrence_window_hours) || 12));
         const sessionId = String(body.sessionId || "").slice(0, 64);
         if (!sessionId) return json({ error: "session_required" }, 400, cors);
         const scannerLabel = String(body.scannerLabel || "device").slice(0, 60);
