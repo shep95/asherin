@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2, X, ExternalLink, Archive, Globe, SlidersHorizontal, Download, AlertTriangle,
+  Loader2, X, ExternalLink, Archive, Globe, SlidersHorizontal, Download, AlertTriangle, Layers,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -194,6 +194,44 @@ const GhostSearchResults = ({ results, suggestions, elapsedMs, scanned, onOpenRe
             )}
             <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground/70">{r.snippet}</p>
 
+            {/* ── Corroboration ─────────────────────────────────────────
+                The shelf remembering a URL and the live probe finding it
+                again in the same run are two independent confirmations of
+                one document. They used to render as two adjacent rows the
+                operator read as duplicates. */}
+            {(r.layers?.length ?? 0) > 1 && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-foreground/70">
+                <Layers className="h-3 w-3 shrink-0 opacity-70" />
+                Corroborated — found on the live web and already on the retained shelf.
+              </p>
+            )}
+
+            {/* ── Anomalies, stated ─────────────────────────────────────
+                A count is not a finding. What contradicts what is. */}
+            {r.anomalies && r.anomalies.length > 0 && (
+              <ul className="mt-1.5 space-y-1">
+                {r.anomalies.slice(0, 3).map((a, i) => (
+                  <li key={`${a.code}-${i}`} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                    <AlertTriangle
+                      className={`mt-[2px] h-3 w-3 shrink-0 ${
+                        a.severity === "critical" || a.severity === "high"
+                          ? "text-foreground/85" : "text-muted-foreground/50"
+                      }`}
+                    />
+                    <span className="min-w-0">
+                      <span className="text-foreground/85">{a.title}</span>
+                      <span className="text-muted-foreground/60"> — {a.detail}</span>
+                    </span>
+                  </li>
+                ))}
+                {r.anomalies.length > 3 && (
+                  <li className="pl-[18px] text-[10.5px] text-muted-foreground/45">
+                    +{r.anomalies.length - 3} further contradiction{r.anomalies.length - 3 === 1 ? "" : "s"} on this shell.
+                  </li>
+                )}
+              </ul>
+            )}
+
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {r.badges.map((b, i) => (
                 <span
@@ -209,6 +247,11 @@ const GhostSearchResults = ({ results, suggestions, elapsedMs, scanned, onOpenRe
                 </span>
               ))}
             </div>
+
+            {/* Ranking, made auditable — why this row is where it is. */}
+            {r.rank_basis && (
+              <p className="mt-1 text-[10px] text-muted-foreground/40">Ranked on: {r.rank_basis}</p>
+            )}
           </article>
         ))}
       </div>

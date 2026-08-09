@@ -29,6 +29,26 @@ export interface GhostSearchResult {
   via?: string;
   /** Distinct legs that independently returned this URL. */
   corroboration?: number;
+  /**
+   * The contradictions carried by this row, stated. A count made the operator
+   * go and re-derive the finding somewhere else; the reason IS the finding.
+   */
+  anomalies?: { code: string; severity: string; title: string; detail: string }[];
+  /** Summed severity weight behind `anomalies` — what the score was paid. */
+  anomaly_weight?: number;
+  /** One line naming what put this row where it is. */
+  rank_basis?: string;
+  /** Both entries mean the shelf and the live web independently agreed. */
+  layers?: ("web" | "buffer")[];
+}
+
+/** What changed between one run of an entity and the run immediately before. */
+export interface GhostRunDiff {
+  since: string | null;
+  appeared: { url: string; title: string; host: string }[];
+  vanished: { url: string; title: string; host: string }[];
+  changed: { url: string; title: string; from: number; to: number }[];
+  counts: { appeared: number; vanished: number; changed: number; anomalyDelta: number };
 }
 
 /** Normalized selector the backend resolved from the typed query. */
@@ -71,6 +91,8 @@ export interface GhostHistoryRun {
   created_at: string;
   results?: GhostSearchResult[];
   summary?: { legs?: number; hosts?: string[]; facets?: { field: string; value: string; count: number }[] };
+  /** Present on historyDetail rows that had a predecessor to compare against. */
+  diff?: GhostRunDiff | null;
 }
 
 /** Runs collapsed by entity — the HISTORY rail's row model. */
@@ -179,13 +201,20 @@ export interface ResultFilters {
   onlyBuffer?: boolean;
 }
 
+/** True when the row carries at least one stated contradiction. */
+export const hasAnomaly = (r: GhostSearchResult) =>
+  (r.anomalies?.length ?? 0) > 0 || r.badges.some((b) => /anomal/.test(b));
+
 export function applyFilters(results: GhostSearchResult[], f: ResultFilters): GhostSearchResult[] {
   return results.filter((r) => {
-    if (f.onlyBuffer && r.source !== "buffer") return false;
+    // A merged row carries the buffer layer even when its primary source is the
+    // live probe — filtering on `source` alone would have hidden exactly the
+    // rows the corroboration merge exists to promote.
+    if (f.onlyBuffer && r.source !== "buffer" && !r.layers?.includes("buffer")) return false;
     if (f.host && r.host !== f.host) return false;
     if (f.asn && !r.badges.includes(f.asn)) return false;
     if (f.sourceType && !r.badges.some((b) => b === f.sourceType)) return false;
-    if (f.onlyAnomalies && !r.badges.some((b) => /anomal/.test(b))) return false;
+    if (f.onlyAnomalies && !hasAnomaly(r)) return false;
     return true;
   });
 }
@@ -204,7 +233,8 @@ export function resultFacets(results: GhostSearchResult[]) {
     hosts: tally((r) => r.host),
     sourceTypes: tally((r) => r.badges.find((b) => b.includes("/"))),
     asns: tally((r) => r.badges.find((b) => /^AS\d/.test(b))),
-    anomalies: results.filter((r) => r.badges.some((b) => /anomal/.test(b))).length,
-    buffered: results.filter((r) => r.source === "buffer").length,
+    anomalies: results.filter(hasAnomaly).length,
+    buffered: results.filter((r) => r.source === "buffer" || r.layers?.includes("buffer")).length,
+    corroborated: results.filter((r) => (r.layers?.length ?? 0) > 1).length,
   };
 }

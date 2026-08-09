@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { History, Loader2, Trash2, RefreshCw, ChevronRight, Radar } from "lucide-react";
+import {
+  History, Loader2, Trash2, RefreshCw, ChevronRight, Radar,
+  Plus, Minus, ArrowUpDown,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { GhostHistoryEntity, GhostHistoryRun } from "./searchFormat";
@@ -187,6 +190,57 @@ const GhostHistoryRail = ({ nonce, activeKey, onReplay, onOpenRun }: Props) => {
                               · {(r.elapsed_ms / 1000).toFixed(1)}s
                             </span>
                           </button>
+
+                          {/* ── Run-over-run diff ─────────────────────────
+                              An operator re-sweeps an entity to learn what
+                              MOVED, and the rail only ever offered them two
+                              forty-row lists to eyeball side by side. The
+                              delta is the finding, so the delta is what the
+                              rail states. */}
+                          {r.diff && (r.diff.counts.appeared || r.diff.counts.vanished || r.diff.counts.changed) ? (
+                            <div className="ml-2 mt-0.5 border-l border-border/15 pl-2">
+                              <p className="text-[9.5px] text-muted-foreground/40">
+                                vs. {r.diff.since ? rel(r.diff.since) : "previous run"}
+                                {r.diff.counts.anomalyDelta !== 0 && (
+                                  <span className="text-foreground/70">
+                                    {" "}· {r.diff.counts.anomalyDelta > 0 ? "+" : ""}
+                                    {r.diff.counts.anomalyDelta} anomal
+                                    {Math.abs(r.diff.counts.anomalyDelta) === 1 ? "y" : "ies"}
+                                  </span>
+                                )}
+                              </p>
+                              {r.diff.appeared.slice(0, 4).map((d) => (
+                                <p key={`a${d.url}`} className="flex items-start gap-1 text-[9.5px] text-foreground/70">
+                                  <Plus className="mt-[1px] h-2.5 w-2.5 shrink-0 opacity-70" />
+                                  <span className="min-w-0 truncate">{d.host || d.title}</span>
+                                </p>
+                              ))}
+                              {r.diff.vanished.slice(0, 3).map((d) => (
+                                <p key={`v${d.url}`} className="flex items-start gap-1 text-[9.5px] text-muted-foreground/45">
+                                  <Minus className="mt-[1px] h-2.5 w-2.5 shrink-0 opacity-70" />
+                                  <span className="min-w-0 truncate line-through">{d.host || d.title}</span>
+                                </p>
+                              ))}
+                              {r.diff.changed.slice(0, 2).map((d) => (
+                                <p key={`c${d.url}`} className="flex items-start gap-1 text-[9.5px] text-muted-foreground/55">
+                                  <ArrowUpDown className="mt-[1px] h-2.5 w-2.5 shrink-0 opacity-70" />
+                                  <span className="min-w-0 truncate">
+                                    {d.title} · {d.from} → {d.to}
+                                  </span>
+                                </p>
+                              ))}
+                              {r.diff.counts.appeared + r.diff.counts.vanished > 7 && (
+                                <p className="text-[9px] text-muted-foreground/35">
+                                  {r.diff.counts.appeared} appeared · {r.diff.counts.vanished} gone ·{" "}
+                                  {r.diff.counts.changed} re-ranked
+                                </p>
+                              )}
+                            </div>
+                          ) : r.diff ? (
+                            <p className="ml-2 mt-0.5 border-l border-border/15 pl-2 text-[9.5px] text-muted-foreground/35">
+                              No change since {rel(r.diff.since ?? r.created_at)} — the record held still.
+                            </p>
+                          ) : null}
                         </li>
                       ))}
                     </ul>

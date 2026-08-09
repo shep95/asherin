@@ -33,7 +33,7 @@ import {
   deriveFields, selectContent, ttlToExpiry, SelectorError,
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
-import { runGhostLedger } from "../_shared/ghostLedger.ts";
+import { isLedgerChannel, runGhostLedger, type LedgerChannel } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import { sweepIdentifier } from "../_shared/identifierSweep.ts";
@@ -81,7 +81,7 @@ interface GhostRequest {
   filterFloor?: number;
   /** action=ledger — Cloud Intelligence fusion parameters. */
   windowDays?: number;
-  channel?: "gmail" | "sms" | null;
+  channel?: LedgerChannel | LedgerChannel[] | null;
   focus?: string | null;
   maxHosts?: number;
   /** action=upload — an artefact the operator holds rather than a link. */
@@ -94,6 +94,12 @@ interface GhostRequest {
   /** action=identifier — wall-clock budget and harvest aperture. */
   budgetMs?: number;
   maxLeads?: number;
+  /**
+   * action=identifier — chain document sightings into an origin trace in the
+   * same round trip. Default on; set false when a caller (batch Cloud
+   * Intelligence) is paying for the wall clock and only wants the register.
+   */
+  chain?: boolean;
 }
 
 
@@ -229,6 +235,23 @@ interface SearchResult {
   via?: string;
   /** Distinct engines/legs that independently returned this URL. */
   corroboration?: number;
+  /**
+   * The contradictions this shell carries, in full. A count told the operator
+   * that *something* was wrong and then made them go hunting for it in another
+   * tab; the reason is the finding, so the reason travels with the row.
+   */
+  anomalies?: { code: string; severity: string; title: string; detail: string }[];
+  /** Sum of the severity weights behind `anomalies` — the score's own witness. */
+  anomaly_weight?: number;
+  /** One line naming what put this row where it is. Ranking, made auditable. */
+  rank_basis?: string;
+  /**
+   * Set when the same URL was found on the shelf AND on the live web in the
+   * same run. Two independent layers agreeing is the strongest signal the
+   * engine can produce, and it used to be invisible: the buffer copy simply
+   * outranked everything and the web copy sat below it as a near-duplicate.
+   */
+  layers?: ("web" | "buffer")[];
 }
 
 function leadResult(l: HarvestLead): SearchResult {
@@ -256,11 +279,31 @@ function leadResult(l: HarvestLead): SearchResult {
 }
 
 
+/**
+ * Fold a retained body into the flat result shape.
+ *
+ * The shelf used to be scored `1000 + matches`, which is not a score — it is a
+ * pin. Every buffered row sorted above every live finding regardless of what
+ * either one contained, so a stale 40 KB shell with one incidental match beat a
+ * freshly-probed document carrying an author, a device and a contradiction. The
+ * two layers now share one 0–100 scale and are ranked on evidence: match
+ * density carries the buffer, embedded forensics carry the web, and a URL that
+ * appears in BOTH is promoted above either — that is corroboration, and it is
+ * the only thing that deserves a pin.
+ */
 function bufferResult(h: {
   session_id: string; url: string; host: string; source_type: string;
   is_encrypted: boolean; content_bytes: number; matches: number;
   snippets: { text: string }[];
 }): SearchResult {
+  const kb = Math.max(1, Math.round(h.content_bytes / 1024));
+  // Match density, not raw match count: eight hits in a 2 KB note is a document
+  // about the selector; eight hits in a 900 KB dump is a mailing-list archive.
+  const density = h.matches / Math.max(1, Math.log2(kb + 2));
+  const score = Math.min(
+    92,
+    Math.round(30 + Math.min(h.matches, 40) * 1.2 + Math.min(density, 12) * 2.5 + (h.is_encrypted ? 6 : 0)),
+  );
   return {
     id: `buffer:${h.session_id}`,
     source: "buffer",
@@ -269,23 +312,46 @@ function bufferResult(h: {
     host: h.host,
     snippet: h.snippets[0]?.text || `${h.matches} match${h.matches === 1 ? "" : "es"} in retained body`,
     badges: [
+      "retained body",
       `${h.matches} match${h.matches === 1 ? "" : "es"}`,
       h.source_type.split(";")[0],
       h.is_encrypted ? "encrypted" : "",
-      `${Math.max(1, Math.round(h.content_bytes / 1024))} KB`,
+      `${kb} KB`,
     ].filter(Boolean),
-    score: 1000 + h.matches,
+    score,
+    rank_basis:
+      `retained body · ${h.matches} match${h.matches === 1 ? "" : "es"} at ${density.toFixed(1)} per KB-decade`,
+    layers: ["buffer"],
     session_id: h.session_id,
   };
 }
+
+/** What each severity is worth to the rank, and how loudly it is stated. */
+const ANOMALY_WEIGHT: Record<string, number> = { critical: 26, high: 16, medium: 8, low: 3 };
 
 /**
  * Fold a metadata shell into the flat result shape the search list renders.
  * When the harvest supplied a title/snippet for this URL, that human-readable
  * context is preferred for the headline and appended to the forensic facts —
  * a bare hostname told the operator nothing about *why* the hit matched.
+ *
+ * Anomalies are no longer a tally. "3 anomalies" is a number an operator has to
+ * go and re-derive somewhere else; a contradicted creation timestamp, a device
+ * ID that does not match the declared producer and a coordinate inside a
+ * country the host claims not to serve are three *different* findings with
+ * three different weights. Each one travels with the row, stated in the words
+ * the detector used, and its severity — not its existence — sets the rank.
  */
-function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): SearchResult {
+function webResult(
+  r: GhostRecord,
+  anomalies: { severity: string; code: string; title: string; detail: string }[],
+  lead?: HarvestLead,
+): SearchResult {
+  const weight = anomalies.reduce((n, a) => n + (ANOMALY_WEIGHT[a.severity] ?? 3), 0);
+  const worst = anomalies.slice().sort(
+    (a, b) => (ANOMALY_WEIGHT[b.severity] ?? 0) - (ANOMALY_WEIGHT[a.severity] ?? 0),
+  )[0];
+
   const badges = [
     r.status ? String(r.status) : "unreachable",
     (r.source_type || "").split(";")[0],
@@ -296,7 +362,9 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     r.software || "",
     lead?.via ? `via ${lead.via}` : "",
     lead && lead.corroboration > 1 ? `x${lead.corroboration}` : "",
-    anomalyCount ? `${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"}` : "",
+    // The badge names the finding, not the count.
+    worst ? `anomaly: ${worst.title}` : "",
+    anomalies.length > 1 ? `+${anomalies.length - 1} more anomal${anomalies.length === 2 ? "y" : "ies"}` : "",
   ].filter(Boolean);
 
   const facts = [
@@ -309,14 +377,23 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     r.dns.ns.length ? `ns ${r.dns.ns.slice(0, 2).join(", ")}` : null,
   ].filter(Boolean) as string[];
 
-  // Rank by evidentiary richness: a shell that carries authorship, a device, a
-  // coordinate or a contradiction outranks a bare 200 with nothing embedded.
-  const score =
-    (r.status && r.status < 400 ? 20 : 0) +
-    (r.author ? 30 : 0) + (r.device_id ? 25 : 0) + (r.software ? 12 : 0) +
-    (r.geo_lat != null ? 25 : 0) + (r.created_at ? 10 : 0) +
-    anomalyCount * 18 + Math.min(facts.length, 6) * 3 +
-    Math.min(lead?.corroboration ?? 0, 8) * 2;
+  // Rank by evidentiary richness, on the same 0–100 scale the shelf uses so the
+  // two layers are actually comparable.
+  const raw =
+    (r.status && r.status < 400 ? 14 : 0) +
+    (r.author ? 20 : 0) + (r.device_id ? 17 : 0) + (r.software ? 8 : 0) +
+    (r.geo_lat != null ? 17 : 0) + (r.created_at ? 7 : 0) +
+    weight + Math.min(facts.length, 6) * 2 +
+    Math.min(lead?.corroboration ?? 0, 8) * 1.5;
+  const score = Math.max(4, Math.min(96, Math.round(raw)));
+
+  const basis = [
+    r.author ? "authorship carved" : null,
+    r.device_id ? "device identified" : null,
+    r.geo_lat != null ? "coordinate embedded" : null,
+    weight ? `${anomalies.length} anomal${anomalies.length === 1 ? "y" : "ies"} (weight ${weight})` : null,
+    (lead?.corroboration ?? 0) > 1 ? `${lead?.corroboration} legs agreed` : null,
+  ].filter(Boolean);
 
   const forensic = facts.join(" · ");
   const context = (lead?.snippet || "").trim();
@@ -334,6 +411,12 @@ function webResult(r: GhostRecord, anomalyCount: number, lead?: HarvestLead): Se
     snippet,
     badges,
     score,
+    anomalies: anomalies.map((a) => ({
+      code: a.code, severity: a.severity, title: a.title, detail: a.detail,
+    })),
+    anomaly_weight: weight,
+    rank_basis: basis.length ? basis.join(" · ") : "reachable shell, nothing embedded",
+    layers: ["web"],
     entity_id: r.entity_id,
     via: lead?.via,
     corroboration: lead?.corroboration,
@@ -449,6 +532,48 @@ Deno.serve(async (req) => {
       maxLeads: Math.min(Math.max(Number(body.maxLeads) || 220, 40), 400),
     });
 
+    // ── Automatic IDENTIFIER → ORIGIN chain ────────────────────────────────
+    // A sweep proves an identifier is ON a document. It says nothing about
+    // where that document CAME FROM — and that is the next question every
+    // single time. Making the operator copy the URL, switch verbs and re-run
+    // turned a one-question workflow into three, and in practice meant the
+    // provenance was simply never pulled.
+    //
+    // The chain runs on documents only. An HTML surface's provenance is its
+    // hosting, which the intercept already reports; a PDF, an office package
+    // or a photograph carries the authoring machine, the wall clock, the UTC
+    // offset and often the coordinate — that is what is worth a round trip.
+    // It is bounded to three traces so a chained sweep never blows the wall
+    // clock the un-chained one was budgeted for.
+    const CHAIN_CAP = 3;
+    let provenance: Array<{ url: string; host: string; grade: string; trace: unknown }> = [];
+    if (body.chain !== false) {
+      const docish = report.surfaces
+        .flatMap((s) => s.sightings)
+        .filter((s) => s.docClass === "pdf" || s.docClass === "office" || s.docClass === "image")
+        // Strongest evidence first: a body-grade sighting inside a PDF is a far
+        // better provenance candidate than a URL-only match on a listing page.
+        .sort((a, b) => {
+          const g = { body: 4, markup: 3, title: 2, metadata: 1, url: 0 } as Record<string, number>;
+          return (g[b.grade] ?? 0) - (g[a.grade] ?? 0) || b.occurrences - a.occurrences;
+        })
+        .slice(0, CHAIN_CAP);
+      if (docish.length) {
+        const traces = await pool(docish, 3, async (s) => {
+          try { return { url: s.url, host: s.host, grade: s.grade, trace: await traceOrigin(s.url) }; }
+          catch { return null; }
+        });
+        provenance = traces.filter(Boolean) as typeof provenance;
+        if (provenance.length) {
+          report.notes.push(
+            `${provenance.length} document sighting${provenance.length === 1 ? " was" : "s were"} chained ` +
+            `into an origin trace automatically — authoring clock, producing software and lineage are attached.`,
+          );
+        }
+      }
+    }
+
+
     // A sweep is an entity lookup, so it belongs on the same history rail the
     // intercept writes to — otherwise the record of who was checked is split
     // across two ledgers and neither one is complete.
@@ -487,7 +612,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ action: "identifier", report });
+    return json({ action: "identifier", report, provenance });
   }
 
 
@@ -518,7 +643,66 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) return json({ error: "History read failed", details: error.message }, 500);
-      return json({ action: "historyDetail", entity_key: key, runs: data || [] });
+
+      // ── Run-over-run diff ──────────────────────────────────────────────
+      // The rail listed runs. Runs are not the finding — the DELTA is. An
+      // operator re-sweeps an identifier precisely to learn what moved since
+      // last time, and reading that off two 40-row result lists side by side
+      // is work a machine should be doing. Each run now carries what appeared,
+      // what disappeared and which hosts changed their evidentiary posture
+      // relative to the run immediately before it.
+      const runs = (data || []) as Array<Record<string, unknown>>;
+      const urlsOf = (run: Record<string, unknown>) => {
+        const rows = Array.isArray(run.results) ? run.results as Array<Record<string, unknown>> : [];
+        const m = new Map<string, { title: string; score: number; host: string }>();
+        for (const r of rows) {
+          const url = typeof r.url === "string" ? r.url.replace(/[#?].*$/, "").replace(/\/+$/, "") : "";
+          if (!url) continue;
+          m.set(url, {
+            title: String(r.title ?? url),
+            score: Number(r.score ?? 0),
+            host: String(r.host ?? ""),
+          });
+        }
+        return m;
+      };
+
+      const withDiff = runs.map((run, i) => {
+        // runs are newest-first, so the comparison baseline is the NEXT index.
+        const prior = runs[i + 1];
+        if (!prior) return { ...run, diff: null };
+        const now = urlsOf(run);
+        const then = urlsOf(prior);
+        const appeared: { url: string; title: string; host: string }[] = [];
+        const changed: { url: string; title: string; from: number; to: number }[] = [];
+        for (const [url, cur] of now) {
+          const was = then.get(url);
+          if (!was) appeared.push({ url, title: cur.title, host: cur.host });
+          // A score move of a point or two is scoring noise, not a finding.
+          else if (Math.abs(was.score - cur.score) >= 8) {
+            changed.push({ url, title: cur.title, from: was.score, to: cur.score });
+          }
+        }
+        const vanished = [...then].filter(([url]) => !now.has(url))
+          .map(([url, was]) => ({ url, title: was.title, host: was.host }));
+        return {
+          ...run,
+          diff: {
+            since: prior.created_at ?? null,
+            appeared: appeared.slice(0, 25),
+            vanished: vanished.slice(0, 25),
+            changed: changed.sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from)).slice(0, 15),
+            counts: {
+              appeared: appeared.length,
+              vanished: vanished.length,
+              changed: changed.length,
+              anomalyDelta: Number(run.anomalies ?? 0) - Number(prior.anomalies ?? 0),
+            },
+          },
+        };
+      });
+
+      return json({ action: "historyDetail", entity_key: key, runs: withDiff });
     }
 
     const { data, error } = await sb
@@ -575,7 +759,11 @@ Deno.serve(async (req) => {
     if (!authHeader) return json({ error: "Authentication required" }, 401);
     const bundle = await runGhostLedger(authHeader, {
       windowDays: Number(body.windowDays) || 90,
-      channel: body.channel === "gmail" || body.channel === "sms" ? body.channel : null,
+      // No channel means every channel. Mail and messages were the only two the
+      // fusion ever read, which quietly excluded Drive shares, calendar invites
+      // and contact records that live in the very same ledger.
+      channel: (Array.isArray(body.channel) ? body.channel : body.channel ? [body.channel] : [])
+        .filter(isLedgerChannel),
       focus: body.focus ? String(body.focus).slice(0, 120) : null,
       maxHosts: Number(body.maxHosts) || 14,
       budgetMs: 60_000,
@@ -806,12 +994,15 @@ Deno.serve(async (req) => {
   const unprobed = harvest.filter((l) => !probedUrls.has(l.url));
 
   if (searchMode) {
-    const anomalyByEntity = new Map<string, number>();
+    const anomalyByEntity = new Map<string, typeof index.anomalies>();
     for (const a of index.anomalies) {
-      if (a.entity_id) anomalyByEntity.set(a.entity_id, (anomalyByEntity.get(a.entity_id) ?? 0) + 1);
+      if (!a.entity_id) continue;
+      const bucket = anomalyByEntity.get(a.entity_id);
+      if (bucket) bucket.push(a);
+      else anomalyByEntity.set(a.entity_id, [a]);
     }
     results = records.map((r) =>
-      webResult(r, anomalyByEntity.get(r.entity_id) ?? 0, leadByUrl.get(r.url))
+      webResult(r, anomalyByEntity.get(r.entity_id) ?? [], leadByUrl.get(r.url))
     );
     results = [...results, ...unprobed.map(leadResult)];
 
@@ -824,7 +1015,48 @@ Deno.serve(async (req) => {
         if (!(e instanceof SelectorError)) console.error("[ghost-engine] buffer fold failed:", (e as Error).message);
       }
     }
-    results.sort((a, b) => b.score - a.score);
+
+    // ── Cross-layer corroboration ─────────────────────────────────────────
+    // Two layers reaching the same URL independently — the shelf remembers it,
+    // the live probe just found it again — is the single strongest confirmation
+    // this engine produces. It used to be *invisible*: the buffer row was pinned
+    // to the top and the web row sat somewhere below it, and the operator read
+    // them as two near-duplicate lines rather than as one corroborated finding.
+    // They are now merged into one row carrying both layers, both bodies of
+    // evidence, and a rank that reflects the agreement.
+    const byUrl = new Map<string, SearchResult>();
+    const merged: SearchResult[] = [];
+    for (const r of results) {
+      const key = r.url.replace(/[#?].*$/, "").replace(/\/+$/, "");
+      const prior = byUrl.get(key);
+      if (!prior) { byUrl.set(key, r); merged.push(r); continue; }
+      // A lead is a promise of a page; a probed shell or a retained body is the
+      // page. A lead never survives a merge against either.
+      const keep = prior.source === "lead" ? r : r.source === "lead" ? prior : prior;
+      const drop = keep === prior ? r : prior;
+      if (drop.source !== "lead" && keep.source !== drop.source) {
+        keep.layers = [...new Set([...(keep.layers ?? []), ...(drop.layers ?? [])])] as ("web" | "buffer")[];
+        keep.badges = [...new Set([...keep.badges, ...drop.badges])];
+        // Corroboration is a multiplier on the stronger of the two reads, not a
+        // sum — the same document seen twice is one document, seen well.
+        keep.score = Math.min(100, Math.round(Math.max(keep.score, drop.score) * 1.35) + 6);
+        keep.rank_basis = `corroborated across live probe and retained body · ${keep.rank_basis ?? ""}`.trim();
+        keep.session_id = keep.session_id ?? drop.session_id;
+        keep.entity_id = keep.entity_id ?? drop.entity_id;
+        if (!keep.anomalies?.length && drop.anomalies?.length) keep.anomalies = drop.anomalies;
+      }
+      if (keep !== prior) {
+        merged[merged.indexOf(prior)] = keep;
+        byUrl.set(key, keep);
+      }
+    }
+    results = merged;
+
+    results.sort((a, b) =>
+      b.score - a.score ||
+      (b.layers?.length ?? 1) - (a.layers?.length ?? 1) ||
+      (b.anomaly_weight ?? 0) - (a.anomaly_weight ?? 0)
+    );
     suggestions = suggestFromFacets(index.facets);
   }
 

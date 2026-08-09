@@ -108,6 +108,8 @@ export interface GhostLedgerBundle {
   index: GhostIndex;
   partial: boolean;
   elapsedMs: number;
+  /** Which ledger channels actually contributed rows to this run. */
+  channels: { source: string; signals: number }[];
 }
 
 const registrable = (host: string): string => {
@@ -288,10 +290,26 @@ export function adjudicate(t: LedgerTarget, rec: GhostRecord | null, peers: stri
 }
 
 // ── 3. EXECUTION ───────────────────────────────────────────────────────────
+/**
+ * Every ledger channel the operator's connected accounts write into
+ * `google_signals`. The fusion used to accept two of them, which meant a Drive
+ * share or a calendar invite from a hostile domain was invisible to the engine
+ * even though the row was sitting in the same table as the mail it arrived
+ * with. Channel is now a set, and an empty set means *everything on record*.
+ */
+export const LEDGER_CHANNELS = ["gmail", "sms", "drive", "calendar", "contacts", "meet"] as const;
+export type LedgerChannel = typeof LEDGER_CHANNELS[number];
+
+export const isLedgerChannel = (v: unknown): v is LedgerChannel =>
+  typeof v === "string" && (LEDGER_CHANNELS as readonly string[]).includes(v);
+
 export interface LedgerGhostOptions {
   windowDays?: number;
-  /** Restrict to one channel — "gmail" for mail only, "sms" for phone only. */
-  channel?: "gmail" | "sms" | null;
+  /**
+   * Restrict to one or more channels. `null`/omitted reads every source the
+   * connected accounts have written — mail, messages, files, invites, contacts.
+   */
+  channel?: LedgerChannel | LedgerChannel[] | null;
   /** Only correspondence touching this address / number / host. */
   focus?: string | null;
   maxHosts?: number;
@@ -329,7 +347,10 @@ export async function runGhostLedger(
     .gte("occurred_at", since)
     .order("occurred_at", { ascending: false })
     .limit(rowLimit);
-  if (opts.channel) q = q.eq("source", opts.channel);
+  const channels = (Array.isArray(opts.channel) ? opts.channel : opts.channel ? [opts.channel] : [])
+    .filter(isLedgerChannel);
+  if (channels.length === 1) q = q.eq("source", channels[0]);
+  else if (channels.length > 1) q = q.in("source", channels);
   if (opts.focus) {
     const f = opts.focus.replace(/[%,]/g, " ").trim().slice(0, 120);
     if (f) q = q.or(`actor_email.ilike.%${f}%,subject.ilike.%${f}%,snippet.ilike.%${f}%`);
@@ -376,6 +397,9 @@ export async function runGhostLedger(
     index: buildIndex(clean),
     partial: probeList.length < targets.length || clean.length < probeList.length,
     elapsedMs: Date.now() - started,
+    channels: [...rows.reduce((m, r) => m.set(r.source, (m.get(r.source) ?? 0) + 1), new Map<string, number>())]
+      .map(([source, signals]) => ({ source, signals }))
+      .sort((a, b) => b.signals - a.signals),
   };
 }
 

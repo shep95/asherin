@@ -14,12 +14,19 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
-import { IdentifierSweepPanel, type IdentifierSweepReport } from "./ghost/IdentifierSweepPanel";
+import {
+  IdentifierSweepPanel,
+  type ChainedProvenance, type IdentifierSweepReport,
+} from "./ghost/IdentifierSweepPanel";
 import { DeepTimePanel, type TimeMachineReport } from "./ghost/DeepTimePanel";
 import {
   projectRecords, suggestFromIndex,
   type GhostHistoryRun, type GhostSearchResponse, type GhostSearchResult, type SearchScope,
 } from "./ghost/searchFormat";
+import {
+  resolveRoute, MODE_LABEL, MODE_BLURB,
+  type GhostMode, type GhostRoute,
+} from "./ghost/modeRouting";
 import { SEVERITY_STYLE, type GhostRecord } from "./ghost/types";
 
 
@@ -57,8 +64,9 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 ];
 
 /** ORIGIN and DEEP TIME are not scopes — they are different questions, so they
- *  get their own verbs rather than being folded into the intercept scope knob. */
-type GhostMode = "intercept" | "origin" | "deeptime" | "identifier";
+ *  get their own verbs rather than being folded into the intercept scope knob.
+ *  AUTO is the fifth position on that dial: it reads the input and picks the
+ *  verb, out loud, with the choice one click from being overruled. */
 const MODE_KEY = "ghost_engine_mode";
 
 
@@ -105,17 +113,37 @@ const GhostEngineView = () => {
   const [suggestOpen, setSuggestOpen] = useState(false);
   // INTERCEPT sweeps a selector. ORIGIN traces one artefact — a link or a file
   // the operator holds — back to the act of authorship behind it. DEEP TIME
-  // reaches past the live web into the capture archives. Same box, three
-  // engines, three surfaces.
-  const [mode, setMode] = useState<GhostMode>(() => {
+  // reaches past the live web into the capture archives. IDENTIFIER confirms an
+  // address or number page by page.
+  //
+  // The verb used to be a setting the operator had to get right BEFORE typing,
+  // and getting it wrong was silent: a PDF URL pasted under INTERCEPT ran a
+  // keyword sweep on a URL string and returned nothing, with no indication that
+  // the wrong engine had been asked. AUTO reads the input, states the verb it
+  // inferred and why, and leaves the override one click away. A deliberate
+  // override sticks — the classifier never quietly takes the wheel back.
+  const [route, setRoute] = useState<GhostRoute>(() => {
     const saved = localStorage.getItem(MODE_KEY);
-    return saved === "origin" || saved === "deeptime" || saved === "identifier"
+    return saved === "origin" || saved === "deeptime" || saved === "identifier" ||
+      saved === "intercept" || saved === "auto"
       ? saved
-      : "intercept";
+      : "auto";
   });
+  const pickRoute = useCallback((r: GhostRoute) => {
+    setRoute(r);
+    localStorage.setItem(MODE_KEY, r);
+  }, []);
+  // Routing for what is currently in the box — drives the banner and the
+  // placeholder. The RUN path re-derives from its own argument, because a
+  // suggestion click fires with a selector the input state has not caught yet.
+  const routing = useMemo(() => resolveRoute(route, query), [route, query]);
+  const mode: GhostMode = routing.mode;
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
   const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
+  // Origin traces the engine ran off this sweep's document sightings, in the
+  // same round trip — a sighting is a location, provenance is a lead.
+  const [sweepProvenance, setSweepProvenance] = useState<ChainedProvenance[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -129,10 +157,18 @@ const GhostEngineView = () => {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const run = useCallback(async (raw: string, scopeOverride?: SearchScope) => {
+  const run = useCallback(async (
+    raw: string,
+    scopeOverride?: SearchScope,
+    modeOverride?: GhostMode,
+  ) => {
     const q = raw.trim();
     if (!q || loading) return;
     const useScope = scopeOverride ?? scope;
+    // Re-derive the verb from the string actually being run. A suggestion or a
+    // pivot fires with a selector the input state has not received yet, and
+    // routing off stale state is how a pivoted URL got keyword-swept.
+    const mode: GhostMode = modeOverride ?? resolveRoute(route, q).mode;
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -180,6 +216,7 @@ const GhostEngineView = () => {
       // by design — the wait buys confirmation instead of a list of maybes.
       if (mode === "identifier") {
         setSweep(null);
+        setSweepProvenance([]);
         const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
           body: { action: "identifier", query: q },
         });
@@ -195,6 +232,7 @@ const GhostEngineView = () => {
         }
         const report = (res as { report?: IdentifierSweepReport })?.report ?? null;
         setSweep(report);
+        setSweepProvenance((res as { provenance?: ChainedProvenance[] })?.provenance ?? []);
         setData(null);
         setRecent((prev) => {
           const next = [q, ...prev.filter((r) => r !== q)].slice(0, 8);
@@ -294,7 +332,7 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope, mode, noiseFilter, data, origin]);
+  }, [loading, capture, scope, route, noiseFilter, data, origin]);
 
   /**
    * ORIGIN for a file the operator holds. Read as bytes in the browser, sent as
@@ -315,8 +353,8 @@ const GhostEngineView = () => {
     }
     setUploading(true);
     setOrigin(null);
-    setMode("origin");
-    localStorage.setItem(MODE_KEY, "origin");
+    // An attached file has no URL, so ORIGIN is the only verb that can read it.
+    pickRoute("origin");
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
       // Chunked conversion — String.fromCharCode on a multi-MB spread blows the
@@ -550,11 +588,42 @@ const GhostEngineView = () => {
             )}
           </div>
 
+          {/* ── Routing banner ────────────────────────────────────────────
+              The engine now says which of its four engines it is about to
+              hand this input to, and why, BEFORE the operator spends a
+              budgeted run finding out. Silent mis-routing was the single
+              most expensive failure on this surface. */}
+          {query.trim() && (
+            <div
+              aria-live="polite"
+              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-border/15 bg-foreground/[0.02] px-3 py-1.5 text-[11px]"
+            >
+              <span className="text-muted-foreground/45">
+                {routing.auto ? "Auto →" : "Held →"}
+              </span>
+              <span className="font-medium text-foreground/85">{MODE_LABEL[mode]}</span>
+              <span className="text-muted-foreground/55">· {routing.reason}</span>
+              {routing.auto && routing.confidence < 65 && (
+                <span className="text-muted-foreground/40">· low certainty, correct it if this is wrong</span>
+              )}
+              {!routing.auto && (
+                <button
+                  type="button"
+                  onClick={() => pickRoute("auto")}
+                  className="ml-auto rounded-full border border-border/25 px-2 py-0.5 text-[10px] text-muted-foreground/60 transition-colors hover:border-foreground/35 hover:text-foreground"
+                >
+                  Return to auto
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Verb first, then scope. ORIGIN hides the scope knob because a
               provenance trace consults neither the index nor the buffer. */}
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             <div className="mr-1 flex items-center gap-1 rounded-full border border-border/20 p-0.5">
               {([
+                { id: "auto" as const, label: "Auto", hint: "Read the input and pick the verb — shown above the dial, overridable in one click" },
                 { id: "intercept" as const, label: "Intercept", hint: "Sweep a selector across the open index" },
                 { id: "origin" as const, label: "Origin", hint: "Trace one link or attached file back to when, where and on what it was made" },
                 { id: "deeptime" as const, label: "Deep time", hint: "Reach into the capture archives — every year from 1996 to today" },
@@ -562,14 +631,21 @@ const GhostEngineView = () => {
               ]).map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => { setMode(m.id); localStorage.setItem(MODE_KEY, m.id); }}
+                  onClick={() => pickRoute(m.id)}
                   title={m.hint}
-                  aria-pressed={mode === m.id}
+                  aria-pressed={route === m.id}
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] transition-colors ${
-                    mode === m.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground/55 hover:text-foreground/85"
+                    route === m.id
+                      ? "bg-foreground/10 text-foreground"
+                      : m.id !== "auto" && route === "auto" && mode === m.id
+                        // Auto is driving and this is where it landed: show the
+                        // destination without claiming it was chosen by hand.
+                        ? "text-foreground/70 ring-1 ring-inset ring-foreground/15"
+                        : "text-muted-foreground/55 hover:text-foreground/85"
                   }`}
                 >
-                  {m.id === "origin" ? <Crosshair className="h-3 w-3" />
+                  {m.id === "auto" ? <Sparkle className="h-3 w-3" />
+                    : m.id === "origin" ? <Crosshair className="h-3 w-3" />
                     : m.id === "deeptime" ? <Hourglass className="h-3 w-3" />
                       : m.id === "identifier" ? <Fingerprint className="h-3 w-3" />
                         : <Search className="h-3 w-3" />}
@@ -649,7 +725,7 @@ const GhostEngineView = () => {
           {mode === "origin" && !loading && !uploading && origin && (
             <OriginPanel
               trace={origin}
-              onPivot={(sel) => { setMode("intercept"); localStorage.setItem(MODE_KEY, "intercept"); setQuery(sel); void run(sel); }}
+              onPivot={(sel) => { pickRoute("intercept"); setQuery(sel); void run(sel, undefined, "intercept"); }}
             />
           )}
 
@@ -677,7 +753,7 @@ const GhostEngineView = () => {
           )}
 
           {/* IDENTIFIER — the register of confirmed sightings. */}
-          {mode === "identifier" && !loading && sweep && <IdentifierSweepPanel report={sweep} />}
+          {mode === "identifier" && !loading && sweep && <IdentifierSweepPanel report={sweep} provenance={sweepProvenance} />}
 
           {mode === "identifier" && loading && (
             <div className="flex flex-col items-center gap-3 py-16" role="status" aria-live="polite">
