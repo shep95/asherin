@@ -269,6 +269,7 @@ Deno.serve(async (req) => {
         const p = (body.settings || {}) as Record<string, unknown>;
         const patch: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
         if (typeof p.recurrence_threshold === "number") patch.recurrence_threshold = Math.min(20, Math.max(2, Math.round(p.recurrence_threshold)));
+        if (typeof p.recurrence_window_hours === "number") patch.recurrence_window_hours = Math.min(168, Math.max(1, Math.round(p.recurrence_window_hours)));
         if (typeof p.min_rssi === "number") patch.min_rssi = Math.min(-30, Math.max(-110, Math.round(p.min_rssi)));
         for (const k of ["ignore_audio", "ble_enabled", "geo_enabled", "push_enabled", "email_enabled"]) {
           if (typeof p[k] === "boolean") patch[k] = p[k];
