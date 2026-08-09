@@ -672,7 +672,9 @@ async function watchdog(): Promise<void> {
   if (typeof document !== "undefined" && document.visibilityState === "visible") await requestWake();
   if (geoEnabled && geoWatchId == null) startGeo();
   if (!geoEnabled && geoWatchId != null) stopGeo();
-  if (bleEnabled && !handle) await startRadio();
+  // dutyResting means the radio is off on purpose between bursts — restarting
+  // it here would defeat the duty cycle and drain the battery it protects.
+  if (bleEnabled && !handle && !dutyResting) await startRadio();
   if (!bleEnabled && handle) await stopRadio();
   if (flushTimer == null) flushTimer = window.setInterval(() => { void flushSentinel(true); }, FLUSH_MS);
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);
