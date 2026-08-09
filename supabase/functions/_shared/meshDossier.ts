@@ -375,9 +375,19 @@ export interface BuildOptions {
   identifiers?: string[];
   /** Ceiling for the reverse pass. Defaults to 35s. */
   reverseBudgetMs?: number;
+  /**
+   * Organisational anchors bound to the subject — an employer name, or the
+   * registrable domain of the organisation they work for. A person on a
+   * corporate address gets their employer's public footprint for free because
+   * the address itself names the org; a person on a consumer mailbox does not,
+   * and that asymmetry is why freemail contacts read thin. These anchors
+   * restore the organisational axis for those subjects.
+   */
+  orgAnchors?: string[];
   /** How this subject reached the user. Recorded on the dossier. */
   channel?: string;
 }
+
 
 
 export async function buildDossier(
