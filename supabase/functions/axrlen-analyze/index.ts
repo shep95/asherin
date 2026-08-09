@@ -276,7 +276,7 @@ Return VALID JSON with this exact structure:
   "predictions": [
     {
       "id": "pred_1",
-      "category": "security|economic|political|humanitarian|environmental|technological|esoteric",
+      "category": "security|economic|political|humanitarian|environmental|technological|informational",
       "title": "string",
       "description": "string (detailed multi-domain analysis citing specific news sources)",
       "probability": number,
