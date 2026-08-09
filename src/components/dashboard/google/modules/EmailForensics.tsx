@@ -204,6 +204,75 @@ const EmailForensics = () => {
         </div>
       )}
 
+      {/* ── Drift alarm ───────────────────────────────────────────────────
+          Per-message grading cannot see a compromised-but-legitimate sender.
+          This panel is the only place that answers "has this domain ever
+          behaved this way before?" — and it pushes to the device when not. */}
+      {(driftBusy || drift) && (
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5" aria-live="polite">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Route className="h-4 w-4 text-foreground/70" />
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-foreground/70">Sender baseline drift</h4>
+            </div>
+            {drift && (
+              <span className="text-[11px] text-foreground/45">
+                {drift.domainsTracked} domain{drift.domainsTracked === 1 ? "" : "s"} compared ·{" "}
+                {drift.domainsInObservation} still establishing ·{" "}
+                {drift.notified} alert{drift.notified === 1 ? "" : "s"} pushed
+              </span>
+            )}
+          </div>
+
+          {driftBusy && !drift && (
+            <div className="h-14 animate-pulse rounded-xl border border-border/15 bg-foreground/[0.03]" />
+          )}
+
+          {drift?.error && (
+            <p className="text-xs text-foreground/60">
+              Baselines unavailable this run ({drift.error}). Forensics above are unaffected.
+            </p>
+          )}
+
+          {drift && !drift.error && drift.breaks.length === 0 && (
+            <p className="text-xs text-foreground/55 leading-relaxed">
+              No sender broke its established pattern. Networks, countries, platforms and authentication rates all match
+              prior history for every domain with enough recorded traffic to judge.
+            </p>
+          )}
+
+          <div className="space-y-2">
+            {drift?.breaks.map((b: DriftBreak, i: number) => (
+              <div
+                key={`${b.domain}-${b.kind}-${b.observed}-${i}`}
+                className={`rounded-xl border p-3 ${
+                  b.severity === "critical"
+                    ? "border-foreground/60 bg-foreground/10"
+                    : b.severity === "notable"
+                      ? "border-foreground/35"
+                      : "border-border/25"
+                }`}
+              >
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5 text-foreground/70" />
+                  <span className="text-xs font-semibold">{b.domain}</span>
+                  <span className="rounded border border-border/30 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-foreground/60">
+                    {b.kind.replace(/-/g, " ")}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-foreground/50">{b.severity}</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-foreground/70">{b.statement}</p>
+                <p className="mt-1.5 text-[10px] text-foreground/45">
+                  Baseline: {b.baseline} · Observed: {b.observed} · {b.messageIds.length} message
+                  {b.messageIds.length === 1 ? "" : "s"} in this sweep
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
       {/* ── Aggregate posture ─────────────────────────────────────────── */}
       {agg && agg.analyzed > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
