@@ -19,10 +19,43 @@ export type EntityKind =
   | "person" | "organization" | "place" | "ticker"
   | "cve" | "wallet" | "domain" | "general";
 
+/**
+ * Query SHAPE decides the retrieval contract. The same required/optional split
+ * cannot serve a bare keyword, a dork string and a two-entity relationship
+ * question — each one wants a different gate.
+ */
+export type QueryShape =
+  | "single-token"     // one bare word — the word IS the query, gating adds nothing
+  | "operator-dork"    // site:/filetype: dominate; operators are the signal
+  | "relationship"     // [entity] <relation phrase> [entity] — both sides gate
+  | "identifier"       // CVE / wallet / domain / email — exact selector
+  | "natural-question" // filler-heavy sentence; strip noise, keep signal
+  | "topic";           // no entity present — pure relevance ranking
+
+/** A required term carries a CONFIDENCE, not a boolean. */
+export interface WeightedTerm {
+  term: string;
+  /** 0..1 — how sure we are this is a real selector. Drives gate hardness. */
+  confidence: number;
+  /** Why it was promoted — surfaced in telemetry, never guessed at later. */
+  basis: string;
+}
+
+/** [subject] <relation> [object] extracted case-insensitively from the query. */
+export interface QueryRelation {
+  subject: string;
+  relation: string;
+  /** What the object side is expected to be. */
+  objectKind: "location" | "organization" | "person" | "unknown";
+  object: string;
+}
+
 export interface QueryPlan {
   raw: string;
   /** Hard-signal terms: proper nouns, IDs, tickers, domains. Missing → heavy penalty. */
   required: string[];
+  /** Same terms, with per-term confidence. Gating is a spectrum, not a switch. */
+  requiredWeighted: WeightedTerm[];
   /** Context terms that boost but never gate. */
   optional: string[];
   /** Terms prefixed with `-`. Presence sinks a result. */
@@ -30,6 +63,10 @@ export interface QueryPlan {
   /** Quoted "..." phrases — exact-match bonus. */
   phrases: string[];
   entity: EntityKind;
+  shape: QueryShape;
+  relations: QueryRelation[];
+  /** Non-Latin script detected — the capitalized-run detector cannot see it. */
+  scriptNote?: string;
   /** Search operators (`site:`, `filetype:`, `-site:` …) preserved verbatim. */
   operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
