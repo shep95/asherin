@@ -728,9 +728,9 @@ const BluetoothSentinel = () => {
         <TabsContent value="settings" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm">Alert after repeat encounters</Label>
+              <Label className="text-sm">Alert after this many strikes</Label>
               <p className="text-[11px] text-muted-foreground">
-                Separate encounters with the same unknown radio inside the window below.
+                A strike is a sighting of the same unknown radio at least 5 minutes after the last one.
               </p>
             </div>
             <input
@@ -741,9 +741,9 @@ const BluetoothSentinel = () => {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm">Recurrence window (hours)</Label>
+              <Label className="text-sm">Strike window (hours)</Label>
               <p className="text-[11px] text-muted-foreground">
-                Hit the threshold inside this many hours and you are alerted that something may be following you.
+                Hit the strike count inside this many hours and you are alerted. Strikes across locations 500 m apart, or three inside 30 minutes, escalate to critical.
               </p>
             </div>
             <input
@@ -752,6 +752,20 @@ const BluetoothSentinel = () => {
               className="w-16 rounded border border-border bg-background px-2 py-1 text-sm"
             />
           </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Strike signal floor (dBm)</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Weaker samples are still logged but never count as a strike. −80 dBm is roughly 10 metres.
+              </p>
+            </div>
+            <input
+              type="number" min={-110} max={-40} step={5} value={settings.min_rssi}
+              onChange={(e) => saveSettings({ min_rssi: Number(e.target.value) })}
+              className="w-20 rounded border border-border bg-background px-2 py-1 text-sm"
+            />
+          </div>
+
 
           {[
             ["ignore_audio", "Ignore headphones & speakers", "Audio accessories repeat constantly and carry no stalking signal. Still logged."],
