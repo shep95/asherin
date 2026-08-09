@@ -13,8 +13,10 @@ export interface DorkTrigger {
 }
 
 const HARD_TRIGGERS = [
-  /\bdork(ing)?\b/i,
+  /\bdork(ing|s)?\b/i,
   /\bgoogle\s*dork/i,
+  /\b(run|do|perform|execute|fire)\s+(a\s+)?(google\s+)?dork/i,
+  /\bdork\s+(for|on|against|me)\b/i,
   /\baudit\s+(my\s+)?exposure\b/i,
   /\bself[-\s]?audit\b/i,
   /\bwhat.{0,10}(publicly?|leaked?|exposed?)\s+(is|about)\b/i,
@@ -23,6 +25,7 @@ const HARD_TRIGGERS = [
 ];
 const SOFT_VERBS = /\b(find|surface|expose|reveal|dig up|hunt|scan|sweep|map|profile|deep\s*search)\b/i;
 const SOFT_OBJECTS = /\b(everything|footprint|dossier|exposure|public\s+data|open\s+web|attack\s+surface|leaks|indexed)\b/i;
+
 
 const DOMAIN_RE = /\b([a-z0-9][a-z0-9-]{0,63}\.)+[a-z]{2,24}\b/i;
 const TLD_MAP: Record<string, string> = {
