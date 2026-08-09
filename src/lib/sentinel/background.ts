@@ -19,6 +19,8 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp } from "@/lib/native/nativeRuntime";
+
 
 const SW_URL = "/sw-sentinel.js";
 const TAG = "asherin-sentinel-sweep";
