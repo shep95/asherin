@@ -2365,6 +2365,8 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _routerEmphasis,
       QUICK_INTELLIGENCE_BRAIN,
       _quickIntelEmphasis,
+      ANALYTICS_LOGIC_MATRIX,
+      _logicEmphasis,
 
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
