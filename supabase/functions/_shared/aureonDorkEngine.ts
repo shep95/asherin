@@ -336,7 +336,7 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
   const totalHits = theories.reduce((a, t) => a + t.hits.length, 0);
   const byCategory = {} as Record<DorkCategory, DorkTheory[]>;
   for (const t of theories) (byCategory[t.category] ||= []).push(t);
-  const topExposures = [...theories].filter((t) => t.tested).sort((a, b) => b.yieldScore - a.yieldScore).slice(0, 20);
+  const topExposures = [...theories].filter((t) => t.tested).sort((a, b) => b.yieldScore - a.yieldScore);
 
   const partial: Omit<DorkReport, "brief" | "defensiveGuidance" | "elapsedMs" | "via"> = {
     target,
