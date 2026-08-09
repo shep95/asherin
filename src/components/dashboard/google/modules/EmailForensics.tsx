@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronRight, Lock, Unlock, AlertTriangle, Search, Route,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
+import { runDriftAlarm, type DriftResult, type DriftBreak } from "@/lib/cloudIntel/driftAlarm";
 import { toast } from "sonner";
 
 type Verdict = "clean" | "watch" | "suspect" | "hostile";
