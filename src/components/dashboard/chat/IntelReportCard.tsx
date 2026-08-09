@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
-import { FileText, Download, Check, Eye } from "lucide-react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { FileText, Download, Check, Eye, Copy, ExternalLink } from "lucide-react";
 import { buildIntelReport, formatBytes, type IntelReportInput } from "@/lib/intelligenceReport";
 
 interface IntelReportCardProps extends IntelReportInput {}
