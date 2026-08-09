@@ -669,8 +669,9 @@ async function watchdog(): Promise<void> {
   if (!state.armed) return;
   await loadSettings();
   if (typeof document !== "undefined" && document.visibilityState === "visible") await requestWake();
-  if (geoEnabled && geoWatchId == null) startGeo();
-  if (!geoEnabled && geoWatchId != null) stopGeo();
+  if (geoEnabled && !geoWatch) startGeo();
+  if (!geoEnabled && geoWatch) stopGeo();
+
   // dutyResting means the radio is off on purpose between bursts — restarting
   // it here would defeat the duty cycle and drain the battery it protects.
   if (bleEnabled && !handle && !dutyResting) await startRadio();
