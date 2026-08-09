@@ -110,14 +110,31 @@ const GhostEngineView = () => {
   const [suggestOpen, setSuggestOpen] = useState(false);
   // INTERCEPT sweeps a selector. ORIGIN traces one artefact — a link or a file
   // the operator holds — back to the act of authorship behind it. DEEP TIME
-  // reaches past the live web into the capture archives. Same box, three
-  // engines, three surfaces.
-  const [mode, setMode] = useState<GhostMode>(() => {
+  // reaches past the live web into the capture archives. IDENTIFIER confirms an
+  // address or number page by page.
+  //
+  // The verb used to be a setting the operator had to get right BEFORE typing,
+  // and getting it wrong was silent: a PDF URL pasted under INTERCEPT ran a
+  // keyword sweep on a URL string and returned nothing, with no indication that
+  // the wrong engine had been asked. AUTO reads the input, states the verb it
+  // inferred and why, and leaves the override one click away. A deliberate
+  // override sticks — the classifier never quietly takes the wheel back.
+  const [route, setRoute] = useState<GhostRoute>(() => {
     const saved = localStorage.getItem(MODE_KEY);
-    return saved === "origin" || saved === "deeptime" || saved === "identifier"
+    return saved === "origin" || saved === "deeptime" || saved === "identifier" ||
+      saved === "intercept" || saved === "auto"
       ? saved
-      : "intercept";
+      : "auto";
   });
+  const pickRoute = useCallback((r: GhostRoute) => {
+    setRoute(r);
+    localStorage.setItem(MODE_KEY, r);
+  }, []);
+  // Routing for what is currently in the box — drives the banner and the
+  // placeholder. The RUN path re-derives from its own argument, because a
+  // suggestion click fires with a selector the input state has not caught yet.
+  const routing = useMemo(() => resolveRoute(route, query), [route, query]);
+  const mode: GhostMode = routing.mode;
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
   const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
