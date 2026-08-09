@@ -174,3 +174,83 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
 
   return { assessment: cached, notified: true };
 }
+
+/**
+ * ARRIVAL DETECTION — the missing primitive.
+ *
+ * Everything upstream of this used to be a clock: re-judge wherever the user
+ * happens to be, every N minutes. A clock cannot meet an arrival deadline,
+ * because the clock has no idea the user arrived. This records the cell a user
+ * is standing in and reports the transition into a new one.
+ *
+ * Two things it deliberately does NOT do:
+ *  - It does not alert on first sight of a cell. Driving through a mile-wide
+ *    cell would otherwise fire an alert for every block of the route.
+ *  - It does not re-arm for a cell the user never left. `place_since` only
+ *    resets when the key actually changes, so dwell is measured from the true
+ *    moment of entry, not from the last beacon.
+ */
+export interface ArrivalState {
+  placeKey: string;
+  /** True on the fix that first lands in a new cell. */
+  arrived: boolean;
+  /** Milliseconds since the user entered this cell. */
+  dwellMs: number;
+  /** Dwell has cleared the drive-through guard and this cell was never judged. */
+  confirmed: boolean;
+}
+
+/** Dwell required before an arrival is treated as real presence rather than
+ *  transit. Sized to fit inside a three-minute end-to-end budget. */
+export const ARRIVAL_DWELL_MS = 90_000;
+
+export async function recordArrival(
+  db: SupabaseClient,
+  userId: string,
+  lat: number,
+  lng: number,
+  patch: Record<string, unknown> = {},
+): Promise<ArrivalState> {
+  const placeKey = areaPlaceKey(lat, lng);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  const { data: prev } = await db
+    .from("sentinel_presence")
+    .select("place_key, place_since, arrival_pending")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const arrived = !prev || prev.place_key !== placeKey;
+  const since = arrived ? now : Date.parse(prev?.place_since ?? nowIso) || now;
+  const dwellMs = Math.max(0, now - since);
+  // `arrival_pending` is the latch: set on entry, cleared once this cell has
+  // actually been assessed. Without it a slow first pass would be forgotten,
+  // because by the next fix `arrived` is already false.
+  const stillPending = arrived ? true : prev?.arrival_pending !== false;
+  const confirmed = stillPending && dwellMs >= ARRIVAL_DWELL_MS;
+
+  await db.from("sentinel_presence").upsert({
+    user_id: userId,
+    lat, lng,
+    place_key: placeKey,
+    place_since: new Date(since).toISOString(),
+    arrival_pending: stillPending,
+    fix_at: nowIso,
+    last_seen_at: nowIso,
+    updated_at: nowIso,
+    ...patch,
+  }, { onConflict: "user_id" });
+
+  return { placeKey, arrived, dwellMs, confirmed };
+}
+
+/** Clears the latch once a cell has been judged, so the arrival path stops
+ *  re-firing and hands the cell back to the routine interval. */
+export async function clearArrival(db: SupabaseClient, userId: string, placeKey: string): Promise<void> {
+  await db.from("sentinel_presence")
+    .update({ arrival_pending: false, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("place_key", placeKey);
+}
+
