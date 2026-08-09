@@ -461,7 +461,13 @@ const ContactIntelligence = () => {
       : annexLoading
         ? emptyAnnex("building", "Open-source sweep in progress — this section will fill in when collection returns.", baseReport.name, baseReport.email)
         : null;
-    return { name: baseReport.name, text: renderContactReport(baseReport.r, baseReport.name, pending) };
+    return {
+      name: baseReport.name,
+      text: renderContactReport(baseReport.r, baseReport.name, pending),
+      // Only imagery from a completed sweep is offered to the viewer; the
+      // placeholder annex used while collection runs carries none.
+      images: live?.imagery ?? [],
+    };
   }, [reportKey, baseReport, annex, annexLoading, corpus]);
 
 
