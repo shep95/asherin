@@ -199,8 +199,24 @@ export function buildQueryPlan(raw: string): QueryPlan {
   //    quoted so SERPs treat them atomically instead of bag-of-words. The
   //    literal spans they cover are stripped from the remainder so the query
   //    is never doubled (a doubled query silently drifts recall).
+  //    Flaw fixed: a SINGLE-word quoted phrase ("Harshit") was extracted into
+  //    `phrases`, stripped from `rest`, and then skipped by the multi-word
+  //    quoting pass — so the operator's hardest signal silently vanished from
+  //    the wire. Explicit quotes are now always re-emitted verbatim.
   const multi = requiredFinal.filter((r) => r.includes(" "));
-  const quoted = multi.map((r) => `"${surfaceForm.get(r) || r}"`);
+  const seenQuoted = new Set<string>();
+  const quoted: string[] = [];
+  for (const p of phrases) {
+    const key = normalizeTerm(p);
+    if (!key || seenQuoted.has(key)) continue;
+    seenQuoted.add(key);
+    quoted.push(`"${p}"`);
+  }
+  for (const r of multi) {
+    if (seenQuoted.has(r)) continue;
+    seenQuoted.add(r);
+    quoted.push(`"${surfaceForm.get(r) || r}"`);
+  }
   let rest = input
     .replace(OPERATOR_RE, " ")
     .replace(/"([^"]{2,120})"/g, " ")
