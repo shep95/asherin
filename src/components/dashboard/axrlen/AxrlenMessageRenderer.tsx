@@ -64,13 +64,13 @@ const markdownComponents = {
     // Detect section headers like "📅 TODAY", "⚡ SITUATION", "🔮 NEXUS-PRIME", etc
     const isDateHeader = /^📅|^🗓/.test(text);
     const isCritical = /CRITICAL|MAXIMUM|ESCALATION|EMERGENCY/i.test(text);
-    const isOccult = /NEXUS-PRIME|Occult|VEDHA|Ghost Chain/i.test(text);
+    const isStructural = /NEXUS-PRIME|Structural|Ghost Chain/i.test(text);
     const isPrediction = /PREDICTION|PRIMARY|VERDICT/i.test(text);
 
     let headerColor = "text-foreground/80";
     if (isDateHeader) headerColor = "text-blue-400/90";
     if (isCritical) headerColor = "text-red-400/90";
-    if (isOccult) headerColor = "text-amber-400/80";
+    if (isStructural) headerColor = "text-amber-400/80";
     if (isPrediction) headerColor = "text-emerald-400/80";
 
     return (
@@ -81,12 +81,12 @@ const markdownComponents = {
   },
   h3({ children, ...props }: any) {
     const text = String(children || "");
-    const isOccult = /NEXUS-PRIME|Occult|Vedic|VEDHA|Chakra|Dasha|Ghost Chain|Consciousness/i.test(text);
+    const isStructural = /NEXUS-PRIME|Structural|Ghost Chain|Sentiment/i.test(text);
     const isMilitary = /Military|Combat|Strike|War|Attack/i.test(text);
     const isPrediction = /Prediction|Probability|Outcome|Confidence/i.test(text);
 
     let color = "text-foreground/70";
-    if (isOccult) color = "text-amber-400/70";
+    if (isStructural) color = "text-amber-400/70";
     if (isMilitary) color = "text-red-400/70";
     if (isPrediction) color = "text-emerald-400/70";
 
@@ -266,10 +266,10 @@ function ProbabilityBars({ items }: { items: { label: string; value: number }[] 
 /**
  * Detects section blocks and wraps them in styled containers
  */
-function SectionBlock({ children, type }: { children: React.ReactNode; type: "critical" | "occult" | "military" | "prediction" | "verdict" | "default" }) {
+function SectionBlock({ children, type }: { children: React.ReactNode; type: "critical" | "structural" | "military" | "prediction" | "verdict" | "default" }) {
   const borderColors: Record<string, string> = {
     critical: "border-l-red-500/40",
-    occult: "border-l-amber-500/30",
+    structural: "border-l-amber-500/30",
     military: "border-l-red-400/25",
     prediction: "border-l-emerald-500/30",
     verdict: "border-l-amber-500/40",

@@ -144,7 +144,7 @@ const AxrlenView = () => {
       "Fetching World Bank & IMF economic indicators...",
       "Scanning USGS seismic & NASA solar data...",
       "Processing conflict & humanitarian feeds...",
-      "Applying occult/historical pattern analysis...",
+      "Applying structural/historical pattern analysis...",
       "Running multi-domain prediction engine...",
       "Generating timeline divergence analysis...",
     ];
