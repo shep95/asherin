@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { History, Loader2, Trash2, RefreshCw, ChevronRight, Radar } from "lucide-react";
+import {
+  History, Loader2, Trash2, RefreshCw, ChevronRight, Radar,
+  Plus, Minus, ArrowUpDown,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { GhostHistoryEntity, GhostHistoryRun } from "./searchFormat";
