@@ -324,7 +324,7 @@ const GhostEngineView = () => {
       clearTimeout(timer);
       setLoading(false);
     }
-  }, [loading, capture, scope, mode, noiseFilter, data, origin]);
+  }, [loading, capture, scope, route, noiseFilter, data, origin]);
 
   /**
    * ORIGIN for a file the operator holds. Read as bytes in the browser, sent as
