@@ -183,7 +183,26 @@ const SurfaceRow = ({ surface }: { surface: Surface }) => {
   );
 };
 
-export const IdentifierSweepPanel = ({ report }: { report: IdentifierSweepReport }) => {
+/**
+ * Provenance chained automatically off document sightings. A sweep proves the
+ * identifier is ON a document; it says nothing about where that document came
+ * from — which is the very next question, every time. Rather than make the
+ * operator copy the URL, switch verbs and re-run, the engine traces the
+ * strongest document sightings in the same round trip.
+ */
+export interface ChainedProvenance {
+  url: string;
+  host: string;
+  grade: string;
+  trace: {
+    origin?: { author?: string | null; software?: string | null; created?: string | null; device?: string | null } | null;
+    summary?: string | null;
+  } | null;
+}
+
+export const IdentifierSweepPanel = (
+  { report, provenance = [] }: { report: IdentifierSweepReport; provenance?: ChainedProvenance[] },
+) => {
   const [showRejected, setShowRejected] = useState(false);
 
   const risky = useMemo(
@@ -270,6 +289,48 @@ export const IdentifierSweepPanel = ({ report }: { report: IdentifierSweepReport
             of them. That is a statement about the reachable public web, not proof the identifier
             is unused.
           </p>
+        </div>
+      )}
+
+      {/* ── Chained provenance ─────────────────────────────────────────
+          Sightings that were documents were traced back to the machine that
+          produced them, without a second query. */}
+      {provenance.length > 0 && (
+        <div className="rounded-lg border border-border/15 bg-foreground/[0.02] p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground/45">
+            <FileText className="h-3 w-3" aria-hidden />
+            Provenance, chained automatically
+          </p>
+          <ul className="space-y-2">
+            {provenance.map((p) => {
+              const o = p.trace?.origin ?? null;
+              const facts = [
+                o?.author ? `authored by ${o.author}` : null,
+                o?.software ? `produced with ${o.software}` : null,
+                o?.created ? `created ${String(o.created).slice(0, 16).replace("T", " ")}` : null,
+                o?.device ? `device ${o.device}` : null,
+              ].filter(Boolean);
+              return (
+                <li key={p.url} className="min-w-0">
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="flex items-center gap-1.5 text-[11.5px] text-foreground/85 underline-offset-4 hover:underline"
+                  >
+                    <span className="min-w-0 truncate">{p.host}</span>
+                    <ExternalLink className="h-3 w-3 shrink-0 opacity-40" aria-hidden />
+                  </a>
+                  <p className="text-[10.5px] leading-snug text-muted-foreground/60">
+                    {facts.length
+                      ? facts.join(" · ")
+                      : p.trace?.summary ||
+                        "Traced — the producer stripped every authoring field before publication."}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
