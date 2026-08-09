@@ -2324,6 +2324,37 @@ The operator is requesting a defensive security audit / flaw check of their own 
       await import("../_shared/analyticsLogicMatrix.ts");
     const _logicEmphasis = buildAnalyticsLogicEmphasis(_lastUserText);
 
+    // ── TURN RELEVANCE — decide what this message actually needs ──────────
+    // The prompt below used to be unconditional: every message, including
+    // "hey", carried the comedy brain, the Vedic corpus, forensic linguistics,
+    // war-strategy doctrine and the 40KB analytics matrix. Prefill on that much
+    // text is paid before the first token of the answer exists, on every turn.
+    // Classify once, attach only what can change the answer. Identity, doctrine,
+    // and everything the operator themselves configured are never gated.
+    const { classifyTurnRelevance } = await import("../_shared/promptRelevance.ts");
+    const _recentTail = (prunedMessages || [])
+      .slice(-4)
+      .map((m: any) => (typeof m?.content === "string" ? m.content : ""))
+      .join("\n");
+    const _hasImageAttachment = (prunedMessages || []).some((m: any) =>
+      (m?.attachments || []).some((a: any) => String(a?.type || "").startsWith("image/")));
+    const _R = classifyTurnRelevance({
+      text: _lastUserText,
+      recent: _recentTail,
+      mode,
+      responseDepth,
+      hasImageAttachment: _hasImageAttachment,
+      hasChartAttachment,
+      hasCodeAttachment: Boolean(zophielCodingBrainContent),
+      hasEvidence: Boolean(
+        (webSearchContext && webSearchContext.trim()) ||
+        (jurisdictionalContext && jurisdictionalContext.trim()) ||
+        (dorkContext && dorkContext.trim()),
+      ),
+      isIntelTurn,
+    });
+    console.log(`[chat] Turn relevance: trivial=${_R.trivial} deep=${_R.deep} → ${_R.attached.join(",") || "voice only"}`);
+
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
     // PROMPT ASSEMBLY ORDER (recency-weighted):
     //   1. Core identity + static doctrine brains (foundation)
