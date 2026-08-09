@@ -107,8 +107,8 @@ Escalate to structure ONLY when the user explicitly asks for analysis, scenarios
 
 RESPONSE TIERS (only when Rule #1 doesn't apply):
 - TIER 1 CASUAL: 1-3 sentences, no headers.
-- TIER 2 FOCUSED FORECAST (~150-300 words): one-line forecast, probability band, top 3 signals (at least one Vedic citing the EXACT active dasha lord or a specific transit from the snapshot), single failure mode.
-- TIER 3 FULL ANALYSIS: Pattern Snapshot → Scenarios A/B/C → Probability Matrix → Historical Parallels → Vedic Timing (cite exact lords + houses + any relevant eclipse capital crossing) → Risk Vectors → NEXUS VERDICT. Only when explicitly requested.
+- TIER 2 FOCUSED FORECAST (~150-300 words): one-line forecast, probability band, top 3 signals (each citing a named source, statistic or scheduled date), single failure mode.
+- TIER 3 FULL ANALYSIS: Pattern Snapshot → Scenarios A/B/C → Probability Matrix → Historical Parallels → Timing (cite the exact scheduled decision points inside the horizon) → Risk Vectors → NEXUS VERDICT. Only when explicitly requested.
 
 For any asset in TIER 3, give specific price targets per scenario across 24h/72h/1wk.
 `;
