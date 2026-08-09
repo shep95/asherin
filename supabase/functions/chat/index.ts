@@ -1725,7 +1725,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
-    const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
+    const lastUserMsgLower = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
     const allUserContent = (messages || []).filter((m: any) => m.role === "user").map((m: any) => m.content?.toLowerCase() || "").join(" ");
     const hasChartAttachment = (messages || []).some((m: any) =>
       m.attachments?.some((a: any) => a.type?.startsWith("image/"))
@@ -1827,7 +1827,7 @@ ${truncatedRome}
     const brainUrl = (p: string) => `${SB_BRAIN_URL}/storage/v1/object/library/${p}`;
     const MAX_BRAIN_CHARS = 80000;
 
-    const brainProbe = `${lastUserMsg}\n${allUserContent.slice(-4000)}`;
+    const brainProbe = `${lastUserMsgLower}\n${allUserContent.slice(-4000)}`;
     const isStrategicTurn =
       isWarQuery ||
       /\b(geopolit|conflict|escalat|sanction|alliance|nato|defen[cs]e|deterrenc|forecast|scenario|regime|border|treaty|intelligence assessment|threat)\w*/i.test(brainProbe);
