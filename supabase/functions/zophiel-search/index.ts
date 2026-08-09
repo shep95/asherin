@@ -1813,21 +1813,32 @@ Deno.serve(async (req) => {
         // Stage-1 Query Understanding (what the ranker actually gated on)
         queryPlan: {
           required: plan.required,
+          requiredWeighted: plan.requiredWeighted,
           optional: plan.optional,
           negative: plan.negative,
           phrases: plan.phrases,
           entity: plan.entity,
+          shape: plan.shape,
+          relations: plan.relations,
+          scriptNote: plan.scriptNote,
           wireQuery: plan.wireQuery,
         },
         rescueUsed,
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,
-        // PANTHEON v4 — Entity Fusion Graph
+        // PANTHEON v5 — unified fusion output
         entities,
         entityCounts,
-        entityEdges: edges.slice(0, 100),
-        pantheonVersion: 4,
+        entityEdges: edges,
+        centrality: fusion.centrality.slice(0, 40),
+        clusters: fusion.clusters.slice(0, 20),
+        claims: fusion.claims,
+        contradictions: fusion.contradictions,
+        anomalies: fusion.anomalies,
+        identities: fusion.intel.identities?.slice(0, 20) ?? [],
+        rankingQuality,
+        pantheonVersion: 5,
         // Omnispider (shep95/web-crawlers) enrichment telemetry
         omnispider: { crawled: omniCrawledCount, engines: omniEngineCounts },
       }),
