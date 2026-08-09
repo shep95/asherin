@@ -7,6 +7,7 @@ import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
 import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
+import { fullMatrixMarkdown } from "../_shared/analyticsLogicMatrix.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
 import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
       "SocialAwarenessBrain.md": SOCIAL_AWARENESS_BRAIN,
       "DeepTrainingArchitectureBrain.md": DEEP_TRAINING_ARCHITECTURE_BRAIN,
       "GeolocationBrain.md": GEOLOCATION_BRAIN,
+      "CognitivePersonalityMatrix.md": fullMatrixMarkdown(),
     };
     for (const [name, content] of Object.entries(brains)) {
       zip.file(name, content);
