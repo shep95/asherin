@@ -57,8 +57,9 @@ const SCOPES: { id: SearchScope; label: string; hint: string }[] = [
 ];
 
 /** ORIGIN and DEEP TIME are not scopes — they are different questions, so they
- *  get their own verbs rather than being folded into the intercept scope knob. */
-type GhostMode = "intercept" | "origin" | "deeptime" | "identifier";
+ *  get their own verbs rather than being folded into the intercept scope knob.
+ *  AUTO is the fifth position on that dial: it reads the input and picks the
+ *  verb, out loud, with the choice one click from being overruled. */
 const MODE_KEY = "ghost_engine_mode";
 
 
