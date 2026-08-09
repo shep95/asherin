@@ -119,7 +119,7 @@ export function placeKey(lat?: number | null, lng?: number | null, precision = 3
 // ── Recurrence doctrine ────────────────────────────────────────────────────
 
 export interface RecurrenceInput {
-  encounterCount: number;   // distinct scan sessions
+  encounterCount: number;   // distinct scan sessions, all time
   distinctDays: number;
   distinctPlaces: number;
   kind: DeviceKind;
@@ -128,6 +128,13 @@ export interface RecurrenceInput {
   closestMeters: number | null;
   threshold: number;
   ignoreAudio: boolean;
+  /** Distinct scan sessions inside the rolling window. This is the primary
+   *  stalking signal: "near me N separate times within X hours". */
+  windowEncounters?: number;
+  windowHours?: number;
+  /** Minutes between the first and last sighting inside the window. Guards
+   *  against one continuous pass being split into several sessions. */
+  windowSpanMinutes?: number;
 }
 
 export interface RecurrenceVerdict {
@@ -136,16 +143,50 @@ export interface RecurrenceVerdict {
   reason: string;
 }
 
+/** A repeat has to be genuinely separated in time to mean anything; two scans
+ *  ten seconds apart are one encounter wearing two hats. */
+const MIN_WINDOW_SPAN_MIN = 10;
+
 export function assessRecurrence(i: RecurrenceInput): RecurrenceVerdict {
   if (i.isSelf) return { shouldAlert: false, tier: "friendly", reason: "Marked as your own hardware." };
   if (i.isIgnored) return { shouldAlert: false, tier: "friendly", reason: "Muted by you." };
   if (i.ignoreAudio && AUDIO_KINDS.includes(i.kind)) {
     return { shouldAlert: false, tier: "known", reason: "Audio accessory — logged, not alerted." };
   }
-  if (i.encounterCount < i.threshold) {
-    return { shouldAlert: false, tier: "unknown", reason: `Seen in ${i.encounterCount}/${i.threshold} separate sessions.` };
+
+  const windowHours = i.windowHours ?? 12;
+  const inWindow = i.windowEncounters ?? 0;
+  const span = i.windowSpanMinutes ?? 0;
+  const close = typeof i.closestMeters === "number" && i.closestMeters <= 10;
+
+  // ── Primary doctrine: N separate encounters inside the rolling window ────
+  if (inWindow >= i.threshold && span >= MIN_WINDOW_SPAN_MIN) {
+    const mobileNow = i.distinctPlaces >= 2 || i.distinctDays >= 2;
+    if (i.kind === "tracker") {
+      return {
+        shouldAlert: true,
+        tier: "breach",
+        reason: `Tracker tag detected near you ${inWindow} separate times in the last ${windowHours}h — the classic covert-tracking pattern.`,
+      };
+    }
+    return {
+      shouldAlert: true,
+      tier: close || mobileNow ? "breach" : "priority",
+      reason: `Detected near you ${inWindow} separate times within ${windowHours}h${mobileNow ? ` across ${i.distinctPlaces} location${i.distinctPlaces === 1 ? "" : "s"}` : " in one area"}${close ? `, closing to ${i.closestMeters} m` : ""}.`,
+    };
   }
-  // A tracker tag that repeats is the highest-value stalking signal there is.
+
+  if (i.encounterCount < i.threshold) {
+    return {
+      shouldAlert: false,
+      tier: "unknown",
+      reason: inWindow > 0
+        ? `Seen ${inWindow}/${i.threshold} times in the last ${windowHours}h (${i.encounterCount} all time).`
+        : `Seen in ${i.encounterCount}/${i.threshold} separate sessions.`,
+    };
+  }
+
+  // ── Fallback doctrine: repeats spread beyond the window ─────────────────
   if (i.kind === "tracker") {
     return { shouldAlert: true, tier: "breach", reason: `Tracker tag seen across ${i.encounterCount} separate sessions — the classic covert-tracking pattern.` };
   }
@@ -154,16 +195,16 @@ export function assessRecurrence(i: RecurrenceInput): RecurrenceVerdict {
     return {
       shouldAlert: false,
       tier: "known",
-      reason: "Repeats in one place on one day — reads as fixed infrastructure, not a follower.",
+      reason: "Repeats in one place on one day, spread thin over time — reads as fixed infrastructure, not a follower.",
     };
   }
-  const close = typeof i.closestMeters === "number" && i.closestMeters <= 10;
   return {
     shouldAlert: true,
     tier: close ? "breach" : "priority",
     reason: `Seen in ${i.encounterCount} separate sessions across ${i.distinctPlaces} location${i.distinctPlaces === 1 ? "" : "s"} and ${i.distinctDays} day${i.distinctDays === 1 ? "" : "s"}${close ? `, closing to ${i.closestMeters} m` : ""}.`,
   };
 }
+
 
 /** Your own gear is the loudest thing in every scan you ever run. A radio that
  *  is present in nearly every session at handset range is almost certainly
