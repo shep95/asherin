@@ -1,9 +1,11 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { omnispiderCrawl, type OmniCrawledPage } from "../_shared/omnispider.ts";
 import {
   buildQueryPlan, relaxedQuery, scoreRelevance, finalScore, engineClass,
   type QueryPlan,
 } from "../_shared/queryPlan.ts";
+import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
