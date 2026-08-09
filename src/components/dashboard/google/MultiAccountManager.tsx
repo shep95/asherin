@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Plus, X, RefreshCw, Link2, Unlink, Shield, CheckCircle2,
-  AlertTriangle, Globe, Zap,
+  AlertTriangle, Globe, Zap, Radio, Smartphone, Monitor,
 } from "lucide-react";
 import { useGoogleApi } from "@/hooks/useGoogleApi";
 import { toast } from "sonner";
 import { useGoogleOAuthCallback } from "@/hooks/useGoogleOAuthCallback";
 
 const MultiAccountManager = () => {
-  const { accounts, loading, connectGoogle, disconnectAccount, fetchAccounts, isConnected } = useGoogleApi();
+  const { accounts, loading, syncStatus, connectGoogle, disconnectAccount, fetchAccounts, isConnected } = useGoogleApi();
   const [crossCorrelation, setCrossCorrelation] = useState(false);
 
   useEffect(() => {
@@ -18,6 +18,18 @@ const MultiAccountManager = () => {
   // OAuth return is handled by a shared, locked hook so that multiple mounted
   // Google surfaces cannot race to spend the same authorization code.
   useGoogleOAuthCallback(useCallback(() => { void fetchAccounts(); }, [fetchAccounts]));
+
+  // Announce this device as part of the mesh whenever the account list changes.
+  useEffect(() => {
+    const announce = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { touchDevice } = await import("./modules/contactIntel/remoteVault");
+      await touchDevice(session.user.id, accounts.length > 0);
+    };
+    void announce();
+  }, [accounts.length]);
 
   const handleConnect = async () => {
     try {
@@ -35,6 +47,10 @@ const MultiAccountManager = () => {
       toast.error(`Failed to disconnect: ${err.message}`);
     }
   };
+
+  const liveAgo = syncStatus.lastUpdateAt
+    ? `${Math.max(0, Math.round((Date.now() - syncStatus.lastUpdateAt) / 1000))}s`
+    : "—";
 
   return (
     <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-4">
@@ -56,11 +72,41 @@ const MultiAccountManager = () => {
         </button>
       </div>
 
+      {/* Cross-device sync status — explains why the phone may look different. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/20 bg-foreground/5 px-3 py-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-extralight text-muted-foreground/70">
+          <Radio className={`h-3 w-3 shrink-0 ${syncStatus.isLive ? "text-emerald-500" : "text-amber-500/60"}`} />
+          {syncStatus.isLive ? "Live sync on" : "Live sync connecting…"}
+        </div>
+        <div className="text-[10px] font-extralight text-muted-foreground/50">
+          updated {liveAgo} ago
+        </div>
+        <div className="ml-auto flex items-center gap-1.5 text-[10px] font-extralight text-muted-foreground/60">
+          <Monitor className="h-3 w-3" />
+          <span className="truncate max-w-[120px]">{syncStatus.thisDeviceLabel}</span>
+          {syncStatus.peerCount > 0 && (
+            <span className="flex items-center gap-1 text-emerald-500/80">
+              <Smartphone className="h-3 w-3" />
+              +{syncStatus.peerCount} device{syncStatus.peerCount === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+        {syncStatus.channelError && (
+          <div className="w-full flex items-center gap-1.5 text-[10px] font-extralight text-amber-500/80">
+            <AlertTriangle className="h-3 w-3" />
+            Sync channel paused: {syncStatus.channelError}
+          </div>
+        )}
+      </div>
+
       {/* Account List */}
       <div className="space-y-2">
         {accounts.length === 0 && (
           <div className="rounded-xl border border-dashed border-border/20 bg-foreground/5 p-6 text-center">
             <p className="text-xs font-extralight text-muted-foreground/50">No Google accounts connected yet</p>
+            <p className="text-[10px] font-extralight text-muted-foreground/40 mt-1">
+              Accounts are tied to your Asherin identity. Sign in with the same account on every device to keep them in sync.
+            </p>
             <button onClick={handleConnect} disabled={loading} className="mt-3 rounded-xl bg-foreground/10 px-4 py-2 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all">
               Connect Google Account
             </button>
@@ -163,3 +209,4 @@ const MultiAccountManager = () => {
 };
 
 export default MultiAccountManager;
+
