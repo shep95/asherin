@@ -883,12 +883,15 @@ Deno.serve(async (req) => {
   const unprobed = harvest.filter((l) => !probedUrls.has(l.url));
 
   if (searchMode) {
-    const anomalyByEntity = new Map<string, number>();
+    const anomalyByEntity = new Map<string, typeof index.anomalies>();
     for (const a of index.anomalies) {
-      if (a.entity_id) anomalyByEntity.set(a.entity_id, (anomalyByEntity.get(a.entity_id) ?? 0) + 1);
+      if (!a.entity_id) continue;
+      const bucket = anomalyByEntity.get(a.entity_id);
+      if (bucket) bucket.push(a);
+      else anomalyByEntity.set(a.entity_id, [a]);
     }
     results = records.map((r) =>
-      webResult(r, anomalyByEntity.get(r.entity_id) ?? 0, leadByUrl.get(r.url))
+      webResult(r, anomalyByEntity.get(r.entity_id) ?? [], leadByUrl.get(r.url))
     );
     results = [...results, ...unprobed.map(leadResult)];
 
@@ -901,7 +904,48 @@ Deno.serve(async (req) => {
         if (!(e instanceof SelectorError)) console.error("[ghost-engine] buffer fold failed:", (e as Error).message);
       }
     }
-    results.sort((a, b) => b.score - a.score);
+
+    // ── Cross-layer corroboration ─────────────────────────────────────────
+    // Two layers reaching the same URL independently — the shelf remembers it,
+    // the live probe just found it again — is the single strongest confirmation
+    // this engine produces. It used to be *invisible*: the buffer row was pinned
+    // to the top and the web row sat somewhere below it, and the operator read
+    // them as two near-duplicate lines rather than as one corroborated finding.
+    // They are now merged into one row carrying both layers, both bodies of
+    // evidence, and a rank that reflects the agreement.
+    const byUrl = new Map<string, SearchResult>();
+    const merged: SearchResult[] = [];
+    for (const r of results) {
+      const key = r.url.replace(/[#?].*$/, "").replace(/\/+$/, "");
+      const prior = byUrl.get(key);
+      if (!prior) { byUrl.set(key, r); merged.push(r); continue; }
+      // A lead is a promise of a page; a probed shell or a retained body is the
+      // page. A lead never survives a merge against either.
+      const keep = prior.source === "lead" ? r : r.source === "lead" ? prior : prior;
+      const drop = keep === prior ? r : prior;
+      if (drop.source !== "lead" && keep.source !== drop.source) {
+        keep.layers = [...new Set([...(keep.layers ?? []), ...(drop.layers ?? [])])] as ("web" | "buffer")[];
+        keep.badges = [...new Set([...keep.badges, ...drop.badges])];
+        // Corroboration is a multiplier on the stronger of the two reads, not a
+        // sum — the same document seen twice is one document, seen well.
+        keep.score = Math.min(100, Math.round(Math.max(keep.score, drop.score) * 1.35) + 6);
+        keep.rank_basis = `corroborated across live probe and retained body · ${keep.rank_basis ?? ""}`.trim();
+        keep.session_id = keep.session_id ?? drop.session_id;
+        keep.entity_id = keep.entity_id ?? drop.entity_id;
+        if (!keep.anomalies?.length && drop.anomalies?.length) keep.anomalies = drop.anomalies;
+      }
+      if (keep !== prior) {
+        merged[merged.indexOf(prior)] = keep;
+        byUrl.set(key, keep);
+      }
+    }
+    results = merged;
+
+    results.sort((a, b) =>
+      b.score - a.score ||
+      (b.layers?.length ?? 1) - (a.layers?.length ?? 1) ||
+      (b.anomaly_weight ?? 0) - (a.anomaly_weight ?? 0)
+    );
     suggestions = suggestFromFacets(index.facets);
   }
 
