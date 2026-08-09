@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { buildVedicContext, vedicContextAsPromptBlock } from "../_shared/vedicContext.ts";
 import { nexusPrimeCore, AXRLEN_SPECIFICITY_ADDENDUM } from "../_shared/axrlenSystemPrompt.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
@@ -166,22 +165,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { region = "global", predictionType = "comprehensive", sessionId, debugVedic } = await req.json();
+    const { region = "global", predictionType = "comprehensive", sessionId } = await req.json();
     const regionLower = region.toLowerCase();
     const regionInfo = REGION_MAP[regionLower] || REGION_MAP["global"];
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-
-    // Fast path — return only the computed Vedic snapshot (no news fetch, no AI).
-    // Used to verify Layer 1 ephemeris in isolation. Costs zero AI credits.
-    if (debugVedic) {
-      const ctx = buildVedicContext(regionInfo.code);
-      return new Response(JSON.stringify({
-        ok: true,
-        vedicContext: ctx,
-        promptBlock: vedicContextAsPromptBlock(ctx),
-      }, null, 2), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
 
     // ── Parallel news intelligence gathering ──────────────────────────
     const [
@@ -247,18 +234,9 @@ serve(async (req) => {
       // Wikipedia current events summary
       wikiCurrentEvents: wikiEvents?.slice(0, 3000) || null,
 
-      // ── VEDIC MUNDANE CONTEXT (Layer 1 — real ephemeris, computed here) ──
-      // Sidereal Lahiri positions of the 9 grahas, world Vimshottari dasha
-      // from the most recent Mesha Sankranti, and per-country impact scoring.
-      // Injected into the prompt so Gemini reasons on real data, not hallucinated timing.
-      vedicContext: (() => {
-        try { return buildVedicContext(regionInfo.code); }
-        catch (e) { console.error("vedic context failed:", e); return null; }
-      })(),
-
       // Source metadata
       fetchedAt: new Date().toISOString(),
-      sourceTypes: ["GDELT Global News (250M+ articles)", "GDELT TV Broadcast Monitoring", "GDELT Tone & Sentiment", "GDELT Geographic Intelligence", "Wikipedia Current Events", "Vedic Mundane Ephemeris (Lahiri sidereal)"],
+      sourceTypes: ["GDELT Global News (250M+ articles)", "GDELT TV Broadcast Monitoring", "GDELT Tone & Sentiment", "GDELT Geographic Intelligence", "Wikipedia Current Events"],
     };
 
     const sourceCount = [
@@ -298,7 +276,7 @@ Return VALID JSON with this exact structure:
   "predictions": [
     {
       "id": "pred_1",
-      "category": "security|economic|political|humanitarian|environmental|technological|esoteric",
+      "category": "security|economic|political|humanitarian|environmental|technological|informational",
       "title": "string",
       "description": "string (detailed multi-domain analysis citing specific news sources)",
       "probability": number,
@@ -309,12 +287,12 @@ Return VALID JSON with this exact structure:
       "newsSources": ["string array of outlets"],
       "mediaTone": "string",
       "historicalPrecedent": "string",
-      "esotericAnalysis": "string (Vedic timing, Vedha formations)",
-      "vedicTiming": "string (Mahadasha/Antar/Pratyantar + houses — quote EXACTLY from snapshot)",
+      "structuralAnalysis": "string (institutional, logistical and economic mechanics behind the call)",
+      "timingWindow": "string (the exact scheduled dates inside the horizon that drive the timing)",
       "warStrategy": "string",
       "temporalMultiplier": "string (1x/10x/50x/100x with justification)",
-      "archetypeDriver": "string (Demiurgic/Luciferian/Monadic)",
-      "consciousnessField": "string",
+      "actorIncentive": "string (what the named actor gains or loses, and why they move)",
+      "publicSentiment": "string (measured opinion / narrative state, with source)",
       "recommendedAction": "string"
     }
   ],
@@ -325,10 +303,10 @@ Return VALID JSON with this exact structure:
   "threatAssessment": {
     "overallThreatLevel": "critical|elevated|guarded|low",
     "vectors": [{
-      "type": "military|cyber|economic|social|environmental|esoteric|vedic",
+      "type": "military|cyber|economic|social|environmental|political|informational",
       "description": "string", "probability": number, "timeToImpact": "string",
       "mitigationOptions": ["string"], "keyNewsSources": ["string"],
-      "archetypeDriver": "string", "vedicIndicator": "string"
+      "actorIncentive": "string", "leadingIndicator": "string"
     }]
   },
   "narrativeAnalysis": {
@@ -345,35 +323,29 @@ Return VALID JSON with this exact structure:
     "branchA": { "description": "string", "probability": number },
     "branchB": { "description": "string", "probability": number },
     "criticalDate": "string", "keyIndicators": ["string"],
-    "esotericTrigger": "string", "vedicWindow": "string"
+    "structuralTrigger": "string", "decisionWindow": "string"
   }],
   "executiveSummary": "string (3-4 paragraphs)",
   "confidenceScore": number,
   "dataSources": { "total": number, "verified": number, "categories": ["string"], "topOutlets": ["string"] }
 }`;
 
-    const vedicBlock = dataContext.vedicContext
-      ? vedicContextAsPromptBlock(dataContext.vedicContext)
-      : "(vedic context unavailable this run — do NOT fabricate dasha lords or transit positions)";
-
     const userPrompt = `Analyze the following LIVE INTELLIGENCE for region: ${region} (${regionInfo.code})
 Prediction type: ${predictionType}
 Today's date: ${today}
 News sources active: ${sourceCount}
 
-${vedicBlock}
-
 === LIVE NEWS INTELLIGENCE FEED ===
-${JSON.stringify({ ...dataContext, vedicContext: undefined }, null, 2)}
+${JSON.stringify(dataContext, null, 2)}
 
 Generate a comprehensive NEXUS-PRIME prediction report. FUSE ALL 30+ domains through the 4-layer architecture:
 
 LAYER 0 (News Intelligence): Ground EVERY prediction in the live news data above. Cite specific headlines, outlets, and dates.
-LAYER 1 (Temporal/Vedic): USE THE COMPUTED VEDIC MUNDANE SNAPSHOT ABOVE. The active Mahadasha, Antardasha, Pratyantardasha, and every transit position listed are AUTHORITATIVE — quote them verbatim in vedicTiming/esotericAnalysis. Do NOT invent alternate dasha lords or planetary positions. Cross-validate with Sanghatta / Sarvatobhadra / Shoola / Nakshatra reasoning built on those exact positions.
-LAYER 2 (Pattern Synthesis): Cross-reference occultism, history, religion, war strategy, philosophy, geopolitics, game theory.
-LAYER 3 (Probability Weighting): Apply domain weight × signal strength × temporal multiplier. The Top Affected Nations table already ranks countries by malefic/benefic transit weight — use it as a base rate.
+LAYER 1 (Empirical Timing): Use the real scheduled calendar inside the horizon — elections, central-bank meetings, budget/treaty deadlines, expiries, harvest and mobilisation windows. Name exact dates. Do NOT use astrology, numerology or any occult timing framework.
+LAYER 2 (Pattern Synthesis): Cross-reference base rates, history, ideology as a political variable, war strategy, philosophy, geopolitics, game theory.
+LAYER 3 (Probability Weighting): Apply domain weight × signal strength × temporal multiplier. Anchor to the historical base rate for the reference class, then justify every departure from it.
 
-CRITICAL: Name specific news outlets and cite specific dates. Every Vedic claim must reference the exact lords/houses/dates supplied above. If the snapshot shows Mahadasha=X, do not write about Mahadasha=Y.`;
+CRITICAL: Name specific news outlets and cite specific dates. Every claim must be traceable to the evidence above or to a stated historical base rate. Never fabricate a source or a statistic.`;
 
     let rawText = "{}";
     let geminiFailed = false;

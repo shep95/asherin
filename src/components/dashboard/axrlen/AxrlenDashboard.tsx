@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Shield, Zap, GitBranch, AlertTriangle, Globe, BarChart3, ChevronRight,
-  Copy, Check, Download, Eye, Orbit, Brain, FileText, Activity, Layers,
+  Copy, Check, Download, CalendarClock, Brain, FileText, Activity, Layers,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { AxrlenSession } from "./AxrlenView";
@@ -113,12 +113,12 @@ const AxrlenDashboard = ({ session }: Props) => {
       lines.push(`\n${i + 1}. [${p.severity?.toUpperCase()}] ${p.title}`);
       lines.push(`   Category: ${p.category} | Probability: ${p.probability}% | Timeframe: ${p.timeframe}`);
       lines.push(`   ${p.description}`);
-      if (p.vedicTiming) lines.push(`   Vedic Timing: ${p.vedicTiming}`);
+      if (p.timingWindow) lines.push(`   Timing Window: ${p.timingWindow}`);
       if (p.temporalMultiplier) lines.push(`   Temporal Multiplier: ${p.temporalMultiplier}`);
-      if (p.esotericAnalysis) lines.push(`   Esoteric: ${p.esotericAnalysis}`);
-      if (p.archetypeDriver) lines.push(`   Archetype: ${p.archetypeDriver}`);
+      if (p.structuralAnalysis) lines.push(`   Structural Analysis: ${p.structuralAnalysis}`);
+      if (p.actorIncentive) lines.push(`   Actor Incentive: ${p.actorIncentive}`);
       if (p.warStrategy) lines.push(`   War Strategy: ${p.warStrategy}`);
-      if (p.consciousnessField) lines.push(`   Consciousness Field: ${p.consciousnessField}`);
+      if (p.publicSentiment) lines.push(`   Public Sentiment: ${p.publicSentiment}`);
       if (p.recommendedAction) lines.push(`   Action: ${p.recommendedAction}`);
       if (p.dataPoints?.length) lines.push(`   Evidence: ${p.dataPoints.join("; ")}`);
     });
@@ -269,12 +269,12 @@ const AxrlenDashboard = ({ session }: Props) => {
                     {open && (
                       <div className="px-3 pb-3 pt-1 space-y-2 border-t border-border/[0.05]">
                         <Field label="Analysis" text={p.description} />
-                        {p.vedicTiming && <Field label="Vedic Timing Grid" text={p.vedicTiming} icon={Orbit} />}
+                        {p.timingWindow && <Field label="Timing Window" text={p.timingWindow} icon={CalendarClock} />}
                         {p.temporalMultiplier && <Field label="Temporal Multiplier" text={p.temporalMultiplier} tone="text-amber-300/70" />}
-                        {p.esotericAnalysis && <Field label="Esoteric Analysis" text={p.esotericAnalysis} icon={Eye} italic />}
-                        {p.archetypeDriver && <Field label="Archetype Driver" text={p.archetypeDriver} />}
+                        {p.structuralAnalysis && <Field label="Structural Analysis" text={p.structuralAnalysis} icon={Layers} />}
+                        {p.actorIncentive && <Field label="Actor Incentive" text={p.actorIncentive} />}
                         {p.warStrategy && <Field label="War Strategy" text={p.warStrategy} />}
-                        {p.consciousnessField && <Field label="Consciousness Field" text={p.consciousnessField} icon={Brain} />}
+                        {p.publicSentiment && <Field label="Public Sentiment" text={p.publicSentiment} icon={Brain} />}
                         {p.historicalPrecedent && <Field label="Historical Precedent" text={p.historicalPrecedent} />}
                         {p.dataPoints?.length > 0 && (
                           <div>
@@ -323,8 +323,8 @@ const AxrlenDashboard = ({ session }: Props) => {
                     <span className="text-[8px] text-muted-foreground/40 shrink-0">{v.timeToImpact}</span>
                   </div>
                   <p className="text-[9px] text-foreground/60 leading-relaxed">{v.description}</p>
-                  {v.archetypeDriver && <p className="text-[8px] text-foreground/45 italic">⊛ {v.archetypeDriver}</p>}
-                  {v.vedicIndicator && <p className="text-[8px] text-amber-300/55 italic">☉ {v.vedicIndicator}</p>}
+                  {v.actorIncentive && <p className="text-[8px] text-foreground/45 italic">◈ {v.actorIncentive}</p>}
+                  {v.leadingIndicator && <p className="text-[8px] text-amber-300/55 italic">▲ {v.leadingIndicator}</p>}
                   {v.mitigationOptions?.length > 0 && (
                     <ul className="space-y-0.5 pt-1">
                       {v.mitigationOptions.map((m: string, j: number) => (
@@ -378,12 +378,12 @@ const AxrlenDashboard = ({ session }: Props) => {
                     <p className="text-[10px] font-medium text-foreground/75 leading-snug">{d.inflectionPoint}</p>
                   </div>
                   {d.criticalDate && <p className="text-[8px] text-muted-foreground/45">Critical: {d.criticalDate}</p>}
-                  {d.vedicWindow && (
+                  {d.decisionWindow && (
                     <p className="text-[8px] text-amber-300/55 italic flex items-center gap-1">
-                      <Orbit className="h-2.5 w-2.5" /> {d.vedicWindow}
+                      <CalendarClock className="h-2.5 w-2.5" /> {d.decisionWindow}
                     </p>
                   )}
-                  {d.esotericTrigger && <p className="text-[8px] text-foreground/45 italic">⊛ {d.esotericTrigger}</p>}
+                  {d.structuralTrigger && <p className="text-[8px] text-foreground/45 italic">◈ {d.structuralTrigger}</p>}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="relative p-3 rounded-lg border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.04] to-transparent overflow-hidden">
                       <div className="flex items-baseline justify-between mb-1">
