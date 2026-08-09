@@ -728,7 +728,9 @@ const BluetoothSentinel = () => {
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm">Alert after repeat encounters</Label>
-              <p className="text-[11px] text-muted-foreground">Separate scan sessions, across at least two days or two places.</p>
+              <p className="text-[11px] text-muted-foreground">
+                Separate encounters with the same unknown radio inside the window below.
+              </p>
             </div>
             <input
               type="number" min={2} max={20} value={settings.recurrence_threshold}
@@ -736,6 +738,20 @@ const BluetoothSentinel = () => {
               className="w-16 rounded border border-border bg-background px-2 py-1 text-sm"
             />
           </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Recurrence window (hours)</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Hit the threshold inside this many hours and you are alerted that something may be following you.
+              </p>
+            </div>
+            <input
+              type="number" min={1} max={168} value={settings.recurrence_window_hours}
+              onChange={(e) => saveSettings({ recurrence_window_hours: Number(e.target.value) })}
+              className="w-16 rounded border border-border bg-background px-2 py-1 text-sm"
+            />
+          </div>
+
           {[
             ["ignore_audio", "Ignore headphones & speakers", "Audio accessories repeat constantly and carry no stalking signal. Still logged."],
             ["geo_enabled", "Area risk alerts", "Assess the neighbourhood you enter against reported crime and documented activity."],
