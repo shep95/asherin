@@ -189,6 +189,52 @@ export function invalidateSentinelSettings() {
 }
 
 // ── Radio leg ────────────────────────────────────────────────────────────────
+//
+// DUTY CYCLE (native only). Holding the radio open for hours is the fastest way
+// to get a safety app uninstalled, and it buys nothing: a follower who is near
+// you for ten seconds out of every minute is still caught, because a strike
+// only counts once every five minutes anyway. So the native scan breathes —
+// 10 s on, then a gap that shortens while the user is actually moving. The web
+// path is not duty-cycled: it only ever runs while a tab is in the foreground,
+// which is already its own hard limit.
+
+const DUTY_ON_MS = 10_000;
+const DUTY_IDLE_GAP_MS = 60_000;
+const DUTY_MOVING_GAP_MS = 20_000;
+/** Displacement that counts as motion, and how long motion stays "recent". */
+const MOTION_M = 40;
+const MOTION_TTL_MS = 5 * 60_000;
+
+let dutyTimer: number | null = null;
+/** True while the radio is deliberately off between bursts — the watchdog must
+ *  not read this as a crashed scan and restart it. */
+let dutyResting = false;
+let lastMoveAt = 0;
+let lastMovePos: { lat: number; lng: number } | null = null;
+
+const inMotion = () => Date.now() - lastMoveAt < MOTION_TTL_MS;
+
+function clearDuty() {
+  if (dutyTimer != null) { clearTimeout(dutyTimer); dutyTimer = null; }
+  dutyResting = false;
+}
+
+function scheduleDuty() {
+  if (dutyTimer != null) clearTimeout(dutyTimer);
+  dutyTimer = window.setTimeout(async () => {
+    dutyTimer = null;
+    if (!bleEnabled || !state.armed) return;
+    try { await handle?.stop(); } catch { /* already down */ }
+    handle = null;
+    dutyResting = true;
+    emit({ scanning: false });
+    dutyTimer = window.setTimeout(() => {
+      dutyTimer = null;
+      dutyResting = false;
+      void startRadio();
+    }, inMotion() ? DUTY_MOVING_GAP_MS : DUTY_IDLE_GAP_MS);
+  }, DUTY_ON_MS);
+}
 
 function onAdvert(a: RawAdvert) {
   // Strongest sample per radio per window: closest approach is the fact that
@@ -203,7 +249,7 @@ function onAdvert(a: RawAdvert) {
 async function startRadio(): Promise<void> {
   if (handle || !bleEnabled) return;
   const now = Date.now();
-  if (now - lastRadioAttempt < RETRY_MS) return;
+  if (now - lastRadioAttempt < RETRY_MS && !dutyResting) return;
   lastRadioAttempt = now;
   const mode = detectScanMode();
   if (mode === "unsupported" || mode === "picker") {
@@ -218,11 +264,14 @@ async function startRadio(): Promise<void> {
   }
   try {
     handle = await startScan(onAdvert);
+    dutyResting = false;
     emit({ mode, scanning: true, blocked: null });
+    if (mode === "native") scheduleDuty();
   } catch (e) {
     // A denied or gesture-required permission is expected on first web load.
     // Stay armed, keep the area leg alive, and retry on every visibility return.
     handle = null;
+    clearDuty();
     emit({
       mode,
       scanning: false,
@@ -234,10 +283,12 @@ async function startRadio(): Promise<void> {
 }
 
 async function stopRadio(): Promise<void> {
+  clearDuty();
   try { await handle?.stop(); } catch { /* noop */ }
   handle = null;
   emit({ scanning: false });
 }
+
 
 // ── Position leg ─────────────────────────────────────────────────────────────
 //
@@ -292,6 +343,12 @@ function armDwell() {
 }
 
 function onFix(next: { lat: number; lng: number; accuracy?: number }) {
+  // Motion state drives the radio duty cycle: a moving user is the one who can
+  // actually be followed, so the gaps between bursts shorten.
+  if (!lastMovePos || metersBetween(lastMovePos, next) > MOTION_M) {
+    lastMovePos = { lat: next.lat, lng: next.lng };
+    lastMoveAt = Date.now();
+  }
   if (!anchor || metersBetween(anchor, next) > ARRIVAL_RADIUS_M) {
     anchor = { lat: next.lat, lng: next.lng };
     anchorAt = Date.now();
@@ -615,7 +672,9 @@ async function watchdog(): Promise<void> {
   if (typeof document !== "undefined" && document.visibilityState === "visible") await requestWake();
   if (geoEnabled && geoWatchId == null) startGeo();
   if (!geoEnabled && geoWatchId != null) stopGeo();
-  if (bleEnabled && !handle) await startRadio();
+  // dutyResting means the radio is off on purpose between bursts — restarting
+  // it here would defeat the duty cycle and drain the battery it protects.
+  if (bleEnabled && !handle && !dutyResting) await startRadio();
   if (!bleEnabled && handle) await stopRadio();
   if (flushTimer == null) flushTimer = window.setInterval(() => { void flushSentinel(true); }, FLUSH_MS);
   if (areaTimer == null && geoEnabled) areaTimer = window.setInterval(() => { void checkAreaNow(true); }, AREA_MS);

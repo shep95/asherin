@@ -23,6 +23,8 @@ import { notifyIntel } from "../_shared/intelNotify.ts";
 import {
   fingerprint, classifyKind, displayNameFor, estimateDistance, metersToFeet,
   placeKey, assessRecurrence, inferSelf, parseJsonLoose, reverseGeocode,
+  countStrikes, maxSeparationMeters, isInfrastructure,
+  DEFAULT_WINDOW_HOURS, MIN_STRIKE_RSSI, RAPID_WINDOW_MIN, ALERT_COOLDOWN_MIN, STRIKE_GAP_MIN,
   BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
   type AdvertInput, type DeviceKind,
 } from "../_shared/bleSentinel.ts";
@@ -44,9 +46,9 @@ const json = (b: unknown, s: number, cors: Record<string, string>) =>
 
 const DEFAULT_SETTINGS = {
   recurrence_threshold: 3,
-  recurrence_window_hours: 12,
+  recurrence_window_hours: 2,
   ignore_audio: true,
-  min_rssi: -95,
+  min_rssi: -80,
   ble_enabled: true,
   geo_enabled: true,
   push_enabled: true,
@@ -133,37 +135,53 @@ async function buildDeviceDossier(row: any, cfg: any, tradecraftBrief?: string) 
   return parsed as Record<string, any>;
 }
 
-async function alertDevice(userId: string, userEmail: string | null, row: any, verdict: any, dossier: Record<string, any>, settings: any) {
+async function alertDevice(userId: string, userEmail: string | null, row: any, verdict: any, dossier: Record<string, any>, settings: any, stillFollowing = false) {
   const closest = row.closest_distance_m != null ? Number(row.closest_distance_m) : null;
+  const critical = verdict.tier === "breach";
   await notifyIntel({
     userId,
     userEmail,
     kind: "sentinel",
-    severity: verdict.tier === "breach" ? "critical" : "notable",
-    title: `Recurring nearby device — ${row.display_name}`,
-    body: String(dossier.assessment || verdict.reason),
+    severity: critical ? "critical" : "notable",
+    title: stillFollowing
+      ? `Still near you — ${row.display_name}`
+      : `Possible stalking alert — ${row.display_name}`,
+    body: stillFollowing
+      ? `This radio is still with you after the last alert. ${verdict.reason}`
+      : String(dossier.assessment || verdict.reason),
     subjectName: row.display_name,
     source: "Bluetooth Sentinel",
     url: `/dashboard?tab=cloud-intel&module=sentinel&device=${row.id}`,
     sections: [
       { label: "Pattern", value: verdict.reason },
+      {
+        label: "Severity",
+        value: critical
+          ? verdict.escalation === "location_variance"
+            ? "CRITICAL — followed across separate locations"
+            : verdict.escalation === "rapid_recurrence"
+            ? "CRITICAL — repeat encounters inside 30 minutes"
+            : "CRITICAL"
+          : "WARNING",
+      },
       { label: "Closest approach", value: closest != null ? `${closest} m (~${metersToFeet(closest)} ft)` : "not measurable" },
       { label: "Hardware class", value: String(dossier.device_class || row.inferred_kind) },
       { label: "Confidence", value: `${String(dossier.grade || "THIN")}` },
     ],
     findings: Array.isArray(dossier.actions) ? dossier.actions.map(String) : [],
-    idempotencyKey: `sentinel:ble:${row.id}:${row.encounter_count}`,
+    idempotencyKey: `sentinel:ble:${row.id}:${row.alert_count ?? 0}`,
     skipPush: !settings.push_enabled,
     skipEmail: !settings.email_enabled,
   });
 }
 
+
 // ── Aggregate recompute for one device ─────────────────────────────────────
 
-async function recompute(deviceId: string, totalSessions: number, windowHours = 12) {
+async function recompute(deviceId: string, totalSessions: number, windowHours = DEFAULT_WINDOW_HOURS, strikeRssi = MIN_STRIKE_RSSI) {
   const { data } = await admin()
     .from("ble_sightings")
-    .select("session_id, seen_at, place_key, distance_m, rssi")
+    .select("session_id, seen_at, place_key, distance_m, rssi, lat, lng")
     .eq("device_id", deviceId)
     .order("seen_at", { ascending: false })
     .limit(2000);
@@ -174,11 +192,15 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
   let closest: number | null = null;
   const rssis: number[] = [];
 
-  // Rolling-window state: "near me N separate times in the last X hours".
+  // Rolling-window state. A "strike" is a sighting at or above the signal floor
+  // that is at least STRIKE_GAP_MIN from the previously counted one — session
+  // ids cannot be used here, because one continuous foreground watch is a
+  // single session that may span hours of genuinely separate encounters.
   const cutoff = Date.now() - windowHours * 3_600_000;
-  const windowSessions = new Set<string>();
+  const rapidCutoff = Date.now() - RAPID_WINDOW_MIN * 60_000;
   const windowPlaces = new Set<string>();
-  let winFirst = Infinity, winLast = -Infinity, winClosest: number | null = null;
+  const candidates: Array<{ t: number; lat: number | null; lng: number | null; d: number | null }> = [];
+  let winClosest: number | null = null;
 
   for (const r of rows) {
     if (r.session_id) sessions.add(r.session_id);
@@ -191,16 +213,25 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
     if (typeof r.rssi === "number") rssis.push(r.rssi);
 
     const t = r.seen_at ? Date.parse(String(r.seen_at)) : NaN;
-    if (Number.isFinite(t) && t >= cutoff) {
-      // A sighting without a session id still counts as its own encounter,
-      // keyed by minute so a burst never inflates the count.
-      windowSessions.add(r.session_id || `t:${Math.floor(t / 60_000)}`);
-      if (r.place_key) windowPlaces.add(r.place_key);
-      if (t < winFirst) winFirst = t;
-      if (t > winLast) winLast = t;
-      if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
-    }
+    if (!Number.isFinite(t) || t < cutoff) continue;
+    // R5 — a sample weaker than the floor is history, not evidence.
+    if (typeof r.rssi === "number" && r.rssi < strikeRssi) continue;
+    if (r.place_key) windowPlaces.add(r.place_key);
+    if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
+    candidates.push({
+      t,
+      lat: typeof r.lat === "number" ? r.lat : null,
+      lng: typeof r.lng === "number" ? r.lng : null,
+      d,
+    });
   }
+
+  const strikeTimes = countStrikes(candidates.map((c) => c.t));
+  const strikeSet = new Set(strikeTimes);
+  const strikePoints = candidates
+    .filter((c) => strikeSet.has(c.t) && c.lat != null && c.lng != null)
+    .map((c) => ({ lat: c.lat as number, lng: c.lng as number }));
+
   rssis.sort((a, b) => a - b);
   const median = rssis.length ? rssis[Math.floor(rssis.length / 2)] : null;
   return {
@@ -211,14 +242,17 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
     closest_distance_m: closest,
     presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
     median_rssi: median,
-    window_encounters: windowSessions.size,
+    window_strikes: strikeTimes.length,
+    rapid_strikes: strikeTimes.filter((t) => t >= rapidCutoff).length,
     window_places: windowPlaces.size,
     window_closest_m: winClosest,
-    window_span_minutes: Number.isFinite(winFirst) && Number.isFinite(winLast)
-      ? Math.round((winLast - winFirst) / 60_000)
+    spread_meters: maxSeparationMeters(strikePoints),
+    window_span_minutes: strikeTimes.length > 1
+      ? Math.round((strikeTimes[strikeTimes.length - 1] - strikeTimes[0]) / 60_000)
       : 0,
   };
 }
+
 
 
 // ── Tradecraft: behavioural read across the whole log ──────────────────────
@@ -282,7 +316,10 @@ Deno.serve(async (req) => {
       // ── Ingest one scan session ─────────────────────────────────────────
       case "ble.ingest": {
         const settings = await loadSettings(userId);
-        const windowHours = Math.min(168, Math.max(1, Number(settings.recurrence_window_hours) || 12));
+        const windowHours = Math.min(168, Math.max(0.5, Number(settings.recurrence_window_hours) || DEFAULT_WINDOW_HOURS));
+        // R5 — the configured floor decides what counts as a STRIKE; everything
+        // above the hard radio floor is still logged so the history stays honest.
+        const strikeRssi = Number.isFinite(Number(settings.min_rssi)) ? Number(settings.min_rssi) : MIN_STRIKE_RSSI;
         const sessionId = String(body.sessionId || "").slice(0, 64);
         if (!sessionId) return json({ error: "session_required" }, 400, cors);
         const scannerLabel = String(body.scannerLabel || "device").slice(0, 60);
@@ -295,7 +332,7 @@ Deno.serve(async (req) => {
 
         const touched: string[] = [];
         for (const a of adverts) {
-          if (typeof a?.rssi === "number" && a.rssi < settings.min_rssi) continue;
+          if (typeof a?.rssi === "number" && a.rssi < -100) continue;
           const fp = await fingerprint(a);
           const uuids = Array.isArray(a.serviceUuids) ? a.serviceUuids.slice(0, 12).map(String) : [];
           const kind: DeviceKind = classifyKind(a.name ?? null, a.manufacturer ?? null, uuids);
@@ -323,8 +360,10 @@ Deno.serve(async (req) => {
             seen_at: new Date(a.ts || Date.now()).toISOString(),
             rssi: typeof a.rssi === "number" ? Math.round(a.rssi) : null,
             distance_m: dist,
-            lat: typeof a.lat === "number" ? a.lat : null,
-            lng: typeof a.lng === "number" ? a.lng : null,
+            // R9 — coordinates are stored at ~100 m precision. The product never
+            // needs a metre-accurate movement log of its own user.
+            lat: typeof a.lat === "number" ? Math.round(a.lat * 1000) / 1000 : null,
+            lng: typeof a.lng === "number" ? Math.round(a.lng * 1000) / 1000 : null,
             accuracy_m: typeof a.accuracy === "number" ? a.accuracy : null,
             place_key: pk,
             scanner_label: scannerLabel,
@@ -338,7 +377,7 @@ Deno.serve(async (req) => {
         let dossiersBuilt = 0;
         let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
-          const agg = await recompute(id, totalSessions, windowHours);
+          const agg = await recompute(id, totalSessions, windowHours, strikeRssi);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
           if (!row) continue;
 
@@ -355,9 +394,12 @@ Deno.serve(async (req) => {
             closestMeters: agg.window_closest_m ?? agg.closest_distance_m,
             threshold: settings.recurrence_threshold,
             ignoreAudio: settings.ignore_audio,
-            windowEncounters: agg.window_encounters,
+            windowStrikes: agg.window_strikes,
+            rapidStrikes: agg.rapid_strikes,
+            spreadMeters: agg.spread_meters,
             windowHours,
             windowSpanMinutes: agg.window_span_minutes,
+            isInfrastructure: isInfrastructure(row.manufacturer ?? null, row.raw_name ?? null, row.inferred_kind as DeviceKind),
           });
 
           const patch: Record<string, unknown> = {
@@ -372,45 +414,54 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          // Re-alert when the window doctrine fires again after a full cooldown,
-          // or when the all-time pattern deepens. Never on every ping.
+          // R10 — one alert per device, then silence for the cooldown. After the
+          // cooldown, if the radio is still striking, re-alert with escalated
+          // copy rather than repeating the original notice.
           const lastAlertMs = row.last_alert_at ? Date.parse(String(row.last_alert_at)) : NaN;
-          const cooledDown = !Number.isFinite(lastAlertMs) ||
-            Date.now() - lastAlertMs >= windowHours * 3_600_000;
-          const escalated = verdict.shouldAlert &&
-            (cooledDown ||
-              agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+          const firstAlert = !Number.isFinite(lastAlertMs);
+          const cooledDown = firstAlert || Date.now() - lastAlertMs >= ALERT_COOLDOWN_MIN * 60_000;
+          const escalated = verdict.shouldAlert && cooledDown;
+          const stillFollowing = escalated && !firstAlert;
 
 
-          if (escalated && dossiersBuilt < 1) {
-            let key;
-            try { key = await resolveKey(req, body.byok); } catch { key = null; }
-            if (key) {
-              const merged = { ...row, ...patch };
-              // Behavioural read, computed once per ingest and only when an
-              // alert is actually being raised.
-              tcCache ??= await loadTradecraft(userId).catch(() => null);
-              const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
-              const dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch((e) => ({
-                headline: `${row.display_name} — dossier build failed`,
-                grade: "THIN",
-                assessment: `Recurrence confirmed: ${verdict.reason} Open-source enrichment failed (${(e as Error).message?.slice(0, 100)}).`,
-                actions: ["Run your phone's built-in unwanted-tracker scan.", "Physically sweep bag, coat linings and vehicle wheel wells."],
-              }));
-              if (tcCache) {
-                (dossier as any).tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
-                (dossier as any).tradecraft_tier = tcCache.campaign.tier;
+          if (escalated) {
+            const merged = { ...row, ...patch };
+            // The dossier is enrichment. A safety alert must never depend on a
+            // model being reachable, so enrichment is attempted at most once per
+            // ingest and the alert fires either way.
+            let dossier: Record<string, any> = {
+              headline: `${row.display_name} — recurring nearby radio`,
+              grade: "THIN",
+              assessment: verdict.reason,
+              actions: [
+                "Run your phone's built-in unwanted-tracker scan.",
+                "Physically sweep bag, coat linings and vehicle wheel wells.",
+                "Change your route and see whether the same radio follows.",
+              ],
+            };
+            if (dossiersBuilt < 1) {
+              let key;
+              try { key = await resolveKey(req, body.byok); } catch { key = null; }
+              if (key) {
+                dossiersBuilt++;
+                tcCache ??= await loadTradecraft(userId).catch(() => null);
+                const brief = tcCache ? tradecraftBriefFor(id, tcCache.campaign) : undefined;
+                dossier = await buildDeviceDossier(merged, cfgFrom(key), brief).catch(() => dossier);
+                if (tcCache) {
+                  dossier.tradecraft = tcCache.campaign.indicators.filter((i) => i.deviceIds.includes(id));
+                  dossier.tradecraft_tier = tcCache.campaign.tier;
+                }
+                patch.dossier = dossier;
+                patch.dossier_at = new Date().toISOString();
               }
-              patch.dossier = dossier;
-              patch.dossier_at = new Date().toISOString();
-              patch.alert_count = (row.alert_count || 0) + 1;
-              patch.last_alert_at = new Date().toISOString();
-              dossiersBuilt++;
-              await alertDevice(userId, userEmail, { ...merged, ...patch }, verdict, dossier, settings).catch((e) =>
-                console.error("sentinel_alert_failed", e instanceof Error ? e.message : e));
-              alerts.push({ deviceId: id, name: row.display_name, tier: verdict.tier, reason: verdict.reason });
             }
+            patch.alert_count = (row.alert_count || 0) + 1;
+            patch.last_alert_at = new Date().toISOString();
+            await alertDevice(userId, userEmail, { ...merged, ...patch }, verdict, dossier, settings, stillFollowing).catch((e) =>
+              console.error("sentinel_alert_failed", e instanceof Error ? e.message : e));
+            alerts.push({ deviceId: id, name: row.display_name, tier: verdict.tier, reason: verdict.reason, stillFollowing });
           }
+
           await db.from("ble_devices").update(patch).eq("id", id);
         }
 
