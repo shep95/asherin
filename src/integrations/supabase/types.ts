@@ -9543,6 +9543,7 @@ export type Database = {
           min_rssi: number
           push_enabled: boolean
           recurrence_threshold: number
+          recurrence_window_hours: number
           updated_at: string
           user_id: string
         }
@@ -9554,6 +9555,7 @@ export type Database = {
           min_rssi?: number
           push_enabled?: boolean
           recurrence_threshold?: number
+          recurrence_window_hours?: number
           updated_at?: string
           user_id: string
         }
@@ -9565,6 +9567,7 @@ export type Database = {
           min_rssi?: number
           push_enabled?: boolean
           recurrence_threshold?: number
+          recurrence_window_hours?: number
           updated_at?: string
           user_id?: string
         }

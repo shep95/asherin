@@ -44,6 +44,7 @@ const json = (b: unknown, s: number, cors: Record<string, string>) =>
 
 const DEFAULT_SETTINGS = {
   recurrence_threshold: 3,
+  recurrence_window_hours: 12,
   ignore_audio: true,
   min_rssi: -95,
   ble_enabled: true,
@@ -159,7 +160,7 @@ async function alertDevice(userId: string, userEmail: string | null, row: any, v
 
 // ── Aggregate recompute for one device ─────────────────────────────────────
 
-async function recompute(deviceId: string, totalSessions: number) {
+async function recompute(deviceId: string, totalSessions: number, windowHours = 12) {
   const { data } = await admin()
     .from("ble_sightings")
     .select("session_id, seen_at, place_key, distance_m, rssi")
@@ -172,15 +173,33 @@ async function recompute(deviceId: string, totalSessions: number) {
   const places = new Set<string>();
   let closest: number | null = null;
   const rssis: number[] = [];
+
+  // Rolling-window state: "near me N separate times in the last X hours".
+  const cutoff = Date.now() - windowHours * 3_600_000;
+  const windowSessions = new Set<string>();
+  const windowPlaces = new Set<string>();
+  let winFirst = Infinity, winLast = -Infinity, winClosest: number | null = null;
+
   for (const r of rows) {
     if (r.session_id) sessions.add(r.session_id);
     if (r.seen_at) days.add(String(r.seen_at).slice(0, 10));
     if (r.place_key) places.add(r.place_key);
-    if (r.distance_m != null) {
-      const d = Number(r.distance_m);
+    const d = r.distance_m != null ? Number(r.distance_m) : null;
+    if (d != null && Number.isFinite(d)) {
       if (closest == null || d < closest) closest = d;
     }
     if (typeof r.rssi === "number") rssis.push(r.rssi);
+
+    const t = r.seen_at ? Date.parse(String(r.seen_at)) : NaN;
+    if (Number.isFinite(t) && t >= cutoff) {
+      // A sighting without a session id still counts as its own encounter,
+      // keyed by minute so a burst never inflates the count.
+      windowSessions.add(r.session_id || `t:${Math.floor(t / 60_000)}`);
+      if (r.place_key) windowPlaces.add(r.place_key);
+      if (t < winFirst) winFirst = t;
+      if (t > winLast) winLast = t;
+      if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
+    }
   }
   rssis.sort((a, b) => a - b);
   const median = rssis.length ? rssis[Math.floor(rssis.length / 2)] : null;
@@ -192,8 +211,15 @@ async function recompute(deviceId: string, totalSessions: number) {
     closest_distance_m: closest,
     presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
     median_rssi: median,
+    window_encounters: windowSessions.size,
+    window_places: windowPlaces.size,
+    window_closest_m: winClosest,
+    window_span_minutes: Number.isFinite(winFirst) && Number.isFinite(winLast)
+      ? Math.round((winLast - winFirst) / 60_000)
+      : 0,
   };
 }
+
 
 // ── Tradecraft: behavioural read across the whole log ──────────────────────
 //
@@ -244,6 +270,7 @@ Deno.serve(async (req) => {
         const p = (body.settings || {}) as Record<string, unknown>;
         const patch: Record<string, unknown> = { user_id: userId, updated_at: new Date().toISOString() };
         if (typeof p.recurrence_threshold === "number") patch.recurrence_threshold = Math.min(20, Math.max(2, Math.round(p.recurrence_threshold)));
+        if (typeof p.recurrence_window_hours === "number") patch.recurrence_window_hours = Math.min(168, Math.max(1, Math.round(p.recurrence_window_hours)));
         if (typeof p.min_rssi === "number") patch.min_rssi = Math.min(-30, Math.max(-110, Math.round(p.min_rssi)));
         for (const k of ["ignore_audio", "ble_enabled", "geo_enabled", "push_enabled", "email_enabled"]) {
           if (typeof p[k] === "boolean") patch[k] = p[k];
@@ -255,6 +282,7 @@ Deno.serve(async (req) => {
       // ── Ingest one scan session ─────────────────────────────────────────
       case "ble.ingest": {
         const settings = await loadSettings(userId);
+        const windowHours = Math.min(168, Math.max(1, Number(settings.recurrence_window_hours) || 12));
         const sessionId = String(body.sessionId || "").slice(0, 64);
         if (!sessionId) return json({ error: "session_required" }, 400, cors);
         const scannerLabel = String(body.scannerLabel || "device").slice(0, 60);
@@ -310,7 +338,7 @@ Deno.serve(async (req) => {
         let dossiersBuilt = 0;
         let tcCache: { campaign: TcCampaign; names: Record<string, string> } | null = null;
         for (const id of touched) {
-          const agg = await recompute(id, totalSessions);
+          const agg = await recompute(id, totalSessions, windowHours);
           const { data: row } = await db.from("ble_devices").select("*").eq("id", id).maybeSingle();
           if (!row) continue;
 
@@ -324,9 +352,12 @@ Deno.serve(async (req) => {
             kind: row.inferred_kind as DeviceKind,
             isSelf,
             isIgnored: row.is_ignored,
-            closestMeters: agg.closest_distance_m,
+            closestMeters: agg.window_closest_m ?? agg.closest_distance_m,
             threshold: settings.recurrence_threshold,
             ignoreAudio: settings.ignore_audio,
+            windowEncounters: agg.window_encounters,
+            windowHours,
+            windowSpanMinutes: agg.window_span_minutes,
           });
 
           const patch: Record<string, unknown> = {
@@ -341,9 +372,15 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          // Re-alert only when the pattern deepens, never on every ping.
+          // Re-alert when the window doctrine fires again after a full cooldown,
+          // or when the all-time pattern deepens. Never on every ping.
+          const lastAlertMs = row.last_alert_at ? Date.parse(String(row.last_alert_at)) : NaN;
+          const cooledDown = !Number.isFinite(lastAlertMs) ||
+            Date.now() - lastAlertMs >= windowHours * 3_600_000;
           const escalated = verdict.shouldAlert &&
-            (!row.last_alert_at || agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+            (cooledDown ||
+              agg.encounter_count >= (row.alert_count || 0) * 3 + settings.recurrence_threshold);
+
 
           if (escalated && dossiersBuilt < 1) {
             let key;

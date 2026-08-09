@@ -1,0 +1,1 @@
+ALTER TABLE public.sentinel_settings ADD COLUMN IF NOT EXISTS recurrence_window_hours integer NOT NULL DEFAULT 12;
