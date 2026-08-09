@@ -17,6 +17,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { recordArrival } from "../_shared/areaSentinel.ts";
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -93,13 +95,23 @@ Deno.serve(async (req) => {
         last_seen_at: nowIso,
         updated_at: nowIso,
       };
+      // A fix from the worker has to update the arrival latch too, not just the
+      // coordinates. Writing lat/lng while leaving place_key stale would let a
+      // user cross into a new cell with the tab closed and have the server
+      // still believe they never moved — the closed-tab version of the bug.
+      let arrivedNew = false;
       if (hasFix) {
-        patch.lat = lat;
-        patch.lng = lng;
-        patch.accuracy = Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null;
-        patch.fix_at = nowIso;
+        const st = await recordArrival(db, dev.user_id, lat, lng, {
+          accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null,
+          link_type: patch.link_type,
+          effective_type: patch.effective_type,
+          last_source: patch.last_source,
+        });
+        arrivedNew = st.arrived;
+      } else {
+        await db.from("sentinel_presence").upsert(patch, { onConflict: "user_id" });
       }
-      await db.from("sentinel_presence").upsert(patch, { onConflict: "user_id" });
+
       await db.from("sentinel_devices").update({ last_beacon_at: nowIso }).eq("id", dev.id);
 
       // ── Fleet row: keeps this device findable from the operator's other
@@ -150,12 +162,14 @@ Deno.serve(async (req) => {
 
       // A device that just reported a *new* position deserves an immediate
       // sweep rather than waiting out the interval — that is the whole point
-      // of a background heartbeat.
+      // of a background heartbeat. The server tick now runs every minute, so
+      // "due now" is due within the minute rather than within the quarter hour.
       if (hasFix) {
         await db.from("sentinel_cron_state")
           .upsert({ user_id: dev.user_id, next_due_at: nowIso }, { onConflict: "user_id" });
       }
-      return json({ ok: true, fix: hasFix }, 200, cors);
+      return json({ ok: true, fix: hasFix, arrived: arrivedNew }, 200, cors);
+
     }
 
     return json({ error: "unknown_action" }, 400, cors);

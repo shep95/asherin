@@ -62,6 +62,17 @@ export interface AreaArgs {
   maxFixAgeMs?: number;
   /** Shown in the alert footer so the user knows which leg raised it. */
   source?: string;
+  /**
+   * "fast" is the arrival path and is bound by a human deadline: the whole
+   * point is a warning that lands before the user has settled in. It takes one
+   * shot at the model on a short clock and, on miss, leaves the cell unjudged
+   * so the deep pass can retry — it must never bank an UNKNOWN, because a
+   * cached UNKNOWN mutes the cell for the next hour.
+   *
+   * "deep" is the unattended path with no one waiting, so it can afford the
+   * long timeout and the retry.
+   */
+  mode?: "fast" | "deep";
 }
 
 export interface AreaResult {
@@ -77,6 +88,7 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
     return { assessment: null, notified: false, reason: "invalid_coordinates" };
   }
+  const fast = args.mode === "fast";
   const pk = areaPlaceKey(lat, lng);
   const nowIso = new Date().toISOString();
 
@@ -86,24 +98,55 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
     if (!cfg) return { assessment: cached ?? null, notified: false, reason: "no_model_key" };
     const label = (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
     const research = await collectAreaEvidence(label);
-    const raw = await callByokJsonWithRetry(cfg as any, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
-      temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2,
-    });
-    const parsed = parseJsonLoose(raw);
-    const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
+    let parsed: Record<string, any> | null = null;
+    try {
+      const raw = await callByokJsonWithRetry(cfg as any, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
+        temperature: 0.15,
+        jsonMode: true,
+        // Do NOT trim the output budget on the arrival path. Latency here is
+        // dominated by research and time-to-first-token, not by length, and a
+        // short cap simply truncates the JSON mid-object — which the loose
+        // parser then salvages into an empty-but-valid verdict. That reads as
+        // "this place is fine" and is far worse than being slow.
+        maxOutputTokens: 4096,
+        // 90s x 2 attempts is three minutes of model time on its own — that
+        // alone blows an arrival budget. The arrival path gets one short shot.
+        timeoutMs: fast ? 45_000 : 90_000,
+        attempts: fast ? 1 : 2,
+      });
+      parsed = parseJsonLoose(raw);
+    } catch (e) {
+      console.error("[areaSentinel] model call failed", fast ? "fast" : "deep", e instanceof Error ? e.message : e);
+    }
+    const level = String(parsed?.risk_level || "").toUpperCase();
+    const summary = String(parsed?.summary || parsed?.headline || "").trim();
+    // A parse that yields no level AND no prose is a failed sweep wearing the
+    // shape of an answer. Banking it would cache silence over the cell and mute
+    // the very alert this path exists to deliver.
+    if (!parsed || (!RISK_LEVELS.includes(level) && !summary)) {
+      return {
+        assessment: cached ?? null,
+        notified: false,
+        reason: fast ? "fast_timeout" : "assessment_failed",
+      };
+    }
+
+    const finalLevel = RISK_LEVELS.includes(level) ? level : "UNKNOWN";
     const { data: saved } = await db.from("geo_risk_assessments").upsert({
       place_key: pk, lat, lng, place_label: label,
-      risk_level: RISK_LEVELS.includes(level) ? level : "UNKNOWN",
+      risk_level: finalLevel,
       risk_score: Number(parsed.risk_score) || 0,
-      summary: String(parsed.summary || parsed.headline || "").slice(0, 4000),
+      summary: summary.slice(0, 4000),
       payload: parsed,
       generated_at: nowIso,
       // An UNKNOWN verdict is a failed sweep, not a fact about the place —
       // expire it in an hour so one bad research pass cannot mute a whole week.
-      expires_at: new Date(Date.now() + (level === "UNKNOWN" ? 3600e3 : 7 * 864e5)).toISOString(),
+      expires_at: new Date(Date.now() + (finalLevel === "UNKNOWN" ? 3600e3 : 7 * 864e5)).toISOString(),
     }, { onConflict: "place_key" }).select("*").maybeSingle();
+
     cached = saved;
   }
+
 
   if (!cached) return { assessment: null, notified: false, reason: "assessment_failed" };
   if (!ALERTING.has(cached.risk_level)) return { assessment: cached, notified: false, reason: "not_alerting" };
@@ -145,3 +188,83 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
 
   return { assessment: cached, notified: true };
 }
+
+/**
+ * ARRIVAL DETECTION — the missing primitive.
+ *
+ * Everything upstream of this used to be a clock: re-judge wherever the user
+ * happens to be, every N minutes. A clock cannot meet an arrival deadline,
+ * because the clock has no idea the user arrived. This records the cell a user
+ * is standing in and reports the transition into a new one.
+ *
+ * Two things it deliberately does NOT do:
+ *  - It does not alert on first sight of a cell. Driving through a mile-wide
+ *    cell would otherwise fire an alert for every block of the route.
+ *  - It does not re-arm for a cell the user never left. `place_since` only
+ *    resets when the key actually changes, so dwell is measured from the true
+ *    moment of entry, not from the last beacon.
+ */
+export interface ArrivalState {
+  placeKey: string;
+  /** True on the fix that first lands in a new cell. */
+  arrived: boolean;
+  /** Milliseconds since the user entered this cell. */
+  dwellMs: number;
+  /** Dwell has cleared the drive-through guard and this cell was never judged. */
+  confirmed: boolean;
+}
+
+/** Dwell required before an arrival is treated as real presence rather than
+ *  transit. Sized to fit inside a three-minute end-to-end budget. */
+export const ARRIVAL_DWELL_MS = 90_000;
+
+export async function recordArrival(
+  db: SupabaseClient,
+  userId: string,
+  lat: number,
+  lng: number,
+  patch: Record<string, unknown> = {},
+): Promise<ArrivalState> {
+  const placeKey = areaPlaceKey(lat, lng);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  const { data: prev } = await db
+    .from("sentinel_presence")
+    .select("place_key, place_since, arrival_pending")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const arrived = !prev || prev.place_key !== placeKey;
+  const since = arrived ? now : Date.parse(prev?.place_since ?? nowIso) || now;
+  const dwellMs = Math.max(0, now - since);
+  // `arrival_pending` is the latch: set on entry, cleared once this cell has
+  // actually been assessed. Without it a slow first pass would be forgotten,
+  // because by the next fix `arrived` is already false.
+  const stillPending = arrived ? true : prev?.arrival_pending !== false;
+  const confirmed = stillPending && dwellMs >= ARRIVAL_DWELL_MS;
+
+  await db.from("sentinel_presence").upsert({
+    user_id: userId,
+    lat, lng,
+    place_key: placeKey,
+    place_since: new Date(since).toISOString(),
+    arrival_pending: stillPending,
+    fix_at: nowIso,
+    last_seen_at: nowIso,
+    updated_at: nowIso,
+    ...patch,
+  }, { onConflict: "user_id" });
+
+  return { placeKey, arrived, dwellMs, confirmed };
+}
+
+/** Clears the latch once a cell has been judged, so the arrival path stops
+ *  re-firing and hands the cell back to the routine interval. */
+export async function clearArrival(db: SupabaseClient, userId: string, placeKey: string): Promise<void> {
+  await db.from("sentinel_presence")
+    .update({ arrival_pending: false, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("place_key", placeKey);
+}
+

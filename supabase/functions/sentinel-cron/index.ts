@@ -28,7 +28,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { notifyIntel } from "../_shared/intelNotify.ts";
 import { analyzeTradecraft, type TcDevice, type TcSighting } from "../_shared/stalkerTradecraft.ts";
-import { assessAndAlertArea, platformAreaCfg } from "../_shared/areaSentinel.ts";
+import { assessAndAlertArea, platformAreaCfg, clearArrival } from "../_shared/areaSentinel.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -168,6 +168,11 @@ async function areaLeg(
   const { data: pres } = await db.from("sentinel_presence").select("*").eq("user_id", userId).maybeSingle();
   if (!pres?.lat || !pres?.lng || !pres?.fix_at) return { status: "no_fix", notified: false };
   const fixAgeMs = Date.now() - new Date(pres.fix_at).getTime();
+  // An unjudged arrival is someone who has just walked into somewhere they have
+  // never been assessed in. Nobody is watching a tab, but they are physically
+  // there now, so it still runs on the short clock — the deadline belongs to
+  // the person, not to the runtime that happens to be awake.
+  const pendingArrival = pres.arrival_pending === true;
   const res = await assessAndAlertArea({
     db, userId, userEmail: email,
     lat: Number(pres.lat), lng: Number(pres.lng),
@@ -175,10 +180,15 @@ async function areaLeg(
     settings,
     fixAgeMs,
     maxFixAgeMs: MAX_FIX_AGE_MS,
-    source: "Area Sentinel (unattended)",
+    source: pendingArrival ? "Area Sentinel — arrival (unattended)" : "Area Sentinel (unattended)",
+    mode: pendingArrival ? "fast" : "deep",
   });
+  // Latch clears only on a real verdict, so a missed short-clock attempt is
+  // retried on the next tick instead of being silently dropped.
+  if (res.assessment && pres.place_key) await clearArrival(db, userId, pres.place_key);
   return { status: res.reason || (res.notified ? "alerted" : "clear"), notified: res.notified };
 }
+
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);

@@ -9489,6 +9489,7 @@ export type Database = {
       sentinel_presence: {
         Row: {
           accuracy: number | null
+          arrival_pending: boolean
           effective_type: string | null
           fix_at: string | null
           last_seen_at: string
@@ -9496,11 +9497,14 @@ export type Database = {
           lat: number | null
           link_type: string | null
           lng: number | null
+          place_key: string | null
+          place_since: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           accuracy?: number | null
+          arrival_pending?: boolean
           effective_type?: string | null
           fix_at?: string | null
           last_seen_at?: string
@@ -9508,11 +9512,14 @@ export type Database = {
           lat?: number | null
           link_type?: string | null
           lng?: number | null
+          place_key?: string | null
+          place_since?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           accuracy?: number | null
+          arrival_pending?: boolean
           effective_type?: string | null
           fix_at?: string | null
           last_seen_at?: string
@@ -9520,6 +9527,8 @@ export type Database = {
           lat?: number | null
           link_type?: string | null
           lng?: number | null
+          place_key?: string | null
+          place_since?: string | null
           updated_at?: string
           user_id?: string
         }

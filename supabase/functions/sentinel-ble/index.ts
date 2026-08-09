@@ -31,7 +31,7 @@ import {
   TRADECRAFT_CASE_SYSTEM, TRADECRAFT_DOCTRINE,
   type TcDevice, type TcSighting, type TcCampaign,
 } from "../_shared/stalkerTradecraft.ts";
-import { assessAndAlertArea } from "../_shared/areaSentinel.ts";
+import { assessAndAlertArea, recordArrival, clearArrival } from "../_shared/areaSentinel.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -510,15 +510,14 @@ Deno.serve(async (req) => {
         let key;
         try { key = await resolveKey(req, body.byok); } catch (e) { return byokErrorResponse(e, cors); }
 
-        // Every live fix teaches the server where to look when no tab is open.
-        await db.from("sentinel_presence").upsert({
-          user_id: userId, lat, lng,
+        // Every live fix teaches the server where to look when no tab is open,
+        // and records which cell the user is standing in so the unattended pass
+        // can tell "arrived somewhere new" from "still where they were".
+        const arrivalReq = body.arrival === true;
+        const arrival = await recordArrival(db, userId, lat, lng, {
           accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null,
-          fix_at: new Date().toISOString(),
           last_source: "foreground",
-          last_seen_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
+        });
         await db.from("sentinel_cron_state")
           .upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
 
@@ -527,10 +526,23 @@ Deno.serve(async (req) => {
           cfg: cfgFrom(key) as any,
           settings,
           fixAgeMs: 0,
-          source: "Area Sentinel",
+          source: arrivalReq ? "Area Sentinel — arrival" : "Area Sentinel",
+          // Someone is physically standing in this cell waiting on the answer.
+          // A patient 3-minute model call is the wrong trade here: a late
+          // perfect verdict is worth less than an on-time one.
+          mode: arrivalReq ? "fast" : "deep",
         });
-        if (!result.assessment) return json({ error: result.reason || "assessment_failed" }, 502, cors);
-        return json({ assessment: result.assessment, notified: result.notified }, 200, cors);
+        // Only drop the latch on a real verdict. Clearing it on a timeout would
+        // hand the cell back to the 15-minute clock — the exact failure we are
+        // fixing — instead of letting the next pass retry it.
+        if (result.assessment) await clearArrival(db, userId, arrival.placeKey);
+        if (!result.assessment) return json({ error: result.reason || "assessment_failed", reason: result.reason }, 502, cors);
+        return json({
+          assessment: result.assessment,
+          notified: result.notified,
+          arrival: { placeKey: arrival.placeKey, arrived: arrival.arrived, dwellMs: arrival.dwellMs },
+        }, 200, cors);
+
       }
 
 

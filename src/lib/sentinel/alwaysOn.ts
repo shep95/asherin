@@ -240,6 +240,68 @@ async function stopRadio(): Promise<void> {
 }
 
 // ── Position leg ─────────────────────────────────────────────────────────────
+//
+// ARRIVAL, NOT CLOCK.
+//
+// The old design re-judged the area every five minutes. That is a clock, and a
+// clock has no idea you arrived anywhere — it just re-asks about wherever you
+// already are. Worst case you learn a place is dangerous five minutes after
+// walking into it, which is exactly as useful as learning it tomorrow.
+//
+// This leg watches for the transition instead. The moment a fix lands more than
+// ARRIVAL_RADIUS_M from the anchor, that is an arrival: drop a new anchor and
+// start the dwell clock. Assess once the dwell clears.
+//
+// The dwell exists for one reason: a cell is ~1 km wide and driving through one
+// is not arriving in it. Without the guard, a highway trip would fire an alert
+// per mile. 90 s is the smallest window that reliably separates "stopped here"
+// from "passing through" while still leaving room inside a three-minute budget.
+
+/** Beyond this, the fix is somewhere else — not GPS noise around the anchor. */
+const ARRIVAL_RADIUS_M = 700;
+/** Must stay put this long before an arrival counts as presence, not transit. */
+const ARRIVAL_DWELL_MS = 90_000;
+
+let anchor: { lat: number; lng: number } | null = null;
+let anchorAt = 0;
+let anchorAssessed = false;
+let dwellTimer: number | null = null;
+
+/** Equirectangular approximation — exact enough at sub-kilometre scale and it
+ *  costs one cos() instead of a full haversine on every watch update. */
+function metersBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = (((b.lng - a.lng) * Math.PI) / 180) * Math.cos(((a.lat + b.lat) / 2 * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLng * dLng) * R;
+}
+
+function armDwell() {
+  if (dwellTimer != null) { clearTimeout(dwellTimer); dwellTimer = null; }
+  const wait = Math.max(0, ARRIVAL_DWELL_MS - (Date.now() - anchorAt));
+  dwellTimer = window.setTimeout(() => {
+    dwellTimer = null;
+    // Re-check on fire rather than trusting the schedule: the anchor may have
+    // moved between arming and firing, and a timer that fires against a stale
+    // anchor would assess a place the user already left.
+    if (!anchor || !pos || anchorAssessed) return;
+    if (metersBetween(anchor, pos) > ARRIVAL_RADIUS_M) return;
+    anchorAssessed = true;
+    void checkAreaNow(true, { arrival: true });
+  }, wait);
+}
+
+function onFix(next: { lat: number; lng: number; accuracy?: number }) {
+  if (!anchor || metersBetween(anchor, next) > ARRIVAL_RADIUS_M) {
+    anchor = { lat: next.lat, lng: next.lng };
+    anchorAt = Date.now();
+    anchorAssessed = false;
+    armDwell();
+  } else if (!anchorAssessed && dwellTimer == null) {
+    // Tab was backgrounded through the dwell window, or the timer was throttled.
+    armDwell();
+  }
+}
 
 function startGeo() {
   if (geoWatchId != null || typeof navigator === "undefined" || !("geolocation" in navigator)) return;
@@ -247,6 +309,7 @@ function startGeo() {
     (p) => {
       pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
       if (!state.positioned) emit({ positioned: true });
+      onFix(pos);
       // Tier B needs a fix it can report after this tab is gone. Handing it
       // over on every watch update costs nothing and is the only way a closed
       // browser can still say where its owner is.
@@ -256,7 +319,9 @@ function startGeo() {
       void reportMeshDevice(pos, { source: "geo" });
     },
     () => { if (state.positioned) emit({ positioned: false }); },
-    { enableHighAccuracy: false, maximumAge: 60_000, timeout: 20_000 },
+    // A minute-old cached fix used to be acceptable because nothing was racing
+    // a deadline. On the arrival path it is a minute straight off the budget.
+    { enableHighAccuracy: false, maximumAge: 15_000, timeout: 20_000 },
   );
 
 }
@@ -266,8 +331,12 @@ function stopGeo() {
     try { navigator.geolocation.clearWatch(geoWatchId); } catch { /* noop */ }
     geoWatchId = null;
   }
+  if (dwellTimer != null) { clearTimeout(dwellTimer); dwellTimer = null; }
+  anchor = null;
+  anchorAssessed = false;
   emit({ positioned: false });
 }
+
 
 // ── Work units ───────────────────────────────────────────────────────────────
 
@@ -308,7 +377,7 @@ export async function flushSentinel(silent = true): Promise<void> {
   }
 }
 
-export async function checkAreaNow(silent = true): Promise<void> {
+export async function checkAreaNow(silent = true, opts?: { arrival?: boolean }): Promise<void> {
   if (!geoEnabled) return;
   if (!pos) { if (!silent) toast.error("No position fix yet."); return; }
   if (!(await hasSession())) return;
@@ -316,7 +385,14 @@ export async function checkAreaNow(silent = true): Promise<void> {
   try {
     const byok = await resolveByok();
     const data = await invokeWithByokRetry<any>("sentinel-ble", {
-      body: { action: "geo.check", lat: pos.lat, lng: pos.lng, ...(byok ? { byok } : {}) },
+      body: {
+        action: "geo.check",
+        lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy ?? null,
+        // Tells the server someone is standing there right now waiting on an
+        // answer, so it takes the short-clock path instead of the patient one.
+        arrival: opts?.arrival === true,
+        ...(byok ? { byok } : {}),
+      },
       silent: true,
     });
     const a = data?.assessment;
@@ -327,12 +403,17 @@ export async function checkAreaNow(silent = true): Promise<void> {
         window.dispatchEvent(new CustomEvent("asherin-sentinel-ingest"));
       }
     }
+    // A miss on the short clock is not a verdict — let the anchor re-arm so the
+    // next fix tries again, rather than leaving the cell silently unjudged.
+    if (opts?.arrival && data?.reason === "fast_timeout") anchorAssessed = false;
   } catch (e) {
+    if (opts?.arrival) anchorAssessed = false;
     if (!silent) toast.error(e instanceof Error ? e.message : "Area check failed");
   } finally {
     emit({ checkingArea: false });
   }
 }
+
 
 function newSession(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
