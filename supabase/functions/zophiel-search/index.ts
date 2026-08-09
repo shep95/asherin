@@ -6,6 +6,7 @@ import {
   type QueryPlan,
 } from "../_shared/queryPlan.ts";
 import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
+import { runSurfaceWave, type SurfaceWave } from "../_shared/surfaceRetrieval.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -813,6 +814,29 @@ function tagLayer(r: SearchResult, layer: PantheonLayer, engine: string): Search
   return r;
 }
 
+// ── HARDENED SURFACE TIER ───────────────────────────────────────────────────
+// The individual scrapers below (DDG/Brave/Mojeek/Yandex/SearXNG) are kept for
+// reference but are no longer called directly: from edge IPs they either 403 or
+// answer 2xx with a challenge page, which read as "the web has nothing" instead
+// of "we were blocked". `runSurfaceWave` challenge-checks every body, breaks the
+// circuit on repeatedly blocked providers, and escalates to a reserve wave when
+// the lead wave under-delivers — so the open-web layer stops silently collapsing
+// onto the registry/gov sources.
+let lastSurfaceTelemetry: SurfaceWave["telemetry"] = [];
+
+async function surfaceTier(query: string, limit: number, includeReserve = true): Promise<SearchResult[]> {
+  const wave = await runSurfaceWave(query, { limit, includeReserve });
+  lastSurfaceTelemetry = wave.telemetry;
+  const out: SearchResult[] = [];
+  for (const h of wave.hits) {
+    const built = buildSearchResult(h.title, h.url, h.snippet);
+    if (built) out.push(tagLayer(built, 'surface', h.engine));
+  }
+  return out;
+}
+
+
+
 // ── DEEP WEB: Common Crawl Index (petabyte-scale historical web archive) ─────
 async function searchCommonCrawl(query: string, limit = 10): Promise<SearchResult[]> {
   // CDX API — query the most recent index for URLs matching the term as a host substring.
@@ -1209,8 +1233,14 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   // bot-blocked (DDG/Brave/Mojeek/MetaGer/Gigablast/Yandex/SearXNG) plus the
   // academic/blockchain/IoT layers that are irrelevant to a person lookup.
   if (fast) {
-    const [fc, wiki, edgar, gh] = await Promise.allSettled([
-      searchFirecrawl(query, 20),
+    // Fast mode now leads with the hardened surface wave (Bing RSS / Brave /
+    // Marginalia / Google News) instead of Firecrawl alone: those four answer
+    // datacenter egress, run in parallel under an 8-9s per-provider timeout,
+    // and give the sweep real open-web breadth inside the chat deadline. The
+    // reserve wave (Firecrawl, DDG, Mojeek) is suppressed here because its
+    // latency is what used to blow the 10s abort.
+    const [surface, wiki, edgar, gh] = await Promise.allSettled([
+      surfaceTier(query, 20, false),
       searchWikipedia(query),
       searchEDGAR(query),
       searchGitHubCode(query),
@@ -1228,32 +1258,36 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
         out.push(r);
       }
     };
-    push(fc, 'firecrawl', 'surface');
+    push(surface, 'surface-wave', 'surface');
     push(wiki, 'wikipedia', 'surface');
     push(edgar, 'sec-edgar', 'deep');
     push(gh, 'github', 'code');
+    // A fast run that still saw no open web falls back to Firecrawl rather than
+    // returning a registry-only corpus — thin is acceptable, misleading is not.
+    if (out.filter((r) => r.layer === 'surface').length < 3) {
+      const fc = await searchFirecrawl(query, 20).catch(() => [] as SearchResult[]);
+      push({ status: 'fulfilled', value: fc } as PromiseSettledResult<SearchResult[]>, 'firecrawl', 'surface');
+    }
     return out;
   }
 
   // PANTHEON v3: surface engines + deep/code/academic/social/chain/breach/iot/vuln in parallel.
+  // The five separate surface scrapers collapsed into one hardened wave; each
+  // hit still carries its originating engine, so independence classes and the
+  // corroboration bonus below are computed exactly as before.
   const [
-    firecrawlResults,
-    ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults,
-    wikiResults, braveResults, yandexResults,
+    surfaceResults,
+    searxResults,
+    wikiResults, yandexResults,
     // PANTHEON layers
     commonCrawlResults, waybackResults, githubResults, edgarResults,
     crossrefResults, openalexResults,
     hnResults, redditResults,
     chainResults, breachResults, shodanResults, cveResults, booksResults,
   ] = await Promise.allSettled([
-    searchFirecrawl(query, 15),
-    searchDDG(query, page, dateFilter),
+    surfaceTier(query, 18, true),
     searchSearXNG(query),
-    searchMojeek(query),
-    Promise.resolve([] as SearchResult[]),
-    Promise.resolve([] as SearchResult[]),
     searchWikipedia(query),
-    searchBrave(query),
     searchYandex(query),
     // PANTHEON
     searchCommonCrawl(query),
@@ -1306,15 +1340,19 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   };
 
 
-  // Surface
-  addResults(firecrawlResults, 'firecrawl', 'surface');
-  addResults(ddgResults, 'ddg', 'surface');
+  // Surface — the wave is added hit-by-hit so each result keeps the engine that
+  // actually found it (bing-rss / brave / marginalia / google-news / firecrawl /
+  // ddg / mojeek), preserving true independence counting.
+  if (surfaceResults.status === 'fulfilled') {
+    for (const r of surfaceResults.value) {
+      addResults({ status: 'fulfilled', value: [r] } as PromiseSettledResult<SearchResult[]>,
+        r.engine || 'surface-wave', 'surface');
+    }
+  }
   addResults(searxResults, 'searxng', 'surface');
-  addResults(mojeekResults, 'mojeek', 'surface');
   // metager/gigablast retired: Gigablast is defunct and MetaGer bot-blocks edge
   // IPs, so both contributed only latency and a false independence class.
   addResults(wikiResults, 'wikipedia', 'surface');
-  addResults(braveResults, 'brave', 'surface');
   addResults(yandexResults, 'yandex', 'surface');
   // PANTHEON layers (already tagged inside their fetchers)
   addResults(commonCrawlResults, 'common-crawl', 'deep');

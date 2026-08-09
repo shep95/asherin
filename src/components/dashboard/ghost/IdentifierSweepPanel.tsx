@@ -307,7 +307,11 @@ export const IdentifierSweepPanel = (
                 t?.identity?.company ? `org ${t.identity.company}` : null,
                 t?.toolchain?.producer ? `produced with ${t.toolchain.producer}` : null,
                 t?.toolchain?.device ? `device ${t.toolchain.device}` : null,
-                t?.created?.value ? `created ${String(t.created.value).slice(0, 16).replace("T", " ")}` : null,
+                // OriginTimestamp carries `local` (authoring wall clock) and `utc`;
+                // prefer the wall clock because it is what the device actually wrote.
+                (t?.created?.local ?? t?.created?.utc)
+                  ? `created ${String(t?.created?.local ?? t?.created?.utc).slice(0, 16).replace("T", " ")}`
+                  : null,
                 t?.zone_candidates?.length ? `timezone ${t.zone_candidates[0]}` : null,
                 (t?.redirect_chain?.length ?? 0) > 1 ? `${t!.redirect_chain.length} hops` : null,
               ].filter(Boolean) as string[];
