@@ -12371,6 +12371,72 @@ export type Database = {
           },
         ]
       }
+      zophiel_query_outcomes: {
+        Row: {
+          avg_relevance: number
+          claim_count: number
+          clicked_rank: number | null
+          clicked_url: string | null
+          contradiction_count: number
+          created_at: string
+          data_type_distribution: Json
+          engine_hit_rate: Json
+          entity_kind: string | null
+          id: string
+          independence_classes: Json
+          mode: string | null
+          on_target_rate: number
+          operator_rating: number | null
+          query: string
+          query_shape: string | null
+          rescue_used: boolean
+          result_count: number
+          user_id: string
+        }
+        Insert: {
+          avg_relevance?: number
+          claim_count?: number
+          clicked_rank?: number | null
+          clicked_url?: string | null
+          contradiction_count?: number
+          created_at?: string
+          data_type_distribution?: Json
+          engine_hit_rate?: Json
+          entity_kind?: string | null
+          id?: string
+          independence_classes?: Json
+          mode?: string | null
+          on_target_rate?: number
+          operator_rating?: number | null
+          query: string
+          query_shape?: string | null
+          rescue_used?: boolean
+          result_count?: number
+          user_id: string
+        }
+        Update: {
+          avg_relevance?: number
+          claim_count?: number
+          clicked_rank?: number | null
+          clicked_url?: string | null
+          contradiction_count?: number
+          created_at?: string
+          data_type_distribution?: Json
+          engine_hit_rate?: Json
+          entity_kind?: string | null
+          id?: string
+          independence_classes?: Json
+          mode?: string | null
+          on_target_rate?: number
+          operator_rating?: number | null
+          query?: string
+          query_shape?: string | null
+          rescue_used?: boolean
+          result_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

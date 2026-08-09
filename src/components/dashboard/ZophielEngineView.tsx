@@ -19,6 +19,7 @@ const PagePreviewPanel = lazy(() => import("./search/PagePreviewPanel"));
 const DeepSearchPanel = lazy(() => import("./search/DeepSearchPanel"));
 const IntelMapPanel = lazy(() => import("./search/IntelMapPanel"));
 const IntelligenceSuitePanel = lazy(() => import("./search/intel/IntelligenceSuitePanel"));
+const ZophielFusionPanel = lazy(() => import("./search/ZophielFusionPanel"));
 const ArchivesHarvesterPanel = lazy(() => import("./search/ArchivesHarvesterPanel"));
 const UrlIntelMapPanel = lazy(() => import("./search/UrlIntelMapPanel"));
 const IntelMapByokPanel = lazy(() => import("./search/IntelMapByokPanel"));
@@ -96,6 +97,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [darkSummary, setDarkSummary] = useState<string>("");
   const [darkLoading, setDarkLoading] = useState(false);
   const [urlIntelTarget, setUrlIntelTarget] = useState<string | null>(null);
+  // Deterministic corpus analysis returned alongside the results (PANTHEON v5).
+  const [fusion, setFusion] = useState<import("./search/ZophielFusionPanel").FusionPayload | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -310,6 +313,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         setGrouped(res.grouped);
         setInstantAnswer(res.instantAnswer);
         setFreshnessAlerts(res.freshnessAlerts || {});
+        // PANTHEON v5 analysis rides along with the results, so the operator
+        // never has to re-run the corpus through a second panel to see it.
+        const f = res as unknown as import("./search/ZophielFusionPanel").FusionPayload;
+        setFusion({
+          centrality: f.centrality,
+          clusters: f.clusters,
+          claims: f.claims,
+          contradictions: f.contradictions,
+          anomalies: f.anomalies,
+          rankingQuality: f.rankingQuality,
+          prunedBelowFloor: f.prunedBelowFloor,
+        });
       }
     } catch (e: any) {
       console.error("Search failed:", e);
@@ -685,6 +700,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               {/* Standard search results */}
               {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (
                 <>
+                  {/* Deterministic corpus analysis — claims, conflicts, graph, forensics */}
+                  {!loading && results.length > 0 && fusion && (
+                    <Suspense fallback={null}>
+                      <ZophielFusionPanel data={fusion} />
+                    </Suspense>
+                  )}
                   {/* Meta */}
                   {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">

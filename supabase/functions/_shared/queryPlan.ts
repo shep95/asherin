@@ -19,10 +19,43 @@ export type EntityKind =
   | "person" | "organization" | "place" | "ticker"
   | "cve" | "wallet" | "domain" | "general";
 
+/**
+ * Query SHAPE decides the retrieval contract. The same required/optional split
+ * cannot serve a bare keyword, a dork string and a two-entity relationship
+ * question — each one wants a different gate.
+ */
+export type QueryShape =
+  | "single-token"     // one bare word — the word IS the query, gating adds nothing
+  | "operator-dork"    // site:/filetype: dominate; operators are the signal
+  | "relationship"     // [entity] <relation phrase> [entity] — both sides gate
+  | "identifier"       // CVE / wallet / domain / email — exact selector
+  | "natural-question" // filler-heavy sentence; strip noise, keep signal
+  | "topic";           // no entity present — pure relevance ranking
+
+/** A required term carries a CONFIDENCE, not a boolean. */
+export interface WeightedTerm {
+  term: string;
+  /** 0..1 — how sure we are this is a real selector. Drives gate hardness. */
+  confidence: number;
+  /** Why it was promoted — surfaced in telemetry, never guessed at later. */
+  basis: string;
+}
+
+/** [subject] <relation> [object] extracted case-insensitively from the query. */
+export interface QueryRelation {
+  subject: string;
+  relation: string;
+  /** What the object side is expected to be. */
+  objectKind: "location" | "organization" | "person" | "unknown";
+  object: string;
+}
+
 export interface QueryPlan {
   raw: string;
   /** Hard-signal terms: proper nouns, IDs, tickers, domains. Missing → heavy penalty. */
   required: string[];
+  /** Same terms, with per-term confidence. Gating is a spectrum, not a switch. */
+  requiredWeighted: WeightedTerm[];
   /** Context terms that boost but never gate. */
   optional: string[];
   /** Terms prefixed with `-`. Presence sinks a result. */
@@ -30,6 +63,10 @@ export interface QueryPlan {
   /** Quoted "..." phrases — exact-match bonus. */
   phrases: string[];
   entity: EntityKind;
+  shape: QueryShape;
+  relations: QueryRelation[];
+  /** Non-Latin script detected — the capitalized-run detector cannot see it. */
+  scriptNote?: string;
   /** Search operators (`site:`, `filetype:`, `-site:` …) preserved verbatim. */
   operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
@@ -72,6 +109,56 @@ const WALLET_RE = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0
 const DOMAIN_RE = /\b([a-z0-9-]+\.)+[a-z]{2,}\b/i;
 const ORG_SUFFIX = /\b(inc|llc|ltd|corp|corporation|company|gmbh|plc|sa|nv|ag|holdings|group|labs|foundation)\b/i;
 const PLACE_HINT = /\b(city|county|state|province|country|island|district|street|avenue|road)\b/i;
+const EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
+
+// ── Rarity lexicon ──────────────────────────────────────────────────────────
+// Name/org detection used to fire ONLY on capitalization, so "asher newton"
+// scored the same as "the weather today". Capitalization is now one signal
+// among several; token RARITY (a token that is not ordinary English) is the
+// load-bearing one, which is what makes a lowercase name still register.
+const COMMON_WORDS = new Set([
+  ...STOPWORDS,
+  "after","again","all","also","any","back","because","been","before","being","best","between",
+  "both","call","came","come","could","day","did","different","does","down","each","early","even",
+  "every","first","found","free","good","great","group","help","here","high","home","just","keep",
+  "know","large","last","late","left","less","life","like","little","long","made","make","many",
+  "may","more","most","much","must","need","never","new","next","night","now","number","off","old",
+  "one","only","open","other","our","out","own","part","people","place","point","price","problem",
+  "public","put","real","report","right","said","same","see","seem","set","should","since","small",
+  "some","state","still","such","system","take","think","three","through","time","today","two",
+  "under","until","up","use","used","very","want","water","way","week","well","went","were","while",
+  "work","world","would","year","years","yes","news","best","top","list","free","online","near",
+  "cost","review","reviews","guide","vs","versus","company","business","service","services",
+]);
+
+/** A token is "rare" when it is alphabetic, long enough, and not ordinary English. */
+function isRareToken(tok: string): boolean {
+  if (!/^[a-z][a-z'’-]{2,}$/.test(tok)) return false;
+  if (COMMON_WORDS.has(tok)) return false;
+  // Ordinary inflections of common words are still common.
+  for (const suf of ["s", "es", "ed", "ing", "ly"]) {
+    if (tok.endsWith(suf) && COMMON_WORDS.has(tok.slice(0, -suf.length))) return false;
+  }
+  return true;
+}
+
+// ── Relation library ────────────────────────────────────────────────────────
+// Generalises "who lives in X" into [entity] <relation> [entity]. Matched
+// case-insensitively so a lowercase query is handled identically.
+const RELATION_PHRASES: { re: RegExp; kind: QueryRelation["objectKind"] }[] = [
+  { re: /\b(lives?\s+in|living\s+in|based\s+in|located\s+in|resides?\s+in|from|near)\b/i, kind: "location" },
+  { re: /\b(works?\s+at|worked\s+at|employed\s+by|employee\s+of|founder\s+of|co-?founder\s+of|ceo\s+of|cto\s+of|cfo\s+of|director\s+of|owner\s+of|partner\s+at|works?\s+for)\b/i, kind: "organization" },
+  { re: /\b(married\s+to|wife\s+of|husband\s+of|son\s+of|daughter\s+of|brother\s+of|sister\s+of|related\s+to|connected\s+to|associated\s+with|linked\s+to|friends?\s+with)\b/i, kind: "person" },
+];
+
+/** Non-Latin scripts bypass every capitalization heuristic in this file. */
+function detectScript(input: string): string | undefined {
+  if (/[\u0400-\u04FF]/.test(input)) return "cyrillic";
+  if (/[\u0600-\u06FF]/.test(input)) return "arabic";
+  if (/[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(input)) return "cjk";
+  if (/[\u0900-\u097F]/.test(input)) return "devanagari";
+  return undefined;
+}
 
 /**
  * Stage 1 — Query Understanding. Pure lexical parse, no network, no model.
@@ -107,21 +194,27 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const optional = new Set<string>();
   /** normalized term → the operator's original spelling (for the wire query). */
   const surfaceForm = new Map<string, string>();
-  const addRequired = (norm: string, original: string) => {
+  /** normalized term → how sure we are it is a selector, and why. */
+  const confidence = new Map<string, { confidence: number; basis: string }>();
+  const addRequired = (norm: string, original: string, conf = 1, basis = "explicit") => {
     if (!norm) return;
     required.add(norm);
     if (!surfaceForm.has(norm)) surfaceForm.set(norm, original.trim());
+    const prev = confidence.get(norm);
+    if (!prev || prev.confidence < conf) confidence.set(norm, { confidence: conf, basis });
   };
 
-  for (const p of phrases) addRequired(normalizeTerm(p), p);
+  for (const p of phrases) addRequired(normalizeTerm(p), p, 1, "quoted-phrase");
 
   // 3. Structured identifiers are always required.
   const cve = input.match(CVE_RE);
-  if (cve) addRequired(normalizeTerm(cve[0]), cve[0]);
+  if (cve) addRequired(normalizeTerm(cve[0]), cve[0], 1, "cve");
   const wallet = input.match(WALLET_RE);
-  if (wallet) addRequired(wallet[0].toLowerCase(), wallet[0]);
+  if (wallet) addRequired(wallet[0].toLowerCase(), wallet[0], 1, "wallet");
+  const email = input.match(EMAIL_RE);
+  if (email) addRequired(normalizeTerm(email[0]), email[0], 1, "email");
   const domainHit = residue.match(DOMAIN_RE);
-  if (domainHit) addRequired(normalizeTerm(domainHit[0]), domainHit[0]);
+  if (domainHit) addRequired(normalizeTerm(domainHit[0]), domainHit[0], 0.95, "domain");
 
   // 4. Capitalized runs = proper nouns → required as one atomic term.
   //    "Asher Shepherd Newton" becomes a single required term, not three.
@@ -148,7 +241,9 @@ export function buildQueryPlan(raw: string): QueryPlan {
       const original = seg.join(" ");
       const n = normalizeTerm(original);
       if (!n || n.length < 2) continue;
-      if (seg.length >= 2 || ACRONYM.test(seg[0])) addRequired(n, original);
+      if (seg.length >= 2) addRequired(n, original, 0.9, "capitalized-run");
+      else if (ACRONYM.test(seg[0])) addRequired(n, original, 0.75, "acronym");
+      else if (isRareToken(n)) addRequired(n, original, 0.6, "capitalized-rare-token");
       else optional.add(n);
     }
   }
@@ -156,7 +251,52 @@ export function buildQueryPlan(raw: string): QueryPlan {
   // 5. Bare uppercase tickers.
   for (const tok of residue.split(/\s+/)) {
     const t = tok.replace(/[^A-Za-z$]/g, "");
-    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) addRequired(normalizeTerm(t), t);
+    if (t.length >= 2 && TICKER_RE.test(t) && t === t.toUpperCase()) addRequired(normalizeTerm(t), t, 0.8, "ticker");
+  }
+
+  // 6a. LOWERCASE ENTITY RECOVERY — the fix for the capitalization hard gate.
+  //     Adjacent rare tokens ("asher newton", "punita budhiraja") are a probable
+  //     name even with no capital letters. They enter as MEDIUM confidence, so
+  //     they gate softly instead of either vanishing or over-constraining.
+  {
+    const toks = normalizeTerm(residue).split(" ").filter(Boolean);
+    let run: string[] = [];
+    const flush = () => {
+      if (run.length >= 2) {
+        const n = run.join(" ");
+        if (!required.has(n)) addRequired(n, n, 0.55, "lowercase-rare-run");
+      } else if (run.length === 1 && run[0].length >= 5) {
+        const n = run[0];
+        if (!required.has(n)) addRequired(n, n, 0.4, "lowercase-rare-token");
+      }
+      run = [];
+    };
+    for (const t of toks) {
+      if (isRareToken(t)) run.push(t); else flush();
+    }
+    flush();
+  }
+
+  // 6b. RELATION LAYER — [subject] <relation phrase> [object]. Both sides are
+  //     anchored as required, which is what makes "who is X at Y" work the same
+  //     way as "did X work for Y" without hardcoding either.
+  const relations: QueryRelation[] = [];
+  for (const { re, kind } of RELATION_PHRASES) {
+    const m = residue.match(re);
+    if (!m || m.index === undefined) continue;
+    const subjRaw = residue.slice(0, m.index).trim();
+    const objRaw = residue.slice(m.index + m[0].length).trim();
+    const pickSide = (side: string): string => {
+      const toks = normalizeTerm(side).split(" ").filter((t) => t && !STOPWORDS.has(t));
+      const rare = toks.filter(isRareToken);
+      return (rare.length ? rare : toks).slice(-3).join(" ");
+    };
+    const subject = pickSide(subjRaw);
+    const object = pickSide(objRaw);
+    if (!subject || !object) continue;
+    relations.push({ subject, relation: m[0].trim().toLowerCase(), objectKind: kind, object });
+    addRequired(subject, subject, Math.max(0.7, confidence.get(subject)?.confidence ?? 0), "relation-subject");
+    addRequired(object, object, Math.max(0.7, confidence.get(object)?.confidence ?? 0), "relation-object");
   }
 
   // 6. Everything else that survives stopword removal is optional context.
@@ -235,14 +375,76 @@ export function buildQueryPlan(raw: string): QueryPlan {
     .trim();
   const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
+  // 9. SHAPE ROUTING — decided last, because it depends on everything above.
+  const bareTokens = input.trim().split(/\s+/).filter(Boolean);
+  let shape: QueryShape;
+  if (operators.length > 0) shape = "operator-dork";
+  else if (bareTokens.length === 1) shape = "single-token";
+  else if (relations.length > 0) shape = "relationship";
+  else if (cve || wallet || email || (domainHit && bareTokens.length <= 3)) shape = "identifier";
+  else if (requiredFinal.length === 0) shape = "topic";
+  else if (/^(who|what|where|when|why|how|which|is|are|did|does|can)\b/i.test(input) || bareTokens.length >= 6) shape = "natural-question";
+  else shape = "topic";
+
+  // A single bare word IS the query — gating it against itself adds nothing and
+  // only penalises pages that paraphrase. Drop the gate, keep the term as
+  // context so relevance still ranks on it.
+  let requiredOut = requiredFinal;
+  if (shape === "single-token") {
+    for (const t of requiredFinal) optional.add(t);
+    requiredOut = [];
+  }
+  // Under a dork string the operators ARE the constraint; word gating on top
+  // of `site:` double-penalises pages the operator already selected.
+  if (shape === "operator-dork") {
+    requiredOut = requiredFinal.filter((t) => (confidence.get(t)?.confidence ?? 0) >= 0.9);
+  }
+
+  // A span may have been captured with a leading/trailing function word — a
+  // natural question such as "who is the CEO of Reuters" yielded the selector
+  // "of reuters", which no page ever contains as written and which therefore
+  // gated the correct answer out. Trim the carrier words; keep the selector.
+  const CARRIER = new Set(["of", "the", "a", "an", "in", "at", "on", "for", "to", "by", "from", "with", "is", "are", "was", "were"]);
+  const trimCarrier = (t: string): string => {
+    let parts = t.split(/\s+/);
+    while (parts.length > 1 && CARRIER.has(parts[0].toLowerCase())) parts = parts.slice(1);
+    while (parts.length > 1 && CARRIER.has(parts[parts.length - 1].toLowerCase())) parts = parts.slice(0, -1);
+    return parts.join(" ");
+  };
+  const trimmedSeen = new Set<string>();
+  requiredOut = requiredOut
+    .map((t) => {
+      const trimmedTerm = trimCarrier(t);
+      if (trimmedTerm !== t && confidence.has(t) && !confidence.has(trimmedTerm)) {
+        confidence.set(trimmedTerm, confidence.get(t)!);
+      }
+      return trimmedTerm;
+    })
+    .filter((t) => {
+      if (!t || CARRIER.has(t.toLowerCase()) || trimmedSeen.has(t)) return false;
+      trimmedSeen.add(t);
+      return true;
+    });
+
+  const requiredWeighted: WeightedTerm[] = requiredOut.map((t) => ({
+    term: t,
+    confidence: Math.max(0.3, Math.min(1, confidence.get(t)?.confidence ?? 0.7)),
+    basis: confidence.get(t)?.basis ?? "derived",
+  }));
 
   return {
     raw: input,
-    required: requiredFinal,
-    optional: [...optional],
+    required: requiredOut,
+    requiredWeighted,
+    optional: [...optional].filter((t) => !requiredOut.includes(t) || shape === "single-token"),
     negative,
     phrases,
     entity,
+    shape,
+    relations,
+    scriptNote: detectScript(input)
+      ? `Non-Latin script (${detectScript(input)}) detected — name/org detection is Latin-only, so entity gating falls back to relevance.`
+      : undefined,
     operators,
     wireQuery,
   };
@@ -277,8 +479,38 @@ function termVariants(term: string): string[] {
   return [...out];
 }
 
+/**
+ * Bounded edit-distance ≤1 (Levenshtein with early exit). OSINT input is full
+ * of transliterations and breach-dump typos — "Shephard" must still match a
+ * page spelled "Shepherd" instead of silently losing the whole page.
+ */
+function within1(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (la === lb) { i++; j++; }
+    else if (la > lb) i++;
+    else j++;
+  }
+  if (i < la || j < lb) edits++;
+  return edits <= 1;
+}
+
+/** Fuzzy containment: every word of `term` appears in `hay` within 1 edit. */
+function fuzzyHit(hay: string, term: string): boolean {
+  const words = term.split(" ").filter((w) => w.length >= 6);
+  if (!words.length) return false;
+  const hayWords = hay.split(" ");
+  return words.every((w) => hayWords.some((h) => within1(h, w)));
+}
+
 function fieldHit(hay: string, term: string): boolean {
-  return termVariants(term).some((v) => hay.includes(v));
+  if (termVariants(term).some((v) => hay.includes(v))) return true;
+  return fuzzyHit(hay, term);
 }
 
 export interface RelevanceInput {
@@ -289,7 +521,12 @@ export interface RelevanceInput {
 
 /**
  * Stage 3a — topical relevance, 0..1. Title outweighs URL outweighs snippet.
- * A required-term miss costs heavily but never zeroes the result out.
+ *
+ * Requirement is a SPECTRUM, not a switch: each required term carries a
+ * confidence, coverage is confidence-weighted, and the gate hardens in
+ * proportion to how sure we are the term is a real selector. A low-confidence
+ * lowercase name therefore nudges ranking instead of annihilating every page
+ * that spells it differently.
  */
 export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
   const title = normalizeTerm(doc.title || "");
@@ -299,18 +536,25 @@ export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
 
   if (plan.negative.some((n) => n && all.includes(n))) return 0.05;
 
-  // Required coverage — weighted by the strongest field the term appears in.
-  let covered = 0;
-  let fieldWeight = 0;
-  for (const term of plan.required) {
+  const weighted = plan.requiredWeighted?.length
+    ? plan.requiredWeighted
+    : plan.required.map((term) => ({ term, confidence: 1, basis: "legacy" }));
+
+  // Confidence-weighted required coverage, scaled by the strongest field hit.
+  let confHit = 0, confTotal = 0, covered = 0, fieldWeight = 0;
+  for (const { term, confidence: conf } of weighted) {
     if (!term) continue;
-    if (fieldHit(title, term)) { covered++; fieldWeight += 1.0; }
-    else if (fieldHit(url, term)) { covered++; fieldWeight += 0.8; }
-    else if (fieldHit(snippet, term)) { covered++; fieldWeight += 0.6; }
+    confTotal += conf;
+    let fw = 0;
+    if (fieldHit(title, term)) fw = 1.0;
+    else if (fieldHit(url, term)) fw = 0.8;
+    else if (fieldHit(snippet, term)) fw = 0.6;
+    if (fw > 0) { covered++; fieldWeight += fw; confHit += conf; }
   }
-  const reqCount = plan.required.length;
-  const coverage = reqCount ? covered / reqCount : 1;
+  const reqCount = weighted.length;
+  const coverage = confTotal ? confHit / confTotal : 1;
   const fieldQuality = covered ? fieldWeight / covered : 0.7;
+  const avgConf = reqCount ? confTotal / reqCount : 0;
 
   // Optional context — capped contribution.
   let optHits = 0;
@@ -324,19 +568,26 @@ export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
     if (n && all.includes(n)) phraseBonus += 0.12;
   }
 
+  // Relationship queries reward BOTH sides landing on the same page.
+  let relationBonus = 0;
+  for (const rel of plan.relations || []) {
+    if (all.includes(rel.subject) && all.includes(rel.object)) relationBonus += 0.1;
+  }
+
   // Proximity: two required terms close together in title/snippet.
   let proximity = 0;
   if (reqCount >= 2) {
-    const idx = plan.required
-      .map((t) => termVariants(t).map((v) => all.indexOf(v)).filter((i) => i >= 0)[0])
+    const idx = weighted
+      .map(({ term }) => termVariants(term).map((v) => all.indexOf(v)).filter((i) => i >= 0)[0])
       .filter((i): i is number => typeof i === "number" && i >= 0)
       .sort((a, b) => a - b);
     if (idx.length >= 2 && idx[idx.length - 1] - idx[0] < 120) proximity = 0.08;
   }
 
-  // Heavy penalty for missing required terms — floor 0.25, never a filter.
-  const gate = reqCount ? 0.25 + 0.75 * coverage : 1;
-  const base = 0.62 * coverage * fieldQuality + 0.22 * optScore + phraseBonus + proximity;
+  // Gate hardness tracks confidence: 1.0-confidence miss floors at 0.25,
+  // a 0.5-confidence miss only floors at ~0.62.
+  const gate = reqCount ? 1 - avgConf * 0.75 * (1 - coverage) : 1;
+  const base = 0.62 * coverage * fieldQuality + 0.22 * optScore + phraseBonus + proximity + relationBonus;
 
   return Math.max(0.02, Math.min(1, base * gate + (reqCount ? 0 : 0.35)));
 }
