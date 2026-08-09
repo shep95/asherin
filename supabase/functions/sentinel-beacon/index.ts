@@ -93,13 +93,23 @@ Deno.serve(async (req) => {
         last_seen_at: nowIso,
         updated_at: nowIso,
       };
+      // A fix from the worker has to update the arrival latch too, not just the
+      // coordinates. Writing lat/lng while leaving place_key stale would let a
+      // user cross into a new cell with the tab closed and have the server
+      // still believe they never moved — the closed-tab version of the bug.
+      let arrivedNew = false;
       if (hasFix) {
-        patch.lat = lat;
-        patch.lng = lng;
-        patch.accuracy = Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null;
-        patch.fix_at = nowIso;
+        const st = await recordArrival(db, dev.user_id, lat, lng, {
+          accuracy: Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null,
+          link_type: patch.link_type,
+          effective_type: patch.effective_type,
+          last_source: patch.last_source,
+        });
+        arrivedNew = st.arrived;
+      } else {
+        await db.from("sentinel_presence").upsert(patch, { onConflict: "user_id" });
       }
-      await db.from("sentinel_presence").upsert(patch, { onConflict: "user_id" });
+
       await db.from("sentinel_devices").update({ last_beacon_at: nowIso }).eq("id", dev.id);
 
       // ── Fleet row: keeps this device findable from the operator's other
