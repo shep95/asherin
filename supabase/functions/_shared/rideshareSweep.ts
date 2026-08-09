@@ -137,10 +137,21 @@ async function zophielLayer(
   const bound = Boolean(resolvedName) || raw.split(/\s+/).length > 1;
   const where = ride.city ? ` ${ride.city}` : "";
 
+  // A first name must not be discarded. It is not enough to attribute a record,
+  // but it is still a useful discovery anchor when fenced by the exact plate,
+  // vehicle, platform and locality. Results remain explicitly UNBOUND until an
+  // independent source supplies a surname or another unique identifier.
+  const unboundAnchors = [
+    name ? `"${name}"` : "",
+    ride.plate ? `"${ride.plate}"` : "",
+    ride.vehicle ? `"${ride.vehicle}"` : "",
+    ride.platform,
+    ride.city || "",
+  ].filter(Boolean).join(" ");
   const query = bound && name
     ? `${name}${where} rideshare driver background court record reviews complaints associates`
-    : ride.plate
-      ? `license plate ${ride.plate}${where} vehicle registration rideshare driver`
+    : unboundAnchors
+      ? `${unboundAnchors} driver profile reviews complaints rideshare`
       : "";
 
   if (!query || budgetMs < 8_000) {
@@ -175,7 +186,7 @@ async function zophielLayer(
       "### Zophiel engine sweep",
       bound
         ? "Identity-bound query against the Zophiel multi-index corpus. Tier 1 is a primary source; treat weak-match warnings as disqualifying unless corroborated."
-        : "Identity is UNBOUND — this corpus was retrieved on the plate/vehicle only. Nothing here may be attributed to a named person.",
+        : `Identity is UNBOUND — this is a discovery sweep using the displayed first name plus the ride's plate, vehicle, platform and locality. Nothing may be attributed to ${name || "the displayed driver"} unless an independent source binds another unique identifier.`,
       body,
     ].join("\n"),
     hits,
@@ -381,8 +392,6 @@ export async function deliver(
   rideId: string,
 ): Promise<string[]> {
   const delivered: string[] = [];
-  if (VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) return delivered;
-
   const p = phase.payload as Record<string, any>;
 
   // The alert threshold governs the IDENTITY verdict, which is THIN on almost
