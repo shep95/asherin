@@ -14,7 +14,11 @@ interface IntelReportCardProps extends IntelReportInput {}
  */
 const IntelReportCard = (props: IntelReportCardProps) => {
   const [done, setDone] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [preview, setPreview] = useState(false);
+  // Object URLs opened in a tab must outlive the click; revoke on unmount only.
+  const openedUrls = useRef<string[]>([]);
+  useEffect(() => () => { openedUrls.current.forEach((u) => URL.revokeObjectURL(u)); }, []);
 
   const report = useMemo(
     () =>
