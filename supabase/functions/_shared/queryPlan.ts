@@ -453,8 +453,38 @@ function termVariants(term: string): string[] {
   return [...out];
 }
 
+/**
+ * Bounded edit-distance ≤1 (Levenshtein with early exit). OSINT input is full
+ * of transliterations and breach-dump typos — "Shephard" must still match a
+ * page spelled "Shepherd" instead of silently losing the whole page.
+ */
+function within1(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (la === lb) { i++; j++; }
+    else if (la > lb) i++;
+    else j++;
+  }
+  if (i < la || j < lb) edits++;
+  return edits <= 1;
+}
+
+/** Fuzzy containment: every word of `term` appears in `hay` within 1 edit. */
+function fuzzyHit(hay: string, term: string): boolean {
+  const words = term.split(" ").filter((w) => w.length >= 6);
+  if (!words.length) return false;
+  const hayWords = hay.split(" ");
+  return words.every((w) => hayWords.some((h) => within1(h, w)));
+}
+
 function fieldHit(hay: string, term: string): boolean {
-  return termVariants(term).some((v) => hay.includes(v));
+  if (termVariants(term).some((v) => hay.includes(v))) return true;
+  return fuzzyHit(hay, term);
 }
 
 export interface RelevanceInput {
@@ -465,7 +495,12 @@ export interface RelevanceInput {
 
 /**
  * Stage 3a — topical relevance, 0..1. Title outweighs URL outweighs snippet.
- * A required-term miss costs heavily but never zeroes the result out.
+ *
+ * Requirement is a SPECTRUM, not a switch: each required term carries a
+ * confidence, coverage is confidence-weighted, and the gate hardens in
+ * proportion to how sure we are the term is a real selector. A low-confidence
+ * lowercase name therefore nudges ranking instead of annihilating every page
+ * that spells it differently.
  */
 export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
   const title = normalizeTerm(doc.title || "");
@@ -475,18 +510,25 @@ export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
 
   if (plan.negative.some((n) => n && all.includes(n))) return 0.05;
 
-  // Required coverage — weighted by the strongest field the term appears in.
-  let covered = 0;
-  let fieldWeight = 0;
-  for (const term of plan.required) {
+  const weighted = plan.requiredWeighted?.length
+    ? plan.requiredWeighted
+    : plan.required.map((term) => ({ term, confidence: 1, basis: "legacy" }));
+
+  // Confidence-weighted required coverage, scaled by the strongest field hit.
+  let confHit = 0, confTotal = 0, covered = 0, fieldWeight = 0;
+  for (const { term, confidence: conf } of weighted) {
     if (!term) continue;
-    if (fieldHit(title, term)) { covered++; fieldWeight += 1.0; }
-    else if (fieldHit(url, term)) { covered++; fieldWeight += 0.8; }
-    else if (fieldHit(snippet, term)) { covered++; fieldWeight += 0.6; }
+    confTotal += conf;
+    let fw = 0;
+    if (fieldHit(title, term)) fw = 1.0;
+    else if (fieldHit(url, term)) fw = 0.8;
+    else if (fieldHit(snippet, term)) fw = 0.6;
+    if (fw > 0) { covered++; fieldWeight += fw; confHit += conf; }
   }
-  const reqCount = plan.required.length;
-  const coverage = reqCount ? covered / reqCount : 1;
+  const reqCount = weighted.length;
+  const coverage = confTotal ? confHit / confTotal : 1;
   const fieldQuality = covered ? fieldWeight / covered : 0.7;
+  const avgConf = reqCount ? confTotal / reqCount : 0;
 
   // Optional context — capped contribution.
   let optHits = 0;
@@ -500,19 +542,26 @@ export function scoreRelevance(plan: QueryPlan, doc: RelevanceInput): number {
     if (n && all.includes(n)) phraseBonus += 0.12;
   }
 
+  // Relationship queries reward BOTH sides landing on the same page.
+  let relationBonus = 0;
+  for (const rel of plan.relations || []) {
+    if (all.includes(rel.subject) && all.includes(rel.object)) relationBonus += 0.1;
+  }
+
   // Proximity: two required terms close together in title/snippet.
   let proximity = 0;
   if (reqCount >= 2) {
-    const idx = plan.required
-      .map((t) => termVariants(t).map((v) => all.indexOf(v)).filter((i) => i >= 0)[0])
+    const idx = weighted
+      .map(({ term }) => termVariants(term).map((v) => all.indexOf(v)).filter((i) => i >= 0)[0])
       .filter((i): i is number => typeof i === "number" && i >= 0)
       .sort((a, b) => a - b);
     if (idx.length >= 2 && idx[idx.length - 1] - idx[0] < 120) proximity = 0.08;
   }
 
-  // Heavy penalty for missing required terms — floor 0.25, never a filter.
-  const gate = reqCount ? 0.25 + 0.75 * coverage : 1;
-  const base = 0.62 * coverage * fieldQuality + 0.22 * optScore + phraseBonus + proximity;
+  // Gate hardness tracks confidence: 1.0-confidence miss floors at 0.25,
+  // a 0.5-confidence miss only floors at ~0.62.
+  const gate = reqCount ? 1 - avgConf * 0.75 * (1 - coverage) : 1;
+  const base = 0.62 * coverage * fieldQuality + 0.22 * optScore + phraseBonus + proximity + relationBonus;
 
   return Math.max(0.02, Math.min(1, base * gate + (reqCount ? 0 : 0.35)));
 }
