@@ -377,7 +377,7 @@ export async function flushSentinel(silent = true): Promise<void> {
   }
 }
 
-export async function checkAreaNow(silent = true): Promise<void> {
+export async function checkAreaNow(silent = true, opts?: { arrival?: boolean }): Promise<void> {
   if (!geoEnabled) return;
   if (!pos) { if (!silent) toast.error("No position fix yet."); return; }
   if (!(await hasSession())) return;
@@ -385,7 +385,14 @@ export async function checkAreaNow(silent = true): Promise<void> {
   try {
     const byok = await resolveByok();
     const data = await invokeWithByokRetry<any>("sentinel-ble", {
-      body: { action: "geo.check", lat: pos.lat, lng: pos.lng, ...(byok ? { byok } : {}) },
+      body: {
+        action: "geo.check",
+        lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy ?? null,
+        // Tells the server someone is standing there right now waiting on an
+        // answer, so it takes the short-clock path instead of the patient one.
+        arrival: opts?.arrival === true,
+        ...(byok ? { byok } : {}),
+      },
       silent: true,
     });
     const a = data?.assessment;
@@ -396,12 +403,17 @@ export async function checkAreaNow(silent = true): Promise<void> {
         window.dispatchEvent(new CustomEvent("asherin-sentinel-ingest"));
       }
     }
+    // A miss on the short clock is not a verdict — let the anchor re-arm so the
+    // next fix tries again, rather than leaving the cell silently unjudged.
+    if (opts?.arrival && data?.reason === "fast_timeout") anchorAssessed = false;
   } catch (e) {
+    if (opts?.arrival) anchorAssessed = false;
     if (!silent) toast.error(e instanceof Error ? e.message : "Area check failed");
   } finally {
     emit({ checkingArea: false });
   }
 }
+
 
 function newSession(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
