@@ -31,7 +31,7 @@ import {
   TRADECRAFT_CASE_SYSTEM, TRADECRAFT_DOCTRINE,
   type TcDevice, type TcSighting, type TcCampaign,
 } from "../_shared/stalkerTradecraft.ts";
-import { assessAndAlertArea } from "../_shared/areaSentinel.ts";
+import { assessAndAlertArea, recordArrival, clearArrival } from "../_shared/areaSentinel.ts";
 
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
