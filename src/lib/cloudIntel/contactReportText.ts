@@ -12,6 +12,14 @@ import type { ContactReport, Metric } from "./contactReport";
 import type { OsintAnnex } from "./contactOsint";
 
 const W = 74;
+
+/**
+ * Field families that answer "how do I reach this person, and where are they".
+ * Matched on the label the dossier emits, case-insensitively, so a renamed
+ * label degrades to omission from this projection rather than to a crash —
+ * the value still prints in the identity section above.
+ */
+const CONTACT_FIELD = /address|phone|email|parcel|employ|entit|licen|handle|alias|age|birth/i;
 const HR = "━".repeat(W);
 const bar = (n: number | null, width = 10) =>
   n === null ? "—".repeat(width) : "█".repeat(Math.round((n / 100) * width)).padEnd(width, "░");
@@ -134,6 +142,56 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     }
   }
 
+  // A reader looking for "where do I reach this person, and where do they
+  // live" should not have to re-read the whole identity block to assemble it.
+  // This section is a re-projection of the SAME graded facts — nothing new is
+  // introduced, nothing is masked, and every value carries its band so an
+  // unverified address is never mistaken for a confirmed one.
+  L.push(...banner(n++, "Contact & location dossier (verbatim)"));
+  {
+    const reach = a.facts.filter((f) => CONTACT_FIELD.test(f.field));
+    if (a.status !== "ready") {
+      L.push(...wrap(`  NOT COLLECTED — ${a.blocker ?? "collection did not run."}`, 2));
+      L.push("");
+    } else if (!reach.length) {
+      L.push(...wrap("  NO REACH FIELD RESOLVED. No address, telephone, secondary email, employer or parcel survived matching. This is a collection gap, not a clean record.", 2));
+      L.push("");
+    } else {
+      const byField = new Map<string, typeof reach>();
+      for (const f of reach) {
+        const k = f.field.toUpperCase();
+        byField.set(k, [...(byField.get(k) ?? []), f]);
+      }
+      for (const [fieldName, rows] of byField) {
+        L.push(`  ${fieldName}`);
+        for (const f of rows) {
+          L.push(...field("    • ", `${f.value}${f.band === "candidate" ? "  [UNVERIFIED — possible name collision]" : ""}`, 6));
+          L.push(...field("      ↳ ", `credibility ${f.credibility} · ${f.independentDomains} independent domain${f.independentDomains === 1 ? "" : "s"} · ${f.sources.map((s) => s.domain).join(", ") || "no domain recorded"}`, 8));
+        }
+        L.push("");
+      }
+      L.push(...wrap("  Values are printed exactly as the source asserts them. Nothing here is redacted: a partially-masked identifier would be indistinguishable from a partially-collected one, which is the failure this section exists to prevent.", 2));
+      L.push("");
+    }
+  }
+
+  // Kin is a claimed blood/marriage tie. It is reported apart from the
+  // association ring because co-occurrence and kinship are different
+  // evidentiary objects and must never be summed into one "network" count.
+  L.push(...banner(n++, "Family & kin mapping"));
+  if (!a.kin.length) {
+    L.push(...wrap("  NO KIN LINE RESOLVED. People-directory relative blocks either did not surface for this subject or did not clear identity matching. Treat as an open collection requirement.", 2));
+    L.push("");
+  } else {
+    for (const k of a.kin) {
+      const ring = a.associations.find((s) => s.label.toLowerCase() === k.toLowerCase());
+      L.push(...field("  ◦ ", `${k}${ring ? ` — also present in the association ring at hop ${ring.hop} (${ring.independentDomains} independent domain${ring.independentDomains === 1 ? "" : "s"})` : " — asserted by a directory relatives block only"}`, 4));
+    }
+    L.push("");
+    L.push(...wrap("  A relatives block is a directory's assertion, not a vital record. Corroborate any kin tie against a registry-class source before acting on it.", 2));
+    L.push("");
+  }
+
   L.push(...banner(n++, "Association ring"));
   if (!a.associations.length) {
     L.push("  No public association survived corroboration.");
@@ -182,6 +240,65 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push(...wrap("  A sighting means the engine opened the page and found the identifier on it. Candidates that could not be confirmed are excluded, so absence here is absence of proof, not proof of absence.", 2));
     L.push("");
   }
+
+  // Chronology is derived, never invented: every row below is a date the
+  // collection layer actually recorded against a surface. Undated sightings
+  // are counted and named as undated rather than being given a guessed slot,
+  // because an assumed date in a timeline propagates into every later
+  // judgment that reads the timeline as sequence.
+  L.push(...banner(n++, "Chronology (timeline order)"));
+  {
+    type Ev = { date: string; text: string };
+    const events: Ev[] = [];
+    let undated = 0;
+    for (const sw of a.identifierSweeps) {
+      if (sw.firstSeen) events.push({ date: sw.firstSeen.slice(0, 10), text: `FIRST SIGHTING — ${sw.identifier} (${sw.kind}) first observed in the indexed record.` });
+      for (const e of sw.exposed) {
+        if (e.lastSeen) events.push({ date: e.lastSeen.slice(0, 10), text: `CIRCULATION — ${sw.identifier} carried on ${e.host} (${e.surfaceClass}).` });
+        else undated++;
+      }
+      for (const t of sw.top) {
+        if (t.lastSeen) events.push({ date: t.lastSeen.slice(0, 10), text: `SURFACE — ${sw.identifier} on ${t.host} (${t.surfaceClass}, ${t.sightings} sighting${t.sightings === 1 ? "" : "s"}).` });
+        else undated++;
+      }
+      if (sw.lastSeen) events.push({ date: sw.lastSeen.slice(0, 10), text: `MOST RECENT SIGHTING — ${sw.identifier} last observed in the indexed record.` });
+    }
+    if (a.builtAt) events.push({ date: new Date(a.builtAt).toISOString().slice(0, 10), text: "COLLECTION — this dossier was built." });
+
+    const seenRow = new Set<string>();
+    const ordered = events
+      .filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date))
+      .filter((e) => { const k = `${e.date}|${e.text}`; if (seenRow.has(k)) return false; seenRow.add(k); return true; })
+      .sort((x, y) => x.date.localeCompare(y.date));
+
+    if (!ordered.length) {
+      L.push(...wrap("  NO DATED EVENT SURVIVED COLLECTION. Every surface returned without a parseable date, so no sequence can be published. Absence of a timeline is a collection gap, not a quiet history.", 2));
+      L.push("");
+    } else {
+      for (const e of ordered) L.push(...field(`  ${e.date}  `, e.text, 14));
+      L.push("");
+      L.push(...wrap(`  Span ${ordered[0].date} → ${ordered[ordered.length - 1].date} · ${ordered.length} dated event${ordered.length === 1 ? "" : "s"}${undated ? ` · ${undated} undated sighting${undated === 1 ? "" : "s"} withheld from the sequence` : ""}.`, 2));
+      L.push("");
+    }
+  }
+
+  // Imagery is attributed to the identity CLUSTER that carried it, never to
+  // the subject outright: a photograph on a same-name page is evidence about
+  // that page, and mislabelling it is the fastest way to misidentify a person.
+  L.push(...banner(n++, "Imagery (face capture)"));
+  if (!a.imagery.length) {
+    L.push(...wrap("  NO FACE IMAGE CAPTURED. No collected page published an open-graph or profile image that cleared the https-only, non-vector filter. This is an unmet collection requirement, not evidence the subject has no published photograph.", 2));
+    L.push("");
+  } else {
+    for (const img of a.imagery) {
+      L.push(...field("  ▣ ", `attributed to ${img.attributedTo} (cluster score ${img.clusterScore})`, 4));
+      L.push(...field("    ", img.url, 4));
+    }
+    L.push("");
+    L.push(...wrap("  Images render in the report viewer through the SSRF-guarded proxy; the URLs above are the originals. Treat a photograph as an identity claim by the publishing page, corroborated only to the strength of that page.", 2));
+    L.push("");
+  }
+
 
   // Reasoned exposure is a third finding class: the sweep reports where the
   // identifier IS, the doctrine reports where the subject's shape says it

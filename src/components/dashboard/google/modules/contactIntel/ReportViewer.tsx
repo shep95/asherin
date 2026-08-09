@@ -6,8 +6,24 @@ import { downloadText } from "./localVault";
 interface Props {
   name: string;
   text: string;
+  /** Face imagery captured by the OSINT leg. URLs only; never hot-linked. */
+  images?: Array<{ url: string; attributedTo: string }>;
   onClose: () => void;
 }
+
+/**
+ * Face images are routed through the SSRF-guarded intel-avatar edge function
+ * so the operator's browser never issues a request to a third-party host that
+ * the collection layer surfaced. A null return degrades the tile to blank
+ * rather than falling back to a direct fetch.
+ */
+function proxied(url: string): string | null {
+  if (!url || !url.startsWith("https://")) return null;
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (!base) return null;
+  return `${base}/functions/v1/intel-avatar?u=${encodeURIComponent(url)}`;
+}
+
 
 /**
  * Full-screen reader for a rendered contact report.
@@ -20,7 +36,7 @@ interface Props {
  * invoking control on close, and Escape dismisses, so the report is reachable
  * and escapable without a pointer.
  */
-const ReportViewer = ({ name, text, onClose }: Props) => {
+const ReportViewer = ({ name, text, images, onClose }: Props) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
 
@@ -117,9 +133,36 @@ const ReportViewer = ({ name, text, onClose }: Props) => {
           </button>
         </header>
 
+        {images && images.length > 0 && (
+          <section className="border-b border-border/20 px-4 py-3 shrink-0" aria-label="Captured imagery">
+            <p className="text-[10px] font-extralight text-muted-foreground/60 mb-2">
+              Captured imagery — attributed to the identity cluster that published it, not confirmed as the subject.
+            </p>
+            <ul className="flex gap-3 overflow-x-auto pb-1">
+              {images.map((img) => (
+                <li key={img.url} className="shrink-0 w-24">
+                  <img
+                    src={proxied(img.url) ?? undefined}
+                    alt={`Face image published alongside ${img.attributedTo}`}
+                    loading="lazy"
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 rounded-lg object-cover bg-foreground/5 border border-border/20"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = "hidden"; }}
+                  />
+                  <p className="mt-1 text-[9px] font-extralight text-muted-foreground/60 truncate" title={img.attributedTo}>
+                    {img.attributedTo}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <div className="overflow-auto p-4">
           <pre className="font-mono text-[10.5px] leading-[1.5] text-foreground/85 whitespace-pre">{text}</pre>
         </div>
+
       </div>
     </div>
   );

@@ -255,6 +255,19 @@ export interface MeshDossierDoc {
   };
   gaps: string[];
   jurisdiction: string;
+  /**
+   * Face imagery harvested from the resolved identity clusters. URLs only —
+   * bytes are never inlined and are fetched later through the SSRF-guarded
+   * intel-avatar proxy. Each entry names the cluster it came from so a photo
+   * can never be silently attributed to the wrong same-name person.
+   */
+  imagery: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  /**
+   * Kin names asserted by the resolved cluster (relatives / spouse lines in
+   * people-directory documents). Carried separately from the association ring
+   * because a relative is a claimed blood/marriage tie, not a co-occurrence.
+   */
+  kin: string[];
   /** Which inbound channel produced this subject (mail, calendar, phone…). */
   channel?: string | null;
   /** Outcome of the reverse-identifier pass, when one was run. */
@@ -470,6 +483,20 @@ export async function buildDossier(
       independentDomains: new Set(sources.map((s) => s.domain)).size,
     },
     gaps: [],
+    // Imagery and kin ride the resolved identity clusters, so they inherit the
+    // cluster's attribution. A cluster that lost the disambiguation contest
+    // still ships its photo, labelled with its own name and score, rather than
+    // being dropped or merged into the winner.
+    imagery: (bundle.candidateSet?.candidates ?? [])
+      .filter((c) => !!c.avatarUrl && /^https:\/\//i.test(String(c.avatarUrl)))
+      .slice(0, 8)
+      .map((c) => ({ url: String(c.avatarUrl), attributedTo: c.name, clusterScore: Math.round(c.score) })),
+    kin: [...new Set(
+      (bundle.candidateSet?.candidates ?? [])
+        .flatMap((c) => c.family ?? [])
+        .map((s) => String(s).trim())
+        .filter((s) => s.length > 2 && s.length < 80),
+    )].slice(0, 24),
     jurisdiction: bundle.jurisdictionLabel ?? "",
     channel: opts.channel ?? null,
     reverse: null,

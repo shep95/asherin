@@ -65,6 +65,8 @@ interface WireDoc {
   jurisdiction?: string;
   channel?: string | null;
   reverse?: { identifier: string; factsAdded: number; hits: number; timedOut?: boolean; error?: string } | null;
+  imagery?: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  kin?: string[];
 }
 
 // ─────────────────────────── annex shapes ───────────────────────────
@@ -168,6 +170,14 @@ export interface OsintAnnex {
    * subject string) — never silently omitted.
    */
   dork: DorkBatterySummary | null;
+  /**
+   * Face imagery attributed to a resolved identity cluster. URLs only; the
+   * viewer fetches them through the SSRF-guarded intel-avatar proxy so the
+   * report never hot-links a third-party host from the operator's browser.
+   */
+  imagery: Array<{ url: string; attributedTo: string; clusterScore: number }>;
+  /** Claimed relatives from the cluster's people-directory documents. */
+  kin: string[];
 }
 
 /** A per-identifier exposure register, folded down for report rendering. */
@@ -445,6 +455,8 @@ function toAnnex(
     // dossier itself has no view of identifier circulation.
     identifierSweeps: [],
     dork: null,
+    imagery: (doc.imagery ?? []).filter((i) => /^https:\/\//i.test(i?.url ?? "")).slice(0, 8),
+    kin: (doc.kin ?? []).slice(0, 24),
   };
 }
 
@@ -706,6 +718,8 @@ export function emptyAnnex(status: OsintStatus, blocker: string, name: string, e
     reverse: null,
     identifierSweeps: [],
     dork: null,
+    imagery: [],
+    kin: [],
   };
 }
 
