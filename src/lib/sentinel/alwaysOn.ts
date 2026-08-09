@@ -37,6 +37,8 @@ import {
 import { toast } from "sonner";
 import { startBackgroundSentinel, handOverFix, beaconOnHide, stopBackgroundSentinel } from "./background";
 import { reportMeshDevice, bindBatteryReporting } from "@/lib/asher/meshDevices";
+import { watchPosition, type GeoHandle } from "@/lib/native/nativeGeo";
+
 
 
 const ARM_KEY = "asherin.sentinel.armed";
@@ -91,7 +93,7 @@ const listeners = new Set<Listener>();
 const buffer = new Map<string, RawAdvert & { lat?: number; lng?: number; accuracy?: number }>();
 let handle: ScannerHandle | null = null;
 let wakeLock: any = null;
-let geoWatchId: number | null = null;
+let geoWatch: GeoHandle | null = null;
 let pos: { lat: number; lng: number; accuracy: number } | null = null;
 let sessionId = "";
 let flushTimer: number | null = null;
@@ -361,10 +363,12 @@ function onFix(next: { lat: number; lng: number; accuracy?: number }) {
 }
 
 function startGeo() {
-  if (geoWatchId != null || typeof navigator === "undefined" || !("geolocation" in navigator)) return;
-  geoWatchId = navigator.geolocation.watchPosition(
-    (p) => {
-      pos = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+  if (geoWatch) return;
+  // Native runtime uses the OS plugin, which keeps emitting while the app is
+  // backgrounded; the web runtime falls back to navigator.geolocation.
+  geoWatch = watchPosition(
+    (fix) => {
+      pos = { lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy };
       if (!state.positioned) emit({ positioned: true });
       onFix(pos);
       // Tier B needs a fix it can report after this tab is gone. Handing it
@@ -376,18 +380,15 @@ function startGeo() {
       void reportMeshDevice(pos, { source: "geo" });
     },
     () => { if (state.positioned) emit({ positioned: false }); },
-    // A minute-old cached fix used to be acceptable because nothing was racing
-    // a deadline. On the arrival path it is a minute straight off the budget.
-    { enableHighAccuracy: false, maximumAge: 15_000, timeout: 20_000 },
   );
-
 }
 
 function stopGeo() {
-  if (geoWatchId != null) {
-    try { navigator.geolocation.clearWatch(geoWatchId); } catch { /* noop */ }
-    geoWatchId = null;
+  if (geoWatch) {
+    geoWatch.stop();
+    geoWatch = null;
   }
+
   if (dwellTimer != null) { clearTimeout(dwellTimer); dwellTimer = null; }
   anchor = null;
   anchorAssessed = false;
@@ -670,8 +671,9 @@ async function watchdog(): Promise<void> {
   if (!state.armed) return;
   await loadSettings();
   if (typeof document !== "undefined" && document.visibilityState === "visible") await requestWake();
-  if (geoEnabled && geoWatchId == null) startGeo();
-  if (!geoEnabled && geoWatchId != null) stopGeo();
+  if (geoEnabled && !geoWatch) startGeo();
+  if (!geoEnabled && geoWatch) stopGeo();
+
   // dutyResting means the radio is off on purpose between bursts — restarting
   // it here would defeat the duty cycle and drain the battery it protects.
   if (bleEnabled && !handle && !dutyResting) await startRadio();

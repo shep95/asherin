@@ -19,6 +19,8 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { isNativeApp } from "@/lib/native/nativeRuntime";
+
 
 const SW_URL = "/sw-sentinel.js";
 const TAG = "asherin-sentinel-sweep";
@@ -31,6 +33,9 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 function previewOrDev(): boolean {
   if (typeof window === "undefined") return true;
+  // The companion app is never a preview, whatever origin it was built against.
+  // Without this the shipped native shell disables its own background leg.
+  if (isNativeApp()) return false;
   if (!import.meta.env.PROD) return true;
   try { if (window.self !== window.top) return true; } catch { return true; }
   const h = window.location.hostname;
@@ -42,6 +47,7 @@ function previewOrDev(): boolean {
     new URL(window.location.href).searchParams.get("sw") === "off"
   );
 }
+
 
 function idb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

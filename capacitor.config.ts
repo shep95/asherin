@@ -14,10 +14,14 @@ const config: CapacitorConfig = {
   appId: "app.lovable.5d5e1e109f7147608dad575a93313745",
   appName: "ziali-magic-pixels",
   webDir: "dist",
+  // Production origin. A staging/preview host here makes the shipped app load
+  // preview content AND trips every "is this a preview build?" guard in the
+  // web layer, which silently disables background work on a real handset.
   server: {
-    url: "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com?forceHideBadge=true",
-    cleartext: true,
+    url: "https://asherin.com",
+    cleartext: false,
   },
+
   plugins: {
     BluetoothLe: {
       displayStrings: {
