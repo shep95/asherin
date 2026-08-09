@@ -91,22 +91,28 @@ function collectionPlan(ride: RideInput, resolvedName: string | null): Angle[] {
   const where = ride.city ? ` in ${ride.city}` : "";
   if (!name) return [];
 
-  if (!bound) {
-    // First-name-only and the pivot did not resolve a surname. The
-    // jurisdictional identity collector needs a bindable person, so nothing it
-    // returns here would be admissible; the open-web fallback runs instead.
-    return [];
-  }
-
+  // First-name-only rides still get discovery collection. Suppressing every
+  // name angle created a chicken-and-egg failure: the search that could discover
+  // a surname required a surname before it would run. Exact ride anchors narrow
+  // the corpus; downstream identity doctrine still forbids attribution until
+  // two independent identifiers bind the result to this driver.
+  const anchors = !bound
+    ? [ride.plate ? `"${ride.plate}"` : "", ride.vehicle ? `"${ride.vehicle}"` : "", ride.platform]
+        .filter(Boolean).join(" ")
+    : "";
+  const subject = bound ? name : `"${name}" ${anchors}`.trim();
+  const prefix = bound ? "" : "Discovery — ";
 
   const angles: Angle[] = [
-    { label: "Identity & residence", query: `who is ${name}${where} address phone email background` },
-    { label: "Court & criminal record", query: `${name}${where} court records criminal charges arrest case docket` },
-    { label: "Driving & licensing", query: `${name}${where} driver license record traffic violations DUI commercial license` },
-    { label: "Employment history", query: `${name}${where} employment history current job employer work` },
-    { label: "Reputation & complaints", query: `${name}${where} uber lyft driver reviews complaints rating passenger` },
-    { label: "Associates & relationships", query: `${name}${where} family relatives associates known connections` },
+    { label: `${prefix}identity`, query: `who is ${subject}${where} rideshare driver profile` },
+    { label: `${prefix}court & safety record`, query: `${subject}${where} court records criminal charges arrest case docket` },
+    { label: `${prefix}driving & licensing`, query: `${subject}${where} driver license traffic violations DUI commercial license` },
+    { label: `${prefix}employment`, query: `${subject}${where} rideshare employment current employer work` },
+    { label: `${prefix}reputation & complaints`, query: `${subject}${where} uber lyft driver reviews complaints rating passenger` },
   ];
+  if (bound) {
+    angles.push({ label: "Associates & relationships", query: `${name}${where} family relatives associates known connections` });
+  }
   if (ride.plate) {
     angles.push({ label: "Vehicle registration", query: `license plate ${ride.plate}${where} vehicle registration record` });
   }
