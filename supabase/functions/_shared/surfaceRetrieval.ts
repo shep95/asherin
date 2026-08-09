@@ -381,13 +381,15 @@ export const firecrawlSearch: Fetcher = async (query, limit) => {
 const LEAD: Array<[string, Fetcher]> = [
   ["bing-rss", bingRss],
   ["brave", braveHtml],
+  // DDG answers again when the query is POSTed to the html endpoint with a full
+  // browser header set; the GET path is what was being served the 202 challenge.
+  ["ddg", ddgHtml],
   ["marginalia", marginalia],
   ["google-news", googleNewsRss],
 ];
 
 const RESERVE: Array<[string, Fetcher]> = [
   ["firecrawl", firecrawlSearch],
-  ["ddg", ddgHtml],
   ["mojeek", mojeekHtml],
 ];
 
