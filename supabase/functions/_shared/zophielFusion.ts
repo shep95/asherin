@@ -433,22 +433,39 @@ export interface AnomalyReport {
 const BENFORD_EXPECTED = [0.301, 0.176, 0.125, 0.097, 0.079, 0.067, 0.058, 0.051, 0.046];
 
 export function analyzeAnomalies(docs: FusionDoc[], claims: Claim[]): AnomalyReport {
-  // ── Benford: first significant digit of every number ≥ 10 in the corpus.
+  // ── Benford: first significant digit of every MEASURED number in the corpus.
+  // Identifiers are not measurements: DOIs, CIK numbers, docket ids, version
+  // strings and URL fragments are assigned sequentially, so feeding them to
+  // Benford produces a guaranteed "fabricated" verdict on any academic or
+  // filings-heavy corpus. They are excluded before the test, and an
+  // identifier-dominated corpus returns no verdict at all rather than a wrong one.
   const digits = new Array(9).fill(0);
   let sample = 0;
+  const identifierHeavy = docs.length > 0 &&
+    docs.filter((d) => /doi\.org|arxiv|sec\.gov|pubmed|ncbi|crossref|openalex|\/cgi-bin\/browse-edgar/i.test(d.url)).length / docs.length > 0.5;
+
   for (const d of docs) {
-    const text = `${d.title} ${d.snippet}`.slice(0, 4000);
+    const text = `${d.title} ${d.snippet}`
+      .slice(0, 4000)
+      .replace(/https?:\/\/\S+/g, " ")     // URL-borne digits are addresses, not data
+      .replace(/\b10\.\d{4,9}\/\S+/g, " ") // bare DOIs
+      .replace(/\b(?:CIK|CVE|ISBN|ISSN|DOI|No\.?|#)\s*[:\-]?\s*[\d.\-]+/gi, " ");
+    let perDoc = 0;
     for (const m of text.match(/\b\d[\d,]{1,15}(?:\.\d+)?\b/g) || []) {
       const clean = m.replace(/,/g, "");
       const n = Number(clean);
       if (!Number.isFinite(n) || n < 10) continue;
       // Years are structurally non-Benford; excluding them prevents a false flag.
       if (/^(19|20)\d{2}$/.test(clean)) continue;
+      // Long unpunctuated digit runs are almost always identifiers.
+      if (/^\d{9,}$/.test(clean.split(".")[0])) continue;
       const first = Number(clean.replace(/^0+/, "")[0]);
-      if (first >= 1 && first <= 9) { digits[first - 1]++; sample++; }
-      if (sample >= 3000) break;
+      if (first >= 1 && first <= 9) { digits[first - 1]++; sample++; perDoc++; }
+      // No single document may dominate the distribution.
+      if (perDoc >= 40 || sample >= 3000) break;
     }
   }
+
 
   let chi = 0;
   const observed = digits.map((c) => (sample ? Math.round((c / sample) * 1000) / 1000 : 0));
