@@ -77,7 +77,7 @@ const IntelReportCard = (props: IntelReportCardProps) => {
   return (
     <div className="mt-2 animate-fade-in">
       <div className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-xl overflow-hidden">
-        <div className="flex items-center gap-3 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
           <div className="shrink-0 h-9 w-9 rounded-lg border border-border/40 bg-foreground/5 flex items-center justify-center">
             <FileText className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </div>
