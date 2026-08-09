@@ -94,6 +94,12 @@ interface GhostRequest {
   /** action=identifier — wall-clock budget and harvest aperture. */
   budgetMs?: number;
   maxLeads?: number;
+  /**
+   * action=identifier — chain document sightings into an origin trace in the
+   * same round trip. Default on; set false when a caller (batch Cloud
+   * Intelligence) is paying for the wall clock and only wants the register.
+   */
+  chain?: boolean;
 }
 
 
