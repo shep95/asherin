@@ -33,7 +33,7 @@ import {
   deriveFields, selectContent, ttlToExpiry, SelectorError,
   BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
 } from "../_shared/ghostBuffer.ts";
-import { runGhostLedger } from "../_shared/ghostLedger.ts";
+import { isLedgerChannel, runGhostLedger, type LedgerChannel } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import { sweepIdentifier } from "../_shared/identifierSweep.ts";
