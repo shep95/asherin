@@ -249,6 +249,40 @@ const VoiceForensics = () => {
         </div>
       )}
 
+      {/* DEPENDENCY, STATED. This desk reads Voice envelopes out of the
+          mailbox mirror. When Voice notification forwarding is off, or the
+          connected account is not the one Voice delivers to, the sweep returns
+          clean and empty — which reads identically to "you have no call
+          traffic". That silence was the single largest honesty gap in this
+          module, so the dependency and the working fallback are now published
+          on the surface rather than left to inference. */}
+      {!loading && (error || (ranAt !== null && messages.length === 0)) && (
+        <div className="rounded-2xl border border-border/25 bg-card/20 backdrop-blur-md p-5 space-y-2">
+          <div className="flex items-center gap-2 text-foreground/80">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Mirror dependency — degraded collection
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed text-foreground/60">
+            {error
+              ? "The envelope sweep did not complete, so this desk is reporting nothing rather than reporting a clean line. An empty VOICEPRINT is a collection state, not a finding."
+              : "No Voice envelope reached the connected mailbox in this window. That is a mirror condition, not proof of no call traffic: Voice only lands here when notification forwarding is enabled on the account Voice delivers to."}
+          </p>
+          <ul className="ml-4 list-disc space-y-1 text-xs font-extralight text-foreground/55">
+            <li>Verify Voice notification forwarding is enabled and pointed at a connected account.</li>
+            <li>
+              Fallback in place: <span className="text-foreground/80">SIGNAL — Phone Message Intelligence</span> reads
+              on-device Android SMS/MMS independently of this mirror, and <span className="text-foreground/80">LATTICE</span>{" "}
+              still carries per-correspondent cadence from mail traffic.
+            </li>
+            <li>Until one of those paths reports, treat this desk's silence as unmeasured, not as clean.</li>
+          </ul>
+        </div>
+      )}
+
+
+
       {agg && agg.analyzed > 0 && (
         <>
           {/* ── Provenance banner: whose clock, and what we cannot see ──── */}
