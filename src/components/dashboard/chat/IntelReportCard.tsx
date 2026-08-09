@@ -100,6 +100,24 @@ const IntelReportCard = (props: IntelReportCardProps) => {
           </button>
           <button
             type="button"
+            onClick={handleOpen}
+            title="Open the full report in a new tab"
+            className="shrink-0 flex items-center gap-1 rounded-md border border-border/30 px-2 py-1 text-[10px] font-light text-muted-foreground/70 hover:text-foreground hover:border-border/60 transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            View
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            title="Copy the full report text"
+            className="shrink-0 flex items-center gap-1 rounded-md border border-border/30 px-2 py-1 text-[10px] font-light text-muted-foreground/70 hover:text-foreground hover:border-border/60 transition-colors"
+          >
+            {copied ? <Check className="h-3 w-3" aria-hidden="true" /> : <Copy className="h-3 w-3" aria-hidden="true" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <button
+            type="button"
             onClick={handleDownload}
             className="shrink-0 flex items-center gap-1.5 rounded-md border border-border/40 bg-foreground/5 px-2.5 py-1 text-[10px] font-light text-foreground hover:bg-foreground/10 transition-colors"
           >
