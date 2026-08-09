@@ -151,10 +151,18 @@ const GhostEngineView = () => {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const run = useCallback(async (raw: string, scopeOverride?: SearchScope) => {
+  const run = useCallback(async (
+    raw: string,
+    scopeOverride?: SearchScope,
+    modeOverride?: GhostMode,
+  ) => {
     const q = raw.trim();
     if (!q || loading) return;
     const useScope = scopeOverride ?? scope;
+    // Re-derive the verb from the string actually being run. A suggestion or a
+    // pivot fires with a selector the input state has not received yet, and
+    // routing off stale state is how a pivoted URL got keyword-swept.
+    const mode: GhostMode = modeOverride ?? resolveRoute(route, q).mode;
 
     abortRef.current?.abort();
     const controller = new AbortController();
