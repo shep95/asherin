@@ -6,6 +6,7 @@ import {
   type QueryPlan,
 } from "../_shared/queryPlan.ts";
 import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
+import { runSurfaceWave, type SurfaceWave } from "../_shared/surfaceRetrieval.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
