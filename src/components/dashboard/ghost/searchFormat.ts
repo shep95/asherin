@@ -29,6 +29,26 @@ export interface GhostSearchResult {
   via?: string;
   /** Distinct legs that independently returned this URL. */
   corroboration?: number;
+  /**
+   * The contradictions carried by this row, stated. A count made the operator
+   * go and re-derive the finding somewhere else; the reason IS the finding.
+   */
+  anomalies?: { code: string; severity: string; title: string; detail: string }[];
+  /** Summed severity weight behind `anomalies` — what the score was paid. */
+  anomaly_weight?: number;
+  /** One line naming what put this row where it is. */
+  rank_basis?: string;
+  /** Both entries mean the shelf and the live web independently agreed. */
+  layers?: ("web" | "buffer")[];
+}
+
+/** What changed between one run of an entity and the run immediately before. */
+export interface GhostRunDiff {
+  since: string | null;
+  appeared: { url: string; title: string; host: string }[];
+  vanished: { url: string; title: string; host: string }[];
+  changed: { url: string; title: string; from: number; to: number }[];
+  counts: { appeared: number; vanished: number; changed: number; anomalyDelta: number };
 }
 
 /** Normalized selector the backend resolved from the typed query. */
