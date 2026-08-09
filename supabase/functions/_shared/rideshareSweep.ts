@@ -384,20 +384,49 @@ export async function deliver(
   if (VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) return delivered;
 
   const p = phase.payload as Record<string, any>;
+
+  // The alert threshold governs the IDENTITY verdict, which is THIN on almost
+  // every ride by construction. Gating delivery on it alone is what silenced
+  // genuinely actionable briefings. A boarding decision that is not BOARD is
+  // always delivered, regardless of threshold — it is the whole product.
+  const decision: BoardingDecision = (p.boarding_decision as BoardingDecision) || "VERIFY";
+  const decisionForces = decision !== "BOARD";
+  if (!decisionForces && VERDICT_RANK[phase.verdict] < VERDICT_RANK[settings.alert_threshold]) {
+    return delivered;
+  }
+
+  const protocol: string[] = Array.isArray(p.boarding_protocol) ? p.boarding_protocol : [];
+  const decisionLabel = decision === "DO_NOT_BOARD"
+    ? "DO NOT BOARD"
+    : decision === "VERIFY"
+      ? "VERIFY BEFORE BOARDING"
+      : "CLEAR TO BOARD";
+
   const bus = await notifyIntel({
     userId,
     userEmail,
     kind: "rideshare",
-    severity: severityFromVerdict(phase.verdict),
-    title: `${phase.verdict} — ${phase.headline}`,
+    severity: decision === "DO_NOT_BOARD" ? "critical" : severityFromVerdict(phase.verdict),
+    // The rider reads the first four words on a lock screen. They must be the
+    // decision, never the identity verdict.
+    title: `${decisionLabel} — ${p.vehicle_expected || ride.plate || "your ride"}`,
     body: p.narrative || phase.headline,
     subjectName: ride.driver_name || ride.plate || "unnamed driver",
     source: "Rideshare Guardian",
     url: `/dashboard?tab=cloud-intel&module=rideshare&ride=${rideId}`,
     sections: [
-      { label: "Identity confidence", value: `${Math.round(phase.confidence * 100)}%` },
-      { label: "Vehicle", value: `${ride.vehicle || "not captured"} · plate ${ride.plate || "not captured"}` },
-      { label: "Recommended action", value: p.recommended_action || "Verify the plate and driver photo before boarding." },
+      { label: "Decision", value: decisionLabel },
+      { label: "Why", value: String(p.boarding_basis || "Complete the boarding protocol before you get in.") },
+      { label: "Car you are looking for", value: String(p.vehicle_expected || "not disclosed by the platform — confirm in the app") },
+      { label: "Plate check", value: String(p.plate_check || "Match every character against the app.") },
+      { label: "Vehicle safety record", value: String(p.vehicle_record_line || "Government vehicle index not reached.") },
+      { label: "Area", value: String(p.corridor_line || "No local threat picture available.") },
+      { label: "Your history with this car", value: String(p.ledger_line || "First recorded ride in this vehicle.") },
+      {
+        label: "Do this now",
+        value: protocol.length ? protocol.slice(0, 3).join("  •  ") : (p.recommended_action || "Verify the plate and driver photo before boarding."),
+      },
+
     ],
     findings: Array.isArray(p.flags)
       ? p.flags.map((f: any) => `${String(f?.severity || "note").toUpperCase()}: ${f?.detail ?? ""}`)
