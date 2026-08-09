@@ -40,6 +40,16 @@ export interface TimeCapture {
   keywords: string[];
   terms: TermHit[];
   bytes: number;
+  /**
+   * 0–100 certainty in THIS date. A date is two claims stacked — *this string
+   * is a date* and *this date belongs to this document* — and the carve method
+   * only settles the first. A 2001 copyright footer on a page served today has
+   * usually survived a re-template, a CMS migration or a boilerplate rewrite,
+   * so it decays hard with reach-back; a PDF's own /CreationDate does not.
+   */
+  confidence?: number;
+  /** Plain-language name for the carve method behind `proof`. */
+  carve?: string;
 }
 
 export interface HostLifespan {
@@ -109,7 +119,28 @@ function CaptureRow({ c }: { c: TimeCapture }) {
             {CLASS_LABEL[c.doc_class] ?? "document"}
           </span>
           <span className="min-w-0 flex-1 truncate text-foreground/80">{c.title || c.url}</span>
-          <span className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground/35">{c.proof}</span>
+          {/* The method that produced the date, and how far the engine will
+              stand behind it. A row reading 2003 off a copyright line is not
+              the same finding as a row reading 2003 off an authoring stamp,
+              and the rail used to render them identically. */}
+          <span
+            title={`${c.carve ?? c.proof}${typeof c.confidence === "number" ? ` — ${c.confidence}% certainty in this date` : ""}`}
+            className="shrink-0 font-mono text-[9.5px] uppercase tracking-[0.08em] text-muted-foreground/35"
+          >
+            {c.proof}
+          </span>
+          {typeof c.confidence === "number" && (
+            <span
+              aria-label={`Date certainty ${c.confidence} percent`}
+              className={`shrink-0 rounded px-1 font-mono text-[9px] ${
+                c.confidence >= 75 ? "bg-foreground/10 text-foreground/75"
+                  : c.confidence >= 45 ? "bg-foreground/[0.06] text-muted-foreground/60"
+                    : "bg-foreground/[0.03] text-muted-foreground/40"
+              }`}
+            >
+              {c.confidence}%
+            </span>
+          )}
           <ExternalLink className="h-3 w-3 shrink-0 opacity-40" />
         </span>
         {trail.length > 0 && (
