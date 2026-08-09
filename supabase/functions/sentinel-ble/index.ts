@@ -135,30 +135,46 @@ async function buildDeviceDossier(row: any, cfg: any, tradecraftBrief?: string) 
   return parsed as Record<string, any>;
 }
 
-async function alertDevice(userId: string, userEmail: string | null, row: any, verdict: any, dossier: Record<string, any>, settings: any) {
+async function alertDevice(userId: string, userEmail: string | null, row: any, verdict: any, dossier: Record<string, any>, settings: any, stillFollowing = false) {
   const closest = row.closest_distance_m != null ? Number(row.closest_distance_m) : null;
+  const critical = verdict.tier === "breach";
   await notifyIntel({
     userId,
     userEmail,
     kind: "sentinel",
-    severity: verdict.tier === "breach" ? "critical" : "notable",
-    title: `Recurring nearby device — ${row.display_name}`,
-    body: String(dossier.assessment || verdict.reason),
+    severity: critical ? "critical" : "notable",
+    title: stillFollowing
+      ? `Still near you — ${row.display_name}`
+      : `Possible stalking alert — ${row.display_name}`,
+    body: stillFollowing
+      ? `This radio is still with you after the last alert. ${verdict.reason}`
+      : String(dossier.assessment || verdict.reason),
     subjectName: row.display_name,
     source: "Bluetooth Sentinel",
     url: `/dashboard?tab=cloud-intel&module=sentinel&device=${row.id}`,
     sections: [
       { label: "Pattern", value: verdict.reason },
+      {
+        label: "Severity",
+        value: critical
+          ? verdict.escalation === "location_variance"
+            ? "CRITICAL — followed across separate locations"
+            : verdict.escalation === "rapid_recurrence"
+            ? "CRITICAL — repeat encounters inside 30 minutes"
+            : "CRITICAL"
+          : "WARNING",
+      },
       { label: "Closest approach", value: closest != null ? `${closest} m (~${metersToFeet(closest)} ft)` : "not measurable" },
       { label: "Hardware class", value: String(dossier.device_class || row.inferred_kind) },
       { label: "Confidence", value: `${String(dossier.grade || "THIN")}` },
     ],
     findings: Array.isArray(dossier.actions) ? dossier.actions.map(String) : [],
-    idempotencyKey: `sentinel:ble:${row.id}:${row.encounter_count}`,
+    idempotencyKey: `sentinel:ble:${row.id}:${row.alert_count ?? 0}`,
     skipPush: !settings.push_enabled,
     skipEmail: !settings.email_enabled,
   });
 }
+
 
 // ── Aggregate recompute for one device ─────────────────────────────────────
 
