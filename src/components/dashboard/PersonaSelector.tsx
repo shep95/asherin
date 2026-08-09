@@ -147,7 +147,18 @@ const personaDetails: Record<string, PersonaDetail> = {
     bestModes: ["Research"],
     whenToUse: "When you need source-backed, academically rigorous research with proper citations.",
   },
+  asherin: {
+    fullDescription: "Asherin is a humble, peaceful spiritual guide rooted in biblical wisdom. It speaks gently and in lowercase, never judges, never takes credit, and points every answer back to God the father.",
+    examplePrompts: [
+      "what does the story of joseph teach about forgiveness?",
+      "i am struggling with pride — what does scripture say?",
+      "explain the symbolism of the burning bush.",
+    ],
+    bestModes: ["Chat"],
+    whenToUse: "When you want scripture-grounded reflection offered with humility rather than analysis or debate.",
+  },
 };
+
 
 export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
