@@ -23,6 +23,8 @@ import { notifyIntel } from "../_shared/intelNotify.ts";
 import {
   fingerprint, classifyKind, displayNameFor, estimateDistance, metersToFeet,
   placeKey, assessRecurrence, inferSelf, parseJsonLoose, reverseGeocode,
+  countStrikes, maxSeparationMeters, isInfrastructure,
+  DEFAULT_WINDOW_HOURS, MIN_STRIKE_RSSI, RAPID_WINDOW_MIN, ALERT_COOLDOWN_MIN, STRIKE_GAP_MIN,
   BLE_DOSSIER_SYSTEM, buildDossierPrompt, GEO_RISK_SYSTEM, buildGeoPrompt, collectAreaEvidence,
   type AdvertInput, type DeviceKind,
 } from "../_shared/bleSentinel.ts";
@@ -44,9 +46,9 @@ const json = (b: unknown, s: number, cors: Record<string, string>) =>
 
 const DEFAULT_SETTINGS = {
   recurrence_threshold: 3,
-  recurrence_window_hours: 12,
+  recurrence_window_hours: 2,
   ignore_audio: true,
-  min_rssi: -95,
+  min_rssi: -80,
   ble_enabled: true,
   geo_enabled: true,
   push_enabled: true,
