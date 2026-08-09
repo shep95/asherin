@@ -16,12 +16,33 @@ interface GoogleAccount {
   consent_tier?: number | null;
 }
 
+interface SyncStatus {
+  /** ms timestamp of the most recent account change seen on this tab */
+  lastUpdateAt: number | null;
+  /** true when a realtime update is being processed */
+  isLive: boolean;
+  /** number of other devices recently seen for this user */
+  peerCount: number;
+  /** human label for this device */
+  thisDeviceLabel: string;
+  /** error string if the live channel dropped */
+  channelError: string | null;
+}
+
 export function useGoogleApi() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    lastUpdateAt: null,
+    isLive: false,
+    peerCount: 0,
+    thisDeviceLabel: "this device",
+    channelError: null,
+  });
 
   // [Finding #3] — Token refresh promise lock to prevent race conditions
   const refreshPromiseRef = useRef<Promise<void> | null>(null);
+  const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const callOAuth = useCallback(async (action: string, extra?: Record<string, any>) => {
     // Serialize token-refresh calls
@@ -53,14 +74,107 @@ export function useGoogleApi() {
 
   const fetchAccounts = useCallback(async () => {
     try {
+      setLoading(true);
       const data = await callOAuth("list_accounts");
       setAccounts(data.accounts || []);
+      setSyncStatus((s) => ({ ...s, lastUpdateAt: Date.now(), channelError: null }));
       return data.accounts || [];
     } catch (err) {
       console.error("Failed to fetch accounts:", err);
       return [];
+    } finally {
+      setLoading(false);
     }
   }, [callOAuth]);
+
+  // Announce this device and count peers so the UI can explain cross-device state.
+  const refreshPeerCount = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    try {
+      const { deviceId, deviceLabel } = await import("@/components/dashboard/google/modules/contactIntel/remoteVault");
+      const { listDevices } = await import("@/components/dashboard/google/modules/contactIntel/remoteVault");
+      const devices = await listDevices(session.user.id);
+      const selfId = deviceId();
+      const peers = devices.filter((d) => d.device_id !== selfId && d.last_seen_at);
+      setSyncStatus((s) => ({
+        ...s,
+        peerCount: peers.length,
+        thisDeviceLabel: deviceLabel(),
+      }));
+    } catch (e) {
+      console.warn("[useGoogleApi] peer count refresh failed", e);
+    }
+  }, []);
+
+  // [Cross-device fix] Realtime subscription: every device signed in as the same
+  // user sees account connects/disconnects immediately without a refresh.
+  useEffect(() => {
+    let mounted = true;
+
+    const startRealtime = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const userId = session.user.id;
+
+      // Reuse a single channel per hook lifetime.
+      if (realtimeRef.current) realtimeRef.current.unsubscribe();
+      const channel = supabase
+        .channel(`google_accounts:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "google_accounts",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            if (!mounted) return;
+            setSyncStatus((s) => ({ ...s, isLive: true, lastUpdateAt: Date.now() }));
+            void fetchAccounts();
+            void refreshPeerCount();
+          }
+        )
+        .subscribe((status, err) => {
+          if (!mounted) return;
+          setSyncStatus((s) => ({
+            ...s,
+            isLive: status === "SUBSCRIBED",
+            channelError: err ? String(err.message ?? err) : null,
+          }));
+        });
+
+      realtimeRef.current = channel;
+    };
+
+    void startRealtime();
+
+    return () => {
+      mounted = false;
+      if (realtimeRef.current) {
+        realtimeRef.current.unsubscribe();
+        realtimeRef.current = null;
+      }
+    };
+  }, [fetchAccounts, refreshPeerCount]);
+
+  // [Cross-device fix] When the user switches back to this tab after connecting
+  // on another device, fetch the latest state. Mobile browsers pause JS in background.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void fetchAccounts();
+        void refreshPeerCount();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [fetchAccounts, refreshPeerCount]);
 
   // [Finding #1/#5] Store state for CSRF validation on callback
   const connectGoogle = useCallback(async (tier: number = 3) => {
@@ -81,6 +195,7 @@ export function useGoogleApi() {
         if (result.status === "connected") {
           toast.success(`Connected ${result.email || "Google account"}.`);
           await fetchAccounts();
+          await refreshPeerCount();
         } else if (result.status === "failed") {
           toast.error(`Failed to connect: ${result.message}`);
         }
@@ -92,7 +207,7 @@ export function useGoogleApi() {
     } finally {
       setLoading(false);
     }
-  }, [callOAuth, fetchAccounts]);
+  }, [callOAuth, fetchAccounts, refreshPeerCount]);
 
   // [Finding #1/#5] Pass state for CSRF validation
   const exchangeCode = useCallback(async (code: string, state?: string) => {
@@ -104,6 +219,7 @@ export function useGoogleApi() {
         state,
       });
       await fetchAccounts();
+      await refreshPeerCount();
       return data;
     } catch (err) {
       console.error("Failed to exchange code:", err);
@@ -111,12 +227,13 @@ export function useGoogleApi() {
     } finally {
       setLoading(false);
     }
-  }, [callOAuth, fetchAccounts]);
+  }, [callOAuth, fetchAccounts, refreshPeerCount]);
 
   const disconnectAccount = useCallback(async (accountId: string) => {
     await callOAuth("disconnect", { account_id: accountId });
     await fetchAccounts();
-  }, [callOAuth, fetchAccounts]);
+    await refreshPeerCount();
+  }, [callOAuth, fetchAccounts, refreshPeerCount]);
 
   const fetchGoogleData = useCallback(async (service: string, params?: Record<string, any>, accountId?: string, aggregate = true) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -133,7 +250,8 @@ export function useGoogleApi() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    refreshPeerCount();
+  }, [fetchAccounts, refreshPeerCount]);
 
   const isConnected = accounts.some((a) => a.status === "connected");
 
@@ -141,6 +259,7 @@ export function useGoogleApi() {
     loading,
     accounts,
     isConnected,
+    syncStatus,
     connectGoogle,
     exchangeCode,
     disconnectAccount,
@@ -148,3 +267,4 @@ export function useGoogleApi() {
     fetchGoogleData,
   };
 }
+
