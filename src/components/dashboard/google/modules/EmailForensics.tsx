@@ -78,6 +78,8 @@ const EmailForensics = () => {
   const [filter, setFilter] = useState("");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [ranAt, setRanAt] = useState<number | null>(null);
+  const [drift, setDrift] = useState<DriftResult | null>(null);
+  const [driftBusy, setDriftBusy] = useState(false);
 
   const run = useCallback(async (scopeId: string) => {
     const s = SCOPES.find((x) => x.id === scopeId) ?? SCOPES[0];
@@ -89,6 +91,19 @@ const EmailForensics = () => {
       setAgg(data?.aggregate || null);
       setRanAt(Date.now());
       if (!msgs.length) toast.info("No messages matched this scope.");
+
+      // Baseline comparison runs after the sweep lands and never blocks it:
+      // a drift-store failure must not cost the operator their forensics.
+      if (msgs.length) {
+        setDriftBusy(true);
+        void runDriftAlarm(msgs)
+          .then((res) => {
+            setDrift(res);
+            const critical = res.breaks.filter((b) => b.severity === "critical").length;
+            if (critical) toast.warning(`${critical} sender baseline break${critical === 1 ? "" : "s"} detected.`);
+          })
+          .finally(() => setDriftBusy(false));
+      }
     } catch (e: unknown) {
       console.error("gmail_forensics failed:", e);
       toast.error(e instanceof Error ? e.message : "Header sweep failed.");
