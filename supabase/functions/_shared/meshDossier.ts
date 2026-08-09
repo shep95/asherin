@@ -278,7 +278,17 @@ export interface MeshDossierDoc {
     timedOut?: boolean;
     error?: string;
   } | null;
+  /** Outcome of the organisational pass, when an anchor was bound. */
+  org?: {
+    anchor: string;
+    kind: "domain" | "name";
+    factsAdded: number;
+    hits: number;
+    timedOut?: boolean;
+    error?: string;
+  } | null;
 }
+
 
 
 const FIELD_LABEL: Record<string, string> = {
