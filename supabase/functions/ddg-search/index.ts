@@ -34,111 +34,29 @@ serve(async (req) => {
       });
     }
 
-    console.log("DuckDuckGo search:", query);
+    // DuckDuckGo's lite endpoint now answers datacenter IPs with HTTP 202 and
+    // the plain homepage — a 2xx carrying no results, which the old parser read
+    // as "no hits". This function keeps its name and contract but is served by
+    // the hardened surface tier, which challenge-checks bodies, breaks the
+    // circuit on blocked providers and falls back across independent indexes.
+    const { runSurfaceWave } = await import("../_shared/surfaceRetrieval.ts");
+    const wave = await runSurfaceWave(String(query), { limit: Number(numResults) || 8 });
+    const results: SearchResult[] = wave.hits.slice(0, Number(numResults) || 8).map((h) => ({
+      title: h.title,
+      url: h.url,
+      snippet: h.snippet,
+    }));
 
-    // Use DuckDuckGo lite endpoint (simpler HTML, easier to parse)
-    const encodedQuery = encodeURIComponent(query);
-    const response = await fetch(`https://lite.duckduckgo.com/lite/`, {
-      method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html",
-      },
-      body: `q=${encodedQuery}`,
-    });
-
-    if (!response.ok) {
-      console.error("DDG response error:", response.status);
-      return new Response(JSON.stringify({ results: [], error: "Search failed" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const html = await response.text();
-    const results: SearchResult[] = [];
-
-    // Parse the lite HTML - results are in table rows with specific classes
-    // Pattern: <a rel="nofollow" href="URL" class='result-link'>TITLE</a>
-    // followed by snippet in <td class="result-snippet">
-    
-    const linkRegex = /class='result-link'[^>]*href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
-    const snippetRegex = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
-
-    const links: { url: string; title: string }[] = [];
-    let match;
-    while ((match = linkRegex.exec(html)) !== null) {
-      let url = match[1].trim();
-      const title = match[2].replace(/<[^>]*>/g, "").trim();
-      
-      // Handle DDG redirect URLs
-      if (url.includes("duckduckgo.com/l/")) {
-        const uddg = url.match(/uddg=([^&]*)/);
-        if (uddg) url = decodeURIComponent(uddg[1]);
-      }
-      
-      if (title && url) {
-        links.push({ url, title: decodeEntities(title) });
-      }
-    }
-
-    const snippets: string[] = [];
-    while ((match = snippetRegex.exec(html)) !== null) {
-      snippets.push(decodeEntities(match[1].replace(/<[^>]*>/g, "").trim()));
-    }
-
-    for (let i = 0; i < Math.min(links.length, numResults); i++) {
-      results.push({
-        title: links[i].title,
-        url: links[i].url,
-        snippet: snippets[i] || "",
-      });
-    }
-
-    // Fallback: try alternative parsing if no results found
-    if (results.length === 0) {
-      // Try parsing <a> tags with rel="nofollow" that link to external sites
-      const altRegex = /<a[^>]*rel="nofollow"[^>]*href="(https?:\/\/[^"]*)"[^>]*>([^<]+)<\/a>/gi;
-      const altLinks: { url: string; title: string }[] = [];
-      while ((match = altRegex.exec(html)) !== null) {
-        const url = match[1].trim();
-        const title = match[2].trim();
-        if (title && url && !url.includes("duckduckgo.com")) {
-          altLinks.push({ url, title: decodeEntities(title) });
-        }
-      }
-      
-      for (let i = 0; i < Math.min(altLinks.length, numResults); i++) {
-        results.push({
-          title: altLinks[i].title,
-          url: altLinks[i].url,
-          snippet: "",
-        });
-      }
-    }
-
-    console.log(`Found ${results.length} results`);
-    return new Response(JSON.stringify({ results }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log(`ddg-search: ${results.length} results, live providers ${wave.liveProviders}`);
+    return new Response(
+      JSON.stringify({ results, providers: wave.telemetry, escalated: wave.escalated }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
-    console.error("DDG search error:", e);
+    console.error("surface search error:", e);
     return new Response(JSON.stringify({ results: [], error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
-
-function decodeEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
