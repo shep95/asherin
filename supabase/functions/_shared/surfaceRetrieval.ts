@@ -110,12 +110,47 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Fetcher = (query: string, limit: number) => Promise<SurfaceHit[]>;
 
-/** Wraps a provider with breaker, timing, one retry, and telemetry. */
+// ── Relevance guard ──────────────────────────────────────────────────────────
+// Bing's RSS SERP does not return an empty channel for a zero-result query — it
+// returns unrelated filler (a rare-name query came back with Premier League
+// fixtures and Russian stage-lighting shops). Passing that through would be
+// worse than returning nothing: the fusion layer would score spam as corroborated
+// open-web evidence. Every hit must therefore earn its place by matching the
+// query's own tokens.
+function queryTokens(query: string): string[] {
+  const cleaned = query
+    .replace(/\b(?:site|filetype|ext|inurl|intitle|intext|related|cache):/gi, " ")
+    .replace(/[""'']/g, '"')
+    .replace(/[^\p{L}\p{N}@._-]+/gu, " ");
+  return [...new Set(
+    cleaned.split(/\s+/)
+      .map((t) => t.replace(/^[._-]+|[._-]+$/g, "").toLowerCase())
+      .filter((t) => t.length >= 3 && !STOP.has(t)),
+  )];
+}
+const STOP = new Set([
+  "the", "and", "for", "with", "from", "that", "this", "who", "what", "where",
+  "when", "how", "www", "com", "http", "https", "org", "net", "his", "her",
+  "are", "was", "were", "has", "have", "about", "into", "over",
+]);
+
+function relevant(hit: SurfaceHit, tokens: string[]): boolean {
+  if (!tokens.length) return true;
+  const hay = `${hit.title} ${hit.snippet} ${hit.url}`.toLowerCase();
+  let matched = 0;
+  for (const t of tokens) if (hay.includes(t)) matched++;
+  // Half the distinctive tokens, at least one. A three-token name query needs
+  // two; a single-token query needs that token to actually appear.
+  return matched >= Math.max(1, Math.ceil(tokens.length * 0.5));
+}
+
+/** Wraps a provider with breaker, timing, one retry, relevance guard, telemetry. */
 async function runProvider(
   engine: string,
   fn: Fetcher,
   query: string,
   limit: number,
+  tokens: string[],
 ): Promise<{ hits: SurfaceHit[]; stat: ProviderStat }> {
   if (breakerOpen(engine)) {
     return { hits: [], stat: { engine, ok: false, hits: 0, ms: 0, reason: "breaker" } };
@@ -123,10 +158,21 @@ async function runProvider(
   const started = Date.now();
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const hits = await fn(query, limit);
+      const raw = await fn(query, limit);
+      const hits = raw.filter((h) => relevant(h, tokens));
       if (hits.length) {
         noteSuccess(engine);
         return { hits, stat: { engine, ok: true, hits: hits.length, ms: Date.now() - started } };
+      }
+      // Filler-only responses are a successful HTTP call with no evidence in it.
+      // They must not count as a live provider, but they are not a block either,
+      // so they do not trip the breaker on the first pass.
+      if (raw.length) {
+        noteSuccess(engine);
+        return {
+          hits: [],
+          stat: { engine, ok: false, hits: 0, ms: Date.now() - started, reason: "irrelevant" },
+        };
       }
       if (attempt === 0) { await sleep(jitter(200)); continue; }
       noteFailure(engine);
