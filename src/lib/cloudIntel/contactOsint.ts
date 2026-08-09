@@ -561,7 +561,7 @@ async function sweepIdentifierLeg(
  * background check must not lose its dossier because reasoning was unavailable.
  */
 async function dorkBatteryLeg(
-  subject: { name: string; email: string | null; identifiers: string[]; locationHint: string | null },
+  subject: { name: string; email: string | null; identifiers: string[]; locationHint: string | null; orgAnchors?: string[] },
   signal?: AbortSignal,
 ): Promise<DorkBatterySummary | null> {
   // The subject string is what every generated query is anchored to. A bare
@@ -583,7 +583,17 @@ async function dorkBatteryLeg(
     // are deliberately excluded — they describe the mailbox, not the subject.
     const host = subject.email?.split("@")[1]?.toLowerCase() ?? "";
     const FREEMAIL = /^(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|aol|proton(mail)?|gmx|mail|yandex)\./;
-    const domain = host && !FREEMAIL.test(host) ? host : undefined;
+    // A consumer mailbox names no employer, so the doctrine loses its org axis
+    // and falls back to generic person theories. The derived anchors put it
+    // back: the first domain-shaped anchor becomes the org scope, and any
+    // name-shaped anchor is carried as the employer hint.
+    const anchorDomain = (subject.orgAnchors ?? [])
+      .map((a) => a.trim().toLowerCase())
+      .find((a) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(a) && !FREEMAIL.test(a));
+    const domain = (host && !FREEMAIL.test(host) ? host : undefined) ?? anchorDomain;
+    const employerHint = (subject.orgAnchors ?? [])
+      .map((a) => a.trim())
+      .find((a) => !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(a));
 
     const { data, error } = await supabase.functions.invoke("aureon-dork", {
       body: {
@@ -597,9 +607,9 @@ async function dorkBatteryLeg(
             // the doctrine scopes its 55 domains around the subject's phone
             // and alternate addresses too — not the name alone, which is the
             // weakest anchor and the one that produces collision hits.
-            employer: subject.identifiers.length
+            employer: employerHint ?? (subject.identifiers.length
               ? `bound identifiers: ${subject.identifiers.slice(0, 4).join(", ")}`
-              : undefined,
+              : undefined),
           },
         },
         // A contact report runs this leg for every dossier opened, so the cap
