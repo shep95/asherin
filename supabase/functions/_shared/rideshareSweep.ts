@@ -200,17 +200,25 @@ export interface CollectionResult {
 /**
  * Run the plan with bounded concurrency and a hard wall-clock budget.
  *
- * Order matters: the plate pivot runs FIRST because its output changes the
- * plan. A resolved surname turns six vague first-name queries into six bound
- * ones; an unresolved plate collapses the plan to the single angle that still
- * means something. Angles resolve independently and each carries its own
- * timeout, so a source that hangs costs its slice of the budget and nothing
- * more — the previous failure mode was one 68-second identity search eating the
- * whole sweep and the request with it.
+ * ORDER OF PRECEDENCE — the correction that matters most in this file.
+ * The rider-safety substrate launches FIRST and independently of everything
+ * else, because it is the only part of this collection that reliably returns
+ * anything. Identity resolution used to own the whole wall clock and gate every
+ * other angle behind a binding that, measured on live rides, never occurs — a
+ * US plate does not resolve to an owner on the open web and no query shape
+ * changes that. So identity is now the tail, not the trunk: it runs with
+ * whatever budget the safety layers did not need, it thickens the dossier when
+ * it succeeds, and its silence is reported as a legal limit rather than as an
+ * ominous blank.
+ *
+ * Within the identity tail the old ordering still holds: the plate pivot runs
+ * before the angles because its output reshapes them, and each angle carries
+ * its own timeout so one hanging source costs its slice and nothing more.
  */
 export async function collectDossier(
   ride: RideInput,
   budgetMs = 55_000,
+  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string },
 ): Promise<CollectionResult> {
   const started = Date.now();
   const blocks: string[] = [];
@@ -218,23 +226,36 @@ export async function collectDossier(
   let hits = 0;
   let jurisdiction = "";
 
-  // ── Phase A: plate-anchored pivot (fast, always attempted) ───────────────
-  const pivot = await plateAnchoredIdentity(ride, Math.min(18_000, Math.floor(budgetMs * 0.3)));
+  // ── Phase 0: rider safety, launched immediately and never blocked ────────
+  // This is what the rider actually reads. It is deliberately not awaited here
+  // so the identity work overlaps it rather than queueing behind it.
+  const safetyPromise = ctx
+    ? assembleRiderSafety({ db: ctx.db, userId: ctx.userId, rideId: ctx.rideId, ride, budgetMs: 22_000 })
+    : assembleRiderSafety({ db: admin(), userId: "", rideId: "", ride, budgetMs: 22_000 });
+
+  // ── Phase A: plate-anchored pivot (bounded, best-effort) ─────────────────
+  const pivot = await plateAnchoredIdentity(ride, Math.min(14_000, Math.floor(budgetMs * 0.22)));
   blocks.push(pivot.block);
   hits += pivot.evidence.hits.length;
 
   if (!ride.driver_name && !pivot.bestFullName) {
+    // No bindable person. That used to end the collection with an empty
+    // dossier; it no longer does, because none of the rider-safety layers
+    // needed a name in the first place.
+    const safety = await safetyPromise;
     return {
-      context: blocks.join("\n\n"),
-      note: `No driver name captured. ${pivot.evidence.note}`,
+      context: [safety.block, ...blocks].join("\n\n"),
+      note: `No driver name captured — identity collection was not attempted. ${safety.note}`,
       hits,
-      angles: [],
+      angles: ["Rider-safety substrate"],
       candidates: pivot.candidates,
       residual: pivot.residual,
       resolved_name: null,
       registry: pivot.registry,
+      safety,
     };
   }
+
 
   // ── Phase B: identity collection, re-seeded by the pivot ─────────────────
   const plan = collectionPlan(ride, pivot.bestFullName);
