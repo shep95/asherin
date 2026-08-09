@@ -1485,7 +1485,85 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.log(`[chat] Bridge wave: 6 legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
     }
 
+    // ── FUSED IDENTITY RETRIEVAL — launched here, awaited below ───────────
+    //
+    // Zophiel and the jurisdictional dossier engine are two research systems
+    // that, on an identity turn, go looking for the same person. They ran
+    // strictly one after the other: the web sweep completed, and only then did
+    // the jurisdictional engine start its own — with a 75 second ceiling on
+    // top. A chat turn has nowhere near that much patience, and the second
+    // engine was rarely finding a subject the first had missed; it was mostly
+    // paying twice for depth on the same name.
+    //
+    // The jurisdictional leg is therefore STARTED here and awaited after the
+    // web sweep, so the two run concurrently and an identity turn costs the
+    // slower of the two rather than their sum. Its ceiling drops from 75s to
+    // 24s: past that the turn has already failed as a conversation, and the
+    // operator is better served by a grounded partial answer that says what is
+    // still collecting than a complete one that arrives after they left.
+    //
+    // Before either engine spends a second, the operator's own vault is
+    // checked. A subject they already hold a finished, high-confidence dossier
+    // on does not need re-investigating from zero — that was the most
+    // expensive possible way to answer a question their own database could
+    // answer immediately.
+    let jurisdictionalContext = "";
+    let isIntelTurn = false;
+    let vaultPriorHit = false;
 
+    const identityLeg: Promise<void> = (async () => {
+      try {
+        const { runJurisdictionalSearch, formatIntelContext, formatClarifyContext, classifyIntent } =
+          await import("../_shared/jurisdictionalIntel.ts");
+        const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+        // Reuse the classification computed for the retrieval router above; only
+        // re-derive it if that pass failed, so both layers agree on the turn type.
+        const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
+        if (isDefensiveSecurityAuditRequest || vaultOwnsTurn || meshOwnsTurn || intent.kind === "none") return;
+
+        isIntelTurn = true;
+        console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
+
+        if (intent.needsClarification) {
+          jurisdictionalContext = formatClarifyContext(intent);
+          return;
+        }
+
+        // Vault prior — a bounded read of the operator's own ledger, never a sweep.
+        if (authHeader && intent.kind === "person" && intent.subject) {
+          try {
+            const { lookupVaultPrior, formatVaultPriorContext } =
+              await import("../_shared/meshVaultBridge.ts");
+            const prior = await lookupVaultPrior(authHeader, { name: intent.subject });
+            if (prior) {
+              jurisdictionalContext = formatVaultPriorContext(prior);
+              vaultPriorHit = prior.authoritative;
+              console.log(
+                `[chat] Vault prior: hit on "${intent.subject}" — ${Math.round(Number(prior.subject.confidence ?? 0) * 100)}% confidence, ${Math.round(prior.ageDays)}d old, authoritative=${prior.authoritative}, ${prior.elapsedMs}ms`,
+              );
+              // Authoritative prior: the answer already exists. Both research
+              // engines stand down for this turn.
+              if (prior.authoritative) return;
+            }
+          } catch (e) {
+            console.error("[chat] Vault prior failed:", (e as Error).message);
+          }
+        }
+
+        const bundle = await Promise.race([
+          runJurisdictionalSearch(intent),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 24000)),
+        ]);
+        const live = bundle ? formatIntelContext(bundle) : "";
+        if (live) jurisdictionalContext = jurisdictionalContext ? `${jurisdictionalContext}\n${live}` : live;
+        else if (!jurisdictionalContext) {
+          jurisdictionalContext =
+            "\n\n## JURISDICTIONAL SWEEP — INCOMPLETE\nThe records sweep did not return inside this turn's collection window. Answer from the live web corpus above and say plainly that the records layer is still collecting — never present general knowledge as a sourced record.";
+        }
+      } catch (e) {
+        console.error("[chat] Jurisdictional intel failed:", (e as Error).message);
+      }
+    })();
 
     if (shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
