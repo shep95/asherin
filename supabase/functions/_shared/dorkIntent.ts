@@ -44,6 +44,12 @@ const HARD_TRIGGERS = [
 const SOFT_VERBS = /\b(find|surface|expose|reveal|dig up|hunt|scan|sweep|map|profile|deep\s*search)\b/i;
 const SOFT_OBJECTS = /\b(everything|footprint|dossier|exposure|public\s+data|open\s+web|attack\s+surface|leaks|indexed)\b/i;
 
+// NATURAL intelligence verbs — when paired with a hard identifier (email,
+// phone, domain, handle) in the same turn, they imply a dork sweep even
+// without the literal word "dork". Prevents the common failure where the
+// operator says "look up this email" and the trigger never fires.
+const INTEL_VERBS = /\b(look\s*(up|into)|lookup|background\s*check|background\s*on|who\s+is|whois|tell\s+me\s+about|info\s+on|information\s+on|dig\s+(up|into)|investigate|profile|check\s+out|research|deep\s*dive|run\s+(a|the)?\s*(check|report|sweep|scan)\s+on|get\s+(me\s+)?(everything|info|intel|dirt)\s+on|pull\s+(a\s+)?(report|record)\s+on|osint\s+(on|this)|recon\s+on)\b/i;
+
 /** "dork for my information", "audit me", "what's public about myself" */
 const SELF_RE = /\b(my|me|myself|mine|my\s+own|i\s+am|i'm)\b/i;
 const THIRD_PARTY_RE = /\b(his|her|their|him|them|this\s+(guy|person|man|woman|number|email))\b/i;
@@ -104,7 +110,13 @@ export function detectDorkIntent(userText: string): DorkTrigger {
 
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
   const softFire = SOFT_VERBS.test(text) && SOFT_OBJECTS.test(text);
-  if (!hard && !softFire) return none("no_trigger");
+
+  // Pre-scan for a strong identifier — if one exists, natural intel verbs
+  // ("look up", "background check", "who is", "info on") are enough to fire.
+  const hasStrongId = EMAIL_RE.test(text) || PHONE_RE.test(text) || HANDLE_RE.test(text) || !!extractDomain(text);
+  const naturalFire = hasStrongId && INTEL_VERBS.test(text);
+
+  if (!hard && !softFire && !naturalFire) return none("no_trigger");
 
   const selfTarget = SELF_RE.test(text) && !THIRD_PARTY_RE.test(text);
 
