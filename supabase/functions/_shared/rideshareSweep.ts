@@ -571,6 +571,39 @@ export async function runDeepSweep(opts: {
 
   const deep = enforceDoctrine(parsedModel, fast);
   const payload = deep.payload as Record<string, unknown>;
+
+  // ── Rider-safety payload: computed in code, authoritative over the model ──
+  // These are the fields the card, the push and the email render. None of them
+  // is derived from anything the model said, so a hallucinating, truncated or
+  // entirely failed model degrades the narrative and leaves the actionable
+  // briefing intact.
+  const s = collection.safety;
+  const veh = s.vehicle.parsed;
+  payload.boarding_decision = s.decision;
+  payload.boarding_basis = s.decisionBasis;
+  payload.boarding_protocol = s.protocol;
+  payload.safety_findings = s.findings;
+  payload.vehicle_expected = [veh.color, veh.year, veh.make, veh.model].filter(Boolean).join(" ")
+    || ride.vehicle
+    || "";
+  payload.plate_check = s.coherence.line;
+  payload.vehicle_record_line = s.vehicle.makeValidated
+    ? `${s.vehicle.recalls.length} open recall(s) on this model year${s.vehicle.safetyRating?.overall && s.vehicle.safetyRating.overall !== "not published" ? ` · NCAP overall ${s.vehicle.safetyRating.overall}` : ""}${typeof s.vehicle.complaintCount === "number" ? ` · ${s.vehicle.complaintCount} owner complaint(s)` : ""}.`
+    : s.vehicle.note;
+  payload.corridor_line = s.corridorHits > 0
+    ? `${s.corridorHits} current local report(s) reviewed for ${ride.city || "this area"}.`
+    : `No current local reporting surfaced for ${ride.city || "this area"} — no-signal, not an all-clear.`;
+  payload.ledger_line = s.ledger.priorSamePlate > 0
+    ? `You have ridden in this exact car ${s.ledger.priorSamePlate} time(s) before.`
+    : "First recorded ride in this vehicle.";
+  payload.vehicle_safety = {
+    parsed: veh,
+    validated: s.vehicle.makeValidated,
+    recalls: s.vehicle.recalls,
+    complaints: s.vehicle.complaintCount,
+    rating: s.vehicle.safetyRating,
+  };
+
   payload.collection_note = collection.note;
   payload.collection_angles = collection.angles;
   payload.plate_candidates = collection.candidates;
@@ -585,14 +618,30 @@ export async function runDeepSweep(opts: {
     bound_name: collection.registry.best_name,
     binding_confidence: collection.registry.confidence,
   };
-  // Registry flags must appear to the reader even when the model omitted them.
+  // Registry and rider-safety flags must appear to the reader even when the
+  // model omitted them.
   {
     const existing = Array.isArray(payload.flags) ? (payload.flags as Array<Record<string, unknown>>) : [];
-    for (const f of collection.registry.flags) {
+    for (const f of [...collection.registry.flags, ...s.findings]) {
       if (!existing.some((x) => x.code === f.code)) existing.push({ ...f });
     }
     payload.flags = existing;
   }
+
+  // The headline is the decision, not the identity verdict. "THIN — not enough
+  // public record to say anything" is a true sentence that helps nobody at a
+  // kerb; "VERIFY BEFORE BOARDING — silver 2019 Toyota Camry, plate 9NMB162" is
+  // the same honesty pointed at something the rider can act on.
+  if (s.decision !== "BOARD" || !String(deep.headline || "").trim()) {
+    const label = s.decision === "DO_NOT_BOARD"
+      ? "DO NOT BOARD"
+      : s.decision === "VERIFY"
+        ? "VERIFY BEFORE BOARDING"
+        : "CLEAR TO BOARD";
+    const car = String(payload.vehicle_expected || "").trim();
+    deep.headline = `${label} — ${[car, ride.plate ? `plate ${ride.plate}` : ""].filter(Boolean).join(", ") || "confirm the car in the app"}`.slice(0, 120);
+  }
+
   if (collection.registry.best_name && !(payload.subject_profile as any)?.resolved_name) {
     (payload.subject_profile as any) = {
       ...((payload.subject_profile as any) || {}),
