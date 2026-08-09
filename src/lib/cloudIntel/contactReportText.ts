@@ -241,6 +241,65 @@ function osintSections(a: OsintAnnex, startAt: number): string[] {
     L.push("");
   }
 
+  // Chronology is derived, never invented: every row below is a date the
+  // collection layer actually recorded against a surface. Undated sightings
+  // are counted and named as undated rather than being given a guessed slot,
+  // because an assumed date in a timeline propagates into every later
+  // judgment that reads the timeline as sequence.
+  L.push(...banner(n++, "Chronology (timeline order)"));
+  {
+    type Ev = { date: string; text: string };
+    const events: Ev[] = [];
+    let undated = 0;
+    for (const sw of a.identifierSweeps) {
+      if (sw.firstSeen) events.push({ date: sw.firstSeen.slice(0, 10), text: `FIRST SIGHTING — ${sw.identifier} (${sw.kind}) first observed in the indexed record.` });
+      for (const e of sw.exposed) {
+        if (e.lastSeen) events.push({ date: e.lastSeen.slice(0, 10), text: `CIRCULATION — ${sw.identifier} carried on ${e.host} (${e.surfaceClass}).` });
+        else undated++;
+      }
+      for (const t of sw.top) {
+        if (t.lastSeen) events.push({ date: t.lastSeen.slice(0, 10), text: `SURFACE — ${sw.identifier} on ${t.host} (${t.surfaceClass}, ${t.sightings} sighting${t.sightings === 1 ? "" : "s"}).` });
+        else undated++;
+      }
+      if (sw.lastSeen) events.push({ date: sw.lastSeen.slice(0, 10), text: `MOST RECENT SIGHTING — ${sw.identifier} last observed in the indexed record.` });
+    }
+    if (a.builtAt) events.push({ date: new Date(a.builtAt).toISOString().slice(0, 10), text: "COLLECTION — this dossier was built." });
+
+    const seenRow = new Set<string>();
+    const ordered = events
+      .filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(e.date))
+      .filter((e) => { const k = `${e.date}|${e.text}`; if (seenRow.has(k)) return false; seenRow.add(k); return true; })
+      .sort((x, y) => x.date.localeCompare(y.date));
+
+    if (!ordered.length) {
+      L.push(...wrap("  NO DATED EVENT SURVIVED COLLECTION. Every surface returned without a parseable date, so no sequence can be published. Absence of a timeline is a collection gap, not a quiet history.", 2));
+      L.push("");
+    } else {
+      for (const e of ordered) L.push(...field(`  ${e.date}  `, e.text, 14));
+      L.push("");
+      L.push(...wrap(`  Span ${ordered[0].date} → ${ordered[ordered.length - 1].date} · ${ordered.length} dated event${ordered.length === 1 ? "" : "s"}${undated ? ` · ${undated} undated sighting${undated === 1 ? "" : "s"} withheld from the sequence` : ""}.`, 2));
+      L.push("");
+    }
+  }
+
+  // Imagery is attributed to the identity CLUSTER that carried it, never to
+  // the subject outright: a photograph on a same-name page is evidence about
+  // that page, and mislabelling it is the fastest way to misidentify a person.
+  L.push(...banner(n++, "Imagery (face capture)"));
+  if (!a.imagery.length) {
+    L.push(...wrap("  NO FACE IMAGE CAPTURED. No collected page published an open-graph or profile image that cleared the https-only, non-vector filter. This is an unmet collection requirement, not evidence the subject has no published photograph.", 2));
+    L.push("");
+  } else {
+    for (const img of a.imagery) {
+      L.push(...field("  ▣ ", `attributed to ${img.attributedTo} (cluster score ${img.clusterScore})`, 4));
+      L.push(...field("    ", img.url, 4));
+    }
+    L.push("");
+    L.push(...wrap("  Images render in the report viewer through the SSRF-guarded proxy; the URLs above are the originals. Treat a photograph as an identity claim by the publishing page, corroborated only to the strength of that page.", 2));
+    L.push("");
+  }
+
+
   // Reasoned exposure is a third finding class: the sweep reports where the
   // identifier IS, the doctrine reports where the subject's shape says it
   // SHOULD be, and then tests that claim. Untested reasoning is not published.
