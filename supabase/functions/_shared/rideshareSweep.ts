@@ -514,19 +514,30 @@ export async function runDeepSweep(opts: {
 }): Promise<{ deep: PhaseResult; delivered: string[] }> {
   const { userId, userEmail, rideId, ride, cfg, settings } = opts;
   const fast = fastPass(ride);
-  const collection = await collectDossier(ride, opts.collectionBudgetMs ?? 55_000);
+  const collection = await collectDossier(ride, opts.collectionBudgetMs ?? 55_000, {
+    db: admin(),
+    userId,
+    rideId,
+  });
 
   // Registry cross-checks are arithmetic over a government record, not model
   // opinion, so they enter the doctrine through the deterministic fast-pass
   // channel: a HIGH registry flag (licence expired, licensee is not the person
   // shown, VIN decodes to a different car) escalates the verdict on its own,
   // even if the model was lenient or the collection was otherwise silent.
+  //
+  // The rider-safety findings enter through the same channel and for the same
+  // reason: a plate that cannot exist in its state, or a make the government
+  // vehicle index does not recognise, is arithmetic we performed ourselves. It
+  // must survive a lenient model, and it must not be gated behind an identity
+  // binding it never depended on.
   const fastFlags = (fast.payload as Record<string, unknown>).flags as Array<Record<string, unknown>>;
-  for (const f of collection.registry.flags) {
+  for (const f of [...collection.registry.flags, ...collection.safety.findings]) {
     if (!fastFlags.some((x) => x.code === f.code)) {
       fastFlags.push({ code: f.code, severity: f.severity, detail: f.detail, evidence: f.evidence });
     }
   }
+
 
   const raw = await callByokJsonWithRetry(
     cfg,
