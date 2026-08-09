@@ -1726,7 +1726,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         try {
           const selfAuth = req.headers.get("Authorization");
           const selfUser = selfAuth
-            ? await resolveCallerCached(selfAuth, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "")
+            ? await resolveCallerCached(selfAuth, (Deno.env.get("SUPABASE_URL") || ""), Deno.env.get("SUPABASE_ANON_KEY") || "")
             : null;
           if (selfUser?.email) resolvedSubject = String(selfUser.email).toLowerCase();
         } catch (_e) { /* fall through to the no-subject guard below */ }
