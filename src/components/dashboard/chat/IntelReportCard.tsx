@@ -48,6 +48,32 @@ const IntelReportCard = (props: IntelReportCardProps) => {
     window.setTimeout(() => setDone(false), 2400);
   }, [report]);
 
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(report.text);
+    } catch {
+      // Clipboard API is unavailable on insecure origins / older Safari.
+      const ta = document.createElement("textarea");
+      ta.value = report.text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch { /* nothing left to try */ }
+      ta.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }, [report]);
+
+  const handleOpen = useCallback(() => {
+    const blob = new Blob(["\uFEFF", report.text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    openedUrls.current.push(url);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [report]);
+
   return (
     <div className="mt-2 animate-fade-in">
       <div className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-xl overflow-hidden">
