@@ -117,6 +117,74 @@ export function placeKey(lat?: number | null, lng?: number | null, precision = 3
 }
 
 // ── Recurrence doctrine ────────────────────────────────────────────────────
+//
+// R1  three strikes inside a rolling window, strikes ≥5 min apart
+// R2  strikes spread ≥500 m apart → Critical
+// R3  trust list (is_self / is_ignored) never accrues strikes
+// R4  fixed-infrastructure classes (beacons, transit, medical) never strike
+// R5  a sample weaker than the strike floor is logged but is not a strike
+// R6  three strikes inside 30 min → Critical regardless of geography
+// R10 one alert per device per cooldown, then an escalated re-alert
+
+/** Two samples closer together than this are one encounter wearing two hats. */
+export const STRIKE_GAP_MIN = 5;
+/** Rolling window the strike count is measured over. */
+export const DEFAULT_WINDOW_HOURS = 2;
+/** Strikes packed into this many minutes read as active following. */
+export const RAPID_WINDOW_MIN = 30;
+/** ~10 m at a typical advertisement power. Weaker samples are noise. */
+export const MIN_STRIKE_RSSI = -80;
+/** Metres between two strike locations that proves movement, not a room. */
+export const LOCATION_VARIANCE_M = 500;
+/** Silence after an alert before the same device may re-alert. */
+export const ALERT_COOLDOWN_MIN = 30;
+
+/** Classes that are stationary or ubiquitous by construction. A retail beacon
+ *  repeating at the same shop is a shop, not a stalker. */
+export const NEVER_STRIKE_KINDS: DeviceKind[] = ["beacon", "fitness"];
+
+/** Manufacturer/name markers for infrastructure transmitters. Matched against
+ *  the resolved manufacturer string, never against a raw MAC. */
+const INFRA_MARKERS =
+  /estimote|kontakt\.?io|gimbal|radius ?networks|blueup|minew|eddystone|ibeacon|swiftsensors|transit|metro ?beacon|dexcom|omnipod|medtronic|resmed|philips ?health/i;
+
+export function isInfrastructure(manufacturer: string | null, name: string | null, kind: DeviceKind): boolean {
+  if (NEVER_STRIKE_KINDS.includes(kind)) return true;
+  return INFRA_MARKERS.test(`${manufacturer || ""} ${name || ""}`);
+}
+
+/**
+ * Collapse a stream of sighting timestamps into strikes: the first sample
+ * counts, and every later sample only counts once it clears `gapMin` from the
+ * last counted one. Ascending order is enforced here so callers cannot corrupt
+ * the count by handing over a descending query result.
+ */
+export function countStrikes(timestampsMs: number[], gapMin = STRIKE_GAP_MIN): number[] {
+  const sorted = timestampsMs.filter((t) => Number.isFinite(t)).sort((a, b) => a - b);
+  const gap = gapMin * 60_000;
+  const strikes: number[] = [];
+  for (const t of sorted) {
+    if (!strikes.length || t - strikes[strikes.length - 1] >= gap) strikes.push(t);
+  }
+  return strikes;
+}
+
+/** Greatest separation between any two strike positions (haversine, metres). */
+export function maxSeparationMeters(points: Array<{ lat: number; lng: number }>): number {
+  let max = 0;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const R = 6_371_000;
+      const a = points[i], b = points[j];
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = (((b.lng - a.lng) * Math.PI) / 180) *
+        Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
+      const d = Math.sqrt(dLat * dLat + dLng * dLng) * R;
+      if (d > max) max = d;
+    }
+  }
+  return Math.round(max);
+}
 
 export interface RecurrenceInput {
   encounterCount: number;   // distinct scan sessions, all time
@@ -128,24 +196,26 @@ export interface RecurrenceInput {
   closestMeters: number | null;
   threshold: number;
   ignoreAudio: boolean;
-  /** Distinct scan sessions inside the rolling window. This is the primary
-   *  stalking signal: "near me N separate times within X hours". */
-  windowEncounters?: number;
+  /** Strikes (≥5 min apart) inside the rolling window — the primary signal. */
+  windowStrikes?: number;
   windowHours?: number;
-  /** Minutes between the first and last sighting inside the window. Guards
-   *  against one continuous pass being split into several sessions. */
+  /** Minutes between the first and last strike inside the window. */
   windowSpanMinutes?: number;
+  /** Strikes packed inside the last RAPID_WINDOW_MIN minutes (R6). */
+  rapidStrikes?: number;
+  /** Greatest distance between strike positions in the window (R2). */
+  spreadMeters?: number;
+  /** True when the radio is infrastructure and must never accrue strikes (R4). */
+  isInfrastructure?: boolean;
 }
 
 export interface RecurrenceVerdict {
   shouldAlert: boolean;
   tier: "friendly" | "known" | "unknown" | "priority" | "breach";
   reason: string;
+  /** Set when R2 or R6 upgraded the finding. Drives the alert copy. */
+  escalation?: "location_variance" | "rapid_recurrence" | null;
 }
-
-/** A repeat has to be genuinely separated in time to mean anything; two scans
- *  ten seconds apart are one encounter wearing two hats. */
-const MIN_WINDOW_SPAN_MIN = 10;
 
 export function assessRecurrence(i: RecurrenceInput): RecurrenceVerdict {
   if (i.isSelf) return { shouldAlert: false, tier: "friendly", reason: "Marked as your own hardware." };
@@ -153,42 +223,53 @@ export function assessRecurrence(i: RecurrenceInput): RecurrenceVerdict {
   if (i.ignoreAudio && AUDIO_KINDS.includes(i.kind)) {
     return { shouldAlert: false, tier: "known", reason: "Audio accessory — logged, not alerted." };
   }
-
-  const windowHours = i.windowHours ?? 12;
-  const inWindow = i.windowEncounters ?? 0;
-  const span = i.windowSpanMinutes ?? 0;
-  const close = typeof i.closestMeters === "number" && i.closestMeters <= 10;
-
-  // ── Primary doctrine: N separate encounters inside the rolling window ────
-  if (inWindow >= i.threshold && span >= MIN_WINDOW_SPAN_MIN) {
-    const mobileNow = i.distinctPlaces >= 2 || i.distinctDays >= 2;
-    if (i.kind === "tracker") {
-      return {
-        shouldAlert: true,
-        tier: "breach",
-        reason: `Tracker tag detected near you ${inWindow} separate times in the last ${windowHours}h — the classic covert-tracking pattern.`,
-      };
-    }
-    return {
-      shouldAlert: true,
-      tier: close || mobileNow ? "breach" : "priority",
-      reason: `Detected near you ${inWindow} separate times within ${windowHours}h${mobileNow ? ` across ${i.distinctPlaces} location${i.distinctPlaces === 1 ? "" : "s"}` : " in one area"}${close ? `, closing to ${i.closestMeters} m` : ""}.`,
-    };
+  if (i.isInfrastructure ?? NEVER_STRIKE_KINDS.includes(i.kind)) {
+    return { shouldAlert: false, tier: "known", reason: "Fixed infrastructure transmitter — logged, never counted as a strike." };
   }
 
-  if (i.encounterCount < i.threshold) {
+  const windowHours = i.windowHours ?? DEFAULT_WINDOW_HOURS;
+  const strikes = i.windowStrikes ?? 0;
+  const rapid = i.rapidStrikes ?? 0;
+  const spread = i.spreadMeters ?? 0;
+  const close = typeof i.closestMeters === "number" && i.closestMeters <= 10;
+  const windowLabel = windowHours >= 1 ? `${windowHours}h` : `${Math.round(windowHours * 60)} min`;
+
+  // ── R1: strikes inside the rolling window ────────────────────────────────
+  if (strikes >= i.threshold) {
+    const moved = spread >= LOCATION_VARIANCE_M;                    // R2
+    const rapidHit = rapid >= i.threshold;                          // R6
+    const escalation = moved ? "location_variance" as const
+      : rapidHit ? "rapid_recurrence" as const
+      : null;
+    const critical = moved || rapidHit || i.kind === "tracker" || close;
+
+    const head = i.kind === "tracker"
+      ? `Tracker tag detected near you ${strikes} separate times in the last ${windowLabel}`
+      : `Detected near you ${strikes} separate times in the last ${windowLabel}`;
+    const tail = moved
+      ? ` — and across locations ${spread} m apart, which is following, not coincidence.`
+      : rapidHit
+      ? ` — ${rapid} of them inside ${RAPID_WINDOW_MIN} minutes, the signature of active following.`
+      : ` in one area${close ? `, closing to ${i.closestMeters} m` : ""}.`;
+
+    return { shouldAlert: true, tier: critical ? "breach" : "priority", reason: head + tail, escalation };
+  }
+
+  if (strikes > 0) {
     return {
       shouldAlert: false,
       tier: "unknown",
-      reason: inWindow > 0
-        ? `Seen ${inWindow}/${i.threshold} times in the last ${windowHours}h (${i.encounterCount} all time).`
-        : `Seen in ${i.encounterCount}/${i.threshold} separate sessions.`,
+      reason: `${strikes}/${i.threshold} strikes in the last ${windowLabel} (${i.encounterCount} sessions all time).`,
+      escalation: null,
     };
   }
 
-  // ── Fallback doctrine: repeats spread beyond the window ─────────────────
+  // ── Long-horizon fallback: repeats spread beyond the window ─────────────
+  if (i.encounterCount < i.threshold) {
+    return { shouldAlert: false, tier: "unknown", reason: `Seen in ${i.encounterCount}/${i.threshold} separate sessions.`, escalation: null };
+  }
   if (i.kind === "tracker") {
-    return { shouldAlert: true, tier: "breach", reason: `Tracker tag seen across ${i.encounterCount} separate sessions — the classic covert-tracking pattern.` };
+    return { shouldAlert: true, tier: "breach", reason: `Tracker tag seen across ${i.encounterCount} separate sessions — the classic covert-tracking pattern.`, escalation: null };
   }
   const mobile = i.distinctPlaces >= 2 || i.distinctDays >= 2;
   if (!mobile) {
@@ -196,14 +277,17 @@ export function assessRecurrence(i: RecurrenceInput): RecurrenceVerdict {
       shouldAlert: false,
       tier: "known",
       reason: "Repeats in one place on one day, spread thin over time — reads as fixed infrastructure, not a follower.",
+      escalation: null,
     };
   }
   return {
     shouldAlert: true,
     tier: close ? "breach" : "priority",
     reason: `Seen in ${i.encounterCount} separate sessions across ${i.distinctPlaces} location${i.distinctPlaces === 1 ? "" : "s"} and ${i.distinctDays} day${i.distinctDays === 1 ? "" : "s"}${close ? `, closing to ${i.closestMeters} m` : ""}.`,
+    escalation: null,
   };
 }
+
 
 
 /** Your own gear is the loudest thing in every scan you ever run. A radio that
