@@ -26,6 +26,7 @@
 // deno-lint-ignore-file no-explicit-any
 
 import { doctrineDigest, NOVEL_SYNTHESIS_SYSTEM } from "./dorkDomainDoctrine.ts";
+import { OPERATOR_MATURITY_LADDER } from "./dorkMaturityLadder.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -183,7 +184,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
   const user = targetToUser(target);
   // The synthesis call gets the doctrine digest appended so Gemini reasons
   // over all 55 domains + 10 root causes, not just the target line.
-  const synthesisUser = `${user}\n\n---\n${doctrineDigest()}\n---\n\nProduce the 10 NOVEL cross-domain dorks now.`;
+  const synthesisUser = `${user}\n\n---\n${OPERATOR_MATURITY_LADDER}\n---\n${doctrineDigest()}\n---\n\nOperate at SENIOR tier by default, ELITE when target is a system/org. Produce the 10 NOVEL cross-domain dorks now — no BASIC-tier copy-paste queries.`;
   const canonical = CAT_PROMPTS.map((c) =>
     callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw })),
   );
