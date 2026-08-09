@@ -1840,6 +1840,7 @@ Deno.serve(async (req) => {
           wireQuery: plan.wireQuery,
         },
         rescueUsed,
+        prunedBelowFloor: prunedCount,
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,
