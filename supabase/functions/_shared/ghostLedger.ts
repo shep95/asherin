@@ -108,6 +108,8 @@ export interface GhostLedgerBundle {
   index: GhostIndex;
   partial: boolean;
   elapsedMs: number;
+  /** Which ledger channels actually contributed rows to this run. */
+  channels: { source: string; signals: number }[];
 }
 
 const registrable = (host: string): string => {
