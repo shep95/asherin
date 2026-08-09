@@ -731,6 +731,11 @@ export interface OsintRequest {
   /** Extra hard identifiers (phones, alternate addresses) to seed reverse lookup. */
   identifiers?: string[];
   locationHint?: string | null;
+  /**
+   * Employer names / corporate domains bound to the subject. Without these a
+   * freemail contact loses the entire organisational axis — see orgAnchor.ts.
+   */
+  orgAnchors?: string[];
   /** Force a fresh sweep even when a cached dossier is inside its half-life. */
   force?: boolean;
   signal?: AbortSignal;
@@ -776,13 +781,20 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
           name,
           email,
           identifiers: (req.identifiers ?? []).slice(0, 8),
+          org_anchors: (req.orgAnchors ?? []).slice(0, 2),
           location_hint: req.locationHint ?? null,
           force: req.force === true,
         },
       }),
       Promise.all(hardIdentifiers.map((id) => sweepIdentifierLeg(id, req.signal))),
       dorkBatteryLeg(
-        { name, email, identifiers: hardIdentifiers, locationHint: req.locationHint ?? null },
+        {
+          name,
+          email,
+          identifiers: hardIdentifiers,
+          locationHint: req.locationHint ?? null,
+          orgAnchors: req.orgAnchors ?? [],
+        },
         req.signal,
       ),
     ]);
