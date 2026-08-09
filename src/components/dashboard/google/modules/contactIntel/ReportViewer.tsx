@@ -36,7 +36,7 @@ function proxied(url: string): string | null {
  * invoking control on close, and Escape dismisses, so the report is reachable
  * and escapable without a pointer.
  */
-const ReportViewer = ({ name, text, onClose }: Props) => {
+const ReportViewer = ({ name, text, images, onClose }: Props) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
 
