@@ -273,11 +273,31 @@ function leadResult(l: HarvestLead): SearchResult {
 }
 
 
+/**
+ * Fold a retained body into the flat result shape.
+ *
+ * The shelf used to be scored `1000 + matches`, which is not a score — it is a
+ * pin. Every buffered row sorted above every live finding regardless of what
+ * either one contained, so a stale 40 KB shell with one incidental match beat a
+ * freshly-probed document carrying an author, a device and a contradiction. The
+ * two layers now share one 0–100 scale and are ranked on evidence: match
+ * density carries the buffer, embedded forensics carry the web, and a URL that
+ * appears in BOTH is promoted above either — that is corroboration, and it is
+ * the only thing that deserves a pin.
+ */
 function bufferResult(h: {
   session_id: string; url: string; host: string; source_type: string;
   is_encrypted: boolean; content_bytes: number; matches: number;
   snippets: { text: string }[];
 }): SearchResult {
+  const kb = Math.max(1, Math.round(h.content_bytes / 1024));
+  // Match density, not raw match count: eight hits in a 2 KB note is a document
+  // about the selector; eight hits in a 900 KB dump is a mailing-list archive.
+  const density = h.matches / Math.max(1, Math.log2(kb + 2));
+  const score = Math.min(
+    92,
+    Math.round(30 + Math.min(h.matches, 40) * 1.2 + Math.min(density, 12) * 2.5 + (h.is_encrypted ? 6 : 0)),
+  );
   return {
     id: `buffer:${h.session_id}`,
     source: "buffer",
@@ -286,12 +306,16 @@ function bufferResult(h: {
     host: h.host,
     snippet: h.snippets[0]?.text || `${h.matches} match${h.matches === 1 ? "" : "es"} in retained body`,
     badges: [
+      "retained body",
       `${h.matches} match${h.matches === 1 ? "" : "es"}`,
       h.source_type.split(";")[0],
       h.is_encrypted ? "encrypted" : "",
-      `${Math.max(1, Math.round(h.content_bytes / 1024))} KB`,
+      `${kb} KB`,
     ].filter(Boolean),
-    score: 1000 + h.matches,
+    score,
+    rank_basis:
+      `retained body · ${h.matches} match${h.matches === 1 ? "" : "es"} at ${density.toFixed(1)} per KB-decade`,
+    layers: ["buffer"],
     session_id: h.session_id,
   };
 }
