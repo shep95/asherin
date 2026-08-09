@@ -31,6 +31,18 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   const isWasm = url.pathname.endsWith('.wasm');
+  // Supabase Data API, auth and realtime endpoints must never be served from cache,
+  // otherwise a signed-in device can see stale state or a different user's session.
+  const isSupabaseApi = url.hostname.includes('supabase.co') ||
+    url.hostname.includes('supabase.net') ||
+    url.hostname.includes('supabase.in') ||
+    url.hostname.endsWith('.lovable.cloud') ||
+    url.pathname.startsWith('/auth/v1') ||
+    url.pathname.startsWith('/rest/v1') ||
+    url.pathname.startsWith('/functions/v1');
+
+  // Always hit the network for live backend state; do not cache.
+  if (isSupabaseApi) return;
 
   event.respondWith(
     (async () => {
@@ -70,6 +82,7 @@ self.addEventListener('fetch', (event) => {
     })()
   );
 });
+
 
 // Background Sync — process queued messages when connection returns
 self.addEventListener('sync', (event) => {
