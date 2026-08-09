@@ -300,7 +300,10 @@ Deno.serve(async (req) => {
       // ── Ingest one scan session ─────────────────────────────────────────
       case "ble.ingest": {
         const settings = await loadSettings(userId);
-        const windowHours = Math.min(168, Math.max(1, Number(settings.recurrence_window_hours) || 12));
+        const windowHours = Math.min(168, Math.max(0.5, Number(settings.recurrence_window_hours) || DEFAULT_WINDOW_HOURS));
+        // R5 — the configured floor decides what counts as a STRIKE; everything
+        // above the hard radio floor is still logged so the history stays honest.
+        const strikeRssi = Number.isFinite(Number(settings.min_rssi)) ? Number(settings.min_rssi) : MIN_STRIKE_RSSI;
         const sessionId = String(body.sessionId || "").slice(0, 64);
         if (!sessionId) return json({ error: "session_required" }, 400, cors);
         const scannerLabel = String(body.scannerLabel || "device").slice(0, 60);
