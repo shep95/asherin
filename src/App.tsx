@@ -173,6 +173,12 @@ const App = () => (
             <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
             <Route path="/blog/code-narrative-quantum-collapse" element={<BlogCodeNarrativeQuantumCollapse />} />
             <Route path="/blog/aureon-legal-advisor-multi-jurisdictional" element={<BlogAureonLegalAdvisor />} />
+            <Route path="/blog/asherin-engine-deep-time" element={<BlogAsherinEngineDeepTime />} />
+            <Route path="/blog/cloud-intelligence-suite" element={<BlogCloudIntelligenceSuite />} />
+            <Route path="/blog/asherin-maps-find-my" element={<BlogAsherinMapsFindMy />} />
+            <Route path="/blog/transit-guardian" element={<BlogTransitGuardian />} />
+            <Route path="/blog/bulwark-counter-surveillance" element={<BlogBulwarkCounterSurveillance />} />
+            <Route path="/blog/autonomous-intelligence-loop" element={<BlogAutonomousIntelligenceLoop />} />
             {/* Legacy pre-rename slugs — keep bookmarks, shared links and indexed
                 results alive instead of falling through to the 404 catch-all. */}
             <Route path="/blog/asherin-legal-advisor-multi-jurisdictional" element={<Navigate to="/blog/aureon-legal-advisor-multi-jurisdictional" replace />} />
