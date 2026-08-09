@@ -1689,38 +1689,17 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       console.error("[chat] Internet Archive lookup failed:", e);
     }
 
-    // ── Jurisdictional Intel Sweep (person/property/entity) ────────────────
+    // ── Jurisdictional Intel Sweep — join the leg launched above ───────────
     // An intel turn is EVIDENCE-ONLY: cross-conversation memory, learned profile
     // traits and vault RAG are all suppressed below so priors can never be
-    // reported as if they were sourced public records.
-    let jurisdictionalContext = "";
-    let isIntelTurn = false;
-    try {
-      const { runJurisdictionalSearch, formatIntelContext, formatClarifyContext, classifyIntent } =
-        await import("../_shared/jurisdictionalIntel.ts");
-      const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
-      // Reuse the classification computed for the retrieval router above; only
-      // re-derive it if that pass failed, so both layers agree on the turn type.
-      const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
-
-      if (!isDefensiveSecurityAuditRequest && !vaultOwnsTurn && !meshOwnsTurn && intent.kind !== "none") {
-        isIntelTurn = true;
-        console.log("[chat] Jurisdictional intent:", intent.kind, intent.subject, `${intent.city}/${intent.county}/${intent.state}/${intent.country}`);
-
-        if (intent.needsClarification) {
-          jurisdictionalContext = formatClarifyContext(intent);
-        } else {
-          // Wall-clock ceiling: never let jurisdictional intel push /chat past the 150s edge limit.
-          const bundle = await Promise.race([
-            runJurisdictionalSearch(intent),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 75000)),
-          ]);
-          jurisdictionalContext = bundle ? formatIntelContext(bundle) : "";
-        }
-      }
-    } catch (e) {
-      console.error("[chat] Jurisdictional intel failed:", (e as Error).message);
+    // reported as if they were sourced public records. The sweep itself has
+    // been running concurrently with the web corpus since before that sweep
+    // started; this is only where its result is collected.
+    await identityLeg;
+    if (isIntelTurn) {
+      console.log(`[chat] Identity leg joined: vaultPrior=${vaultPriorHit ? "authoritative" : "no"}, context=${jurisdictionalContext.length}b`);
     }
+
 
     // ── Asherin Engine — Dork Battery (100-theory OSINT sweep) ─────────────
     // Fires when the last user turn has a hard dork trigger ("dork",
