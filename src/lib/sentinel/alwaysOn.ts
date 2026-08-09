@@ -343,6 +343,12 @@ function armDwell() {
 }
 
 function onFix(next: { lat: number; lng: number; accuracy?: number }) {
+  // Motion state drives the radio duty cycle: a moving user is the one who can
+  // actually be followed, so the gaps between bursts shorten.
+  if (!lastMovePos || metersBetween(lastMovePos, next) > MOTION_M) {
+    lastMovePos = { lat: next.lat, lng: next.lng };
+    lastMoveAt = Date.now();
+  }
   if (!anchor || metersBetween(anchor, next) > ARRIVAL_RADIUS_M) {
     anchor = { lat: next.lat, lng: next.lng };
     anchorAt = Date.now();
