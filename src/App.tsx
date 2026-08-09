@@ -61,6 +61,12 @@ const BlogTheTruthAndRealityOfWars = lazy(() => import("./pages/blog/TheTruthAnd
 const BlogZaxinTacticalBleIntelligence = lazy(() => import("./pages/blog/ZaxinTacticalBleIntelligence"));
 const BlogCodeNarrativeQuantumCollapse = lazy(() => import("./pages/blog/CodeNarrativeQuantumCollapse"));
 const BlogAureonLegalAdvisor = lazy(() => import("./pages/blog/AureonLegalAdvisor"));
+const BlogAsherinEngineDeepTime = lazy(() => import("./pages/blog/AsherinEngineDeepTime"));
+const BlogCloudIntelligenceSuite = lazy(() => import("./pages/blog/CloudIntelligenceSuite"));
+const BlogAsherinMapsFindMy = lazy(() => import("./pages/blog/AsherinMapsFindMy"));
+const BlogTransitGuardian = lazy(() => import("./pages/blog/TransitGuardian"));
+const BlogBulwarkCounterSurveillance = lazy(() => import("./pages/blog/BulwarkCounterSurveillance"));
+const BlogAutonomousIntelligenceLoop = lazy(() => import("./pages/blog/AutonomousIntelligenceLoop"));
 const ZaxinTheories = lazy(() => import("./pages/zaxin/ZaxinTheories"));
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
