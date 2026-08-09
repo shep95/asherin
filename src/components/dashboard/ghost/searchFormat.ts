@@ -201,13 +201,20 @@ export interface ResultFilters {
   onlyBuffer?: boolean;
 }
 
+/** True when the row carries at least one stated contradiction. */
+export const hasAnomaly = (r: GhostSearchResult) =>
+  (r.anomalies?.length ?? 0) > 0 || r.badges.some((b) => /anomal/.test(b));
+
 export function applyFilters(results: GhostSearchResult[], f: ResultFilters): GhostSearchResult[] {
   return results.filter((r) => {
-    if (f.onlyBuffer && r.source !== "buffer") return false;
+    // A merged row carries the buffer layer even when its primary source is the
+    // live probe — filtering on `source` alone would have hidden exactly the
+    // rows the corroboration merge exists to promote.
+    if (f.onlyBuffer && r.source !== "buffer" && !r.layers?.includes("buffer")) return false;
     if (f.host && r.host !== f.host) return false;
     if (f.asn && !r.badges.includes(f.asn)) return false;
     if (f.sourceType && !r.badges.some((b) => b === f.sourceType)) return false;
-    if (f.onlyAnomalies && !r.badges.some((b) => /anomal/.test(b))) return false;
+    if (f.onlyAnomalies && !hasAnomaly(r)) return false;
     return true;
   });
 }
@@ -226,7 +233,8 @@ export function resultFacets(results: GhostSearchResult[]) {
     hosts: tally((r) => r.host),
     sourceTypes: tally((r) => r.badges.find((b) => b.includes("/"))),
     asns: tally((r) => r.badges.find((b) => /^AS\d/.test(b))),
-    anomalies: results.filter((r) => r.badges.some((b) => /anomal/.test(b))).length,
-    buffered: results.filter((r) => r.source === "buffer").length,
+    anomalies: results.filter(hasAnomaly).length,
+    buffered: results.filter((r) => r.source === "buffer" || r.layers?.includes("buffer")).length,
+    corroborated: results.filter((r) => (r.layers?.length ?? 0) > 1).length,
   };
 }
