@@ -62,6 +62,17 @@ export interface AreaArgs {
   maxFixAgeMs?: number;
   /** Shown in the alert footer so the user knows which leg raised it. */
   source?: string;
+  /**
+   * "fast" is the arrival path and is bound by a human deadline: the whole
+   * point is a warning that lands before the user has settled in. It takes one
+   * shot at the model on a short clock and, on miss, leaves the cell unjudged
+   * so the deep pass can retry — it must never bank an UNKNOWN, because a
+   * cached UNKNOWN mutes the cell for the next hour.
+   *
+   * "deep" is the unattended path with no one waiting, so it can afford the
+   * long timeout and the retry.
+   */
+  mode?: "fast" | "deep";
 }
 
 export interface AreaResult {
@@ -77,6 +88,7 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
     return { assessment: null, notified: false, reason: "invalid_coordinates" };
   }
+  const fast = args.mode === "fast";
   const pk = areaPlaceKey(lat, lng);
   const nowIso = new Date().toISOString();
 
@@ -86,10 +98,26 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
     if (!cfg) return { assessment: cached ?? null, notified: false, reason: "no_model_key" };
     const label = (await reverseGeocode(lat, lng)) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
     const research = await collectAreaEvidence(label);
-    const raw = await callByokJsonWithRetry(cfg as any, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
-      temperature: 0.15, jsonMode: true, maxOutputTokens: 4096, timeoutMs: 90_000, attempts: 2,
-    });
-    const parsed = parseJsonLoose(raw);
+    let parsed: Record<string, any> | null = null;
+    try {
+      const raw = await callByokJsonWithRetry(cfg as any, GEO_RISK_SYSTEM, buildGeoPrompt(label, lat, lng, research), {
+        temperature: 0.15,
+        jsonMode: true,
+        maxOutputTokens: fast ? 1536 : 4096,
+        // 90s x 2 attempts is three minutes of model time on its own — that
+        // alone blows an arrival budget. The arrival path gets one short shot.
+        timeoutMs: fast ? 35_000 : 90_000,
+        attempts: fast ? 1 : 2,
+      });
+      parsed = parseJsonLoose(raw);
+    } catch (e) {
+      console.error("[areaSentinel] model call failed", fast ? "fast" : "deep", e instanceof Error ? e.message : e);
+    }
+    if (!parsed) {
+      // No verdict. On the arrival path, say so and leave the cell unwritten so
+      // the very next unattended pass tries again with the long clock.
+      return { assessment: cached ?? null, notified: false, reason: fast ? "fast_timeout" : "assessment_failed" };
+    }
     const level = String(parsed.risk_level || "UNKNOWN").toUpperCase();
     const { data: saved } = await db.from("geo_risk_assessments").upsert({
       place_key: pk, lat, lng, place_label: label,
@@ -104,6 +132,7 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
     }, { onConflict: "place_key" }).select("*").maybeSingle();
     cached = saved;
   }
+
 
   if (!cached) return { assessment: null, notified: false, reason: "assessment_failed" };
   if (!ALERTING.has(cached.risk_level)) return { assessment: cached, notified: false, reason: "not_alerting" };
