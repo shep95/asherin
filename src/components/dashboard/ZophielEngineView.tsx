@@ -97,6 +97,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [darkSummary, setDarkSummary] = useState<string>("");
   const [darkLoading, setDarkLoading] = useState(false);
   const [urlIntelTarget, setUrlIntelTarget] = useState<string | null>(null);
+  // Deterministic corpus analysis returned alongside the results (PANTHEON v5).
+  const [fusion, setFusion] = useState<import("./search/ZophielFusionPanel").FusionPayload | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
