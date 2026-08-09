@@ -423,10 +423,11 @@ export async function runSurfaceWave(query: string, opts: WaveOptions = {}): Pro
   const q = (query || "").trim();
   if (!q) return { hits: [], telemetry: [], liveProviders: 0, escalated: false };
 
+  const tokens = queryTokens(q);
   const telemetry: ProviderStat[] = [];
   const hits: SurfaceHit[] = [];
 
-  const lead = await Promise.all(LEAD.map(([name, fn]) => runProvider(name, fn, q, limit)));
+  const lead = await Promise.all(LEAD.map(([name, fn]) => runProvider(name, fn, q, limit, tokens)));
   for (const r of lead) { telemetry.push(r.stat); hits.push(...r.hits); }
 
   let merged = dedupe(hits);
@@ -435,7 +436,7 @@ export async function runSurfaceWave(query: string, opts: WaveOptions = {}): Pro
 
   if (opts.includeReserve !== false && (merged.length < yieldFloor || live < providerFloor)) {
     escalated = true;
-    const reserve = await Promise.all(RESERVE.map(([name, fn]) => runProvider(name, fn, q, limit)));
+    const reserve = await Promise.all(RESERVE.map(([name, fn]) => runProvider(name, fn, q, limit, tokens)));
     for (const r of reserve) { telemetry.push(r.stat); hits.push(...r.hits); }
     merged = dedupe(hits);
     live = telemetry.filter((t) => t.ok).length;
