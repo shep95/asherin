@@ -480,20 +480,52 @@ export function reportText(ride: RideInput, deep: PhaseResult): string {
   lines.push("ASHERIN · RIDESHARE GUARDIAN");
   lines.push("RESTRICTED · RIDER EYES ONLY");
   lines.push("");
-  lines.push(`VERDICT: ${deep.verdict}`);
-  lines.push(`IDENTITY CONFIDENCE: ${(deep.confidence * 100).toFixed(0)}%`);
+  // The decision leads. A rider opening this on a phone at a kerb reads the
+  // first screen and nothing else, so the first screen has to be the part that
+  // changes what they do — not the identity verdict, which is THIN on nearly
+  // every ride for lawful reasons and answers no question they asked.
+  const decision = String(p.boarding_decision || "VERIFY");
+  lines.push(
+    `DECISION: ${decision === "DO_NOT_BOARD" ? "DO NOT BOARD" : decision === "VERIFY" ? "VERIFY BEFORE BOARDING" : "CLEAR TO BOARD"}`,
+  );
+  if (p.boarding_basis) lines.push(`  Basis .......... ${p.boarding_basis}`);
   lines.push(`GENERATED: ${new Date().toUTCString()}`);
+  lines.push("");
+  lines.push("BEFORE YOU OPEN THE DOOR");
+  if (Array.isArray(p.boarding_protocol) && p.boarding_protocol.length) {
+    p.boarding_protocol.forEach((s: string, i: number) => lines.push(`  ${i + 1}. ${s}`));
+  } else {
+    lines.push(`  1. ${p.recommended_action || "Match the plate, the car and the driver's face before boarding."}`);
+  }
   lines.push("");
   lines.push("RIDE CARD");
   lines.push(`  Platform ......... ${ride.platform}`);
   lines.push(`  Driver ........... ${ride.driver_name || "not captured"}`);
   lines.push(`  Plate ............ ${ride.plate || "not captured"}`);
-  lines.push(`  Vehicle .......... ${ride.vehicle || "not captured"}`);
+  lines.push(`  Plate check ...... ${p.plate_check || "not checked"}`);
+  lines.push(`  Vehicle .......... ${p.vehicle_expected || ride.vehicle || "not disclosed by the platform"}`);
+  lines.push(`  Vehicle record ... ${p.vehicle_record_line || "not checked"}`);
   lines.push(`  City ............. ${ride.city || "not captured"}`);
+  lines.push(`  Area picture ..... ${p.corridor_line || "not checked"}`);
+  lines.push(`  Your history ..... ${p.ledger_line || "no prior rides on record"}`);
   lines.push("");
   lines.push("ASSESSMENT");
   lines.push(`  ${p.narrative || deep.headline}`);
   lines.push("");
+  lines.push("IDENTITY");
+  lines.push(`  Verdict .......... ${deep.verdict}`);
+  lines.push(`  Confidence ....... ${(deep.confidence * 100).toFixed(0)}%`);
+  lines.push(
+    "  Note ............. In the United States the plate-to-owner linkage is sealed by the Driver's",
+  );
+  lines.push(
+    "                     Privacy Protection Act. A low identity confidence is the expected, lawful",
+  );
+  lines.push(
+    "                     outcome for almost every ride and is not itself a warning sign.",
+  );
+  lines.push("");
+
   if (p.candidates?.length) {
     lines.push("CANDIDATE RESOLUTION");
     for (const c of p.candidates) {
