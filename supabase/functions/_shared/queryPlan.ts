@@ -202,6 +202,7 @@ export function buildQueryPlan(raw: string): QueryPlan {
   const multi = requiredFinal.filter((r) => r.includes(" "));
   const quoted = multi.map((r) => `"${surfaceForm.get(r) || r}"`);
   let rest = input
+    .replace(OPERATOR_RE, " ")
     .replace(/"([^"]{2,120})"/g, " ")
     .replace(/(^|\s)-([A-Za-z0-9][\w.-]{1,40})/g, " ");
   for (const term of multi) {
@@ -210,10 +211,13 @@ export function buildQueryPlan(raw: string): QueryPlan {
   }
   rest = rest
     .split(/\s+/)
-    .filter((w) => w && !STOPWORDS.has(w.toLowerCase().replace(/[^a-z0-9]/g, "")))
+    // Uppercase OR is a boolean the SERP understands — the stopword filter used
+    // to eat it and collapse `A OR B` into an implicit AND.
+    .filter((w) => w && (w === "OR" || !STOPWORDS.has(w.toLowerCase().replace(/[^a-z0-9]/g, ""))))
     .join(" ")
+    .replace(/^(OR\s+)+|(\s+OR)+$/g, "")
     .trim();
-  const wireQuery = [...quoted, rest].filter(Boolean).join(" ").trim() || input;
+  const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
 
   return {
@@ -223,8 +227,10 @@ export function buildQueryPlan(raw: string): QueryPlan {
     negative,
     phrases,
     entity,
+    operators,
     wireQuery,
   };
+
 }
 
 /** Relaxed re-issue string for the rescue pass: drop quoting + optional noise. */
