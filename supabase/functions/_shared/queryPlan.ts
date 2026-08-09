@@ -30,9 +30,21 @@ export interface QueryPlan {
   /** Quoted "..." phrases — exact-match bonus. */
   phrases: string[];
   entity: EntityKind;
+  /** Search operators (`site:`, `filetype:`, `-site:` …) preserved verbatim. */
+  operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
   wireQuery: string;
 }
+
+/**
+ * Dork operators must survive the planner untouched. Before this guard the
+ * tokenizer split `site:linkedin.com` on the colon, quoted "linkedin.com" as a
+ * proper noun and left a dangling `site:` on the wire — every operator-driven
+ * dork leg silently degraded into a bag-of-words search.
+ */
+const OPERATOR_RE =
+  /(^|\s)(-?)(site|filetype|ext|inurl|allinurl|intitle|allintitle|intext|allintext|related|cache|link|before|after|lang|loc|location|source|around|imagesize)\s*:\s*("[^"]{1,120}"|[^\s]{1,120})/gi;
+
 
 const STOPWORDS = new Set([
   "a","an","and","are","as","at","be","but","by","for","from","has","have","he","her","his",
