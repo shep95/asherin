@@ -131,17 +131,19 @@ export async function assessAndAlertArea(args: AreaArgs): Promise<AreaResult> {
       };
     }
 
+    const finalLevel = RISK_LEVELS.includes(level) ? level : "UNKNOWN";
     const { data: saved } = await db.from("geo_risk_assessments").upsert({
       place_key: pk, lat, lng, place_label: label,
-      risk_level: RISK_LEVELS.includes(level) ? level : "UNKNOWN",
+      risk_level: finalLevel,
       risk_score: Number(parsed.risk_score) || 0,
-      summary: String(parsed.summary || parsed.headline || "").slice(0, 4000),
+      summary: summary.slice(0, 4000),
       payload: parsed,
       generated_at: nowIso,
       // An UNKNOWN verdict is a failed sweep, not a fact about the place —
       // expire it in an hour so one bad research pass cannot mute a whole week.
-      expires_at: new Date(Date.now() + (level === "UNKNOWN" ? 3600e3 : 7 * 864e5)).toISOString(),
+      expires_at: new Date(Date.now() + (finalLevel === "UNKNOWN" ? 3600e3 : 7 * 864e5)).toISOString(),
     }, { onConflict: "place_key" }).select("*").maybeSingle();
+
     cached = saved;
   }
 
