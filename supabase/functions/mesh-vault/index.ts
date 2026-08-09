@@ -220,22 +220,48 @@ Deno.serve(async (req) => {
 
       const builtMs = row?.built_at ? Date.parse(row.built_at) : NaN;
       const fresh = Number.isFinite(builtMs) && Date.now() - builtMs < maxAgeMs;
+
+      // RE-SWEEP POLICY, STATED. The half-life above is a real cache decision
+      // the operator has been living with invisibly: a dossier read today may
+      // have been collected a fortnight ago. Every response now carries the
+      // policy in the open — how old this product is, what the half-life is,
+      // and how long until it re-collects on its own — so staleness becomes
+      // something the analyst can weigh instead of something they discover.
+      const maxAgeDays = Math.round(maxAgeMs / 86400000);
+      const ageDays = Number.isFinite(builtMs)
+        ? Math.max(0, Math.round((Date.now() - builtMs) / 86400000))
+        : null;
+      const policy = {
+        maxAgeDays,
+        ageDays,
+        /** Days until this dossier falls out of its half-life. 0 = due now. */
+        nextAutoSweepDays: ageDays === null ? 0 : Math.max(0, maxAgeDays - ageDays),
+        fresh,
+        forced: force === true,
+        note: ageDays === null
+          ? `No prior collection on file; this product is being built now. Half-life is ${maxAgeDays} days.`
+          : fresh && !force
+            ? `Served from the ${maxAgeDays}-day half-life cache: collected ${ageDays} day(s) ago, auto re-sweep in ${Math.max(0, maxAgeDays - ageDays)} day(s). Force a refresh to override.`
+            : `Prior collection was ${ageDays} day(s) old against a ${maxAgeDays}-day half-life, so a fresh sweep was run.`,
+      };
+
       if (row && row.status === "ready" && fresh && !force) {
         return json({
           status: "ready", source: "cache", dossier: row.dossier,
           summary: row.summary, confidence: Number(row.confidence ?? 0),
-          builtAt: row.built_at,
+          builtAt: row.built_at, policy,
         }, 200, cors);
       }
       if (row && row.status === "building" && !force) {
-        return json({ status: "building", dossier: row.dossier ?? null, message: "A sweep for this subject is already in flight." }, 200, cors);
+        return json({ status: "building", dossier: row.dossier ?? null, policy, message: "A sweep for this subject is already in flight." }, 200, cors);
       }
       if (body.build === false) {
         return json({
-          status: row?.status ?? "absent", dossier: row?.dossier ?? null,
+          status: row?.status ?? "absent", dossier: row?.dossier ?? null, policy,
           message: row ? "Cached dossier is stale; refresh not requested." : "No dossier on file for this subject.",
         }, 200, cors);
       }
+
 
       const subjectKey = row?.subject_key ?? (email ?? `contact:${normKey(name).toLowerCase()}`);
       const rel = (row?.relationship ?? null) as any;
@@ -285,7 +311,11 @@ Deno.serve(async (req) => {
         if ((row?.hop ?? 1) === 1) await persistHopTwo(sb, userId, name || email!, doc);
         await announceDossier(userId, user.email ?? null, name || email!, subjectKey, doc, summary, confidence);
 
-        return json({ status: "ready", source: "fresh", dossier: doc, summary, confidence, builtAt }, 200, cors);
+        return json({
+          status: "ready", source: "fresh", dossier: doc, summary, confidence, builtAt,
+          policy: { ...policy, ageDays: 0, nextAutoSweepDays: policy.maxAgeDays, fresh: true },
+        }, 200, cors);
+
       } catch (e) {
         const msg = (e as Error).message.slice(0, 300);
         await sb.from("mesh_dossiers").update({ status: "failed", error_message: msg })
@@ -526,10 +556,16 @@ Deno.serve(async (req) => {
         relationship: {
           ...t.profile,
           channel: t.channel,
+          // The reconciled channel set, not just the winning one — a cold
+          // contact seen on mail AND calendar is one elevated subject, and
+          // the row has to carry that or the uplift is invisible downstream.
+          channels: t.channels ?? [t.channel],
+          crossChannel: t.crossChannel === true,
           identifiers: t.identifiers,
           locationHint: t.locationHint,
           reason: t.reason,
         } as unknown as Record<string, unknown>,
+
         priority: t.priority,
         source_account: selfEmails[0] ?? null,
         updated_at: nowIso,

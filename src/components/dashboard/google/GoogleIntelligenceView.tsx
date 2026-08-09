@@ -124,6 +124,14 @@ const CAPABILITIES = [
 
 const GoogleIntelligenceView = () => {
   const [activeModule, setActiveModule] = useState<GoogleModule>("overview");
+  // The directorate is stored, not derived, so the sub-strip survives jumping
+  // to a raw data feed (which belongs to no directorate) and returning.
+  const [directorate, setDirectorate] = useState<Directorate>("COLLECTION");
+  // A desk selected from the overview grid must pull its directorate with it,
+  // otherwise the sub-strip would show a group the open desk is not in.
+  const activeDirectorate =
+    nexusModules.find((m) => m.id === activeModule)?.directorate ?? directorate;
+
   const [isConnecting, setIsConnecting] = useState(false);
 
   const activeLabel = activeModule === "overview"
@@ -237,25 +245,75 @@ const GoogleIntelligenceView = () => {
       <ScrollArea className="flex-1">
         <div className="p-6 space-y-8">
           <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as GoogleModule)}>
-            {/* Desk selector — hairline underline, no filled pills. */}
-            <TabsList className="h-auto flex-wrap gap-x-1 gap-y-1 bg-transparent p-0 justify-start border-b border-border/20 w-full rounded-none pb-0">
-              <TabsTrigger
-                value="overview"
-                className="rounded-none border-b border-transparent px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 data-[state=active]:border-foreground/60 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                Overview
-              </TabsTrigger>
-              {nexusModules.map((m) => (
-                <TabsTrigger
-                  key={m.id}
-                  value={m.id}
-                  title={m.label}
-                  className="rounded-none border-b border-transparent px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70 data-[state=active]:border-foreground/60 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            {/* TWO-LEVEL DESK SELECTOR.
+                A flat strip of twenty-five codenames is a wall, not a
+                navigation: the operator has to read every label to find one
+                desk, and nothing on screen says which desks answer the same
+                analytic question. The strip is now the four directorates, and
+                only the selected directorate's desks are offered underneath —
+                the same grouping the overview already publishes, so the two
+                surfaces stop disagreeing about how the shop is organised. */}
+            <div className="space-y-0 border-b border-border/20">
+              <div role="tablist" aria-label="Directorate" className="flex flex-wrap gap-x-1 gap-y-1">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeModule === "overview"}
+                  onClick={() => setActiveModule("overview")}
+                  className={`rounded-none border-b px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                    activeModule === "overview"
+                      ? "border-foreground/60 text-foreground"
+                      : "border-transparent text-muted-foreground/70 hover:text-foreground/80"
+                  }`}
                 >
-                  {m.codename}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+                  Overview
+                </button>
+                {DIRECTORATE_ORDER.map((dir) => (
+                  <button
+                    key={dir}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeDirectorate === dir && activeModule !== "overview"}
+                    title={DIRECTORATE_BLURB[dir]}
+                    onClick={() => {
+                      const first = nexusModules.find((m) => m.directorate === dir);
+                      setDirectorate(dir);
+                      if (first) setActiveModule(first.id);
+                    }}
+                    className={`rounded-none border-b px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                      activeDirectorate === dir && activeModule !== "overview"
+                        ? "border-foreground/60 text-foreground"
+                        : "border-transparent text-muted-foreground/70 hover:text-foreground/80"
+                    }`}
+                  >
+                    {dir}
+                  </button>
+                ))}
+              </div>
+
+              {activeModule !== "overview" && (
+                <div className="flex flex-wrap gap-x-1 gap-y-1 border-t border-border/10 py-1">
+                  {nexusModules
+                    .filter((m) => m.directorate === activeDirectorate)
+                    .map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        title={`${m.label} — ${m.mandate}`}
+                        onClick={() => setActiveModule(m.id)}
+                        className={`rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                          activeModule === m.id
+                            ? "bg-foreground/[0.10] text-foreground"
+                            : "text-muted-foreground/60 hover:text-foreground/80"
+                        }`}
+                      >
+                        {m.codename}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
 
             {/* ── Overview ─────────────────────────────────────────────── */}
             <TabsContent value="overview" className="mt-6 space-y-8">

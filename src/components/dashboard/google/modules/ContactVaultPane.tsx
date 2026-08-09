@@ -365,10 +365,45 @@ const ContactVaultPane = () => {
     finally { setBusy(null); }
   };
 
-  const grouped = useMemo(() => ({
-    hop1: (rows ?? []).filter((r) => r.hop === 1),
-    hop2: (rows ?? []).filter((r) => r.hop === 2),
-  }), [rows]);
+  // QUERYABLE CONFIDENCE MATRIX.
+  // The index used to be a fixed list in insertion order, so the two questions
+  // an analyst actually asks it — "which subjects are weakly established?" and
+  // "which of these hundreds is the one I mean?" — could only be answered by
+  // scrolling. Query, floor and sort are applied before grouping so both hop
+  // bands stay consistent with the same filter.
+  const [q, setQ] = useState("");
+  const [minConf, setMinConf] = useState(0);
+  const [sortBy, setSortBy] = useState<"confidence" | "name" | "status">("confidence");
+
+  const grouped = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const pass = (r: Row) => {
+      // A queued row has no confidence yet; excluding it on a floor would hide
+      // work in flight rather than filter weak evidence, so only ready rows
+      // are subject to the floor.
+      if (minConf > 0 && r.status === "ready" && Number(r.confidence ?? 0) < minConf) return false;
+      if (minConf > 0 && r.status !== "ready") return false;
+      if (!needle) return true;
+      return (
+        r.subject_name.toLowerCase().includes(needle) ||
+        (r.subject_email ?? "").toLowerCase().includes(needle) ||
+        (r.summary ?? "").toLowerCase().includes(needle)
+      );
+    };
+    const order = (a: Row, b: Row) => {
+      if (sortBy === "name") return a.subject_name.localeCompare(b.subject_name);
+      if (sortBy === "status") return String(a.status).localeCompare(String(b.status));
+      return Number(b.confidence ?? 0) - Number(a.confidence ?? 0);
+    };
+    const all = (rows ?? []).filter(pass);
+    return {
+      hop1: all.filter((r) => r.hop === 1).sort(order),
+      hop2: all.filter((r) => r.hop === 2).sort(order),
+      matched: all.length,
+      total: (rows ?? []).length,
+    };
+  }, [rows, q, minConf, sortBy]);
+
 
   const openDossier = (row: Row) =>
     run(`open:${row.id}`, async () => {
@@ -511,6 +546,53 @@ const ContactVaultPane = () => {
             rank the humans in your mail and address book, then build their dossiers.
           </div>
         )}
+
+        {rows !== null && rows.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="vault-q">Filter subjects</label>
+            <input
+              id="vault-q"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Filter by name, address or summary"
+              className="h-8 min-w-[13rem] flex-1 rounded-lg border border-border/25 bg-background/40 px-3 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/40 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
+            />
+            <label className="sr-only" htmlFor="vault-floor">Minimum confidence</label>
+            <select
+              id="vault-floor"
+              value={minConf}
+              onChange={(e) => setMinConf(Number(e.target.value))}
+              className="h-8 rounded-lg border border-border/25 bg-background/40 px-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80"
+            >
+              <option value={0}>All confidence</option>
+              <option value={40}>≥ 40 established</option>
+              <option value={70}>≥ 70 corroborated</option>
+              <option value={85}>≥ 85 authoritative</option>
+            </select>
+            <label className="sr-only" htmlFor="vault-sort">Sort order</label>
+            <select
+              id="vault-sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="h-8 rounded-lg border border-border/25 bg-background/40 px-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80"
+            >
+              <option value="confidence">Sort: confidence</option>
+              <option value="name">Sort: name</option>
+              <option value="status">Sort: status</option>
+            </select>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground/50" aria-live="polite">
+              {grouped.matched}/{grouped.total}
+            </span>
+          </div>
+        )}
+
+        {rows !== null && rows.length > 0 && grouped.matched === 0 && (
+          <div className="text-xs font-extralight text-muted-foreground/70">
+            No subject in the vault meets this query. Lower the confidence floor or clear the filter —
+            an empty result here is a filter outcome, not an absence of intelligence.
+          </div>
+        )}
+
 
         {(["hop1", "hop2"] as const).map((k) =>
           grouped[k].length ? (
