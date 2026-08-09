@@ -764,7 +764,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
       [email, ...(req.identifiers ?? [])]
         .map((v) => (v ?? "").trim())
         .filter((v) => v.length >= 5 && (v.includes("@") || /\d{7,}/.test(v.replace(/\D/g, "")))),
-    )).slice(0, 3);
+    )).slice(0, 5);
 
     // The dossier leg and the exposure legs answer different questions and
     // share no state, so they run together. Sequencing them would add the
@@ -775,7 +775,7 @@ export async function collectContactOsint(req: OsintRequest): Promise<OsintAnnex
           action: "vault_for_contact",
           name,
           email,
-          identifiers: (req.identifiers ?? []).slice(0, 4),
+          identifiers: (req.identifiers ?? []).slice(0, 8),
           location_hint: req.locationHint ?? null,
           force: req.force === true,
         },

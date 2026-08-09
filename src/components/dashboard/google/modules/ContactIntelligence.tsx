@@ -420,7 +420,27 @@ const ContactIntelligence = () => {
     if (!d) return null;
     try {
       const own = corpus.own.length ? corpus.own : accounts.map((a) => a.google_email).filter(Boolean);
-      return { name: d.name, email: d.emails[0] ?? null, r: buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers }) };
+      // Everything the address book already knows is handed to the external
+      // leg. Collecting on name+primary-address alone is what produced
+      // candidate-only dossiers: a common name with no disambiguator cannot
+      // resolve. Alternate addresses, every number, the employer and the
+      // stated locality are all hard binding surface and are seeded here.
+      const identifiers = Array.from(new Set([
+        ...d.emails.map((e) => e.trim().toLowerCase()),
+        ...d.phones.map((p) => p.trim()),
+        ...d.urls.map((u) => u.trim()),
+      ].filter((v) => v.length >= 5))).slice(0, 8);
+      const locationHint = [d.location, d.organization, d.jobTitle]
+        .map((v) => (v || "").trim())
+        .filter(Boolean)
+        .join(" · ") || null;
+      return {
+        name: d.name,
+        email: d.emails[0] ?? null,
+        identifiers,
+        locationHint,
+        r: buildContactReport({ dossier: d, messages: corpus.messages, ownAddresses: own, peers: dossiers }),
+      };
     } catch (e) {
       console.error("[contact-intel] report build failed:", e);
       return null;
@@ -437,16 +457,24 @@ const ContactIntelligence = () => {
 
   useEffect(() => {
     if (!reportKey || !baseReport) { setAnnexLoading(false); return; }
+    const controller = new AbortController();
     let cancelled = false;
     setAnnexLoading(true);
     setAnnex({ key: reportKey, value: null });
-    collectContactOsint({ name: baseReport.name, email: baseReport.email })
+    collectContactOsint({
+      name: baseReport.name,
+      email: baseReport.email,
+      identifiers: baseReport.identifiers,
+      locationHint: baseReport.locationHint,
+      signal: controller.signal,
+    })
       .then((a) => { if (!cancelled) setAnnex({ key: reportKey, value: a }); })
       .finally(() => { if (!cancelled) setAnnexLoading(false); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
     // baseReport identity changes with the corpus; the subject is what matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportKey]);
+
 
   const report = useMemo(() => {
     if (!reportKey) return null;
