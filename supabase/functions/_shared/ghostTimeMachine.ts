@@ -496,6 +496,13 @@ export async function deepTimeSweep(
   report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  // Every returned date carries the method that produced it and a decayed
+  // certainty, so a 2003 row sourced from a copyright footer is never read as
+  // equal to a 2003 row sourced from a PDF's own authoring stamp.
+  for (const c of all) {
+    c.carve = PROOF_LABEL[c.proof] ?? c.proof;
+    c.confidence = dateConfidence(c.proof, c.year);
+  }
   report.captures = all.slice(0, cap);
   // Endpoints of the timeline are only meaningful for documents that carry one.
   const datedOnly = all.filter((c) => c.year > 0);
