@@ -288,10 +288,26 @@ export function adjudicate(t: LedgerTarget, rec: GhostRecord | null, peers: stri
 }
 
 // ── 3. EXECUTION ───────────────────────────────────────────────────────────
+/**
+ * Every ledger channel the operator's connected accounts write into
+ * `google_signals`. The fusion used to accept two of them, which meant a Drive
+ * share or a calendar invite from a hostile domain was invisible to the engine
+ * even though the row was sitting in the same table as the mail it arrived
+ * with. Channel is now a set, and an empty set means *everything on record*.
+ */
+export const LEDGER_CHANNELS = ["gmail", "sms", "drive", "calendar", "contacts", "meet"] as const;
+export type LedgerChannel = typeof LEDGER_CHANNELS[number];
+
+export const isLedgerChannel = (v: unknown): v is LedgerChannel =>
+  typeof v === "string" && (LEDGER_CHANNELS as readonly string[]).includes(v);
+
 export interface LedgerGhostOptions {
   windowDays?: number;
-  /** Restrict to one channel — "gmail" for mail only, "sms" for phone only. */
-  channel?: "gmail" | "sms" | null;
+  /**
+   * Restrict to one or more channels. `null`/omitted reads every source the
+   * connected accounts have written — mail, messages, files, invites, contacts.
+   */
+  channel?: LedgerChannel | LedgerChannel[] | null;
   /** Only correspondence touching this address / number / host. */
   focus?: string | null;
   maxHosts?: number;
