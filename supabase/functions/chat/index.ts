@@ -1671,17 +1671,18 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // "audit exposure", etc.) or a soft verb+object pair with a subject.
     // Injected as high-priority context so Aureon cites the theories directly.
     let dorkContext = "";
+    let dorkIntentFired = false;
+    let dorkSubject = "";
     try {
       const lastUserForDork = [...messages].reverse().find((m: any) => m.role === "user");
       const dorkText = lastUserForDork?.content || "";
       const { detectDorkIntent } = await import("../_shared/dorkIntent.ts");
       const trig = detectDorkIntent(dorkText);
       if (trig.fire && !isDefensiveSecurityAuditRequest) {
+        dorkIntentFired = true;
+        dorkSubject = trig.subject;
         console.log("[chat] Asherin dork battery firing:", trig.kind, trig.subject);
         const { runAureonDork, formatDorkContext } = await import("../_shared/aureonDorkEngine.ts");
-        // Wall-clock ceiling: never push past the 150s edge limit.
-        // Test EVERY generated theory (testCap 999 = uncapped) at raised
-        // concurrency so a full 100-theory battery still lands under 120s.
         const report = await Promise.race([
           runAureonDork(
             { subject: trig.subject, kind: trig.kind, hints: trig.hints },
@@ -1692,11 +1693,14 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         if (report) {
           dorkContext = formatDorkContext(report) + "\n\n" + report.defensiveGuidance +
             "\n\n> **URL PRESERVATION RULE:** when relaying the battery to the operator, reproduce every markdown link `[title](url)` verbatim — never paraphrase away the URLs, never collapse them to just the query line. A dork finding without its source URL is useless.";
+        } else {
+          dorkContext = `\n\n[ASHERIN ENGINE — dork battery on "${trig.subject}" timed out or the AI key was unavailable this turn. Report the outage plainly to the operator and offer to re-run. Do NOT tell the operator to run dorks themselves in Google — that inverts the platform's purpose.]`;
         }
       }
     } catch (e) {
       console.error("[chat] Asherin dork failed:", (e as Error).message);
     }
+
 
     // ── AUTONOMOUS INTELLIGENCE LOOP ──────────────────────────────────────
     // Detects research intents ("who is X", "background on Y", "profile Z"),
