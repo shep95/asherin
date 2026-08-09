@@ -160,10 +160,10 @@ async function alertDevice(userId: string, userEmail: string | null, row: any, v
 
 // ── Aggregate recompute for one device ─────────────────────────────────────
 
-async function recompute(deviceId: string, totalSessions: number, windowHours = 12) {
+async function recompute(deviceId: string, totalSessions: number, windowHours = DEFAULT_WINDOW_HOURS, strikeRssi = MIN_STRIKE_RSSI) {
   const { data } = await admin()
     .from("ble_sightings")
-    .select("session_id, seen_at, place_key, distance_m, rssi")
+    .select("session_id, seen_at, place_key, distance_m, rssi, lat, lng")
     .eq("device_id", deviceId)
     .order("seen_at", { ascending: false })
     .limit(2000);
@@ -174,11 +174,15 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
   let closest: number | null = null;
   const rssis: number[] = [];
 
-  // Rolling-window state: "near me N separate times in the last X hours".
+  // Rolling-window state. A "strike" is a sighting at or above the signal floor
+  // that is at least STRIKE_GAP_MIN from the previously counted one — session
+  // ids cannot be used here, because one continuous foreground watch is a
+  // single session that may span hours of genuinely separate encounters.
   const cutoff = Date.now() - windowHours * 3_600_000;
-  const windowSessions = new Set<string>();
+  const rapidCutoff = Date.now() - RAPID_WINDOW_MIN * 60_000;
   const windowPlaces = new Set<string>();
-  let winFirst = Infinity, winLast = -Infinity, winClosest: number | null = null;
+  const candidates: Array<{ t: number; lat: number | null; lng: number | null; d: number | null }> = [];
+  let winClosest: number | null = null;
 
   for (const r of rows) {
     if (r.session_id) sessions.add(r.session_id);
@@ -191,16 +195,25 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
     if (typeof r.rssi === "number") rssis.push(r.rssi);
 
     const t = r.seen_at ? Date.parse(String(r.seen_at)) : NaN;
-    if (Number.isFinite(t) && t >= cutoff) {
-      // A sighting without a session id still counts as its own encounter,
-      // keyed by minute so a burst never inflates the count.
-      windowSessions.add(r.session_id || `t:${Math.floor(t / 60_000)}`);
-      if (r.place_key) windowPlaces.add(r.place_key);
-      if (t < winFirst) winFirst = t;
-      if (t > winLast) winLast = t;
-      if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
-    }
+    if (!Number.isFinite(t) || t < cutoff) continue;
+    // R5 — a sample weaker than the floor is history, not evidence.
+    if (typeof r.rssi === "number" && r.rssi < strikeRssi) continue;
+    if (r.place_key) windowPlaces.add(r.place_key);
+    if (d != null && Number.isFinite(d) && (winClosest == null || d < winClosest)) winClosest = d;
+    candidates.push({
+      t,
+      lat: typeof r.lat === "number" ? r.lat : null,
+      lng: typeof r.lng === "number" ? r.lng : null,
+      d,
+    });
   }
+
+  const strikeTimes = countStrikes(candidates.map((c) => c.t));
+  const strikeSet = new Set(strikeTimes);
+  const strikePoints = candidates
+    .filter((c) => strikeSet.has(c.t) && c.lat != null && c.lng != null)
+    .map((c) => ({ lat: c.lat as number, lng: c.lng as number }));
+
   rssis.sort((a, b) => a - b);
   const median = rssis.length ? rssis[Math.floor(rssis.length / 2)] : null;
   return {
@@ -211,14 +224,17 @@ async function recompute(deviceId: string, totalSessions: number, windowHours = 
     closest_distance_m: closest,
     presence_ratio: totalSessions > 0 ? sessions.size / totalSessions : 0,
     median_rssi: median,
-    window_encounters: windowSessions.size,
+    window_strikes: strikeTimes.length,
+    rapid_strikes: strikeTimes.filter((t) => t >= rapidCutoff).length,
     window_places: windowPlaces.size,
     window_closest_m: winClosest,
-    window_span_minutes: Number.isFinite(winFirst) && Number.isFinite(winLast)
-      ? Math.round((winLast - winFirst) / 60_000)
+    spread_meters: maxSeparationMeters(strikePoints),
+    window_span_minutes: strikeTimes.length > 1
+      ? Math.round((strikeTimes[strikeTimes.length - 1] - strikeTimes[0]) / 60_000)
       : 0,
   };
 }
+
 
 
 // ── Tradecraft: behavioural read across the whole log ──────────────────────
