@@ -37,6 +37,8 @@ import {
 import { toast } from "sonner";
 import { startBackgroundSentinel, handOverFix, beaconOnHide, stopBackgroundSentinel } from "./background";
 import { reportMeshDevice, bindBatteryReporting } from "@/lib/asher/meshDevices";
+import { watchPosition, type GeoHandle } from "@/lib/native/nativeGeo";
+
 
 
 const ARM_KEY = "asherin.sentinel.armed";
