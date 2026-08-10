@@ -116,15 +116,23 @@ const GlossaryIndex = () => {
           </p>
         </header>
 
-        <section className="grid sm:grid-cols-2 gap-4">
-          {GLOSSARY.map((e) => (
-            <Link
-              key={e.slug}
-              to={e.slug}
-              className="group flex flex-col gap-3 rounded-2xl border border-border/30 bg-card/20 p-6 transition-all hover:border-foreground/40 hover:bg-card/40"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-xl font-light text-foreground">{e.term}</h2>
+        <section className="space-y-6" aria-labelledby="glossary-terms">
+          <h2
+            id="glossary-terms"
+            className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground"
+          >
+            All glossary terms
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {GLOSSARY.map((e) => (
+              <Link
+                key={e.slug}
+                to={e.slug}
+                className="group flex flex-col gap-3 rounded-2xl border border-border/30 bg-card/20 p-6 transition-all hover:border-foreground/40 hover:bg-card/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-xl font-light text-foreground">{e.term}</h3>
+
                 <ArrowUpRight
                   className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                   strokeWidth={1.5}
