@@ -27,7 +27,7 @@ const OBSCURE_TLDS = new Set([
   "loan","review","stream","download","science","racing","win","men","date",
 ]);
 const HTTP_ADJACENT_PORTS = [443, 80, 8080, 8443, 8888, 3000, 5000, 7000, 8000, 9000, 9090];
-const LEG_TIMEOUT_MS = 8_000;
+const LEG_TIMEOUT_MS = 18_000;
 const PROBE_TIMEOUT_MS = 3_000;
 const MAX_HOSTS_TO_PROBE = 60;
 const MAX_BODY_BYTES = 32 * 1024;
