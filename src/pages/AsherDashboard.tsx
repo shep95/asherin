@@ -20,7 +20,6 @@ import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
 const AsherAzplenModule       = lazy(() => import("@/components/asher/AsherAzplenModule"));
 const AsherZaliModule         = lazy(() => import("@/components/asher/AsherZaliModule"));
 const AsherWhiteboardModule   = lazy(() => import("@/components/asher/AsherWhiteboardModule"));
-const AsherAxrlenModule       = lazy(() => import("@/components/asher/AsherAxrlenModule"));
 const AsherNotebooksModule    = lazy(() => import("@/components/asher/AsherNotebooksModule"));
 const AsherSettingsModule     = lazy(() => import("@/components/asher/AsherSettingsModule"));
 const AsherAuditVault         = lazy(() => import("@/components/asher/AsherAuditVault"));
@@ -217,7 +216,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
+  | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
   | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata" | "gematria"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
@@ -242,7 +241,6 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     ...((superOwner || brainContributor) ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: superOwner ? "Sealed" : "Upload" }] : []),
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
-    { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
   ]},
   { id: "intel", label: "Intelligence", items: [
@@ -505,7 +503,6 @@ const AsherDashboard = () => {
             {active === "azplen"    && <AsherAzplenModule />}
             {active === "zali"      && <AsherZaliModule />}
             {active === "whiteboard"&& <AsherWhiteboardModule />}
-            {active === "axrlen"    && <AsherAxrlenModule />}
             {active === "notebooks" && <AsherNotebooksModule />}
             {/* Vedic Strategy renders as a popout dialog below */}
             {active === "zahten"    && <AsherZahtenModule />}
