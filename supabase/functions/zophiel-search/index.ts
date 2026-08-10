@@ -1796,12 +1796,49 @@ Deno.serve(async (req) => {
         };
 
         const anchor = deriveAnchor(trimmed);
+
+        // ── HOP 0 — anchor rescue ──────────────────────────────────────────
+        // A chain is only as good as the corpus it reads. If the seed wave
+        // returned pages that merely share a token with the name ("shepherd"
+        // pulling dog-breeder listings), hop 1 has nothing true to extract and
+        // every downstream hop inherits the drift. Phrase-lock the name and
+        // re-seed before the chain starts.
+        const anchorTokens = anchor.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+        const namesAnchor = (r: SearchResult) => {
+          const hay = `${r.title} ${r.snippet} ${r.url}`.toLowerCase();
+          if (hay.includes(anchor.toLowerCase())) return true;
+          let hit = 0;
+          for (const t of anchorTokens) if (hay.includes(t)) hit++;
+          return hit >= Math.min(2, anchorTokens.length);
+        };
+        let anchorRescued = 0;
+        if (filtered.filter(namesAnchor).length < 4 && anchorTokens.length >= 2) {
+          const locator = trimmed.match(/\b(?:lives?|resides?|based)\s+(?:in|at)\s+([a-z\s]{3,40})/i)?.[1]?.trim();
+          const rescueQueries = [
+            `"${anchor}"`,
+            locator ? `"${anchor}" "${locator}"` : `"${anchor}" profile OR records OR obituary`,
+          ];
+          const waves = await Promise.all(rescueQueries.map((q) => hopSearch(q).catch(() => [])));
+          const seenR = new Set(filtered.map((r) => r.url));
+          for (const w of waves) {
+            for (const d of w) {
+              const r = hopIndex.get(d.url);
+              if (!r || seenR.has(r.url)) continue;
+              seenR.add(r.url);
+              filtered.push(r);
+              anchorRescued++;
+            }
+          }
+          if (anchorRescued > 0) applyRanking(filtered);
+        }
+
         const report = await runHopChain({
           anchor,
           seedDocs: filtered.slice(0, 40).map((r) => ({
             url: r.url, title: r.title, snippet: r.snippet,
             domain: extractDomain(r.url), publishDate: r.publishDate,
           })),
+
           searchFn: hopSearch,
           maxHops: Math.min(4, Math.max(2, requestedHops || 3)),
           queriesPerHop: 4,
