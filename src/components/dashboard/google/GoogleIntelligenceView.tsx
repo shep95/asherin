@@ -39,12 +39,14 @@ import PhoneMessages from "./modules/PhoneMessages";
 import MeetVault from "./modules/MeetVault";
 import GhostLedgerPanel from "./modules/GhostLedgerPanel";
 import OverwatchTab from "./modules/OverwatchTab";
+import VitalsTab from "./modules/VitalsTab";
+import { HeartPulse } from "lucide-react";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "overwatch" | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "overwatch" | "vitals" | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 
@@ -79,6 +81,7 @@ const nexusModules: ModuleDef[] = [
   { id: "meet", codename: "VAULT", label: "Meet Vault", icon: Video, mandate: "Every Google Meet reconstructed from calendar records, conference records and the Drive recordings folder — playable in place, downloadable, with transcripts bound to the meeting they belong to", directorate: "COLLECTION" },
   { id: "content", codename: "ARCHIVE", label: "Document & Media Intel", icon: FileText, mandate: "Document intelligence, image content read and file custody mapping", directorate: "COLLECTION" },
 
+  { id: "vitals", codename: "ORGANISM", label: "Organism Vitals", icon: HeartPulse, mandate: "The living layer: every collector writes what it sensed into one shared bloodstream, one memory of entities and one confidence per subject. Correlates across organs so several sensations in one hour become one story, recognises self from not-self and learns it, decays beliefs nobody re-witnessed, ships every story with the falsifier that would kill it, and grades its own past calls to set future confidence", directorate: "ANALYSIS" },
   { id: "contacts", codename: "LATTICE", label: "Contact Intelligence", icon: Users, mandate: "Correspondent fusion, reciprocity scoring, psycholinguistic profile and fade detection", directorate: "ANALYSIS" },
   { id: "dossiers", codename: "SENTINEL", label: "Correspondent Dossiers", icon: ScrollText, mandate: "Standing deep-intelligence report on every person who has ever mailed, called or shared a card with you — historical backfill plus automatic build on each new inbound contact", directorate: "ANALYSIS" },
   { id: "twin", codename: "EFFIGY", label: "Behavioural Twin", icon: Brain, mandate: "A model of the operator's decision pattern, built from observed choices only", directorate: "ANALYSIS" },
@@ -190,6 +193,7 @@ const GoogleIntelligenceView = () => {
       case "voiceprint": return <VoiceForensics />;
       case "ghostmail": return <GhostLedgerPanel />;
       case "overwatch": return <OverwatchTab />;
+      case "vitals": return <VitalsTab />;
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
       case "messages": return <PhoneMessages />;

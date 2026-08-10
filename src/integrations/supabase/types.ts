@@ -8065,6 +8065,328 @@ export type Database = {
         }
         Relationships: []
       }
+      organism_entities: {
+        Row: {
+          attrs: Json
+          confidence: number
+          corroboration: number
+          created_at: string
+          entity_key: string
+          expires_at: string | null
+          first_seen: string
+          half_life_hours: number
+          id: string
+          kind: string
+          label: string | null
+          last_decayed_at: string
+          last_seen: string
+          organs: string[]
+          self_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attrs?: Json
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          entity_key: string
+          expires_at?: string | null
+          first_seen?: string
+          half_life_hours?: number
+          id?: string
+          kind: string
+          label?: string | null
+          last_decayed_at?: string
+          last_seen?: string
+          organs?: string[]
+          self_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attrs?: Json
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          entity_key?: string
+          expires_at?: string | null
+          first_seen?: string
+          half_life_hours?: number
+          id?: string
+          kind?: string
+          label?: string | null
+          last_decayed_at?: string
+          last_seen?: string
+          organs?: string[]
+          self_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organism_events: {
+        Row: {
+          confidence: number
+          dedupe_key: string | null
+          entity_id: string | null
+          evidence: Json
+          expires_at: string
+          id: string
+          ingested_at: string
+          kind: string
+          observed_at: string
+          organ: string
+          reflex: boolean
+          summary: string | null
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          confidence?: number
+          dedupe_key?: string | null
+          entity_id?: string | null
+          evidence?: Json
+          expires_at?: string
+          id?: string
+          ingested_at?: string
+          kind: string
+          observed_at?: string
+          organ: string
+          reflex?: boolean
+          summary?: string | null
+          user_id: string
+          verdict?: string
+        }
+        Update: {
+          confidence?: number
+          dedupe_key?: string | null
+          entity_id?: string | null
+          evidence?: Json
+          expires_at?: string
+          id?: string
+          ingested_at?: string
+          kind?: string
+          observed_at?: string
+          organ?: string
+          reflex?: boolean
+          summary?: string | null
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organism_events_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "organism_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organism_findings: {
+        Row: {
+          confidence: number
+          corroboration: number
+          created_at: string
+          entity_ids: string[]
+          event_ids: string[]
+          expires_at: string
+          falsifier: string
+          first_seen: string
+          id: string
+          last_seen: string
+          narrative: string
+          organs: string[]
+          reflex_origin: boolean
+          severity: string
+          status: string
+          story_key: string
+          tier: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          entity_ids?: string[]
+          event_ids?: string[]
+          expires_at?: string
+          falsifier: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          narrative: string
+          organs?: string[]
+          reflex_origin?: boolean
+          severity?: string
+          status?: string
+          story_key: string
+          tier?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          entity_ids?: string[]
+          event_ids?: string[]
+          expires_at?: string
+          falsifier?: string
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          narrative?: string
+          organs?: string[]
+          reflex_origin?: boolean
+          severity?: string
+          status?: string
+          story_key?: string
+          tier?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organism_links: {
+        Row: {
+          confidence: number
+          corroboration: number
+          created_at: string
+          id: string
+          last_seen: string
+          organs: string[]
+          relation: string
+          source_id: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          id?: string
+          last_seen?: string
+          organs?: string[]
+          relation: string
+          source_id: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          corroboration?: number
+          created_at?: string
+          id?: string
+          last_seen?: string
+          organs?: string[]
+          relation?: string
+          source_id?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organism_links_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "organism_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organism_links_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "organism_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organism_outcomes: {
+        Row: {
+          checked_at: string | null
+          created_at: string
+          falsifier: string
+          finding_id: string | null
+          id: string
+          note: string | null
+          organ: string
+          predicted_confidence: number
+          resolution: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string | null
+          created_at?: string
+          falsifier: string
+          finding_id?: string | null
+          id?: string
+          note?: string | null
+          organ: string
+          predicted_confidence: number
+          resolution?: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string | null
+          created_at?: string
+          falsifier?: string
+          finding_id?: string | null
+          id?: string
+          note?: string | null
+          organ?: string
+          predicted_confidence?: number
+          resolution?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organism_outcomes_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "organism_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organism_state: {
+        Row: {
+          calibration: number
+          events_ingested: number
+          events_purged: number
+          last_correlation_at: string | null
+          last_metabolism_at: string | null
+          updated_at: string
+          user_id: string
+          vitals: Json
+        }
+        Insert: {
+          calibration?: number
+          events_ingested?: number
+          events_purged?: number
+          last_correlation_at?: string | null
+          last_metabolism_at?: string | null
+          updated_at?: string
+          user_id: string
+          vitals?: Json
+        }
+        Update: {
+          calibration?: number
+          events_ingested?: number
+          events_purged?: number
+          last_correlation_at?: string | null
+          last_metabolism_at?: string | null
+          updated_at?: string
+          user_id?: string
+          vitals?: Json
+        }
+        Relationships: []
+      }
       page_view_events: {
         Row: {
           created_at: string
@@ -13100,6 +13422,7 @@ export type Database = {
       }
       normalize_display_name: { Args: { raw: string }; Returns: string }
       notebook_team_id: { Args: { _notebook_id: string }; Returns: string }
+      organism_purge: { Args: never; Returns: number }
       purge_soft_deleted: { Args: { p_retention_days?: number }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
