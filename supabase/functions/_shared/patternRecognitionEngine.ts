@@ -289,7 +289,7 @@ export const PATTERN_OPERATORS: PatternOperator[] = [
     lineage:
       "Gentner, 'Structure-Mapping: A Theoretical Framework for Analogy' (Cognitive Science, 1983) — the attribute/relation distinction. Gick & Holyoak on analogical transfer failure without a structural cue. West, Brown & Enquist allometric scaling (Science, 1997, Santa Fe Institute).",
     triggers:
-      /\b(analog(y|ous)|similar to|like (a|the)|same as|compare(d)? to|parallel|mirror(s|ed)?|equivalent|maps? (on)?to|cross.?domain|metaphor|isomorph)\b/i,
+      /\b(analog(y|ous|ue)|isomorph(ic|ism)?|structurally (identical|similar|the same)|same (structure|shape|pattern|dynamic)s? as|maps? (on)?to|cross.?domain|parallels? (to|with|in)|mirrors? the|equivalent (to|of)|metaphor|transfers? (to|from)|borrow(ed|ing)? from (another|a different)|in (another|a different) (domain|field))\b/i,
   },
   {
     id: "anomaly",
@@ -336,7 +336,7 @@ export const PATTERN_OPERATORS: PatternOperator[] = [
     lineage:
       "Bayesian likelihood-ratio combination under conditional independence. Dempster–Shafer evidence theory (Arthur Dempster, Harvard Statistics; Glenn Shafer). D. Basu's theorem on sufficiency and independence (Indian Statistical Institute, Kolkata) — the formal instrument for checking whether two statistics are genuinely independent rather than assumed to be.",
     triggers:
-      /\b(converg(e|ence)|diverg(e|ence)|corroborat|multiple sources|independent(ly)? confirm|triangulat|lines up|all point|agree(s|ment)?|conflicting (signals|evidence|data))\b/i,
+      /(\b(converg(e|ent|ence)|diverg(e|ent|ence)|corroborat|triangulat|conflicting (signals|evidence|data|indicators)|double.?count)\b|\b(multiple|several|three|two|different|separate|independent)\b[^.?!]{0,40}\b(sources?|signals?|indicators?|datasets?|witnesses?|feeds?)\b|\b(sources?|signals?|indicators?|lines of evidence)\b[^.?!]{0,30}\b(all |both )?(agree|confirm|align|point|match|corroborate)\b|\b(independent(ly)?)\b[^.?!]{0,30}\b(confirm|verif|corroborat|agree)\b)/i,
   },
   {
     id: "recursion",
@@ -478,7 +478,7 @@ export const PATTERN_OPERATORS: PatternOperator[] = [
     lineage:
       "Klein's Recognition-Primed Decision model (naturalistic decision making). Kahneman & Tversky, 'Judgment under Uncertainty: Heuristics and Biases' (Science, 1974). Kahneman & Klein (2009) for the reconciliation of the two traditions.",
     triggers:
-      /\b(quick(ly)?|gut|instinct|intuiti(on|ve)|first impression|snap judg|at a glance|immediately obvious|hunch|feels? (like|off|right))\b/i,
+      /\b(gut (feel|instinct|read|call|sense)?|instinct(ive(ly)?)?|intuiti(on|ve(ly)?)|first impression|snap judg(e?ment)?|at a glance|off the top of|hunch|feels? (off|wrong|right)\b|something tells me)\b/i,
   },
 ];
 
