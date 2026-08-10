@@ -341,7 +341,7 @@ function parsePe(b: Uint8Array): PeResult | null {
       ? "Signature blob present. Chain validity, revocation, and timestamp are NOT verified here."
       : "No certificate table — the image carries no Authenticode blob at all.",
     pdb_path: pdb,
-    mitigations: { ...mitigations, subsystem_note: "unknown" as const, ...(PE_SUBSYSTEM[subsystem] ? {} : {}) },
+    mitigations,
     banned: [...banned].map(([symbol, evidence]) => ({ symbol, evidence })),
     observations, errors,
   };
