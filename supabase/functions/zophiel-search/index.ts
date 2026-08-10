@@ -8,6 +8,7 @@ import {
 import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
 import { runSurfaceWave, type SurfaceWave } from "../_shared/surfaceRetrieval.ts";
 import { resolveVaultPrior, formatVaultPrior, type VaultPrior } from "../_shared/vaultPrior.ts";
+import { runHopChain, deriveAnchor } from "../_shared/hopChain.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2039,6 +2040,7 @@ Deno.serve(async (req) => {
         anomalies: fusion.anomalies,
         identities: fusion.intel.identities?.slice(0, 20) ?? [],
         rankingQuality,
+        hopChain,
         pantheonVersion: 5,
         // Omnispider (shep95/web-crawlers) enrichment telemetry
         omnispider: { crawled: omniCrawledCount, engines: omniEngineCounts },
