@@ -585,7 +585,14 @@ serve(async (req) => {
       await import("../_shared/patternRecognitionEngine.ts");
     const _pEmph = _bPE(lastUserText);
     const patternBlock = "\n\n" + _PRK + "\n\n" + _POR + (_pEmph ? "\n\n" + _pEmph : "");
-    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE;
+    // Domain atlas — the terrain layer (WHERE to look). Resident 28-line index
+    // so the model can locate the question; full terrain records gated to the
+    // two domains this message actually enters.
+    const { DOMAIN_ATLAS_INDEX: _DAI, buildDomainEmphasis: _bDE } =
+      await import("../_shared/domainAtlas.ts");
+    const _dEmph = _bDE(lastUserText);
+    const atlasBlock = "\n\n" + _DAI + (_dEmph ? "\n\n" + _dEmph : "");
+    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {

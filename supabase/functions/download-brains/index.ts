@@ -9,6 +9,7 @@ import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { fullThinkingPatternDatabaseMarkdown } from "../_shared/thinkingPatterns.ts";
 import { fullPatternEngineMarkdown } from "../_shared/patternRecognitionEngine.ts";
+import { fullDomainAtlasMarkdown } from "../_shared/domainAtlas.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
 import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 
@@ -59,6 +60,7 @@ Deno.serve(async (req) => {
       "GeolocationBrain.md": GEOLOCATION_BRAIN,
       "ThinkingPatternDatabase.md": fullThinkingPatternDatabaseMarkdown(),
       "PatternRecognitionEngine.md": fullPatternEngineMarkdown(),
+      "DomainAtlas.md": fullDomainAtlasMarkdown(),
     };
     for (const [name, content] of Object.entries(brains)) {
       zip.file(name, content);

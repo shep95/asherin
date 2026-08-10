@@ -2065,6 +2065,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const { PATTERN_RECOGNITION_KERNEL, PATTERN_OPERATOR_ROSTER, buildPatternEmphasis } =
       await import("../_shared/patternRecognitionEngine.ts");
     const _patternEmphasis = buildPatternEmphasis(_lastUserText);
+    // Domain atlas — WHERE to look. 28 terrains / 274 subdomains. Resident
+    // index + terrain records gated to the two domains this message enters.
+    const { DOMAIN_ATLAS_INDEX, buildDomainEmphasis } =
+      await import("../_shared/domainAtlas.ts");
+    const _domainEmphasis = buildDomainEmphasis(_lastUserText);
+
 
     // ── TURN RELEVANCE — decide what this message actually needs ──────────
     // The prompt below used to be unconditional: every message, including
@@ -2188,6 +2194,16 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.trivial ? "" : PATTERN_RECOGNITION_KERNEL,
       _R.analytics || _R.intel || _R.deep || _R.strategic ? PATTERN_OPERATOR_ROSTER : "",
       _patternEmphasis,
+      // Domain atlas — the terrain layer. The engine above knows HOW to think
+      // and WHICH move to make; without this it will analyse whatever it was
+      // handed, at whatever resolution the operator happened to choose. The
+      // index is 28 lines and rides any non-trivial turn so the model can
+      // always locate itself; the heavy terrain records (observable, baseline,
+      // invariant, trap, subdomains) are gated to the two terrains this
+      // message actually enters.
+      _R.trivial ? "" : DOMAIN_ATLAS_INDEX,
+      _domainEmphasis,
+
 
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
