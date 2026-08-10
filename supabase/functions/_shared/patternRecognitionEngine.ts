@@ -495,11 +495,47 @@ ${PATTERN_OPERATORS.map((o) => `· ${o.module} — ${o.name}: ${o.mandate}`).joi
 `.trim();
 
 /**
+ * Person/entity lookup shape detection.
+ *
+ * Identity resolution is the one turn class that carries no analytic
+ * vocabulary at all — "who is <name> who lives in <city>" scores zero against
+ * every operator's trigger set — while being the turn class where the wrong
+ * answer is most expensive. Keyword gating therefore silently disarmed the
+ * engine on exactly the questions that needed it. This detects the SHAPE of
+ * the request instead of its vocabulary, and forces the corroboration stack.
+ *
+ * Both halves are required: a lookup verb alone matches "who is the president"
+ * (a fact question, not an identity resolution), and a name shape alone
+ * matches any sentence that mentions a person in passing.
+ */
+const LOOKUP_VERB_RE =
+  /\b(?:who\s+(?:is|was|are)|who's|background\s+(?:check|on)|look\s?up|dossier(?:\s+on)?|intel\s+on|profile\s+(?:of|on)|everything\s+(?:about|on)|research\s+(?:on|into)|report\s+on|deep\s+dive\s+on|find\s+(?:me\s+)?(?:info|information|everything))\b/i;
+/** Two adjacent capitalised tokens — bounded lengths, no nested quantifier. */
+const NAME_SHAPE_RE = /\b[A-Z][a-z]{1,20}\s+[A-Z][a-z]{1,20}\b/;
+/** Lowercased queries lose the name shape, so a locator phrase also qualifies. */
+const LOCATOR_RE = /\b(?:lives?\s+in|resides?\s+in|based\s+(?:in|out\s+of)|located\s+in|from\s+[a-z]+\s+(?:florida|california|texas|new\s+york))\b/i;
+
+/** True when the message asks the engine to resolve a specific human/entity. */
+export function isIdentityLookup(text: string): boolean {
+  const t = (text || "").slice(0, 2000);
+  if (t.trim().length < 8) return false;
+  return LOOKUP_VERB_RE.test(t) && (NAME_SHAPE_RE.test(t) || LOCATOR_RE.test(t));
+}
+
+/**
+ * The stack an identity resolution always runs, in order: separate the
+ * candidates, weigh independent corroboration, then price the confidence
+ * honestly. These are forced regardless of trigger vocabulary.
+ */
+const IDENTITY_STACK: PatternOpId[] = ["convergence", "calibration", "anomaly"];
+
+/**
  * Which operators this message actually demands.
  *
  * Ranked by trigger density so a message leaning hard on one operator is not
  * diluted by a stray keyword from another. Deliberately returns [] for short
  * or casual text — analysing a greeting is a failure mode, not thoroughness.
+ * Identity lookups bypass the vocabulary scorer entirely (see above).
  */
 export function detectPatternOps(text: string, limit = 3): PatternOperator[] {
   const t = (text || "").slice(0, 8000);
@@ -516,14 +552,79 @@ export function detectPatternOps(text: string, limit = 3): PatternOperator[] {
     const hits = t.match(re);
     if (hits?.length) scored.push({ o, n: hits.length });
   }
-  if (!scored.length) return [];
   scored.sort(
     (a, b) =>
       b.n - a.n ||
       PATTERN_OPERATORS.indexOf(a.o) - PATTERN_OPERATORS.indexOf(b.o),
   );
-  return scored.slice(0, Math.max(1, limit)).map((s) => s.o);
+  const ordered = scored.map((s) => s.o);
+
+  if (isIdentityLookup(t)) {
+    // Forced stack leads; any vocabulary-detected operator follows as an
+    // auditor. De-duplicated by id so a doubly-selected operator does not
+    // consume two of the three slots.
+    const forced = IDENTITY_STACK
+      .map((id) => BY_ID.get(id))
+      .filter((o): o is PatternOperator => Boolean(o));
+    const seen = new Set(forced.map((o) => o.id));
+    for (const o of ordered) if (!seen.has(o.id)) { seen.add(o.id); forced.push(o); }
+    return forced.slice(0, Math.max(3, limit));
+  }
+
+  if (!ordered.length) return [];
+  return ordered.slice(0, Math.max(1, limit));
 }
+
+/**
+ * The visible accountability tail for identity resolution.
+ *
+ * The kernel forbids naming the machinery, which the model reads — correctly —
+ * as "write prose". On an identity turn that produced a dossier with uniform
+ * confidence and no revision conditions, which is the failure Law 7 exists to
+ * prevent. This mandates the tail in OPERATOR-FACING language: plain-English
+ * move names and falsifiers, never module numbers or internal operator names.
+ */
+export const IDENTITY_VERDICT_CONTRACT = `
+================================================================
+IDENTITY RESOLUTION — MANDATORY VERDICT STRUCTURE
+================================================================
+This turn asks you to resolve a specific person or entity. Prose alone is not
+an acceptable answer: an identity claim with no separation of candidates, no
+independence accounting and no revision condition is unscoreable, and what
+cannot be scored cannot be corrected.
+
+BEFORE THE ANSWER
+  · Separate candidates first. Same-name humans are DIFFERENT entities until
+    a discriminator (DOB, address history, employer, relative, handle reuse)
+    links them. Never merge on name + city alone — that is the single most
+    common identity error, and it is how the wrong person gets reported on.
+  · Count witnesses, not documents. Three pages copying one public record are
+    ONE source. State the count of conditionally independent sources.
+  · Every non-obvious factual claim carries its origin inline — the site,
+    record type or platform it came from. An uncited specific is a guess.
+
+CLOSE EVERY IDENTITY ANSWER WITH THIS BLOCK — verbatim headings, no exceptions:
+
+**RESOLUTION** — <named subject, or "unresolved — N candidates"> · <one line>
+**CORROBORATION** — <N independent sources> · <name them>
+**CONFIDENCE** — <High / Moderate / Low> · <the specific reason for that level>
+**FALSIFIER** — <the observation that would collapse this identification>
+**GAPS** — <what is not established, stated plainly rather than inferred>
+
+RULES FOR THE BLOCK
+  · Low confidence is a valid, frequently correct verdict. Never inflate it to
+    look useful. "Two candidates, cannot separate on available evidence" is a
+    better answer than a confident merge.
+  · The falsifier must be observable and specific ("a second J. Newton at a
+    different Cape Coral address with the same DOB"), never generic ("new
+    information could change this").
+  · If the corpus returned nothing on the subject, say so in RESOLUTION and
+    still emit the block. An empty result is a finding.
+  · Do not name the engine, its modules or operators anywhere in the answer.
+    The operator sees the verdict structure, never the machinery.
+================================================================
+`.trim();
+
 
 function dossier(o: PatternOperator): string {
   return [
