@@ -126,8 +126,38 @@ const YEAR_RE = /\b(?:19|20)\d{2}\b/g;
 const US_STATES =
   /\b(?:alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/gi;
 
-/** Proper-noun runs: "Neon Logic AI", "Jennifer Newton", "Cape Coral". */
-const PROPER_RUN_RE = /\b([A-Z][A-Za-z&'.-]{1,24}(?:\s+(?:of|for|and|de|la)\s+)?(?:\s+[A-Z][A-Za-z&'.-]{1,24}){0,4})\b/g;
+/**
+ * Proper-noun runs: "Neon Logic AI", "Jennifer Newton", "Cape Coral".
+ * Deliberately excludes "." from the token body — a run that swallows a
+ * sentence terminator produces phantom organizations like
+ * "Neon Logic AI. Asher Shepherd", which then get spent as search pivots.
+ */
+const PROPER_RUN_RE = /\b([A-Z][A-Za-z&'-]{1,24}(?:\s+[A-Z][A-Za-z&'-]{1,24}){0,4})\b/g;
+
+/** Sentence splitter — the boundary the run matcher must never cross. */
+function sentences(text: string): string[] {
+  return text
+    .split(/(?<=[.!?;:])\s+|\s*[|·•—]\s*|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 1);
+}
+
+/** Words that are never an entity on their own and never end a valid run. */
+const RUN_NOISE = new Set([
+  "and", "of", "the", "for", "with", "at", "in", "on", "to", "a", "an", "or",
+  "founder", "cofounder", "ceo", "cto", "cfo", "coo", "president", "director",
+  "manager", "officer", "owner", "partner", "contact", "about", "profile",
+  "linkedin", "facebook", "twitter", "instagram", "email", "phone", "address",
+  "mr", "mrs", "ms", "dr", "view", "see", "read", "more", "home", "search",
+]);
+
+function trimRun(run: string): string {
+  const parts = run.split(/\s+/);
+  while (parts.length && RUN_NOISE.has(parts[parts.length - 1].toLowerCase())) parts.pop();
+  while (parts.length && RUN_NOISE.has(parts[0].toLowerCase())) parts.shift();
+  return parts.join(" ");
+}
+
 
 function normKey(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9@. ]+/g, " ").replace(/\s+/g, " ").trim();
