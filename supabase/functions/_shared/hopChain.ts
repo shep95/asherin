@@ -159,6 +159,8 @@ const GENERIC_ORG_WORDS = new Set([
   "systems", "global", "international", "national", "center", "centre", "council",
   "board", "society", "association", "foundation", "program", "programs", "list",
   "top", "best", "new", "find", "search", "hiring", "remote", "full", "time",
+  "inc", "llc", "ltd", "corp", "company", "group", "holdings", "co", "young",
+  "scientist", "co-founder", "founder", "ceo", "standard",
 ]);
 
 function isHollowOrg(label: string): boolean {
@@ -175,6 +177,7 @@ const RUN_NOISE = new Set([
   "mr", "mrs", "ms", "dr", "view", "see", "read", "more", "home", "search",
   "investor", "attorney", "analyst", "engineer", "developer", "researcher",
   "professor", "agent", "broker", "consultant", "chief", "vice", "senior",
+  "co-founder", "co-ceo", "scientist", "inc", "llc", "ltd", "corp", "as",
 ]);
 
 function trimRun(run: string): string {
@@ -289,7 +292,9 @@ export function extractEntities(
     // who share a surname and are among the highest-value pivots there are —
     // so collisions are flagged and penalized, then required to corroborate
     // across two independent domains before they can spend a query.
-    if (kind === "org" && isHollowOrg(label)) return;
+    // Hollow-run refusal applies to people too: "Young Scientist" is name-
+    // shaped but is a category, and a query built on it retrieves nothing.
+    if ((kind === "org" || kind === "person") && isHollowOrg(label)) return;
     const collision =
       kind !== "email" && kind !== "domain" && kind !== "phone" &&
       bareTokens.some((t) => anchorTokens.has(t)) && !bare.includes(anchorFull);
