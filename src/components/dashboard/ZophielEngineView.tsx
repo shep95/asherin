@@ -37,6 +37,7 @@ const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
 const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
 const XKeyscorePanel = lazy(() => import("./search/XKeyscorePanel"));
+const ShadowPanel = lazy(() => import("./search/ShadowPanel"));
 
 
 // Detect when the search query is actually a URL (with or without scheme).
