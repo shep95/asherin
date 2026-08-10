@@ -255,5 +255,59 @@ export async function runOpSweep(
     await db.from("op_findings").update({ status: "expired" }).in("id", stale);
   }
 
+  // ── Breathe into the bloodstream ───────────────────────────────────────
+  // The OP layer keeps its own ledger because that is what its own UI reads,
+  // but it also reports what it SENSED — not what it concluded — into the
+  // shared substance so the correlation layer can notice when this organ and
+  // an unrelated one are describing the same event. A failure here must never
+  // fail the sweep: the organ's primary duty is its own ledger.
+  try {
+    const sensations: Sensation[] = [];
+
+    for (const f of findings) {
+      sensations.push({
+        organ: "op",
+        kind: `op:${f.code}`.slice(0, 80),
+        entity: f.exposedDeviceId
+          ? { kind: "device", key: f.exposedDeviceId, label: devices.find((d) => d.device_id === f.exposedDeviceId)?.label ?? null }
+          : null,
+        verdict: f.severity === "critical" || f.severity === "high" ? "hostile" : f.severity === "medium" ? "anomalous" : "benign",
+        confidence: Number(f.confidence),
+        summary: f.title,
+        evidence: { code: f.code, corroboratingDevices: f.corroboratingDevices, distinctSignalTypes: f.distinctSignalTypes },
+        observedAt: f.lastSeen || new Date(now).toISOString(),
+        dedupeKey: `finding:${f.code}:${f.severity}:${new Date(now).toISOString().slice(0, 13)}`,
+        ttlDays: 45,
+      });
+    }
+
+    // Networks are the entity the rest of the organism most often shares with
+    // this one, so they are reported even when no finding fired.
+    const seenNetworks = new Set<string>();
+    for (const s of signals) {
+      if (!s.network_key || seenNetworks.has(s.network_key)) continue;
+      seenNetworks.add(s.network_key);
+      const net = networks.find((n) => n.network_key === s.network_key);
+      sensations.push({
+        organ: "op",
+        kind: "op:network",
+        entity: { kind: "network", key: s.network_key, label: net?.label ?? net?.org ?? null },
+        verdict: net?.verdict === "hostile" ? "hostile" : net?.verdict === "suspect" ? "anomalous" : "clean",
+        confidence: net?.verdict === "hostile" ? 0.7 : 0.35,
+        reflex: s.runtime_tier === "foreground",
+        summary: `Network observed by ${net?.devices_seen ?? 1} device(s)`,
+        evidence: { country: net?.country ?? null, org: net?.org ?? null },
+        observedAt: s.observed_at,
+        dedupeKey: `network:${s.network_key}:${new Date(now).toISOString().slice(0, 13)}`,
+        ttlDays: 21,
+      });
+      if (seenNetworks.size >= 40) break;
+    }
+
+    if (sensations.length) await publish(db, userId, sensations);
+  } catch (e) {
+    console.error("[opSweep] bloodstream publish failed", e instanceof Error ? e.message : String(e));
+  }
+
   return { findings, posture: post, notified, actionsQueued };
 }
