@@ -193,6 +193,7 @@ const GoogleIntelligenceView = () => {
       case "voiceprint": return <VoiceForensics />;
       case "ghostmail": return <GhostLedgerPanel />;
       case "overwatch": return <OverwatchTab />;
+      case "vitals": return <VitalsTab />;
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
       case "messages": return <PhoneMessages />;
