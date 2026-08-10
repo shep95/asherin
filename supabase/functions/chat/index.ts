@@ -22,6 +22,9 @@ import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoc
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
+import {
+  assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
+} from "../_shared/artifactLedger.ts";
 
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
@@ -2148,6 +2151,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
+      artifactForensicsBrief,
       webSearchContext + socialContext + googleMeshContext + meshVaultContext + resumeContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
       leaksContext,
       archiveContext,
