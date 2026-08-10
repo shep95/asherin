@@ -16,7 +16,7 @@ export interface ArtifactDrift {
   field: string;
   before: string;
   after: string;
-  severity: "critical" | "warning" | "notice";
+  severity: "info" | "notice" | "alarm";
   reading: string;
 }
 
@@ -51,9 +51,9 @@ export interface LedgerResult {
 }
 
 const SEVERITY_RING: Record<ArtifactDrift["severity"], string> = {
-  critical: "border-foreground/40 bg-foreground/[0.07]",
-  warning: "border-foreground/25 bg-foreground/[0.04]",
-  notice: "border-border/25",
+  alarm: "border-foreground/40 bg-foreground/[0.07]",
+  notice: "border-foreground/25 bg-foreground/[0.04]",
+  info: "border-border/25",
 };
 
 function CopyChip({ value, label }: { value: string; label: string }) {
@@ -120,7 +120,7 @@ export const ArtifactLedgerPanel = memo(function ArtifactLedgerPanel({ result }:
           {drift.map((d, i) => (
             <div key={`${d.field}-${i}`} className={`rounded-lg border px-3 py-2 ${SEVERITY_RING[d.severity]}`}>
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground/60">
-                {d.severity === "notice" ? <ShieldCheck className="h-3 w-3" aria-hidden /> : <ShieldAlert className="h-3 w-3" aria-hidden />}
+                {d.severity === "info" ? <ShieldCheck className="h-3 w-3" aria-hidden /> : <ShieldAlert className="h-3 w-3" aria-hidden />}
                 {d.severity} · {d.field.replace(/_/g, " ")}
               </div>
               <p className="mt-1 text-xs font-light leading-relaxed text-foreground/85">{d.reading}</p>
