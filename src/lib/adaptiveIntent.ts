@@ -156,7 +156,7 @@ const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
   osint: ["zophiel-search", "nomad", "cloud-intelligence"],
   maps: ["asherin-maps", "zaxin"],
   astrology: ["vedic"],
-  market: ["axrlen", "imagine"],
+  market: ["imagine"],
   imagine: ["imagine"],
   security: ["bulwark", "cloud-intelligence"],
   code: ["development-suite"],
