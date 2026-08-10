@@ -35,6 +35,10 @@ import {
 } from "../_shared/ghostBuffer.ts";
 import { isLedgerChannel, runGhostLedger, type LedgerChannel } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
+import {
+  assessArtifact, recordArtifact, decodeBase64, filenameKey,
+  MAX_ARTIFACT_BYTES, type LedgerWrite,
+} from "../_shared/artifactLedger.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import { sweepIdentifier } from "../_shared/identifierSweep.ts";
 import {
@@ -56,7 +60,7 @@ const BUCKET = "ghost-buffer";
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
   | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin"
-  | "upload" | "timeline" | "identifier";
+  | "upload" | "timeline" | "identifier" | "artifact" | "artifactHistory";
 
 
 
@@ -86,6 +90,9 @@ interface GhostRequest {
   maxHosts?: number;
   /** action=upload — an artefact the operator holds rather than a link. */
   file?: { filename?: string; contentType?: string; base64?: string };
+  /** action=artifact / artifactHistory — ledger scoping. */
+  filename?: string;
+  source?: string;
   /** action=timeline — reach back through the capture archives. */
   fromYear?: number;
   hosts?: string[];
@@ -497,8 +504,60 @@ Deno.serve(async (req) => {
       base64: String(f.base64),
     };
     const trace = await traceUpload(artifact);
-    return json({ action: "upload", trace });
+
+    // The container trace answers "who wrote this". The ledger answers a second,
+    // orthogonal question — "is this the same artifact I saw last time, and did
+    // its defences change" — so both run on one upload and neither blocks the
+    // other. A ledger failure must never cost the operator the origin trace.
+    let ledger: LedgerWrite | null = null;
+    try {
+      const bytes = decodeBase64(artifact.base64);
+      if (bytes.length <= MAX_ARTIFACT_BYTES) {
+        const report = await assessArtifact(bytes, artifact.filename, artifact.contentType);
+        ledger = await recordArtifact(sb, userId, report, "ghost-engine:upload");
+      }
+    } catch (e) {
+      console.error("[ghost-engine] artifact ledger:", (e as Error).message);
+    }
+    return json({ action: "upload", trace, ledger });
   }
+
+  // ── ARTIFACT — identity, hardening posture, and drift for raw bytes ────────
+  // Deliberately separate from ORIGIN: ORIGIN reads authorship out of container
+  // metadata, ARTIFACT reads what the compiler and the signer actually did. A
+  // scrubbed PDF has no origin but still has a fingerprint and a lineage.
+  if (action === "artifact") {
+    const f = body.file;
+    if (!f?.base64) return json({ error: "No file payload received." }, 400);
+    let bytes: Uint8Array;
+    try {
+      bytes = decodeBase64(String(f.base64));
+    } catch {
+      return json({ error: "The attachment could not be decoded." }, 400);
+    }
+    if (bytes.length === 0) return json({ error: "Empty file — nothing to fingerprint." }, 400);
+    if (bytes.length > MAX_ARTIFACT_BYTES) {
+      return json({ error: `File exceeds the ${Math.round(MAX_ARTIFACT_BYTES / 1024 / 1024)} MB analysis ceiling.` }, 413);
+    }
+    const report = await assessArtifact(bytes, String(f.filename || "upload"), String(f.contentType || ""));
+    const ledger = await recordArtifact(sb, userId, report, String(body.source || "ghost-engine:artifact"));
+    return json({ action: "artifact", ...ledger });
+  }
+
+  // ── ARTIFACT HISTORY — the ledger as a queryable timeline ──────────────────
+  if (action === "artifactHistory") {
+    if (!sb || !userId) return json({ error: "Ledger unavailable for this session" }, 503);
+    let q = sb.from("artifact_ledger")
+      .select("id, sha256, sha1, filename, filename_key, size_bytes, kind, format, arch, signed, build_time, posture_score, mitigations, banned_symbols, drift, source, first_seen, last_seen, seen_count")
+      .eq("user_id", userId);
+    const nameFilter = String(body.filename || "").trim();
+    if (nameFilter) q = q.eq("filename_key", filenameKey(nameFilter));
+    const { data, error } = await q.order("last_seen", { ascending: false })
+      .limit(Math.min(Math.max(Number(body.limit) || 100, 1), 300));
+    if (error) return json({ error: "Ledger read failed", details: error.message }, 500);
+    return json({ action: "artifactHistory", entries: data ?? [], count: (data ?? []).length });
+  }
+
 
   // ── TIMELINE — the engine's own reach-back ─────────────────────────────────
   // No outside capture archive is consulted. The engine re-runs its own harvest

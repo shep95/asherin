@@ -22,6 +22,9 @@ import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoc
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
+import {
+  assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
+} from "../_shared/artifactLedger.ts";
 
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
@@ -1920,6 +1923,67 @@ ${zophielCodingBrainContent}
       ? messages.slice(-MAX_HISTORY_MESSAGES)
       : messages;
 
+    // ── ARTIFACT FORENSICS PRE-PASS (attachments) ─────────────────────────
+    // A vision model reading a screenshot of a file learns nothing about the
+    // file. Header truth — hash identity, signing state, hardening flags,
+    // banned-API linkage — only exists in the bytes, and the bytes are already
+    // in hand. So the ledger runs locally on every attachment on the newest
+    // turn and hands the model a short factual brief.
+    //
+    // Two firing conditions, deliberately asymmetric:
+    //   ASKED   — the operator wants metadata/provenance/hash/signature.
+    //   CONCERN — the operator sounds worried (suspicious, malware, phishing,
+    //             "is this safe", "did someone tamper"), where withholding the
+    //             facts would be the harmful choice.
+    // Anything else stays quiet: an ordinary attachment on an ordinary
+    // question should not be met with a forensics lecture.
+    let artifactForensicsBrief = "";
+    try {
+      const lastMsg: any = prunedMessages[prunedMessages.length - 1];
+      const atts: any[] = Array.isArray(lastMsg?.attachments) ? lastMsg.attachments : [];
+      if (atts.length) {
+        const ask = String(lastMsg?.content || "").toLowerCase();
+        const askedFor = /\b(metadata|meta data|exif|provenance|origin|hash|sha ?-?256|checksum|fingerprint|signed|signature|signer|authenticode|forensic|artifact|binary|header|compiled|build|pdb|aslr|dep|mitigation|who (made|wrote|created)|where did (this|it) come from)\b/.test(ask);
+        const concerned = /\b(suspicious|malware|virus|trojan|infected|phish(ing)?|scam|spoof|tamper(ed)?|modified|fake|forged|hack(ed)?|breach|compromis(ed|e)|is (this|it) safe|should i (open|trust|run)|do not trust|dangerous)\b/.test(ask);
+        if (askedFor || concerned) {
+          // Ledger writes are operator-scoped. An unauthenticated turn still
+          // gets the full analysis, it just gets no history.
+          const _url = Deno.env.get("SUPABASE_URL") || "";
+          const _svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const _anon = Deno.env.get("SUPABASE_ANON_KEY") || "";
+          const _authH = req.headers.get("Authorization");
+          const _caller = _authH ? await resolveCallerCached(_authH, _url, _anon) : null;
+          const { createClient: _cc } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const _admin = _caller && _svc ? _cc(_url, _svc, { auth: { persistSession: false } }) : null;
+
+          const briefs: string[] = [];
+          for (const att of atts.slice(0, 4)) {
+            if (!att?.base64) continue;
+            try {
+              const bytes = decodeBase64(String(att.base64));
+              if (!bytes.length || bytes.length > MAX_ARTIFACT_BYTES) continue;
+              const report = await assessArtifact(bytes, String(att.name || "attachment"), String(att.type || ""));
+              const written = await recordArtifact(_admin, _caller?.id ?? null, report, "chat:attachment");
+              briefs.push(renderArtifactBrief(report, written.drift));
+            } catch (e) {
+              console.error("[chat] artifact forensics:", (e as Error).message);
+            }
+          }
+
+          if (briefs.length) {
+            artifactForensicsBrief = `
+## ARTIFACT FORENSICS — measured locally from the attached bytes
+These are measurements, not inferences. State them plainly, cite them as read from the file itself, and do NOT speculate beyond them. Absence of a signature is not proof of malice; presence of one is not proof of safety — say so if it matters.
+${briefs.join("\n\n")}
+`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[chat] artifact pre-pass:", (e as Error).message);
+    }
+
+
     const DEFENSIVE_SECURITY_REALISM_STATE = isDefensiveSecurityAuditRequest ? `
 ## DEFENSIVE SECURITY REALISM STATE — AUTHORIZED AUDIT
 The operator is requesting a defensive security audit / flaw check of their own app, URL, or code. Treat this as authorized white-hat work.
@@ -2087,6 +2151,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       skillInjection ? `\n${skillInjection}` : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
+      artifactForensicsBrief,
       webSearchContext + socialContext + googleMeshContext + meshVaultContext + resumeContext + googleSubstrateContext + (azplenContext ? `\n\n${azplenContext}` : ""),
       leaksContext,
       archiveContext,

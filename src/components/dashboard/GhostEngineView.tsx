@@ -14,6 +14,7 @@ import GhostBufferConsole from "./ghost/GhostBufferConsole";
 import GhostSearchResults from "./ghost/GhostSearchResults";
 import GhostHistoryRail from "./ghost/GhostHistoryRail";
 import { OriginPanel, type OriginTrace } from "./ghost/OriginPanel";
+import { ArtifactLedgerPanel, type LedgerResult } from "./ghost/ArtifactLedgerPanel";
 import {
   IdentifierSweepPanel,
   type ChainedProvenance, type IdentifierSweepReport,
@@ -139,6 +140,9 @@ const GhostEngineView = () => {
   const routing = useMemo(() => resolveRoute(route, query), [route, query]);
   const mode: GhostMode = routing.mode;
   const [origin, setOrigin] = useState<OriginTrace | null>(null);
+  // Header truth for an attached artifact. Cleared alongside the trace so a new
+  // upload can never be read against the previous file's fingerprint.
+  const [ledger, setLedger] = useState<LedgerResult | null>(null);
   const [deepTime, setDeepTime] = useState<TimeMachineReport | null>(null);
   const [sweep, setSweep] = useState<IdentifierSweepReport | null>(null);
   // Origin traces the engine ran off this sweep's document sightings, in the
@@ -198,6 +202,7 @@ const GhostEngineView = () => {
         }
         const trace = (res as { trace?: OriginTrace })?.trace ?? null;
         setOrigin(trace);
+        setLedger(null);
         setData(null);
         if (trace?.errors.length) {
           toast({ title: "Trace incomplete", description: trace.errors[0] });
@@ -353,6 +358,7 @@ const GhostEngineView = () => {
     }
     setUploading(true);
     setOrigin(null);
+    setLedger(null);
     // An attached file has no URL, so ORIGIN is the only verb that can read it.
     pickRoute("origin");
     try {
@@ -380,6 +386,7 @@ const GhostEngineView = () => {
       }
       const trace = (res as { trace?: OriginTrace })?.trace ?? null;
       setOrigin(trace);
+      setLedger((res as { ledger?: LedgerResult | null })?.ledger ?? null);
       setData(null);
       setQuery(file.name);
       if (trace?.errors.length) toast({ title: "Inspection incomplete", description: trace.errors[0] });
@@ -728,6 +735,8 @@ const GhostEngineView = () => {
               onPivot={(sel) => { pickRoute("intercept"); setQuery(sel); void run(sel, undefined, "intercept"); }}
             />
           )}
+
+          {mode === "origin" && !loading && !uploading && ledger && <ArtifactLedgerPanel result={ledger} />}
 
           {mode === "origin" && (loading || uploading) && (
             <div className="mt-14 text-center text-sm font-light text-muted-foreground/60">
