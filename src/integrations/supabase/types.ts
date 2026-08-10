@@ -159,6 +159,78 @@ export type Database = {
         }
         Relationships: []
       }
+      artifact_ledger: {
+        Row: {
+          arch: string | null
+          banned_symbols: Json
+          build_time: string | null
+          drift: Json
+          filename: string
+          filename_key: string
+          first_seen: string
+          format: string | null
+          id: string
+          kind: string
+          last_seen: string
+          mitigations: Json
+          posture_score: number | null
+          report: Json
+          seen_count: number
+          sha1: string | null
+          sha256: string
+          signed: string
+          size_bytes: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          arch?: string | null
+          banned_symbols?: Json
+          build_time?: string | null
+          drift?: Json
+          filename: string
+          filename_key: string
+          first_seen?: string
+          format?: string | null
+          id?: string
+          kind?: string
+          last_seen?: string
+          mitigations?: Json
+          posture_score?: number | null
+          report?: Json
+          seen_count?: number
+          sha1?: string | null
+          sha256: string
+          signed?: string
+          size_bytes?: number
+          source?: string
+          user_id: string
+        }
+        Update: {
+          arch?: string | null
+          banned_symbols?: Json
+          build_time?: string | null
+          drift?: Json
+          filename?: string
+          filename_key?: string
+          first_seen?: string
+          format?: string | null
+          id?: string
+          kind?: string
+          last_seen?: string
+          mitigations?: Json
+          posture_score?: number | null
+          report?: Json
+          seen_count?: number
+          sha1?: string | null
+          sha256?: string
+          signed?: string
+          size_bytes?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asha_alerts: {
         Row: {
           created_at: string
