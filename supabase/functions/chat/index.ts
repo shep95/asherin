@@ -2204,7 +2204,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the model thinks rather than merely what it knows. The roster only
       // loads when the turn is analytical enough to pick an operator from it.
       _R.trivial ? "" : PATTERN_RECOGNITION_KERNEL,
-      _R.analytics || _R.intel || _R.deep || _R.strategic ? PATTERN_OPERATOR_ROSTER : "",
+      _R.analytics || _R.intel || _R.deep || _R.strategic || _isIdentityTurn ? PATTERN_OPERATOR_ROSTER : "",
       _patternEmphasis,
       // Domain atlas — the terrain layer. The engine above knows HOW to think
       // and WHICH move to make; without this it will analyse whatever it was
@@ -2215,6 +2215,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // message actually enters.
       _R.trivial ? "" : DOMAIN_ATLAS_INDEX,
       _domainEmphasis,
+      // Late placement is deliberate: the verdict tail must survive the mode
+      // and depth prompts above, which otherwise shape the answer into prose.
+      _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",
+
 
 
 
