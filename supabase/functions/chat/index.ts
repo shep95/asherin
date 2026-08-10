@@ -2054,9 +2054,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // Cognitive personality matrix — the roster is resident so the model knows
     // its own instrument panel; only the two-to-three logics this message
     // actually demands get their full dossier loaded (relevance gating).
-    const { ANALYTICS_LOGIC_MATRIX, buildAnalyticsLogicEmphasis } =
-      await import("../_shared/analyticsLogicMatrix.ts");
-    const _logicEmphasis = buildAnalyticsLogicEmphasis(_lastUserText);
+    const { THINKING_PATTERN_DATABASE, buildThinkingPatternDossiers } =
+      await import("../_shared/thinkingPatterns.ts");
+    const _logicEmphasis = buildThinkingPatternDossiers(_lastUserText);
     // Pattern engine — the transferable reasoning architecture. The matrix
     // above answers WHO reasons; this answers HOW they move on data. The
     // kernel is small and rides every non-trivial turn because the universal
@@ -2179,7 +2179,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // block in the prompt. The per-message emphasis (which names the two or
       // three logics this turn demands) always ships; the full roster only
       // when the turn is genuinely analytical.
-      _R.analytics ? ANALYTICS_LOGIC_MATRIX : "",
+      _R.analytics ? THINKING_PATTERN_DATABASE : "",
       _logicEmphasis,
       // Reasoning architecture. The kernel is cheap and universal — it ships
       // on anything that is not a greeting, because dropping it changes HOW

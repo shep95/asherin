@@ -576,8 +576,8 @@ serve(async (req) => {
       : "";
     // Cognitive personality matrix — resident roster + gated dossiers for the
     // analytic logics this message actually demands.
-    const { ANALYTICS_LOGIC_MATRIX: _ALM, buildAnalyticsLogicEmphasis: _bALE } =
-      await import("../_shared/analyticsLogicMatrix.ts");
+    const { THINKING_PATTERN_DATABASE: _ALM, buildThinkingPatternDossiers: _bALE } =
+      await import("../_shared/thinkingPatterns.ts");
     const logicBlock = "\n\n" + _ALM + (_bALE(lastUserText) ? "\n\n" + _bALE(lastUserText) : "");
     // Transferable reasoning architecture — kernel always resident, operator
     // dossiers gated to what this message actually demands.

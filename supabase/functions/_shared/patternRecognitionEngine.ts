@@ -9,11 +9,12 @@
 // still be correct if the domain were swapped for a different one?" If the
 // answer was no, it belonged in a domain brain, not here.
 //
-// RELATIONSHIP TO analyticsLogicMatrix.ts
-//   The matrix answers WHO reasons (30 analytic identities, each with a voice).
-//   This file answers HOW any of them move on data (the operators they run).
-//   The matrix is the roster. This is the physics. They compose; neither
-//   duplicates the other.
+// RELATIONSHIP TO thinkingPatterns.ts
+//   That file is the CATALOGUE: 30 concrete analytic moves, indexed by the
+//   kind of question that demands them (WHICH move to make).
+//   This file is the PHYSICS: the universal operators and hard laws that
+//   govern any reasoning at all (HOW thought must move). They compose;
+//   neither duplicates the other, and neither stores a personality.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // PROVENANCE DISCIPLINE
