@@ -1943,6 +1943,16 @@ ${zophielCodingBrainContent}
         const askedFor = /\b(metadata|meta data|exif|provenance|origin|hash|sha ?-?256|checksum|fingerprint|signed|signature|signer|authenticode|forensic|artifact|binary|header|compiled|build|pdb|aslr|dep|mitigation|who (made|wrote|created)|where did (this|it) come from)\b/.test(ask);
         const concerned = /\b(suspicious|malware|virus|trojan|infected|phish(ing)?|scam|spoof|tamper(ed)?|modified|fake|forged|hack(ed)?|breach|compromis(ed|e)|is (this|it) safe|should i (open|trust|run)|do not trust|dangerous)\b/.test(ask);
         if (askedFor || concerned) {
+          // Ledger writes are operator-scoped. An unauthenticated turn still
+          // gets the full analysis, it just gets no history.
+          const _url = Deno.env.get("SUPABASE_URL") || "";
+          const _svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const _anon = Deno.env.get("SUPABASE_ANON_KEY") || "";
+          const _authH = req.headers.get("Authorization");
+          const _caller = _authH ? await resolveCallerCached(_authH, _url, _anon) : null;
+          const { createClient: _cc } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const _admin = _caller && _svc ? _cc(_url, _svc, { auth: { persistSession: false } }) : null;
+
           const briefs: string[] = [];
           for (const att of atts.slice(0, 4)) {
             if (!att?.base64) continue;
@@ -1950,12 +1960,13 @@ ${zophielCodingBrainContent}
               const bytes = decodeBase64(String(att.base64));
               if (!bytes.length || bytes.length > MAX_ARTIFACT_BYTES) continue;
               const report = await assessArtifact(bytes, String(att.name || "attachment"), String(att.type || ""));
-              const written = await recordArtifact(supabaseAdmin, userId ?? null, report, "chat:attachment");
+              const written = await recordArtifact(_admin, _caller?.id ?? null, report, "chat:attachment");
               briefs.push(renderArtifactBrief(report, written.drift));
             } catch (e) {
               console.error("[chat] artifact forensics:", (e as Error).message);
             }
           }
+
           if (briefs.length) {
             artifactForensicsBrief = `
 ## ARTIFACT FORENSICS — measured locally from the attached bytes
