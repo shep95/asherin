@@ -177,7 +177,7 @@ const PE_SUBSYSTEM: Record<number, string> = {
 
 interface PeResult {
   format: string; arch: string | null; build_time: string | null;
-  signed: "yes" | "no"; signature_note: string | null; pdb_path: string | null;
+  signed: "yes" | "no" | "unknown"; signature_note: string | null; pdb_path: string | null;
   mitigations: Record<string, "on" | "off" | "n/a" | "unknown">;
   banned: { symbol: string; evidence: string }[];
   observations: ArtifactObservation[];
