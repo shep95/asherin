@@ -17,7 +17,7 @@ export const MAXIMUM_VIEWS: DashboardView[] = [];
 // (supabase/functions/_shared/proTierGate.ts).
 const PRO_STRICT_VIEWS: DashboardView[] = ["ghost-engine"];
 // Enterprise / Pro-only views
-const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
+const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion"];
 const PRO_VIEWS: DashboardView[] = [
   "community", "azplen",
   "teams", "plugins", "timeseries",
