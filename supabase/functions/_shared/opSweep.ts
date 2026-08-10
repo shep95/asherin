@@ -272,7 +272,7 @@ export async function runOpSweep(
         entity: f.exposedDeviceId
           ? { kind: "device", key: f.exposedDeviceId, label: devices.find((d) => d.device_id === f.exposedDeviceId)?.label ?? null }
           : null,
-        verdict: f.severity === "critical" || f.severity === "high" ? "hostile" : f.severity === "medium" ? "anomalous" : "benign",
+        verdict: f.severity === "critical" || f.severity === "high" ? "hostile" : f.severity === "elevated" ? "anomalous" : "benign",
         confidence: Number(f.confidence),
         summary: f.title,
         evidence: { code: f.code, corroboratingDevices: f.corroboratingDevices, distinctSignalTypes: f.distinctSignalTypes },
