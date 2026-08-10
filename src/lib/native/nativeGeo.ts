@@ -44,7 +44,7 @@ const OPTS: PositionOptions = {
 };
 
 /** Ask once. A denial is a final answer for this launch, not a retry loop. */
-async function ensureNativePermission(): Promise<boolean> {
+export async function ensureNativePermission(): Promise<boolean> {
   try {
     const status = await Geolocation.checkPermissions();
     const granted = status.location === "granted" || (status as any).coarseLocation === "granted";

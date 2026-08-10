@@ -28,7 +28,7 @@
 
 import { tripRecorder } from "./tripRecorder";
 import { isNativeApp } from "@/lib/native/nativeRuntime";
-import { watchSamples, type GeoSample, type GeoHandle } from "@/lib/native/nativeGeo";
+import { watchSamples, ensureNativePermission, type GeoSample, type GeoHandle } from "@/lib/native/nativeGeo";
 import { toast } from "sonner";
 
 const ENABLED_KEY = "asherin.trip.auto.enabled.v1";
@@ -154,6 +154,14 @@ class AutoTripSentinel {
   /** Explicit permission request, used by the UI's "turn on" affordance. */
   async requestPermission(): Promise<boolean> {
     if (!this.state.supported) return false;
+    // On native the grant belongs to the app, not the WebView; asking the
+    // browser there prompts the wrong permission and can silently fail.
+    if (isNativeApp()) {
+      const granted = await ensureNativePermission();
+      if (granted) await this.arm();
+      else this.set({ phase: "no-permission", note: "Location permission was refused, so trips cannot arm themselves." });
+      return granted;
+    }
     const ok = await new Promise<boolean>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         () => resolve(true),
