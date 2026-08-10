@@ -334,7 +334,7 @@ function parsePe(b: Uint8Array): PeResult | null {
   }
 
   return {
-    format: `${plus ? "PE32+" : "PE32"} ${(characteristics & 0x2000) ? "dynamic library" : "executable"}${isDriver ? " (native/driver)" : ""}`,
+    format: `${plus ? "PE32+" : "PE32"} ${(characteristics & 0x2000) ? "dynamic library" : "executable"} · ${PE_SUBSYSTEM[subsystem] ?? `subsystem ${subsystem}`}`,
     arch: PE_MACHINE[machine] ?? `machine 0x${machine.toString(16)}`,
     build_time: stamp > 0 && stamp < 0xfffffffe ? new Date(stamp * 1000).toISOString() : null,
     signed, signature_note: signed === "yes"
