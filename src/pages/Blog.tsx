@@ -27,6 +27,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/ai-stack-for-indian-startups",
+    title: "The AI stack for Indian startups that can't afford to fail",
+    dek: "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is instruction overhead.",
+    tag: "Founder Notes",
+    published: "2026-08-10T00:00:00.000Z",
+    readTime: "7 min",
+    featured: true,
+  },
+  {
     slug: "/blog/autonomous-intelligence-loop",
     title: "The Autonomous Intelligence Loop — how Asherin researches without being told to",
     dek: "Asherin no longer waits for a tool selection. The loop detects research intent, recalls the memory graph, fans out across collection surfaces, cross-verifies, persists what it proves, and shows the reasoning chain while it works.",
