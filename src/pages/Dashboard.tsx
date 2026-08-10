@@ -60,7 +60,6 @@ const CrossView = lazyWithRetry(() => import("@/components/dashboard/cross/Cross
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
-const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const BulwarkView = lazyWithRetry(() => import("@/components/dashboard/BulwarkView"));
 const GeoAuditView = lazyWithRetry(() => import("@/components/dashboard/GeoAuditView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
