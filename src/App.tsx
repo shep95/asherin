@@ -261,6 +261,10 @@ const App = () => (
               element={<BlogHowWeMakeAureonSoundHuman />}
             />
             <Route
+              path="/blog/ai-stack-for-indian-startups"
+              element={<BlogAiStackForIndianStartups />}
+            />
+            <Route
               path="/blog/how-to-break-any-encryption-theory"
               element={<BlogHowToBreakAnyEncryptionTheory />}
             />
