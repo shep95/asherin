@@ -248,3 +248,9 @@ verify_jwt = false
 
 [functions.zophiel-xkeyscore]
 verify_jwt = false
+
+[functions.organism]
+verify_jwt = true
+
+[functions.organism-cron]
+verify_jwt = false
