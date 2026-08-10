@@ -120,7 +120,13 @@ Deno.serve(async (req) => {
   const { data: auth } = await db.auth.getUser();
   const user = auth?.user;
   if (!user) return json({ error: "Authentication required." }, 401);
+  // The correlation sweep writes the account's ledger (findings, actions, cron
+  // state) — rows the client is deliberately not allowed to author under RLS.
+  // Identity still comes from the verified session above, never from the body,
+  // so elevating the writer does not widen who the sweep can see or touch.
+  const ledger = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const nowIso = new Date().toISOString();
+
 
   try {
     switch (b.action) {
