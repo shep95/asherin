@@ -305,7 +305,9 @@ function parsePe(b: Uint8Array): PeResult | null {
     aslr: flag(0x0040),                    // DYNAMIC_BASE
     high_entropy_aslr: plus ? flag(0x0020) : "n/a", // HIGH_ENTROPY_VA (64-bit only)
     dep_nx: flag(0x0100),                  // NX_COMPAT
-    seh: (characteristics & 0x0002) === 0 ? "unknown" : ((dllChar & 0x0400) ? "off" : "on"), // NO_SEH inverted
+    // NO_SEH is an inverted flag: set means the image declares it uses no SEH.
+    // On 64-bit images SEH is table-driven and the flag carries no meaning.
+    structured_exception_handling: plus ? "n/a" : ((dllChar & 0x0400) ? "off" : "on"),
     control_flow_guard: flag(0x4000),      // GUARD_CF
     force_integrity: flag(0x0080),
     safe_unload: flag(0x0800),             // NO_BIND
