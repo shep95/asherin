@@ -97,15 +97,61 @@ async function beacon(source) {
   }
 }
 
+/** OP LAYER — TIER 2. The worker cannot run the local battery (no DOM, no
+ *  WebRTC, no geolocation), so it does not pretend to: it files presence and
+ *  the last fix the page handed over, at a confidence the server caps anyway.
+ *  Its only value is that it keeps the account's roster honest about which
+ *  devices are still alive after every tab is gone. */
+async function opBeacon(source) {
+  const cfg = await kvGet("config");
+  if (!cfg || !cfg.token || !cfg.opEndpoint || !cfg.opDeviceId) return false;
+  const fix = await kvGet("fix");
+  const fresh = fix && Date.now() - fix.at < 6 * 3600e3 ? fix : null;
+
+  const signals = [{
+    type: "posture",
+    verdict: "unknown",
+    confidence: 0.3,
+    evidence: {
+      note: "Background presence beacon. No local battery was run — a worker cannot inspect DNS, WebRTC or the radio.",
+      linkType: (self.navigator && self.navigator.connection && self.navigator.connection.effectiveType) || "unknown",
+      source: source || "worker",
+    },
+  }];
+  if (fresh) {
+    signals.push({
+      type: "geo", verdict: "clean", confidence: 0.3,
+      lat: fresh.lat, lng: fresh.lng, accuracy: fresh.accuracy ?? null,
+      evidence: { source: "handover", handedOverAt: new Date(fresh.at).toISOString() },
+    });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const res = await fetch(cfg.opEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
+      body: JSON.stringify({ action: "report", token: cfg.token, deviceId: cfg.opDeviceId, tier: "background", signals }),
+      signal: controller.signal,
+    });
+    return res.ok;
+  } catch (_e) {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("periodicsync", (event) => {
-  if (event.tag === TAG) event.waitUntil(beacon("periodicsync"));
+  if (event.tag === TAG) event.waitUntil(Promise.all([beacon("periodicsync"), opBeacon("periodicsync")]));
 });
 
 self.addEventListener("sync", (event) => {
-  if (event.tag === TAG) event.waitUntil(beacon("sync"));
+  if (event.tag === TAG) event.waitUntil(Promise.all([beacon("sync"), opBeacon("sync")]));
 });
 
 self.addEventListener("message", (event) => {
@@ -113,5 +159,5 @@ self.addEventListener("message", (event) => {
   if (data.type === "sentinel-config") event.waitUntil(kvSet("config", data.config));
   else if (data.type === "sentinel-fix") event.waitUntil(kvSet("fix", data.fix));
   else if (data.type === "sentinel-mesh") event.waitUntil(kvSet("mesh", data.mesh));
-  else if (data.type === "sentinel-beacon-now") event.waitUntil(beacon("page"));
+  else if (data.type === "sentinel-beacon-now") event.waitUntil(Promise.all([beacon("page"), opBeacon("page")]));
 });
