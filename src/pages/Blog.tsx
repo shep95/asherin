@@ -27,16 +27,6 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
-    slug: "/blog/opensource-asherin",
-    title: "OpenSource Asherin",
-    dek: "When everyone's super, no one will be. Download asherinv.50 — the current Asherin build.",
-    tag: "Release",
-    published: "2026-08-10T07:00:00.000Z",
-    readTime: "1 min",
-    featured: true,
-    pinned: true,
-  },
-  {
     slug: "/blog/ai-stack-for-indian-startups",
     title: "The AI stack for Indian startups that can't afford to fail",
     dek: "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is instruction overhead.",

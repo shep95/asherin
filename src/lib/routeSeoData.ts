@@ -498,13 +498,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     ogType: "article",
     datePublished: "2026-07-01",
   },
-  "/blog/opensource-asherin": {
-    title: "OpenSource Asherin — Download asherinv.50",
-    description:
-      "Download the current Asherin build (asherinv.50): Zophiel engine, Aureon logic system, Asherin Maps, plus dorking, Cloud Intelligence and the Asherin Engine.",
-    ogType: "article",
-    datePublished: "2026-08-10",
-  },
   "/blog/ai-stack-for-indian-startups": {
     title: "The AI Stack for Indian Startups That Can't Afford to Fail | Asherin",
     description:
