@@ -615,8 +615,9 @@ header[data-aureon-header] > a {
    dashboard shell, sidebars, cards, sheets, popovers — stops
    asking the compositor to re-sample and re-blur its backdrop on
    every scroll frame. The glass look survives because it was
-   never the blur doing the work: the translucent `bg-*/NN`
-   background colour already carries it.
+   never the blur doing the work: the translucent background
+   colour utility already carries it.
+
 
    Escape hatch: add `perf-keep-blur` to an element (or an
    ancestor) when a real backdrop blur is load-bearing — a veil
