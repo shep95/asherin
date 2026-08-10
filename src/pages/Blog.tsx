@@ -34,6 +34,7 @@ export const BLOG_POSTS: Post[] = [
     published: "2026-08-10T00:00:00.000Z",
     readTime: "7 min",
     featured: true,
+    pinned: true,
   },
   {
     slug: "/blog/autonomous-intelligence-loop",
