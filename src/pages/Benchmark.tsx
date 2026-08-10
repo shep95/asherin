@@ -333,7 +333,7 @@ const CodeBlock = ({ title, lang, code, accent, subtitle }: {
     <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/40 gap-3">
       <div className="flex items-center gap-2 min-w-0">
         <div className="h-2 w-2 rounded-full shrink-0" style={{ background: accent }} />
-        <span className="text-sm font-light text-foreground truncate">{title}</span>
+        <h3 className="text-sm font-light text-foreground truncate">{title}</h3>
       </div>
       <span className="text-[10px] font-extralight tracking-wider text-muted-foreground uppercase shrink-0">{lang}</span>
     </div>
@@ -416,9 +416,9 @@ const Benchmark = () => {
         {/* SECTION 1: CODING BENCHMARK */}
         <section className="space-y-8">
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
               ◉ Prompt given to all three
-            </p>
+            </h2>
             <p className="text-base sm:text-lg font-light text-foreground">
               "{PROMPT}"
             </p>
@@ -436,9 +436,9 @@ const Benchmark = () => {
 
           {/* Short-rubric chart */}
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
               ◈ 5-dimension scoring
-            </p>
+            </h2>
             <div className="h-[320px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={SCORES_SHORT}>
@@ -470,9 +470,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
               ◈ 10-dimension scoring · ✓ = verified by execution
-            </p>
+            </h2>
             <div className="h-[460px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={SCORES_FULL} layout="vertical" margin={{ left: 40 }}>
@@ -507,9 +507,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 space-y-6">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ Security & bug cleanliness · higher is better
-            </p>
+            </h2>
             <div className="h-[260px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -531,9 +531,9 @@ const Benchmark = () => {
               </ResponsiveContainer>
             </div>
 
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground pt-2">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground pt-2">
               ◈ Raw bug & exposure counts · lower is better
-            </p>
+            </h2>
             <div className="h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -568,9 +568,9 @@ const Benchmark = () => {
 
           {/* Method explanation */}
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ How Asherin wins on a cheaper base model
-            </p>
+            </h2>
             <h2 className="text-2xl font-extralight tracking-tight text-foreground">
               We don't train a bigger brain. We groom a cheaper one — harder.
             </h2>
@@ -627,9 +627,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
               ◉ Prompt given to both
-            </p>
+            </h2>
             <p className="text-base sm:text-lg font-light text-foreground">"{IMAGINE_PROMPT}"</p>
             <p className="text-xs font-extralight text-muted-foreground/80 mt-2">
               No constraints. No language. No scale. Pure imagination test.
@@ -642,9 +642,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
               ◈ 8-dimension scoring · higher is better
-            </p>
+            </h2>
             <div className="h-[420px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={IMAGINE_SCORES} layout="vertical" margin={{ left: 40 }}>
@@ -684,9 +684,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
               ◈ Raw bug counts · lower is better
-            </p>
+            </h2>
             <div className="h-[240px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={IMAGINE_BUGS} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
@@ -703,9 +703,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-foreground/20 bg-foreground/5 backdrop-blur-sm p-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-2">
               ◉ Same base model. Different operator.
-            </p>
+            </h2>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
               The Asherin output below was produced by our internal refinement pipeline running
               on top of a <span className="text-foreground">GPT-5.2</span> base model — the same family of cheap, off-the-shelf model
@@ -720,9 +720,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-3">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ Read between the lines
-            </p>
+            </h2>
             <p className="text-sm font-extralight leading-relaxed text-muted-foreground/90">
               Opus 4.8 built a slick in-browser linter — great for demos, useless on a real repo.
               Asherin shipped a strict-mode AST analyzer that ingests a whole project as a ZIP,
@@ -770,9 +770,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ Case study · $ZEC (ZCASH) open-source blockchain
-            </p>
+            </h2>
             <h3 className="text-2xl font-extralight tracking-tight text-foreground">
               Fable 5 found 1 bug. ZERLAL found 200+ — and we stopped it early.
             </h3>
@@ -797,9 +797,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ What ZERLAL actually found in ZCASH (translated for humans)
-            </p>
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-extralight leading-relaxed">
               {[
                 { t: "Wallet passwords open to the internet", b: "The default Docker setup exposes the wallet's remote-control port (RPC) to the entire internet, with the password set to \"notsecure\". Anyone who port-scans your IP can drain the wallet." },
@@ -822,9 +822,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ The full attack chain — how small bugs become a global wipeout
-            </p>
+            </h2>
             <ol className="space-y-2 text-sm font-extralight text-muted-foreground/90 leading-relaxed list-none">
               <li>◉ Attacker compromises a single developer machine through a shell-injection bug.</li>
               <li>◉ They swap one crypto library in the shared vendor folder for a malicious copy.</li>
@@ -840,9 +840,9 @@ const Benchmark = () => {
 
           {/* INSIDER THREAT: How founders & devs can steal your ZCASH */}
           <div className="rounded-2xl border-2 border-foreground/30 bg-foreground/5 backdrop-blur-sm p-6 space-y-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ Insider threat · how ZCASH founders & core developers could quietly steal your ZEC
-            </p>
+            </h2>
             <h3 className="text-2xl font-extralight tracking-tight text-foreground">
               Forget outside hackers. The people who write the code have an easier door.
             </h3>
@@ -856,9 +856,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-5">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ 12 ways an insider can drain ZEC wallets without raising an alarm
-            </p>
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-extralight leading-relaxed">
               {[
                 { t: "Malicious release build", b: "A core dev with release permissions ships one tainted binary. Because the security-check script is broken, nothing flags it. Every user who auto-updates is now running attacker code with full wallet access." },
@@ -883,9 +883,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ Why this is worse than a normal exploit
-            </p>
+            </h2>
             <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 leading-relaxed list-none">
               <li>◉ <span className="text-foreground">They sign the release.</span> Your wallet trusts the signature by default — the malicious binary looks 100% official.</li>
               <li>◉ <span className="text-foreground">They write the security check.</span> The same people who could attack you also control the script that's supposed to catch the attack. It's already broken.</li>
@@ -896,9 +896,9 @@ const Benchmark = () => {
           </div>
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 space-y-4">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◈ How to protect yourself (if you actually hold ZEC)
-            </p>
+            </h2>
             <ul className="space-y-2 text-sm font-extralight text-muted-foreground/90 leading-relaxed list-none">
               <li>◉ Never run the default Docker image as-is. Change the RPC password, bind RPC to localhost only, and put the node behind a firewall.</li>
               <li>◉ Don't auto-update. Pin a release, wait, and let other people get rugged first.</li>
@@ -916,9 +916,9 @@ const Benchmark = () => {
 
 
           <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-6 text-center space-y-3">
-            <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
               ◉ The takeaway
-            </p>
+            </h2>
             <h3 className="text-2xl font-extralight tracking-tight text-foreground max-w-3xl mx-auto">
               Anthropic charges $200/month for Fable 5. It found a handful of bugs on this project.
               Asherin's ZERLAL agent found 200+ on the same code, in less time.
