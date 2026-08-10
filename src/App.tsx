@@ -94,6 +94,9 @@ const BlogHowWeMakeAureonSoundHuman = lazy(
 const BlogAiStackForIndianStartups = lazy(
   () => import("./pages/blog/AiStackForIndianStartups"),
 );
+const BlogOpenSourceAsherin = lazy(
+  () => import("./pages/blog/OpenSourceAsherin"),
+);
 const BlogHowToBreakAnyEncryptionTheory = lazy(
   () => import("./pages/blog/HowToBreakAnyEncryptionTheory"),
 );
