@@ -585,7 +585,8 @@ export function diffArtifacts(prev: ArtifactReport, next: ArtifactReport): Artif
 /** Compact, model-readable rendering — used by chat so the LLM never re-derives. */
 export function renderArtifactBrief(r: ArtifactReport, drift: ArtifactDrift[] = []): string {
   const L: string[] = [];
-  L.push(`FILE: ${r.filename} (${r.declared_type})`);
+  const declared = r.declared_type && r.declared_type !== "(none declared)" ? ` (declared ${r.declared_type})` : "";
+  L.push(`FILE: ${r.filename}${declared}`);
   L.push(`FORMAT: ${r.format}${r.arch ? ` · ${r.arch}` : ""} · ${r.size_bytes.toLocaleString()} bytes`);
   L.push(`SHA-256: ${r.sha256}`);
   L.push(`SHA-1: ${r.sha1}`);
