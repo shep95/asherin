@@ -228,8 +228,14 @@ export function extractEntities(
   ) => {
     const label = rawLabel.replace(/\s+/g, " ").trim().replace(/[.,;:]+$/, "");
     if (label.length < 3 || label.length > 70) return;
-    const key = `${kind}:${normKey(label)}`;
+    // Org canonicalization: "Neon Logic AI" and "NEON LOGIC AI LLC" are one
+    // pivot, not two. Without this the chain spends half its query budget
+    // re-asking the same question with a legal suffix attached.
     const bare = normKey(label);
+    const canon = kind === "org"
+      ? bare.replace(/\b(?:inc|llc|l l c|ltd|limited|corp|corporation|co|company|group|holdings|plc)\b\.?/g, "").replace(/\s+/g, " ").trim() || bare
+      : bare;
+    const key = `${kind}:${canon}`;
     if (!bare || STOP_TOKENS.has(bare)) return;
     // P3 guard — never re-emit the anchor itself as a pivot target.
     const bareTokens = bare.split(" ");
@@ -242,6 +248,7 @@ export function extractEntities(
     const cur = into.get(key);
     if (cur) {
       cur.mentions += 1;
+      if (label.length < cur.label.length) cur.label = label;
       if (host && !cur.domains.includes(host)) cur.domains.push(host);
       if (cur.sources.length < 5 && !cur.sources.includes(doc.url)) cur.sources.push(doc.url);
       cur.darkData = cur.darkData || dark;
