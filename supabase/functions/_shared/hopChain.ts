@@ -271,16 +271,26 @@ export function extractEntities(
     for (const m of text.matchAll(US_STATES)) add(m[0], "place", doc, false);
     for (const m of text.matchAll(YEAR_RE)) add(m[0], "date", doc, false);
 
-    for (const m of text.matchAll(PROPER_RUN_RE)) {
-      const run = m[1];
-      if (!run || run.split(/\s+/).length > 5) continue;
-      const kind: HopEntityKind = ORG_SUFFIX.test(run)
-        ? "org"
-        : /^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(run)
-          ? "person"
-          : "org";
-      add(run, kind, doc, false);
+    // Runs are matched per sentence so a terminator can never be swallowed,
+    // and a single bare capitalized word is only kept when it carries an org
+    // suffix — otherwise every sentence-initial word becomes a fake company.
+    for (const sent of sentences(text)) {
+      for (const m of sent.matchAll(PROPER_RUN_RE)) {
+        const run = trimRun(m[1] || "");
+        if (!run) continue;
+        const words = run.split(/\s+/);
+        if (words.length > 5) continue;
+        const hasOrgSuffix = ORG_SUFFIX.test(run);
+        if (words.length < 2 && !hasOrgSuffix) continue;
+        const kind: HopEntityKind = hasOrgSuffix
+          ? "org"
+          : /^[A-Z][a-z]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-z]+$/.test(run)
+            ? "person"
+            : "org";
+        add(run, kind, doc, false);
+      }
     }
+
 
     for (const dd of extractDarkData(doc)) add(dd.label, dd.kind, doc, true);
   }
