@@ -300,7 +300,7 @@ async function dorkLeg(
     );
     if (!report) return { block: "", hits: 0, note: "Dork battery timed out inside its slice." };
     const body = formatDorkContext(report).trim();
-    const hits = report.hits?.length ?? 0;
+    const hits = report.totalHits ?? 0;
     return {
       block: [
         "### Aureon dork battery",
