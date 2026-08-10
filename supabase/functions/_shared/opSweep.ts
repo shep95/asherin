@@ -43,6 +43,91 @@ function directiveFor(f: OpFinding): { action: string; scope: "device" | "adviso
   }
 }
 
+/**
+ * Folds two ledgers the platform already maintains into the OP signal stream:
+ *
+ *   RADIO    — ble_devices carries the recurrence facts the Bluetooth Sentinel
+ *              measured (distinct days, distinct places, threat tier). A radio
+ *              seen once in one place is noise; the same radio across separate
+ *              days AND separate places is the signature of being followed.
+ *   IDENTITY — Ghost Engine capture rows that contain the account's own email
+ *              on a paste/leak host. A leaked credential is an account risk in
+ *              exactly the way a hostile network is, so it is watched here
+ *              continuously rather than only when that panel is opened.
+ *
+ * These are synthesised, not persisted: writing them back into op_signals
+ * would double-count on the next sweep.
+ */
+async function ingestRadioAndIdentity(
+  db: SupabaseClient,
+  userId: string,
+  userEmail: string | null,
+  devices: OpDevice[],
+  now: number,
+): Promise<OpSignal[]> {
+  const out: OpSignal[] = [];
+  // Attribute to the device that most recently reported: the reading came from
+  // this account's fleet, and an unattributed signal cannot corroborate.
+  const anchor = devices.filter((d) => !d.revoked)
+    .sort((a, b) => Date.parse(b.last_report_at ?? "0") - Date.parse(a.last_report_at ?? "0"))[0]?.device_id;
+  if (!anchor) return out;
+
+  try {
+    const { data: radios } = await db.from("ble_devices")
+      .select("fingerprint,display_name,manufacturer,threat_tier,distinct_days,distinct_places,encounter_count,last_seen,is_self,is_ignored")
+      .eq("user_id", userId).eq("is_self", false).eq("is_ignored", false)
+      .gte("last_seen", new Date(now - 7 * 24 * 3_600_000).toISOString())
+      .limit(200);
+    for (const r of (radios ?? []) as any[]) {
+      const tier = String(r.threat_tier ?? "none").toLowerCase();
+      const following = (r.distinct_days ?? 0) >= 2 && (r.distinct_places ?? 0) >= 2;
+      if (tier !== "active" && tier !== "probable" && !following) continue;
+      out.push({
+        device_id: anchor,
+        signal_type: "ble",
+        verdict: tier === "active" ? "hostile" : "anomalous",
+        confidence: tier === "active" ? 0.6 : 0.45,
+        network_key: null, lat: null, lng: null, accuracy: null,
+        runtime_tier: "server",
+        evidence: {
+          radio: r.display_name || r.manufacturer || String(r.fingerprint ?? "").slice(0, 10),
+          tier, distinctDays: r.distinct_days, distinctPlaces: r.distinct_places, encounters: r.encounter_count,
+        },
+        observed_at: r.last_seen ?? new Date(now).toISOString(),
+      });
+    }
+  } catch (e) {
+    console.error("[opSweep] radio ingest failed", String(e));
+  }
+
+  if (userEmail) {
+    try {
+      const { data: caught } = await db.from("ghost_sessions")
+        .select("host,url,emails,captured_at,source_type")
+        .eq("user_id", userId)
+        .contains("emails", [userEmail.toLowerCase()])
+        .gte("captured_at", new Date(now - 30 * 24 * 3_600_000).toISOString())
+        .limit(20);
+      for (const c of (caught ?? []) as any[]) {
+        out.push({
+          device_id: anchor,
+          signal_type: "credential",
+          verdict: "hostile",
+          confidence: 0.6,
+          network_key: null, lat: null, lng: null, accuracy: null,
+          runtime_tier: "server",
+          evidence: { host: c.host, url: c.url, sourceType: c.source_type, capturedAt: c.captured_at, note: "Account identifier found in publicly reachable content by the exposure sweep." },
+          observed_at: c.captured_at ?? new Date(now).toISOString(),
+        });
+      }
+    } catch (e) {
+      console.error("[opSweep] identity ingest failed", String(e));
+    }
+  }
+
+  return out;
+}
+
 export interface SweepResult {
   findings: OpFinding[];
   posture: ReturnType<typeof posture>;
