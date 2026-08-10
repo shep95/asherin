@@ -2057,6 +2057,14 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const { ANALYTICS_LOGIC_MATRIX, buildAnalyticsLogicEmphasis } =
       await import("../_shared/analyticsLogicMatrix.ts");
     const _logicEmphasis = buildAnalyticsLogicEmphasis(_lastUserText);
+    // Pattern engine — the transferable reasoning architecture. The matrix
+    // above answers WHO reasons; this answers HOW they move on data. The
+    // kernel is small and rides every non-trivial turn because the universal
+    // operation must always be resident; the heavy operator dossiers are
+    // relevance-gated to the two-to-three this message actually demands.
+    const { PATTERN_RECOGNITION_KERNEL, PATTERN_OPERATOR_ROSTER, buildPatternEmphasis } =
+      await import("../_shared/patternRecognitionEngine.ts");
+    const _patternEmphasis = buildPatternEmphasis(_lastUserText);
 
     // ── TURN RELEVANCE — decide what this message actually needs ──────────
     // The prompt below used to be unconditional: every message, including
@@ -2173,6 +2181,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // when the turn is genuinely analytical.
       _R.analytics ? ANALYTICS_LOGIC_MATRIX : "",
       _logicEmphasis,
+      // Reasoning architecture. The kernel is cheap and universal — it ships
+      // on anything that is not a greeting, because dropping it changes HOW
+      // the model thinks rather than merely what it knows. The roster only
+      // loads when the turn is analytical enough to pick an operator from it.
+      _R.trivial ? "" : PATTERN_RECOGNITION_KERNEL,
+      _R.analytics || _R.intel || _R.deep || _R.strategic ? PATTERN_OPERATOR_ROSTER : "",
+      _patternEmphasis,
 
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
