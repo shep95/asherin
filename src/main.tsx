@@ -6,6 +6,7 @@ import { initDorkGuard } from "./lib/dorkGuard";
 import { enforceCanonicalHost } from "./lib/canonicalHost";
 import { relayGoogleConsentIfPopup } from "./lib/googleConsentRelay";
 import { migrateLegacyStorageKeys } from "./lib/storageKeyMigration";
+import { initScrollPerf } from "./lib/perf/scrollPerf";
 
 // Duplicate hostnames serving identical HTML let Google choose its own
 // canonical. Send them to https://asherin.com before anything else runs, so a
@@ -20,6 +21,11 @@ migrateLegacyStorageKeys();
 // Google-dork / recon hardening — noindex on sensitive routes, scrub
 // OAuth/token query params, tighten referrer policy. Runs before render.
 initDorkGuard();
+
+// Strip per-frame backdrop-filter re-sampling app-wide and pause decorative
+// blurred motion during scroll. Must run before first paint so no frame is
+// ever composited with the expensive path enabled.
+initScrollPerf();
 
 // Google consent returns to one registered redirect origin, which is often not
 // the origin the user is signed in on. When that happens the popup has no

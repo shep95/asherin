@@ -603,3 +603,64 @@ header[data-aureon-header] > a {
   .aureon-dropzone,
   .aureon-confidence-pulse { animation: none !important; }
 }
+
+/* ============================================================
+   App-wide perf mode — the extension of `.landing-perf`
+   ------------------------------------------------------------
+   `.landing-perf` proved the point on nine marketing pages but
+   stopped at the front door: the dashboard (Zophiel, Cloud
+   Intelligence, Asherin Engine, Maps, chat) holds the bulk of the
+   translucent panels and never inherited the fix. `perf-lite` is
+   mounted on <html> at boot, so every surface in the app —
+   dashboard shell, sidebars, cards, sheets, popovers — stops
+   asking the compositor to re-sample and re-blur its backdrop on
+   every scroll frame. The glass look survives because it was
+   never the blur doing the work: the translucent background
+   colour utility already carries it.
+
+
+   Escape hatch: add `perf-keep-blur` to an element (or an
+   ancestor) when a real backdrop blur is load-bearing — a veil
+   over live video, a modal over a map — and it keeps its blur.
+   ============================================================ */
+html.perf-lite [class*="backdrop-blur"],
+html.perf-lite [style*="backdrop-filter"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Opt back in where a real blur is load-bearing. */
+html.perf-lite .perf-keep-blur,
+html.perf-lite .perf-keep-blur [class*="backdrop-blur"] {
+  backdrop-filter: var(--tw-backdrop-blur, blur(12px)) !important;
+  -webkit-backdrop-filter: var(--tw-backdrop-blur, blur(12px)) !important;
+}
+
+/* ============================================================
+   Scroll-time motion budget
+   ------------------------------------------------------------
+   Decorative, continuously-animating blurred layers (the Zophiel
+   aurora shell and its search-bar glow above all) cost a real
+   composite + blur pass on exactly the frames the browser is
+   already spending on scrolling. Nobody perceives a 12-14s
+   breathe cycle while the page is in motion, so it is paused for
+   the duration of the gesture and resumes ~180ms after rest.
+   ============================================================ */
+html[data-scrolling] .zophiel-aurora-shell::before,
+html[data-scrolling] .zophiel-aurora-pulse,
+html[data-scrolling] .zophiel-shimmer-text,
+html[data-scrolling] .zophiel-orbit-ring,
+html[data-scrolling] .aureon-scanline::before,
+html[data-scrolling] .aureon-pulse-ring,
+html[data-scrolling] .animate-marquee,
+html[data-scrolling] [class*="animate-pulse"],
+html[data-scrolling] [class*="animate-ping"] {
+  animation-play-state: paused !important;
+}
+
+/* The heaviest offender is the drifting blurred glow behind the Zophiel
+   search shell: a 34px filter blur on a moving element repaints its whole
+   bounding box per frame. During scroll it stops moving entirely — it stays
+   painted, it just stops costing anything. */
+html[data-scrolling] .zophiel-aurora-pulse {
+  transform: none !important;
+}
