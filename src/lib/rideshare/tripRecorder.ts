@@ -18,6 +18,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { watchSamples, type GeoSample, type GeoHandle } from "@/lib/native/nativeGeo";
 
 export interface Fix {
   t: number;
@@ -72,7 +73,7 @@ class TripRecorder {
     error: null, stalled: false,
   };
   private listeners = new Set<Listener>();
-  private watchId: number | null = null;
+  private watch: GeoHandle | null = null;
   private flushTimer: number | null = null;
   private stallTimer: number | null = null;
   private buffer: Fix[] = [];
@@ -300,7 +301,7 @@ class TripRecorder {
     const tripId = this.state.tripId;
     this.set({ status: "stopping" });
 
-    if (this.watchId != null) { navigator.geolocation.clearWatch(this.watchId); this.watchId = null; }
+    if (this.watch) { this.watch.stop(); this.watch = null; }
     if (this.flushTimer != null) { window.clearInterval(this.flushTimer); this.flushTimer = null; }
     if (this.stallTimer != null) { window.clearTimeout(this.stallTimer); this.stallTimer = null; }
     try { await this.wakeLock?.release(); } catch { /* already gone */ }
