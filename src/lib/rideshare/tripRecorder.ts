@@ -186,45 +186,50 @@ class TripRecorder {
   }
 
   private async startWatch() {
-    if (this.watchId != null) return;
-    this.watchId = navigator.geolocation.watchPosition(
-      (pos) => this.onFix(pos),
-      (err) => {
+    if (this.watch) return;
+    // The OS-level watch, not the WebView's. Inside the companion app the
+    // browser geolocation is suspended the moment the screen locks — which is
+    // exactly when the phone is in a pocket in the back seat, and exactly the
+    // ride this black box exists to record.
+    this.watch = watchSamples(
+      (s) => this.onFix(s),
+      (kind) => {
         // A permission refusal is terminal; a temporary unavailability is not,
         // so only the former stops the recording.
-        if (err.code === err.PERMISSION_DENIED) {
+        if (kind === "denied") {
           this.set({ status: "error", error: "Location permission was refused, so nothing can be recorded." });
           void this.stop(false);
         } else {
           this.set({ error: "Location is temporarily unavailable — the gap will be marked in the record." });
         }
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 30_000 },
+      { highAccuracy: true, maximumAge: 0, timeout: 30_000 },
     );
 
     // Keeping the screen awake is what keeps the sensor sampling on most
     // phones. It is best-effort: refusal degrades sampling, it does not break.
+    // On the native runtime the OS watch above already survives a locked
+    // screen, so this is a browser-only crutch.
     try {
       const nav = navigator as Navigator & { wakeLock?: { request(t: "screen"): Promise<WakeLockSentinel> } };
       if (nav.wakeLock) this.wakeLock = await nav.wakeLock.request("screen");
     } catch { /* best effort */ }
   }
 
-  private onFix(pos: GeolocationPosition) {
-    const c = pos.coords;
-    const t = pos.timestamp || Date.now();
+  private onFix(s: GeoSample) {
+    const t = s.t;
     if (this.prev && t - this.prev.t < MIN_SAMPLE_MS) return;
 
     const fix: Fix = {
       t,
-      lat: c.latitude,
-      lon: c.longitude,
-      accuracy_m: Number.isFinite(c.accuracy) ? Math.round(c.accuracy * 10) / 10 : null,
-      speed_mps: c.speed != null && Number.isFinite(c.speed) && c.speed >= 0
-        ? Math.round(c.speed * 100) / 100 : null,
-      heading_deg: c.heading != null && Number.isFinite(c.heading) ? Math.round(c.heading) : null,
-      altitude_m: c.altitude != null && Number.isFinite(c.altitude) ? Math.round(c.altitude) : null,
+      lat: s.lat,
+      lon: s.lon,
+      accuracy_m: s.accuracy_m,
+      speed_mps: s.speed_mps,
+      heading_deg: s.heading_deg,
+      altitude_m: s.altitude_m,
     };
+
 
     // The live readout ignores obviously bad fixes so the on-screen distance
     // does not run away while the car sits still under a bridge.
