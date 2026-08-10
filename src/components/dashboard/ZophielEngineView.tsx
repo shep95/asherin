@@ -643,9 +643,16 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Zophiel v2 — two-pass gather + refine with operator parser */}
-              {mode === "zophielv2" || mode === "shadow" && (
+              {mode === "zophielv2" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
                   <ZophielV2Panel initialQuery={query} />
+                </Suspense>
+              )}
+
+              {/* Shadow — forgotten / non-indexed live host discovery */}
+              {mode === "shadow" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ShadowPanel />
                 </Suspense>
               )}
 
