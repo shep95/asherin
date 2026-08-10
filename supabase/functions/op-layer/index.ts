@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
         await db.from("op_devices").update({ last_report_at: nowIso, last_tier: b.tier ?? "foreground", updated_at: nowIso })
           .eq("user_id", user.id).eq("device_id", b.deviceId);
 
-        const sweep = await runOpSweep(db as any, user.id, user.email ?? null);
+        const sweep = await runOpSweep(ledger as any, user.id, user.email ?? null);
         const { data: pending } = await db.from("op_actions")
           .select("id,action,rationale,requested_at").eq("user_id", user.id).eq("outcome", "pending")
           .or(`device_id.eq.${b.deviceId},device_id.is.null`).limit(10);
@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
       // ── STATE / SWEEP ───────────────────────────────────────────────────
       case "sweep":
       case "state": {
-        if (b.action === "sweep") await runOpSweep(db as any, user.id, user.email ?? null);
+        if (b.action === "sweep") await runOpSweep(ledger as any, user.id, user.email ?? null);
         const [devices, findings, actions, networks, signals, state] = await Promise.all([
           db.from("op_devices").select("*").eq("user_id", user.id).order("last_report_at", { ascending: false, nullsFirst: false }).limit(100),
           db.from("op_findings").select("*").eq("user_id", user.id).neq("status", "expired").order("confidence", { ascending: false }).limit(80),
