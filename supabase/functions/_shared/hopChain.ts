@@ -472,7 +472,11 @@ export async function runHopChain(opts: HopChainOptions): Promise<HopChainReport
   let totalQueries = 0;
 
   for (let hop = 2; hop <= maxHops; hop++) {
-    if (remaining() < perQueryTimeoutMs + 1000) { stopReason = "budget"; break; }
+    // A hop needs only enough time for ONE bounded query; the per-query timeout
+    // is already clamped to whatever budget is left. Gating on the full
+    // per-query timeout aborted hop 2 whenever the caller passed a tight
+    // budget, which silently degraded the chain to a flat search.
+    if (remaining() < 1500) { stopReason = "budget"; break; }
     const hopStart = Date.now();
 
     // P2 — pick the highest-unlock entities not already spent, and require
