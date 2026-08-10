@@ -2062,9 +2062,21 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // kernel is small and rides every non-trivial turn because the universal
     // operation must always be resident; the heavy operator dossiers are
     // relevance-gated to the two-to-three this message actually demands.
-    const { PATTERN_RECOGNITION_KERNEL, PATTERN_OPERATOR_ROSTER, buildPatternEmphasis } =
-      await import("../_shared/patternRecognitionEngine.ts");
+    const {
+      PATTERN_RECOGNITION_KERNEL,
+      PATTERN_OPERATOR_ROSTER,
+      buildPatternEmphasis,
+      isIdentityLookup,
+      IDENTITY_VERDICT_CONTRACT,
+    } = await import("../_shared/patternRecognitionEngine.ts");
     const _patternEmphasis = buildPatternEmphasis(_lastUserText);
+    // Identity turns carry no analytic vocabulary, so the keyword scorer used
+    // to disarm the engine on exactly the questions where a wrong merge is
+    // most expensive. Shape detection forces the corroboration stack and the
+    // visible verdict tail (resolution / corroboration / confidence /
+    // falsifier / gaps) that Law 7 requires of any scoreable claim.
+    const _isIdentityTurn = isIdentityLookup(_lastUserText);
+
     // Domain atlas — WHERE to look. 28 terrains / 274 subdomains. Resident
     // index + terrain records gated to the two domains this message enters.
     const { DOMAIN_ATLAS_INDEX, buildDomainEmphasis } =
