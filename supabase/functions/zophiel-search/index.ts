@@ -8,6 +8,7 @@ import {
 import { fuseCorpus, computeRankingQuality } from "../_shared/zophielFusion.ts";
 import { runSurfaceWave, type SurfaceWave } from "../_shared/surfaceRetrieval.ts";
 import { resolveVaultPrior, formatVaultPrior, type VaultPrior } from "../_shared/vaultPrior.ts";
+import { runHopChain, deriveAnchor } from "../_shared/hopChain.ts";
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1770,7 +1771,143 @@ Deno.serve(async (req) => {
     }
 
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // HOP CHAIN — recursive entity resolution with context-anchored query
+    // propagation. Hop 1 is the corpus above; hops 2-3 are written by what
+    // hop 1 actually named. Person-shaped queries only: an anchor-pinned
+    // expansion of a technical query would just re-ask the same question.
+    // Hard-bounded (budget, concurrency, dedupe, convergence) so a chain can
+    // never stampede the engines or run past the request deadline.
+    // ═══════════════════════════════════════════════════════════════════════
+    let hopChain: Record<string, unknown> | null = null;
+    const requestedHops = Number((body as { hops?: number }).hops ?? 0);
+    const hopEligible = !fast && requestedHops !== 1 &&
+      (requestedHops > 1 || plan.entity === 'person') && filtered.length > 0;
+    if (hopEligible) {
+      try {
+        const hopIndex = new Map<string, SearchResult>();
+        // Hop retrieval is deliberately leaner than the seed wave. A hop query
+        // is one probe among a dozen, so paying the full fan-out — Wikipedia,
+        // EDGAR, GitHub, Firecrawl fallback — for each one spends the entire
+        // chain budget on latency and returns empty. The surface wave alone
+        // answers fast enough that hops 2 and 3 actually execute.
+        const hopSearch = async (q: string) => {
+          const rows = await surfaceTier(q, 10, false).catch(() => [] as SearchResult[]);
+          for (const r of rows) {
+            if (!r.layer) r.layer = 'surface';
+            if (!r.engine) r.engine = 'surface-wave';
+            if (!hopIndex.has(r.url)) hopIndex.set(r.url, r);
+          }
+          return rows.map((r) => ({
+            url: r.url, title: r.title, snippet: r.snippet,
+            domain: extractDomain(r.url), publishDate: r.publishDate,
+          }));
+        };
+
+
+        const anchor = deriveAnchor(trimmed);
+
+        // ── HOP 0 — anchor rescue ──────────────────────────────────────────
+        // A chain is only as good as the corpus it reads. If the seed wave
+        // returned pages that merely share a token with the name ("shepherd"
+        // pulling dog-breeder listings), hop 1 has nothing true to extract and
+        // every downstream hop inherits the drift. Phrase-lock the name and
+        // re-seed before the chain starts.
+        const anchorTokens = anchor.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+        const namesAnchor = (r: SearchResult) => {
+          const hay = `${r.title} ${r.snippet} ${r.url}`.toLowerCase();
+          if (hay.includes(anchor.toLowerCase())) return true;
+          let hit = 0;
+          for (const t of anchorTokens) if (hay.includes(t)) hit++;
+          return hit >= Math.min(2, anchorTokens.length);
+        };
+        let anchorRescued = 0;
+        if (filtered.filter(namesAnchor).length < 4 && anchorTokens.length >= 2) {
+          const locator = trimmed.match(/\b(?:lives?|resides?|based)\s+(?:in|at)\s+([a-z\s]{3,40})/i)?.[1]?.trim();
+          const rescueQueries = [
+            `"${anchor}"`,
+            locator ? `"${anchor}" "${locator}"` : `"${anchor}" profile OR records OR obituary`,
+          ];
+          const waves = await Promise.all(rescueQueries.map((q) => hopSearch(q).catch(() => [])));
+          const seenR = new Set(filtered.map((r) => r.url));
+          for (const w of waves) {
+            for (const d of w) {
+              const r = hopIndex.get(d.url);
+              if (!r || seenR.has(r.url)) continue;
+              seenR.add(r.url);
+              filtered.push(r);
+              anchorRescued++;
+            }
+          }
+          if (anchorRescued > 0) applyRanking(filtered);
+        }
+
+        const report = await runHopChain({
+          anchor,
+          seedDocs: filtered.slice(0, 40).map((r) => ({
+            url: r.url, title: r.title, snippet: r.snippet,
+            domain: extractDomain(r.url), publishDate: r.publishDate,
+          })),
+
+          searchFn: hopSearch,
+          maxHops: Math.min(4, Math.max(2, requestedHops || 3)),
+          queriesPerHop: 4,
+          budgetMs: 24000,
+          perQueryTimeoutMs: 8000,
+          concurrency: 3,
+        });
+
+        // Merge hop-discovered documents into the corpus so fusion, centrality
+        // and the UI all see one unified evidence set — tagged with the hop
+        // that found them, so provenance survives the merge.
+        const known = new Set(filtered.map((r) => r.url));
+        let mergedHopDocs = 0;
+        const hopOfUrl = new Map<string, number>();
+        for (const h of report.hops) void h;
+        for (const d of report.newDocs) {
+          const r = hopIndex.get(d.url);
+          if (!r || known.has(r.url)) continue;
+          known.add(r.url);
+          (r as unknown as { hop?: number }).hop = hopOfUrl.get(d.url) ?? 2;
+          r.layer = r.layer || 'surface';
+          filtered.push(r);
+          mergedHopDocs++;
+        }
+        if (mergedHopDocs > 0) applyRanking(filtered);
+
+        hopChain = {
+          anchor,
+          hops: report.hops.map((h) => ({
+            hop: h.hop,
+            queries: h.queries.map((q) => ({ q: q.q, shape: q.shape, from: q.from, anchored: q.anchored })),
+            docsSeen: h.docsSeen,
+            docsNew: h.docsNew,
+            noveltyRatio: h.noveltyRatio,
+            entitiesFound: h.entitiesFound,
+            converged: h.converged,
+            ms: h.ms,
+          })),
+          pivots: report.entities.slice(0, 24).map((e) => ({
+            label: e.label, kind: e.kind, mentions: e.mentions,
+            domains: e.domains.length, centrality: Number(e.centrality.toFixed(3)),
+            corroborated: e.domains.length >= 2, darkData: e.darkData,
+            firstHop: e.firstHop, sources: e.sources.slice(0, 3),
+          })),
+          convergedAtHop: report.convergedAtHop,
+          stopReason: report.stopReason,
+          totalQueries: report.totalQueries,
+          anchorRescued,
+          mergedDocuments: mergedHopDocs,
+          totalMs: report.totalMs,
+        };
+        console.log(`[zophiel] hopchain anchor="${anchor}" hops=${report.hops.length} queries=${report.totalQueries} merged=${mergedHopDocs} stop=${report.stopReason} ms=${report.totalMs}`);
+      } catch (e) {
+        console.warn('[zophiel] hop chain failed (non-fatal)', e instanceof Error ? e.message : String(e));
+      }
+    }
+
     // Group results by category
+
     const grouped: Record<string, SearchResult[]> = {};
     for (const r of filtered) {
       const cat = r.category;
@@ -1951,6 +2088,7 @@ Deno.serve(async (req) => {
         anomalies: fusion.anomalies,
         identities: fusion.intel.identities?.slice(0, 20) ?? [],
         rankingQuality,
+        hopChain,
         pantheonVersion: 5,
         // Omnispider (shep95/web-crawlers) enrichment telemetry
         omnispider: { crawled: omniCrawledCount, engines: omniEngineCounts },
