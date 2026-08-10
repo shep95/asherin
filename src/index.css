@@ -628,17 +628,6 @@ html.perf-lite [style*="backdrop-filter"]:not(.perf-keep-blur):not(.perf-keep-bl
   -webkit-backdrop-filter: none !important;
 }
 
-/* Translucent surfaces that leaned on the blur for legibility get a slightly
-   denser floor instead, so text over a busy backdrop stays readable without
-   any per-frame sampling. Only applies where the author asked for glass. */
-html.perf-lite [class*="backdrop-blur"]:not(.perf-keep-blur):not(.perf-keep-blur *) {
-  background-color: var(--perf-glass, hsl(var(--card) / 0.82));
-}
-html.perf-lite [class*="backdrop-blur"][class*="bg-transparent"],
-html.perf-lite [class*="backdrop-blur"][class*="bg-gradient"] {
-  background-color: transparent;
-}
-
 /* ============================================================
    Scroll-time motion budget
    ------------------------------------------------------------
