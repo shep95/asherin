@@ -120,6 +120,20 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
+/**
+ * Route-scoped recovery. A throw inside any page module used to unmount the
+ * whole React root (blank/black screen); now it is contained to the routed
+ * view and clears itself as soon as the pathname changes.
+ */
+const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  return (
+    <RootErrorBoundary scope="route" resetKey={pathname}>
+      {children}
+    </RootErrorBoundary>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -137,6 +151,7 @@ const App = () => (
           {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}
           
           
+          <RouteBoundary>
           <Suspense fallback={<PageLoader />}>
           <main>
           <Routes>
