@@ -28,6 +28,7 @@
 
 import { tripRecorder } from "./tripRecorder";
 import { isNativeApp } from "@/lib/native/nativeRuntime";
+import { watchSamples, ensureNativePermission, type GeoSample, type GeoHandle } from "@/lib/native/nativeGeo";
 import { toast } from "sonner";
 
 const ENABLED_KEY = "asherin.trip.auto.enabled.v1";
@@ -83,7 +84,7 @@ class AutoTripSentinel {
     note: "Automatic capture has not been started.",
   };
   private listeners = new Set<Listener>();
-  private watchId: number | null = null;
+  private watch: GeoHandle | null = null;
   private window: Sample[] = [];
   private stillAnchor: Sample | null = null;
   private busy = false;
@@ -153,6 +154,14 @@ class AutoTripSentinel {
   /** Explicit permission request, used by the UI's "turn on" affordance. */
   async requestPermission(): Promise<boolean> {
     if (!this.state.supported) return false;
+    // On native the grant belongs to the app, not the WebView; asking the
+    // browser there prompts the wrong permission and can silently fail.
+    if (isNativeApp()) {
+      const granted = await ensureNativePermission();
+      if (granted) await this.arm();
+      else this.set({ phase: "no-permission", note: "Location permission was refused, so trips cannot arm themselves." });
+      return granted;
+    }
     const ok = await new Promise<boolean>((resolve) => {
       navigator.geolocation.getCurrentPosition(
         () => resolve(true),
@@ -188,12 +197,21 @@ class AutoTripSentinel {
       });
       return;
     }
-    if (this.watchId != null) return;
-    this.watchId = navigator.geolocation.watchPosition(
-      (pos) => this.onFix(pos),
-      () => { /* transient unavailability is not a state change */ },
+    if (this.watch) return;
+    // The OS-level watch: a phone that locks in a pocket is the normal case for
+    // a ride, and a WebView watch is suspended there, so a browser-only watch
+    // would arm on the walk to the kerb and then go blind for the drive.
+    this.watch = watchSamples(
+      (s) => this.onFix(s),
+      (kind) => {
+        if (kind === "denied") {
+          this.disarmWatch("Location permission was refused, so trips cannot arm themselves.");
+          this.set({ phase: "no-permission" });
+        }
+        // transient unavailability is not a state change
+      },
       // Coarse and cached: this watch only has to notice that a car is moving.
-      { enableHighAccuracy: false, maximumAge: 20_000, timeout: 60_000 },
+      { highAccuracy: false, maximumAge: 20_000, timeout: 60_000 },
     );
     this.set({
       phase: tripRecorder.getState().status === "recording" ? "recording" : "watching",
@@ -202,26 +220,24 @@ class AutoTripSentinel {
   }
 
   private disarmWatch(note: string) {
-    if (this.watchId != null) { navigator.geolocation.clearWatch(this.watchId); this.watchId = null; }
+    if (this.watch) { this.watch.stop(); this.watch = null; }
     this.window = [];
     this.stillAnchor = null;
     this.set({ phase: "off", armingSinceMs: null, stillSinceMs: null, note });
   }
 
-  private onFix(pos: GeolocationPosition) {
-    const acc = pos.coords.accuracy;
-    if (Number.isFinite(acc) && acc > MAX_USABLE_ACCURACY_M) return;
+  private onFix(s: GeoSample) {
+    const acc = s.accuracy_m;
+    if (acc != null && acc > MAX_USABLE_ACCURACY_M) return;
 
-    const now = pos.timestamp || Date.now();
-    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    const now = s.t;
+    const lat = s.lat, lon = s.lon;
     const prev = this.window[this.window.length - 1];
 
     // Prefer the sensor's own Doppler speed; derive it only when absent, since a
     // derived speed inherits every metre of GPS jitter.
-    let v = pos.coords.speed != null && Number.isFinite(pos.coords.speed) && pos.coords.speed >= 0
-      ? pos.coords.speed
-      : 0;
-    if (pos.coords.speed == null && prev) {
+    let v = s.speed_mps ?? 0;
+    if (s.speed_mps == null && prev) {
       const dt = (now - prev.t) / 1000;
       if (dt > 0.5) v = Math.min(60, haversineM(prev, { lat, lon }) / dt);
     }

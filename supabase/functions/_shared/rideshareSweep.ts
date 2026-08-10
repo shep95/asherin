@@ -200,6 +200,123 @@ async function zophielLayer(
   };
 }
 
+// ── Ghost identifier sweep + dork battery (contact parity) ─────────────────
+
+/**
+ * A contact dossier runs three collectors: the vault, a confirmed-sighting
+ * identifier sweep and a dork battery. A driver dossier ran two, and the two it
+ * skipped are the two that surface the material a rider actually wants — where
+ * this plate has been seen, and what a targeted operator query exposes about
+ * the person driving. There was never a reason for the asymmetry beyond wall
+ * clock, so both legs are added here under their own budgets.
+ *
+ * Both are strictly additive and independently timed: a failure, a timeout or a
+ * missing model key costs the dossier that block alone. Neither leg may attach
+ * a person-level claim to an unbound first name — the plate is swept as a plate,
+ * and the dork target only becomes a person once the pivot or the register has
+ * bound a full name.
+ */
+async function ghostSightingLeg(
+  ride: RideInput,
+  budgetMs: number,
+): Promise<{ block: string; hits: number; note: string }> {
+  const plate = (ride.plate || "").trim();
+  if (!plate || plate.length < 4 || budgetMs < 12_000) {
+    return {
+      block: "",
+      hits: 0,
+      note: plate
+        ? "Ghost sighting sweep skipped — no wall clock left after the identity angles."
+        : "Ghost sighting sweep skipped — no plate captured to sweep.",
+    };
+  }
+  try {
+    const { sweepIdentifier, formatSweep } = await import("./identifierSweep.ts");
+    const report = await withTimeout(
+      sweepIdentifier(plate, {
+        budgetMs: Math.min(budgetMs - 4_000, 45_000),
+        hardCeilingMs: Math.min(budgetMs, 50_000),
+        openCap: 12,
+        maxLeads: 24,
+        adaptive: false,
+      }),
+      Math.min(budgetMs, 50_000),
+      null,
+    );
+    if (!report) {
+      return { block: "", hits: 0, note: "Ghost sighting sweep timed out inside its slice." };
+    }
+    const body = formatSweep(report).trim();
+    const hits = report.surfaces?.length ?? 0;
+    return {
+      block: [
+        "### Ghost engine — confirmed plate sightings",
+        `Selector swept: plate ${plate}. A surface here is a page the plate string was actually found on, not a search result. Sightings bind to the VEHICLE; attributing them to the driver requires an independent identifier.`,
+        body || "(swept — the plate has no confirmed public surface)",
+      ].join("\n"),
+      hits,
+      note: `Ghost engine confirmed ${hits} public surface(s) carrying plate ${plate}.`,
+    };
+  } catch (e) {
+    return { block: "", hits: 0, note: `Ghost sighting sweep failed: ${(e as Error).message?.slice(0, 120)}` };
+  }
+}
+
+async function dorkLeg(
+  ride: RideInput,
+  resolvedName: string | null,
+  geminiKey: string | null,
+  budgetMs: number,
+): Promise<{ block: string; hits: number; note: string }> {
+  const bound = (resolvedName || "").trim();
+  const subject = bound || (ride.plate || "").trim();
+  if (!subject || !geminiKey || budgetMs < 15_000) {
+    return {
+      block: "",
+      hits: 0,
+      note: !geminiKey
+        ? "Dork battery skipped — no model key available to generate query theories."
+        : subject
+          ? "Dork battery skipped — no wall clock left after the identity angles."
+          : "Dork battery skipped — neither a bound name nor a plate to target.",
+    };
+  }
+  try {
+    const { runAureonDork, formatDorkContext } = await import("./aureonDorkEngine.ts");
+    const report = await withTimeout(
+      runAureonDork(
+        {
+          subject,
+          kind: bound ? "person" : "topic",
+          hints: {
+            location: ride.city || undefined,
+            industry: `${ride.platform} rideshare driver`,
+          },
+        },
+        { geminiKey, testCap: 24, concurrency: 10, perQueryTimeoutMs: 9_000, skipBrief: true },
+      ),
+      Math.min(budgetMs, 55_000),
+      null,
+    );
+    if (!report) return { block: "", hits: 0, note: "Dork battery timed out inside its slice." };
+    const body = formatDorkContext(report).trim();
+    const hits = report.totalHits ?? 0;
+    return {
+      block: [
+        "### Aureon dork battery",
+        bound
+          ? `Operator-query battery against the bound identity "${bound}".`
+          : `Identity is UNBOUND — the battery targets the vehicle/plate context only. Nothing here may be attributed to the displayed driver.`,
+        body || "(battery ran — no operator query returned an indexed result)",
+      ].join("\n"),
+      hits,
+      note: `Dork battery returned ${hits} operator-query hit(s).`,
+    };
+  } catch (e) {
+    return { block: "", hits: 0, note: `Dork battery failed: ${(e as Error).message?.slice(0, 120)}` };
+  }
+}
+
 export interface CollectionResult {
   context: string;
   note: string;
@@ -213,6 +330,7 @@ export interface CollectionResult {
   /** The rider-safety substrate — always present, never gated on identity. */
   safety: RiderSafetyBriefing;
 }
+
 
 /**
  * Run the plan with bounded concurrency and a hard wall-clock budget.
@@ -235,7 +353,7 @@ export interface CollectionResult {
 export async function collectDossier(
   ride: RideInput,
   budgetMs = 55_000,
-  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string },
+  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string; geminiKey?: string | null },
 ): Promise<CollectionResult> {
   const started = Date.now();
   const blocks: string[] = [];
@@ -292,6 +410,21 @@ export async function collectDossier(
     Math.max(0, budgetMs - (Date.now() - started) - 4_000),
   );
 
+  // ── Phase B3: contact-parity legs ────────────────────────────────────────
+  // The two collectors a contact dossier gets and a driver dossier did not.
+  // They query substrates the jurisdictional and Zophiel layers never touch,
+  // so they run alongside rather than after them.
+  const ghostPromise = ghostSightingLeg(
+    ride,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+  const dorkPromise = dorkLeg(
+    ride,
+    pivot.bestFullName || pivot.registry.best_name || null,
+    ctx?.geminiKey ?? Deno.env.get("GEMINI_API_KEY") ?? null,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
@@ -336,6 +469,14 @@ export async function collectDossier(
   if (zophiel.block) blocks.push(zophiel.block);
   hits += zophiel.hits;
 
+  const ghost = await ghostPromise.catch(() => ({ block: "", hits: 0, note: "Ghost sighting sweep failed and was dropped." }));
+  if (ghost.block) blocks.push(ghost.block);
+  hits += ghost.hits;
+
+  const dork = await dorkPromise.catch(() => ({ block: "", hits: 0, note: "Dork battery failed and was dropped." }));
+  if (dork.block) blocks.push(dork.block);
+  hits += dork.hits;
+
   const skipped = plan.length - ran.length;
   const registryNote = pivot.registry.records.length
     ? `Regulator register bound plate ${ride.plate} to "${pivot.registry.records[0].raw_name}" (${pivot.registry.records[0].source}).`
@@ -363,7 +504,7 @@ export async function collectDossier(
         : "",
       ...blocks,
     ].filter(Boolean).join("\n\n"),
-    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note} ${ghost.note} ${dork.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits: hits + safety.corridorHits,
     angles: [
       "Rider-safety substrate",
@@ -373,6 +514,8 @@ export async function collectDossier(
       "Personal ride ledger",
       ...ran,
       ...(zophiel.hits > 0 ? ["Zophiel engine sweep"] : []),
+      ...(ghost.hits > 0 ? ["Ghost engine plate sightings"] : []),
+      ...(dork.hits > 0 ? ["Aureon dork battery"] : []),
     ],
     candidates: pivot.candidates,
     residual: pivot.residual,
@@ -533,6 +676,9 @@ export async function runDeepSweep(opts: {
     db: admin(),
     userId,
     rideId,
+    // The dork battery generates its query theories with a model. Prefer the
+    // caller's own key so a BYOK rider is not silently served by the platform.
+    geminiKey: cfg.provider === "gemini" && cfg.apiKey ? cfg.apiKey : (Deno.env.get("GEMINI_API_KEY") ?? null),
   });
 
   // Registry cross-checks are arithmetic over a government record, not model
