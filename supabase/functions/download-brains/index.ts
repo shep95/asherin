@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       "GeolocationBrain.md": GEOLOCATION_BRAIN,
       "ThinkingPatternDatabase.md": fullThinkingPatternDatabaseMarkdown(),
       "PatternRecognitionEngine.md": fullPatternEngineMarkdown(),
+      "DomainAtlas.md": fullDomainAtlasMarkdown(),
     };
     for (const [name, content] of Object.entries(brains)) {
       zip.file(name, content);
