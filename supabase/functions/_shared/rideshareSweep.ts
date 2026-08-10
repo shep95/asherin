@@ -619,38 +619,78 @@ export async function deliver(
       : flagList.length
         ? "moderate"
         : "none";
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateName: "rideshare-report",
-          recipientEmail: userEmail,
-          idempotencyKey: `rideshare-${rideId}-${p.phase}`,
-          templateData: {
-            verdict: phase.verdict,
-            headline: phase.headline,
-            plate: ride.plate || "not captured",
-            vehicle: ride.vehicle || "not captured",
-            platform: ride.platform,
-            recommendedAction: p.recommended_action || "",
-            flagCount: flagList.length,
-            flagSeverity: worst,
-            // Resolve to the rendered dossier when the row exists; the in-app
-            // deep link is only the fallback.
-            reportUrl: bus.notificationId
-              ? `https://asherin.com/report/${bus.notificationId}`
-              : `https://asherin.com/dashboard?tab=cloud-intel&module=rideshare&ride=${encodeURIComponent(rideId)}`,
-            generatedAt: new Date().toUTCString(),
-          },
-        }),
-      });
-      if (res.ok) delivered.push("email");
-      else console.error("guardian_email_failed", res.status, (await res.text()).slice(0, 300));
-    } catch (e) {
-      console.error("guardian_email_error", e instanceof Error ? e.message : e);
+    // The deep sweep spends its whole trace budget on collection fan-out, so by
+    // the time the alert is dispatched the function-to-function invocation
+    // limiter is frequently exhausted and this single fetch is the request that
+    // gets refused. A fire-and-forget POST turned that transient refusal into a
+    // permanently missing report while the in-app notice still landed — the
+    // rider saw the card and never got the mail. The idempotency key is stable
+    // per (ride, phase), so replaying the call is safe: retry, honour any
+    // Retry-After the limiter states, and back off with jitter otherwise.
+    const emailBody = JSON.stringify({
+      templateName: "rideshare-report",
+      recipientEmail: userEmail,
+      idempotencyKey: `rideshare-${rideId}-${p.phase}`,
+      templateData: {
+        verdict: phase.verdict,
+        headline: phase.headline,
+        plate: ride.plate || "not captured",
+        vehicle: ride.vehicle || "not captured",
+        platform: ride.platform,
+        recommendedAction: p.recommended_action || "",
+        flagCount: flagList.length,
+        flagSeverity: worst,
+        // Resolve to the rendered dossier when the row exists; the in-app
+        // deep link is only the fallback.
+        reportUrl: bus.notificationId
+          ? `https://asherin.com/report/${bus.notificationId}`
+          : `https://asherin.com/dashboard?tab=cloud-intel&module=rideshare&ride=${encodeURIComponent(rideId)}`,
+        generatedAt: new Date().toUTCString(),
+      },
+    });
+
+    /** Parse a stated wait out of a limiter response or error, in ms. */
+    const statedWaitMs = (text: string, header: string | null): number | null => {
+      const h = Number(header);
+      if (Number.isFinite(h) && h > 0) return Math.min(h * 1000, 30_000);
+      const m = /Retry after (\d+)\s*ms/i.exec(text);
+      if (m) return Math.min(Number(m[1]), 30_000);
+      return null;
+    };
+
+    const MAX_ATTEMPTS = 4;
+    let sent = false;
+    let lastReason = "";
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !sent; attempt++) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+          body: emailBody,
+          // A hung dispatcher must not consume the remainder of the sweep.
+          signal: AbortSignal.timeout(20_000),
+        });
+        if (res.ok) { sent = true; break; }
+        const text = (await res.text()).slice(0, 300);
+        lastReason = `${res.status} ${text}`;
+        // 4xx other than 429 are deterministic — a bad template or recipient
+        // will fail identically on every replay, so stop rather than spin.
+        if (res.status !== 429 && res.status < 500) break;
+        const wait = statedWaitMs(text, res.headers.get("retry-after"))
+          ?? Math.min(1_000 * 2 ** (attempt - 1), 8_000);
+        if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, wait + Math.random() * 400));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        lastReason = msg;
+        const wait = statedWaitMs(msg, null) ?? Math.min(1_000 * 2 ** (attempt - 1), 8_000);
+        if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, wait + Math.random() * 400));
+      }
     }
+
+    if (sent) delivered.push("email");
+    else console.error("guardian_email_failed", { rideId, phase: p.phase, reason: lastReason.slice(0, 300) });
   }
+
   return delivered;
 }
 
