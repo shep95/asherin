@@ -17,6 +17,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { correlate, posture, type OpDevice, type OpFinding, type OpNetwork, type OpSignal } from "./opCorrelation.ts";
 import { notifyIntel } from "./intelNotify.ts";
+import { publish, type Sensation } from "./organism/bloodstream.ts";
 
 const SIGNAL_WINDOW_MS = 7 * 24 * 3_600_000;
 const SEV_RANK: Record<string, number> = { informational: 0, elevated: 1, high: 2, critical: 3 };
