@@ -6,17 +6,24 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GATE = Deno.env.get("SELFTEST_TOKEN") || "";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const body = await req.json().catch(() => ({}));
-  if (!GATE || body?.token !== GATE) {
+
+  // Gated on an existing server-side cron token — the caller must already hold
+  // a secret that never reaches the browser.
+  const gateClient = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: tokenRow } = await gateClient
+    .from("cron_tokens").select("token").eq("name", "rideshare_autopilot").maybeSingle();
+  if (!tokenRow?.token || body?.token !== tokenRow.token) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
   const email = String(body?.email || "");
   const prompt = String(body?.prompt || "");
   if (!email || !prompt) {
