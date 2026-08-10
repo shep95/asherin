@@ -1786,14 +1786,24 @@ Deno.serve(async (req) => {
     if (hopEligible) {
       try {
         const hopIndex = new Map<string, SearchResult>();
+        // Hop retrieval is deliberately leaner than the seed wave. A hop query
+        // is one probe among a dozen, so paying the full fan-out — Wikipedia,
+        // EDGAR, GitHub, Firecrawl fallback — for each one spends the entire
+        // chain budget on latency and returns empty. The surface wave alone
+        // answers fast enough that hops 2 and 3 actually execute.
         const hopSearch = async (q: string) => {
-          const rows = await multiEngineSearch(q, 1, filters?.dateRange, true);
-          for (const r of rows) if (!hopIndex.has(r.url)) hopIndex.set(r.url, r);
+          const rows = await surfaceTier(q, 10, false).catch(() => [] as SearchResult[]);
+          for (const r of rows) {
+            if (!r.layer) r.layer = 'surface';
+            if (!r.engine) r.engine = 'surface-wave';
+            if (!hopIndex.has(r.url)) hopIndex.set(r.url, r);
+          }
           return rows.map((r) => ({
             url: r.url, title: r.title, snippet: r.snippet,
             domain: extractDomain(r.url), publishDate: r.publishDate,
           }));
         };
+
 
         const anchor = deriveAnchor(trimmed);
 
