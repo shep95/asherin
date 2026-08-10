@@ -50,6 +50,7 @@ export interface HopEntity {
   domains: string[];      // distinct source domains (P5 diffusion evidence)
   sources: string[];      // up to 5 source URLs
   darkData: boolean;      // P6 — read from the container, not the body text
+  collision: boolean;     // shares a token with the anchor without being it
   centrality: number;     // P2 — 0..1 unlock potential
   firstHop: number;
 }
@@ -263,13 +264,13 @@ export function extractEntities(
     const bareTokens = bare.split(" ");
     if (bareTokens.length && bareTokens.every((t) => anchorTokens.has(t))) return;
     // Token collision: "Australian Shepherd" borrows the subject's surname
-    // without being the subject. Such runs are the single biggest source of
-    // hop-2 drift, so they are refused as pivots outright.
-    if (
+    // without being the subject. Outright refusal would also delete relatives,
+    // who share a surname and are among the highest-value pivots there are —
+    // so collisions are flagged and penalized, then required to corroborate
+    // across two independent domains before they can spend a query.
+    const collision =
       kind !== "email" && kind !== "domain" && kind !== "phone" &&
-      bareTokens.some((t) => anchorTokens.has(t)) &&
-      !bare.includes(anchorFull)
-    ) return;
+      bareTokens.some((t) => anchorTokens.has(t)) && !bare.includes(anchorFull);
     if (kind !== "email" && kind !== "phone" && kind !== "domain" && kind !== "handle") {
       if (bareTokens.every((t) => STOP_TOKENS.has(t))) return;
     }
@@ -282,6 +283,7 @@ export function extractEntities(
       if (host && !cur.domains.includes(host)) cur.domains.push(host);
       if (cur.sources.length < 5 && !cur.sources.includes(doc.url)) cur.sources.push(doc.url);
       cur.darkData = cur.darkData || dark;
+      cur.collision = cur.collision || collision;
     } else {
       into.set(key, {
         key,
@@ -291,6 +293,7 @@ export function extractEntities(
         domains: host ? [host] : [],
         sources: [doc.url],
         darkData: dark,
+        collision,
         centrality: 0,
         firstHop: hop,
       });
@@ -369,9 +372,10 @@ export function rankEntities(entities: HopEntity[]): HopEntity[] {
     const freq = e.mentions / maxMentions;                       // repetition
     const diffusion = Math.min(1, (e.domains.length - 1) / 3);   // P5 cross-source
     const dark = e.darkData ? 0.1 : 0;                           // P6 bonus
+    const collisionPenalty = e.collision ? (e.domains.length >= 2 ? 0.75 : 0.35) : 1;
     e.centrality = Math.min(
       1,
-      KIND_UNLOCK[e.kind] * (0.45 + 0.3 * freq + 0.25 * diffusion) + dark,
+      (KIND_UNLOCK[e.kind] * (0.45 + 0.3 * freq + 0.25 * diffusion) + dark) * collisionPenalty,
     );
   }
   return entities.sort((a, b) => b.centrality - a.centrality || b.mentions - a.mentions);
@@ -535,6 +539,7 @@ export async function runHopChain(opts: HopChainOptions): Promise<HopChainReport
     const ranked = rankEntities([...entityMap.values()]).filter(
       (e) => !usedEntities.has(e.key) &&
         (e.domains.length >= 2 || e.mentions >= 2 || e.darkData) &&
+        (!e.collision || e.domains.length >= 2) &&
         e.centrality >= 0.35,
     );
     if (ranked.length === 0) { stopReason = "no-seeds"; break; }
