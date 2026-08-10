@@ -79,10 +79,26 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
   const supplied = req.headers.get("x-cron-secret") ?? "";
-  if (!CRON_SECRET || supplied !== CRON_SECRET) return json({ error: "forbidden" }, 403);
+  if (!supplied) return json({ error: "forbidden" }, 403);
+
+  const db = admin();
+
+  // Two authorities are accepted, and only these two: the platform-wide cron
+  // secret (env) and the row the scheduler itself reads from cron_tokens.
+  // The DB token exists because pg_cron cannot read edge-function env vars.
+  let authorised = CRON_SECRET.length > 0 && supplied === CRON_SECRET;
+  if (!authorised) {
+    const { data: tok } = await db
+      .from("cron_tokens")
+      .select("token")
+      .eq("name", "organism_cron")
+      .maybeSingle();
+    authorised = typeof tok?.token === "string" && tok.token.length > 0 && tok.token === supplied;
+  }
+  if (!authorised) return json({ error: "forbidden" }, 403);
 
   const started = Date.now();
-  const db = admin();
+
 
   try {
     const enrolled = await enroll(db);
