@@ -35,6 +35,10 @@ import {
 } from "../_shared/ghostBuffer.ts";
 import { isLedgerChannel, runGhostLedger, type LedgerChannel } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
+import {
+  assessArtifact, recordArtifact, decodeBase64, filenameKey,
+  MAX_ARTIFACT_BYTES, type LedgerWrite,
+} from "../_shared/artifactLedger.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import { sweepIdentifier } from "../_shared/identifierSweep.ts";
 import {
