@@ -61,7 +61,7 @@ const AiStackForIndianStartups = () => (
 
     <FaqJsonLd
       id="ai-stack-for-indian-startups-faq"
-      faqs={[
+      items={[
         {
           question: "What is the real AI stack problem for Indian startups?",
           answer:
