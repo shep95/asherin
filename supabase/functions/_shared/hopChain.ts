@@ -146,6 +146,27 @@ function sentences(text: string): string[] {
 }
 
 /** Words that are never an entity on their own and never end a valid run. */
+/**
+ * Institution-shaped words that are not institutions. Job boards and listing
+ * pages emit runs like "VC Associate", "CA Posted", "Technology Exhibition" —
+ * Title Case, org-shaped, and completely hollow. A pivot built from one of
+ * these searches for a category, not an entity, and returns nothing.
+ */
+const GENERIC_ORG_WORDS = new Set([
+  "technology", "university", "college", "institute", "school", "jobs", "job",
+  "associate", "posted", "exhibition", "conference", "summit", "award", "awards",
+  "people", "team", "news", "press", "media", "network", "services", "solutions",
+  "systems", "global", "international", "national", "center", "centre", "council",
+  "board", "society", "association", "foundation", "program", "programs", "list",
+  "top", "best", "new", "find", "search", "hiring", "remote", "full", "time",
+]);
+
+function isHollowOrg(label: string): boolean {
+  const toks = label.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!toks.length) return true;
+  return toks.every((t) => GENERIC_ORG_WORDS.has(t));
+}
+
 const RUN_NOISE = new Set([
   "and", "of", "the", "for", "with", "at", "in", "on", "to", "a", "an", "or",
   "founder", "cofounder", "ceo", "cto", "cfo", "coo", "president", "director",
@@ -268,6 +289,7 @@ export function extractEntities(
     // who share a surname and are among the highest-value pivots there are —
     // so collisions are flagged and penalized, then required to corroborate
     // across two independent domains before they can spend a query.
+    if (kind === "org" && isHollowOrg(label)) return;
     const collision =
       kind !== "email" && kind !== "domain" && kind !== "phone" &&
       bareTokens.some((t) => anchorTokens.has(t)) && !bare.includes(anchorFull);
