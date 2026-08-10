@@ -16,12 +16,15 @@
 //     engines (DDG html, Wikipedia, HackerNews, OpenAlex, CrossRef) which is
 //     what actually returns hits from inside the platform.
 //
-// v2 — 55-DOMAIN DOCTRINE (dorkDomainDoctrine.ts):
-//   • The 8 canonical prompts still ship. A 9th "NOVEL SYNTHESIS" call feeds
-//     Gemini the full 55-domain doctrine + 10 root-cause patterns and asks
-//     for cross-domain dorks nobody has documented before — the elite move.
-//   • Novel-synthesis output is tagged category=`novel_synthesis` so the
-//     ledger can rank first-to-find hits separately from canonical hits.
+// v3 — PATTERN DATABASE (dorkDomainDoctrine.ts):
+//   • The doctrine is no longer a catalog of 55 named sites. It is a database
+//     of THINKING PATTERNS — 8 exposure primitives, 8 operator moves, 4 pivot
+//     moves, 3 composition laws, 1 abstention law. The 9th "NOVEL SYNTHESIS"
+//     call feeds Gemini this pattern kernel and the seven laws, and asks it
+//     to EXECUTE operations against the target rather than recall canned dorks.
+//   • Novel-synthesis output is tagged category=`novel_synthesis` and each
+//     emission cites the two primitives, the pivot move, the rare joining
+//     token, and a predicted yield — the composition-law contract.
 
 // deno-lint-ignore-file no-explicit-any
 

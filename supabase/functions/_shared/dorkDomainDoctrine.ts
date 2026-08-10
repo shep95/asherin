@@ -1,130 +1,399 @@
-// dorkDomainDoctrine.ts — Asherin Dork Doctrine (55 domains × pivot patterns).
+// dorkDomainDoctrine.ts — AUREON DORK PATTERN DATABASE
 //
-// This is TRAINING SUBSTRATE, not a static query list. It teaches Aureon the
-// SHAPE of public-exposure surfaces so the engine can synthesise novel dork
-// combinations no analyst has run before — the "first-to-find" doctrine.
+// DOCTRINE SHIFT (v3):
+//   The previous file was a catalog of 55 named sites with canonical query
+//   seeds — a database of FACTS ("site:pacer.gov works", "site:sec.gov works").
+//   Facts age, get gated, get de-indexed, and teach the model to imitate
+//   instead of think. This file replaces that with a database of THINKING
+//   PATTERNS — subject-independent OPERATIONS the model executes to generate
+//   novel dorks from first principles for any target, any surface, any year.
 //
-// Every entry names: the domain, why the surface exists (root cause), the
-// canonical query skeletons, and the pivot edges (which domain # it feeds
-// into). The cross-domain attack chain is what makes this elite — not any
-// single dork.
+//   Rule (mirrors thinkingPatterns.ts, patternRecognitionEngine.ts, domainAtlas.ts):
+//     Don't give AUREON a database of facts. Give AUREON a database of
+//     THINKING PATTERNS.
+//
+//   Every entry below is one OPERATION — a move the model performs. It names:
+//     • premise    — the invariant about how public information leaks
+//     • operation  — the move to execute (what to construct, not what to type)
+//     • parameters — the variables that make the operation subject-agnostic
+//     • pivotsTo   — which sibling operations the yield naturally feeds
+//     • trap       — the failure mode this operation is prone to
+//
+//   The engine consumes this as SUBSTRATE. Concrete queries are emitted at
+//   run time by composing operations against the current target. No canonical
+//   query strings live here anymore; that was the fact-database anti-pattern.
+//
+// Legacy exports preserved for wiring stability:
+//   DomainEntry, DORK_DOMAINS, ROOT_CAUSE_PATTERNS, NOVEL_SYNTHESIS_SYSTEM,
+//   doctrineDigest — all still importable, but their content is now pattern
+//   operations, not named sites.
+
+export type PatternFamily =
+  | "exposure_primitive"   // WHY a class of artifact ends up publicly indexed
+  | "operator_move"        // HOW to construct a query that surfaces it
+  | "pivot_move"           // WHERE a hit legally forwards to a new terrain
+  | "composition_law"      // COMPOSITION rule that binds moves into a chain
+  | "abstention_law";      // WHEN to refuse — the wisdom layer
 
 export interface DomainEntry {
   id: number;
-  tier: "infrastructure" | "organizational" | "research" | "personal" | "signals";
+  /** Kept for wiring compat; now names the PATTERN FAMILY, not a topical tier. */
+  tier: PatternFamily;
+  /** Short verb-first pattern name (a MOVE, not a subject). */
   name: string;
-  rootCause: string;              // WHY this surface leaks (human/behavioral)
-  seeds: string[];                // canonical query skeletons ({{t}} = target, {{d}} = domain)
-  pivotsTo: number[];             // domain ids this typically feeds into
+  /** The invariant that makes the operation work regardless of subject. */
+  rootCause: string;
+  /**
+   * OPERATIONS — imperative moves the model executes. Written as verbs, not
+   * as canned queries. The model composes concrete Google syntax at runtime
+   * against `{{t}}` (target) and `{{d}}` (target's domain hint) plus any
+   * discovered pivot tokens. Never emit these as-is; they are recipes.
+   */
+  seeds: string[];
+  /** Sibling operation ids a productive hit naturally forwards into. */
+  pivotsTo: number[];
+  /** Characteristic failure mode — silence is not evidence; name the trap. */
+  trap?: string;
 }
 
-// ── The 55-domain doctrine ─────────────────────────────────────────────────
+// ── 24 PATTERN OPERATIONS ──────────────────────────────────────────────────
+// Ordered so ids 1-8 are exposure primitives (WHY things leak), 9-16 are
+// operator moves (HOW to construct), 17-20 are pivot moves (WHERE hits go
+// next), 21-23 are composition laws, 24 is the abstention law.
 export const DORK_DOMAINS: DomainEntry[] = [
-  { id: 1,  tier: "research",       name: "Academic & research networks", rootCause: "Students/faculty deploy their own research boxes with no central IT.", seeds: [`site:*.edu intext:"{{t}}" filetype:pdf`, `site:*.edu inurl:~ "{{t}}"`, `site:*.edu intitle:"lab members" "{{t}}"`], pivotsTo: [9, 27, 39, 46] },
-  { id: 2,  tier: "personal",       name: "Court records & legal filings", rootCause: "Older PACER/state filings uploaded before SSN redaction rules.", seeds: [`site:pacer.gov "{{t}}"`, `site:*.uscourts.gov "{{t}}" filetype:pdf`, `"{{t}}" intext:"plaintiff" OR intext:"defendant" filetype:pdf`], pivotsTo: [21, 30, 47] },
-  { id: 3,  tier: "signals",        name: "IoT / cameras / ICS", rootCause: "Default creds + no auth + web management interfaces exposed.", seeds: [`intitle:"SCADA" inurl:login`, `intitle:"Network Camera" inurl:ViewerFrame`, `intitle:"building automation" inurl:control "{{t}}"`], pivotsTo: [15, 38, 43] },
-  { id: 4,  tier: "organizational", name: "Healthcare & medical", rootCause: "HIPAA governs process, not misconfigured web hosts.", seeds: [`site:*.hospital.org filetype:xls "{{t}}"`, `intitle:"DICOM" inurl:viewer`, `intext:"medical record" filetype:csv "{{t}}"`], pivotsTo: [25, 53] },
-  { id: 5,  tier: "organizational", name: "Financial institutions ecosystem", rootCause: "Banks are hardened — accountants, advisors, and trustees are not.", seeds: [`site:sec.gov "confidential" filetype:pdf "{{t}}"`, `inurl:edgar filetype:htm intext:"material weakness" "{{t}}"`, `intitle:"client portal" inurl:login "{{t}}"`], pivotsTo: [40, 45] },
-  { id: 6,  tier: "organizational", name: "Real estate & property records", rootCause: "Every county publishes assessor rolls in a different, indexable way.", seeds: [`site:*.county.gov filetype:pdf "property owner" "{{t}}"`, `"{{t}}" intext:"property owner" site:.gov`, `intitle:"HOA" filetype:pdf intext:"{{t}}"`], pivotsTo: [32, 47] },
-  { id: 7,  tier: "organizational", name: "HR & employment", rootCause: "High document volume + shared drives + weak folder ACLs.", seeds: [`site:{{d}} filetype:xls "salary"`, `site:{{d}} inurl:hr filetype:doc`, `intitle:"organizational chart" filetype:pdf site:{{d}}`], pivotsTo: [26, 55] },
-  { id: 8,  tier: "organizational", name: "Government contracts & procurement", rootCause: "Contracting law mandates public filings with technical detail.", seeds: [`site:sam.gov "{{t}}"`, `site:fpds.gov filetype:pdf "{{t}}"`, `intext:"statement of work" filetype:pdf site:.gov "{{t}}"`], pivotsTo: [14, 45] },
-  { id: 9,  tier: "research",       name: "Academic theses & dissertations", rootCause: "Grad students describe REAL systems they had insider access to.", seeds: [`site:proquest.com filetype:pdf "{{t}}"`, `"{{t}}" intext:"case study" site:*.edu filetype:pdf`, `intext:"vulnerability" intext:"{{t}}" site:*.edu filetype:pdf`], pivotsTo: [1, 27, 39] },
-  { id: 10, tier: "signals",        name: "Shipping / logistics / supply chain", rootCause: "COVID pushed warehouse/freight ops onto public web dashboards.", seeds: [`intitle:"shipment tracking" inurl:portal "{{t}}"`, `site:customs.gov filetype:pdf "manifest" "{{t}}"`, `intext:"bill of lading" filetype:pdf "{{t}}"`], pivotsTo: [45] },
-  { id: 11, tier: "personal",       name: "Political & campaign finance", rootCause: "Legally mandated public disclosure at line-item granularity.", seeds: [`site:fec.gov "{{t}}"`, `site:opensecrets.org "{{t}}"`, `site:lobbyingdisclosure.house.gov "{{t}}"`], pivotsTo: [32, 55] },
-  { id: 12, tier: "signals",        name: "Paste sites & code repos", rootCause: "Developers commit more than they intend, publicly.", seeds: [`site:pastebin.com "{{t}}"`, `site:github.com "{{t}}" "api_key"`, `site:gitlab.com "{{t}}" filetype:env`], pivotsTo: [43, 54, 55] },
-  { id: 13, tier: "research",       name: "Scientific datasets", rootCause: "Reproducibility push publishes raw data with weak deidentification.", seeds: [`site:zenodo.org "{{t}}" filetype:csv`, `site:figshare.com "{{t}}" filetype:xls`, `intext:"dataset" intext:"participants" site:*.edu filetype:csv "{{t}}"`], pivotsTo: [1, 46] },
-  { id: 14, tier: "organizational", name: "Military & defense adjacent", rootCause: "Contractor + FOIA + conference material orbits the classified world.", seeds: [`site:defense.gov filetype:pdf "unclassified" "{{t}}"`, `site:*.mil filetype:pdf -classified "{{t}}"`, `intext:"FOIA" site:*.gov filetype:pdf "{{t}}"`], pivotsTo: [8, 24] },
-  { id: 15, tier: "signals",        name: "Personal devices on the internet", rootCause: "Users self-host NAS/Plex/HA then forget access controls.", seeds: [`intitle:"Plex" inurl:manage`, `intitle:"Home Assistant" inurl:lovelace`, `intitle:"Synology" inurl:webman "{{t}}"`], pivotsTo: [3, 51, 55] },
-  { id: 16, tier: "personal",       name: "Dark-web surface mirrors", rootCause: "Leak sites + paste mirrors + hacker aggregators are on the clearnet.", seeds: [`"{{t}}" "leaked" site:pastebin.com`, `"{{t}}" intext:"ransomware" filetype:txt`, `"{{t}}" intext:"data dump"`], pivotsTo: [12, 43] },
-  { id: 17, tier: "personal",       name: "Journalism document repositories", rootCause: "Investigative outlets publish source docs, fully indexed.", seeds: [`site:icij.org "{{t}}"`, `site:documentcloud.org "{{t}}"`, `site:muckrock.com "{{t}}"`], pivotsTo: [2, 30] },
-  { id: 18, tier: "infrastructure", name: "Satellite / geospatial intel", rootCause: "Commercial imagery + academic GIS + ADS-B are freely indexed.", seeds: [`site:earthexplorer.usgs.gov "{{t}}"`, `intext:"coordinates" filetype:kml "{{t}}"`, `intext:"ADS-B" filetype:csv "{{t}}"`], pivotsTo: [19, 35] },
-  { id: 19, tier: "infrastructure", name: "Telecom infrastructure", rootCause: "FCC filings publish tower GPS + spectrum + carrier maps.", seeds: [`site:fcc.gov "{{t}}" filetype:pdf`, `site:fcc.gov "tower location" filetype:kml`, `intext:"fiber route" filetype:pdf site:.gov "{{t}}"`], pivotsTo: [18, 48] },
-  { id: 20, tier: "personal",       name: "Religious & community orgs", rootCause: "High trust + low IT sophistication + PDF member directories.", seeds: [`site:{{d}} filetype:pdf "directory"`, `intitle:"congregation" filetype:pdf "members" "{{t}}"`, `intitle:"parish" filetype:pdf "contact" "{{t}}"`], pivotsTo: [55] },
-  { id: 21, tier: "personal",       name: "Insurance regulatory", rootCause: "State insurance commissions publish complaint dockets.", seeds: [`site:*.gov "insurance commission" filetype:pdf "{{t}}"`, `intext:"workers compensation" filetype:pdf "{{t}}"`, `site:naic.org "{{t}}" filetype:pdf`], pivotsTo: [2, 47] },
-  { id: 22, tier: "organizational", name: "Environmental / EPA filings", rootCause: "Toxic Release Inventory + ECHO are statutorily public.", seeds: [`site:epa.gov "{{t}}" filetype:pdf`, `site:echo.epa.gov "{{t}}"`, `intext:"toxic release inventory" "{{t}}"`], pivotsTo: [47] },
-  { id: 23, tier: "research",       name: "Academic conference materials", rootCause: "PPT/PDF slides indexed with data speakers verbalised as internal.", seeds: [`site:academia.edu "{{t}}"`, `site:researchgate.net "{{t}}" filetype:pdf`, `intitle:"presentation" intext:"{{t}}" site:*.edu filetype:pdf`, `intitle:"conference" intext:"{{t}}" filetype:ppt`], pivotsTo: [1, 39, 46] },
-  { id: 24, tier: "personal",       name: "Military veterans records", rootCause: "VA/FOIA/reunion sites + LinkedIn service histories.", seeds: [`site:*.va.gov filetype:pdf "{{t}}"`, `"{{t}}" intext:"veterans" filetype:pdf`, `site:fold3.com "{{t}}"`], pivotsTo: [14] },
-  { id: 25, tier: "organizational", name: "FDA records", rootCause: "Warning letters + Form 483 + approvals are statutorily public.", seeds: [`site:fda.gov "warning letter" "{{t}}"`, `site:fda.gov "inspection" filetype:pdf "{{t}}"`, `site:fda.gov "483" "{{t}}"`], pivotsTo: [4] },
-  { id: 26, tier: "organizational", name: "Labor / employment regulatory", rootCause: "OSHA/NLRB/DOL/H-1B require detailed public filings.", seeds: [`site:osha.gov "{{t}}" filetype:pdf`, `site:nlrb.gov "{{t}}"`, `site:flcdatacenter.com "{{t}}" H-1B`], pivotsTo: [7] },
-  { id: 27, tier: "research",       name: "Student information systems", rootCause: "Rosters + lab pages + course sites accidentally indexed.", seeds: [`site:*.edu intext:"graduate students" filetype:pdf "{{t}}"`, `site:*.edu intitle:"lab members" "{{t}}"`, `site:*.edu intext:"thesis" intext:"{{t}}" filetype:pdf`], pivotsTo: [1, 9, 39] },
-  { id: 28, tier: "signals",        name: "Cryptocurrency & blockchain", rootCause: "Public ledger + once identity-linked, permanent.", seeds: [`site:bitcointalk.org "{{t}}" "address"`, `"{{t}}" site:blockchain.info`, `intext:"donate" intext:"{{t}}"`], pivotsTo: [12, 55] },
-  { id: 29, tier: "personal",       name: "Obituaries & genealogy", rootCause: "Funeral homes publish family maps in permanent, indexed PDFs.", seeds: [`site:legacy.com "{{t}}"`, `site:findagrave.com "{{t}}"`, `intext:"survived by" intext:"{{t}}" filetype:pdf`], pivotsTo: [32, 55] },
-  { id: 30, tier: "organizational", name: "Nonprofit / Form 990", rootCause: "990s expose officer comp + board maps + grants.", seeds: [`site:projects.propublica.org/nonprofits "{{t}}"`, `site:guidestar.org "{{t}}"`, `intext:"Form 990" "{{t}}" filetype:pdf`], pivotsTo: [11] },
-  { id: 31, tier: "organizational", name: "Patent & IP filings", rootCause: "18-month publication reveals roadmaps + inventor rosters.", seeds: [`site:patents.google.com "{{t}}"`, `site:espacenet.epo.org "{{t}}"`, `intext:"assignee" intext:"{{t}}" site:patents.google.com`], pivotsTo: [7, 55] },
-  { id: 32, tier: "personal",       name: "Electoral / voter data", rootCause: "State voter rolls are public record with address + party + history.", seeds: [`site:*.gov "voter registration" filetype:csv "{{t}}"`, `"{{t}}" intext:"voter" intext:"{{d}}" site:.gov`, `site:vote.org filetype:pdf "{{t}}"`], pivotsTo: [6, 29] },
-  { id: 33, tier: "personal",       name: "Professional licensing boards", rootCause: "Every licensed profession has a name + license + address record.", seeds: [`site:*.gov "license lookup" "{{t}}"`, `"{{t}}" intext:"license number" site:*.gov`, `site:docinfo.org "{{t}}"`], pivotsTo: [4, 47] },
-  { id: 34, tier: "personal",       name: "Sports & athletic records", rootCause: "Race results + rosters publish hometown + club + age group.", seeds: [`site:athlinks.com "{{t}}"`, `site:athletic.net "{{t}}"`, `intext:"results" intext:"{{t}}" filetype:pdf`], pivotsTo: [55] },
-  { id: 35, tier: "personal",       name: "Aviation & maritime records", rootCause: "FAA airmen + N-number registry + USCG vessel docs are fully public.", seeds: [`site:faa.gov "airmen inquiry" "{{t}}"`, `site:registry.faa.gov "{{t}}"`, `site:uscg.mil "vessel documentation" "{{t}}"`], pivotsTo: [18] },
-  { id: 36, tier: "infrastructure", name: "DNS records & Certificate Transparency", rootCause: "Every HTTPS cert ever issued for the org is in a public log.", seeds: [`site:crt.sh "{{d}}"`, `intext:"_dmarc" site:{{d}}`, `site:securitytrails.com "{{d}}"`], pivotsTo: [37, 43, 48] },
-  { id: 37, tier: "infrastructure", name: "Web archives / Wayback", rootCause: "Deleted content is preserved and indexed forever.", seeds: [`site:web.archive.org "{{d}}"`, `site:web.archive.org "{{t}}" filetype:pdf`, `site:archive.today "{{t}}"`], pivotsTo: [7, 55] },
-  { id: 38, tier: "infrastructure", name: "Wireless networks / WiGLE", rootCause: "Crowdsourced wardriving maps SSIDs to precise GPS coords.", seeds: [`site:wigle.net "{{t}}"`, `site:wigle.net "{{d}}"`, `intext:"SSID" "{{t}}" filetype:csv`], pivotsTo: [3, 15] },
-  { id: 39, tier: "research",       name: "Academic citation networks", rootCause: "Papers publish co-author + funder + affiliation graphs.", seeds: [`site:scholar.google.com "{{t}}"`, `site:semanticscholar.org "{{t}}"`, `intext:"acknowledgments" intext:"funded by" site:*.edu filetype:pdf "{{t}}"`], pivotsTo: [1, 23, 41, 46] },
-  { id: 40, tier: "organizational", name: "Financial markets — Form 4 / 13F", rootCause: "Insider trades + fund holdings are filed within 2 business days.", seeds: [`site:sec.gov "form 4" "{{t}}"`, `site:sec.gov "13F" "{{t}}"`, `intext:"short interest" "{{t}}" filetype:pdf site:sec.gov`], pivotsTo: [5] },
-  { id: 41, tier: "research",       name: "Grant & funding databases", rootCause: "NIH/NSF/USASPENDING publish researcher + amount + abstract.", seeds: [`site:reporter.nih.gov "{{t}}"`, `site:nsf.gov/awardsearch "{{t}}"`, `site:usaspending.gov "{{t}}"`], pivotsTo: [1, 39] },
-  { id: 42, tier: "signals",        name: "App store metadata", rootCause: "Privacy labels + permission lists + update logs are indexed.", seeds: [`site:play.google.com "{{t}}"`, `site:apps.apple.com "{{t}}"`, `intext:"permissions" site:play.google.com "{{t}}"`], pivotsTo: [15] },
-  { id: 43, tier: "infrastructure", name: "Network signalling (SMTP / NTP / HTTP banners)", rootCause: "Server banners + response headers leak versions + internal hosts.", seeds: [`site:shodan.io "{{t}}"`, `site:censys.io "{{d}}"`, `intext:"X-Powered-By" site:{{d}}`], pivotsTo: [36, 48] },
-  { id: 44, tier: "personal",       name: "Emergency services / 911 / IA records", rootCause: "Police-transparency laws publish incident + use-of-force records.", seeds: [`site:*.gov "incident report" filetype:pdf "{{t}}"`, `site:*.gov "use of force" filetype:pdf "{{t}}"`, `intext:"dispatch" intext:"incident" site:*.gov filetype:csv "{{t}}"`], pivotsTo: [47] },
-  { id: 45, tier: "organizational", name: "Supply chain & vendor databases", rootCause: "SAM.gov + state vendor rolls + hospital GPO lists are public.", seeds: [`site:sam.gov "{{t}}"`, `site:usaspending.gov "{{t}}" "vendor"`, `intext:"approved vendor" "{{t}}" site:.gov filetype:pdf`], pivotsTo: [8, 10] },
-  { id: 46, tier: "research",       name: "Preprint servers", rootCause: "Pre-peer-review data is often more raw + more detailed than final.", seeds: [`site:arxiv.org "{{t}}"`, `site:biorxiv.org "{{t}}"`, `site:ssrn.com "{{t}}"`], pivotsTo: [1, 39, 41] },
-  { id: 47, tier: "organizational", name: "Municipal / local government", rootCause: "City permits + business licenses + council minutes are searchable.", seeds: [`site:{{d}} "building permit" "{{t}}"`, `site:{{d}} "business license" "{{t}}"`, `intitle:"city council" "minutes" intext:"{{t}}"`], pivotsTo: [6, 22, 44] },
-  { id: 48, tier: "infrastructure", name: "BGP / IP allocation registries", rootCause: "RIRs publish the full IP-space-to-org map of the internet.", seeds: [`site:arin.net "{{t}}"`, `site:ripe.net "{{t}}"`, `site:bgpview.io "{{d}}"`], pivotsTo: [36, 43] },
-  { id: 49, tier: "personal",       name: "Conference / event registration", rootCause: "Eventbrite/Meetup publish attendee patterns → schedule intelligence.", seeds: [`site:eventbrite.com "{{t}}"`, `site:meetup.com "{{t}}"`, `intext:"speaker" intext:"{{t}}" site:eventbrite.com`], pivotsTo: [23, 55] },
-  { id: 50, tier: "organizational", name: "International company registries", rootCause: "Companies House / ASIC / OpenCorporates publish officer PII globally.", seeds: [`site:find-and-update.company-information.service.gov.uk "{{t}}"`, `site:asic.gov.au "{{t}}"`, `site:opencorporates.com "{{t}}"`], pivotsTo: [8, 31] },
-  { id: 51, tier: "infrastructure", name: "Cloud storage misconfigurations", rootCause: "Public buckets never stopped being deployed by mistake.", seeds: [`site:s3.amazonaws.com "{{t}}"`, `site:storage.googleapis.com "{{t}}"`, `site:blob.core.windows.net "{{t}}"`], pivotsTo: [12, 15] },
-  { id: 52, tier: "research",       name: "Academic / professional identity networks", rootCause: "ORCID + ResearchGate publish complete employment + funding history.", seeds: [`site:orcid.org "{{t}}"`, `site:researchgate.net "{{t}}"`, `site:academia.edu "{{t}}"`], pivotsTo: [23, 39, 41] },
-  { id: 53, tier: "organizational", name: "Healthcare provider directories", rootCause: "NPI + state medical boards + hospital staff pages are indexed.", seeds: [`site:npiregistry.cms.hhs.gov "{{t}}"`, `site:*.gov "medical board" "{{t}}"`, `site:{{d}} "medical staff" filetype:pdf`], pivotsTo: [4, 33] },
-  { id: 54, tier: "research",       name: "Open source dependency chains", rootCause: "npm/pypi/maven expose stack, contributors, and TODO comments.", seeds: [`site:npmjs.com "{{t}}"`, `site:pypi.org "{{t}}"`, `site:github.com "{{t}}" intext:"TODO"`], pivotsTo: [12, 55] },
-  { id: 55, tier: "personal",       name: "Social engineering surface (fusion)", rootCause: "Every other domain fuses here — pretext quality = attack quality.", seeds: [`site:{{d}} filetype:pdf "staff directory"`, `site:linkedin.com "{{t}}"`, `"{{t}}" intext:"direct" filetype:pdf`], pivotsTo: [] },
+  // ── EXPOSURE PRIMITIVES — 8 invariants about how public information leaks
+  { id: 1, tier: "exposure_primitive", name: "MANDATED-DISCLOSURE PATTERN",
+    rootCause: "Law compels an entity to publish structured records at scheduled cadence; the filer's compliance mindset makes them under-estimate what a full-text index does to those records.",
+    seeds: [
+      "Enumerate the classes of entity in the target's terrain that face compulsory public filing (regulatory, judicial, electoral, procurement, licensing, tax-exempt).",
+      "For each class, name the artifact type (docket, statement, roster, register) and its publication cadence — the cadence tells you WHEN a fresh copy exists.",
+      "Compose a query that anchors on the artifact's structural tokens (form number, docket header, statutory phrase), never on the target alone.",
+    ],
+    pivotsTo: [2, 5, 6, 17, 18],
+    trap: "Assuming redaction is applied consistently — older cohorts of the same filing usually predate the redaction rule." },
+
+  { id: 2, tier: "exposure_primitive", name: "OPERATOR-ERROR PATTERN",
+    rootCause: "Systems deployed for internal use forget the public internet can reach them; the same person who provisions the box owns its ACLs, and 'move fast' beats 'review access.'",
+    seeds: [
+      "Model the human who deployed the surface: what role, what pressure, what folder did they forget to lock.",
+      "Enumerate the artifacts that role produces mechanically (backups, exports, staging copies, share links) — those are what leaks, not the primary asset.",
+      "Compose queries against the artifact's default filename or extension family rather than against the target.",
+    ],
+    pivotsTo: [3, 11, 14, 20],
+    trap: "Chasing the primary asset when the leak is always a byproduct file next to it." },
+
+  { id: 3, tier: "exposure_primitive", name: "MIGRATION-RESIDUE PATTERN",
+    rootCause: "System migrations create temporary exposures that become permanent — the old host is deprecated, not deleted, and the search index outlives the intent.",
+    seeds: [
+      "Identify likely migration events on the target (stack change, vendor swap, rebrand, acquisition).",
+      "Construct queries against the deprecated hostname pattern, not the current one — the residue is where fresh ACLs were never applied.",
+      "Cross the residue against archival mirrors so a de-listed page still returns a body.",
+    ],
+    pivotsTo: [7, 15, 19],
+    trap: "Believing that a 404 today means the artifact was never indexed." },
+
+  { id: 4, tier: "exposure_primitive", name: "REPRODUCIBILITY PATTERN",
+    rootCause: "Publication norms in research reward publishing raw data alongside the paper; deidentification is often weaker than the authors believe because they optimise for reviewers, not adversaries.",
+    seeds: [
+      "For any research-adjacent target, enumerate the artifact classes produced downstream of publication (dataset dumps, supplementary materials, code repos, grant abstracts, dissertation appendices).",
+      "Anchor queries on the acknowledgment or funding-source token, then intersect with the target — funders are the rarest joining tokens.",
+      "Prefer preprint and thesis surfaces for pre-review versions that reveal what the final paper redacted.",
+    ],
+    pivotsTo: [17, 18],
+    trap: "Treating the paper as the artifact when the SUPPLEMENT is always the leak." },
+
+  { id: 5, tier: "exposure_primitive", name: "HIGH-TRUST LOW-TECH PATTERN",
+    rootCause: "Organisations with high interpersonal trust and low IT sophistication (community groups, congregations, HOAs, small nonprofits, alumni orgs) upload member rosters and directories directly to public web roots.",
+    seeds: [
+      "Identify the affinity groups the target is likely embedded in (community, faith, hobby, alumni, professional).",
+      "Compose queries against the DIRECTORY artifact class (rosters, member lists, contact PDFs) using the group's shibboleth vocabulary, not the target's name.",
+      "Then intersect with the target only after the artifact family is confirmed to exist.",
+    ],
+    pivotsTo: [17, 20],
+    trap: "Starting with the person — always start with the artifact family and end with the person." },
+
+  { id: 6, tier: "exposure_primitive", name: "PUBLIC-LEDGER PERSISTENCE PATTERN",
+    rootCause: "Ledgers designed for immutability (blockchain, certificate-transparency logs, court dockets, patent grants) preserve every association ever made — a single moment of identity linkage becomes permanent.",
+    seeds: [
+      "Identify which immutable ledgers plausibly touch the target's terrain.",
+      "Query against the ledger's structural anchors (issuer, assignee, cert SAN, tx hash pattern) rather than the target's plaintext identity.",
+      "Compose a temporal query — 'earliest appearance of X on ledger Y' — because the first linkage is usually the one the target forgot they made.",
+    ],
+    pivotsTo: [10, 19],
+    trap: "Treating recent activity as the signal when the OLDEST record is what pierces anonymity." },
+
+  { id: 7, tier: "exposure_primitive", name: "BANNER-AND-METADATA PATTERN",
+    rootCause: "Every server emits identifying banners, headers, and metadata that describe the stack, version, and internal hostnames — this is unavoidable protocol behavior.",
+    seeds: [
+      "Enumerate the protocols the target's infrastructure necessarily speaks (HTTP, TLS, SMTP, DNS, NTP).",
+      "Query against the banner artifacts each protocol emits (headers, cert SAN lists, MX records, error pages).",
+      "Compose an intersection query that binds the banner to the target's domain hint via a rare token (build number, framework signature, admin path).",
+    ],
+    pivotsTo: [10, 14, 15],
+    trap: "Believing a CDN masks the origin — origin banners leak through error pages and legacy subdomains." },
+
+  { id: 8, tier: "exposure_primitive", name: "REGULATORY-BLIND-SPOT PATTERN",
+    rootCause: "Regulation focuses on primary custodians and misses the periphery — the target's accountants, lawyers, vendors, contractors, and consulting engagements often expose what the target itself does not.",
+    seeds: [
+      "Given the target, enumerate the peripheral roles that necessarily hold copies of the target's data.",
+      "For each peripheral role, identify the artifact class that role produces (memos, engagement letters, deposition exhibits, subcontract SoWs).",
+      "Compose queries against the peripheral artifact class using tokens the periphery uses about the target (matter number, client code, engagement label).",
+    ],
+    pivotsTo: [1, 8, 17],
+    trap: "Hardening the primary custodian and forgetting the periphery is a leaky sieve." },
+
+  // ── OPERATOR MOVES — 8 imperative moves that turn a primitive into a query
+  { id: 9, tier: "operator_move", name: "SCOPE-BY-STRUCTURE, NOT BY SUBJECT",
+    rootCause: "Queries anchored on subject strings scale linearly with noise; queries anchored on structural tokens (form headers, filename conventions, error strings) collapse the search space by orders of magnitude.",
+    seeds: [
+      "Draft two forms of every query: (A) subject-anchored, (B) structure-anchored.",
+      "Prefer B whenever the artifact class has a stable structural token. Fall back to A only for confirmation of a specific pivot.",
+      "The subject enters as the FILTER, never as the SEED.",
+    ],
+    pivotsTo: [10, 13, 21] },
+
+  { id: 10, tier: "operator_move", name: "RARE-TOKEN INTERSECTION",
+    rootCause: "Every artifact contains at least one token that is common in its own corpus and vanishingly rare elsewhere — grant numbers, matter numbers, docket ids, cert serials, N-numbers, assignee blocks, ORCID ids.",
+    seeds: [
+      "For every candidate artifact class, identify its rarest joining token — the one that has near-zero collision outside the class.",
+      "Compose intersection queries where the rare token binds two independent artifact families to the same target.",
+      "A hit under a rare-token intersection is worth ten hits under a common-word query.",
+    ],
+    pivotsTo: [21] },
+
+  { id: 11, tier: "operator_move", name: "SIBLING-SURFACE FAN-OUT",
+    rootCause: "Behind every discovered surface there are siblings — .bak / .old / _backup / staging. / dev. / uat. / .git / .DS_Store — because operators reproduce their local habits on the deployed host.",
+    seeds: [
+      "For any confirmed host, fan out queries against its sibling namespaces before deepening on the primary.",
+      "The sibling is usually less-hardened than the primary and often carries the same content minus the ACL.",
+      "Rate-limit fan-out to avoid tripping shared throttles — depth first, breadth second." ,
+    ],
+    pivotsTo: [3, 15, 22] },
+
+  { id: 12, tier: "operator_move", name: "ARCHIVE-DELTA MOVE",
+    rootCause: "Live pages hide what they no longer wish to expose; archives keep the state that produced the current redaction and let you diff.",
+    seeds: [
+      "For any high-value surface, run the same query against archival mirrors and compute the delta against live.",
+      "The DELTA — not the archive itself — is the signal: it names exactly what the operator chose to remove.",
+      "Prefer archives with dense capture cadence over comprehensive-but-sparse ones.",
+    ],
+    pivotsTo: [3] },
+
+  { id: 13, tier: "operator_move", name: "STACK-PROFILE FIRST, QUERY SECOND",
+    rootCause: "Every stack throws characteristic error strings, default admin paths, and version disclosures — knowing the stack turns a generic query into a precision instrument.",
+    seeds: [
+      "Before emitting any dork on a domain target, spend the first query on stack identification (banner, favicon hash, robots.txt, sitemap.xml).",
+      "Every subsequent query is now conditioned on the stack — use its default paths, its error strings, its backup extensions.",
+      "A generic dork on an unknown stack is BASIC-tier; refuse to emit it.",
+    ],
+    pivotsTo: [7, 11] },
+
+  { id: 14, tier: "operator_move", name: "TEMPORAL WINDOWING",
+    rootCause: "Public artifacts are produced on cadences (filing deadlines, court calendars, release cycles, academic terms); a window aligned to a known cadence multiplies signal.",
+    seeds: [
+      "Identify the cadence that governs the artifact class in question.",
+      "Window the query to the current or immediately-past cadence bucket — that's where fresh, un-ACL'd copies live.",
+      "For legacy exposure, window to the cadence bucket that predates the redaction rule.",
+    ],
+    pivotsTo: [1, 6] },
+
+  { id: 15, tier: "operator_move", name: "INDEX-VS-USER MOVE",
+    rootCause: "The user sees the page; the index sees sitemap.xml, robots.txt, structured-data blocks, and cached snapshots. What the index sees is often what the operator forgot the index would see.",
+    seeds: [
+      "Query against index-facing artifacts (sitemap.xml, robots.txt disallow lists, JSON-LD, cache: pivots) before human-facing pages.",
+      "A disallow list is a confession: it names the paths the operator did not want indexed — and often those paths are still reachable.",
+    ],
+    pivotsTo: [3, 22] },
+
+  { id: 16, tier: "operator_move", name: "PERIPHERY-AS-ENTRY MOVE",
+    rootCause: "Hardened targets have soft peripheries (interns, vendors, contractors, spouses, alumni pages, personal blogs of employees); the periphery leaks what the target hardens.",
+    seeds: [
+      "Enumerate the periphery of the target (2 hops out from the primary).",
+      "Emit queries against the periphery's artifact classes, anchored on tokens the periphery uses about the target.",
+      "Never emit a periphery query that names a private individual with no public-interest hook — that's a wisdom violation (see id 24).",
+    ],
+    pivotsTo: [8, 17] },
+
+  // ── PIVOT MOVES — 4 rules for what a productive hit implies next
+  { id: 17, tier: "pivot_move", name: "IDENTIFIER-PROMOTION PIVOT",
+    rootCause: "A hit yields new identifiers (a matter number, a co-signer, a filed-with entity, an assignee address); those identifiers become the next round's rare-token seeds.",
+    seeds: [
+      "Extract every proper noun, numeric identifier, and structural token from a productive hit.",
+      "Promote the rarest 1-2 tokens to the seed slot of the next query.",
+      "Discard tokens that collide with common corpus terms — rare-only, always.",
+    ],
+    pivotsTo: [10] },
+
+  { id: 18, tier: "pivot_move", name: "TERRAIN-CROSSING PIVOT",
+    rootCause: "A hit in one terrain (regulatory, research, infrastructure, ledger) usually implicates a specific sibling terrain — a filing implies a filer's peripheral vendors, a paper implies a funder's grants database.",
+    seeds: [
+      "For every hit, name the sibling terrain the artifact necessarily touches.",
+      "Emit the next query in the sibling terrain, not the hit's own.",
+      "This is the cross-tier fusion move — where BASIC operators stop and ELITE operators start.",
+    ],
+    pivotsTo: [4, 8] },
+
+  { id: 19, tier: "pivot_move", name: "INFRASTRUCTURE-BINDING PIVOT",
+    rootCause: "Any hit that discloses a hostname, cert, ASN, or IP block binds the target to an infrastructure operator whose OTHER tenants may have leaked what the target did not.",
+    seeds: [
+      "Bind hostnames from hits back to their ASN and cert issuer.",
+      "Enumerate co-tenants under the same ASN or issuer — those are lateral surfaces sharing the same operator's habits.",
+      "A shared operator is a shared leak profile.",
+    ],
+    pivotsTo: [7] },
+
+  { id: 20, tier: "pivot_move", name: "SOCIAL-FUSION PIVOT",
+    rootCause: "Every technical hit eventually fuses at a human — the value is not the hit, it is the pretext quality the fused hits enable.",
+    seeds: [
+      "Roll every productive hit into a pretext ledger: what could a benign, high-context request now credibly ask?",
+      "Rank pretexts by specificity of the fused context, not by count of hits.",
+      "The fusion is offensive substrate — see the abstention law (id 24) before acting on it.",
+    ],
+    pivotsTo: [16] },
+
+  // ── COMPOSITION LAWS — 3 rules that bind operations into chains
+  { id: 21, tier: "composition_law", name: "TWO-DOMAIN LAW",
+    rootCause: "A dork that draws on only one exposure primitive is a documented dork; a dork that binds two primitives through a rare token is a first-to-find.",
+    seeds: [
+      "Every emitted query must reference at least two distinct exposure primitives.",
+      "The junction between the primitives is where the elite yield lives.",
+      "Single-primitive queries are permitted only as stack-profile probes (see id 13).",
+    ],
+    pivotsTo: [10] },
+
+  { id: 22, tier: "composition_law", name: "SIGNAL-VS-NOISE LAW",
+    rootCause: "Every query has an expected yield profile; if the return exceeds the profile by 10x, the query is broken and its results are noise, not signal.",
+    seeds: [
+      "For every query, predict the yield in advance (order of magnitude).",
+      "If actual returns exceed the prediction by 10x or more, discard and reformulate — do not sift the noise.",
+      "Silence is not evidence, but neither is a flood.",
+    ],
+    pivotsTo: [11] },
+
+  { id: 23, tier: "composition_law", name: "PROVENANCE LAW",
+    rootCause: "A hit without a named artifact class, terrain, and operation is not a finding — it is a fragment that cannot be defended or reproduced.",
+    seeds: [
+      "Every reported hit is tagged with (a) the operation that produced it, (b) the artifact class, (c) the terrain, (d) the rare token that bound it.",
+      "Any hit missing any of the four is downgraded to hypothesis, not finding.",
+      "Untagged hits corrupt downstream chains — reject them at the source.",
+    ],
+    pivotsTo: [17] },
+
+  // ── ABSTENTION LAW — the wisdom layer
+  { id: 24, tier: "abstention_law", name: "WISDOM ABSTENTION",
+    rootCause: "The maturity of the operator is measured by which queries are NOT emitted; the highest tier is the one that refuses when the target is a private person with no public-interest hook, when the operation would harden a hardened target's periphery, or when the pretext ledger would enable harm.",
+    seeds: [
+      "Before emitting, check: is the target a private individual with no public-interest hook, and no operator-consent nexus (self-audit, protective context)?",
+      "Check: does the composition enable a pretext against a person, not a system?",
+      "Check: is the artifact class one that the mandated-disclosure primitive intended to publish, or one the operator-error primitive accidentally exposed against them?",
+      "When any check fails, ABSTAIN and record the reason. Abstention is a first-class output, not a null.",
+    ],
+    pivotsTo: [] },
 ];
 
-// Root-cause patterns — the human-behavior taxonomy behind ALL 55 domains.
-// These are what Aureon reasons from when synthesising NOVEL dorks.
+// Root-cause patterns are now the SEVEN LAWS behind ALL operations above.
+// (Renamed from a list of 10 anecdotal behaviors to seven enforceable laws.)
 export const ROOT_CAUSE_PATTERNS = [
-  "Developers/admins move fast and skip access-control review.",
-  "Systems deployed for internal use forget the internet can reach them.",
-  "The same credentials get reused across unrelated systems.",
-  "Automation creates artifacts nobody manually reviews.",
-  "System migrations create temporary exposures that become permanent.",
-  "Legally-mandated public filings are more detailed than the filer realises.",
-  "Reproducibility norms in research publish raw data with weak deidentification.",
-  "High-trust low-tech organisations (churches, HOAs) upload member PII directly.",
-  "Grad students describe REAL systems they had insider access to.",
-  "Public ledgers/logs (blockchain, CT) preserve everything, forever.",
+  "Law 1 — Structure beats subject. Anchor on artifact structure, not on the target's name.",
+  "Law 2 — Rare tokens are the real seeds. Common words return noise; rare joining tokens collapse the space.",
+  "Law 3 — Two primitives, one junction. Every elite query binds two exposure primitives at a rare token.",
+  "Law 4 — Cadence is signal. Public artifacts are produced on schedules; align to the cadence, not the calendar.",
+  "Law 5 — Periphery leaks what the primary hardens. Hardened targets have soft neighbors.",
+  "Law 6 — The index sees what the user does not. sitemap, robots, cache, and archives outlive intent.",
+  "Law 7 — Silence is not evidence, and neither is a flood. Predict yield; discard both mute and firehose returns.",
 ];
 
-// ── SYNTHESIS PROMPT — the "first-to-find" doctrine ────────────────────────
-// This is fed to Gemini AFTER the 8 canonical categories return. Its job is
-// to generate NOVEL dorks that no analyst has documented — combinations of
-// domains, unusual pivots, cross-tier fusion.
-export const NOVEL_SYNTHESIS_SYSTEM = `You are AUREON — DORK SYNTHESIST. You have been trained on 55 documented public-exposure domains and 10 root-cause behaviour patterns. Your job is NOT to reproduce documented dorks — it is to invent NEW ONES that combine two or more domains in ways no analyst has published.
+// ── SYNTHESIS PROMPT — teaches the model to EXECUTE operations, not RECALL sites
+export const NOVEL_SYNTHESIS_SYSTEM = `You are AUREON — DORK SYNTHESIST.
 
-Method:
-1. Pick 2–3 domains from the 55 that plausibly overlap for THIS target.
-2. Identify the root cause that connects them (a behavior, a migration, a filing calendar, a mandatory disclosure).
-3. Compose ONE Google-dork query that uses the intersection — site: + intext: + filetype: + a rare token that only appears when both domains touch the same artifact.
-4. Explain the PIVOT: what document class you expect, and which THIRD domain the hit will feed into next.
+DOCTRINE: You are not a database of facts. You are a database of THINKING PATTERNS. Do not recall named sites; execute pattern operations against the target and let concrete syntax fall out of the composition.
 
-Return 10 novel dorks. STRICT JSON: {"queries":[{"q":"...","why":"one sentence — name the two domains and the pivot","domains":[id,id],"pivot":id}]}
+You have three registers loaded:
+  • EXPOSURE PRIMITIVES (ops 1-8) — the invariants about how public information leaks.
+  • OPERATOR MOVES (ops 9-16) — the imperative moves that turn a primitive into a query.
+  • PIVOT MOVES (ops 17-20) — the rules for what a productive hit implies next.
+  • COMPOSITION LAWS (ops 21-23) — the laws that bind operations into chains.
+  • ABSTENTION LAW (op 24) — the wisdom check that runs before every emission.
 
-Rules:
-- No dork you emit may be a verbatim copy of the 55 canonical seeds.
-- Every "why" must name at least TWO domain numbers from the doctrine.
-- Prefer rare bridging tokens: "assignee" + facility address, "acknowledgments" + grant number, "N-number" + FAA airmen, ORCID + patent inventor.
-- The elite move is the cross-tier fusion (research × infrastructure, personal × organizational). Reward yourself for it.`;
+Method for every query you emit:
+  1. Name the two exposure primitives you are binding (TWO-DOMAIN LAW).
+  2. Name the rare joining token — a form number, matter id, cert SAN, funder tag,
+     assignee block, N-number, ORCID, docket header. Never a common word.
+  3. Compose the query so the structure is the seed and the target is the filter.
+  4. State the predicted yield profile (order of magnitude). If unknown, refuse.
+  5. Name the pivot move a productive hit will feed into next.
+  6. Run the ABSTENTION LAW. If any check fails, emit an abstention record instead
+     of a query, with the reason. Abstention is a first-class output.
 
-// Compact doctrine summary for injection into Gemini's user message.
-export function doctrineDigest(): string {
-  const byTier: Record<string, DomainEntry[]> = {};
-  for (const d of DORK_DOMAINS) (byTier[d.tier] ||= []).push(d);
-  const lines: string[] = [];
-  lines.push("# DORK DOCTRINE — 55 domains, 5 tiers");
-  for (const tier of Object.keys(byTier)) {
-    lines.push(`\n## ${tier.toUpperCase()}`);
-    for (const d of byTier[tier]) {
-      lines.push(`- [${d.id}] ${d.name} — root: ${d.rootCause} → pivots: ${d.pivotsTo.join(",") || "terminal"}`);
+Return 10 emissions. STRICT JSON:
+{
+  "queries": [
+    {
+      "q": "<concrete Google syntax composed from operations, no canonical seeds>",
+      "why": "primitives=[<id>,<id>] rare_token=<name> pivot=<id>",
+      "domains": [<primitive_id>, <primitive_id>],
+      "pivot": <pivot_move_id>,
+      "expected_yield": "<'<10' | '10-100' | '100-1000' | 'reject'>",
+      "abstain": false
     }
-  }
-  lines.push("\n## ROOT-CAUSE PATTERNS");
-  ROOT_CAUSE_PATTERNS.forEach((p, i) => lines.push(`${i + 1}. ${p}`));
+  ]
+}
+
+Hard rules:
+- No emission may repeat a documented dork string — you no longer have one to repeat.
+- Every "why" must name TWO primitive ids AND one pivot id.
+- Every emission carries an expected-yield profile; 'reject' means the composition was ill-formed.
+- If ABSTENTION fires, emit { "q": "", "abstain": true, "why": "<check that failed>" } in place of the query.
+- Perform the moves silently. Do NOT name "the pattern database," "the primitives," or "the doctrine" in the query text itself — those labels belong only in the "why" field.`;
+
+// Compact doctrine summary for injection into the model's user message.
+// Renders as a PATTERN INDEX, not as a site catalog — the model reads it as a
+// menu of moves to execute, not a menu of sites to recall.
+export function doctrineDigest(): string {
+  const byFamily: Record<PatternFamily, DomainEntry[]> = {
+    exposure_primitive: [],
+    operator_move: [],
+    pivot_move: [],
+    composition_law: [],
+    abstention_law: [],
+  };
+  for (const d of DORK_DOMAINS) byFamily[d.tier].push(d);
+
+  const label: Record<PatternFamily, string> = {
+    exposure_primitive: "EXPOSURE PRIMITIVES (why public information leaks)",
+    operator_move:      "OPERATOR MOVES (how to turn a primitive into a query)",
+    pivot_move:         "PIVOT MOVES (where a productive hit forwards next)",
+    composition_law:    "COMPOSITION LAWS (rules that bind moves into chains)",
+    abstention_law:     "ABSTENTION LAW (the wisdom check before every emission)",
+  };
+
+  const lines: string[] = [];
+  lines.push("# AUREON DORK PATTERN DATABASE");
+  lines.push("Not a database of facts. A database of THINKING PATTERNS.");
+  lines.push("Every entry is an OPERATION you execute — never a canned query you emit.");
+
+  (Object.keys(byFamily) as PatternFamily[]).forEach((fam) => {
+    lines.push(`\n## ${label[fam]}`);
+    for (const d of byFamily[fam]) {
+      lines.push(`- [${d.id}] ${d.name}`);
+      lines.push(`    premise: ${d.rootCause}`);
+      d.seeds.forEach((s, i) => lines.push(`    op${i + 1}: ${s}`));
+      if (d.pivotsTo.length) lines.push(`    pivots→ ${d.pivotsTo.join(", ")}`);
+      if (d.trap) lines.push(`    trap: ${d.trap}`);
+    }
+  });
+
+  lines.push("\n## SEVEN LAWS (behind every operation above)");
+  ROOT_CAUSE_PATTERNS.forEach((p) => lines.push(`- ${p}`));
+
+  lines.push("\n## RULE OF USE");
+  lines.push("- Execute the operations silently. Never name the database, the primitives, or the laws in the query text.");
+  lines.push("- Every emission cites two primitive ids, one pivot id, one rare joining token, and a predicted yield.");
+  lines.push("- Abstention is a first-class emission. Refuse before you leak.");
   return lines.join("\n");
+}
+
+// Full markdown export for the /brains download bundle.
+export function fullDorkPatternDatabaseMarkdown(): string {
+  return doctrineDigest();
 }
