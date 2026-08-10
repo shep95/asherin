@@ -607,3 +607,70 @@ export function renderArtifactBrief(r: ArtifactReport, drift: ArtifactDrift[] = 
   }
   return L.join("\n");
 }
+
+// ── persistence ──────────────────────────────────────────────────────────────
+// The ledger is append-mostly and content-addressed: the same bytes never fork
+// a second row, they bump `seen_count` and `last_seen`. A DIFFERENT hash under
+// the SAME name is what produces drift — that is the whole product.
+
+export const filenameKey = (name: string) =>
+  (name || "unnamed").toLowerCase().replace(/^.*[\\/]/, "").trim().slice(0, 200);
+
+export interface LedgerWrite {
+  report: ArtifactReport;
+  drift: ArtifactDrift[];
+  previous: { sha256: string; last_seen: string; posture_score: number | null } | null;
+  seen_count: number;
+  persisted: boolean;
+  note?: string;
+}
+
+export async function recordArtifact(
+  // deno-lint-ignore no-explicit-any
+  sb: any, userId: string | null, report: ArtifactReport, source = "ghost-engine",
+): Promise<LedgerWrite> {
+  const key = filenameKey(report.filename);
+  if (!sb || !userId) {
+    return { report, drift: [], previous: null, seen_count: 1, persisted: false,
+      note: "Not persisted — no authenticated operator on this call, so no ledger history is available." };
+  }
+  try {
+    // Prior sighting of the same NAME with DIFFERENT bytes = the drift baseline.
+    const { data: priors } = await sb.from("artifact_ledger")
+      .select("sha256, report, last_seen, posture_score")
+      .eq("user_id", userId).eq("filename_key", key)
+      .order("last_seen", { ascending: false }).limit(5);
+
+    const other = (priors ?? []).find((p: { sha256: string }) => p.sha256 !== report.sha256);
+    const drift = other?.report ? diffArtifacts(other.report as ArtifactReport, report) : [];
+
+    const { data: existing } = await sb.from("artifact_ledger")
+      .select("id, seen_count, first_seen")
+      .eq("user_id", userId).eq("sha256", report.sha256).maybeSingle();
+
+    const row = {
+      user_id: userId, sha256: report.sha256, sha1: report.sha1,
+      filename: report.filename, filename_key: key, size_bytes: report.size_bytes,
+      kind: report.kind, format: report.format, arch: report.arch, signed: report.signed,
+      build_time: report.build_time, posture_score: report.posture_score,
+      mitigations: report.mitigations, banned_symbols: report.banned_symbols,
+      report, drift, source, last_seen: new Date().toISOString(),
+    };
+
+    let seen = 1;
+    if (existing?.id) {
+      seen = (existing.seen_count ?? 1) + 1;
+      await sb.from("artifact_ledger").update({ ...row, seen_count: seen }).eq("id", existing.id);
+    } else {
+      await sb.from("artifact_ledger").insert(row);
+    }
+
+    return {
+      report, drift, seen_count: seen, persisted: true,
+      previous: other ? { sha256: other.sha256, last_seen: other.last_seen, posture_score: other.posture_score ?? null } : null,
+    };
+  } catch (e) {
+    return { report, drift: [], previous: null, seen_count: 1, persisted: false,
+      note: `Ledger write failed (${(e as Error).message}) — the analysis above still stands, but no history was recorded.` };
+  }
+}
