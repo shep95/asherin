@@ -8,6 +8,7 @@ type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: 
 const primaryModes: ModeDef[] = [
   { id: "web", label: "Web", icon: <Globe className="h-3.5 w-3.5" /> },
   { id: "ghostchain", label: "Ghost Chain", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
+  { id: "shadow", label: "Shadow", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
   { id: "dataengine", label: "DataEngine", icon: <Database className="h-3.5 w-3.5" />, accent: true },
   { id: "imagine", label: "Imagine", icon: <ImageIcon className="h-3.5 w-3.5" />, accent: true },
   { id: "audit", label: "ZERLAL", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
