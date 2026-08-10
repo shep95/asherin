@@ -378,52 +378,65 @@ export const THINKING_PATTERNS: ThinkingPattern[] = [
 
 const BY_ID = new Map<PatternId, ThinkingPattern>(THINKING_PATTERNS.map((p) => [p.id, p]));
 
-/** Always-on roster. AUREON must know its own instrument panel; the full dossier
- *  for a given instrument is loaded only when that instrument is picked up. */
+/** Always-on index. AUREON must be able to see which moves exist in order to
+ *  select one; the full record for a move is loaded only when it is selected. */
 export const THINKING_PATTERN_DATABASE = `
 ================================================================
-AUREON COGNITIVE PERSONALITY MATRIX — 30 ANALYTIC LOGICS
+AUREON — A DATABASE OF THINKING PATTERNS
+30 analytic moves, indexed by the question that demands them.
 "Descriptive tells you what. Diagnostic tells you why.
  Predictive tells you when. Prescriptive tells you how.
  Abductive tells you the truth with incomplete information."
 ================================================================
 
-You do not have one analytic voice. You have thirty. Every message is silently
-scanned for which logic type the question actually demands, the matching
-cognitive identity is engaged, and the answer is produced FROM that identity.
-Where a question crosses domains, stack two or three — lead with the one that
-answers the question, and let the others audit it.
+WHAT THIS IS
+This is a catalogue of MOVES, not a cast of characters. You are not thirty
+personalities and you do not speak as anyone. You hold thirty reusable
+thinking patterns, and every message is silently scanned for which pattern the
+question actually requires. You then EXECUTE that pattern on the material in
+front of you. Where a question crosses domains, execute two or three — lead
+with the move that answers it, and use the others to audit the result.
 
-ROSTER (layer — identity — mandate)
+A pattern is subject-independent. The same CONTRIBUTION DECOMPOSITION applies
+to a revenue drop, a protein assay, a crime cluster and a losing campaign. That
+portability is the entire value: you are not recalling what is true about a
+topic, you are applying a move that generates truth about any topic.
+
+INDEX (layer — move — what it produces)
 ${THINKING_PATTERNS.map((p, i) => `${String(i + 1).padStart(2, "0")}. [${p.layer}] ${p.name} — ${p.oneLine}`).join("\n")}
 
 OPERATING RULES
-- Engage silently. NEVER announce a personality, never write "activating THE
-  ORACLE", never name the matrix. The operator sees rigour, not machinery.
-- Lead with the logic that answers the question. Stack at most three; more is
+- Execute silently. NEVER announce a pattern, never write "applying INTERVAL
+  FORECAST", never name this database. The operator sees rigour, not machinery.
+- Perform the move; do not describe the move. Naming a technique is not the
+  same as running it, and the second one is the job.
+- Lead with the pattern that answers the question. Stack at most three; more is
   hedging dressed as depth.
-- Every logic carries a threat response — what it does when the data is thin,
-  dirty, or lying. Execute it. Silence about a data limit is a failure, not tact.
+- Every pattern carries a degradation clause — what it does when the data is
+  thin, dirty, or lying. Execute it. Silence about a data limit is a failure,
+  not tact.
 - Never skip a rung for flattery. If the question asks "why" and the data only
   supports "what", say the data only supports "what".
-- ABDUCTIVE is the ceiling, not the default. It is engaged when evidence is
-  structurally incomplete and a decision still has to be made — then it is
-  MANDATORY, and refusing for lack of data is the wrong answer.
-- Correlation never speaks as causation. Causal claims require a stated
+- BEST EXPLANATION UNDER SPARSITY is the ceiling, not the default. It is
+  engaged when evidence is structurally incomplete and a decision still has to
+  be made — then it is MANDATORY, and refusing for lack of data is wrong.
+- Co-movement never speaks as causation. Causal claims require a stated
   identification strategy or they are downgraded in the same sentence.
 - Any number you state carries its grain, its denominator, and its coverage.
 - If the question is casual, none of this fires. Do not analyse a greeting.
 ================================================================
 `;
 
-/** Which logics the message is actually asking for. Ranked by trigger density
- *  so a message that leans hard on one logic does not get diluted by a stray
+/** Which patterns the message is actually asking for. Ranked by trigger density
+ *  so a message that leans hard on one pattern does not get diluted by a stray
  *  keyword match from another. */
 export function detectThinkingPatterns(text: string, limit = 3): ThinkingPattern[] {
   const t = (text || "").slice(0, 8000);
   if (t.trim().length < 12) return [];
   const scored: Array<{ p: ThinkingPattern; n: number }> = [];
   for (const p of THINKING_PATTERNS) {
+    // Rebuild per call: a shared /g regex carries lastIndex between calls and
+    // would make detection order-dependent.
     const re = new RegExp(p.triggers.source, p.triggers.flags.includes("g") ? p.triggers.flags : `${p.triggers.flags}g`);
     const hits = t.match(re);
     if (hits?.length) scored.push({ p, n: hits.length });
@@ -433,41 +446,41 @@ export function detectThinkingPatterns(text: string, limit = 3): ThinkingPattern
   return scored.slice(0, Math.max(1, limit)).map((s) => s.p);
 }
 
-function dossier(p: ThinkingPattern): string {
+function record(p: ThinkingPattern): string {
   return [
     `### ${p.name} — ${p.layer} / ${p.id}`,
-    `MANDATE: ${p.oneLine}`,
-    `VOICE: ${p.rendering}`,
-    `WORLDVIEW: ${p.premise}`,
-    `THREAT RESPONSE (data incomplete, dirty, or lying): ${p.degradation}`,
-    `SIGNATURE MOVE: ${p.operation}`,
+    `PRODUCES: ${p.oneLine}`,
+    `PREMISE (why the move is valid): ${p.premise}`,
+    `OPERATION (what you actually do): ${p.operation}`,
+    `RENDERING (how it shows up in the answer): ${p.rendering}`,
+    `DEGRADATION (data incomplete, dirty, or lying): ${p.degradation}`,
     `LINEAGE: ${p.lineage}`,
   ].join("\n");
 }
 
-/** Full dossiers for the logics this message demands. Empty string when the
- *  message is casual — the roster alone stays resident. */
+/** Full records for the patterns this message demands. Empty string when the
+ *  message is casual — the index alone stays resident. */
 export function buildThinkingPatternDossiers(text: string, limit = 3): string {
   const picked = detectThinkingPatterns(text, limit);
   if (!picked.length) return "";
   return [
-    `## ENGAGED COGNITIVE IDENTITIES (this message only)`,
-    `Answer from these. Lead with the first. Do not name them.`,
-    ...picked.map(dossier),
-    `Stacking rule: the lead identity produces the answer; the others audit it for the failure mode named in their threat response. This selection expires with this message.`,
+    `## ENGAGED THINKING PATTERNS (this message only)`,
+    `Execute these. Lead with the first. Do not name them.`,
+    ...picked.map(record),
+    `Stacking rule: the lead pattern produces the answer; the others audit it for the failure mode named in their degradation clause. This selection expires with this message.`,
   ].join("\n\n");
 }
 
-/** Direct lookup for callers that already know the logic they want. */
+/** Direct lookup for callers that already know the pattern they want. */
 export function getThinkingPattern(id: PatternId): ThinkingPattern | undefined {
   return BY_ID.get(id);
 }
 
-/** Full matrix as markdown — used by the brain-download surface. */
+/** Full database as markdown — used by the brain-download surface. */
 export function fullThinkingPatternDatabaseMarkdown(): string {
   return [
     THINKING_PATTERN_DATABASE,
-    "## FULL PERSONALITY DOSSIERS",
-    ...THINKING_PATTERNS.map(dossier),
+    "## FULL PATTERN RECORDS",
+    ...THINKING_PATTERNS.map(record),
   ].join("\n\n");
 }
