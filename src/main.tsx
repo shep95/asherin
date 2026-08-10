@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import RootErrorBoundary, { attemptChunkRecovery } from "./components/RootErrorBoundary";
 import "./index.css";
 import { initDorkGuard } from "./lib/dorkGuard";
 import { enforceCanonicalHost } from "./lib/canonicalHost";
@@ -34,6 +35,17 @@ if (!relayed) {
     });
   }
 
-  createRoot(document.getElementById("root")!).render(<App />);
+  // A rejected dynamic import outside a render pass never reaches a boundary;
+  // catch it here so a stale deploy self-heals instead of blanking the tab.
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    if (reason instanceof Error) attemptChunkRecovery(reason);
+  });
+
+  createRoot(document.getElementById("root")!).render(
+    <RootErrorBoundary scope="root">
+      <App />
+    </RootErrorBoundary>
+  );
 }
 

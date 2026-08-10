@@ -3,10 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import ByokRequiredDialog from "@/components/ByokRequiredDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { Suspense } from "react";
+import React, { Suspense } from "react";
+import RootErrorBoundary from "@/components/RootErrorBoundary";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -120,6 +121,20 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
+/**
+ * Route-scoped recovery. A throw inside any page module used to unmount the
+ * whole React root (blank/black screen); now it is contained to the routed
+ * view and clears itself as soon as the pathname changes.
+ */
+const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  return (
+    <RootErrorBoundary scope="route" resetKey={pathname}>
+      {children}
+    </RootErrorBoundary>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -137,6 +152,7 @@ const App = () => (
           {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}
           
           
+          <RouteBoundary>
           <Suspense fallback={<PageLoader />}>
           <main>
           <Routes>
@@ -273,6 +289,7 @@ const App = () => (
           </Routes>
           </main>
           </Suspense>
+          </RouteBoundary>
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>
