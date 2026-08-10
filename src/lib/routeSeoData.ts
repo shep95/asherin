@@ -498,6 +498,13 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     ogType: "article",
     datePublished: "2026-07-01",
   },
+  "/blog/ai-stack-for-indian-startups": {
+    title: "The AI Stack for Indian Startups That Can't Afford to Fail | Asherin",
+    description:
+      "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is workflow logic.",
+    ogType: "article",
+    datePublished: "2026-08-10",
+  },
   "/blog/how-to-break-any-encryption-theory": {
     title: "How To Break Any Encryption | A Theory | Asherin",
     description:
