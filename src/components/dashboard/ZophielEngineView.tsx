@@ -37,6 +37,7 @@ const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
 const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
 const XKeyscorePanel = lazy(() => import("./search/XKeyscorePanel"));
+const ShadowPanel = lazy(() => import("./search/ShadowPanel"));
 
 
 // Detect when the search query is actually a URL (with or without scheme).
@@ -153,7 +154,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Auto-activate "searched" view when entering Imagine, Extract, Audit, or special modes (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2" || mode === "shadow") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -252,7 +253,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     // Imagine / Extract / Audit / special modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2" || mode === "shadow") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -553,7 +554,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "darkweb" || mode === "leaks" || mode === "archive" || mode === "vpn" || mode === "dataengine" || mode === "harvest" || mode === "dork" || mode === "ghostchain" || mode === "zophielv2" || mode === "shadow" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -648,20 +649,27 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Shadow — forgotten / non-indexed live host discovery */}
+              {mode === "shadow" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ShadowPanel />
+                </Suspense>
+              )}
+
 
 
 
 
 
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && mode !== "shadow" && deepSearchQuery && (
                 <Suspense fallback={null}>
                   <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
                 </Suspense>
               )}
 
               {/* Inline Dark Web sweep — shown when scope=mix or dark */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "harvest" && mode !== "dork" && mode !== "zophielv2" && mode !== "shadow" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
                 <div className="mb-6 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-[0.25em] text-accent/80">Dark Web Sweep</span>
@@ -698,7 +706,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               )}
 
               {/* Standard search results */}
-              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && mode !== "zophielv2" && !deepSearchQuery && (
+              {!urlIntelTarget && mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && mode !== "vpn" && mode !== "dataengine" && mode !== "dork" && mode !== "zophielv2" && mode !== "shadow" && !deepSearchQuery && (
                 <>
                   {/* Deterministic corpus analysis — claims, conflicts, graph, forensics */}
                   {!loading && results.length > 0 && fusion && (
