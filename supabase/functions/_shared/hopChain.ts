@@ -149,6 +149,8 @@ const RUN_NOISE = new Set([
   "manager", "officer", "owner", "partner", "contact", "about", "profile",
   "linkedin", "facebook", "twitter", "instagram", "email", "phone", "address",
   "mr", "mrs", "ms", "dr", "view", "see", "read", "more", "home", "search",
+  "investor", "attorney", "analyst", "engineer", "developer", "researcher",
+  "professor", "agent", "broker", "consultant", "chief", "vice", "senior",
 ]);
 
 function trimRun(run: string): string {
@@ -289,11 +291,23 @@ export function extractEntities(
         if (words.length > 5) continue;
         const hasOrgSuffix = ORG_SUFFIX.test(run);
         if (words.length < 2 && !hasOrgSuffix) continue;
+        // Place disambiguation: "Cape Coral, Florida" and "in Cape Coral" are
+        // two-word Title Case runs identical in shape to a person's name.
+        // Context decides — a following state name or a preceding locative
+        // preposition makes it a place, never a person.
+        const at = sent.indexOf(run);
+        const before = at > 0 ? sent.slice(Math.max(0, at - 12), at).toLowerCase() : "";
+        const after = sent.slice(at + run.length, at + run.length + 24);
+        const placeContext =
+          /\b(?:in|from|near|of|at|to)\s+$/.test(before) ||
+          new RegExp(US_STATES.source, "i").test(after.split(/[.;]/)[0] || "");
         const kind: HopEntityKind = hasOrgSuffix
           ? "org"
-          : /^[A-Z][a-z]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-z]+$/.test(run)
-            ? "person"
-            : "org";
+          : placeContext
+            ? "place"
+            : /^[A-Z][a-z]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-z]+$/.test(run)
+              ? "person"
+              : "org";
         add(run, kind, doc, false);
       }
     }
