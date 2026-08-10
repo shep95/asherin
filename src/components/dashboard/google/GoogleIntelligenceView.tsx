@@ -39,12 +39,14 @@ import PhoneMessages from "./modules/PhoneMessages";
 import MeetVault from "./modules/MeetVault";
 import GhostLedgerPanel from "./modules/GhostLedgerPanel";
 import OverwatchTab from "./modules/OverwatchTab";
+import VitalsTab from "./modules/VitalsTab";
+import { HeartPulse } from "lucide-react";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "overwatch" | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "overwatch" | "vitals" | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 
