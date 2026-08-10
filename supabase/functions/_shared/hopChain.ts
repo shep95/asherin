@@ -123,6 +123,8 @@ const PHONE_RE = /\b(?:\+?1[-. ]?)?\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b/g;
 const HANDLE_RE = /(?:^|[\s(])@([a-z0-9_]{3,30})\b/gi;
 const YEAR_RE = /\b(?:19|20)\d{2}\b/g;
 
+const STATE_ABBR = /(?:,\s*)(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/;
+
 const US_STATES =
   /\b(?:alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/gi;
 
@@ -220,7 +222,25 @@ export function extractEntities(
   hop: number,
   into: Map<string, HopEntity>,
 ): void {
-  const anchorTokens = new Set(normKey(anchor).split(" ").filter((t) => t.length > 2));
+  const anchorTokenList = normKey(anchor).split(" ").filter((t) => t.length > 2);
+  const anchorTokens = new Set(anchorTokenList);
+  const anchorFull = normKey(anchor);
+
+  /**
+   * Anchor-relevance gate. A retrieval wave for a person always drags in pages
+   * that merely share a token — "shepherd" returns dog-breeder listings. Those
+   * pages must not donate pivots, or hop 2 spends its budget searching for
+   * Australian Shepherd puppies. A document earns extraction rights only by
+   * naming the subject: the full name, or at least two anchor tokens.
+   */
+  const relevantDocs = docs.filter((d) => {
+    const hay = normKey(`${d.title || ""} ${d.snippet || ""} ${d.url}`);
+    if (anchorFull && hay.includes(anchorFull)) return true;
+    let hit = 0;
+    for (const t of anchorTokens) if (hay.includes(t)) hit++;
+    return hit >= Math.min(2, anchorTokens.size);
+  });
+  const workingDocs = relevantDocs.length > 0 ? relevantDocs : [];
 
   const add = (
     rawLabel: string,
@@ -242,6 +262,14 @@ export function extractEntities(
     // P3 guard — never re-emit the anchor itself as a pivot target.
     const bareTokens = bare.split(" ");
     if (bareTokens.length && bareTokens.every((t) => anchorTokens.has(t))) return;
+    // Token collision: "Australian Shepherd" borrows the subject's surname
+    // without being the subject. Such runs are the single biggest source of
+    // hop-2 drift, so they are refused as pivots outright.
+    if (
+      kind !== "email" && kind !== "domain" && kind !== "phone" &&
+      bareTokens.some((t) => anchorTokens.has(t)) &&
+      !bare.includes(anchorFull)
+    ) return;
     if (kind !== "email" && kind !== "phone" && kind !== "domain" && kind !== "handle") {
       if (bareTokens.every((t) => STOP_TOKENS.has(t))) return;
     }
@@ -269,7 +297,7 @@ export function extractEntities(
     }
   };
 
-  for (const doc of docs) {
+  for (const doc of workingDocs) {
     const text = `${doc.title || ""}. ${doc.snippet || ""}`.slice(0, 4000);
 
     for (const m of text.matchAll(EMAIL_RE)) add(m[0], "email", doc, false);
@@ -300,7 +328,8 @@ export function extractEntities(
         const after = sent.slice(at + run.length, at + run.length + 24);
         const placeContext =
           /\b(?:in|from|near|of|at|to)\s+$/.test(before) ||
-          new RegExp(US_STATES.source, "i").test(after.split(/[.;]/)[0] || "");
+          new RegExp(US_STATES.source, "i").test(after.split(/[.;]/)[0] || "") ||
+          STATE_ABBR.test(after.slice(0, 8));
         const kind: HopEntityKind = hasOrgSuffix
           ? "org"
           : placeContext
