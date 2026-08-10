@@ -1770,7 +1770,95 @@ Deno.serve(async (req) => {
     }
 
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // HOP CHAIN — recursive entity resolution with context-anchored query
+    // propagation. Hop 1 is the corpus above; hops 2-3 are written by what
+    // hop 1 actually named. Person-shaped queries only: an anchor-pinned
+    // expansion of a technical query would just re-ask the same question.
+    // Hard-bounded (budget, concurrency, dedupe, convergence) so a chain can
+    // never stampede the engines or run past the request deadline.
+    // ═══════════════════════════════════════════════════════════════════════
+    let hopChain: Record<string, unknown> | null = null;
+    const requestedHops = Number((body as { hops?: number }).hops ?? 0);
+    const hopEligible = !fast && requestedHops !== 1 &&
+      (requestedHops > 1 || plan.entity === 'person') && filtered.length > 0;
+    if (hopEligible) {
+      try {
+        const hopIndex = new Map<string, SearchResult>();
+        const hopSearch = async (q: string) => {
+          const rows = await multiEngineSearch(q, 1, filters?.dateRange, true);
+          for (const r of rows) if (!hopIndex.has(r.url)) hopIndex.set(r.url, r);
+          return rows.map((r) => ({
+            url: r.url, title: r.title, snippet: r.snippet,
+            domain: extractDomain(r.url), publishDate: r.publishDate,
+          }));
+        };
+
+        const anchor = deriveAnchor(trimmed);
+        const report = await runHopChain({
+          anchor,
+          seedDocs: filtered.slice(0, 40).map((r) => ({
+            url: r.url, title: r.title, snippet: r.snippet,
+            domain: extractDomain(r.url), publishDate: r.publishDate,
+          })),
+          searchFn: hopSearch,
+          maxHops: Math.min(4, Math.max(2, requestedHops || 3)),
+          queriesPerHop: 4,
+          budgetMs: 24000,
+          perQueryTimeoutMs: 8000,
+          concurrency: 3,
+        });
+
+        // Merge hop-discovered documents into the corpus so fusion, centrality
+        // and the UI all see one unified evidence set — tagged with the hop
+        // that found them, so provenance survives the merge.
+        const known = new Set(filtered.map((r) => r.url));
+        let mergedHopDocs = 0;
+        const hopOfUrl = new Map<string, number>();
+        for (const h of report.hops) void h;
+        for (const d of report.newDocs) {
+          const r = hopIndex.get(d.url);
+          if (!r || known.has(r.url)) continue;
+          known.add(r.url);
+          (r as unknown as { hop?: number }).hop = hopOfUrl.get(d.url) ?? 2;
+          r.layer = r.layer || 'surface';
+          filtered.push(r);
+          mergedHopDocs++;
+        }
+        if (mergedHopDocs > 0) applyRanking(filtered);
+
+        hopChain = {
+          anchor,
+          hops: report.hops.map((h) => ({
+            hop: h.hop,
+            queries: h.queries.map((q) => ({ q: q.q, shape: q.shape, from: q.from, anchored: q.anchored })),
+            docsSeen: h.docsSeen,
+            docsNew: h.docsNew,
+            noveltyRatio: h.noveltyRatio,
+            entitiesFound: h.entitiesFound,
+            converged: h.converged,
+            ms: h.ms,
+          })),
+          pivots: report.entities.slice(0, 24).map((e) => ({
+            label: e.label, kind: e.kind, mentions: e.mentions,
+            domains: e.domains.length, centrality: Number(e.centrality.toFixed(3)),
+            corroborated: e.domains.length >= 2, darkData: e.darkData,
+            firstHop: e.firstHop, sources: e.sources.slice(0, 3),
+          })),
+          convergedAtHop: report.convergedAtHop,
+          stopReason: report.stopReason,
+          totalQueries: report.totalQueries,
+          mergedDocuments: mergedHopDocs,
+          totalMs: report.totalMs,
+        };
+        console.log(`[zophiel] hopchain anchor="${anchor}" hops=${report.hops.length} queries=${report.totalQueries} merged=${mergedHopDocs} stop=${report.stopReason} ms=${report.totalMs}`);
+      } catch (e) {
+        console.warn('[zophiel] hop chain failed (non-fatal)', e instanceof Error ? e.message : String(e));
+      }
+    }
+
     // Group results by category
+
     const grouped: Record<string, SearchResult[]> = {};
     for (const r of filtered) {
       const cat = r.category;
