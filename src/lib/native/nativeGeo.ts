@@ -18,6 +18,25 @@ import { isNativeApp } from "./nativeRuntime";
 export type Fix = { lat: number; lng: number; accuracy?: number };
 export type GeoHandle = { stop: () => void };
 
+/**
+ * A full sensor sample, not just a point. The trip black box needs the sensor's
+ * own Doppler speed and heading — a speed derived from successive coordinates
+ * inherits every metre of GPS jitter and turns a parked car into a swerve.
+ */
+export type GeoSample = {
+  t: number;
+  lat: number;
+  lon: number;
+  accuracy_m: number | null;
+  speed_mps: number | null;
+  heading_deg: number | null;
+  altitude_m: number | null;
+};
+
+/** A refusal is terminal; anything else is a gap that may close by itself. */
+export type GeoErrorKind = "denied" | "transient";
+
+
 const OPTS: PositionOptions = {
   enableHighAccuracy: true,
   maximumAge: 15_000,
