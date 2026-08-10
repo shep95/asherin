@@ -353,7 +353,7 @@ export interface CollectionResult {
 export async function collectDossier(
   ride: RideInput,
   budgetMs = 55_000,
-  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string },
+  ctx?: { db: { from: (t: string) => any }; userId: string; rideId: string; geminiKey?: string | null },
 ): Promise<CollectionResult> {
   const started = Date.now();
   const blocks: string[] = [];
@@ -410,6 +410,21 @@ export async function collectDossier(
     Math.max(0, budgetMs - (Date.now() - started) - 4_000),
   );
 
+  // ── Phase B3: contact-parity legs ────────────────────────────────────────
+  // The two collectors a contact dossier gets and a driver dossier did not.
+  // They query substrates the jurisdictional and Zophiel layers never touch,
+  // so they run alongside rather than after them.
+  const ghostPromise = ghostSightingLeg(
+    ride,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+  const dorkPromise = dorkLeg(
+    ride,
+    pivot.bestFullName || pivot.registry.best_name || null,
+    ctx?.geminiKey ?? Deno.env.get("GEMINI_API_KEY") ?? null,
+    Math.max(0, budgetMs - (Date.now() - started) - 4_000),
+  );
+
   const CONCURRENCY = 3; // three parallel sweeps keeps us inside provider limits
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     while (queue.length) {
@@ -454,6 +469,14 @@ export async function collectDossier(
   if (zophiel.block) blocks.push(zophiel.block);
   hits += zophiel.hits;
 
+  const ghost = await ghostPromise.catch(() => ({ block: "", hits: 0, note: "Ghost sighting sweep failed and was dropped." }));
+  if (ghost.block) blocks.push(ghost.block);
+  hits += ghost.hits;
+
+  const dork = await dorkPromise.catch(() => ({ block: "", hits: 0, note: "Dork battery failed and was dropped." }));
+  if (dork.block) blocks.push(dork.block);
+  hits += dork.hits;
+
   const skipped = plan.length - ran.length;
   const registryNote = pivot.registry.records.length
     ? `Regulator register bound plate ${ride.plate} to "${pivot.registry.records[0].raw_name}" (${pivot.registry.records[0].source}).`
@@ -481,7 +504,7 @@ export async function collectDossier(
         : "",
       ...blocks,
     ].filter(Boolean).join("\n\n"),
-    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
+    note: `${safety.note} ${registryNote} ${pivot.evidence.note} ${pivotNote} Ran ${ran.length}/${plan.length} identity angles across ${jurisdiction || "unspecified jurisdiction"}; ${hits} open-source hits. ${zophiel.note} ${ghost.note} ${dork.note}${skipped > 0 ? ` ${skipped} angle(s) returned nothing or timed out.` : ""}`,
     hits: hits + safety.corridorHits,
     angles: [
       "Rider-safety substrate",
@@ -491,6 +514,8 @@ export async function collectDossier(
       "Personal ride ledger",
       ...ran,
       ...(zophiel.hits > 0 ? ["Zophiel engine sweep"] : []),
+      ...(ghost.hits > 0 ? ["Ghost engine plate sightings"] : []),
+      ...(dork.hits > 0 ? ["Aureon dork battery"] : []),
     ],
     candidates: pivot.candidates,
     residual: pivot.residual,
@@ -651,6 +676,9 @@ export async function runDeepSweep(opts: {
     db: admin(),
     userId,
     rideId,
+    // The dork battery generates its query theories with a model. Prefer the
+    // caller's own key so a BYOK rider is not silently served by the platform.
+    geminiKey: cfg.provider === "gemini" && cfg.apiKey ? cfg.apiKey : (Deno.env.get("GEMINI_API_KEY") ?? null),
   });
 
   // Registry cross-checks are arithmetic over a government record, not model
