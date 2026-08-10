@@ -20,6 +20,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/native/nativeRuntime";
+import { opDeviceId } from "@/lib/op/opIdentity";
 
 
 const SW_URL = "/sw-sentinel.js";
@@ -132,19 +133,21 @@ export async function startBackgroundSentinel(): Promise<void> {
     return; // retried on the next boot or auth change
   }
 
-  await kvSet("config", {
+  const workerConfig = {
     token,
     endpoint: `${SUPABASE_URL}/functions/v1/sentinel-beacon`,
+    // Tier B of the OP layer rides the same worker and the same revocable
+    // token: one background wake, two ledgers kept honest.
+    opEndpoint: `${SUPABASE_URL}/functions/v1/op-layer`,
+    opDeviceId: opDeviceId(),
     anonKey: ANON_KEY,
-  });
+  };
+  await kvSet("config", workerConfig);
 
   try {
     registration = await navigator.serviceWorker.register(SW_URL, { scope: "/" });
     await navigator.serviceWorker.ready;
-    registration.active?.postMessage({
-      type: "sentinel-config",
-      config: { token, endpoint: `${SUPABASE_URL}/functions/v1/sentinel-beacon`, anonKey: ANON_KEY },
-    });
+    registration.active?.postMessage({ type: "sentinel-config", config: workerConfig });
 
     // Periodic sync is Chromium + installed-app only. Its absence is normal,
     // not a failure: Tier A still sweeps on the server clock.

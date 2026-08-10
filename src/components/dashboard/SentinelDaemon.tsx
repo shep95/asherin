@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { bootSentinel } from "@/lib/sentinel/alwaysOn";
+import { bootOpLayer } from "@/lib/op/opDaemon";
 
 /**
  * Mounts once inside the app shell and hands control to the always-on sentinel
@@ -16,6 +17,10 @@ const SentinelDaemon = () => {
   useEffect(() => {
     if (!user) return;
     bootSentinel();
+    // The OP layer arms itself the moment a session exists on ANY device:
+    // protection is scoped to the account, so it must not wait for the
+    // operator to open the panel that reports it.
+    bootOpLayer();
   }, [user]);
   return null;
 };

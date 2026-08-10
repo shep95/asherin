@@ -3,7 +3,7 @@ import {
   Mail, Calendar, HardDrive, Image, Youtube, MapPin, Users,
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock,
-  Eye, TrendingUp, BarChart3, Clock,
+  Eye, ShieldCheck, TrendingUp, BarChart3, Clock,
   FileText, Sparkles, Database, ScrollText, ShieldAlert, Radar, MessageSquare, Video, Fingerprint, Ghost, Voicemail,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,12 +38,13 @@ import BluetoothSentinel from "./modules/BluetoothSentinel";
 import PhoneMessages from "./modules/PhoneMessages";
 import MeetVault from "./modules/MeetVault";
 import GhostLedgerPanel from "./modules/GhostLedgerPanel";
+import OverwatchTab from "./modules/OverwatchTab";
 import { GOOGLE_REDIRECT_URI } from "@/lib/googleRedirect";
 
 type GoogleModule =
   | "overview" | "substrate" | "mesh" | "dossiers" | "location" | "email" | "subscriptions" | "health"
   | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions"
-  | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
+  | "overwatch" | "automation" | "security" | "postmark" | "voiceprint" | "ghostmail" | "guardian" | "sentinel" | "messages" | "meet" | "scenarios" | "gmail" | "drive" | "photos" | "youtube"
   | "search" | "fit" | "chrome" | "connected";
 
 
@@ -91,6 +92,7 @@ const nexusModules: ModuleDef[] = [
   { id: "predictions", codename: "AUGUR", label: "Life Projection", icon: Sparkles, mandate: "Travel, relocation, relationship and purchase signals with stated confidence", directorate: "FORECAST" },
   { id: "scenarios", codename: "WARGAME", label: "Scenario Engine", icon: Activity, mandate: "Counterfactual simulation across career, finance and health decision branches", directorate: "FORECAST" },
 
+  { id: "overwatch", codename: "OVERWATCH", label: "Account Overwatch", icon: ShieldCheck, mandate: "The OP layer: every signed-in device becomes a sensor feeding one account-scoped ledger. Correlates network, radio, roster and credential findings across the whole fleet, states absence as a finding, caps confidence by how many devices corroborate, and acts only on a device that is actually exposed — every automatic action audited before it runs", directorate: "COUNTERINTEL" },
   { id: "guardian", codename: "GUARDIAN", label: "Rideshare & Message Guardian", icon: ShieldAlert, mandate: "Background assessment of the assigned rideshare driver before boarding, plus forensic read of pasted phone-message threads — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "sentinel", codename: "SENTINEL", label: "Bluetooth & Area Sentinel", icon: Radar, mandate: "Logs nearby Bluetooth radios, flags the ones recurring across separate times and places as a following pattern, and warns on entry into areas with reported crime or documented group activity — pushed to device and email", directorate: "COUNTERINTEL" },
   { id: "security", codename: "BULWARK", label: "Exposure & Threat", icon: Shield, mandate: "Breach exposure, phishing pressure, credential threat chaining and file audit", directorate: "COUNTERINTEL" },
@@ -187,6 +189,7 @@ const GoogleIntelligenceView = () => {
       case "postmark": return <EmailForensics />;
       case "voiceprint": return <VoiceForensics />;
       case "ghostmail": return <GhostLedgerPanel />;
+      case "overwatch": return <OverwatchTab />;
       case "guardian": return <RideshareGuardian />;
       case "sentinel": return <BluetoothSentinel />;
       case "messages": return <PhoneMessages />;

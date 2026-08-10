@@ -7667,6 +7667,320 @@ export type Database = {
           },
         ]
       }
+      op_actions: {
+        Row: {
+          action: string
+          created_at: string
+          device_id: string | null
+          executed_at: string | null
+          finding_id: string | null
+          id: string
+          outcome: string
+          rationale: Json
+          requested_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          device_id?: string | null
+          executed_at?: string | null
+          finding_id?: string | null
+          id?: string
+          outcome?: string
+          rationale?: Json
+          requested_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          device_id?: string | null
+          executed_at?: string | null
+          finding_id?: string | null
+          id?: string
+          outcome?: string
+          rationale?: Json
+          requested_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_actions_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "op_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_cron_state: {
+        Row: {
+          auto_response_enabled: boolean
+          created_at: string
+          enabled: boolean
+          failures: number
+          interval_minutes: number
+          last_finished_at: string | null
+          last_started_at: string | null
+          last_status: string | null
+          next_due_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_response_enabled?: boolean
+          created_at?: string
+          enabled?: boolean
+          failures?: number
+          interval_minutes?: number
+          last_finished_at?: string | null
+          last_started_at?: string | null
+          last_status?: string | null
+          next_due_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_response_enabled?: boolean
+          created_at?: string
+          enabled?: boolean
+          failures?: number
+          interval_minutes?: number
+          last_finished_at?: string | null
+          last_started_at?: string | null
+          last_status?: string | null
+          next_due_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      op_devices: {
+        Row: {
+          app_version: string | null
+          consent_level: string
+          created_at: string
+          device_id: string
+          enrolled_at: string
+          expected_interval_minutes: number
+          fingerprint: Json
+          form_factor: string
+          id: string
+          label: string | null
+          last_report_at: string | null
+          last_tier: string | null
+          platform: string | null
+          revoked: boolean
+          trusted: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          consent_level?: string
+          created_at?: string
+          device_id: string
+          enrolled_at?: string
+          expected_interval_minutes?: number
+          fingerprint?: Json
+          form_factor?: string
+          id?: string
+          label?: string | null
+          last_report_at?: string | null
+          last_tier?: string | null
+          platform?: string | null
+          revoked?: boolean
+          trusted?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          consent_level?: string
+          created_at?: string
+          device_id?: string
+          enrolled_at?: string
+          expected_interval_minutes?: number
+          fingerprint?: Json
+          form_factor?: string
+          id?: string
+          label?: string | null
+          last_report_at?: string | null
+          last_tier?: string | null
+          platform?: string | null
+          revoked?: boolean
+          trusted?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      op_findings: {
+        Row: {
+          acknowledged_at: string | null
+          code: string
+          confidence: number
+          corroborating_devices: number
+          created_at: string
+          distinct_signal_types: number
+          evidence: Json
+          exposed_device_id: string | null
+          first_seen: string
+          id: string
+          last_seen: string
+          narrative: string | null
+          recommendations: Json
+          response_tier: string
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          code: string
+          confidence?: number
+          corroborating_devices?: number
+          created_at?: string
+          distinct_signal_types?: number
+          evidence?: Json
+          exposed_device_id?: string | null
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          narrative?: string | null
+          recommendations?: Json
+          response_tier?: string
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          code?: string
+          confidence?: number
+          corroborating_devices?: number
+          created_at?: string
+          distinct_signal_types?: number
+          evidence?: Json
+          exposed_device_id?: string | null
+          first_seen?: string
+          id?: string
+          last_seen?: string
+          narrative?: string | null
+          recommendations?: Json
+          response_tier?: string
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      op_networks: {
+        Row: {
+          asn: string | null
+          clean_reports: number
+          country: string | null
+          devices_seen: number
+          first_seen: string
+          hostile_reports: number
+          id: string
+          label: string | null
+          last_seen: string
+          network_key: string
+          org: string | null
+          updated_at: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          asn?: string | null
+          clean_reports?: number
+          country?: string | null
+          devices_seen?: number
+          first_seen?: string
+          hostile_reports?: number
+          id?: string
+          label?: string | null
+          last_seen?: string
+          network_key: string
+          org?: string | null
+          updated_at?: string
+          user_id: string
+          verdict?: string
+        }
+        Update: {
+          asn?: string | null
+          clean_reports?: number
+          country?: string | null
+          devices_seen?: number
+          first_seen?: string
+          hostile_reports?: number
+          id?: string
+          label?: string | null
+          last_seen?: string
+          network_key?: string
+          org?: string | null
+          updated_at?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
+      op_signals: {
+        Row: {
+          accuracy: number | null
+          confidence: number
+          created_at: string
+          device_id: string
+          evidence: Json
+          id: string
+          lat: number | null
+          lng: number | null
+          network_key: string | null
+          observed_at: string
+          runtime_tier: string
+          signal_type: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          accuracy?: number | null
+          confidence?: number
+          created_at?: string
+          device_id: string
+          evidence?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          network_key?: string | null
+          observed_at?: string
+          runtime_tier?: string
+          signal_type: string
+          user_id: string
+          verdict?: string
+        }
+        Update: {
+          accuracy?: number | null
+          confidence?: number
+          created_at?: string
+          device_id?: string
+          evidence?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          network_key?: string | null
+          observed_at?: string
+          runtime_tier?: string
+          signal_type?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: []
+      }
       oracle_analyses: {
         Row: {
           actual_latitude: number | null
