@@ -114,3 +114,97 @@ export function watchPosition(
     },
   };
 }
+
+// ── Full-sample watch (trip black box, auto-arm sentinel) ───────────────────
+
+const num = (v: unknown): number | null =>
+  typeof v === "number" && Number.isFinite(v) ? v : null;
+
+function toSample(c: {
+  latitude: number; longitude: number; accuracy?: number | null;
+  speed?: number | null; heading?: number | null; altitude?: number | null;
+}, timestamp?: number): GeoSample {
+  const speed = num(c.speed);
+  const heading = num(c.heading);
+  const alt = num(c.altitude);
+  const acc = num(c.accuracy);
+  return {
+    t: timestamp && Number.isFinite(timestamp) ? timestamp : Date.now(),
+    lat: c.latitude,
+    lon: c.longitude,
+    accuracy_m: acc === null ? null : Math.round(acc * 10) / 10,
+    // A negative speed is the platform saying "unknown", not "reversing".
+    speed_mps: speed === null || speed < 0 ? null : Math.round(speed * 100) / 100,
+    heading_deg: heading === null || heading < 0 ? null : Math.round(heading),
+    altitude_m: alt === null ? null : Math.round(alt),
+  };
+}
+
+/**
+ * Watch the richest fix stream this runtime can give.
+ *
+ * WHY THIS EXISTS: the trip recorder and the auto-arm sentinel both called
+ * `navigator.geolocation.watchPosition` directly. Inside the companion app that
+ * is the WebView's geolocation, which the OS suspends the instant the screen
+ * locks — precisely the moment a rider is in the back seat with the phone in a
+ * pocket. The Capacitor plugin holds an OS-level watch that survives it. Same
+ * callback shape on both runtimes, so callers carry no branch.
+ */
+export function watchSamples(
+  onSample: (s: GeoSample) => void,
+  onError: (kind: GeoErrorKind) => void,
+  opts?: { highAccuracy?: boolean; maximumAge?: number; timeout?: number },
+): GeoHandle {
+  let stopped = false;
+  const highAccuracy = opts?.highAccuracy ?? true;
+  const maximumAge = opts?.maximumAge ?? 0;
+  const timeout = opts?.timeout ?? 30_000;
+
+  if (isNativeApp()) {
+    let watchId: string | null = null;
+    void (async () => {
+      if (!(await ensureNativePermission())) { if (!stopped) onError("denied"); return; }
+      try {
+        const id = await Geolocation.watchPosition(
+          { enableHighAccuracy: highAccuracy, maximumAge, timeout },
+          (p, err) => {
+            if (stopped) return;
+            if (err || !p) { onError("transient"); return; }
+            onSample(toSample(p.coords, p.timestamp));
+          },
+        );
+        if (stopped) { void Geolocation.clearWatch({ id }).catch(() => undefined); return; }
+        watchId = id;
+      } catch {
+        if (!stopped) onError("transient");
+      }
+    })();
+    return {
+      stop: () => {
+        stopped = true;
+        if (watchId) { void Geolocation.clearWatch({ id: watchId }).catch(() => undefined); watchId = null; }
+      },
+    };
+  }
+
+  if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+    onError("denied");
+    return { stop: () => undefined };
+  }
+
+  const id = navigator.geolocation.watchPosition(
+    (p) => { if (!stopped) onSample(toSample(p.coords, p.timestamp)); },
+    (err) => {
+      if (stopped) return;
+      onError(err.code === err.PERMISSION_DENIED ? "denied" : "transient");
+    },
+    { enableHighAccuracy: highAccuracy, maximumAge, timeout },
+  );
+
+  return {
+    stop: () => {
+      stopped = true;
+      try { navigator.geolocation.clearWatch(id); } catch { /* noop */ }
+    },
+  };
+}
