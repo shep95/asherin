@@ -456,7 +456,11 @@ const Benchmark = () => {
           </div>
 
           {/* Code outputs */}
+          <h2 className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
+            ◈ Code output from each model
+          </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
             <CodeBlock title="Asherin" lang="Java"   code={AUREON_CODE} accent="#b8860b" subtitle="Asherin · refined output" />
             <CodeBlock title="Opus 4.8" lang="Python" code={OPUS_CODE} accent="#facc15" />
             <CodeBlock title="GPT-5.5"  lang="Python" code={GPT_CODE}  accent="#ffffff" />
