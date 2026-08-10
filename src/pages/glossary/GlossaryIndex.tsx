@@ -132,18 +132,19 @@ const GlossaryIndex = () => {
               >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-xl font-light text-foreground">{e.term}</h3>
-
-                <ArrowUpRight
-                  className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-                {e.oneLine}
-              </p>
-            </Link>
-          ))}
+                  <ArrowUpRight
+                    className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
+                  {e.oneLine}
+                </p>
+              </Link>
+            ))}
+          </div>
         </section>
+
       </main>
 
       <SiteFooter />
