@@ -2065,6 +2065,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const { PATTERN_RECOGNITION_KERNEL, PATTERN_OPERATOR_ROSTER, buildPatternEmphasis } =
       await import("../_shared/patternRecognitionEngine.ts");
     const _patternEmphasis = buildPatternEmphasis(_lastUserText);
+    // Domain atlas — WHERE to look. 28 terrains / 274 subdomains. Resident
+    // index + terrain records gated to the two domains this message enters.
+    const { DOMAIN_ATLAS_INDEX, buildDomainEmphasis } =
+      await import("../_shared/domainAtlas.ts");
+    const _domainEmphasis = buildDomainEmphasis(_lastUserText);
+
 
     // ── TURN RELEVANCE — decide what this message actually needs ──────────
     // The prompt below used to be unconditional: every message, including
