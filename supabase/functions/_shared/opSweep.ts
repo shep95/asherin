@@ -72,6 +72,12 @@ export async function runOpSweep(
   const networks = (netRes.data ?? []) as unknown as OpNetwork[];
   const prior = new Map((openRes.data ?? []).map((r: any) => [r.code, r]));
 
+  // Radio and identity legs are not re-collected here — they are already
+  // measured elsewhere in the platform. Re-deriving them would create a second
+  // source of truth that could disagree with the first, so the OP layer reads
+  // the existing ledgers and folds them in as ordinary signals instead.
+  signals.push(...(await ingestRadioAndIdentity(db, userId, userEmail, devices, now)));
+
   const findings = correlate({ now, devices, signals, networks });
   const post = posture(findings, devices);
 
