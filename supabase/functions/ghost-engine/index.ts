@@ -60,7 +60,7 @@ const BUCKET = "ghost-buffer";
 type Action =
   | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
   | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin"
-  | "upload" | "timeline" | "identifier";
+  | "upload" | "timeline" | "identifier" | "artifact" | "artifactHistory";
 
 
 
