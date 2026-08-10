@@ -1886,6 +1886,7 @@ Deno.serve(async (req) => {
           convergedAtHop: report.convergedAtHop,
           stopReason: report.stopReason,
           totalQueries: report.totalQueries,
+          anchorRescued,
           mergedDocuments: mergedHopDocs,
           totalMs: report.totalMs,
         };
