@@ -30,6 +30,7 @@ const SignalSchema = z.object({
 });
 
 const Body = z.object({
+  token: z.string().min(32).max(200).optional(),
   action: z.enum(["enroll", "report", "state", "trust", "revoke", "acknowledge", "action-outcome", "settings", "sweep"]),
   deviceId: z.string().min(8).max(120).optional(),
   label: z.string().max(120).nullable().optional(),
@@ -64,19 +65,61 @@ Deno.serve(async (req) => {
   const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
   const authHeader = req.headers.get("Authorization") ?? "";
 
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return json({ error: "Malformed request body." }, 400);
+  }
+  const parsed = Body.safeParse(raw);
+  if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
+  const b = parsed.data;
+
+  // ── TIER 2 ─ background worker, opaque device token ────────────────────
+  // The worker outlives the tab but holds no session, so it authenticates with
+  // the same revocable single-capability token the Sentinel already mints. It
+  // is allowed exactly one action — filing a presence reading — and can never
+  // read the ledger, change the roster, or act. Least privilege by shape, not
+  // by promise.
+  if (b.token) {
+    if (b.action !== "report") return json({ error: "Token auth permits reporting only." }, 403);
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(b.token));
+    const tokenHash = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const { data: dev } = await admin.from("sentinel_devices").select("user_id,revoked").eq("token_hash", tokenHash).maybeSingle();
+    if (!dev || dev.revoked) return json({ error: "Unknown or revoked device token." }, 403);
+    if (!b.deviceId) return json({ error: "deviceId required" }, 400);
+
+    const { data: roster } = await admin.from("op_devices").select("device_id,revoked").eq("user_id", dev.user_id).eq("device_id", b.deviceId).maybeSingle();
+    if (!roster || roster.revoked) return json({ error: "Device is not on this account roster." }, 403);
+
+    const stamp = new Date().toISOString();
+    const rows = (b.signals ?? []).slice(0, 8).map((s) => ({
+      user_id: dev.user_id,
+      device_id: b.deviceId!,
+      signal_type: s.type,
+      verdict: s.verdict,
+      confidence: Math.min(s.confidence, 0.5), // a worker sees less; it may claim less
+      network_key: s.networkKey ?? null,
+      lat: s.lat ?? null,
+      lng: s.lng ?? null,
+      accuracy: s.accuracy ?? null,
+      runtime_tier: "background",
+      evidence: s.evidence,
+      observed_at: s.observedAt ?? stamp,
+    }));
+    if (rows.length) await admin.from("op_signals").insert(rows);
+    await admin.from("op_devices").update({ last_report_at: stamp, last_tier: "background", updated_at: stamp })
+      .eq("user_id", dev.user_id).eq("device_id", b.deviceId);
+    // Correlation stays on the server clock: a background beacon must be cheap.
+    await admin.from("op_cron_state").upsert({ user_id: dev.user_id, enabled: true, next_due_at: stamp }, { onConflict: "user_id" });
+    return json({ ok: true, tier: "background" });
+  }
+
   const db = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
   const { data: auth } = await db.auth.getUser();
   const user = auth?.user;
   if (!user) return json({ error: "Authentication required." }, 401);
-
-  let parsed;
-  try {
-    parsed = Body.safeParse(await req.json());
-  } catch {
-    return json({ error: "Malformed request body." }, 400);
-  }
-  if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-  const b = parsed.data;
   const nowIso = new Date().toISOString();
 
   try {
