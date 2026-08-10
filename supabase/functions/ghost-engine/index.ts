@@ -90,6 +90,9 @@ interface GhostRequest {
   maxHosts?: number;
   /** action=upload — an artefact the operator holds rather than a link. */
   file?: { filename?: string; contentType?: string; base64?: string };
+  /** action=artifact / artifactHistory — ledger scoping. */
+  filename?: string;
+  source?: string;
   /** action=timeline — reach back through the capture archives. */
   fromYear?: number;
   hosts?: string[];
