@@ -63,18 +63,18 @@ const AiStackForIndianStartups = () => (
       id="ai-stack-for-indian-startups-faq"
       items={[
         {
-          question: "What is the real AI stack problem for Indian startups?",
-          answer:
+          q: "What is the real AI stack problem for Indian startups?",
+          a:
             "The real problem is not compute or funding. It is instruction overhead. When a startup layers too many instructions on top of a model before each response, it burns the context window and output ceiling. The fix is thinking patterns: compressed, internalized logic that lets the model reason without a wall of setup tokens every call.",
         },
         {
-          question: "Can an Indian startup compete with funded American AI companies?",
-          answer:
+          q: "Can an Indian startup compete with funded American AI companies?",
+          a:
             "Yes, if the startup focuses on workflow logic rather than raw model budget. Open-source models like Mistral can run anywhere and, when engineered with the right prompt architecture, can outperform models that cost 100 times more to access.",
         },
         {
-          question: "What is the difference between a workflow and workflow logic?",
-          answer:
+          q: "What is the difference between a workflow and workflow logic?",
+          a:
             "A workflow is how AI moves through a problem. Logic is how it thinks inside each step. Workflow logic is what happens when those two are engineered together so the AI does not just answer, it reasons through a system.",
         },
       ]}
