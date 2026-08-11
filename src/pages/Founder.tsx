@@ -403,6 +403,30 @@ const Founder = () => {
 
       <SectionDivider variant="diamond" glyph="❖" />
 
+      {/* The Book That Answers Everything */}
+      <div id="book" className="relative z-10 px-6 py-28 sm:py-36 scroll-mt-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <span className="founder-eyebrow mb-6">Chapter · 04 · The Book</span>
+            <h2 className="mt-6 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.025em] leading-[1.02] text-foreground">
+              The Book That Answers Everything
+            </h2>
+            <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-[1.75] text-foreground/75">
+              Read it here, page by page, in full. Scroll inside the reader — or take it with you.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <ReadingTime minutes={90} />
+            </div>
+          </div>
+
+          <FounderBook />
+        </div>
+      </div>
+
+      <SectionDivider variant="plain" />
+
+
+
 
 
 
