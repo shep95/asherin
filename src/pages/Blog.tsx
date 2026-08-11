@@ -612,8 +612,9 @@ const Blog = () => {
             </span>
           </div>
 
-          <div className="mt-4 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
-            <div className="flex w-max items-center gap-2 pb-1">
+          <div className="mt-4 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible scrollbar-none">
+            <div className="flex w-max sm:w-auto sm:flex-wrap items-center gap-2 pb-1">
+
               {tags.map((t) => {
                 const active = tagFilter === t;
                 return (
