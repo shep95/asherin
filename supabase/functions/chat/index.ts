@@ -2764,8 +2764,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
               try {
                 const parsed = JSON.parse(jsonStr);
                 if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                  const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta.text } }] });
-                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                  await emitText(parsed.delta.text);
                 } else if (parsed.type === "message_delta" && /max_tokens|length/i.test(String(parsed.delta?.stop_reason || ""))) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: Anthropic stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
