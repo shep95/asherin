@@ -297,7 +297,60 @@ export function extractJson(raw: string): string | null {
     }
   }
 
-  return tryParse(looseFix(text));
+  const loose = tryParse(looseFix(text));
+  if (loose !== null) return loose;
+
+  // Last resort: the response was cut off mid-object by the output-token cap
+  // (common on reasoning models that spend budget before emitting). Close what
+  // is open rather than discarding a nearly complete payload.
+  return repairTruncatedJson(text);
+}
+
+/**
+ * Rebuild a parseable value from JSON that stops mid-stream.
+ * Chops back to the last position that can be legally closed, then closes it.
+ * Never invents keys or values — only terminates open strings/containers.
+ */
+export function repairTruncatedJson(raw: string, maxChops = 600): string | null {
+  const start = Math.min(
+    ...[raw.indexOf("{"), raw.indexOf("[")].filter((i) => i >= 0),
+  );
+  if (!Number.isFinite(start)) return null;
+  const body = raw.slice(start);
+
+  for (let chop = 0; chop <= Math.min(maxChops, body.length - 1); chop++) {
+    const slice = body.slice(0, body.length - chop).replace(/[\s,:]+$/, "");
+    if (!slice) break;
+    const closed = closeOpenStructures(slice);
+    if (closed === null) continue;
+    const parsed = tryParse(closed) ?? tryParse(looseFix(closed));
+    if (parsed !== null) return parsed;
+  }
+  return null;
+}
+
+function closeOpenStructures(s: string): string | null {
+  const stack: string[] = [];
+  let inStr = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (esc) { esc = false; continue; }
+    if (ch === "\\") { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") {
+      const open = stack.pop();
+      if (!open) return null;
+      if ((ch === "}") !== (open === "{")) return null;
+    }
+  }
+  let out = s;
+  if (esc) out = out.slice(0, -1);
+  if (inStr) out += '"';
+  out = out.replace(/[\s,:]+$/, "");
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === "{" ? "}" : "]";
+  return out;
 }
 
 function tryParse(s: string): string | null {
