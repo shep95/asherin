@@ -1,0 +1,13 @@
+name = "asherin-edge-deny"
+main = "worker-edge-deny.js"
+compatibility_date = "2026-01-01"
+
+# Both apex and www must be covered; a rule on one host only leaves the other
+# answering the SPA shell on /.git/*.
+[[routes]]
+pattern = "asherin.com/*"
+zone_name = "asherin.com"
+
+[[routes]]
+pattern = "www.asherin.com/*"
+zone_name = "asherin.com"
