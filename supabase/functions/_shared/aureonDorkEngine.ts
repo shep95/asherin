@@ -393,33 +393,28 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
 export function formatDorkContext(r: DorkReport): string {
   const lines: string[] = [];
   const withHits = r.topExposures.filter((t) => t.hits.length > 0);
-  const dry = r.topExposures.filter((t) => t.tested && t.hits.length === 0);
+  const dryCount = r.topExposures.filter((t) => t.tested && t.hits.length === 0).length;
 
-  lines.push(`### ASHERIN ENGINE — DORK BATTERY (${r.theoriesGenerated} theories, ${r.theoriesTested} tested, ${r.totalHits} hits, ${(r.elapsedMs / 1000).toFixed(1)}s)`);
+  lines.push(`### ASHERIN ENGINE — DORK BATTERY (${r.theoriesGenerated} theories, ${r.theoriesTested} tested, ${withHits.length} returned evidence, ${r.totalHits} hits, ${(r.elapsedMs / 1000).toFixed(1)}s)`);
   lines.push(`Target: **${r.target.subject}** (${r.target.kind})`);
   lines.push("");
 
+  // Rule: only theories that produced evidence are reported. Dry theories are
+  // counted, not enumerated — the operator asked for what worked, not the log.
   lines.push(`**Theories that returned evidence (${withHits.length}):**`);
   if (withHits.length === 0) {
-    lines.push("- _No tested theory produced a hit — surface reads clean._");
+    lines.push(`- _No tested theory produced a hit — surface reads clean this pass. ${dryCount} elite theories tested with zero return; ask for "do more" to run a fresh pass with rotated operators._`);
   } else {
     for (const [i, t] of withHits.entries()) {
       lines.push(`${i + 1}. \`${t.query}\` · ${t.category} · score=${t.yieldScore} · markers=[${t.markers.join(", ") || "—"}]`);
-      // Every hit as a clickable markdown link with host + snippet.
       for (const h of t.hits) {
         const label = (h.title || h.host || h.url).replace(/[\[\]]/g, "").slice(0, 140);
         const snip = h.snippet ? ` — ${h.snippet.slice(0, 180)}` : "";
         lines.push(`   - [${label}](${h.url}) \`${h.host}\`${snip}`);
       }
     }
-  }
-
-  if (dry.length) {
     lines.push("");
-    lines.push(`**Theories tested with zero hits (${dry.length}):** _absence-of-evidence, still probative._`);
-    for (const t of dry.slice(0, 40)) {
-      lines.push(`- \`${t.query}\` · ${t.category}`);
-    }
+    lines.push(`_${dryCount} additional elite theories tested with zero return this pass — say "do more" to run another pass with rotated operators._`);
   }
 
   if (r.brief) {
