@@ -325,7 +325,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <FaqJsonLd
       id="personalities-are-not-thinking-patterns"
-      faqs={[
+      items={[
         {
           question: "what is the difference between an ai persona and a thinking pattern?",
           answer:
