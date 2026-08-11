@@ -81,13 +81,20 @@ const TLD_MAP: Record<string, string> = {
   ".gov.au": "au", ".edu.au": "au", ".gov.in": "in", ".gov.br": "br",
 };
 
+// Extensions that make a "domain-shaped" token actually a filename. Without
+// this guard "fix index.ts" and "open report.pdf" look like domains and the
+// implicit layer would fire a 100-theory battery on a source file.
+const FILE_EXT_RE = /\.(ts|tsx|js|jsx|json|md|txt|pdf|docx?|xlsx?|csv|png|jpe?g|gif|svg|webp|mp4|mov|zip|tar|gz|py|rb|go|rs|java|c|cpp|h|sh|yml|yaml|toml|lock|env|sql|html?|css|scss)$/i;
+
 function extractDomain(text: string): string | null {
   const m = text.match(DOMAIN_RE);
   if (!m) return null;
   const d = m[0].toLowerCase();
   if (/^(e\.g|i\.e|vs|etc|inc|co)\./i.test(d)) return null;
+  if (FILE_EXT_RE.test(d)) return null;
   return d;
 }
+
 function looksLikeProperName(text: string): string | null {
   const m = text.match(/\b([A-Z][a-z]{1,15})(?:\s+([A-Z][a-z]{1,15})){1,3}\b/);
   return m ? m[0] : null;
