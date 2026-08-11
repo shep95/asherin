@@ -13,7 +13,9 @@ const sections: { id: string; label: string }[] = [
   { id: "manifesto", label: "The Wound of Worship" },
   { id: "note", label: "A Personal Note" },
   
+  { id: "book", label: "The Book" },
   { id: "videos", label: "The Archives" },
+
   { id: "imagines", label: "The Teachings" },
 ];
 
