@@ -12,7 +12,7 @@ const sections: { id: string; label: string }[] = [
   { id: "humanity", label: "For Humanity" },
   { id: "manifesto", label: "The Wound of Worship" },
   { id: "note", label: "A Personal Note" },
-  { id: "ebook", label: "The Library" },
+  
   { id: "videos", label: "The Archives" },
   { id: "imagines", label: "The Teachings" },
 ];
