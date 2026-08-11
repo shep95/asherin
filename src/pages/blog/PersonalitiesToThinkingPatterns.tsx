@@ -86,7 +86,7 @@ const PersonalitiesToThinkingPatterns = () => (
         loading="lazy"
         width={1568}
         height={1010}
-        className="w-full rounded-xl border border-border/15"
+        className="w-full rounded-xl border border-border/15 bg-white"
       />
     }
   >
