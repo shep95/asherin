@@ -1507,7 +1507,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const report = await Promise.race([
           runAureonDork(
             { subject: resolvedSubject, kind: engineKind, hints: trig.hints },
-            { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 999, concurrency: 24, perQueryTimeoutMs: 10000, skipBrief: false },
+            { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 999, concurrency: 24, perQueryTimeoutMs: 10000, skipBrief: false, depth: continuationDepth },
           ),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 120000)),
         ]);
