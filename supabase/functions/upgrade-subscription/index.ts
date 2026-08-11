@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { BillingAuthError, BillingConfigError, billingError, requireBillingUser } from "../_shared/billingHttp.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const logStep = (step: string, details?: any) => {
@@ -36,15 +37,9 @@ serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) throw new BillingConfigError();
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Not authenticated");
+    const user = await requireBillingUser(req, (t) => supabaseClient.auth.getUser(t) as any);
     logStep("User authenticated", { email: user.email });
 
     const { action, targetTier } = await req.json();
@@ -228,12 +223,6 @@ serve(async (req) => {
       throw new Error(`Unknown action: ${action}`);
     }
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: msg });
-    return new Response(
-      // CWE-209: generic client-facing message; details stay in server logs.
-      JSON.stringify({ error: "Subscription update failed." }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    return billingError(error, corsHeaders, "UPGRADE-SUBSCRIPTION");
   }
 });
