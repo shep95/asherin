@@ -186,6 +186,12 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const none = (reason: string): DorkTrigger => ({ fire: false, subject: "", kind: "topic", selfTarget: false, hints: {}, reason });
   if (!text || text.length < 4) return none("empty");
 
+  // Teaching question about the capability itself ("explain what a dork is")
+  // is not a request to run one — answer it, don't sweep.
+  if (/\b(explain|what\s+(is|are)|what's|how\s+(do|does|can)|define|teach\s+me|meaning\s+of)\b[^?]{0,40}\bdork(s|ing)?\b/i.test(text)) {
+    return none("meta_question");
+  }
+
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
   const softFire = SOFT_VERBS.test(text) && SOFT_OBJECTS.test(text);
 
