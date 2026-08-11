@@ -130,7 +130,11 @@ const FounderBook = () => {
         canvas.style.height = "auto";
         const ctx = canvas.getContext("2d", { alpha: false });
         if (!ctx) return;
-        entry.task = page.render({ canvasContext: ctx, viewport });
+        // pdf.js does not paint a page background; with alpha:false an unpainted
+        // canvas is black, so the sheet must be primed white first.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        entry.task = page.render({ canvasContext: ctx, viewport, background: "#ffffff" });
         await entry.task.promise;
       } catch {
         renderedRef.current.delete(pageNum);
