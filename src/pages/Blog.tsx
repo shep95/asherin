@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 
 /**
  * /blog — Blog index. Lists every long-form article under /blog/*.
