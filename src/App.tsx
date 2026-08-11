@@ -170,6 +170,7 @@ const App = () => (
             <Route path="/ziaassets" element={<Ziaassets />} />
             <Route path="/ZIAASSETS" element={<Ziaassets />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/security-policy" element={<SecurityPolicy />} />
             <Route path="/founder" element={<Founder />} />
             <Route path="/asher" element={<Asher />} />
             <Route path="/forums" element={<Forums />} />
