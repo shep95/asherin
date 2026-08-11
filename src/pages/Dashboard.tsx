@@ -1543,8 +1543,8 @@ const Dashboard = () => {
       
       case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
-        <>
-          {/* Standard vs Algorithm toggle removed — all chat now runs on the user's BYOK model. */}
+        <div className="flex h-full w-full min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col">
         <ChatView
           conversation={activeConv}
           onSendMessage={sendMessage}
@@ -1575,8 +1575,11 @@ const Dashboard = () => {
           activeBrainId={activeBrainId}
           onBrainChange={setActiveBrainId}
         />
-        </>
+          </div>
+          <PromptEnhancerPanel conversation={activeConv} />
+        </div>
       ) : (
+
         <div className="flex h-full w-full items-center justify-center px-6">
           <div className="max-w-md text-center space-y-4">
             <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
