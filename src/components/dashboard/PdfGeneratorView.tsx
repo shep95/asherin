@@ -254,30 +254,47 @@ const PdfGeneratorView = () => {
   const removeSection = (id: string) =>
     setSections(prev => prev.filter(s => s.id !== id));
 
-  // Live-paginated preview pages (re-runs whenever content changes)
+  // Live-paginated preview pages — debounced so typing never fights the
+  // layout engine, and capped so a 200-page book doesn't mount 200 page nodes.
   const [previewPages, setPreviewPages] = useState<string[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const timer = window.setTimeout(async () => {
+      if (document.fonts?.ready) await document.fonts.ready;
       if (cancelled) return;
       const pages = paginateSections(pdfSections, title, author);
-      if (!cancelled) setPreviewPages(pages.length ? pages : [""]);
-    };
-    run();
-    return () => { cancelled = true; };
+      if (cancelled) return;
+      setTotalPages(pages.length);
+      setPreviewPages(pages.length ? pages.slice(0, PREVIEW_PAGE_LIMIT) : [""]);
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [pdfSections, title, author]);
 
   const exportPdf = useCallback(async () => {
     setGenerating(true);
+    setExportError(null);
+    setProgress(null);
+    const scratch: HTMLElement[] = [];
+    const mount = (css: string, html: string) => {
+      const el = document.createElement("div");
+      el.style.cssText = css;
+      el.innerHTML = sanitizePdfHtml(html);
+      document.body.appendChild(el);
+      scratch.push(el);
+      return el;
+    };
+
     try {
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      if (document.fonts?.ready) await document.fonts.ready;
       const pages = paginateSections(pdfSections, title, author);
       if (pages.length === 0) pages.push("");
+      setProgress({ done: 0, total: pages.length });
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [432, 648], compress: true });
 
-      // Preload wallpaper once
+      // Wallpaper must be decoded before rasterization or html2canvas paints an
+      // empty plate. Resolve on error too — a missing file degrades to plain ink.
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => resolve();
@@ -285,43 +302,74 @@ const PdfGeneratorView = () => {
         img.src = wallpaperSrc;
       });
 
-      for (let i = 0; i < pages.length; i++) {
-        const pageEl = document.createElement("div");
-        pageEl.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:#0a0a0a;`;
-        pageEl.innerHTML = sanitizePdfHtml(`
-          <div style="position:absolute;inset:0;background-image:url(${wallpaperSrc});background-size:cover;background-position:center;opacity:${bgOpacity};"></div>
-          <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
-          <div style="position:absolute;top:${PAGE_PAD_Y - 14}px;left:${PAGE_PAD_X - 14}px;right:${PAGE_PAD_X - 14}px;bottom:${PAGE_PAD_Y - 14}px;border:1px solid rgba(216,200,154,0.45);border-radius:2px;pointer-events:none;"></div>
-          <div style="position:absolute;top:${PAGE_PAD_Y - 8}px;left:${PAGE_PAD_X - 8}px;right:${PAGE_PAD_X - 8}px;bottom:${PAGE_PAD_Y - 8}px;border:1px solid rgba(216,200,154,0.18);pointer-events:none;"></div>
-          <div style="position:absolute;top:${PAGE_PAD_Y}px;left:${PAGE_PAD_X}px;width:${PAGE_W - PAGE_PAD_X * 2}px;height:${PAGE_H - PAGE_PAD_Y * 2 - PAGE_SAFE_GAP}px;overflow:hidden;z-index:10;word-wrap:break-word;overflow-wrap:break-word;">
-            ${pages[i]}
-          </div>
-          <div style="position:absolute;bottom:${PAGE_PAD_Y - 28}px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;z-index:10;">— ${i + 1} —</div>
-        `);
-        document.body.appendChild(pageEl);
+      // ── Background plate: rasterized ONCE and embedded ONCE (jsPDF dedupes by
+      // alias). Previously every page re-decoded the wallpaper and stored its own
+      // full-bleed JPEG, so a long document meant minutes of work and a file
+      // large enough to exhaust the tab before save() was ever reached.
+      const bgEl = mount(
+        `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:#0a0a0a;`,
+        `<div style="position:absolute;inset:0;background-image:url(${wallpaperSrc});background-size:cover;background-position:center;opacity:${bgOpacity};"></div>
+         <div style="position:absolute;inset:0;background:rgba(10,10,10,${overlayOpacity});"></div>
+         <div style="position:absolute;top:${PAGE_PAD_Y - 14}px;left:${PAGE_PAD_X - 14}px;right:${PAGE_PAD_X - 14}px;bottom:${PAGE_PAD_Y - 14}px;border:1px solid rgba(216,200,154,0.45);border-radius:2px;"></div>
+         <div style="position:absolute;top:${PAGE_PAD_Y - 8}px;left:${PAGE_PAD_X - 8}px;right:${PAGE_PAD_X - 8}px;bottom:${PAGE_PAD_Y - 8}px;border:1px solid rgba(216,200,154,0.18);"></div>`,
+      );
+      const bgCanvas = await html2canvas(bgEl, {
+        backgroundColor: "#0a0a0a",
+        scale: 1.5,
+        useCORS: true,
+        windowWidth: PAGE_W,
+        windowHeight: PAGE_H,
+        logging: false,
+        imageTimeout: 15000,
+      });
+      const bgData = bgCanvas.toDataURL("image/jpeg", 0.82);
 
+      for (let i = 0; i < pages.length; i++) {
+        // Text layer only — transparent so it composites over the shared plate.
+        const pageEl = mount(
+          `position:fixed;left:-99999px;top:0;width:${PAGE_W}px;height:${PAGE_H}px;overflow:hidden;background:transparent;`,
+          `<div style="position:absolute;top:${PAGE_PAD_Y}px;left:${PAGE_PAD_X}px;width:${PAGE_INNER_W}px;height:${PAGE_INNER_H}px;overflow:hidden;word-wrap:break-word;overflow-wrap:break-word;">
+             ${pages[i]}
+           </div>
+           <div style="position:absolute;bottom:${PAGE_PAD_Y - 28}px;left:0;right:0;text-align:center;font-family:${FONT_BODY};font-size:9px;color:#a89968;letter-spacing:0.2em;">— ${i + 1} —</div>`,
+        );
         const canvas = await html2canvas(pageEl, {
-          backgroundColor: "#0a0a0a",
+          backgroundColor: null,
           scale: 1.5,
           useCORS: true,
           windowWidth: PAGE_W,
+          windowHeight: PAGE_H,
           logging: false,
-          imageTimeout: 0,
+          imageTimeout: 15000,
         });
-        document.body.removeChild(pageEl);
+        pageEl.remove();
+        scratch.splice(scratch.indexOf(pageEl), 1);
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.82);
+        const inkData = canvas.toDataURL("image/png");
         if (i > 0) pdf.addPage([432, 648], "portrait");
-        pdf.addImage(imgData, "JPEG", 0, 0, 432, 648, undefined, "FAST");
+        pdf.addImage(bgData, "JPEG", 0, 0, 432, 648, "pdfgen-plate", "FAST");
+        pdf.addImage(inkData, "PNG", 0, 0, 432, 648, undefined, "FAST");
+
+        setProgress({ done: i + 1, total: pages.length });
+        // Yield to the event loop so the progress label paints and the tab
+        // stays responsive instead of looking frozen mid-export.
+        await new Promise((r) => setTimeout(r, 0));
       }
 
-      const safeTitle = (title || "aureon-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+      const safeTitle = (title || "asherin-document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
       pdf.save(`${safeTitle}.pdf`);
     } catch (e) {
       console.error("PDF export error:", e);
+      setExportError(e instanceof Error ? e.message : "Export failed. Try a smaller document or a different background.");
+    } finally {
+      // Scratch nodes are removed on every path — a thrown render used to leave
+      // orphaned 576×864 nodes pinned off-screen for the rest of the session.
+      scratch.forEach((el) => el.remove());
+      setGenerating(false);
+      setProgress(null);
     }
-    setGenerating(false);
   }, [title, author, pdfSections, wallpaperSrc, bgOpacity, overlayOpacity]);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
