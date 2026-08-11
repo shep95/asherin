@@ -72,7 +72,14 @@ Deno.serve(async (req) => {
     return json({ error: "Malformed request body." }, 400);
   }
   const parsed = Body.safeParse(raw);
-  if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
+  if (!parsed.success) {
+    // The validation detail names every action this control plane accepts, so
+    // echoing it hands an unauthenticated caller the whole API vocabulary for
+    // free (CWE-209). Callers get an opaque rejection; the field map is kept
+    // server-side where an operator can still debug a bad client.
+    console.warn("[op-layer] rejected payload", JSON.stringify(parsed.error.flatten().fieldErrors));
+    return json({ error: "Invalid request." }, 400);
+  }
   const b = parsed.data;
 
   // ── TIER 2 ─ background worker, opaque device token ────────────────────
