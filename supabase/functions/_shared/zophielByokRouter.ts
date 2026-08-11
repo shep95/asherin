@@ -10,6 +10,8 @@
  *          zophiel-intel-analysis, zophiel-deep-search.
  */
 
+import { getModelCapability, tierPrompts, extractJson } from './modelCapability.ts';
+
 export type ZophielByokProvider =
   | 'google'
   | 'openai'
@@ -278,7 +280,7 @@ async function callOpenAICompat(
   model: string,
   systemPrompt: string,
   userPrompt: string,
-  opts: { timeoutMs: number; temperature: number; maxOutputTokens?: number; jsonMode: boolean },
+  opts: { timeoutMs: number; temperature: number; maxOutputTokens?: number; jsonMode: boolean; nativeJson?: boolean },
 ): Promise<string> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), opts.timeoutMs);
@@ -305,7 +307,7 @@ async function callOpenAICompat(
         ...(isGpt5Plus
           ? { max_completion_tokens: maxTok }
           : { temperature: opts.temperature, max_tokens: maxTok }),
-        ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        ...(opts.nativeJson ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
     if (!r.ok) {
