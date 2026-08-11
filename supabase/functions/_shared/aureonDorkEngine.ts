@@ -206,13 +206,16 @@ function isBasicDork(q: string, category: DorkCategory): boolean {
 }
 
 // ── Generate 100+ theories in 9 parallel calls (8 canonical + 1 synthesis) ─
-async function generateTheories(target: DorkTarget, geminiKey: string): Promise<{ theories: DorkTheory[]; via: string }> {
+async function generateTheories(target: DorkTarget, geminiKey: string, depth = 0): Promise<{ theories: DorkTheory[]; via: string; rejected: number }> {
   const user = targetToUser(target);
-  // The synthesis call gets the doctrine digest appended so Gemini reasons
-  // over all 55 domains + 10 root causes, not just the target line.
-  const synthesisUser = `${user}\n\n---\n${OPERATOR_MATURITY_LADDER}\n---\n${doctrineDigest()}\n---\n\nOperate at SENIOR tier by default, ELITE when target is a system/org. Produce the 10 NOVEL cross-domain dorks now — no BASIC-tier copy-paste queries.`;
+  // Depth bumps rotate the synthesis seed so successive "do more" passes explore
+  // different operator combinations instead of repeating the same battery.
+  const depthSeed = depth > 0
+    ? `\n\nPASS #${depth + 1} — you have already produced ${depth} earlier batteries for this target. DO NOT repeat prior operator combinations. Pivot: this pass must lean on operator families you have not exercised yet (temporal drift, provenance leak, adjacency, misconfig class, artifact echo, negation refinement, rare-token anchoring). Every theory MUST name the operator that produced it.`
+    : "";
+  const synthesisUser = `${user}\n\n---\n${OPERATOR_MATURITY_LADDER}\n---\n${doctrineDigest()}\n---${depthSeed}\n\nOperate at SENIOR tier by default, ELITE when target is a system/org. Produce the 10 NOVEL cross-domain dorks now — no BASIC-tier copy-paste queries. Every query must compose ≥2 operators or a rare operator with a quoted rare token; single-operator name-only sweeps are forbidden.`;
   const canonical = CAT_PROMPTS.map((c) =>
-    callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw })),
+    callGemini(geminiKey, c.system + " Every query MUST compose ≥2 operators or a rare operator with a quoted rare token — no first-order `site:X \"name\"` sweeps.", user).then((raw) => ({ cat: c.cat, raw })),
   );
   const synthesis = callGemini(geminiKey, NOVEL_SYNTHESIS_SYSTEM, synthesisUser)
     .then((raw) => ({ cat: "novel_synthesis" as DorkCategory, raw }));
@@ -220,6 +223,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
   const theories: DorkTheory[] = [];
   const seen = new Set<string>();
   let successes = 0;
+  let rejected = 0;
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
     successes++;
@@ -227,6 +231,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       const key = q.q.toLowerCase().trim();
       if (seen.has(key)) continue;
       seen.add(key);
+      if (isBasicDork(q.q, r.value.cat)) { rejected++; continue; }
       theories.push({
         id: crypto.randomUUID(),
         category: r.value.cat,
@@ -239,7 +244,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       });
     }
   }
-  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed" };
+  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed", rejected };
 }
 
 // ── zophiel-search delegation ───────────────────────────────────────────────
