@@ -10,18 +10,18 @@ import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSu
  */
 const SubscriptionView = () => {
   return (
-    <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
+    <div data-humble-scope className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
       <div className="mb-10 flex items-center gap-3">
         <Heart className="h-5 w-5 text-foreground/80" />
         <div>
           <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
-            ◈ Aureon · Subscription
+            ◈ Asherin · Subscription
           </p>
           <h1 className="mt-1 text-2xl font-extralight tracking-wide text-foreground">
-            Aureon &amp; Aureon Pro.
+            Asherin &amp; Asherin Pro.
           </h1>
           <p className="mt-1 text-sm font-extralight text-muted-foreground">
-            Two monthly plans. Enterprise priced on request.
+            Two monthly plans, and enterprise priced on request. Cancel whenever it stops being useful.
           </p>
         </div>
       </div>
