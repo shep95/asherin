@@ -121,6 +121,10 @@ export interface TimeMachineReport {
   term_coverage: Array<{ term: string; documents: number; hits: number }>;
   /** The engine's own stages — never an outside corpus. */
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
+  /** True when the wall-clock budget cut a stage short — the report is partial, not empty. */
+  truncated: boolean;
+  /** The wall-clock ceiling this run was given, in ms. */
+  budget_ms: number;
   elapsed_ms: number;
 }
 
