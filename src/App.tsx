@@ -14,6 +14,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const SecurityPolicy = lazy(() => import("./pages/SecurityPolicy"));
 const Founder = lazy(() => import("./pages/Founder"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Asher = lazy(() => import("./pages/Asher"));
@@ -169,6 +170,7 @@ const App = () => (
             <Route path="/ziaassets" element={<Ziaassets />} />
             <Route path="/ZIAASSETS" element={<Ziaassets />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/security-policy" element={<SecurityPolicy />} />
             <Route path="/founder" element={<Founder />} />
             <Route path="/asher" element={<Asher />} />
             <Route path="/forums" element={<Forums />} />
