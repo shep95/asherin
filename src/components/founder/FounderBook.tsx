@@ -121,9 +121,13 @@ const FounderBook = () => {
       try {
         const page = await doc.getPage(pageNum);
         const base = page.getViewport({ scale: 1 });
+        // Correct this page's reserved box if it differs from the projection.
+        const wrapper = canvas.parentElement as HTMLElement | null;
+        if (wrapper) wrapper.style.aspectRatio = `${base.width} / ${base.height}`;
         const dpr = Math.min(window.devicePixelRatio || 1, MAX_CANVAS_DPR);
         const cssScale = targetWidth / base.width;
         const viewport = page.getViewport({ scale: cssScale * dpr });
+
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         canvas.style.width = "100%";
