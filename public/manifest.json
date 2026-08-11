@@ -1,7 +1,7 @@
 {
-  "name": "AUREON",
-  "short_name": "AUREON",
-  "description": "AUREON - Intelligence Without Limits",
+  "name": "Asherin",
+  "short_name": "Asherin",
+  "description": "Asherin — private AI intelligence platform for analysts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
