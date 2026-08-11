@@ -183,7 +183,7 @@ export default {
 
     try {
       const res = await fetch(request);
-      return stripFingerprints(res);
+      return harden(res);
     } catch (err) {
       // Fail-open: never convert an origin hiccup into a worker outage.
       return new Response('Bad Gateway', {
