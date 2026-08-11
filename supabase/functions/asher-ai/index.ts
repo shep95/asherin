@@ -24,6 +24,7 @@ import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchite
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptGuardLayers.ts";
 import { runAxrlenBridge, textStreamToOpenAiSse } from "../_shared/axrlenBridge.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
@@ -272,6 +273,8 @@ function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableSt
   const decoder = new TextDecoder();
   const reader = upstreamBody.getReader();
   let toolIndex = 0;
+  // Layer 3 — exit audit on the tool-capable relay.
+  const _scan1 = createPostInferenceScanner();
 
   return new ReadableStream({
     async start(controller) {
@@ -294,9 +297,12 @@ function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableSt
             const parts = parsed?.candidates?.[0]?.content?.parts ?? [];
             for (const p of parts) {
               if (typeof p?.text === "string" && p.text) {
-                controller.enqueue(encoder.encode(sse({
-                  choices: [{ index: 0, delta: { content: p.text }, finish_reason: null }],
-                })));
+                const safe = _scan1.feed(p.text);
+                if (safe) {
+                  controller.enqueue(encoder.encode(sse({
+                    choices: [{ index: 0, delta: { content: safe }, finish_reason: null }],
+                  })));
+                }
               }
               if (p?.functionCall?.name) {
                 const i = toolIndex++;
@@ -324,6 +330,10 @@ function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableSt
       } catch (e) {
         console.error("[asher-ai] text stream relay:", (e as Error).message);
       } finally {
+        const tail1 = _scan1.flush();
+        if (tail1) {
+          controller.enqueue(encoder.encode(sse({ choices: [{ index: 0, delta: { content: tail1 }, finish_reason: null }] })));
+        }
         controller.enqueue(encoder.encode(sse("[DONE]")));
         controller.close();
         try { reader.releaseLock(); } catch { /* already released */ }
@@ -423,6 +433,19 @@ serve(async (req) => {
     if (cleaned.length === 0) cleaned.push({ role: "user", content: "Hello" });
 
     const hasAttachments = cleaned.some((m) => Array.isArray(m.attachments) && m.attachments.length);
+
+    // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
+    // Same boundary the chat surface holds, applied before any tool leg,
+    // orchestrator, or model call spends a token. It only fires on real harm
+    // with a real victim; osint, mapping, and blunt questions pass untouched.
+    {
+      const _gate = preInferenceGate(latestUserText(cleaned));
+      if (_gate.verdict === "block") {
+        console.warn(`[asher-ai] layer1 block: ${_gate.audit}`);
+        const body = sse({ choices: [{ index: 0, delta: { content: _gate.blockMessage }, finish_reason: null }] }) + sse("[DONE]");
+        return new Response(body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+      }
+    }
 
     // ── Multi-agent orchestrator trigger (/agents, /orchestrate, "run agents:") ──
     // Runs planner→executor→critic→synthesizer over the operator's goal using Gemini.
@@ -598,6 +621,8 @@ serve(async (req) => {
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
+      // Layer 3 — exit audit on the multimodal relay.
+      const _scan2 = createPostInferenceScanner();
       const contents = toGeminiContents(cleaned);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
       const upstream = await fetch(url, {
@@ -643,10 +668,17 @@ serve(async (req) => {
                 const parsed = JSON.parse(json);
                 const text = parsed?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || "").join("") || "";
                 if (text) {
-                  controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: text }, index: 0, finish_reason: null }] })));
+                  const safe = _scan2.feed(text);
+                  if (safe) {
+                    controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: safe }, index: 0, finish_reason: null }] })));
+                  }
                 }
               } catch { /* ignore parse */ }
             }
+          }
+          const tail2 = _scan2.flush();
+          if (tail2) {
+            controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: tail2 }, index: 0, finish_reason: null }] })));
           }
           controller.enqueue(encoder.encode(sse("[DONE]")));
           controller.close();

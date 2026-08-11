@@ -4,6 +4,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
 import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
 import { AXIOMATIC_GROUNDING_DOCTRINE, AXIOMATIC_GROUNDING_ANCHOR } from "../_shared/axiomaticGroundingDoctrine.ts";
+import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptGuardLayers.ts";
 
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
@@ -2117,6 +2118,27 @@ The operator is requesting a defensive security audit / flaw check of their own 
       await import("../_shared/domainAtlas.ts");
     const _domainEmphasis = buildDomainEmphasis(_lastUserText);
 
+    // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
+    // Runs before a single prompt byte is assembled. It holds only the harm
+    // boundary the axioms already stated (real harm, real victim), so nothing
+    // that is merely uncomfortable, political, blunt, or osint-shaped is ever
+    // stopped here. When it fires, the turn never reaches the model at all.
+    const _gate = preInferenceGate(_lastUserText);
+    if (_gate.verdict === "block") {
+      console.warn(`[chat] layer1 block: ${_gate.audit}`);
+      const _enc = new TextEncoder();
+      const _body = new ReadableStream({
+        start(c) {
+          c.enqueue(_enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: _gate.blockMessage } }] })}\n\n`));
+          c.enqueue(_enc.encode("data: [DONE]\n\n"));
+          c.close();
+        },
+      });
+      return new Response(_body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
+
+
 
     // ── TURN RELEVANCE — decide what this message actually needs ──────────
     // The prompt below used to be unconditional: every message, including
@@ -2675,6 +2697,31 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     };
 
+    // ── LAYER 3 — POST-INFERENCE SCANNER ──────────────────────────────────
+    // Every model-authored character leaves through here. It suppresses a
+    // refusal opener layer 1 already ruled out, redacts scaffolding names so
+    // the doctrine never appears inside the answer, and forwards the rest
+    // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
+    // make words flicker as frames arrive.
+    const _scanner = createPostInferenceScanner();
+    const emitText = async (text: string) => {
+      const safe = _scanner.feed(text);
+      if (!safe) return;
+      await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
+    };
+    const flushScanner = async () => {
+      const tail = _scanner.flush();
+      if (tail) {
+        await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`);
+      }
+      const s = _scanner.stats();
+      if (s.refusalSuppressed || s.scaffoldRedactions) {
+        console.warn(`[chat] layer3 refusalSuppressed=${s.refusalSuppressed} redactions=${s.scaffoldRedactions}`);
+      }
+    };
+
+
+
     (async () => {
       try {
         // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
@@ -2702,8 +2749,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
                 const parsed = JSON.parse(jsonStr);
                 const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) {
-                  const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
-                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                  await emitText(text);
                 }
                 const finishReason = parsed.candidates?.[0]?.finishReason;
                 if (finishReason && /MAX_TOKENS|TOKEN|LENGTH/i.test(String(finishReason))) {
@@ -2718,8 +2764,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
               try {
                 const parsed = JSON.parse(jsonStr);
                 if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                  const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta.text } }] });
-                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                  await emitText(parsed.delta.text);
                 } else if (parsed.type === "message_delta" && /max_tokens|length/i.test(String(parsed.delta?.stop_reason || ""))) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: Anthropic stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
@@ -2735,8 +2780,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
               try {
                 const parsed = JSON.parse(jsonStr);
                 if (parsed?.type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
-                  const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta } }] });
-                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                  await emitText(parsed.delta);
                 } else if (parsed?.type === "response.completed" && /length|max_tokens|token/i.test(String(parsed.response?.incomplete_details?.reason || parsed.response?.status || ""))) {
                   const chunk = JSON.stringify({ choices: [{ delta: { content: "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]" } }] });
                   if (!await safeWrite(`data: ${chunk}\n\n`)) return;
@@ -2757,8 +2801,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
                 const parsed = JSON.parse(jsonStr);
                 const content = parsed.choices?.[0]?.delta?.content;
                 if (content) {
-                  const chunk = JSON.stringify({ choices: [{ delta: { content } }] });
-                  if (!await safeWrite(`data: ${chunk}\n\n`)) return;
+                  await emitText(content);
                 }
                 const finishReason = parsed.choices?.[0]?.finish_reason;
                 if (finishReason && /length|max_tokens|token/i.test(String(finishReason))) {
@@ -2769,6 +2812,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
             }
           }
         }
+        await flushScanner();
         await safeWrite("data: [DONE]\n\n");
       } catch (e) {
         console.error("stream transform error:", e);
