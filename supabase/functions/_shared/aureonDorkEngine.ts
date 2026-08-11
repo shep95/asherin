@@ -182,14 +182,40 @@ function parseQueries(raw: string): Array<{ q: string; why: string }> {
   }
 }
 
+// ── Basic-dork rejector ─────────────────────────────────────────────────────
+// The doctrine is explicit: no first-order `site:` + name / bare keyword sweeps.
+// Every accepted theory must (a) compose ≥2 dork operators, OR (b) use a rare
+// operator plus a quoted phrase or negation, OR (c) come from novel_synthesis
+// which is elite-by-contract. Everything else is discarded as "basic tier".
+const OP_TOKEN_RE = /(?:^|[\s(])(site|filetype|ext|inurl|intitle|intext|allintitle|allinurl|allintext|cache|related|link|before|after|around|source):/gi;
+const RARE_OP_RE  = /\b(filetype:|ext:|inurl:|intitle:|allintext:|allintitle:|allinurl:|cache:|related:|before:|after:|around\(|source:)/i;
+function isBasicDork(q: string, category: DorkCategory): boolean {
+  if (category === "novel_synthesis") return false; // elite by construction
+  const s = (q || "").trim();
+  if (s.length < 8) return true;
+  const opCount   = (s.match(OP_TOKEN_RE) || []).length;
+  const hasRare   = RARE_OP_RE.test(s);
+  const quoted    = (s.match(/"[^"]{3,}"/g) || []).length;
+  const negations = (s.match(/(?:^|\s)-(?:site:|inurl:|intitle:|[a-z]{3,})/gi) || []).length;
+  // reject `site:linkedin.com "John Doe"` — one op + one quote, no refinement
+  if (opCount <= 1 && !hasRare && quoted <= 1 && negations === 0) return true;
+  if (opCount >= 2 && (hasRare || quoted >= 1 || negations >= 1)) return false;
+  if (hasRare && (quoted >= 1 || negations >= 1 || opCount >= 2)) return false;
+  if (negations >= 2 && (hasRare || opCount >= 2)) return false;
+  return true;
+}
+
 // ── Generate 100+ theories in 9 parallel calls (8 canonical + 1 synthesis) ─
-async function generateTheories(target: DorkTarget, geminiKey: string): Promise<{ theories: DorkTheory[]; via: string }> {
+async function generateTheories(target: DorkTarget, geminiKey: string, depth = 0): Promise<{ theories: DorkTheory[]; via: string; rejected: number }> {
   const user = targetToUser(target);
-  // The synthesis call gets the doctrine digest appended so Gemini reasons
-  // over all 55 domains + 10 root causes, not just the target line.
-  const synthesisUser = `${user}\n\n---\n${OPERATOR_MATURITY_LADDER}\n---\n${doctrineDigest()}\n---\n\nOperate at SENIOR tier by default, ELITE when target is a system/org. Produce the 10 NOVEL cross-domain dorks now — no BASIC-tier copy-paste queries.`;
+  // Depth bumps rotate the synthesis seed so successive "do more" passes explore
+  // different operator combinations instead of repeating the same battery.
+  const depthSeed = depth > 0
+    ? `\n\nPASS #${depth + 1} — you have already produced ${depth} earlier batteries for this target. DO NOT repeat prior operator combinations. Pivot: this pass must lean on operator families you have not exercised yet (temporal drift, provenance leak, adjacency, misconfig class, artifact echo, negation refinement, rare-token anchoring). Every theory MUST name the operator that produced it.`
+    : "";
+  const synthesisUser = `${user}\n\n---\n${OPERATOR_MATURITY_LADDER}\n---\n${doctrineDigest()}\n---${depthSeed}\n\nOperate at SENIOR tier by default, ELITE when target is a system/org. Produce the 10 NOVEL cross-domain dorks now — no BASIC-tier copy-paste queries. Every query must compose ≥2 operators or a rare operator with a quoted rare token; single-operator name-only sweeps are forbidden.`;
   const canonical = CAT_PROMPTS.map((c) =>
-    callGemini(geminiKey, c.system, user).then((raw) => ({ cat: c.cat, raw })),
+    callGemini(geminiKey, c.system + " Every query MUST compose ≥2 operators or a rare operator with a quoted rare token — no first-order `site:X \"name\"` sweeps.", user).then((raw) => ({ cat: c.cat, raw })),
   );
   const synthesis = callGemini(geminiKey, NOVEL_SYNTHESIS_SYSTEM, synthesisUser)
     .then((raw) => ({ cat: "novel_synthesis" as DorkCategory, raw }));
@@ -197,6 +223,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
   const theories: DorkTheory[] = [];
   const seen = new Set<string>();
   let successes = 0;
+  let rejected = 0;
   for (const r of results) {
     if (r.status !== "fulfilled") continue;
     successes++;
@@ -204,6 +231,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       const key = q.q.toLowerCase().trim();
       if (seen.has(key)) continue;
       seen.add(key);
+      if (isBasicDork(q.q, r.value.cat)) { rejected++; continue; }
       theories.push({
         id: crypto.randomUUID(),
         category: r.value.cat,
@@ -216,7 +244,7 @@ async function generateTheories(target: DorkTarget, geminiKey: string): Promise<
       });
     }
   }
-  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed" };
+  return { theories, via: successes >= 5 ? "gemini_parallel_v2" : successes > 0 ? "gemini_partial_v2" : "gemini_failed", rejected };
 }
 
 // ── zophiel-search delegation ───────────────────────────────────────────────
@@ -318,12 +346,14 @@ export interface RunOptions {
   concurrency?: number;     // default 15
   perQueryTimeoutMs?: number; // default 18000
   skipBrief?: boolean;
+  depth?: number;           // continuation pass counter — rotates synthesis seed
 }
 
 export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promise<DorkReport> {
   const t0 = Date.now();
-  const { theories, via } = await generateTheories(target, opts.geminiKey);
+  const { theories, via, rejected } = await generateTheories(target, opts.geminiKey, opts.depth || 0);
   const testCap = Math.min(opts.testCap ?? 50, theories.length);
+  if (rejected) console.log(`[aureon-dork] rejected ${rejected} basic-tier theories`);
 
   // Heuristic pre-rank: high-signal operator tokens + novel_synthesis (first-to-find) go first.
   const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws", "crt.sh", "form 4", "form 990", "warning letter", "orcid.org", "opencorporates"];
@@ -363,33 +393,28 @@ export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promi
 export function formatDorkContext(r: DorkReport): string {
   const lines: string[] = [];
   const withHits = r.topExposures.filter((t) => t.hits.length > 0);
-  const dry = r.topExposures.filter((t) => t.tested && t.hits.length === 0);
+  const dryCount = r.topExposures.filter((t) => t.tested && t.hits.length === 0).length;
 
-  lines.push(`### ASHERIN ENGINE — DORK BATTERY (${r.theoriesGenerated} theories, ${r.theoriesTested} tested, ${r.totalHits} hits, ${(r.elapsedMs / 1000).toFixed(1)}s)`);
+  lines.push(`### ASHERIN ENGINE — DORK BATTERY (${r.theoriesGenerated} theories, ${r.theoriesTested} tested, ${withHits.length} returned evidence, ${r.totalHits} hits, ${(r.elapsedMs / 1000).toFixed(1)}s)`);
   lines.push(`Target: **${r.target.subject}** (${r.target.kind})`);
   lines.push("");
 
+  // Rule: only theories that produced evidence are reported. Dry theories are
+  // counted, not enumerated — the operator asked for what worked, not the log.
   lines.push(`**Theories that returned evidence (${withHits.length}):**`);
   if (withHits.length === 0) {
-    lines.push("- _No tested theory produced a hit — surface reads clean._");
+    lines.push(`- _No tested theory produced a hit — surface reads clean this pass. ${dryCount} elite theories tested with zero return; ask for "do more" to run a fresh pass with rotated operators._`);
   } else {
     for (const [i, t] of withHits.entries()) {
       lines.push(`${i + 1}. \`${t.query}\` · ${t.category} · score=${t.yieldScore} · markers=[${t.markers.join(", ") || "—"}]`);
-      // Every hit as a clickable markdown link with host + snippet.
       for (const h of t.hits) {
         const label = (h.title || h.host || h.url).replace(/[\[\]]/g, "").slice(0, 140);
         const snip = h.snippet ? ` — ${h.snippet.slice(0, 180)}` : "";
         lines.push(`   - [${label}](${h.url}) \`${h.host}\`${snip}`);
       }
     }
-  }
-
-  if (dry.length) {
     lines.push("");
-    lines.push(`**Theories tested with zero hits (${dry.length}):** _absence-of-evidence, still probative._`);
-    for (const t of dry.slice(0, 40)) {
-      lines.push(`- \`${t.query}\` · ${t.category}`);
-    }
+    lines.push(`_${dryCount} additional elite theories tested with zero return this pass — say "do more" to run another pass with rotated operators._`);
   }
 
   if (r.brief) {
