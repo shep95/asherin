@@ -221,7 +221,7 @@ const FounderBook = () => {
           </button>
           <a
             href={BOOK_URL}
-            download="the-book-that-answers-everything.pdf"
+            download="the-book-of-asher-aureon-elion.pdf"
             className="ml-1 inline-flex items-center gap-2 rounded-lg border border-border/25 px-3 py-1.5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/75 transition-colors hover:border-border/50 hover:text-foreground"
           >
             <Download className="h-3 w-3" /> Download
