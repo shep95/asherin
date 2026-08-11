@@ -82,6 +82,17 @@ const CSAM_MINOR: Signal[] = [
   { name: "minor_age_words", test: /\b(child(ren)?|kid|minor|underage|pre[- ]?teen|preteen|toddler|infant|baby|newborn|schoolgirl|schoolboy)\b/i },
   { name: "minor_age_number", test: /\b(?:age(?:d)?\s*)?(?:[0-9]|1[0-7])\s*(?:yo|y\/o|year[-\s]?old|yrs?[-\s]?old)\b/i },
 ];
+// Third signal for category 1: the ask must be GENERATIVE or ACQUISITIVE.
+// Without it, the pair "minor + sexual" is what every safeguarding, forensic,
+// investigative, prosecutorial, and child-protection question looks like — all
+// of which this platform must answer.
+const CSAM_SOLICIT: Signal[] = [
+  { name: "solicit_generate", test: /\b(generate|create|render|draw|produce|write (?:me|a)|roleplay|role[- ]play|act as|simulate)\b/i },
+  { name: "solicit_acquire", test: /\b(download|where (?:can|do) i (?:get|find)|share|send me|link to|source for|access)\b/i },
+];
+// Analytic framing that makes the turn protective rather than predatory.
+const CSAM_PROTECTIVE = /\b(forensic|signature|indicator|detect|detection|safeguard|protect|prevent|report(?:ing)?|investigat|prosecut|law enforcement|policy|research|statistic|survivor|awareness|warning sign)\w*/i;
+
 const CSAM_SEX: Signal[] = [
   { name: "sex_explicit", test: /\b(porn|pornograph|nude|naked|sex(ual)?|erotic|fondle|molest|rape|grooming|genital|arousal|masturbat)\w*/i },
 ];
@@ -130,7 +141,8 @@ export function preInferenceGate(userText: string): Layer1Result {
 
   const csamA = anyHit(text, CSAM_MINOR);
   const csamB = anyHit(text, CSAM_SEX);
-  if (csamA && csamB) {
+  const csamC = anyHit(text, CSAM_SOLICIT);
+  if (csamA && csamB && csamC && !CSAM_PROTECTIVE.test(text)) {
     return {
       verdict: "block",
       reasonCode: "csam",
@@ -138,7 +150,7 @@ export function preInferenceGate(userText: string): Layer1Result {
         "i will not produce anything involving the sexualisation of a minor. " +
         "this is a first-principles boundary — the victim is real and cannot consent. " +
         "if you were asking about safeguarding, reporting, or the forensic signatures of grooming, ask that directly and i will answer it in full.",
-      audit: `csam:${csamA}+${csamB}`,
+      audit: `csam:${csamA}+${csamB}+${csamC}`,
     };
   }
 
