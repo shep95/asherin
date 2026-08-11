@@ -320,7 +320,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
-              <span className="sr-only">Asherin, uncensored AI intelligence platform: </span>
+              <span className="sr-only">asherin, a private ai research workspace: </span>
               <span aria-hidden="true">look a little</span>
               <br />
               <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">closer.</span>
@@ -431,21 +431,21 @@ const Index = () => {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/[0.04] px-3 py-1 mb-8">
               <span className="h-1 w-1 rounded-full bg-foreground animate-pulse" />
-              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">The Asherin Difference</span>
+              <span className="text-[10px] font-light tracking-[0.3em] text-foreground/80 uppercase">how asherin approaches the work</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Most AI Gives You <span className="italic font-thin text-muted-foreground/70">Guardrails.</span>
+              ai systems take <span className="italic font-thin text-muted-foreground/70">different approaches.</span>
               <br />
-              Asherin Gives You <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">The Full Picture.</span>
+              asherin gathers <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">relevant sources in one place.</span>
             </h2>
           </div>
 
           {/* Asymmetric bento */}
           <div className="mt-20 grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
-              { n: "01", Icon: AlertCircle, title: "No Artificial Limits", desc: "Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.", span: "md:col-span-5 md:row-span-2", tall: true },
-              { n: "02", Icon: Smile, title: "Truth Over Comfort", desc: "Direct, unvarnished answers written for professionals who value accuracy over politeness.", span: "md:col-span-7" },
-              { n: "03", Icon: AlertTriangle, title: "Production-Grade Code", desc: "Full-stack architecture, multi-file debugging, and working builds, not pseudocode dressed up as solutions.", span: "md:col-span-7" },
+              { n: "01", Icon: AlertCircle, title: "open-ended inquiry", desc: "ask a wide range of questions and receive sources, context, and clear limitations.", span: "md:col-span-5 md:row-span-2", tall: true },
+              { n: "02", Icon: Smile, title: "evidence before certainty", desc: "direct answers that distinguish observed facts, interpretation, and uncertainty.", span: "md:col-span-7" },
+              { n: "03", Icon: AlertTriangle, title: "practical code support", desc: "help with architecture, multi-file debugging, and working builds, with room for review and testing.", span: "md:col-span-7" },
             ].map(({ n, Icon, title, desc, span, tall }) => (
               <div key={n} className={`group relative ${span} rounded-3xl overflow-hidden`}>
                 {/* gradient border */}
@@ -467,7 +467,7 @@ const Index = () => {
                       {tall && (
                         <div className="mt-8 flex items-center gap-2 text-[10px] font-mono tracking-[0.25em] text-foreground/60 uppercase">
                           <span className="h-px w-8 bg-foreground/40" />
-                          Zero-Filter Policy
+                          direct-answer policy
                         </div>
                       )}
                     </div>
@@ -479,9 +479,9 @@ const Index = () => {
 
           <div className="mt-20 text-center">
             <p className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground leading-snug">
-              Not an assistant. An intelligence platform.
+              a research and work platform.
               <br />
-              <span className="italic text-muted-foreground/70">Most people aren't ready for this.</span>
+              <span className="italic text-muted-foreground/70">built to support careful, source-aware work.</span>
             </p>
           </div>
         </div>
@@ -492,9 +492,9 @@ const Index = () => {
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Ask It Anything.
+            bring a question.
             <br />
-            <span className="text-muted-foreground">Watch What Happens When AI Has No Leash.</span>
+            <span className="text-muted-foreground">review the sources, reasoning, and stated limits.</span>
           </h2>
 
           {/* Demo Widget */}
@@ -1247,12 +1247,12 @@ const Index = () => {
               </div>
               <p className="text-[10px] font-mono tracking-[0.35em] text-foreground/40 uppercase mb-4">◈ Prompt Intelligence</p>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-tight leading-[1.05] text-foreground">
-                Get The Best Out
+                get more useful results
                 <br />
-                <span className="text-muted-foreground">Of Your Prompts.</span>
+                <span className="text-muted-foreground">from your prompts.</span>
               </h2>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between a vague answer and a useful one is one step most people skip:
+                a broad first question can be a useful starting point. when context matters, one additional step can make the answer more specific:
               </p>
               <p className="mt-5 text-base font-light tracking-wide text-foreground italic border-l border-foreground/30 pl-4">
                 "Ask Asherin what it needs first."
@@ -1261,7 +1261,7 @@ const Index = () => {
                 Instead of dumping every war in human history into a prompt and asking "predict the next conflict", ask Asherin what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
               </p>
               <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                This is the same principle behind every serious intelligence operation in history. Your best asset isn't the technology, it's the intelligence feeding it. That's why we built <span className="text-foreground font-light">Asherin</span>, and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+                this follows a simple research principle: the usefulness of an analysis depends on the relevance and quality of its inputs. <span className="text-foreground font-light">asherin</span> and <span className="text-foreground font-light">zophiel</span> are intended to help organize that work.
               </p>
 
               <Link to="/dashboard" className="mt-8 inline-flex items-center gap-2 rounded-full border border-foreground/30 bg-foreground/5 backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.18em] uppercase text-foreground transition-all hover:bg-foreground hover:text-background">
@@ -1273,8 +1273,8 @@ const Index = () => {
               <div className="relative rounded-3xl border border-foreground/10 bg-gradient-to-br from-background/60 via-background/30 to-background/10 backdrop-blur-2xl p-7 overflow-hidden">
                 <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-destructive/40 rounded-tl-3xl" />
                 <div className="flex items-center justify-between mb-4">
-                  <p className="font-mono text-[10px] tracking-[0.3em] text-destructive/70 uppercase">◈ How most people prompt</p>
-                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">01 / FAIL</span>
+                  <p className="font-mono text-[10px] tracking-[0.3em] text-destructive/70 uppercase">◈ a broad first prompt</p>
+                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">01 / starting point</span>
                 </div>
                 <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
                   <p className="text-xs font-light text-muted-foreground leading-relaxed font-mono">
@@ -1290,8 +1290,8 @@ const Index = () => {
                 <span aria-hidden className="absolute left-0 top-0 h-6 w-6 border-l border-t border-emerald-400/40 rounded-tl-3xl" />
                 <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-emerald-400/20 rounded-br-3xl" />
                 <div className="flex items-center justify-between mb-4">
-                  <p className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">◈ The Asherin Method</p>
-                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">02 / WIN</span>
+                  <p className="font-mono text-[10px] tracking-[0.3em] text-emerald-400/80 uppercase">◈ a more specific prompt</p>
+                  <span className="font-mono text-[9px] tracking-[0.3em] text-foreground/30">02 / refined</span>
                 </div>
                 <div className="space-y-2">
                   <div className="rounded-xl bg-background/40 border border-foreground/10 p-4">
@@ -1308,7 +1308,7 @@ const Index = () => {
                   </div>
                 </div>
                 <p className="mt-4 text-[11px] font-extralight text-emerald-400/80">
-                  → Targeted. Structured. Intelligence-grade output.
+                  → focused, structured, and easier to evaluate.
                 </p>
               </div>
 
@@ -1317,7 +1317,7 @@ const Index = () => {
                 <p className="text-xs font-extralight tracking-wide text-muted-foreground leading-relaxed">
                   Technology without intelligence is just hardware.
                   <br />
-                  <span className="text-foreground font-light">Intelligence with the right data is power.</span>
+                  <span className="text-foreground font-light">careful analysis begins with relevant data.</span>
                 </p>
               </div>
             </div>

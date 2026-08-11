@@ -22,10 +22,10 @@ const PLANS = [
     name: "Asherin",
     price: "$18",
     period: "/month",
-    tagline: "Core intelligence",
+    tagline: "core tools",
     description:
-      "Everything you need to think, code, search and ship — uncensored AI, a capable coding engine, the full Zophiel Search Intelligence engine, persistent memory and a workspace built for one person.",
-    cta: "Subscribe — $18 / month",
+      "a practical set of tools for chat, code, search, memory, and individual work.",
+    cta: "choose asherin — $18 / month",
     highlight: false,
     groups: [
       {
@@ -35,7 +35,7 @@ const PLANS = [
       {
         title: "Core Capabilities",
         items: [
-          "Uncensored AI responses",
+          "user-directed ai responses with stated limits",
           "Capable coding engine",
           "Multi-language output",
           "Response depth control",
@@ -99,13 +99,13 @@ const PLANS = [
     name: "Asherin Pro",
     price: "$399",
     period: "/month",
-    tagline: "Maximum intelligence",
+    tagline: "broader tool access",
     description:
-      "Everything in Asherin, plus the full intelligence suite — Azplen data platform, NOMAD OSINT, advanced briefings, Zophiel Pro and full team collaboration.",
-    cta: "Subscribe — $399 / month",
+      "the asherin plan features, plus additional data, research, briefing, search, and collaboration tools for teams with broader needs.",
+    cta: "choose asherin pro — $399 / month",
     highlight: true,
     groups: [
-      { title: "Everything in Asherin", items: ["All core chat, modes, search, memory and workspace features", "Google Cloud Intelligence + Asherin Maps, with Pro-depth sweeps"] },
+      { title: "asherin plan features", items: ["core chat, modes, search, memory and workspace features", "google cloud intelligence and asherin maps with additional query capacity"] },
       {
         title: "Azplen Data Intelligence Platform",
         items: [
@@ -276,7 +276,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           >
             {plan.highlight && (
               <span className="absolute top-5 right-5 rounded-full border border-foreground/30 px-3 py-1 text-[9px] font-medium tracking-[0.2em] uppercase text-foreground/80">
-                Most Capability
+                broader plan
               </span>
             )}
             <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
@@ -324,7 +324,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
                   >
                     {checkoutLoading && pendingId === plan.id
                       ? "Loading…"
-                      : `Subscribe — ${formatUsd(q.cents)}${isSemi ? " / 6 months" : " / month"}`}
+                      : `choose plan — ${formatUsd(q.cents)}${isSemi ? " / 6 months" : " / month"}`}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </>
