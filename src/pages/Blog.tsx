@@ -692,7 +692,11 @@ const Blog = () => {
                 </div>
                 <ul className="divide-y divide-border/20 border-t border-border/20">
                   {posts.map((p) => {
-                    const time = fmtTime(p.published);
+                    // Midnight-UTC stamps carry no information — they are the
+                    // default for date-only posts, so suppress them as noise.
+                    const rawTime = fmtTime(p.published);
+                    const time = rawTime === "00:00:00 UTC" ? null : rawTime;
+
                     return (
                       <li key={p.slug}>
                         <Link
