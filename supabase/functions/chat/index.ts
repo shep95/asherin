@@ -2266,6 +2266,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
       // RECENCY anchor — doctrine repeated last so nearby-token attention obeys it
       HYPOTHETICAL_REALISM_DOCTRINE,
+      // Grounding anchor sits just before the conduct anchor: stance decays
+      // faster than form, and conduct must still be the final word.
+      _R.trivial ? "" : AXIOMATIC_GROUNDING_ANCHOR,
       // Casing + seven-pattern law is the LAST thing the model reads: it is a
       // form rule, and form rules only hold when they are the nearest tokens.
       OUTPUT_CONDUCT_ANCHOR,
