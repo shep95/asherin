@@ -111,10 +111,15 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
   const softFire = SOFT_VERBS.test(text) && SOFT_OBJECTS.test(text);
 
-  // Pre-scan for a strong identifier — if one exists, natural intel verbs
-  // ("look up", "background check", "who is", "info on") are enough to fire.
+  // Pre-scan for anchors that let natural intel verbs ("look up", "background
+  // check", "who is", "info on") fire without the literal word "dork".
+  // A strong identifier (email/phone/handle/domain) OR a proper-name pattern
+  // ("Jane Doe", "Asher Shepherd Newton") both count as anchors — refusing to
+  // fire on names was the regression that made the operator do the work.
   const hasStrongId = EMAIL_RE.test(text) || PHONE_RE.test(text) || HANDLE_RE.test(text) || !!extractDomain(text);
-  const naturalFire = hasStrongId && INTEL_VERBS.test(text);
+  const hasProperName = !!looksLikeProperName(text);
+  const hasQuoted = QUOTED_RE.test(text);
+  const naturalFire = INTEL_VERBS.test(text) && (hasStrongId || hasProperName || hasQuoted);
 
   if (!hard && !softFire && !naturalFire) return none("no_trigger");
 
