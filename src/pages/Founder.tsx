@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
+import FounderBook from "@/components/founder/FounderBook";
 import FounderTOC from "@/components/founder/FounderTOC";
 import { ReadingTime, SectionDivider } from "@/components/founder/FounderBits";
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
