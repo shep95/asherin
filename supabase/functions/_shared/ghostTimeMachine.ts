@@ -617,7 +617,13 @@ export async function deepTimeSweep(
   const hostList = [...hostAgg.entries()]
     .sort((a, b) => b[1].docs - a[1].docs)
     .slice(0, 24);
-  const postures = await pool(hostList, 6, ([h]) => hostPosture(h).catch(() => ({ resolves: false, alive: false })));
+  // Liveness is the cheapest thing to drop: it colours the host table but no
+  // finding depends on it. When the clock is gone the table still ships.
+  const postureTime = remaining() > 6_000;
+  if (!postureTime && hostList.length) report.truncated = true;
+  const postures = postureTime
+    ? await pool(hostList, 6, ([h]) => hostPosture(h).catch(() => ({ resolves: false, alive: false })))
+    : hostList.map(() => ({ resolves: false, alive: false }));
   report.hosts = hostList.map(([host, a], i) => ({
     host,
     first_year: a.first || null,
@@ -627,7 +633,16 @@ export async function deepTimeSweep(
     resolves: postures[i].resolves,
   }));
   report.hosts_probed = hostList.map(([h]) => h);
-  report.dead_hosts = report.hosts.filter((h) => !h.alive).map((h) => h.host);
+  report.dead_hosts = postureTime ? report.hosts.filter((h) => !h.alive).map((h) => h.host) : [];
+
+  if (report.truncated) {
+    report.corpora.push({
+      name: "Wall clock",
+      ok: false,
+      records: 0,
+      note: `Budget of ${Math.round(budgetMs / 1000)}s reached — this reach-back is partial. Narrow the selector or a year window to go deeper.`,
+    });
+  }
 
   report.elapsed_ms = Date.now() - t0;
   return report;
