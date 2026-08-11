@@ -57,10 +57,11 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description: "How Asherin handles your data: storage, encryption, retention, and your rights.",
   },
   "/founder": {
-    title: "Founder | Asher Newton, Architect of Asherin",
+    title: "Founder | Asher Newton of Asherin",
     description:
-      "The story behind Asherin: Asher Newton, House of Asher, and the doctrine that built a predictive intelligence platform.",
+      "Asher Newton, founder of Asherin, and his book The Book of Asher Aureon Elion, readable in full.",
   },
+
   "/hosrad": {
     title: "HOSRAD | House Of Asher Research & Development",
     description:

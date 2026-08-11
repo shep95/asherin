@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Loader2, Minus, Plus } from "lucide-react";
 
 /**
- * Scrollable, readable PDF reader for "The Book That Answers Everything".
+ * Scrollable, readable PDF reader for "The Book of Asher Aureon Elion".
  *
  * Performance contract:
  *  - pdf.js is dynamically imported only after the section enters the viewport
@@ -221,7 +221,7 @@ const FounderBook = () => {
           </button>
           <a
             href={BOOK_URL}
-            download="the-book-that-answers-everything.pdf"
+            download="the-book-of-asher-aureon-elion.pdf"
             className="ml-1 inline-flex items-center gap-2 rounded-lg border border-border/25 px-3 py-1.5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/75 transition-colors hover:border-border/50 hover:text-foreground"
           >
             <Download className="h-3 w-3" /> Download
@@ -234,7 +234,7 @@ const FounderBook = () => {
         ref={scrollRef}
         tabIndex={0}
         role="document"
-        aria-label="The Book That Answers Everything"
+        aria-label="The Book of Asher Aureon Elion"
         className="h-[78vh] overflow-y-auto overscroll-contain rounded-2xl border border-border/20 bg-black/40 p-3 shadow-2xl shadow-black/40 sm:p-5"
         style={{ contain: "content" }}
       >
