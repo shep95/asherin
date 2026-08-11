@@ -62,7 +62,6 @@ const FounderBook = () => {
     // return forever after the first pass was torn down.
     if (!armed || loadStartedRef.current === attempt) return;
     loadStartedRef.current = attempt;
-    const cancelled = false;
     let loadingTask: any = null;
 
     (async () => {
@@ -74,13 +73,9 @@ const FounderBook = () => {
 
         loadingTask = pdfjs.getDocument({ url: BOOK_URL });
         loadingTask.onProgress = (p: { loaded: number; total: number }) => {
-          if (!cancelled && p.total) setProgress(Math.min(99, Math.round((p.loaded / p.total) * 100)));
+          if (p.total) setProgress(Math.min(99, Math.round((p.loaded / p.total) * 100)));
         };
         const doc: PdfDoc = await loadingTask.promise;
-        if (cancelled) {
-          await doc.destroy();
-          return;
-        }
         docRef.current = doc;
 
         // Measure page 1 only and project it across the book: measuring every
@@ -89,13 +84,11 @@ const FounderBook = () => {
         const first = await doc.getPage(1);
         const vp = first.getViewport({ scale: 1 });
         first.cleanup?.();
-        if (cancelled) return;
         setPageSizes(Array.from({ length: doc.numPages }, () => ({ w: vp.width, h: vp.height })));
         setProgress(100);
         setStatus("ready");
 
       } catch (e) {
-        if (cancelled) return;
         setError(e instanceof Error ? e.message : "The book could not be opened.");
         setStatus("error");
       }
