@@ -12,6 +12,7 @@ import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
+import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
 import { useAccess } from "@/hooks/useAccess";
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
