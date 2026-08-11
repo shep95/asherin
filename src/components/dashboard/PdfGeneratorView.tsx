@@ -506,8 +506,10 @@ const PdfGeneratorView = () => {
         {/* Right: Preview Panel — paginated 6×9 ebook pages */}
         <div className="w-full lg:w-1/2 overflow-y-auto p-4 flex flex-col items-center gap-6">
           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-1 self-start">
-            Live Preview · 6×9″ eBook · {Math.max(previewPages.length, 1)} page{Math.max(previewPages.length, 1) === 1 ? "" : "s"}
+            Live Preview · 6×9″ eBook · {Math.max(totalPages, 1)} page{Math.max(totalPages, 1) === 1 ? "" : "s"}
+            {totalPages > previewPages.length ? ` · showing first ${previewPages.length}` : ""}
           </p>
+
 
           {pdfSections.length === 0 ? (
             <div
