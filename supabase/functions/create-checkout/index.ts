@@ -7,6 +7,7 @@ import {
   observeAndJudge, priceCents, STRIPE_PRODUCTS, FULL_PRICE_IDS,
   type PppTier, type Term,
 } from "../_shared/ppp.ts";
+import { BillingAuthError, BillingConfigError, billingError, requireBillingUser } from "../_shared/billingHttp.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // Server-authoritative price ID whitelist. Client cannot purchase any
@@ -46,15 +47,9 @@ serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) throw new BillingConfigError();
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    const user = await requireBillingUser(req, (t) => supabaseClient.auth.getUser(t) as any);
     logStep("User authenticated", { email: user.email });
 
     const {
@@ -212,12 +207,6 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    // CWE-209: generic client-facing message; details stay in server logs.
-    return new Response(JSON.stringify({ error: "Checkout could not be started." }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return billingError(error, corsHeaders, "CREATE-CHECKOUT");
   }
 });

@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders, ALLOWED_ORIGINS } from "../_shared/cors.ts";
+import { BillingAuthError, BillingConfigError, billingError, requireBillingUser } from "../_shared/billingHttp.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -21,11 +22,7 @@ serve(async (req) => {
   );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Not authenticated");
+    const user = await requireBillingUser(req, (t) => supabaseClient.auth.getUser(t) as any);
 
     const { pluginId } = await req.json();
     if (!pluginId) throw new Error("Missing pluginId");
@@ -129,10 +126,6 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("plugin-checkout error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    return billingError(error, corsHeaders, "PLUGIN-CHECKOUT");
   }
 });
