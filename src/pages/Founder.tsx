@@ -14,18 +14,8 @@ import imagineReligionJesusCreated from "@/assets/founder-imagine-religion-jesus
 import imagineGodsHideAntarctica from "@/assets/founder-imagine-gods-hide-antarctica.png";
 import imagineChaosTime from "@/assets/founder-imagine-chaos-time.png";
 
-const bookPages = Array.from(
-  { length: 116 },
-  (_, index) => `/books/asher-aureon-elion-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
-);
 
-const symbolismBookPages = Array.from(
-  { length: 62 },
-  (_, index) => `/books/asher-aureon-elion-symbolism-pages/page-${String(index + 1).padStart(3, "0")}.jpg`
-);
 
-const bookOneCover = "/books/asher-aureon-elion-pages/page-001.jpg";
-const bookTwoCover = "/books/asher-aureon-elion-symbolism-pages/page-001.jpg";
 
 const DirectionalCTA = ({ to, label, sublabel }: { to: string; label: string; sublabel?: string }) => (
   <div className="mt-14 flex justify-center">
