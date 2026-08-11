@@ -390,12 +390,23 @@ const PdfGeneratorView = () => {
             </div>
           </div>
           <button onClick={exportPdf} disabled={pdfSections.length === 0 || generating}
+            aria-busy={generating}
             className="flex items-center gap-2 rounded-lg bg-accent/20 px-4 py-2 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">
             {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Export PDF
+            {generating
+              ? progress?.total
+                ? `Rendering ${progress.done}/${progress.total}`
+                : "Preparing…"
+              : "Export PDF"}
           </button>
         </div>
+        {exportError && (
+          <p role="alert" className="mt-2 text-[11px] font-light text-destructive">
+            {exportError}
+          </p>
+        )}
       </div>
+
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
         {/* Left: Input Panel */}
