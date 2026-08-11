@@ -94,6 +94,9 @@ const BlogHowWeMakeAureonSoundHuman = lazy(
 const BlogAiStackForIndianStartups = lazy(
   () => import("./pages/blog/AiStackForIndianStartups"),
 );
+const BlogPersonalitiesToThinkingPatterns = lazy(
+  () => import("./pages/blog/PersonalitiesToThinkingPatterns"),
+);
 const BlogHowToBreakAnyEncryptionTheory = lazy(
   () => import("./pages/blog/HowToBreakAnyEncryptionTheory"),
 );
@@ -265,6 +268,10 @@ const App = () => (
             <Route
               path="/blog/ai-stack-for-indian-startups"
               element={<BlogAiStackForIndianStartups />}
+            />
+            <Route
+              path="/blog/personalities-are-not-thinking-patterns"
+              element={<BlogPersonalitiesToThinkingPatterns />}
             />
             <Route
               path="/blog/how-to-break-any-encryption-theory"

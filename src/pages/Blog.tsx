@@ -27,6 +27,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/personalities-are-not-thinking-patterns",
+    title: "personalities are not thinking patterns",
+    dek: "the exact conversion, piece by piece: identity lines become capability text, domain lists become recognition lenses, tier ladders become reasoning budgets, and conduct moves from character morality to forbidden reasoning patterns. with diagrams of both loops.",
+    tag: "Method",
+    published: "2026-08-11T00:00:00.000Z",
+    readTime: "9 min",
+    featured: true,
+  },
+  {
     slug: "/blog/ai-stack-for-indian-startups",
     title: "The AI stack for Indian startups that can't afford to fail",
     dek: "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is instruction overhead.",
