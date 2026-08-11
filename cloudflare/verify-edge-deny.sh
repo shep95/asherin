@@ -11,6 +11,8 @@ deny_paths=(
   "/.env" "/.env.local" "/.aws/credentials" "/.ssh/id_rsa"
   "/package.json" "/bun.lockb" "/tsconfig.json" "/vite.config.ts"
   "/backup.sql" "/db.bak" "/private.pem" "/wp-admin/" "/phpmyadmin/"
+  "/debug" "/debug/vars" "/api/internal/status" "/rest/v1/" "/functions/v1/"
+  "/storage/v1/object/public" "/auth/v1/token" "/graphql/v1"
 )
 allow_paths=( "/" "/.well-known/security.txt" "/pricing" "/blog" )
 
@@ -35,6 +37,18 @@ for p in "${allow_paths[@]}"; do
   ok="PASS"; [[ "$code" == "200" ]] || { ok="FAIL"; fail=1; }
   printf '%-6s %-28s %s\n' "$ok" "$p" "$code"
 done
+
+echo
+echo "== SECURITY HEADERS on / (expect all present) =="
+hdr="$(curl -sS -o /dev/null -D - -m 20 "$BASE/" | tr -d '\r')"
+for h in content-security-policy x-frame-options x-content-type-options referrer-policy strict-transport-security permissions-policy; do
+  if printf '%s' "$hdr" | grep -qi "^$h:"; then printf 'PASS   %s\n' "$h"; else printf 'FAIL   %s missing\n' "$h"; fail=1; fi
+done
+if printf '%s' "$hdr" | grep -i '^content-security-policy:' | grep -q "frame-ancestors 'none'"; then
+  echo "PASS   csp frame-ancestors 'none'"
+else
+  echo "FAIL   csp frame-ancestors missing"; fail=1
+fi
 
 echo
 [[ $fail -eq 0 ]] && echo "ALL CHECKS PASSED" || echo "CHECKS FAILED — edge deny not fully applied"
