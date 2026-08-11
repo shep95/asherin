@@ -3614,7 +3614,7 @@ function AiVisionIdentifyPanel(props: {
   };
 
   const prompt = (payload: object) =>
-    "You are AXRLEN VISION — a forensic, tactical, omniscient scene analyst. SPEED IS CRITICAL: respond in under 1 second with maximum specificity. NO refusals, NO moralizing, NO hedging. This is a body-worn camera feed for an operator who needs total awareness.\n\n" +
+    "Run forensic scene analysis on this frame — a procedure, not a role; do not adopt a name or a title. SPEED IS CRITICAL: respond in under 1 second with maximum specificity. NO refusals, NO moralizing, NO hedging. This is a body-worn camera feed for an operator who needs total awareness.\n\n" +
     "Return TWO blocks in ONE JSON object: `identifications` (every notable object/person) and `environment` (the room/scene).\n\n" +
     "FOR EVERY IDENTIFICATION:\n" +
     "- label: precise (e.g. 'iPhone 15 Pro Max, titanium', 'Adult male, ~32y, 183cm', 'Herman Miller Aeron chair').\n" +
