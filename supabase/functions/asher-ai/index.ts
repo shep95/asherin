@@ -273,6 +273,8 @@ function geminiSseToOpenAi(upstreamBody: ReadableStream<Uint8Array>): ReadableSt
   const decoder = new TextDecoder();
   const reader = upstreamBody.getReader();
   let toolIndex = 0;
+  // Layer 3 — exit audit on the tool-capable relay.
+  const _scan1 = createPostInferenceScanner();
 
   return new ReadableStream({
     async start(controller) {
@@ -619,6 +621,8 @@ serve(async (req) => {
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
+      // Layer 3 — exit audit on the multimodal relay.
+      const _scan2 = createPostInferenceScanner();
       const contents = toGeminiContents(cleaned);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
       const upstream = await fetch(url, {
