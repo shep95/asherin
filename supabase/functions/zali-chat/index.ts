@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -452,6 +453,7 @@ serve(async (req) => {
     // ── Build full system prompt ───────────────────────────────────────────
     const systemParts = [
       AUREON_CORE_IDENTITY,
+      OUTPUT_CONDUCT_DOCTRINE,
       ZALI_DESIGN_INTELLIGENCE,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
@@ -462,6 +464,7 @@ serve(async (req) => {
       aureonContext,
       projectStr,
       webSearchContext,
+      OUTPUT_CONDUCT_ANCHOR,
     ].filter(Boolean).join("\n\n");
 
     // Format for Gemini

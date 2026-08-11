@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { WAR_DOCTRINE } from "./warDoctrine.ts";
 import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
@@ -592,7 +593,7 @@ serve(async (req) => {
       await import("../_shared/domainAtlas.ts");
     const _dEmph = _bDE(lastUserText);
     const atlasBlock = "\n\n" + _DAI + (_dEmph ? "\n\n" + _dEmph : "");
-    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE;
+    const fullSystem = HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + OUTPUT_CONDUCT_DOCTRINE + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + EMOTIONAL_PERSONA_BRAIN + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + OUTPUT_CONDUCT_ANCHOR;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
