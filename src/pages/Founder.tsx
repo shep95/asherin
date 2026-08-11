@@ -112,7 +112,7 @@ const Founder = () => {
             {/* Emotional CTAs — invitations, not nav */}
             <div className="mt-12 flex flex-wrap gap-3">
               {[
-                { id: "ebook", icon: BookOpen, label: "Read His Philosophy" },
+                { id: "videos", icon: Youtube, label: "Watch His Videos" },
                 { id: "videos", icon: Youtube, label: "Watch His Videos" },
                 { id: "imagines", icon: Sparkles, label: "Study The Teachings" },
               ].map(({ id, icon: Icon, label }) => (
