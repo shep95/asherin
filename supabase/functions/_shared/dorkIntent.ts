@@ -252,6 +252,6 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const loc = text.match(/\bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/);
   if (loc) hints.location = loc[1];
 
-  const reason = hard ? "hard_trigger" : softFire ? "soft_verb+object" : "natural_intel+id";
+  const reason = hard ? "hard_trigger" : softFire ? "soft_verb+object" : naturalFire ? "natural_intel+id" : (implicit || "implicit");
   return { fire: true, subject, kind, selfTarget, hints, reason };
 }
