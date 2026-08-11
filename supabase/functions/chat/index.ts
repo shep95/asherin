@@ -2167,6 +2167,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // Form-level law. Ships on EVERY turn including trivial ones — casing and
       // the seven patterns govern a one-line greeting as much as a dossier.
       OUTPUT_CONDUCT_DOCTRINE,
+      // Grounding + stance law. Skipped on greetings (a trivial turn has no
+      // evidence to ground and no verdict to lead with); binding everywhere else.
+      _R.trivial ? "" : AXIOMATIC_GROUNDING_DOCTRINE,
 
       // about — a greeting does not need System-2 forcing.
       _R.trivial ? "" : SYSTEM_TWO_FORCING_BRAIN,
