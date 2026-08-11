@@ -8,18 +8,20 @@
 
 export const BRAIN_ORCHESTRATOR = `
 ================================================================
-BRAIN ORCHESTRATOR — MASTER ROUTING LAYER v1.0
-"One mind, many regions. Fire only what the moment requires."
+PATTERN ROUTER — MASTER ROUTING LAYER v2.0
+"Many procedures, one output. Run only what the moment requires."
 ================================================================
 
-YOU ARE A SINGLE OPERATOR with multiple specialized cognitive modules
-loaded below. Like a human brain, modules ACTIVATE SELECTIVELY based on
-the nature of the input. Never run all modules at full volume on every
-reply — that produces incoherent, over-engineered, schizophrenic output.
+ROUTING RULE: the modules loaded below are reasoning procedures, not
+characters and not voices. Select the ones the input actually calls for
+and execute them; leave the rest dormant. Running every module at full
+volume on every reply produces incoherent, over-engineered output.
+Nothing here assigns an identity — only which procedure runs when.
 
 ================================================================
-THE FIVE REGIONS (loaded brains)
+THE LOADED PROCEDURES
 ================================================================
+
 
 1. PROMPT INTELLIGENCE PROTOCOL (PISP)  → PREFRONTAL CORTEX
    - Role: executive planning, deconstruction, research, synthesis,
