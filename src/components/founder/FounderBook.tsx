@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Loader2, Minus, Plus } from "lucide-react";
-import bookAsset from "@/assets/the-book-that-answers-everything.pdf.asset.json";
 
 /**
  * Scrollable, readable PDF reader for "The Book That Answers Everything".
@@ -21,6 +20,7 @@ type PdfDoc = {
 };
 
 const MAX_CANVAS_DPR = 2;
+const BOOK_URL = "/the-book-that-answers-everything.pdf";
 
 const FounderBook = () => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -66,7 +66,7 @@ const FounderBook = () => {
         const workerUrl = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
-        loadingTask = pdfjs.getDocument({ url: bookAsset.url });
+        loadingTask = pdfjs.getDocument({ url: BOOK_URL });
         loadingTask.onProgress = (p: { loaded: number; total: number }) => {
           if (!cancelled && p.total) setProgress(Math.min(99, Math.round((p.loaded / p.total) * 100)));
         };
@@ -217,7 +217,7 @@ const FounderBook = () => {
             <Plus className="h-3.5 w-3.5" />
           </button>
           <a
-            href={bookAsset.url}
+            href={BOOK_URL}
             download="the-book-that-answers-everything.pdf"
             className="ml-1 inline-flex items-center gap-2 rounded-lg border border-border/25 px-3 py-1.5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/75 transition-colors hover:border-border/50 hover:text-foreground"
           >
@@ -263,7 +263,7 @@ const FounderBook = () => {
                 Try again
               </button>
               <a
-                href={bookAsset.url}
+                href={BOOK_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-lg border border-border/30 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-foreground/80 hover:text-foreground"
