@@ -432,13 +432,21 @@ export async function deepTimeSweep(
   const nowYear = new Date().getUTCFullYear();
   const auth = opts.authHeader ?? null;
 
+  // Stage deadlines. Harvest gets 40% of the budget, probing gets the bulk,
+  // and the host-posture tail is only attempted when time genuinely remains.
+  const budgetMs = Math.max(20_000, Math.min(135_000, opts.budgetMs ?? 105_000));
+  const deadline = t0 + budgetMs;
+  const harvestDeadline = t0 + Math.round(budgetMs * 0.40);
+  const probeDeadline = t0 + Math.round(budgetMs * 0.88);
+  const remaining = () => deadline - Date.now();
+
   const report: TimeMachineReport = {
     selector, kind,
     window: { from: fromYear, to: nowYear },
     earliest: null, latest: null, eras: [], captures: [],
     classes: [], keywords: [], authors: [], term_coverage: [],
     hosts: [], hosts_probed: [], dead_hosts: [],
-    corpora: [], elapsed_ms: 0,
+    corpora: [], truncated: false, budget_ms: budgetMs, elapsed_ms: 0,
   };
 
   // ── 1. FAN-OUT on the engine's own harvest, base selector + era buckets ───
