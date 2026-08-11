@@ -321,15 +321,16 @@ const Index = () => {
 
             <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
               <span className="sr-only">Asherin, uncensored AI intelligence platform: </span>
-              <span aria-hidden="true">See what</span>
+              <span aria-hidden="true">look a little</span>
               <br />
-              <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
+              <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">closer.</span>
             </h1>
 
             <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-              While other AI tells you what it thinks you should know,
-              Asherin gives you the complete picture: unfiltered, sourced, and ready to act on.
+              Asherin tries to give you the fuller picture — unfiltered, sourced,
+              and honest about what it does not know.
             </p>
+
 
             {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                 Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
