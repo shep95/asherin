@@ -81,13 +81,20 @@ const TLD_MAP: Record<string, string> = {
   ".gov.au": "au", ".edu.au": "au", ".gov.in": "in", ".gov.br": "br",
 };
 
+// Extensions that make a "domain-shaped" token actually a filename. Without
+// this guard "fix index.ts" and "open report.pdf" look like domains and the
+// implicit layer would fire a 100-theory battery on a source file.
+const FILE_EXT_RE = /\.(ts|tsx|js|jsx|json|md|txt|pdf|docx?|xlsx?|csv|png|jpe?g|gif|svg|webp|mp4|mov|zip|tar|gz|py|rb|go|rs|java|c|cpp|h|sh|yml|yaml|toml|lock|env|sql|html?|css|scss)$/i;
+
 function extractDomain(text: string): string | null {
   const m = text.match(DOMAIN_RE);
   if (!m) return null;
   const d = m[0].toLowerCase();
   if (/^(e\.g|i\.e|vs|etc|inc|co)\./i.test(d)) return null;
+  if (FILE_EXT_RE.test(d)) return null;
   return d;
 }
+
 function looksLikeProperName(text: string): string | null {
   const m = text.match(/\b([A-Z][a-z]{1,15})(?:\s+([A-Z][a-z]{1,15})){1,3}\b/);
   return m ? m[0] : null;
@@ -103,20 +110,109 @@ function isJunkSubject(s: string): boolean {
   return words.every((w) => filler.test(w));
 }
 
+// ── Implicit intent ─────────────────────────────────────────────────────────
+// Narrative: the operator pastes a phone number, or types a name and a city,
+// or asks "is this person legit?" — every one of those is an exposure sweep,
+// but none of them contain "dork", "look up", or "who is". The old detector
+// required the operator to speak the platform's vocabulary, so it stayed
+// silent and the human did the work the engine exists to do.
+//
+// Flaws in a naive "any anchor fires" rule: a pasted stack trace has domains,
+// a request to "email john@acme.com the invoice" has an email, a code question
+// has index.ts, and a URL the operator wants summarized is a domain. Each of
+// those would burn a 100-theory battery on a non-target.
+//
+// New narrative: fire when an anchor exists AND at least one intent shape is
+// present (bare anchor, interrogative, intel noun, or vetting question) AND no
+// suppressor claims the turn for a different job.
+
+/** Turn is doing another job — never auto-sweep it. */
+const SUPPRESSORS: RegExp[] = [
+  /```|<\/?[a-z]+>|\bfunction\s*\(|=>\s*\{|\bconst\s+\w+\s*=/,                     // code / markup
+  /\b(send|email|write|draft|compose|reply|forward|cc|bcc)\s+(an?\s+|the\s+)?(email|message|note|invite|reply)\b/i,
+  /\b(email|message|text|call|invite|add|cc)\s+(him|her|them|it)?\s*(at|to)?\s*[a-z0-9._%+-]+@/i,
+  /\b(summari[sz]e|translate|rewrite|proofread|paraphrase|transcribe)\b/i,
+  /\b(fix|debug|deploy|build|refactor|install|npm|yarn|bun|git|typescript|compile|stack\s*trace|error\s*code)\b/i,
+  /\b(unsubscribe|sign\s*up|log\s*in|password\s*reset|verify\s+my\s+account)\b/i,
+  /\b(buy|order|checkout|invoice|refund|subscription|billing)\b/i,
+  /\b(what\s+is|explain|how\s+do(es)?)\s+(a|an|the)?\s*\b(dns|http|tls|api|regex|dork)\b/i,   // teaching questions
+];
+
+/** Nouns that only appear when someone wants information ABOUT a person/org. */
+const INTEL_NOUNS = /\b(address|addresses|phone|number|email|records?|record|arrest|criminal|court|lawsuit|warrant|mugshot|employer|employment|job|linkedin|facebook|instagram|tiktok|twitter|profile|social|relatives?|family|spouse|wife|husband|neighbou?rs?|owner|owns|property|deed|license|licence|plate|vin|breach|leak|password|exposure|footprint|history|age|dob|birth|bio|net\s*worth|company|business|registration)\b/i;
+
+/** "Should I trust this?" — vetting is an intelligence request in disguise. */
+const VETTING = /\b(scam|scammer|legit|legitimate|fake|real|safe|trust|trustworthy|catfish|fraud|sketchy|suspicious|spoof|phish|verify|vetted?|due\s*diligence|red\s*flags?|dangerous)\b/i;
+
+/** Interrogative or imperative-about-a-person shapes. */
+const INTERROGATIVE = /(^|\s)(who|whose|what|where|when|why|which|how|is|are|does|did|do|can|any(thing)?|got|show|give|tell)\b|[?]/i;
+
+export function detectImplicitIntent(
+  text: string,
+  anchors: { hasStrongId: boolean; hasProperName: boolean; hasQuoted: boolean },
+): string | null {
+  const hasAnchor = anchors.hasStrongId || anchors.hasProperName || anchors.hasQuoted;
+  if (!hasAnchor) return null;
+  if (SUPPRESSORS.some((r) => r.test(text))) return null;
+
+  const words = text.split(/\s+/).filter(Boolean);
+
+  // 1. Bare anchor: the operator pasted an identifier and nothing else.
+  //    "239-555-0134" / "jane.doe@proton.me" / "@ghostwriter_77"
+  if (anchors.hasStrongId && words.length <= 6) return "implicit_bare_anchor";
+
+  // 2. Name + place with no verb: "Jane Doe Cape Coral Florida"
+  if (anchors.hasProperName && words.length <= 10 && !/\b(i|we|you|please)\b/i.test(text) && !/[.!]$/.test(text)) {
+    return "implicit_bare_name";
+  }
+
+  // 3. Vetting: "is this number a scam", "is she legit", "247-... spam?"
+  if (VETTING.test(text)) return "implicit_vetting";
+
+  // 4. Intel noun attached to an anchor: "what's Jane Doe's address",
+  //    "any arrest records for @handle", "who owns acme.io"
+  if (INTEL_NOUNS.test(text)) return "implicit_intel_noun";
+
+  // 5. Interrogative aimed at an anchor with no other job claimed.
+  if (INTERROGATIVE.test(text) && words.length <= 25) return "implicit_question";
+
+  return null;
+}
+
+
+
 export function detectDorkIntent(userText: string): DorkTrigger {
   const text = String(userText || "").trim();
   const none = (reason: string): DorkTrigger => ({ fire: false, subject: "", kind: "topic", selfTarget: false, hints: {}, reason });
   if (!text || text.length < 4) return none("empty");
 
+  // Teaching question about the capability itself ("explain what a dork is")
+  // is not a request to run one — answer it, don't sweep.
+  if (/\b(explain|what\s+(is|are)|what's|how\s+(do|does|can)|define|teach\s+me|meaning\s+of)\b[^?]{0,40}\bdork(s|ing)?\b/i.test(text)) {
+    return none("meta_question");
+  }
+
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
   const softFire = SOFT_VERBS.test(text) && SOFT_OBJECTS.test(text);
 
-  // Pre-scan for a strong identifier — if one exists, natural intel verbs
-  // ("look up", "background check", "who is", "info on") are enough to fire.
+  // Pre-scan for anchors that let natural intel verbs ("look up", "background
+  // check", "who is", "info on") fire without the literal word "dork".
+  // A strong identifier (email/phone/handle/domain) OR a proper-name pattern
+  // ("Jane Doe", "Asher Shepherd Newton") both count as anchors — refusing to
+  // fire on names was the regression that made the operator do the work.
   const hasStrongId = EMAIL_RE.test(text) || PHONE_RE.test(text) || HANDLE_RE.test(text) || !!extractDomain(text);
-  const naturalFire = hasStrongId && INTEL_VERBS.test(text);
+  const hasProperName = !!looksLikeProperName(text);
+  const hasQuoted = QUOTED_RE.test(text);
+  const naturalFire = INTEL_VERBS.test(text) && (hasStrongId || hasProperName || hasQuoted);
 
-  if (!hard && !softFire && !naturalFire) return none("no_trigger");
+  // ── IMPLICIT LAYER ────────────────────────────────────────────────────────
+  // The operator should never have to speak the platform's vocabulary. If the
+  // turn carries a real-world anchor and nothing about the turn says "this is
+  // not an intelligence question", the battery fires on its own.
+  const implicit = detectImplicitIntent(text, { hasStrongId, hasProperName, hasQuoted });
+
+  if (!hard && !softFire && !naturalFire && !implicit) return none("no_trigger");
+
 
   const selfTarget = SELF_RE.test(text) && !THIRD_PARTY_RE.test(text);
 
@@ -162,6 +258,6 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const loc = text.match(/\bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/);
   if (loc) hints.location = loc[1];
 
-  const reason = hard ? "hard_trigger" : softFire ? "soft_verb+object" : "natural_intel+id";
+  const reason = hard ? "hard_trigger" : softFire ? "soft_verb+object" : naturalFire ? "natural_intel+id" : (implicit || "implicit");
   return { fire: true, subject, kind, selfTarget, hints, reason };
 }
