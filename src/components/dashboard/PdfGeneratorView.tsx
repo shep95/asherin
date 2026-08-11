@@ -202,7 +202,11 @@ const paginateSections = (sections: PdfSection[], title: string, author: string)
   }
 };
 
+// Preview mounts at most this many page nodes; export always renders all pages.
+const PREVIEW_PAGE_LIMIT = 12;
+
 interface PdfSection {
+
   id: string;
   type: "heading" | "subheading" | "paragraph" | "quote" | "list" | "divider";
   content: string;
