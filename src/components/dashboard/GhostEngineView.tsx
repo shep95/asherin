@@ -258,14 +258,20 @@ const GhostEngineView = () => {
           ...(origin?.selectors?.hosts ?? []),
         ])).slice(0, 8);
         const { data: res, error } = await supabase.functions.invoke("ghost-engine", {
-          body: { action: "timeline", query: q, hosts: carried },
+          body: { action: "timeline", query: q, hosts: carried, budgetMs: 105_000 },
         });
         if (controller.signal.aborted) return;
         if (error) {
           const detail = "context" in error && error.context ? await error.context.text().catch(() => "") : "";
+          const denied = /403|Pro/.test(detail);
+          // A gateway idle timeout is not a fault the operator can act on
+          // unless it is named: the selector was too wide for one round trip.
+          const timedOut = /IDLE_TIMEOUT|504|timeout/i.test(detail) || /504|timeout/i.test(error.message);
           toast({
-            title: /403|Pro/.test(detail) ? "Deep time is an Asherin Pro surface" : "Reach-back failed",
-            description: detail.slice(0, 240) || error.message,
+            title: denied ? "Deep time is an Asherin Pro surface" : timedOut ? "Reach-back ran out of clock" : "Reach-back failed",
+            description: timedOut
+              ? "That selector was too wide to date in one pass. Narrow it — add a year window, a host, or a single name — and run it again."
+              : detail.slice(0, 240) || error.message,
             variant: "destructive",
           });
           return;
