@@ -1,0 +1,19 @@
+# Edge response headers.
+#
+# F1/F6 (header split): the CSP that ships in index.html is a <meta> policy, and
+# a meta policy cannot express frame-ancestors and is ignored for framing
+# decisions. Hosts that honour a _headers file (Netlify-class edges) pick these
+# up so the browser-enforced policy arrives as a real response header.
+# The Cloudflare worker in cloudflare/worker-edge-deny.js carries the same set
+# for the Cloudflare path, and vercel.json carries it for the Vercel path.
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Permissions-Policy: camera=(self), microphone=(self), payment=(self), geolocation=(self), usb=(), serial=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-site
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Robots-Tag: index, follow
