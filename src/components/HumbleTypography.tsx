@@ -75,8 +75,9 @@ const HUMBLE_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
   [/intelligence-grade/gi, "structured"],
   [/wrong/gi, "less suitable"],
   [/fail/gi, "face avoidable difficulty"],
-  [/winner/gi, "leading outcome"],
-  [/loser/gi, "other outcome"],
+  [/\bwinner\b/gi, "leading outcome"],
+  [/\bloser\b/gi, "other outcome"],
+  [/\bbest\b/gi, "well-suited"],
 ];
 
 const PRESERVE_TAGS = new Set(["CODE", "PRE", "KBD", "SAMP", "SCRIPT", "STYLE", "TEXTAREA", "INPUT"]);
