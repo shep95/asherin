@@ -2697,6 +2697,31 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     };
 
+    // ── LAYER 3 — POST-INFERENCE SCANNER ──────────────────────────────────
+    // Every model-authored character leaves through here. It suppresses a
+    // refusal opener layer 1 already ruled out, redacts scaffolding names so
+    // the doctrine never appears inside the answer, and forwards the rest
+    // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
+    // make words flicker as frames arrive.
+    const _scanner = createPostInferenceScanner();
+    const emitText = async (text: string) => {
+      const safe = _scanner.feed(text);
+      if (!safe) return;
+      await safeWrite(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`));
+    };
+    const flushScanner = async () => {
+      const tail = _scanner.flush();
+      if (tail) {
+        await safeWrite(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`));
+      }
+      const s = _scanner.stats();
+      if (s.refusalSuppressed || s.scaffoldRedactions) {
+        console.warn(`[chat] layer3 refusalSuppressed=${s.refusalSuppressed} redactions=${s.scaffoldRedactions}`);
+      }
+    };
+
+
+
     (async () => {
       try {
         // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
