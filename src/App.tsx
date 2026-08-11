@@ -14,6 +14,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const SecurityPolicy = lazy(() => import("./pages/SecurityPolicy"));
 const Founder = lazy(() => import("./pages/Founder"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Asher = lazy(() => import("./pages/Asher"));
