@@ -567,14 +567,22 @@ Deno.serve(async (req) => {
     const target = String(body.query || "").trim();
     if (!target) return json({ error: "Give the engine a selector to reach back on." }, 400);
     const id = classifySelector(target);
-    const report = await deepTimeSweep(target, id.kind, {
-      hosts: Array.isArray(body.hosts) ? body.hosts.slice(0, 8).map(String) : [],
-      fromYear: typeof body.fromYear === "number" ? body.fromYear : undefined,
-      terms: Array.isArray(body.terms) ? body.terms.slice(0, 24).map(String) : [],
-      authHeader: req.headers.get("Authorization"),
-
-    });
-    return json({ action: "timeline", identity: id, report });
+    try {
+      const report = await deepTimeSweep(target, id.kind, {
+        hosts: Array.isArray(body.hosts) ? body.hosts.slice(0, 8).map(String) : [],
+        fromYear: typeof body.fromYear === "number" ? body.fromYear : undefined,
+        terms: Array.isArray(body.terms) ? body.terms.slice(0, 24).map(String) : [],
+        authHeader: req.headers.get("Authorization"),
+        // The runtime kills an idle request at 150s. The sweep is capped below
+        // that so the operator always receives what was carved rather than a
+        // bare gateway timeout with nothing in it.
+        budgetMs: Math.min(Math.max(Number(body.budgetMs) || 105_000, 20_000), 130_000),
+      });
+      return json({ action: "timeline", identity: id, report });
+    } catch (e) {
+      console.error("[ghost-engine] timeline failed:", (e as Error).message);
+      return json({ error: "Reach-back could not complete", details: (e as Error).message?.slice(0, 300) }, 502);
+    }
   }
 
   // ── IDENTIFIER — "everywhere this address or number actually appears" ──────

@@ -121,6 +121,10 @@ export interface TimeMachineReport {
   term_coverage: Array<{ term: string; documents: number; hits: number }>;
   /** The engine's own stages — never an outside corpus. */
   corpora: Array<{ name: string; ok: boolean; records: number; note: string | null }>;
+  /** True when the wall-clock budget cut a stage short — the report is partial, not empty. */
+  truncated: boolean;
+  /** The wall-clock ceiling this run was given, in ms. */
+  budget_ms: number;
   elapsed_ms: number;
 }
 
@@ -368,6 +372,14 @@ export interface TimeMachineOptions {
   probeBudget?: number;
   /** Extra terms to hunt for inside every document body. */
   terms?: string[];
+  /**
+   * Wall-clock ceiling for the whole sweep. The edge runtime kills an idle
+   * request at 150s and the operator then sees a bare gateway 504 with no
+   * findings at all. A sweep that returns what it carved in 105s is strictly
+   * better than one that returns nothing in 150s, so every stage below checks
+   * this deadline and degrades instead of overrunning it.
+   */
+  budgetMs?: number;
 }
 
 /**
@@ -420,13 +432,21 @@ export async function deepTimeSweep(
   const nowYear = new Date().getUTCFullYear();
   const auth = opts.authHeader ?? null;
 
+  // Stage deadlines. Harvest gets 40% of the budget, probing gets the bulk,
+  // and the host-posture tail is only attempted when time genuinely remains.
+  const budgetMs = Math.max(20_000, Math.min(135_000, opts.budgetMs ?? 105_000));
+  const deadline = t0 + budgetMs;
+  const harvestDeadline = t0 + Math.round(budgetMs * 0.40);
+  const probeDeadline = t0 + Math.round(budgetMs * 0.88);
+  const remaining = () => deadline - Date.now();
+
   const report: TimeMachineReport = {
     selector, kind,
     window: { from: fromYear, to: nowYear },
     earliest: null, latest: null, eras: [], captures: [],
     classes: [], keywords: [], authors: [], term_coverage: [],
     hosts: [], hosts_probed: [], dead_hosts: [],
-    corpora: [], elapsed_ms: 0,
+    corpora: [], truncated: false, budget_ms: budgetMs, elapsed_ms: 0,
   };
 
   // ── 1. FAN-OUT on the engine's own harvest, base selector + era buckets ───
@@ -452,6 +472,7 @@ export async function deepTimeSweep(
 
   const legWorkers = Array.from({ length: Math.min(3, legs.length) }, async () => {
     while (legCursor < legs.length && leadByUrl.size < LEAD_CEILING) {
+      if (Date.now() >= harvestDeadline) { report.truncated = true; return; }
       const id = legs[legCursor++];
       try {
         const h = await harvestLeads(id, auth, {
@@ -483,16 +504,30 @@ export async function deepTimeSweep(
     name: "Ghost fan-out",
     ok: anyLegOk,
     records: leadByUrl.size,
-    note: leadByUrl.size ? null : "The engine's harvest returned nothing to date.",
+    note: leadByUrl.size
+      ? (report.truncated ? "Harvest stopped at its time slice; the legs that ran are represented." : null)
+      : "The engine's harvest returned nothing to date.",
   });
 
   // ── 2. PROBE + DATE ───────────────────────────────────────────────────────
-  const probed = await pool(leads, 8, (l) => probeLead(l, terms).catch(() => [] as TimeCapture[]));
+  // Each probe checks the clock before it opens anything. Once the probe slice
+  // is spent the remaining leads are skipped rather than queued, so the run
+  // ends with a partial, honest corpus instead of a gateway timeout.
+  let skippedProbes = 0;
+  const probed = await pool(leads, 8, (l) => {
+    if (Date.now() >= probeDeadline) { skippedProbes++; report.truncated = true; return Promise.resolve([] as TimeCapture[]); }
+    return probeLead(l, terms).catch(() => [] as TimeCapture[]);
+  });
   // Undated documents (year 0) are kept when the operator's terms are in them —
   // a missing date is the publisher's silence, not the document's irrelevance.
   const read = probed.flat();
   const all = read.filter((c) => c.year === 0 || c.year >= fromYear);
-  report.corpora.push({ name: "Direct probe", ok: true, records: leads.length, note: null });
+  report.corpora.push({
+    name: "Direct probe",
+    ok: true,
+    records: leads.length - skippedProbes,
+    note: skippedProbes ? `${skippedProbes} leads left unopened when the probe slice expired.` : null,
+  });
   report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
@@ -582,7 +617,13 @@ export async function deepTimeSweep(
   const hostList = [...hostAgg.entries()]
     .sort((a, b) => b[1].docs - a[1].docs)
     .slice(0, 24);
-  const postures = await pool(hostList, 6, ([h]) => hostPosture(h).catch(() => ({ resolves: false, alive: false })));
+  // Liveness is the cheapest thing to drop: it colours the host table but no
+  // finding depends on it. When the clock is gone the table still ships.
+  const postureTime = remaining() > 6_000;
+  if (!postureTime && hostList.length) report.truncated = true;
+  const postures = postureTime
+    ? await pool(hostList, 6, ([h]) => hostPosture(h).catch(() => ({ resolves: false, alive: false })))
+    : hostList.map(() => ({ resolves: false, alive: false }));
   report.hosts = hostList.map(([host, a], i) => ({
     host,
     first_year: a.first || null,
@@ -592,7 +633,16 @@ export async function deepTimeSweep(
     resolves: postures[i].resolves,
   }));
   report.hosts_probed = hostList.map(([h]) => h);
-  report.dead_hosts = report.hosts.filter((h) => !h.alive).map((h) => h.host);
+  report.dead_hosts = postureTime ? report.hosts.filter((h) => !h.alive).map((h) => h.host) : [];
+
+  if (report.truncated) {
+    report.corpora.push({
+      name: "Wall clock",
+      ok: false,
+      records: 0,
+      note: `Budget of ${Math.round(budgetMs / 1000)}s reached — this reach-back is partial. Narrow the selector or a year window to go deeper.`,
+    });
+  }
 
   report.elapsed_ms = Date.now() - t0;
   return report;
