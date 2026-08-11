@@ -200,7 +200,8 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // CWE-209: never echo upstream/auth error text to the caller.
+    return new Response(JSON.stringify({ error: "Subscription check unavailable." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
