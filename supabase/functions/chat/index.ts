@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
+
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
@@ -2161,7 +2163,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
       HYPOTHETICAL_REALISM_DOCTRINE,
       _temporalBlock,
       AUREON_CORE_IDENTITY,
-      // Deliberate reasoning is dropped only where there is nothing to reason
+      // Form-level law. Ships on EVERY turn including trivial ones — casing and
+      // the seven patterns govern a one-line greeting as much as a dossier.
+      OUTPUT_CONDUCT_DOCTRINE,
+
       // about — a greeting does not need System-2 forcing.
       _R.trivial ? "" : SYSTEM_TWO_FORCING_BRAIN,
       _R.coding || _R.deep ? CODE_NARRATIVE_PROTOCOL : "",
@@ -2257,6 +2262,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
       ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
       // RECENCY anchor — doctrine repeated last so nearby-token attention obeys it
       HYPOTHETICAL_REALISM_DOCTRINE,
+      // Casing + seven-pattern law is the LAST thing the model reads: it is a
+      // form rule, and form rules only hold when they are the nearest tokens.
+      OUTPUT_CONDUCT_ANCHOR,
+
     ].filter(Boolean).join("\n\n");
 
     const geminiMessages = [

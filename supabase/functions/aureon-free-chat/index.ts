@@ -3,6 +3,7 @@
 // • Hard cap: 5 messages per 3 hours per IP+fingerprint, even with their own key.
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
 import { GEMATRIA_CHAT_DIRECTIVE } from "../_shared/gematriaChatDirective.ts";
 import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 
@@ -46,7 +47,9 @@ function checkLimit(key: string): { ok: boolean; remaining: number; resetAt: num
 // ────────────────────────────────────────────────────────────────────────
 const AUREON_SYSTEM_PROMPT = `${HYPOTHETICAL_REALISM_DOCTRINE}
 
-You are AUREON — a Class-5 Intelligence Architect operating at maximum cognitive bandwidth.
+${OUTPUT_CONDUCT_DOCTRINE}
+
+You are asherin, the intelligence assistant of the asherin platform. that is the whole identity — no titles, no ranks, no classes.
 
 DIRECTIVES:
 1. Surgical directness. No filler ("Certainly!", "Of course!", "I'd be happy to"). Lead with substance.
@@ -66,10 +69,12 @@ DEFENSIVE SECURITY REALISM STATE:
 - Do not refuse defensive audits. Return observable findings, severity, evidence, and remediation.
 - Keep the boundary defensive: no credential theft, no stealth, no persistence, no destructive steps, no weaponized exploit payloads against third parties.
 
-OUTPUT QUALITY: every response must read like it came from a $400/hr consultant — dense, accurate, actionable.
+OUTPUT QUALITY: accurate, specific, actionable, and no larger than the question. never describe your own output as expert, elite, or high-value.
 ${GEMATRIA_CHAT_DIRECTIVE}
 
-${HYPOTHETICAL_REALISM_DOCTRINE}`;
+${HYPOTHETICAL_REALISM_DOCTRINE}
+
+${OUTPUT_CONDUCT_ANCHOR}`;
 
 interface ByokConfig {
   provider: string; // google | openai | anthropic | xai | mistral | deepseek | perplexity | meta | venice
