@@ -231,7 +231,8 @@ serve(async (req) => {
     const msg = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: msg });
     return new Response(
-      JSON.stringify({ error: msg }),
+      // CWE-209: generic client-facing message; details stay in server logs.
+      JSON.stringify({ error: "Subscription update failed." }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }

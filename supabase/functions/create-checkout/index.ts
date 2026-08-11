@@ -214,7 +214,8 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // CWE-209: generic client-facing message; details stay in server logs.
+    return new Response(JSON.stringify({ error: "Checkout could not be started." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
