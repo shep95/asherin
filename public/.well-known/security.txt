@@ -1,5 +1,5 @@
-Contact: mailto:ashernewtonx@gmail.com
-Expires: 2027-04-11T00:00:00.000Z
+Contact: mailto:security@asherin.com
+Expires: 2027-08-11T00:00:00.000Z
 Preferred-Languages: en
-Canonical: https://aureonai.app/.well-known/security.txt
-Policy: https://aureonai.app/security-policy
+Canonical: https://asherin.com/.well-known/security.txt
+Policy: https://asherin.com/privacy-policy
