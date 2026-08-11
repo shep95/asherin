@@ -372,6 +372,14 @@ export interface TimeMachineOptions {
   probeBudget?: number;
   /** Extra terms to hunt for inside every document body. */
   terms?: string[];
+  /**
+   * Wall-clock ceiling for the whole sweep. The edge runtime kills an idle
+   * request at 150s and the operator then sees a bare gateway 504 with no
+   * findings at all. A sweep that returns what it carved in 105s is strictly
+   * better than one that returns nothing in 150s, so every stage below checks
+   * this deadline and degrades instead of overrunning it.
+   */
+  budgetMs?: number;
 }
 
 /**
