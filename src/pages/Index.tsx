@@ -125,7 +125,7 @@ const Index = () => {
 
 
     const faqs = [
-      { q: "What makes Asherin different?", a: "Asherin is more than a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." },
+      { q: "What makes Asherin different?", a: "Asherin is more than a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." },
       { q: "How good is the coding engine?", a: "Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
       { q: "Can I cancel anytime?", a: "Yes. One click from the dashboard. No retention flow. No \"are you sure?\" loop. Asherin is $18/month, Asherin Pro is $399/month, and you can cancel either at any time. Your data is exported or deleted on request." },
@@ -141,7 +141,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Asherin",
           url: "https://asherin.com",
-          description: "Uncensored AI intelligence platform with elite coding engine, live web search, and end-to-end encryption.",
+          description: "Uncensored AI intelligence platform with a capable coding engine, live web search, and end-to-end encryption.",
         },
       },
       {
@@ -321,15 +321,16 @@ const Index = () => {
 
             <h1 className="font-display mt-6 text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] xl:text-[8rem] font-light tracking-[-0.025em] leading-[0.92] text-foreground">
               <span className="sr-only">Asherin, uncensored AI intelligence platform: </span>
-              <span aria-hidden="true">See what</span>
+              <span aria-hidden="true">look a little</span>
               <br />
-              <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">others miss.</span>
+              <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">closer.</span>
             </h1>
 
             <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-              While other AI tells you what it thinks you should know,
-              Asherin gives you the complete picture: unfiltered, sourced, and ready to act on.
+              Asherin tries to give you the fuller picture — unfiltered, sourced,
+              and honest about what it does not know.
             </p>
+
 
             {/* CTA cluster — Fitts (large primary), Hick (one dominant choice), Von Restorff (primary pops),
                 Proximity (CTA + reassurance tightly grouped), Peak-End (first thing the user touches). */}
@@ -637,7 +638,7 @@ const Index = () => {
             {[
               { idx: "01", icon: Hammer, title: "For Builders", desc: "Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.", span: "col-span-12 md:col-span-5", tag: "Full-Stack" },
               { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic: unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
-              { idx: "03", icon: Code, title: "For Coders", desc: "Elite-tier coding engine. Debug, architect, and ship production code, with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
+              { idx: "03", icon: Code, title: "For Coders", desc: "A coding engine that keeps your context. Debug, architect, and ship production code, with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
               { idx: "04", icon: Target, title: "For Strategists", desc: "Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.", span: "col-span-12 md:col-span-3", tag: "Forecast" },
               { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Asherin adapts to your tone and delivers raw creative output, no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
               { idx: "06", icon: BarChart3, title: "For Analysts", desc: "Deep intelligence on economic events, structural trends, and data patterns, with full OSINT and entity resolution tooling.", span: "col-span-12 md:col-span-5", tag: "Entity-Res" },
@@ -844,7 +845,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
               { Icon: Unlock, title: "Uncensored Responses", desc: "No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
-              { Icon: Monitor, title: "Elite Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
+              { Icon: Monitor, title: "Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
               { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data, not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
               { Icon: Brain, title: "Persistent Memory", desc: "Asherin remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
               { Icon: Users, title: "Team Workspace", desc: "Collaborate in real time. Share threads, outputs, and builds with your team.", span: "md:col-span-4", tag: "Collab" },
@@ -1251,7 +1252,7 @@ const Index = () => {
                 <span className="text-muted-foreground">Of Your Prompts.</span>
               </h2>
               <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between average output and elite intelligence is one step most people skip:
+                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between a vague answer and a useful one is one step most people skip:
               </p>
               <p className="mt-5 text-base font-light tracking-wide text-foreground italic border-l border-foreground/30 pl-4">
                 "Ask Asherin what it needs first."
@@ -1346,7 +1347,7 @@ const Index = () => {
           <div className="space-y-3">
             <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
-            <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals." />
+            <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
             <FaqItem q='What does "never trains our models" mean?' a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." />
             <FaqItem q="Can I cancel anytime?" a='Yes. One click from the dashboard. No retention flow, no "are you sure?" loop. Cancel either tier whenever you want. Your data is exported or deleted on request.' />

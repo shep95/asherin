@@ -112,12 +112,13 @@ import RouteSessionTracker from "./components/RouteSessionTracker";
 import AutoTripMount from "./components/AutoTripMount";
 import SentinelDaemon from "./components/dashboard/SentinelDaemon";
 import RouteSeo from "./components/RouteSeo";
+import HumbleTypography from "./components/HumbleTypography";
 // DonationBanner removed — Aureon now runs on a monthly subscription model.
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
     <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
-      AUREON
+      asherin
     </div>
   </div>
 );
@@ -151,6 +152,7 @@ const App = () => (
           <AutoTripMount />
           <SentinelDaemon />
           <RouteSeo />
+          <HumbleTypography />
           <ByokRequiredDialog />
           {/* Donation banner removed — subscription model is now displayed on /pricing and the dashboard. */}
           

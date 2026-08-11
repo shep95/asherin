@@ -664,3 +664,39 @@ html[data-scrolling] [class*="animate-ping"] {
 html[data-scrolling] .zophiel-aurora-pulse {
   transform: none !important;
 }
+
+/* ============================================================
+   Humble typography scope
+   ------------------------------------------------------------
+   Public pages speak quietly: everything renders lowercase, and
+   the wide "shouting" uppercase tracking of label chips is
+   neutralised. This is presentation only — the DOM text, the
+   document <title>, meta tags and structured data keep their
+   natural casing, so crawlers and screen readers are unaffected.
+   Scoped with [data-humble] so dashboards and tools (where casing
+   carries meaning: IDs, hashes, code, coordinates) are untouched.
+   ============================================================ */
+[data-humble="on"] body,
+[data-humble="on"] body *,
+[data-humble-scope],
+[data-humble-scope] * {
+  text-transform: lowercase !important;
+}
+
+/* Casing must never be flattened where it is data, not tone. */
+[data-humble="on"] code,
+[data-humble="on"] pre,
+[data-humble="on"] kbd,
+[data-humble="on"] samp,
+[data-humble="on"] input,
+[data-humble="on"] textarea,
+[data-humble-scope] code,
+[data-humble-scope] pre,
+[data-humble-scope] input,
+[data-humble-scope] textarea,
+[data-humble="on"] [data-preserve-case],
+[data-humble-scope] [data-preserve-case],
+[data-humble-scope] [data-preserve-case] *,
+[data-humble="on"] [data-preserve-case] * {
+  text-transform: none !important;
+}

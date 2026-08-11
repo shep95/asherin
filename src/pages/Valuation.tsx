@@ -433,7 +433,7 @@ const Valuation = () => {
             </li>
             <li>
               Capability radar normalized 1–10 by feature coverage and uniqueness (sovereign / BYOK +
-              tactical AR are unmatched in the comparable set).
+              tactical AR are uncommon in the comparable set).
             </li>
           </ol>
         </section>
@@ -495,7 +495,7 @@ const Valuation = () => {
 
             <p>
               The most cited recent example inside those conversations: a solo engineer who
-              vibe-coded a working product that outperformed a well-known
+              vibe-coded a working product that held its own against a well-known
               <span className="text-foreground/90"> Palantir </span> workflow. He took it in for a
               valuation. The number came back high. Shortly after, a Berkshire-Hathaway-adjacent
               chain of introductions routed the concept to a top-tier AI lab (Anthropic / Claude
