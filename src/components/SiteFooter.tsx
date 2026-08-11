@@ -230,7 +230,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
               <div className="flex items-center gap-3">
                 <span className="h-px w-10 bg-border/40" />
                 <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
-                  The First Digital Empire
+                  a small independent project
                 </span>
                 <span className="h-px w-10 bg-border/40" />
               </div>
@@ -240,17 +240,16 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
               </h2>
 
               <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
-                Founded by <span className="text-foreground">Asher Newton</span>, #HouseOfAsher is the first
-                digital empire — a sovereign house built not on land, but on code, ideas, and
-                influence. Our mission is to conquer the digital frontier through the apps we
-                build and the ideas we propagate, reshaping how the world thinks, decides,
-                and creates.
+                founded by <span className="text-foreground">asher newton</span>, #houseofasher is an
+                independent group built around software, research, and shared ideas. our aim is
+                to make useful tools, explain the thinking behind them, and keep learning from
+                the people who use them.
               </p>
 
               <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
-                Every product is a vessel. Every user is a citizen. Anyone — regardless of
-                origin, status, or background — can become a citizen of #HouseOfAsher simply
-                by joining the movement and carrying the sigil forward.
+                anyone is welcome to follow the work, regardless of origin, status, or
+                background. participation does not require a title, pledge, or symbol — only
+                curiosity and respect for others.
               </p>
 
               <p className="text-[10px] font-extralight tracking-[0.3em] uppercase text-muted-foreground/50">

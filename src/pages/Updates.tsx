@@ -33,17 +33,17 @@ const UPDATES: Update[] = [
     date: "2026-07-08",
     title: "Valuation Page — $48.0B Private Portfolio Mark + IPO Position Locked",
     body:
-      "src/pages/Valuation.tsx updated to reflect the July 8, 2026 asset-based portfolio mark of $48.0B and explicitly documents that Asherin Empire / House of Asher is a private company with no plan to IPO. Valuation methodology now spells out the software-asset logic (modeled after the WhatsApp acquisition) rather than revenue-multiple logic; the page carries a dated 'Mark of July 8, 2026' banner so readers can distinguish this snapshot from prior figures. Investors page and asherin.gov landing cross-reference the same figure.",
+      "the valuation page now shows the july 8, 2026 internal asset-based portfolio estimate and states that asherin is privately held with no current plan for a public offering. the methodology describes its software-asset assumptions and labels the date so readers can distinguish this estimate from earlier figures. this remains an internal estimate, not an independent appraisal.",
     icon: <Layers className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Valuation",
   },
   {
     date: "2026-07-08",
-    title: "Asherin Empire — Sitewide Rename from 'Asher Empire' + asherin.gov Landing Live",
+    title: "asherin naming update and public-institutions page",
     body:
-      "All 'Asher Empire' references renamed to 'Asherin Empire' across /hosrad and the header dropdown so the brand line is single-string. New /asherin.gov (and /asherin-gov alias) landing page targets government and sovereign partners with capability copy on OSINT, sovereign vaults, tactical AI, and whitelabeling. HOSRAD (House of Asher Research & Developers) page continues to describe the R&D division across every technology domain — AI, quantum computing, defense, and safety — funded through the Asherin Empire holding structure.",
+      "public naming was simplified to asherin. the /asherin.gov page outlines research, private deployment, mapping, and security options for public institutions. the hosrad page describes the house of asher research and development group and its current areas of study.",
     icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Asherin Empire",
+    tag: "asherin",
   },
   {
     date: "2026-07-04",
@@ -417,17 +417,17 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-06-15",
-    title: "Generational Leap in Reasoning & Coding",
+    title: "reasoning and coding update",
     body:
-      "On 06/15/2026 we added a new theory to Asherin based on #HouseOfAsher research, developer theories, and Asher's own work. We implemented it into Asherin and it worked very well \u2014 this theory would jump current AI models 7 generations ahead of current LLM capabilities. We implemented this theory alongside our coding theory and outperformed Opus 4.8 in coding and ChatGPT 5.5 in reasoning and thinking \u2014 by miles.",
+      "on 06/15/2026 we added a reasoning approach based on house of asher research and developer observations. internal comparisons showed improvements on selected coding and reasoning tasks. those results depend on the prompts and evaluation set and should not be read as a universal ranking.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
-    tag: "Breakthrough",
+    tag: "research",
   },
   {
     date: "2026-06-09",
-    title: "Coding Supremacy Theory Deployed",
+    title: "coding approach deployed",
     body:
-      "On 06/09/2026 we added a new theory to Asherin based on #HouseOfAsher research and developer theories to beat the best models in coding \u2014 which we did by a landslide, putting our AI model 3 years ahead of current AI in the coding space.",
+      "on 06/09/2026 we added a coding approach based on house of asher research and developer observations. it improved selected internal coding evaluations, though broader independent testing is still needed.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Engine",
   },

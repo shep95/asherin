@@ -25,15 +25,15 @@ import {
  * ──────────────────────────────────────────────────────────────────── */
 function EmpireDoctrineDiagram() {
   const nodes = [
-    { label: "Roman Empire", sub: "Architects · Engineers", era: "27 BC — 476 AD" },
-    { label: "British Empire", sub: "Royal Society · Admiralty Labs", era: "1660 — 1945" },
-    { label: "American Empire", sub: "DARPA · Bell Labs · NASA", era: "1958 — Present" },
-    { label: "Asherin Empire", sub: "HOSRAD", era: "2026 — ∞", accent: true },
+    { label: "early institutions", sub: "architects · engineers", era: "historical" },
+    { label: "scientific societies", sub: "shared research", era: "early modern" },
+    { label: "public research groups", sub: "darpa · bell labs · nasa", era: "modern" },
+    { label: "asherin research", sub: "hosrad", era: "2026 — present", accent: true },
   ];
   return (
     <div className="relative rounded-2xl border border-foreground/10 bg-card/30 backdrop-blur-xl p-6 sm:p-8">
       <div className="mb-4 flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-foreground/50">
-        <Compass className="h-3 w-3" /> Doctrine · Every Powerful Empire Ran An R&D Arm
+        <Compass className="h-3 w-3" /> a short history of organized research
       </div>
       <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* connecting rail */}
@@ -174,15 +174,14 @@ export default function Hosrad() {
             Research & Development
           </p>
           <p className="mt-8 max-w-3xl text-base sm:text-lg font-light leading-relaxed text-foreground/75">
-            HOSRAD is the House Of Asher's research & development division —
-            the private counterpart to what DARPA is for the American empire.
-            We research advanced ideas for technology development and{" "}
-            <span className="text-amber-300/90">build the technology on top of that research</span>.
+            hosrad is the house of asher research and development group. it studies
+            ideas that may support useful technology and, where practical,{" "}
+            <span className="text-amber-300/90">turns that research into testable prototypes</span>.
           </p>
           <p className="mt-4 max-w-3xl text-sm font-light leading-relaxed text-foreground/60">
-            Every empire that ever mattered — Rome, Britain, America — funded
-            an R&D arm before it minted its currency. The Indian Empire is next.
-            The Asherin Empire starts here.
+            the group learns from public laboratories, universities, independent
+            researchers, and earlier institutions while remaining honest about the
+            limited scale and early stage of its own work.
           </p>
         </header>
 
@@ -197,23 +196,23 @@ export default function Hosrad() {
             {
               icon: Sparkles,
               tag: "Mandate",
-              title: "Pull the future forward",
+              title: "study emerging questions",
               body:
-                "We research what nobody is funding yet — because by the time the market funds it, it is no longer research.",
+                "we explore questions that appear useful, including work that may not yet receive broad attention.",
             },
             {
               icon: Building2,
               tag: "Structure",
-              title: "Private, sovereign, unencumbered",
+              title: "independent and accountable",
               body:
-                "No committees. No grant cycles. No 18-month approval chains. A lean cell publishes internally and ships to House Of Asher production.",
+                "a small team can test ideas carefully, document limitations, and share useful results without unnecessary process.",
             },
             {
               icon: Users,
               tag: "Selection",
               title: "Talent over credentials",
               body:
-                "We do not care where you went to school. We care what you have built, broken, and understood. If you can defend it under fire — you are in.",
+                "formal education is one path among many. applications are reviewed through demonstrated work, clear reasoning, honesty, and respect for others.",
             },
           ].map((c) => (
             <article key={c.title} className="rounded-2xl border border-foreground/10 bg-card/30 backdrop-blur-xl p-6">
@@ -244,14 +243,13 @@ export default function Hosrad() {
             </div>
             <div>
               <h2 className="text-xl font-light tracking-wide text-foreground mb-2">
-                Only the best of the best. You <em className="not-italic text-amber-300/90">will</em> be competing.
+                applications are reviewed carefully and respectfully.
               </h2>
               <p className="text-sm font-light leading-relaxed text-foreground/70">
-                We do not care what degree you hold, what firm you left, or
-                which government contract you sat on. We care what you can
-                deliver for the House Of Asher and the Asherin Empire. Fill
-                out the application below <span className="text-foreground/90">completely honestly</span> —
-                the review is not lenient, and it is not slow.
+                a degree, former employer, or government contract does not decide
+                an application. we look for careful work, sound reasoning, and
+                honesty. please complete the application below truthfully; each
+                submission receives the same review standard.
               </p>
             </div>
           </div>

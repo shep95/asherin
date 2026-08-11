@@ -119,7 +119,7 @@ const GiftSubscriptionSection = () => {
         <h3 className="text-sm font-light text-foreground">Gift a Subscription</h3>
       </div>
       
-      <p className="text-xs font-extralight text-muted-foreground">Give the power of Aureon to someone special. Extended durations receive automatic discounts.</p>
+      <p className="text-xs font-extralight text-muted-foreground">share a subscription with someone you know. longer terms use the listed term discount.</p>
 
       <div className="space-y-3">
         <div>

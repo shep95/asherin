@@ -193,7 +193,7 @@ const Valuation = () => {
               ◈ Private Company · Not Public
             </p>
             <p className="text-sm font-light leading-relaxed text-foreground/80">
-              Asherin operates as a fully private entity under the Asherin Empire.
+              asherin operates as a privately held company.
               This valuation is disclosed voluntarily for transparency with
               partners, licensees, and prospective enterprise / government
               clients — it is not a solicitation of investment, and no equity
@@ -223,7 +223,7 @@ const Valuation = () => {
             <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground/60">All figures in USD billions</span>
           </div>
           <p className="text-xs md:text-sm text-muted-foreground/80 mb-4 font-light leading-relaxed max-w-3xl">
-            Three possible outcomes if the Asherin Empire portfolio were valued today. <span className="text-foreground/80">Bear</span> = conservative floor. <span className="text-foreground/80">Base</span> = most likely, benchmarked against Palantir / Anduril / Recorded Future / Maltego. <span className="text-foreground/80">Bull</span> = sovereign-AI scarcity + defense whitelabel premium. Current mark of <span className="text-foreground/90">$48.0B</span> sits inside the Base range.
+            three modeled outcomes if the asherin software portfolio were valued today. <span className="text-foreground/80">lower</span> uses conservative assumptions, <span className="text-foreground/80">middle</span> uses selected industry comparisons, and <span className="text-foreground/80">upper</span> assumes stronger licensing demand. the current internal estimate of <span className="text-foreground/90">$48.0b</span> sits in the middle range and is not an independent appraisal.
           </p>
           <div className="rounded-2xl border border-border/40 overflow-hidden">
             <table className="w-full text-sm">

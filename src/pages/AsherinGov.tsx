@@ -92,9 +92,9 @@ const AsherinGov = () => {
       if (!el) { el = document.createElement("meta"); document.head.appendChild(el); }
       Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v));
     };
-    upsert('meta[name="description"]', { name: "description", content: "Asherin Empire · government-grade AI, OSINT, cyber, tactical, and sovereign-vault software. Whitelabel deployments for allied agencies and coalitions." });
+    upsert('meta[name="description"]', { name: "description", content: "asherin provides ai, public-source research, security, mapping, and private deployment options for public institutions." });
     upsert('meta[property="og:title"]', { property: "og:title", content: "Asherin · Government Partners" });
-    upsert('meta[property="og:description"]', { property: "og:description", content: "Sovereign AI, OSINT, cyber, tactical, and vault software for government partners of the Asherin Empire." });
+    upsert('meta[property="og:description"]', { property: "og:description", content: "ai, public-source research, security, mapping, and private deployment options for public institutions." });
     upsert('meta[name="robots"]', { name: "robots", content: "index, follow, max-snippet:-1, max-image-preview:large" });
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
@@ -231,13 +231,12 @@ const AsherinGov = () => {
               <Building2 className="h-4 w-4 text-amber-200" strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="text-xl font-light tracking-wide mb-2">Private, sovereign, unencumbered.</h2>
+              <h2 className="text-xl font-light tracking-wide mb-2">privately held, with clear accountability.</h2>
               <p className="text-sm font-light leading-relaxed text-foreground/70 max-w-3xl">
-                The Asherin Empire operates as a fully private entity. There
-                are no public shareholders, no adversarial board, no foreign
-                minority owners. This structure allows Asherin to accept
-                sovereign engagements without triangulating loyalties — the
-                cap table and the code both sit under a single roof.
+                asherin is privately held. its ownership structure and technical
+                controls can be reviewed during procurement so a public institution
+                can assess governance, data handling, and deployment responsibility
+                before making a decision.
               </p>
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-[11px] tracking-[0.15em] uppercase text-foreground/60">
                 <div><div className="text-foreground/90 text-lg font-light mb-1">AES-256-GCM</div>Vault encryption</div>
@@ -272,7 +271,7 @@ const AsherinGov = () => {
 
         {/* footer */}
         <footer className="mt-16 pt-8 border-t border-foreground/10 flex flex-wrap justify-between gap-4 text-[10px] tracking-[0.25em] uppercase text-foreground/40">
-          <span>Asherin Empire · Sovereign Partners Desk</span>
+          <span>asherin · public institutions desk</span>
           <Link to="/valuation" className="hover:text-foreground/70">Company Valuation →</Link>
         </footer>
       </div>
