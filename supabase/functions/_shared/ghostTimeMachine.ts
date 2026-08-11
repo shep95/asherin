@@ -522,7 +522,12 @@ export async function deepTimeSweep(
   // a missing date is the publisher's silence, not the document's irrelevance.
   const read = probed.flat();
   const all = read.filter((c) => c.year === 0 || c.year >= fromYear);
-  report.corpora.push({ name: "Direct probe", ok: true, records: leads.length, note: null });
+  report.corpora.push({
+    name: "Direct probe",
+    ok: true,
+    records: leads.length - skippedProbes,
+    note: skippedProbes ? `${skippedProbes} leads left unopened when the probe slice expired.` : null,
+  });
   report.corpora.push({ name: "Dated documents", ok: all.length > 0, records: all.length, note: null });
 
   all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
