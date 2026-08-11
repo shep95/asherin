@@ -10,6 +10,8 @@
  *          zophiel-intel-analysis, zophiel-deep-search.
  */
 
+import { getModelCapability, tierPrompts, extractJson } from './modelCapability.ts';
+
 export type ZophielByokProvider =
   | 'google'
   | 'openai'
@@ -105,7 +107,20 @@ function armCooldown(fp: string, ms: number) {
 }
 
 
-/** Generic non-streaming JSON-mode AI call routed through the user's BYOK provider. */
+/**
+ * Generic non-streaming JSON-mode AI call routed through the user's BYOK provider.
+ *
+ * Two model-awareness layers run here so every caller inherits them:
+ *
+ *  1. PROMPT TIERING — the doctrine stack is sized against the selected model's
+ *     real context window. Oversized payloads are compressed by us (contract
+ *     blocks pinned, illustrative blocks dropped) instead of being blind-cut by
+ *     the provider, which is what made small BYOK models answer like generic
+ *     chat assistants.
+ *  2. JSON DISCIPLINE — `response_format` is only sent to providers that honor
+ *     it; everywhere else the instruction is carried in the prompt and the
+ *     response goes through a fence/balance/repair extractor before returning.
+ */
 export async function callByokJson(
   cfg: ZophielByokConfig,
   systemPrompt: string,
@@ -117,47 +132,73 @@ export async function callByokJson(
   const maxOutputTokens = opts.maxOutputTokens ?? 8192;
   const jsonMode = opts.jsonMode ?? true;
 
-  switch (cfg.provider) {
-    case 'google':
-      return callGemini(cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    case 'openai':
-      return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    case 'anthropic':
-      return callAnthropic(cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, maxOutputTokens, jsonMode,
-      });
-    case 'xai':
-      return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    case 'deepseek':
-      return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    case 'mistral':
-      return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    case 'perplexity':
-      // Perplexity does not honor response_format=json_object; rely on prompt discipline.
-      return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode: false,
-      });
-    case 'venice':
-      // Venice AI is OpenAI-compatible. Used as the free-tier platform fallback
-      // (uncensored, vision-capable, code-aware). Users with their own BYOK key
-      // never route here — they use whichever provider they brought.
-      return callOpenAICompat('https://api.venice.ai/api/v1', cfg.apiKey, cfg.model, systemPrompt, userPrompt, {
-        timeoutMs, temperature, maxOutputTokens, jsonMode,
-      });
-    default:
-      throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
+  const cap = getModelCapability(cfg.provider, cfg.model, maxOutputTokens);
+  const tiered = tierPrompts(systemPrompt, userPrompt, cap.inputBudgetChars);
+  if (tiered.compressed) {
+    console.warn(
+      `[byok:${cfg.provider}] prompt tiered for ${cfg.model} (${cap.tier}): ` +
+      `${tiered.originalChars} → ${tiered.finalChars} chars (budget ${cap.inputBudgetChars})`,
+    );
   }
+  const sys = tiered.system;
+  const usr = tiered.user;
+  // Native json_object only where the provider actually enforces it. Elsewhere
+  // the instruction rides in the prompt and `extractJson` does the enforcing.
+  const nativeJson = jsonMode && cap.nativeJsonMode;
+
+  const raw = await (() => {
+    switch (cfg.provider) {
+      case 'google':
+        return callGemini(cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode: nativeJson,
+        });
+      case 'openai':
+        return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
+        });
+      case 'anthropic':
+        return callAnthropic(cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, maxOutputTokens, jsonMode,
+        });
+      case 'xai':
+        return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
+        });
+      case 'deepseek':
+        return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
+        });
+      case 'mistral':
+        return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
+        });
+      case 'perplexity':
+        // Perplexity does not honor response_format=json_object; prompt discipline only.
+        return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson: false,
+        });
+      case 'venice':
+        // Venice AI is OpenAI-compatible and hosts open-weights models. It
+        // accepts response_format but honors it inconsistently per model, so
+        // JSON is enforced on our side via extractJson below.
+        return callOpenAICompat('https://api.venice.ai/api/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson: false,
+        });
+      default:
+        throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
+    }
+  })();
+
+  if (!jsonMode) return raw;
+
+  const repaired = extractJson(raw);
+  if (repaired) return repaired;
+  // Nothing JSON-shaped came back. Return the raw text so callers keep their
+  // own prose fallbacks instead of receiving a fabricated object.
+  console.warn(`[byok:${cfg.provider}] json extraction failed for ${cfg.model}; returning raw text`);
+  return raw;
 }
+
 
 // ────────────────────────── Provider implementations ──────────────────────────
 
@@ -239,7 +280,7 @@ async function callOpenAICompat(
   model: string,
   systemPrompt: string,
   userPrompt: string,
-  opts: { timeoutMs: number; temperature: number; maxOutputTokens?: number; jsonMode: boolean },
+  opts: { timeoutMs: number; temperature: number; maxOutputTokens?: number; jsonMode: boolean; nativeJson?: boolean },
 ): Promise<string> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), opts.timeoutMs);
@@ -266,7 +307,7 @@ async function callOpenAICompat(
         ...(isGpt5Plus
           ? { max_completion_tokens: maxTok }
           : { temperature: opts.temperature, max_tokens: maxTok }),
-        ...(opts.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        ...(opts.nativeJson ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
     if (!r.ok) {
