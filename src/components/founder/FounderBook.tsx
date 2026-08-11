@@ -77,18 +77,17 @@ const FounderBook = () => {
         }
         docRef.current = doc;
 
-        // Measure every page once at scale 1 so the scroller height is final.
-        const sizes: { w: number; h: number }[] = [];
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i);
-          const vp = page.getViewport({ scale: 1 });
-          sizes.push({ w: vp.width, h: vp.height });
-          page.cleanup?.();
-          if (cancelled) return;
-        }
-        setPageSizes(sizes);
+        // Measure page 1 only and project it across the book: measuring every
+        // page up-front serialises N worker round-trips and stalls first paint.
+        // Each page corrects its own aspect ratio the moment it renders.
+        const first = await doc.getPage(1);
+        const vp = first.getViewport({ scale: 1 });
+        first.cleanup?.();
+        if (cancelled) return;
+        setPageSizes(Array.from({ length: doc.numPages }, () => ({ w: vp.width, h: vp.height })));
         setProgress(100);
         setStatus("ready");
+
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "The book could not be opened.");
