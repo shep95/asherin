@@ -113,7 +113,7 @@ const Founder = () => {
             <div className="mt-12 flex flex-wrap gap-3">
               {[
                 { id: "videos", icon: Youtube, label: "Watch His Videos" },
-                { id: "videos", icon: Youtube, label: "Watch His Videos" },
+
                 { id: "imagines", icon: Sparkles, label: "Study The Teachings" },
               ].map(({ id, icon: Icon, label }) => (
                 <a
