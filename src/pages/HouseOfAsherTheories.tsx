@@ -234,7 +234,7 @@ const THEORIES: Theory[] = [
         icon: <Sparkles className="h-5 w-5" strokeWidth={1.5} />,
         bio: "Wave-function collapse — one outcome becomes real",
         tech: "Measurement — single answer ships only on margin",
-        note: "Asherin only commits when one candidate dominates by clear margin and passes every hard oracle. Ties are surfaced honestly, never coin-flipped.",
+        note: "Asherin only commits when one candidate leads by a clear margin and passes every hard oracle. Ties are surfaced honestly, never coin-flipped.",
       },
       {
         icon: <Trophy className="h-5 w-5" strokeWidth={1.5} />,
@@ -438,7 +438,7 @@ function CodeNarrativeQuantumDiagram() {
             { n: "01", t: "Superposition", d: "Spawn 5–50+ distinct candidates in parallel — never one path." },
             { n: "02", t: "Entanglement", d: "Lock every candidate against the user's constraint graph and domain law." },
             { n: "03", t: "Interference", d: "Adversarial oracle eliminates weak lineages, recombines the strong." },
-            { n: "04", t: "Measurement", d: "Collapse only when one survivor dominates by clear margin." },
+            { n: "04", t: "Measurement", d: "Collapse only when one survivor leads by a clear margin." },
           ].map((p) => (
             <div key={p.n} className="rounded-xl border border-border/30 bg-background/60 p-4 space-y-2">
               <p className="text-[10px] font-mono tracking-[0.25em] text-foreground/50">PHASE {p.n}</p>

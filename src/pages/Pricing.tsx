@@ -31,7 +31,7 @@ const FAQ = [
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you uncensored chat, four reasoning modes, the elite coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) gives you uncensored chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
@@ -171,7 +171,7 @@ const Pricing = () => {
             claim="Asherin costs $18 per month for the core platform and $399 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
             primaryTopic="Asherin subscription pricing"
             keyFacts={[
-              "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
+              "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), a capable coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
               "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
@@ -229,7 +229,7 @@ const Pricing = () => {
                 <tbody className="divide-y divide-foreground/10">
                   {[
                     ["Uncensored chat + 4 reasoning modes", "✓", "✓", "✓"],
-                    ["Elite coding engine", "✓", "✓", "✓"],
+                    ["Capable coding engine", "✓", "✓", "✓"],
                     ["Zophiel Search", "Base", "Pro — deeper crawl, priority latency", "Pro + dedicated capacity"],
                     ["Persistent memory + E2E encryption", "✓", "✓", "✓"],
                     ["BYOK (9 providers)", "✓", "✓", "✓"],

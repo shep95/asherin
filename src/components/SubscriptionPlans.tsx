@@ -24,7 +24,7 @@ const PLANS = [
     period: "/month",
     tagline: "Core intelligence",
     description:
-      "Everything you need to think, code, search and ship — uncensored AI, elite coding engine, the full Zophiel Search Intelligence engine, persistent memory and a workspace built for one operator.",
+      "Everything you need to think, code, search and ship — uncensored AI, a capable coding engine, the full Zophiel Search Intelligence engine, persistent memory and a workspace built for one person.",
     cta: "Subscribe — $18 / month",
     highlight: false,
     groups: [
@@ -36,7 +36,7 @@ const PLANS = [
         title: "Core Capabilities",
         items: [
           "Uncensored AI responses",
-          "Elite coding engine",
+          "Capable coding engine",
           "Multi-language output",
           "Response depth control",
         ],
@@ -117,7 +117,7 @@ const PLANS = [
         ],
       },
       {
-        title: "Asherin Engine (Pro exclusive)",
+        title: "Asherin Engine (included with Pro)",
         items: [
           "Metadata index over the shell — headers, DNS/ASN, redirects, containers",
           "Short full-take buffer: session bodies retained on a self-expiring TTL",

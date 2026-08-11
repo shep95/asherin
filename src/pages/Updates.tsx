@@ -200,7 +200,7 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-07-02",
-    title: "Elite OSINT Stack — Global Intelligence Layer",
+    title: "Broader OSINT Stack — Global Intelligence Layer",
     body:
       "Asherin Chat's OSINT layer was upgraded from a US-centric feed to a global intelligence stack that covers every country and sub-national region. Live free sources now include GDELT (every major broadcast/print/online source, 100+ languages, 15-min cadence), World Bank Indicators, IMF SDMX, UN Comtrade, Wikipedia summaries, and jurisdictional gazettes. Verified live across 15 queries spanning Kenya, Bavaria, Tamil Nadu, Sichuan, Kharkiv, Texas, Fiji, Kazakhstan, Myanmar, Scotland, São Paulo, Tokyo, and Ontario — all returned real cited data. The endpoint gates behind sign-in to protect LLM spend; the OSINT pipeline itself is identical whether invoked from chat or from server tests.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
