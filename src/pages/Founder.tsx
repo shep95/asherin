@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, BookOpen, Download, Youtube, Sparkles, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Twitter, Globe, Zap, Shield, Eye, Instagram, Youtube, Sparkles, MessageCircle } from "lucide-react";
 import FounderVideos from "@/components/founder/FounderVideos";
 import FounderTOC from "@/components/founder/FounderTOC";
 import { ReadingTime, SectionDivider } from "@/components/founder/FounderBits";
