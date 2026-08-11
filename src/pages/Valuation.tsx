@@ -193,7 +193,7 @@ const Valuation = () => {
               ◈ Private Company · Not Public
             </p>
             <p className="text-sm font-light leading-relaxed text-foreground/80">
-              Asherin operates as a fully private entity under the Asherin Empire.
+              asherin operates as a privately held company.
               This valuation is disclosed voluntarily for transparency with
               partners, licensees, and prospective enterprise / government
               clients — it is not a solicitation of investment, and no equity

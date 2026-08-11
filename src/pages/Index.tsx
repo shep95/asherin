@@ -1433,10 +1433,10 @@ const Index = () => {
                     Latest Deployments
                   </div>
                   <h3 className="text-xl sm:text-2xl font-extralight tracking-tight text-foreground">
-                    Coding supremacy. Generational leaps. Chinese model integrations.
+                    coding improvements, measured updates, and broader model integrations.
                   </h3>
                   <p className="text-sm font-extralight text-muted-foreground max-w-xl leading-relaxed">
-                    See every theory, breakthrough, and integration that has entered Asherin, logged without the marketing varnish.
+                    review the theories, changes, and integrations added to asherin, including what changed and what remains uncertain.
                   </p>
                 </div>
                 <Link

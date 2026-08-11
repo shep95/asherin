@@ -10,7 +10,7 @@ const addOns = [
     name: "Automated Agents", 
     price: 200, 
     icon: Bot, 
-    description: "AI agents that run tasks on autopilot forever",
+    description: "ai agents that can continue approved routine tasks",
     includedIn: "Add-on for any plan"
   },
   { 
@@ -26,7 +26,7 @@ const addOns = [
     name: "Extended Memory", 
     price: 19, 
     icon: Brain, 
-    description: "10x context window expansion",
+    description: "a larger context window for longer working sessions",
     includedIn: "Included in Pro tier"
   },
   { 
