@@ -383,7 +383,7 @@ const Founder = () => {
             ~ Asher Asherin Elion
           </p>
 
-          <DirectionalCTA to="ebook" label="Continue · Into the Library" />
+          <DirectionalCTA to="videos" label="Continue · Watch the Archives" />
         </div>
       </div>
 
