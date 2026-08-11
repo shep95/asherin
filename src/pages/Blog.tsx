@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 
 /**
  * /blog — Blog index. Lists every long-form article under /blog/*.
@@ -354,11 +354,21 @@ const fmtTime = (iso: string) => {
 const ALL_TAGS = (posts: Post[]) =>
   Array.from(new Set(posts.map((p) => p.tag))).sort();
 
+/** Month-year bucket key, e.g. "August 2026" — used to group the reading feed. */
+const fmtBucket = (iso: string) =>
+  new Date(toIso(iso)).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+
 const Blog = () => {
   const [tagFilter, setTagFilter] = useState<string>("All");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [query, setQuery] = useState<string>("");
+  const [refineOpen, setRefineOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const id = "blog-index-jsonld";
@@ -392,258 +402,372 @@ const Blog = () => {
   const filtered = useMemo(() => {
     const fromMs = dateFrom ? Date.parse(`${dateFrom}T00:00:00Z`) : -Infinity;
     const toMs = dateTo ? Date.parse(`${dateTo}T23:59:59Z`) : Infinity;
+    const q = query.trim().toLowerCase();
     return BLOG_POSTS
       .filter((p) => (tagFilter === "All" ? true : p.tag === tagFilter))
       .filter((p) => {
         const t = Date.parse(toIso(p.published));
         return t >= fromMs && t <= toMs;
       })
+      .filter((p) =>
+        q
+          ? `${p.title} ${p.dek} ${p.tag}`.toLowerCase().includes(q)
+          : true,
+      )
       .sort((a, b) => {
         const ta = Date.parse(toIso(a.published));
         const tb = Date.parse(toIso(b.published));
         return sort === "newest" ? tb - ta : ta - tb;
       });
-  }, [tagFilter, sort, dateFrom, dateTo]);
+  }, [tagFilter, sort, dateFrom, dateTo, query]);
 
   const pinnedPosts = BLOG_POSTS.filter((p) => p.pinned);
   const livePinned = pinnedPosts.filter((p) => p.tag === "Live Prediction");
   const heroPinned = pinnedPosts.filter((p) => p.tag !== "Live Prediction");
-  const featured = pinnedPosts[0] ?? BLOG_POSTS.find((p) => p.featured) ?? BLOG_POSTS[0];
+  // One lead story carries the page. The rest of the pinned set becomes a
+  // quiet secondary row — three equal gold hero cards was three focal points
+  // competing for the same eye, which is no hierarchy at all.
+  const lead = heroPinned[0] ?? null;
+  const secondaryPinned = heroPinned.slice(1);
+
   const isFiltering =
-    tagFilter !== "All" || sort !== "newest" || dateFrom || dateTo;
+    tagFilter !== "All" || sort !== "newest" || !!dateFrom || !!dateTo || !!query.trim();
   const pinnedSlugs = new Set(pinnedPosts.map((p) => p.slug));
   const listed = filtered.filter((p) => !pinnedSlugs.has(p.slug));
+
+  // Group the feed into month buckets so a 30-item list reads as a timeline
+  // rather than an undifferentiated wall.
+  const buckets = useMemo(() => {
+    const map = new Map<string, Post[]>();
+    for (const p of listed) {
+      const k = fmtBucket(p.published);
+      const arr = map.get(k);
+      if (arr) arr.push(p);
+      else map.set(k, [p]);
+    }
+    return Array.from(map.entries());
+  }, [listed]);
+
+  const resetAll = () => {
+    setTagFilter("All");
+    setSort("newest");
+    setDateFrom("");
+    setDateTo("");
+    setQuery("");
+  };
 
   return (
     <div className="landing-perf min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24 space-y-16">
-        {/* HERO */}
-        <header className="space-y-6">
-          <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-            ◈ Asherin Journal
-          </div>
-          <h1 className="text-5xl sm:text-6xl font-extralight tracking-tight leading-[1.05] max-w-3xl">
-            Field reports from the
-            <span className="block text-muted-foreground/70">operator stack.</span>
-          </h1>
-          <p className="max-w-2xl text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed">
-            Long-form comparisons, benchmarks, and intelligence write-ups from
-            the Asherin team. No fluff, no affiliate links.
+      <main className="max-w-5xl mx-auto px-5 sm:px-6 pt-28 pb-24">
+        {/* MASTHEAD */}
+        <header className="border-b border-border/25 pb-10">
+          <p className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
+            Asherin Journal
           </p>
+          <h1 className="mt-5 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.03em] leading-[0.95] max-w-3xl">
+            Field reports from the
+            <span className="block italic text-muted-foreground/60">operator stack.</span>
+          </h1>
+          <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
+            <p className="max-w-xl text-sm sm:text-base font-extralight text-muted-foreground leading-[1.75]">
+              Long-form comparisons, benchmarks, and intelligence write-ups.
+              No fluff, no affiliate links.
+            </p>
+            <span className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/60 tabular-nums">
+              {BLOG_POSTS.length} entries
+            </span>
+          </div>
         </header>
 
-        {/* AUTOMATED LIVE PREDICTIONS — collapsed compact group */}
+        {/* LIVE TICKER — a slim strip, not a card grid. The accent is spent
+            here and on the pinned marker only, so it still means something. */}
         {livePinned.length > 0 && (
-          <section aria-label="Automated daily predictions" className="space-y-4">
-            <div className="flex items-baseline justify-between flex-wrap gap-2">
-              <div>
-                <p className="text-[10px] tracking-[0.4em] uppercase text-accent/80 mb-1">
-                  ◈ Auto-Updated · 07:00 EST Daily
-                </p>
-                <h2 className="text-2xl font-light tracking-tight">Automated daily predictions</h2>
-              </div>
-              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                {livePinned.length} live feeds
+          <section aria-label="Automated daily predictions" className="mt-8">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-accent/25 bg-accent/[0.04] px-5 py-3.5">
+              <span className="inline-flex items-center gap-2 text-[10px] font-light tracking-[0.28em] uppercase text-accent">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                </span>
+                Live · 07:00 EST daily
               </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {livePinned.map((p) => {
-                const short = p.title.replace(/^AXRLEN\s+/, "").split(" Daily")[0];
-                return (
-                  <Link
-                    key={p.slug}
-                    to={p.slug}
-                    className="group flex flex-col gap-2 rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/70 hover:shadow-[0_0_24px_-8px_rgba(251,191,36,0.35)] p-4 transition-all"
-                  >
-                    <span className="inline-flex items-center gap-1.5 text-[9px] tracking-[0.2em] uppercase text-amber-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      Live
-                    </span>
-                    <h3 className="text-sm font-light leading-snug text-foreground">{short}</h3>
-                    <div className="mt-auto flex items-center justify-between pt-2 border-t border-amber-400/15">
-                      <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground">24h call</span>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover:text-amber-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" strokeWidth={1.5} />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* PINNED POSTS — full hero cards for non-live pinned articles */}
-        {heroPinned.length > 0 && (
-          <section aria-label="Pinned articles" className="space-y-5">
-            {heroPinned.map((featured) => (
-              <Link
-                key={featured.slug}
-                to={featured.slug}
-                className="group block rounded-3xl border border-amber-400/50 bg-gradient-to-br from-amber-500/[0.06] via-card/30 to-card/20 hover:border-amber-400/80 shadow-[0_0_40px_-12px_rgba(251,191,36,0.25)] p-8 sm:p-12 transition-all backdrop-blur-sm"
-              >
-                <div className="grid sm:grid-cols-[1fr_auto] gap-8 items-end">
-                  <div className="space-y-5">
-                    <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-400/60 bg-amber-400/10 text-amber-300">
-                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
-                        Pinned
-                      </span>
-                      <span>{featured.tag}</span>
-                      <span aria-hidden>·</span>
-                      <time dateTime={toIso(featured.published)}>
-                        {fmtDate(featured.published)}
-                        {fmtTime(featured.published) ? ` · ${fmtTime(featured.published)}` : ""}
-                      </time>
-                      <span aria-hidden>·</span>
-                      <span>{featured.readTime}</span>
-                    </div>
-                    <h2 className="text-3xl sm:text-4xl font-extralight tracking-tight leading-[1.15] text-foreground group-hover:text-foreground transition-colors">
-                      {featured.title}
-                    </h2>
-                    <p className="text-base font-extralight text-muted-foreground leading-relaxed max-w-2xl">
-                      {featured.dek}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-end">
-                    <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-foreground/25 text-foreground transition-all group-hover:bg-foreground group-hover:text-background">
-                      <ArrowUpRight className="h-5 w-5" strokeWidth={1.5} />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </section>
-        )}
-
-
-        {/* FILTERS */}
-        <section aria-label="Filter articles" className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {tags.map((t) => {
-              const active = tagFilter === t;
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTagFilter(t)}
-                  aria-pressed={active}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-[0.25em] uppercase border transition-all ${
-                    active
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border/40 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-                  }`}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium tracking-[0.2em] uppercase text-muted-foreground">
-            <label className="flex items-center gap-2">
-              <span>From</span>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span>To</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
-              />
-            </label>
-            <label className="flex items-center gap-2">
-              <span>Sort</span>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as "newest" | "oldest")}
-                className="bg-card/40 border border-border/40 rounded-md px-2 py-1 text-foreground"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-              </select>
-            </label>
-            {isFiltering ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setTagFilter("All");
-                  setSort("newest");
-                  setDateFrom("");
-                  setDateTo("");
-                }}
-                className="ml-1 underline-offset-4 hover:underline text-foreground"
-              >
-                Reset
-              </button>
-            ) : null}
-            <span className="ml-auto">{filtered.length} matching</span>
-          </div>
-        </section>
-
-        {/* GRID */}
-        {listed.length > 0 ? (
-          <section aria-label="All articles" className="space-y-6">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-2xl font-light tracking-tight">
-                {isFiltering ? "Filtered results" : "All articles"}
-              </h2>
-              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◈ {listed.length} shown
-              </span>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {listed.map((p) => {
-                const time = fmtTime(p.published);
-                return (
-                  <Link
-                    key={p.slug}
-                    to={p.slug}
-                    className="group flex flex-col gap-4 rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm p-6 transition-all hover:border-foreground/30 hover:bg-card/30"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                      <span>{p.tag}</span>
-                      <span aria-hidden>·</span>
-                      <time dateTime={toIso(p.published)}>{fmtDate(p.published)}</time>
-                      {time ? (
-                        <>
-                          <span aria-hidden>·</span>
-                          <span className="tabular-nums">{time}</span>
-                        </>
-                      ) : null}
-                    </div>
-                    <h3 className="text-lg font-light tracking-tight text-foreground leading-snug flex-1">
-                      {p.title}
-                    </h3>
-                    <p className="text-sm font-extralight text-muted-foreground leading-relaxed line-clamp-3">
-                      {p.dek}
-                    </p>
-                    <div className="flex items-center justify-between pt-2 border-t border-border/20">
-                      <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
-                        {p.readTime}
-                      </span>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                {livePinned.map((p) => {
+                  const short = p.title.replace(/^AXRLEN\s+/, "").split(" Daily")[0];
+                  return (
+                    <Link
+                      key={p.slug}
+                      to={p.slug}
+                      className="group inline-flex items-center gap-2 text-sm font-light text-foreground/85 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/60 rounded"
+                    >
+                      {short}
                       <ArrowUpRight
-                        className="h-4 w-4 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        className="h-3.5 w-3.5 text-muted-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                         strokeWidth={1.5}
                       />
-                    </div>
-                  </Link>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* LEAD STORY */}
+        {lead && (
+          <section aria-label="Lead article" className="mt-12">
+            <Link
+              to={lead.slug}
+              className="group block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40 rounded-2xl"
+            >
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-light tracking-[0.26em] uppercase text-muted-foreground">
+                <span className="text-accent">Pinned</span>
+                <span aria-hidden className="text-border">/</span>
+                <span>{lead.tag}</span>
+                <span aria-hidden className="text-border">/</span>
+                <time dateTime={toIso(lead.published)}>{fmtDate(lead.published)}</time>
+                <span aria-hidden className="text-border">/</span>
+                <span>{lead.readTime}</span>
+              </div>
+              <h2 className="mt-5 font-display text-3xl sm:text-4xl md:text-5xl font-light tracking-[-0.025em] leading-[1.08] text-foreground">
+                {lead.title}
+              </h2>
+              <p className="mt-5 max-w-2xl text-base font-extralight text-muted-foreground leading-[1.8]">
+                {lead.dek}
+              </p>
+              <span className="mt-6 inline-flex items-center gap-2 text-[11px] font-light tracking-[0.24em] uppercase text-foreground/80">
+                Read the report
+                <ArrowUpRight
+                  className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                  strokeWidth={1.5}
+                />
+              </span>
+            </Link>
+          </section>
+        )}
+
+        {/* SECONDARY PINNED */}
+        {secondaryPinned.length > 0 && (
+          <section aria-label="Also pinned" className="mt-12 border-t border-border/25 pt-8">
+            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+              {secondaryPinned.map((p) => (
+                <Link
+                  key={p.slug}
+                  to={p.slug}
+                  className="group block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40 rounded-xl"
+                >
+                  <div className="flex flex-wrap items-center gap-x-2.5 text-[9px] font-light tracking-[0.26em] uppercase text-muted-foreground">
+                    <span className="text-accent">Pinned</span>
+                    <span aria-hidden className="text-border">/</span>
+                    <span>{p.tag}</span>
+                    <span aria-hidden className="text-border">/</span>
+                    <span>{p.readTime}</span>
+                  </div>
+                  <h3 className="mt-3 text-xl font-light tracking-[-0.015em] leading-snug text-foreground/95 transition-colors group-hover:text-foreground">
+                    {p.title}
+                  </h3>
+                  <p className="mt-2.5 text-sm font-extralight text-muted-foreground leading-relaxed line-clamp-2">
+                    {p.dek}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* CONTROLS — search first, chips scroll on one line, the rarely used
+            date range hides behind a disclosure instead of shouting. */}
+        <section
+          aria-label="Filter articles"
+          className="mt-14 border-t border-border/25 pt-6"
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60"
+                strokeWidth={1.5}
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search the archive"
+                aria-label="Search articles"
+                className="w-full rounded-full border border-border/40 bg-card/20 py-2 pl-9 pr-4 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-foreground/40"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setRefineOpen((v) => !v)}
+              aria-expanded={refineOpen}
+              className="inline-flex items-center gap-2 rounded-full border border-border/40 px-4 py-2 text-[10px] font-light tracking-[0.24em] uppercase text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Refine
+            </button>
+            <span className="text-[10px] font-light tracking-[0.24em] uppercase text-muted-foreground/70 tabular-nums">
+              {filtered.length} matching
+            </span>
+          </div>
+
+          <div className="mt-4 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible scrollbar-none">
+            <div className="flex w-max sm:w-auto sm:flex-wrap items-center gap-2 pb-1">
+
+              {tags.map((t) => {
+                const active = tagFilter === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTagFilter(t)}
+                    aria-pressed={active}
+                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[10px] font-light tracking-[0.22em] uppercase border transition-colors ${
+                      active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border/35 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                    }`}
+                  >
+                    {t}
+                  </button>
                 );
               })}
             </div>
+          </div>
+
+          {refineOpen && (
+            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-border/30 bg-card/10 px-4 py-3 text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+              <label className="flex items-center gap-2">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="rounded-md border border-border/40 bg-background/60 px-2 py-1 text-foreground outline-none focus:border-foreground/40"
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="rounded-md border border-border/40 bg-background/60 px-2 py-1 text-foreground outline-none focus:border-foreground/40"
+                />
+              </label>
+              <label className="flex items-center gap-2">
+                <span>Sort</span>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as "newest" | "oldest")}
+                  className="rounded-md border border-border/40 bg-background/60 px-2 py-1 text-foreground outline-none focus:border-foreground/40"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+              </label>
+              {isFiltering && (
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  className="ml-auto text-foreground underline-offset-4 hover:underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* FEED */}
+        {listed.length > 0 ? (
+          <section aria-label="All articles" className="mt-10">
+            {buckets.map(([bucket, posts]) => (
+              <div key={bucket} className="mb-10 last:mb-0">
+                <div className="sticky top-20 z-10 -mx-5 mb-1 bg-background/90 px-5 py-2 backdrop-blur-sm sm:mx-0 sm:px-0">
+                  <h2 className="text-[10px] font-light tracking-[0.32em] uppercase text-muted-foreground/60">
+                    {bucket}
+                  </h2>
+                </div>
+                <ul className="divide-y divide-border/20 border-t border-border/20">
+                  {posts.map((p) => {
+                    // Midnight-UTC stamps carry no information — they are the
+                    // default for date-only posts, so suppress them as noise.
+                    const rawTime = fmtTime(p.published);
+                    const time = rawTime === "00:00:00 UTC" ? null : rawTime;
+
+                    return (
+                      <li key={p.slug}>
+                        <Link
+                          to={p.slug}
+                          className="group -mx-4 flex gap-5 rounded-xl px-4 py-5 transition-colors hover:bg-foreground/[0.025] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40 sm:gap-8"
+                        >
+                          <div className="hidden w-16 shrink-0 pt-1 text-right sm:block">
+                            <time
+                              dateTime={toIso(p.published)}
+                              className="block text-[10px] font-light tracking-[0.16em] uppercase text-muted-foreground/70 tabular-nums"
+                            >
+                              {fmtDate(p.published).replace(/,.*$/, "")}
+                            </time>
+                            {time && (
+                              <span className="mt-1 block text-[9px] font-light text-muted-foreground/40 tabular-nums">
+                                {time.replace(" UTC", "")}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg font-light tracking-[-0.01em] leading-snug text-foreground/95 transition-colors group-hover:text-foreground sm:text-xl">
+                              {p.title}
+                            </h3>
+                            <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground line-clamp-2">
+                              {p.dek}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-x-2.5 text-[9px] font-light tracking-[0.24em] uppercase text-muted-foreground/60">
+                              <span>{p.tag}</span>
+                              <span aria-hidden className="text-border">/</span>
+                              <span>{p.readTime}</span>
+                              <span className="sm:hidden" aria-hidden>
+                                /
+                              </span>
+                              <time
+                                dateTime={toIso(p.published)}
+                                className="sm:hidden"
+                              >
+                                {fmtDate(p.published)}
+                              </time>
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-start pt-1">
+                            <ArrowUpRight
+                              className="h-4 w-4 text-muted-foreground/40 transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                              strokeWidth={1.5}
+                            />
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </section>
         ) : (
-          <section className="rounded-2xl border border-dashed border-border/40 p-12 text-center">
+          <section className="mt-10 rounded-2xl border border-dashed border-border/40 p-14 text-center">
             <p className="text-sm font-extralight text-muted-foreground">
               No articles match these filters.
             </p>
+            {isFiltering && (
+              <button
+                type="button"
+                onClick={resetAll}
+                className="mt-4 text-[10px] font-light tracking-[0.24em] uppercase text-foreground underline-offset-4 hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
           </section>
         )}
       </main>
@@ -654,3 +778,4 @@ const Blog = () => {
 };
 
 export default Blog;
+
