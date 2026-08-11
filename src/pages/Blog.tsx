@@ -34,6 +34,8 @@ export const BLOG_POSTS: Post[] = [
     published: "2026-08-11T00:00:00.000Z",
     readTime: "9 min",
     featured: true,
+    pinned: true,
+
   },
   {
     slug: "/blog/ai-stack-for-indian-startups",
