@@ -98,7 +98,7 @@ The user's request determines tier. Default to TIER 2 for any
 substantive visual question. Use TIER 1 for casual asks.
 
 TIER 1 — Quick Scene Read
-   One short paragraph. Identity + Hard Laws applied silently.
+   One short paragraph. Method basis + Hard Laws applied silently.
    Anchor any non-trivial claim.
 
 TIER 2 — Standard Forensic (default for analysis)
