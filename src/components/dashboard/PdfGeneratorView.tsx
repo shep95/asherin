@@ -115,15 +115,27 @@ const buildTitleBlockHtml = (title: string, author: string) => {
   </div>`;
 };
 
+// Height memo — the paginator measures the same block markup repeatedly
+// (binary-split + cumulative page fill). Without a cache a book-length paste
+// costs thousands of innerHTML reflows on the main thread and the tab stalls,
+// which reads to the user as "the generator is broken".
+const measureCache = new Map<string, number>();
+
 // Paginate sections into ebook-sized pages of HTML strings.
 const paginateSections = (sections: PdfSection[], title: string, author: string): string[] => {
   const measure = document.createElement("div");
   measure.style.cssText = `position:fixed;left:-99999px;top:0;width:${PAGE_INNER_W}px;visibility:hidden;overflow:visible;box-sizing:border-box;`;
   document.body.appendChild(measure);
   const measureHtml = (html: string) => {
+    const hit = measureCache.get(html);
+    if (hit !== undefined) return hit;
     measure.innerHTML = sanitizePdfHtml(html);
-    return Math.ceil(measure.getBoundingClientRect().height || measure.scrollHeight || measure.offsetHeight);
+    const h = Math.ceil(measure.getBoundingClientRect().height || measure.scrollHeight || measure.offsetHeight);
+    if (measureCache.size > 4000) measureCache.clear();
+    measureCache.set(html, h);
+    return h;
   };
+
 
   const splitOversized = (section: PdfSection): { html: string; height: number }[] => {
     const html = renderSectionToHtml(section);
