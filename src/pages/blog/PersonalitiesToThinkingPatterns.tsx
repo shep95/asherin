@@ -327,19 +327,16 @@ const PersonalitiesToThinkingPatterns = () => (
       id="personalities-are-not-thinking-patterns"
       items={[
         {
-          question: "what is the difference between an ai persona and a thinking pattern?",
-          answer:
-            "a persona tells the model who to be, so it optimises for staying in character. a thinking pattern tells the model how to move through a problem, so it optimises for the correctness of each step. the same source text can serve either role depending on whether it is loaded as identity or as procedure.",
+          q: "what is the difference between an ai persona and a thinking pattern?",
+          a: "a persona tells the model who to be, so it optimises for staying in character. a thinking pattern tells the model how to move through a problem, so it optimises for the correctness of each step. the same source text can serve either role depending on whether it is loaded as identity or as procedure.",
         },
         {
-          question: "why do persona prompts drift over long conversations?",
-          answer:
-            "every turn spends attention re-asserting the character. when a question falls outside the persona's stated domain, the most plausible in-character continuation is an improvisation rather than an admission of missing evidence, so accuracy degrades before the voice does.",
+          q: "why do persona prompts drift over long conversations?",
+          a: "every turn spends attention re-asserting the character. when a question falls outside the persona's stated domain, the most plausible in-character continuation is an improvisation rather than an admission of missing evidence, so accuracy degrades before the voice does.",
         },
         {
-          question: "is converting personas to thinking patterns lossy?",
-          answer:
-            "no. the conversion is a re-labelling from noun to verb. domain lists become recognition lenses, tier ladders become reasoning budgets, voice rules become output filters, and conduct rules move from character morality to forbidden reasoning patterns. nothing is deleted.",
+          q: "is converting personas to thinking patterns lossy?",
+          a: "no. the conversion is a re-labelling from noun to verb. domain lists become recognition lenses, tier ladders become reasoning budgets, voice rules become output filters, and conduct rules move from character morality to forbidden reasoning patterns. nothing is deleted.",
         },
       ]}
     />
