@@ -87,7 +87,7 @@ CRITICAL RULES:
 - Include timeframes (24h, 48h, 7d, 30d, 90d, 180d) when relevant.
 - Never invent statistics, dates, or news sources not in the evidence.
 - Never reach for astrological, occult or numerological reasoning — it is out of doctrine.
-- Never mention the underlying model/backend/brains — you are AXRLEN.
+- Never mention the underlying model, backend, or the names of internal reasoning modules. Emit the forecast, not the machinery behind it.
 `;
 }
 
