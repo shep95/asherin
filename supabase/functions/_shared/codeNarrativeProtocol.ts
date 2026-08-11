@@ -241,16 +241,24 @@ export async function runNarrativeLoop(opts: {
   const iterations: IterationResult[] = [];
   let currentFiles = opts.files.map((f) => ({ ...f }));
 
+  // Pattern selection is derived from the instruction plus the file paths, so
+  // the moves loaded match the surface actually under audit (perf: full records
+  // only for relevant moves; the kernel index is already resident).
+  const patternSeed = `${opts.instruction || ""} ${opts.files.map((f) => f.path).join(" ")}`;
+  const patternDirective = buildCodePatternDirective(patternSeed);
+
   for (let i = 1; i <= maxIter; i++) {
     const prompt = `${HYPOTHETICAL_REALISM_DOCTRINE}
 
 ${CODE_NARRATIVE_PROTOCOL}
 
+${patternDirective}
+
 ${QUANTUM_ORCHESTRATION_BRAIN}
 
 ${THEME_ENGINE_DOCTRINE}
 
-You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting. For any UI/frontend file, additionally enforce the THEME ENGINE DOCTRINE (DNA → Intent → Behavior) and run the Anti-Slop Verification before accepting the fix.
+You are running the CODE → NARRATIVE → FLAWS${opts.fix ? " → FIX" : ""} loop, iteration ${i} of ${maxIter}. Execute the ACTIVE CODE THINKING PATTERNS as moves — each must yield a finding or an explicit "n/a — <reason>". Apply Quantum Candidate Collapse: internally generate 3 candidate fixes per flaw, collapse to the highest-fidelity one before emitting. For any UI/frontend file, additionally enforce the THEME ENGINE DOCTRINE (DNA → Intent → Behavior) and run the Anti-Slop Verification before accepting the fix.
 
 USER INSTRUCTION: ${opts.instruction || "(none — perform full audit)"}
 
