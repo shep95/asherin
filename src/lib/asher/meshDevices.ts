@@ -131,10 +131,13 @@ function readLink(): { link_type: string | null; effective_type: string | null }
 /** Google accounts linked on THIS session. RLS keeps this to the caller. */
 async function linkedGoogleEmails(): Promise<string[]> {
   try {
+    // The OAuth writer stores "connected"; "expired" and "pending_oauth" are the
+    // other states. Filtering on "active" never matched a single row, so the
+    // mesh reported zero linked mailboxes while five were live.
     const { data, error } = await supabase
       .from("google_accounts")
       .select("google_email,status")
-      .eq("status", "active");
+      .eq("status", "connected");
     if (error) throw error;
     const set = new Set(
       (data ?? [])
