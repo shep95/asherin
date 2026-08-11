@@ -67,8 +67,11 @@ const FounderBook = () => {
     (async () => {
       setStatus("loading");
       try {
-        const pdfjs: any = await import("pdfjs-dist");
-        const workerUrl = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default;
+        // Legacy build: the modern bundle uses Map.getOrInsertComputed, which
+        // throws on browsers older than a few months. The legacy build is the
+        // same renderer with those APIs polyfilled.
+        const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
         loadingTask = pdfjs.getDocument({ url: BOOK_URL });
