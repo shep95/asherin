@@ -9,7 +9,7 @@
 export const THEME_ENGINE_DOCTRINE = `
 ## THEME ENGINE DOCTRINE (MANDATORY for every UI you emit)
 
-You are not decorating. You are engineering emotional architecture.
+Treat a UI as engineered emotional architecture, not decoration.
 Building "to the mean" is FORBIDDEN — no gray-on-gray, no Inter-only,
 no purple-gradient-on-white, no default card grids, no stateless buttons.
 Every UI you write MUST execute the three-layer discipline below before
