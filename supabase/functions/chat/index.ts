@@ -1442,7 +1442,38 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           ? lastUserForDork.content.map((p: any) => (typeof p === "string" ? p : p?.text || "")).join("\n")
           : "";
       const { detectDorkIntent } = await import("../_shared/dorkIntent.ts");
-      const trig = detectDorkIntent(dorkText);
+      let trig = detectDorkIntent(dorkText);
+
+      // ── Continuation intent — "do more", "go deeper", "another pass" ─────
+      // If the operator asks for more and the immediately-prior assistant turn
+      // already ran a dork battery for a subject, re-fire on that subject with
+      // depth++ so the synthesis seed rotates to unexercised operator families.
+      let continuationDepth = 0;
+      if (!trig.fire) {
+        const CONT_RE = /\b(do\s+more|go\s+deeper|dig\s+deeper|dig\s+more|another\s+pass|next\s+pass|keep\s+going|expand|more\s+dorks?|more\s+queries|run\s+it\s+again|again)\b/i;
+        if (CONT_RE.test(dorkText)) {
+          // Walk assistant history for prior battery headers and count passes.
+          let priorSubject = "";
+          let priorKind: "person" | "domain" | "organization" | "topic" = "person";
+          for (const m of [...messages].reverse()) {
+            if (m.role !== "assistant") continue;
+            const c = typeof m.content === "string" ? m.content : "";
+            const header = c.match(/ASHERIN ENGINE — DORK BATTERY[\s\S]{0,400}?Target:\s*\*\*([^*]+)\*\*\s*\(([^)]+)\)/);
+            if (header) {
+              if (!priorSubject) {
+                priorSubject = header[1].trim();
+                const k = header[2].trim().toLowerCase();
+                priorKind = (k === "domain" || k === "organization" || k === "topic") ? k as any : "person";
+              }
+              continuationDepth++;
+            }
+          }
+          if (priorSubject) {
+            trig = { fire: true, subject: priorSubject, kind: priorKind, hints: {}, selfTarget: false } as any;
+            console.log(`[chat] continuation dork fire: subject="${priorSubject}" depth=${continuationDepth}`);
+          }
+        }
+      }
 
       // Self-target binding: "dork for my information" carries no literal
       // subject — resolve the operator's own identifier instead of dorking the
