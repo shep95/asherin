@@ -545,7 +545,7 @@ const PdfGeneratorView = () => {
                   </div>
                 </div>
                 <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase mt-2">
-                  Page {idx + 1} of {previewPages.length}
+                  Page {idx + 1} of {totalPages || previewPages.length}
                 </p>
               </div>
             ))
