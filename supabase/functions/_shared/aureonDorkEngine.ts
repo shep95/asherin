@@ -346,12 +346,14 @@ export interface RunOptions {
   concurrency?: number;     // default 15
   perQueryTimeoutMs?: number; // default 18000
   skipBrief?: boolean;
+  depth?: number;           // continuation pass counter — rotates synthesis seed
 }
 
 export async function runAureonDork(target: DorkTarget, opts: RunOptions): Promise<DorkReport> {
   const t0 = Date.now();
-  const { theories, via } = await generateTheories(target, opts.geminiKey);
+  const { theories, via, rejected } = await generateTheories(target, opts.geminiKey, opts.depth || 0);
   const testCap = Math.min(opts.testCap ?? 50, theories.length);
+  if (rejected) console.log(`[aureon-dork] rejected ${rejected} basic-tier theories`);
 
   // Heuristic pre-rank: high-signal operator tokens + novel_synthesis (first-to-find) go first.
   const HOT = ["filetype:env", "filetype:sql", ".git", "phpmyadmin", "index of", "AKIA", "AIza", "id_rsa", "wp-config", "s3.amazonaws", "crt.sh", "form 4", "form 990", "warning letter", "orcid.org", "opencorporates"];
