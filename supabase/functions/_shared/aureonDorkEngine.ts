@@ -182,6 +182,29 @@ function parseQueries(raw: string): Array<{ q: string; why: string }> {
   }
 }
 
+// ── Basic-dork rejector ─────────────────────────────────────────────────────
+// The doctrine is explicit: no first-order `site:` + name / bare keyword sweeps.
+// Every accepted theory must (a) compose ≥2 dork operators, OR (b) use a rare
+// operator plus a quoted phrase or negation, OR (c) come from novel_synthesis
+// which is elite-by-contract. Everything else is discarded as "basic tier".
+const OP_TOKEN_RE = /(?:^|[\s(])(site|filetype|ext|inurl|intitle|intext|allintitle|allinurl|allintext|cache|related|link|before|after|around|source):/gi;
+const RARE_OP_RE  = /\b(filetype:|ext:|inurl:|intitle:|allintext:|allintitle:|allinurl:|cache:|related:|before:|after:|around\(|source:)/i;
+function isBasicDork(q: string, category: DorkCategory): boolean {
+  if (category === "novel_synthesis") return false; // elite by construction
+  const s = (q || "").trim();
+  if (s.length < 8) return true;
+  const opCount   = (s.match(OP_TOKEN_RE) || []).length;
+  const hasRare   = RARE_OP_RE.test(s);
+  const quoted    = (s.match(/"[^"]{3,}"/g) || []).length;
+  const negations = (s.match(/(?:^|\s)-(?:site:|inurl:|intitle:|[a-z]{3,})/gi) || []).length;
+  // reject `site:linkedin.com "John Doe"` — one op + one quote, no refinement
+  if (opCount <= 1 && !hasRare && quoted <= 1 && negations === 0) return true;
+  if (opCount >= 2 && (hasRare || quoted >= 1 || negations >= 1)) return false;
+  if (hasRare && (quoted >= 1 || negations >= 1 || opCount >= 2)) return false;
+  if (negations >= 2 && (hasRare || opCount >= 2)) return false;
+  return true;
+}
+
 // ── Generate 100+ theories in 9 parallel calls (8 canonical + 1 synthesis) ─
 async function generateTheories(target: DorkTarget, geminiKey: string): Promise<{ theories: DorkTheory[]; via: string }> {
   const user = targetToUser(target);
