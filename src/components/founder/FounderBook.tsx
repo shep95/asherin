@@ -28,6 +28,8 @@ const FounderBook = () => {
   const docRef = useRef<PdfDoc | null>(null);
   const renderedRef = useRef<Map<number, { task: any }>>(new Map());
 
+  const loadStartedRef = useRef<number>(-1);
+  const [attempt, setAttempt] = useState(0);
   const [armed, setArmed] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [error, setError] = useState<string>("");
@@ -55,8 +57,12 @@ const FounderBook = () => {
 
   // ── Load the document ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!armed || status !== "idle") return;
-    let cancelled = false;
+    // Ref guard, not a status guard: React 18 StrictMode mounts effects twice,
+    // and a status-based guard would let the second pass see "loading" and
+    // return forever after the first pass was torn down.
+    if (!armed || loadStartedRef.current === attempt) return;
+    loadStartedRef.current = attempt;
+    const cancelled = false;
     let loadingTask: any = null;
 
     (async () => {
@@ -95,11 +101,8 @@ const FounderBook = () => {
       }
     })();
 
-    return () => {
-      cancelled = true;
-      loadingTask?.destroy?.();
-    };
-  }, [armed, status]);
+    return undefined;
+  }, [armed, attempt]);
 
   // Tear down on unmount only.
   useEffect(
@@ -257,6 +260,7 @@ const FounderBook = () => {
                 onClick={() => {
                   setError("");
                   setStatus("idle");
+                  setAttempt((a) => a + 1);
                 }}
                 className="rounded-lg border border-border/30 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-foreground/80 hover:text-foreground"
               >
