@@ -128,7 +128,14 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const hasQuoted = QUOTED_RE.test(text);
   const naturalFire = INTEL_VERBS.test(text) && (hasStrongId || hasProperName || hasQuoted);
 
-  if (!hard && !softFire && !naturalFire) return none("no_trigger");
+  // ── IMPLICIT LAYER ────────────────────────────────────────────────────────
+  // The operator should never have to speak the platform's vocabulary. If the
+  // turn carries a real-world anchor and nothing about the turn says "this is
+  // not an intelligence question", the battery fires on its own.
+  const implicit = detectImplicitIntent(text, { hasStrongId, hasProperName, hasQuoted });
+
+  if (!hard && !softFire && !naturalFire && !implicit) return none("no_trigger");
+
 
   const selfTarget = SELF_RE.test(text) && !THIRD_PARTY_RE.test(text);
 
