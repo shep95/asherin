@@ -86,6 +86,11 @@ const Founder = () => {
                 <span className="italic font-light text-foreground/70">newton</span>
               </h1>
 
+              <p className="mt-4 text-xs font-extralight tracking-[0.32em] text-muted-foreground/70 uppercase">
+                prompt engineer
+              </p>
+
+
               <p className="mt-6 max-w-md text-base font-extralight leading-[1.8] text-foreground/75">
                 i build asherin. it is a small project made with care, and it is
                 still learning. below is a book i wrote — you are welcome to read
