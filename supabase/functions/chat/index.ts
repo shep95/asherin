@@ -2118,6 +2118,27 @@ The operator is requesting a defensive security audit / flaw check of their own 
       await import("../_shared/domainAtlas.ts");
     const _domainEmphasis = buildDomainEmphasis(_lastUserText);
 
+    // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
+    // Runs before a single prompt byte is assembled. It holds only the harm
+    // boundary the axioms already stated (real harm, real victim), so nothing
+    // that is merely uncomfortable, political, blunt, or osint-shaped is ever
+    // stopped here. When it fires, the turn never reaches the model at all.
+    const _gate = preInferenceGate(_lastUserText);
+    if (_gate.verdict === "block") {
+      console.warn(`[chat] layer1 block: ${_gate.audit}`);
+      const _enc = new TextEncoder();
+      const _body = new ReadableStream({
+        start(c) {
+          c.enqueue(_enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: _gate.blockMessage } }] })}\n\n`));
+          c.enqueue(_enc.encode("data: [DONE]\n\n"));
+          c.close();
+        },
+      });
+      return new Response(_body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
+
+
 
     // ── TURN RELEVANCE — decide what this message actually needs ──────────
     // The prompt below used to be unconditional: every message, including
