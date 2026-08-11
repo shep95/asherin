@@ -214,10 +214,13 @@ const PdfGeneratorView = () => {
   const [selectedWallpaper, setSelectedWallpaper] = useState("default");
   const [bgIntensity, setBgIntensity] = useState<"subtle" | "medium" | "bold">("medium");
   const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+
 
   const wallpaperSrc = WALLPAPERS.find(w => w.key === selectedWallpaper)?.src || wallpaperDefault;
 
