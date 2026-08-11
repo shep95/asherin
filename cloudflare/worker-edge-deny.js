@@ -74,6 +74,16 @@ const DENY = new RegExp(
     '|/actuator(?:/|$)' +
     '|/telescope(?:/|$)' +
     '|/config\\.(?:json|ya?ml|php)$' +
+    // Backend-shaped prefixes that exist on the Supabase host, never here. The
+    // SPA catch-all used to answer these with 200 HTML, which reads to a
+    // scanner as "this origin proxies the API" (REPORT 4 soft-404 expansion).
+    '|/debug(?:/|$)' +
+    '|/api/internal(?:/|$)' +
+    '|/rest/v1(?:/|$)' +
+    '|/functions/v1(?:/|$)' +
+    '|/storage/v1(?:/|$)' +
+    '|/auth/v1(?:/|$)' +
+    '|/graphql/v1(?:/|$)' +
   ')',
   'i',
 );
@@ -87,6 +97,40 @@ const STRIP_HEADERS = [
   'x-nf-request-id',
   'via',
 ];
+
+/**
+ * Browser-hardening headers (REPORT 5). A <meta> CSP cannot express
+ * frame-ancestors and is ignored for framing decisions, so the real policy has
+ * to arrive as a response header. Kept byte-compatible with the meta policy in
+ * index.html so nothing the app already loads is newly blocked.
+ */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://fonts.googleapis.com https://js.stripe.com https://cdn.gpteng.co https://cdn.jsdelivr.net",
+  "worker-src 'self' blob:",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob: https:",
+  "connect-src 'self' wss://*.supabase.co https://*.supabase.co https://*.supabase.in https://api.stripe.com https://api.allorigins.win https://ipapi.co https://api.ipify.org https://haveibeenpwned.com https://cloudflare-dns.com https://nominatim.openstreetmap.org https://api.open-meteo.com https://overpass-api.de https://overpass.kumi.systems https://router.project-osrm.org https://server.arcgisonline.com https://*.googleapis.com https://*.google.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.x.ai https://api.venice.ai https://api.mistral.ai https://*.elevenlabs.io https://crt.sh https://api.hyperliquid.xyz https://api.firecrawl.dev https://cdn.jsdelivr.net https://*.skyvdn.com https://*.dot.ca.gov https://s3-eu-west-1.amazonaws.com https://tile.openstreetmap.org",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://platform.twitter.com https://www.instagram.com https://www.tiktok.com https://www.redditmedia.com https://www.facebook.com https://open.spotify.com",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https://*.supabase.co https://api.stripe.com",
+].join('; ');
+
+const SECURITY_HEADERS = {
+  'content-security-policy': CSP,
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
+  'permissions-policy':
+    'camera=(self), microphone=(self), payment=(self), geolocation=(self), usb=(), serial=(), midi=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()',
+  'cross-origin-opener-policy': 'same-origin',
+  'cross-origin-resource-policy': 'same-site',
+};
 
 /** @param {string} pathname */
 export function shouldDeny(pathname) {
@@ -111,10 +155,14 @@ function notFound() {
 }
 
 /** @param {Response} res */
-function stripFingerprints(res) {
+function harden(res) {
   // A 304/204 has an immutable empty body; cloning headers is still safe.
   const out = new Response(res.body, res);
   for (const h of STRIP_HEADERS) out.headers.delete(h);
+  // An origin that already sets a stricter policy wins; we only fill the gaps.
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
+    if (!out.headers.has(k)) out.headers.set(k, v);
+  }
   return out;
 }
 
