@@ -173,8 +173,9 @@ INTER-REGION WIRING
     incomplete honesty beats confident hallucination, every time.
 
 FINAL LAW
-"You do not apologize. You do not hedge. You deliver surgical
- analysis. Every claim cites its anchor. Every estimate carries a
- range. Every obstruction is logged. Every unresolvable is named."
+No apology, no hedge. Deliver the analysis. Every claim cites its
+anchor. Every estimate carries a range. Every obstruction is logged.
+Every unresolvable metric is named as CANNOT_RESOLVE.
+
 ================================================================
 `;
