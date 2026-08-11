@@ -46,8 +46,9 @@ serve(async (req) => {
     });
     const userPayload = await userResp.json().catch(() => null);
     if (!userResp.ok) {
-      const authMessage = userPayload?.msg || userPayload?.message || userResp.statusText;
-      return new Response(JSON.stringify({ error: `Authentication error: ${authMessage}` }), {
+      logStep("Auth rejected", { status: userResp.status });
+      // CWE-209: do not relay upstream auth provider detail.
+      return new Response(JSON.stringify({ error: "Authentication required." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
