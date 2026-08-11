@@ -3397,7 +3397,7 @@ function AiBriefPanel({ contacts, scenario }: { contacts: Contact[]; scenario: S
 
       const payload = { scenario, contacts: summarizeContacts() };
       const prompt =
-        "You are AXRLEN, a tactical RF/BLE intelligence officer. Given the JSON contact picture, " +
+        "Run tactical RF/BLE contact triage on the JSON contact picture below. This is a procedure, not a role — do not adopt a name or a rank. " +
         "produce a four-line Ghost-Recon-style brief: (1) one-sentence situational summary, " +
         "(2) highest-priority threat or anomaly, (3) recommended action, " +
         "(4) confidence (low/med/high). No moralizing, no preamble. " +
