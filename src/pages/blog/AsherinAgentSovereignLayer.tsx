@@ -572,6 +572,10 @@ const AsherinAgentSovereignLayer = () => (
 
     <DownloadCard />
 
+    <ShareRow url={URL} title={TITLE} className="my-8" />
+
+
+
     <FaqJsonLd
       id="asherin-agent-sovereign-intelligence-layer"
       items={[
