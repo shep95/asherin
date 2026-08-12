@@ -4152,6 +4152,24 @@ export type Database = {
           },
         ]
       }
+      download_counters: {
+        Row: {
+          count: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ebook_sessions: {
         Row: {
           about_author: string | null
@@ -13344,6 +13362,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_download_count: { Args: { _slug: string }; Returns: number }
       get_team_role: {
         Args: { _team_id: string; _user_id: string }
         Returns: string
@@ -13395,6 +13414,7 @@ export type Database = {
       is_asher_operator: { Args: { _user_id: string }; Returns: boolean }
       is_asher_super_owner: { Args: { _uid: string }; Returns: boolean }
       is_blocked_display_name: { Args: { raw: string }; Returns: boolean }
+      is_countable_download: { Args: { _slug: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
@@ -13504,6 +13524,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      record_download: { Args: { _slug: string }; Returns: number }
       release_intel_slot: {
         Args: { _job_id: string; _success?: boolean }
         Returns: undefined
