@@ -438,9 +438,3 @@ const AsherinAgentSovereignLayer = () => (
         model updates without a heavyweight pass on every turn.
       </li>
     </ul>
-    <p>
-      the other thirteen runners are invoked on demand or chained from those
-      three: <code>aureon-search-swarm.py</code> (parallel engine fan-out),{" "}
-      <code>aureon-dork-auto.py</code> (dork battery),{" "}
-      <code>aureon-research-auto.py</code> (keyless source discovery and fetch),{" "}
-      <code>aureon
