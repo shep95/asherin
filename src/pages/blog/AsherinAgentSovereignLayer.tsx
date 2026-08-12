@@ -438,3 +438,174 @@ const AsherinAgentSovereignLayer = () => (
         model updates without a heavyweight pass on every turn.
       </li>
     </ul>
+    <p>
+      the other thirteen runners are invoked on demand or chained from those
+      three: <code>aureon-search-swarm.py</code> (parallel engine fan-out),{" "}
+      <code>aureon-dork-auto.py</code> (dork battery),{" "}
+      <code>aureon-research-auto.py</code> (keyless source discovery and fetch),{" "}
+      <code>aureon-api-plug.py</code> (universal api adapter),{" "}
+      <code>aureon-model-router.py</code> (routes a task across the model
+      catalog), <code>aureon-brain-research.py</code> (university-tier source
+      research), <code>aureon-file-metadata.py</code> (auto forensic pass on any
+      file it touches), <code>aureon-silent-site-audit.py</code> (background
+      security audit, never announced),{" "}
+      <code>aureon-social-connect.py</code>, <code>aureon-adopt-learn.py</code>,{" "}
+      <code>aureon-self-update.py</code>, <code>aureon-mirror-updates.py</code>,
+      and <code>aureon-export-complete-agent.py</code> — the one that produced
+      the zip you are reading about.
+    </p>
+    <p>
+      note the recursion there. the export runner is itself part of the corpus,
+      which means the agent can package and publish a complete copy of itself as
+      a single command. that is what "the agent is the software" means in the
+      pattern file of the same name.
+    </p>
+
+    <h2>the keyless source layer — it works before you configure anything</h2>
+    <p>
+      one design decision deserves separate attention:{" "}
+      <code>keyless-public-api-catalog.md</code> lists sources that require zero
+      user setup, and the doctrine says to exhaust them <em>before</em> reaching
+      for any keyed api. certificate transparency (<code>crt.sh</code>) for
+      subdomain seeds, google and cloudflare doh for dns resolution, rdap for
+      registration facts, wikipedia and wikidata for entity resolution, the
+      wayback cdx index for history, passive host search, ip geolocation, and
+      public github search.
+    </p>
+    <p>
+      the practical effect: a fresh install does useful reconnaissance on minute
+      one, with no billing relationship to anyone. keys, when added, upgrade
+      depth rather than unlock basic function. that ordering is what makes the
+      word "sovereign" in the classification defensible instead of decorative.
+    </p>
+
+    <h2>honest limitations</h2>
+    <p>
+      the package is a frozen export, not a live service, and the failure modes
+      should be stated plainly:
+    </p>
+    <ul>
+      <li>
+        <strong>windows paths are baked in.</strong> the rules and manifest
+        reference cursor directories under a windows user profile. on macos or
+        linux you will rewrite those paths before the hooks resolve.
+      </li>
+      <li>
+        <strong>the brain manifest points at files not in the archive.</strong>{" "}
+        <code>BRAIN_MANIFEST.md</code> lists the original source pdfs and text
+        documents on the author's disk. those are not shipped — what ships is{" "}
+        <code>DOCTRINE.md</code>, the compressed operational distillate of the
+        must-read set. treat the manifest as a bibliography, not a dependency
+        list.
+      </li>
+      <li>
+        <strong>hooks assume a cursor-style lifecycle.</strong> the three events
+        in <code>hooks.json</code> map to that host. on another runtime you keep
+        the corpus and the doctrine and re-bind the events yourself. the pattern
+        files are the durable part; the wiring is replaceable.
+      </li>
+      <li>
+        <strong>it is frozen, not synced.</strong> the readme is explicit — this
+        is a point-in-time package, not a continuously updated channel.
+      </li>
+      <li>
+        <strong>self-modification needs supervision.</strong> an agent that
+        writes rules into itself can write a bad rule into itself. the{" "}
+        <code>adopted-patterns/</code> directory is plain markdown precisely so a
+        human can read, edit, or delete anything the loop deposited.
+      </li>
+    </ul>
+
+    <h2>how to run it</h2>
+    <ol>
+      <li>download and extract the zip.</li>
+      <li>
+        drop <code>skills/aureon/</code> into your agent host's skill directory,{" "}
+        <code>hooks/</code> into its hook directory, and <code>rules/</code> into
+        its rules directory — as one unit, not piecemeal. the readme is blunt
+        about this: <em>"not a split product."</em>
+      </li>
+      <li>
+        rewrite the absolute paths in <code>rules/aureon-always-on.mdc</code> and
+        the hook runners to match your machine.
+      </li>
+      <li>
+        register the three lifecycle events from <code>hooks.json</code> with
+        your host.
+      </li>
+      <li>
+        start a session and ask something outside its domain. if it says it does
+        not know instead of improvising, the anti-spiral protocol is loaded
+        correctly.
+      </li>
+    </ol>
+
+    <h2>why it is free</h2>
+    <p>
+      a reasoning layer that only works while you are paying for it is not a
+      sovereign layer — it is a subscription with better wording. the corpus is
+      plain markdown and plain python. you can read every line, delete the ones
+      you disagree with, and run the rest on a model of your choosing, offline if
+      you want. that is the whole point of publishing it rather than describing
+      it.
+    </p>
+
+    <DownloadCard />
+
+    <FaqJsonLd
+      id="asherin-agent-sovereign-intelligence-layer"
+      faqs={[
+        {
+          question: "is the asherin agent download really free?",
+          answer:
+            "yes. the complete package — 104 files, skill corpus, hook runners, and always-on rules — is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
+        },
+        {
+          question: "what does 'personal sovereign intelligence layer' mean?",
+          answer:
+            "it is a reasoning layer that sits on top of any llm rather than being tied to one vendor. the pattern corpus, the operator memory, and the doctrine constraints all live as files on your disk, so the capability survives changing models, losing api access, or working offline.",
+        },
+        {
+          question: "which llm models does it work with?",
+          answer:
+            "it is model-agnostic. the package includes a model router and a 107-entry model catalog, and the pattern files are plain markdown loaded as context, so any model with a sufficient context window can run the layer.",
+        },
+        {
+          question: "does the archive contain any api keys or secrets?",
+          answer:
+            "no. the export manifest records fourteen files masked at export time with the note 'secret-safe mirror; raw env/credential values omitted or masked.' no live credentials ship in the package.",
+        },
+        {
+          question: "what does self-modification actually do?",
+          answer:
+            "when a session produces a durable instruction, an adopt-learn-build hook writes it into the corpus as a new markdown file and links it into the skill index, so the next session loads it from disk. twelve such adopted files are visible in the archive under adopted-patterns/.",
+        },
+      ]}
+    />
+
+    <RelatedLinks
+      links={[
+        {
+          to: "/blog/personalities-are-not-thinking-patterns",
+          label: "personalities are not thinking patterns",
+          description:
+            "the conversion this corpus is built on — identity framing replaced by procedural framing, piece by piece.",
+        },
+        {
+          to: "/blog/what-is-ai-osint",
+          label: "what is ai osint",
+          description:
+            "the reconnaissance discipline the osint pattern cluster automates.",
+        },
+        {
+          to: "/glossary/sovereign-ai",
+          label: "glossary — sovereign ai",
+          description:
+            "why ownership of the layer, not the model, is the thing that matters.",
+        },
+      ]}
+    />
+  </ArticleShell>
+);
+
+export default AsherinAgentSovereignLayer;
