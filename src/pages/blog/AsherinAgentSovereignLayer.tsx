@@ -554,30 +554,30 @@ const AsherinAgentSovereignLayer = () => (
 
     <FaqJsonLd
       id="asherin-agent-sovereign-intelligence-layer"
-      faqs={[
+      items={[
         {
-          question: "is the asherin agent download really free?",
-          answer:
+          q: "is the asherin agent download really free?",
+          a:
             "yes. the complete package — 104 files, skill corpus, hook runners, and always-on rules — is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
         },
         {
-          question: "what does 'personal sovereign intelligence layer' mean?",
-          answer:
+          q: "what does 'personal sovereign intelligence layer' mean?",
+          a:
             "it is a reasoning layer that sits on top of any llm rather than being tied to one vendor. the pattern corpus, the operator memory, and the doctrine constraints all live as files on your disk, so the capability survives changing models, losing api access, or working offline.",
         },
         {
-          question: "which llm models does it work with?",
-          answer:
+          q: "which llm models does it work with?",
+          a:
             "it is model-agnostic. the package includes a model router and a 107-entry model catalog, and the pattern files are plain markdown loaded as context, so any model with a sufficient context window can run the layer.",
         },
         {
-          question: "does the archive contain any api keys or secrets?",
-          answer:
+          q: "does the archive contain any api keys or secrets?",
+          a:
             "no. the export manifest records fourteen files masked at export time with the note 'secret-safe mirror; raw env/credential values omitted or masked.' no live credentials ship in the package.",
         },
         {
-          question: "what does self-modification actually do?",
-          answer:
+          q: "what does self-modification actually do?",
+          a:
             "when a session produces a durable instruction, an adopt-learn-build hook writes it into the corpus as a new markdown file and links it into the skill index, so the next session loads it from disk. twelve such adopted files are visible in the archive under adopted-patterns/.",
         },
       ]}
