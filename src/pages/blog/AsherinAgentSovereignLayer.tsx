@@ -7,37 +7,57 @@ import {
 } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 import agentZip from "@/assets/asherin-agent-complete.zip.asset.json";
+import ShareRow from "@/components/seo/ShareRow";
+import { recordDownload, useDownloadCount } from "@/lib/downloadCounter";
 
 const URL = "https://asherin.com/blog/asherin-agent-sovereign-intelligence-layer";
 const TITLE = "the asherin agent — a personal sovereign intelligence layer you can download free";
 const PUBLISHED = "2026-08-12";
+const DOWNLOAD_SLUG = "asherin-agent-complete";
 
 /** Download card — the whole package, no gate, no account. */
-const DownloadCard = () => (
-  <div className="my-8 rounded-2xl border border-border/20 bg-card/25 p-6 backdrop-blur-md">
-    <p className="text-[10px] font-extralight tracking-[0.35em] uppercase text-muted-foreground/60">
-      ◈ free download · no account · no email
-    </p>
-    <h3 className="mt-3 text-xl font-light tracking-tight text-foreground">
-      asherin-agent-COMPLETE-20260811-221250.zip
-    </h3>
-    <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
-      104 files · 235 KB compressed · 687 KB extracted · secret-safe mirror
-      (every credential value masked or omitted at export time). skill corpus,
-      hook runners, always-on rules, and the cursor wiring — one unit.
-    </p>
-    <a
-      href={agentZip.url}
-      download="asherin-agent-COMPLETE-20260811.zip"
-      className="mt-5 inline-flex items-center gap-2 rounded-lg border border-border/30 bg-background/60 px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-foreground transition-colors hover:bg-background"
-    >
-      ↓ download the agent
-    </a>
-    <p className="mt-3 text-[11px] font-extralight text-muted-foreground/60">
-      it is free. it stays free. nothing in the archive phones home.
-    </p>
-  </div>
-);
+const DownloadCard = () => {
+  const count = useDownloadCount(DOWNLOAD_SLUG);
+
+  return (
+    <div className="my-8 rounded-2xl border border-border/20 bg-card/25 p-6 backdrop-blur-md">
+      <p className="text-[10px] font-extralight tracking-[0.35em] uppercase text-muted-foreground/60">
+        ◈ free download · no account · no email
+      </p>
+      <h3 className="mt-3 text-xl font-light tracking-tight text-foreground">
+        asherin-agent-COMPLETE-20260811-221250.zip
+      </h3>
+      <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
+        104 files · 235 KB compressed · 687 KB extracted · secret-safe mirror
+        (every credential value masked or omitted at export time). skill corpus,
+        hook runners, always-on rules, and the cursor wiring — one unit.
+      </p>
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        <a
+          href={agentZip.url}
+          download="asherin-agent-COMPLETE-20260811.zip"
+          onClick={() => { void recordDownload(DOWNLOAD_SLUG); }}
+          className="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-background/60 px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-foreground transition-colors hover:bg-background"
+        >
+          ↓ download the agent
+        </a>
+        {/* Counter reserves its line height whether or not the count has landed, so the card never shifts. */}
+        <p
+          aria-live="polite"
+          className="min-h-[1rem] text-[11px] font-extralight tracking-[0.2em] uppercase text-muted-foreground/70"
+        >
+          {count === null
+            ? "\u00a0"
+            : `${count.toLocaleString()} download${count === 1 ? "" : "s"}`}
+        </p>
+      </div>
+      <p className="mt-3 text-[11px] font-extralight text-muted-foreground/60">
+        it is free. it stays free. nothing in the archive phones home.
+      </p>
+    </div>
+  );
+};
+
 
 const Node = ({ label, sub }: { label: string; sub?: string }) => (
   <div className="min-w-0 flex-1 rounded-lg border border-border/20 bg-card/25 px-3 py-2 text-center">
