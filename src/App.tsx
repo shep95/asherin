@@ -95,6 +95,9 @@ const BlogHowWeMakeAureonSoundHuman = lazy(
 const BlogAiStackForIndianStartups = lazy(
   () => import("./pages/blog/AiStackForIndianStartups"),
 );
+const BlogAsherinAgentSovereignLayer = lazy(
+  () => import("./pages/blog/AsherinAgentSovereignLayer"),
+);
 const BlogPersonalitiesToThinkingPatterns = lazy(
   () => import("./pages/blog/PersonalitiesToThinkingPatterns"),
 );
@@ -270,6 +273,10 @@ const App = () => (
             <Route
               path="/blog/ai-stack-for-indian-startups"
               element={<BlogAiStackForIndianStartups />}
+            />
+            <Route
+              path="/blog/asherin-agent-sovereign-intelligence-layer"
+              element={<BlogAsherinAgentSovereignLayer />}
             />
             <Route
               path="/blog/personalities-are-not-thinking-patterns"
