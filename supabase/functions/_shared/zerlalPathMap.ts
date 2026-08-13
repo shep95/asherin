@@ -31,6 +31,8 @@ export interface PathAudit {
   piiCounts: { email: number; phone: number };
   piiSamples: string[];
   title: string | null;
+  /** True when the host answers this path with its catch-all shell, not a real document. */
+  softNotFound: boolean;
   source: "robots" | "sitemap" | "well-known" | "html-link" | "seed" | "subdomain-root";
   elapsedMs: number;
   error: string | null;
@@ -101,7 +103,12 @@ export function hostAllowed(hostname: string): boolean {
 }
 
 const EMAIL_RE = /\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9-])[A-Za-z0-9.-]*\.([A-Za-z]{2,})\b/g;
-const PHONE_RE = /(?:\+?\d[\d\s().-]{8,}\d)/g;
+// A phone number, not a date and not a version string: either E.164 with a
+// leading +, or a 10-15 digit run broken by real separators. ISO dates
+// (2026-08-07) and semver runs are excluded explicitly — they were the
+// dominant false positive on the first live pass.
+const PHONE_RE = /(?:\+\d{1,3}[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]\d{3}[\s.-]\d{4}\b|\+\d{9,14}\b/g;
+const DATEISH_RE = /^\d{4}[-./]\d{2}[-./]\d{2}$/;
 const SECRET_RE: RegExp[] = [
   /\b(sk|pk|rk|api|key|token|bearer|secret|pat|ghp|gho|xoxb|xoxp)[-_a-z]*[=:\s]*["']?[A-Za-z0-9_\-]{16,}/gi,
   /\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b/g,
@@ -226,7 +233,7 @@ async function auditOne(url: string, source: PathAudit["source"], timeoutMs: num
     url, path: u.pathname + (u.search || ""), host: u.hostname,
     status: null, contentType: null, bytes: null, redirectTo: null, server: null,
     headers: {}, cookies: [], piiCounts: { email: 0, phone: 0 }, piiSamples: [],
-    title: null, source, elapsedMs: 0, error: null,
+    title: null, softNotFound: false, source, elapsedMs: 0, error: null,
   };
   try {
     const resp = await fetchBounded(url, timeoutMs);
@@ -247,7 +254,7 @@ async function auditOne(url: string, source: PathAudit["source"], timeoutMs: num
       const title = body.match(/<title[^>]*>([\s\S]{0,200}?)<\/title>/i)?.[1];
       base.title = title ? maskPii(title, 120) : null;
       const emails = body.match(EMAIL_RE) || [];
-      const phones = body.match(PHONE_RE) || [];
+      const phones = (body.match(PHONE_RE) || []).filter((m) => !DATEISH_RE.test(m.trim()));
       base.piiCounts = { email: emails.length, phone: phones.length };
       base.piiSamples = [...new Set([...emails.slice(0, 3), ...phones.slice(0, 2)])].map((s) => maskPii(s, 40));
     } else {
