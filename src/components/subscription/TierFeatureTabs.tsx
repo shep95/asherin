@@ -46,7 +46,6 @@ const AUREON_FEATURE_GROUPS = [
       { name: "Uncensored AI responses", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
       { name: "Unlimited messages", desc: "Bring your own AI key — no throttling.", link: null },
       { name: "Persistent memory", desc: "Asherin remembers your context across every session.", link: null },
-      { name: "Custom Personas", desc: "Switch between specialized AI personas for different workflows.", link: "/feature/personas" },
     ],
   },
   {
@@ -152,7 +151,6 @@ const PRO_FEATURE_GROUPS = [
     features: [
       { name: "Asherin IDE", desc: "Full cloud development environment with AI chat, terminals and ZIP export.", link: "/feature/ide" },
       { name: "Persistent Memory", desc: "Asherin remembers your context across every session.", link: null },
-      { name: "Custom Personas & Persona Store", desc: "Switch between specialized AI personas; browse community-built ones.", link: "/feature/personas" },
       
       { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor that draws directly on canvas.", link: "/feature/imagine-to-code" },
       { name: "Reverse Engineering Intelligence", desc: "Deconstructs the architecture of any software/hardware screenshot.", link: "/feature/reverse-engineer" },

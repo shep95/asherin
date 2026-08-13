@@ -65,7 +65,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "teams", icon: Users, label: "Team Workspace", pro: true, desc: "RBAC workspaces with collaborative case files and role-scoped access." },
       { id: "community", icon: MessagesSquare, label: "Community", pro: true, desc: "Operator-only forum for shared intelligence, playbooks, and tradecraft." },
-      { id: "personas", icon: Sparkles, label: "Persona Store", desc: "Create, customize, and share AI assistants with full metadata control." },
       { id: "library", icon: FolderOpen, label: "Library", desc: "Project Folders, Library, and Intelligence Graph for centralized knowledge." },
       { id: "memory", icon: Brain, label: "Memory Center", desc: "Persistent memory across sessions with offline-first IndexedDB sync." },
     ],

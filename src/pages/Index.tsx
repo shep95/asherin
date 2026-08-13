@@ -777,7 +777,6 @@ const Index = () => {
                 { icon: Brain, name: "Memory Center", codename: "Long-Term Memory", desc: "Persistent context and recall that carries across every session." },
                 { icon: Users, name: "Team Workspace", codename: "Teams", desc: "Collaborate in real time with role-based access control." },
                 { icon: Users, name: "Community", codename: "Community Hub", desc: "Ask questions, request features, and vote on the roadmap." },
-                { icon: Brain, name: "Persona Store", codename: "AI Personas", desc: "Browse and configure custom AI personalities for any task." },
                 { icon: Moon, name: "Vedic Astrology", codename: "Sidereal Charts", desc: "Sidereal chart calculations, dasha cycles, and astro-temporal forecasting." },
                 { icon: Lock, name: "Guardian Vault", codename: "Security Center", desc: "Centralized security command center with TOTP MFA and credential hygiene." },
               ]
