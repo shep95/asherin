@@ -448,7 +448,7 @@ const PRODUCTS: Product[] = [
    left is published list pricing only, which anyone can check. */
 const PRICE_DATA = [
   { plan: "Asherin", cost: 18 },
-  { plan: "Asherin Pro (full suite)", cost: 399 },
+  { plan: "Asherin Pro (full suite)", cost: 79 },
   { plan: "ChatGPT Plus", cost: 20 },
   { plan: "Claude Pro", cost: 20 },
   { plan: "Gemini Advanced", cost: 20 },
@@ -544,7 +544,7 @@ const Software = () => {
             operatingSystem: "Web",
             offers: {
               "@type": "Offer",
-              price: p.tier === "pro" ? "399" : "18",
+              price: p.tier === "pro" ? "79" : "18",
               priceCurrency: "USD",
             },
           },

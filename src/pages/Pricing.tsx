@@ -81,7 +81,7 @@ const Pricing = () => {
         "@type": "AggregateOffer",
         priceCurrency: "USD",
         lowPrice: "18",
-        highPrice: "399",
+        highPrice: "79",
         offerCount: "2",
         offers: [
           {
@@ -103,13 +103,13 @@ const Pricing = () => {
           {
             "@type": "Offer",
             name: "Asherin Pro",
-            price: "399",
+            price: "79",
             priceCurrency: "USD",
             url: URL,
             availability: "https://schema.org/InStock",
             priceSpecification: {
               "@type": "UnitPriceSpecification",
-              price: "399",
+              price: "79",
               priceCurrency: "USD",
               billingIncrement: 1,
               unitCode: "MON",
