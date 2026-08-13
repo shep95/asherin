@@ -27,7 +27,7 @@ import { rssiToDistance } from "./core/bleRanging";
 import type { Contact, ScenarioId, ZaxinSnapshot } from "./core/types";
 import { useResolvedZaxinByok } from "@/lib/zaxin/resolveByok";
 import ZaxinInlineByok from "./ZaxinInlineByok";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Mic, MicOff, Users } from "lucide-react";
 import { formatWeightKg, usesImperialWeight, kgToLb, primeCountryFromGeolocation } from "@/lib/units";
 
