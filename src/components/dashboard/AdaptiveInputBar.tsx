@@ -399,7 +399,15 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const actions = quickActions[intent];
 
   return (
-    <div className="px-2 sm:px-4 pb-3 sm:pb-4 lg:pb-6">
+    <div
+      className="px-2 sm:px-4 pt-1"
+      style={{
+        // Home-indicator safe area plus the live soft-keyboard inset published
+        // by the dashboard. The composer rides above the keyboard, never under.
+        paddingBottom:
+          "calc(env(safe-area-inset-bottom, 0px) + var(--kb-inset, 0px) + 0.75rem)",
+      }}
+    >
       <div className="mx-auto max-w-3xl min-w-0">
         {/* Quick action pills */}
         {actions.length > 0 && value.trim() && (
