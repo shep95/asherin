@@ -953,7 +953,9 @@ const GuardianVaultView = () => {
                   {([
                     { key: "notify_email", label: "Email Notifications", icon: Globe },
                     { key: "notify_push", label: "Device Notifications (laptop & phone)", icon: Monitor },
-                    { key: "notify_sms", label: "SMS Notifications", icon: Smartphone },
+                    // No SMS sender is wired to this account, so the toggle is
+                    // not offered — a switch that changes nothing is a lie.
+
                   ] as { key: keyof NotifPrefs; label: string; icon: React.ElementType }[]).map(ch => (
                     <div key={ch.key} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/10 px-4 py-3">
                       <button
