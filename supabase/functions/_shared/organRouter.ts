@@ -163,7 +163,9 @@ export function handsForOrgans(
 // quota on a passing mention. Silence here is not evidence of an idle turn.
 
 const INTENT: Array<[OrganId, RegExp]> = [
-  ["maps", /\b(map|satellite|coordinates?|lat(itude)?\s*[,/]?\s*long|fly\s+to|street\s+view|parcel|rooftop|nearby|within\s+\d+\s*(m|km|mi|miles)\b|address)\b/i],
+  // Cartographic intent also arrives as ownership and street-address language:
+  // "who owns 1600 pennsylvania ave" is a map question even without the word map.
+  ["maps", /\b(map|satellite|coordinates?|lat(itude)?\s*[,/]?\s*long|fly\s+to|street\s+view|parcel|rooftop|nearby|within\s+\d+\s*(m|km|mi|miles)\b|address|who\s+owns|property\s+(record|owner|intel))\b|\b\d{1,6}\s+[a-z0-9.'-]+\s+(st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|hwy|highway|pkwy|parkway)\b/i],
   ["ghost", /\b(ghost|origin\s+pane|source\s+page|cached\s+copy|archive\s+of\s+the\s+page)\b/i],
   ["zophiel", /\b(zophiel|osint|open[-\s]web\s+sweep|dork|breach\s+check|leak\s+check)\b/i],
   ["zerlal", /\b(zerlal|attack\s*surface|subdomains?|security\s+posture|recon)\b/i],
