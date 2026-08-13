@@ -115,7 +115,7 @@ const DigitalGnostic = () => (
         },
         {
           q: "How is a Digital Gnostic different from a 'power user'?",
-          a: "A power user maximizes use of the existing platform. A Digital Gnostic deliberately routes around the platform's refusal layer. Power users live inside ChatGPT; Digital Gnostics live inside BYOK stacks, uncensored models, and sovereign platforms.",
+          a: "A power user maximizes use of the existing platform. A Digital Gnostic deliberately routes around the platform's refusal layer. Power users work within a vendor's defaults; Digital Gnostics prefer stacks where they hold the key and set the limits themselves.",
         },
         {
           q: "Why should AI builders care about this demographic?",
