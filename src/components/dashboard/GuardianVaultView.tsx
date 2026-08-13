@@ -16,7 +16,7 @@ import {
   type PushStatus, type RegisteredDevice,
 } from "@/lib/securityPush";
 
-type VaultTab = "overview" | "sessions" | "activity" | "mfa" | "alerts" | "password";
+type VaultTab = "overview" | "items" | "watchtower" | "sessions" | "activity" | "mfa" | "alerts" | "password";
 
 interface Session {
   id: string;
