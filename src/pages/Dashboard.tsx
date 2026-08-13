@@ -1829,7 +1829,26 @@ const Dashboard = () => {
             </Suspense>
           ) : (
             <>
-              {renderView()}
+              {isV2 && activeView !== "chat" ? (
+                <DashboardUiProvider value="v2">
+                  {(() => {
+                    const meta = v2TitleFor(
+                      activeView,
+                      typeof activeView === "string" && activeView.startsWith("agent:")
+                        ? publishedAgents.find((x) => `agent:${x.id}` === activeView)?.name
+                        : undefined,
+                    );
+                    return (
+                      <V2PageShell title={meta.title} subtitle={meta.subtitle} canvas={meta.canvas}>
+                        {renderView()}
+                      </V2PageShell>
+                    );
+                  })()}
+                </DashboardUiProvider>
+              ) : (
+                renderView()
+              )}
+
               {/* Drop zone overlay when dragging a convo onto chat */}
               {isDraggingConvo && activeView === "chat" && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none animate-fade-in">
