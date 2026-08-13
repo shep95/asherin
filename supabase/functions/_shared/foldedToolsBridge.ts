@@ -404,6 +404,11 @@ export async function runFoldedTools(
   }
 
   // ── Briefing ───────────────────────────────────────────────────────────
+  //
+  // generate-briefing builds from the operator's saved briefing profile; it
+  // does not accept a free-text subject. The subject is sent for forward
+  // compatibility, but the context line says out loud what the run actually
+  // covered so the model cannot present a profile briefing as a bespoke one.
   if (plan.briefingSubject) {
     legs.push(["generate-briefing", (async () => {
       const out = await invoke("generate-briefing", { subject: plan.briefingSubject }, auth, CEILING.heavy);
@@ -411,20 +416,31 @@ export async function runFoldedTools(
       if (!out.ok) return;
       const b = out.body || {};
       parts.push(
-        `BRIEFING — subject: ${plan.briefingSubject}`,
+        `BRIEFING RUN (asked subject: ${plan.briefingSubject})`,
+        "- scope note: this engine runs the operator's saved briefing profile topics, not an arbitrary subject. If the requested subject is absent below, say the profile does not cover it and point to briefing settings.",
         `- sources checked: ${b.sources_checked ?? 0} | domains covered: ${b.domains_covered ?? 0}`,
-        String(b.briefing ?? "").slice(0, 6000),
+        maskPii(String(b.briefing ?? "")).slice(0, 6000),
       );
     })()]);
-  } 
+  }
 
   // ── Notebook ───────────────────────────────────────────────────────────
+  //
+  // The executor needs cellType and content alongside the id; chat only ever
+  // holds the id, so it runs the ownership-checked path and reports exactly
+  // what came back rather than pretending a cell body was evaluated.
   if (plan.notebookCellId) {
     legs.push(["notebook-execute", (async () => {
       const out = await invoke("notebook-execute", { cellId: plan.notebookCellId }, auth, CEILING.medium);
       note("notebook-execute", out);
       if (!out.ok) return;
-      parts.push(`NOTEBOOK CELL ${plan.notebookCellId} OUTPUT:`, JSON.stringify(out.body).slice(0, 3000));
+      const output = String(out.body?.output ?? "").trim();
+      parts.push(
+        `NOTEBOOK CELL ${plan.notebookCellId}:`,
+        output
+          ? output.slice(0, 3000)
+          : "- the executor returned no output for this id alone (it needs the cell type and body, which chat does not hold). Tell the operator to run the cell from the Notebooks view; do not invent a result.",
+      );
     })()]);
   } else if (plan.notebookNeedsCell) {
     parts.push("NOTEBOOK: execution needs a cell id. Ask the operator for the cell uuid, or tell them to run it from the Notebooks view — do not claim a cell was executed.");
