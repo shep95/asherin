@@ -17,6 +17,7 @@ import { sampleRoofColor, type RoofColorVote } from "@/lib/asher/roofColor";
 import CameraIntelligencePanel from "@/components/asher/CameraIntelligencePanel";
 
 import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
+import { emitPull } from "@/lib/connect/emitPull";
 import { searchNearby, streetViewUrl, type Place } from "@/lib/asher/places";
 import {
   getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
@@ -1146,6 +1147,13 @@ const IntelligenceMapModule = () => {
   const flyTo = (lat: number, lng: number, zoom = 11) => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
 
+    /* Connect trace: the camera really moved. Coordinates only — a fly carries
+       no register data, so there is nothing here to mask beyond precision. */
+    void emitPull({
+      organ: "maps", capability: "go", fromSurface: "maps", status: "ok",
+      quote: `${lat.toFixed(5)}, ${lng.toFixed(5)} · z${zoom}`,
+    });
+
     if (zoom < 14) return; // metro-scale fly — a camera sweep there is noise.
     const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
     if (key === lastCamSweepRef.current) return;
@@ -1322,22 +1330,54 @@ const IntelligenceMapModule = () => {
      handling stays — an empty result clears the layer instead of leaving the
      previous corridor's pins floating over a new city. */
   const loadCamerasQuiet = useCallback(async (opts: CameraQuery) => {
+    const started = performance.now();
     try {
       const sweep = await fetchStreetCameras(opts);
       setCameras(sweep.cameras);
-    } catch {
+      // An empty corridor is a real, honest outcome — traced as a skip, not a
+      // failure and never as a green pull that implies cameras were found.
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps",
+        status: sweep.cameras.length ? "ok" : "skip",
+        latencyMs: performance.now() - started,
+        quote: sweep.cameras.length
+          ? `${sweep.cameras.length} public cameras in corridor`
+          : (sweep.coverageNote || "no published cameras for this corridor"),
+        meta: { auto: true },
+      });
+    } catch (e: any) {
       setCameras([]);
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - started,
+        quote: e?.message || "camera catalogue unavailable",
+        meta: { auto: true },
+      });
     }
   }, []);
 
   const loadCameras = useCallback(async (opts: CameraQuery) => {
 
     setCameraBusy(true);
+    const started = performance.now();
     try {
       const sweep = await fetchStreetCameras(opts);
       setCameras(sweep.cameras);
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps",
+        status: sweep.cameras.length ? "ok" : "skip",
+        latencyMs: performance.now() - started,
+        quote: sweep.cameras.length
+          ? `${sweep.cameras.length} public cameras in corridor`
+          : (sweep.coverageNote || "no published cameras for this corridor"),
+      });
       if (!sweep.cameras.length) toast.info(sweep.coverageNote || "No public traffic cameras published for that corridor.");
     } catch (e: any) {
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - started,
+        quote: e?.message || "camera catalogue unavailable",
+      });
       toast.error(e?.message || "Camera catalogue unavailable.");
     } finally {
       setCameraBusy(false);
