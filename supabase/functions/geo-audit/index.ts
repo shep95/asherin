@@ -56,9 +56,9 @@ interface RouteScore {
  *
  * Retrieval (`found`, `rank`) is selection: the engine fetched the page.
  * Absorption is what fraction of the page's own distinctive language survives
- * into the synthesised answer. Perplexity-class engines select and cite;
- * ChatGPT-class engines absorb and often do not cite, so a selection-only
- * metric under-reports the second entirely.
+ * into the synthesised answer. Some engines select and cite; others absorb
+ * the language and never cite, so a selection-only metric under-reports the
+ * second class of engine entirely.
  */
 interface AbsorptionResult {
   /** null when the absorption stage did not run (no model key, or not selected). */

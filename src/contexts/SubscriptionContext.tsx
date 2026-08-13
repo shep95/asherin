@@ -127,7 +127,7 @@ const MAXIMUM_TIERS: TierKey[] = ["monthly_pro", "pro"];
 export function hasChatAccess(t: TierKey | null): boolean { return !!t; }
 export function hasSearchAccess(t: TierKey | null): boolean { return !!t; }
 // Zophiel Search Intelligence — the entire tab (web, deep, dark web, leaks,
-// archives, dork, ghostchain, XKeyscore, intel map, data engine, v2) ships with
+// archives, dork, ghostchain, Resolve, intel map, data engine, v2) ships with
 // the $18/mo Asherin subscription and its 6-month term (both resolve to
 // `monthly_aureon`), and with every tier above it. Legacy `chat` holders keep
 // the access they already had — this change only widens, never removes.

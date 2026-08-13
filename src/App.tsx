@@ -22,10 +22,8 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Asher = lazy(() => import("./pages/Asher"));
 const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 const Forums = lazy(() => import("./pages/Forums"));
-const Benchmark = lazy(() => import("./pages/Benchmark"));
 const Software = lazy(() => import("./pages/Software"));
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
-const BlogComparison = lazy(() => import("./pages/BlogComparison"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
@@ -171,11 +169,13 @@ const App = () => (
             <Route path="/founder" element={<Founder />} />
             <Route path="/asher" element={<Asher />} />
             <Route path="/forums" element={<Forums />} />
-            <Route path="/benchmark" element={<Benchmark />} />
+            {/* Retired: the page scored Asherin against named third-party products
+                using numbers nobody measured. Old links land on the catalog. */}
+            <Route path="/benchmark" element={<Navigate to="/software" replace />} />
             <Route path="/software" element={<Software />} />
             <Route path="/whiteboard" element={<ProtectedRoute><WhiteboardPage /></ProtectedRoute>} />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/comparison" element={<BlogComparison />} />
+            <Route path="/blog/comparison" element={<Navigate to="/software" replace />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
             <Route path="/blog/uncensored-ai-text-generator-guide" element={<Navigate to="/blog" replace />} />
             <Route path="/blog/what-is-ai-osint" element={<BlogWhatIsAiOsint />} />

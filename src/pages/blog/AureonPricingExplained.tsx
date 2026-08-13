@@ -27,7 +27,7 @@ const PUBLISHED = "2026-06-19";
 const FAQ = [
   {
     q: "Why is Asherin priced at $18 per month?",
-    a: "$18/mo covers platform-paid inference for an uncensored chat + 4 reasoning modes + base Zophiel Search at a 60-message / 3-hour usage window. It is positioned below ChatGPT Plus and Claude Pro deliberately — Asherin is the sovereign default, not a luxury tier.",
+    a: "$18/mo covers platform-paid inference for an uncensored chat + 4 reasoning modes + base Zophiel Search at a 60-message / 3-hour usage window. It is priced deliberately low — Asherin is meant to be the default seat an operator keeps, not a luxury tier.",
   },
   {
     q: "Why is Asherin Pro $79 per month?",
@@ -38,8 +38,8 @@ const FAQ = [
     a: "No free tier. The platform is built for operators who need uncensored, sovereign, high-volume intelligence work; running a free tier would compromise model quality and platform security. $18/mo is the floor.",
   },
   {
-    q: "How does Asherin pricing compare to ChatGPT, Claude, and Gemini?",
-    a: "ChatGPT Plus is $20/mo, Claude Pro is $20/mo, Gemini Advanced is $20/mo. Asherin Core at $18/mo undercuts all three while shipping uncensored output, BYOK across nine providers, real OSINT, and a full IDE. Asherin Pro at $79/mo competes with custom enterprise quotes from those vendors — usually $1,000+/seat — at a fixed, transparent price.",
+    q: "Why is Asherin Core $18 and Pro $79?",
+    a: "Core at $18/mo covers platform-funded inference for chat, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK and base search at a 60-message / 3-hour window. Pro at $79/mo raises that to 200 messages / 3 hours with higher search throughput and the advanced modules. Both prices are fixed and published — no quote process, no seat negotiation.",
   },
   {
     q: "Can I switch between Asherin and Asherin Pro?",
@@ -55,7 +55,7 @@ const AureonPricingExplained = () => (
   <ArticleShell
     eyebrow="Pricing · Operator brief"
     title="Asherin pricing explained — why $18/mo and $79/mo"
-    dek="A field-level breakdown of how Asherin's subscription is built: what $18/mo actually buys, why Pro is set at $79, how it compares against ChatGPT/Claude/Gemini, and the predictive trajectory of AI pricing through 2027."
+    dek="A field-level breakdown of how Asherin's subscription is built: what $18/mo actually buys, why Pro is set at $79, how the two message windows differ, and the predictive trajectory of AI pricing through 2027."
     publishedLabel="Jun 19 2026"
     readTime="11 min"
   >
@@ -63,7 +63,7 @@ const AureonPricingExplained = () => (
       id="aureon-pricing-explained"
       url={URL}
       headline={TITLE}
-      description="The full breakdown of Asherin's $18/mo and $79/mo subscription tiers — what each unlocks, how it compares to ChatGPT Plus, Claude Pro, and Gemini Advanced, and the predictive trajectory of AI pricing."
+      description="The full breakdown of Asherin's $18/mo and $79/mo subscription tiers — what each unlocks, what the message windows are, and the predictive trajectory of AI pricing."
       datePublished={PUBLISHED}
       keywords={[
         "aureon pricing",
@@ -92,7 +92,7 @@ const AureonPricingExplained = () => (
         "Asherin Core is $18/mo: uncensored chat, four reasoning modes, elite coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
         "Asherin Pro is $79/mo: adds Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team workspace, 200 messages per 3-hour window.",
         "Enterprise is custom-priced and adds SSO/SAML, org policy controls, audit logs, dedicated capacity, and SLAs.",
-        "ChatGPT Plus, Claude Pro, and Gemini Advanced are all $20/mo. Asherin Core is the only general-purpose AI subscription priced below that floor.",
+        "Asherin Core is $18/mo and Asherin Pro is $79/mo — both published, both fixed, and neither depends on a sales call.",
         "BYOK across nine providers is included at every paid tier. Cancel any time — no retention flow.",
       ]}
       relevanceSignal="Anyone comparing AI subscriptions needs an authoritative explainer of Asherin's pricing logic and how the two tiers map to actual operator workflows."
@@ -191,35 +191,31 @@ const AureonPricingExplained = () => (
       </li>
     </ul>
 
-    <h2>Pricing comparison — Asherin vs the market</h2>
+    <h2>How the two prices are set</h2>
     <p>
-      As of June 2026, the general-purpose AI subscription floor is
-      $20/mo. ChatGPT Plus, Claude Pro, and Gemini Advanced all sit
-      there. Asherin Core is $18 — explicitly priced below the floor.
-      Asherin Pro at $79 replaces a custom enterprise contract that
-      would otherwise quote between $1,000 and $3,000 per seat for the
-      same surface area.
+      Core is $18 because that is what a month of platform-funded
+      inference plus storage costs at a 60-message / 3-hour window,
+      with margin thin enough that an operator never has to justify the
+      line item. Pro is $79 because a 200-message window, higher search
+      throughput, and the advanced modules cost roughly four times as
+      much to serve. Both numbers are published, fixed, and identical
+      for every account — there is no quote process and no seat
+      negotiation.
     </p>
     <ul>
       <li>
-        <strong>ChatGPT Plus — $20/mo.</strong> Censored model, no
-        BYOK, no OSINT, no real IDE.
+        <strong>Asherin Core — $18/mo.</strong> Chat, coding, memory,
+        Guardian Vault, Whiteboard, Maps, BYOK across nine providers,
+        base search, 60 messages / 3 hours.
       </li>
       <li>
-        <strong>Claude Pro — $20/mo.</strong> Censored model, no BYOK,
-        no OSINT, no IDE.
+        <strong>Asherin Pro — $79/mo.</strong> Everything in Core, 200
+        messages / 3 hours, higher search throughput, and the advanced
+        intelligence modules.
       </li>
       <li>
-        <strong>Gemini Advanced — $20/mo.</strong> Censored, locked to
-        the Google stack, no OSINT.
-      </li>
-      <li>
-        <strong>Asherin Core — $18/mo.</strong> Uncensored, BYOK across
-        nine providers, base Zophiel Search, elite coding engine.
-      </li>
-      <li>
-        <strong>Asherin Pro — $79/mo.</strong> Full intelligence suite
-        + OSINT + advanced briefings + team workspace.
+        <strong>Enterprise — custom.</strong> Priced on volume and
+        deployment shape, not on a per-feature unlock.
       </li>
     </ul>
 
@@ -305,7 +301,6 @@ const AureonPricingExplained = () => (
         { to: "/pricing", label: "Asherin pricing", description: "Official subscription page with live checkout for both tiers." },
         { to: "/software", label: "Every Asherin tool", description: "Full catalog of modules included in Core and Pro." },
         { to: "/feature/zophiel", label: "Zophiel Search", description: "The multi-engine OSINT engine that powers Pro." },
-        { to: "/blog/comparison", label: "Asherin vs ChatGPT vs Claude", description: "Side-by-side 2026 platform comparison." },
         { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI platforms", description: "The 2026 landscape of sovereign AI alternatives." },
         { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "Definitional anchor for the sovereign AI category." },
         { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key model routing across providers." },

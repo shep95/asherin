@@ -1,14 +1,14 @@
 /**
  * ZOPHIEL ORCHESTRATOR — the chain that turns thirteen islands into one product.
  * ---------------------------------------------------------------------------
- * Previously the operator ran search, then opened XKEYSCORE, then opened the
+ * Previously the operator ran search, then opened RESOLVE, then opened the
  * Intelligence Suite, and each stage re-derived the corpus from scratch with a
  * different extractor. Nothing carried forward: entities found in stage 2 never
  * informed stage 3, and a contradiction found in stage 3 never re-queried.
  *
  * This function is the chain:
  *   1. RETRIEVE   zophiel-search (ranked corpus + fusion analysis)
- *   2. RESOLVE    zophiel-xkeyscore (identity resolution, hop rings, timeline)
+ *   2. RESOLVE    zophiel-resolve (identity resolution, hop rings, timeline)
  *   3. PIVOT      the highest-centrality unresolved entity becomes a follow-up
  *                 query, executed once, and merged back into the corpus
  *   4. JUDGE      claim-level veracity + contradictions recomputed over the
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
     for (const r of rawResults) corpus.set(String(r.url), toDoc(r));
 
     // ── STAGE 2: RESOLVE ───────────────────────────────────────────────────
-    const xk = await invoke<any>("zophiel-xkeyscore", {
+    const xk = await invoke<any>("zophiel-resolve", {
       query,
       results: [...corpus.values()].slice(0, 40).map((d) => ({ title: d.title, url: d.url, snippet: d.snippet })),
       harvest: doHarvest,

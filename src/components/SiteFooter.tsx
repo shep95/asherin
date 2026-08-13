@@ -68,7 +68,6 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       heading: "Intelligence",
       links: [
         { to: "/feature/zophiel", label: "Zophiel OSINT" },
-        { to: "/benchmark", label: "Benchmarks" },
       ],
     },
     {

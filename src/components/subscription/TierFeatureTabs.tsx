@@ -92,7 +92,7 @@ const AUREON_FEATURE_GROUPS = [
       { name: "PDF Generator", desc: "Turn any conversation into a polished, paginated PDF.", link: null },
       { name: "Slideshow Generator", desc: "Auto-build editable slide decks from prompts.", link: null },
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
-      { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
       { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
     ],
@@ -138,7 +138,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Audit Trail", desc: "Full compliance-grade audit logging of all platform activity.", link: null },
       { name: "Team Workspace", desc: "RBAC, email invites, and collaborative workspaces.", link: null },
       { name: "Automated Agents", desc: "Scheduled tasks with multi-channel webhook delivery.", link: "/feature/automated-agents" },
-      { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
     ],
   },
   {

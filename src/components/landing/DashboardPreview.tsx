@@ -31,7 +31,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Data & Analysis",
     items: [
-      { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true, desc: "20-tab data foundry with the asha_ schema for ingest, lineage, entities, and predictions." },
+      { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true, desc: "20-tab data workspace with the asha_ schema for ingest, lineage, entities, and predictions." },
       { id: "pattern", icon: Activity, label: "Pattern Engine", pro: true, desc: "Pro-tier forecasting with fractal pattern discovery and Recharts visualizations." },
       { id: "cross", icon: Crosshair, label: "Cross", pro: true, desc: "17 analytical modes with WebM screen recording, trading strategies, and 5-level hierarchy." },
       { id: "zeeion", icon: Database, label: "Zeeion FI", pro: true, desc: "Live financial forensics with 10-state lifecycle, trustless arbitration, and workforce analytics." },

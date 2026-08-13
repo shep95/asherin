@@ -348,7 +348,7 @@ header[data-aureon-header] > a {
 
 /* ============================================================
    Landing perf mode — marketing pages (Founder, Pricing, Blog,
-   Software, Benchmark, Investors, Valuation, Updates, HouseOfAsher).
+   Software, Investors, Valuation, Updates, HouseOfAsher).
    The wallpaper + bg-black/80 overlay already obscures backdrops,
    so per-frame `backdrop-filter` re-sampling on every translucent
    card is pure GPU cost with no visual payoff. Kill it here and

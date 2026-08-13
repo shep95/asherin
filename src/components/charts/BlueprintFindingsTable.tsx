@@ -190,27 +190,27 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
 
   return (
     <div
-      className="palantir-blueprint-table bp5-dark rounded-xl border border-border/[0.08] overflow-hidden bg-card/20"
+      className="asherin-findings-table bp5-dark rounded-xl border border-border/[0.08] overflow-hidden bg-card/20"
       style={{
         ["--pt-table-background-color" as string]: "transparent",
       }}
     >
       <style>{`
-        .palantir-blueprint-table,
-        .palantir-blueprint-table .bp5-table-container,
-        .palantir-blueprint-table .bp5-table-quadrant,
-        .palantir-blueprint-table .bp5-table-quadrant-scroll-container,
-        .palantir-blueprint-table .bp5-table-quadrant-main,
-        .palantir-blueprint-table .bp5-table-top-container,
-        .palantir-blueprint-table .bp5-table-bottom-container,
-        .palantir-blueprint-table .bp5-table-body,
-        .palantir-blueprint-table .bp5-table-body-virtual-client,
-        .palantir-blueprint-table .bp5-table-cell-client {
+        .asherin-findings-table,
+        .asherin-findings-table .bp5-table-container,
+        .asherin-findings-table .bp5-table-quadrant,
+        .asherin-findings-table .bp5-table-quadrant-scroll-container,
+        .asherin-findings-table .bp5-table-quadrant-main,
+        .asherin-findings-table .bp5-table-top-container,
+        .asherin-findings-table .bp5-table-bottom-container,
+        .asherin-findings-table .bp5-table-body,
+        .asherin-findings-table .bp5-table-body-virtual-client,
+        .asherin-findings-table .bp5-table-cell-client {
           background: transparent !important;
           background-color: transparent !important;
           color: hsl(var(--foreground)) !important;
         }
-        .palantir-blueprint-table .bp5-table-cell {
+        .asherin-findings-table .bp5-table-cell {
           background: transparent !important;
           background-color: transparent !important;
           border-bottom: 1px solid hsl(var(--border) / 0.06) !important;
@@ -219,16 +219,16 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
           font-family: inherit !important;
           color: hsl(var(--foreground)) !important;
         }
-        .palantir-blueprint-table .bp5-table-cell-ledger-odd,
-        .palantir-blueprint-table .bp5-table-cell-ledger-even {
+        .asherin-findings-table .bp5-table-cell-ledger-odd,
+        .asherin-findings-table .bp5-table-cell-ledger-even {
           background: transparent !important;
           background-color: transparent !important;
         }
-        .palantir-blueprint-table .bp5-table-cell:hover {
+        .asherin-findings-table .bp5-table-cell:hover {
           background: hsl(var(--foreground) / 0.03) !important;
         }
-        .palantir-blueprint-table .bp5-table-header,
-        .palantir-blueprint-table .bp5-table-column-header-cell {
+        .asherin-findings-table .bp5-table-header,
+        .asherin-findings-table .bp5-table-column-header-cell {
           background: hsl(var(--card) / 0.5) !important;
           background-color: hsl(var(--card) / 0.5) !important;
           box-shadow: none !important;
@@ -236,23 +236,23 @@ const BlueprintFindingsTable = ({ findings, onSelectFinding, onExpandFinding }: 
           border-bottom: 1px solid hsl(var(--border) / 0.1) !important;
           color: hsl(var(--muted-foreground)) !important;
         }
-        .palantir-blueprint-table .bp5-table-column-headers {
+        .asherin-findings-table .bp5-table-column-headers {
           background: transparent !important;
         }
-        .palantir-blueprint-table .bp5-table-row-headers {
+        .asherin-findings-table .bp5-table-row-headers {
           display: none !important;
         }
-        .palantir-blueprint-table .bp5-table-selection-region {
+        .asherin-findings-table .bp5-table-selection-region {
           background: hsl(var(--primary) / 0.08) !important;
           border: 1px solid hsl(var(--primary) / 0.2) !important;
         }
-        .palantir-blueprint-table .bp5-table-resize-handle-target {
+        .asherin-findings-table .bp5-table-resize-handle-target {
           opacity: 0.3;
         }
-        .palantir-blueprint-table .bp5-table-overlay-layer,
-        .palantir-blueprint-table .bp5-table-quadrant-top,
-        .palantir-blueprint-table .bp5-table-quadrant-left,
-        .palantir-blueprint-table .bp5-table-quadrant-top-left {
+        .asherin-findings-table .bp5-table-overlay-layer,
+        .asherin-findings-table .bp5-table-quadrant-top,
+        .asherin-findings-table .bp5-table-quadrant-left,
+        .asherin-findings-table .bp5-table-quadrant-top-left {
           background: transparent !important;
           background-color: transparent !important;
         }

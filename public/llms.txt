@@ -42,7 +42,6 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 - [The 2026 sovereign AI platform landscape](/blog/sovereign-ai-platforms): eight platforms, four architecture patterns, evaluation criteria.
 - [AI without restrictions — operator workflow](/blog/ai-without-restrictions): model choice, prompt discipline, refusal-detection.
 - [Venice AI integration in Aureon](/blog/venice-integration): how the platform-paid uncensored default works.
-- [Aureon vs ChatGPT vs Claude — 2026 comparison](/blog/comparison): side-by-side across price, censorship, BYOK, OSINT, IDE, simulation, privacy.
 - [AI vulnerability scanning, explained](/blog/ai-vulnerability-scanning-explained): how AI scanners differ from legacy SAST/DAST.
 - [Vulnerability chaining, explained](/blog/vulnerability-chaining-explained): the mechanism behind 2-4 link critical exploit paths.
 - [How AI predictive forecasting actually works](/blog/how-ai-predictive-forecasting-works): the four ingredients real forecasts need.
@@ -58,7 +57,6 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 - [Home](/): Product overview and entry point.
 - [Pricing](/pricing): Asherin $18/month (core seat), Asherin Pro $79/month (higher limits + team), Enterprise custom. Monthly USD via Stripe, cancel anytime, no free trial.
 - [Founder](/founder): Asher Newton, architect of Aureon.
-- [Benchmarks](/benchmark): Performance comparisons.
 - [Software](/software): Feature and module catalog.
 - [Forums](/forums): Community forums (updated daily).
 - [Blog](/blog): Long-form intelligence reports and comparisons.

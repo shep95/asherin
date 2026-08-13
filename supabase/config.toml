@@ -246,7 +246,7 @@ verify_jwt = true
 [functions.forum-daily-digest]
 verify_jwt = false
 
-[functions.zophiel-xkeyscore]
+[functions.zophiel-resolve]
 verify_jwt = false
 
 [functions.organism]

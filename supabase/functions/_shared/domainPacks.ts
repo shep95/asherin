@@ -3,19 +3,17 @@
 //
 // Ingest is only useful when the platform knows WHAT it just received, WHO is
 // regulated by it, WHICH real-world objects it maps to, and WHAT decisions it
-// unlocks. Every corporation that buys an ingest platform (Palantir Foundry,
-// Databricks + Unity Catalog, Snowflake + Collibra) is really buying four
-// things:
+// unlocks. Any organisation that buys an ingest platform is really buying
+// four things:
 //
 //   1. Landing         — take any shape of data from any system.
 //   2. Semantics       — bind columns to real-world objects (the "ontology").
 //   3. Governance      — know sensitivity, regulation, and lineage on arrival.
 //   4. Decision surface— convert the landed object into questions/KPIs/actions.
 //
-// Commodity tools stop at (1). Foundry's differentiator is (2)+(3) fused at
-// ingest time. AZPLEN goes one step further: the pack also declares the
-// DECISION SET and the COLLECTION GAP — what you still cannot answer with what
-// you just uploaded — which no mainstream competitor emits at ingest.
+// Commodity tools stop at (1). AZPLEN binds (2)+(3) at ingest time and then
+// goes one step further: the pack also declares the DECISION SET and the
+// COLLECTION GAP — what you still cannot answer with what you just uploaded.
 //
 // This module is deterministic (no model call). Every finding it emits cites
 // the column or rule that produced it, so the output is auditable.

@@ -194,7 +194,7 @@ const UPDATES: Update[] = [
     date: "2026-07-02",
     title: "Asherin Property Intelligence — Satellite Map + Live Scrape",
     body:
-      "Asherin Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Palantir HQ). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
+      "Asherin Chat now recognizes property questions and answers them with real evidence. A property-intent classifier detects US / UK / Canadian addresses, ZIP hints, and named landmarks (Eiffel Tower, Empire State Building, Chrysler Building). When it fires, the pipeline geocodes the target via OpenStreetMap/Nominatim (free, no key), plans five targeted queries against Zillow, Redfin, Realtor, assessor sites, and deed/parcel records, then scrapes the top five ranked sources via Firecrawl v2 with JSON extraction plus a markdown-regex fallback for beds, baths, sqft, year built, last sale price, HOA, and MLS. The assistant streams its answer with inline domain citations, then renders a satellite PropertyMapCard (Esri World Imagery, Leaflet) and a PropertySourcesStrip with contributing facts beneath the message. Verified live across 1600 Pennsylvania Ave NW, 350 5th Ave NYC, 221B Baker Street London, Eiffel Tower, and Empire State Building — every query returned geocode + 5 sources in ≤17s.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Asherin",
   },
@@ -234,7 +234,7 @@ const UPDATES: Update[] = [
     date: "2026-07-01",
     title: "Valuation — Corporate Reality Section",
     body:
-      "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Asherin will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded Palantir-competitor case study, and Asherin's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
+      "Added a Corporate Reality section to /valuation explaining why the competitive analysis exists and why Asherin will not be walked into a corporate boardroom. Documents the extraction pattern (NDA valuation → reverse-spec → portfolio clone → government sale) with the vibe-coded incumbent-competitor case study, and Asherin's posture: no corporate valuation meetings, no strategic partnerships with incumbents who fund direct competitors, direct-to-operator distribution, and architecture opacity.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Positioning",
   },
@@ -256,7 +256,7 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-07-01",
-    title: "Cursor-Class IDE Shortcuts — ⌘K, Tab Ghost, ⌘L",
+    title: "IDE Shortcuts — ⌘K, Tab Ghost, ⌘L",
     body:
       "Asherin's IDE surfaces now match the muscle memory of Cursor and Claude Code. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Asherin Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,

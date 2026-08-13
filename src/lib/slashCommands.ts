@@ -1,6 +1,6 @@
 /**
  * AUREON SLASH COMMAND SYSTEM
- * Inspired by Anthropic's plugin architecture (financial-services-plugins, knowledge-work-plugins)
+ * Slash-command registry: each command binds a verb to a procedure pack.
  * Each command maps to a skill prompt that transforms the user's query into a domain-expert request.
  */
 

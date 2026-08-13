@@ -163,7 +163,7 @@ export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/aureon-pricing-explained",
     title: "Asherin pricing explained — why $18/mo and $79/mo",
-    dek: "A field-level breakdown of how Asherin's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+    dek: "A field-level breakdown of how Asherin's subscription is built, what each message window buys, and where AI pricing is headed through 2027.",
     tag: "Pricing",
     published: "2026-06-19",
     readTime: "11 min",
@@ -239,14 +239,6 @@ export const BLOG_POSTS: Post[] = [
     tag: "Operator Guide",
     published: "2026-06-19",
     readTime: "8 min",
-  },
-  {
-    slug: "/blog/comparison",
-    title: "Asherin vs ChatGPT vs Claude — the honest 2026 comparison",
-    dek: "Side-by-side across price, censorship, BYOK, OSINT, IDE, simulation, and privacy. Includes the model-vs-model radar.",
-    tag: "Comparison",
-    published: "2026-06-14",
-    readTime: "9 min",
   },
   {
     slug: "/blog/venice-integration",

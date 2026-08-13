@@ -439,9 +439,9 @@ function buildPrompt(mode: string, payload: any): ChatMessage[] {
   switch (mode) {
     case "inline": {
       // Two sub-modes:
-      //  A) Cursor-style Cmd+K inline EDIT: instruction + code (the selection) are present.
+      //  A) Cmd+K inline EDIT: instruction + code (the selection) are present.
       //     Return ONLY the replacement text for the selection.
-      //  B) Copilot-style completion at caret: no instruction/code, use before/after.
+      //  B) Caret completion: no instruction/code, use before/after.
       if (payload.instruction && (payload.code ?? "").length > 0) {
         return [
           {

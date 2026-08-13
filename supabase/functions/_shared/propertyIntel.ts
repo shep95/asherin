@@ -115,7 +115,7 @@ export function detectPropertyIntent(text: string): { addresses: string[]; fired
   const hasStreetAddr = addrs.size > 0; // any address-shaped regex fired
 
   // No explicit address, but the user is clearly asking about a property with
-  // a nameable landmark ("map of the Palantir HQ") — grab a Proper-noun tail.
+  // a nameable landmark ("map of the Chrysler Building") — grab a Proper-noun tail.
   if (!hasStreetAddr && (hasKeyword || hasMapAsk)) {
     for (const m of safeGlobalMatchAll(LANDMARK_TAIL_RE, text)) addrs.add(m[1].trim());
   }

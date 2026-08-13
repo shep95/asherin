@@ -114,14 +114,6 @@ const BlogVeniceIntegration = () => {
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
             Compare with the closed stacks
           </h2>
-          <p>
-            For a deeper side-by-side against ChatGPT Plus, Claude Pro, and Gemini Advanced — with
-            the model-vs-model radar — read the{" "}
-            <Link to="/blog/comparison" className="text-accent hover:underline">
-              honest 2026 comparison
-            </Link>
-            .
-          </p>
         </section>
       </article>
 

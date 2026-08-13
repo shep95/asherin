@@ -745,7 +745,7 @@ function readSidebar(): { width: number; collapsed: boolean } {
     const width = Number(raw?.width);
     return {
       width: Number.isFinite(width) ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width)) : SIDEBAR_DEFAULT,
-      /* Palantir rails are opt-in here: with nothing stored the operator gets a
+      /* Side rails are opt-in here: with nothing stored the operator gets a
          full-bleed globe and glass chips, never a wall of layer rows. */
       collapsed: raw && typeof raw.collapsed === "boolean" ? raw.collapsed : true,
     };
@@ -2557,7 +2557,7 @@ const IntelligenceMapModule = () => {
     <div className="asher-map-chrome relative flex h-full w-full bg-background">
       {/* LAYER DRAWER — an OVERLAY, not a rail. The default surface is a
           full-bleed globe with glass chips; the tree is opened on demand and
-          floats over the map instead of squeezing it into a Palantir column. */}
+          floats over the map instead of squeezing it into a fixed column. */}
       <div
         className={`asher-map-glass absolute left-3 top-3 bottom-3 z-[1002] flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/25 bg-card/70 shadow-2xl backdrop-blur-xl transition-opacity duration-150 motion-reduce:transition-none ${
           sidebar.collapsed ? "pointer-events-none opacity-0" : "opacity-100"
@@ -2851,8 +2851,8 @@ const IntelligenceMapModule = () => {
         </div>
 
         {/* GLASS DIGEST — organ counts and the clickable camera roll.
-            Fifty-five rows would be a Palantir dump; the operator gets counts
-            and can open the roster. A gap is printed as a gap. */}
+            Fifty-five rows would be a left-rail data dump; the operator gets
+            counts and can open the roster. A gap is printed as a gap. */}
         {(organDigest || cameras.length > 0) && (
           <div className="pointer-events-auto absolute bottom-3 left-3 z-[1000] w-[300px] max-w-[calc(100%-24px)] space-y-2">
             {organDigest && (

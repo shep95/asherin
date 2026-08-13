@@ -5,7 +5,7 @@
  * uses in the dashboard, instead of a single DuckDuckGo scrape:
  *
  *   1. `zophiel-search`     — multi-engine, tiered, veracity-scored corpus.
- *   2. `zophiel-xkeyscore`  — deterministic entity/graph layer over that corpus
+ *   2. `zophiel-resolve`  — deterministic entity/graph layer over that corpus
  *                             (bodies harvested server-side, no model involved).
  *
  * Every claim handed to the model carries a URL, a tier and a corroboration
@@ -182,7 +182,7 @@ export async function runZophielIntel(
       .map((r) => ({ title: r.title, url: r.url, snippet: r.snippet }));
     if (corpus.length > 0) {
       const res = await postJson<{ success?: boolean; intel?: SerpIntel }>(
-        "zophiel-xkeyscore",
+        "zophiel-resolve",
         { query: trimmed, results: corpus, harvest: true },
         INTEL_TIMEOUT_MS,
       );
@@ -314,7 +314,7 @@ export function formatZophielContext(bundle: ZophielBundle | null): string {
   if (intel) {
     const c = intel.coverage;
     lines.push(
-      `\n### XKEYSCORE GRAPH LAYER (deterministic — extracted from harvested page bodies, no inference)\nCoverage: ${c.documents} documents · ${c.bodiesParsed} full bodies · ${c.snippetOnly} snippet-only · ${c.domains} distinct domains · rings ${c.ring1}/${c.ring2}/${c.ring3}`,
+      `\n### RESOLVE GRAPH LAYER (deterministic — extracted from harvested page bodies, no inference)\nCoverage: ${c.documents} documents · ${c.bodiesParsed} full bodies · ${c.snippetOnly} snippet-only · ${c.domains} distinct domains · rings ${c.ring1}/${c.ring2}/${c.ring3}`,
     );
 
     const ranked = intel.entities

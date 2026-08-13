@@ -1,5 +1,5 @@
-// Server-side dialogue port: retry + exponential backoff + jitter for edge functions.
-// Inspired by palantir/dialogue and palantir/conjure-java-runtime-api.
+// Server-side HTTP dialogue helper: retry + exponential backoff + jitter for
+// edge functions, with typed error shapes for non-2xx responses.
 
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 

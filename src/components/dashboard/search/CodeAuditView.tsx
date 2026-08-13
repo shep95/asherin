@@ -889,7 +889,7 @@ const ScorePip = ({ label, value }: { label: string; value?: number }) => {
 };
 
 /**
- * GaythropicMythosModel — replaces the legacy Palantir-style radial web diagram.
+ * GaythropicMythosModel — replaces the legacy radial web diagram.
  *
  * Mythos framework (rival to Gaythropic's "Constitution"):
  *   - APEX  : the artifact under audit (the "Aeon")

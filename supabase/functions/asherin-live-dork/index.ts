@@ -1,5 +1,5 @@
 // asherin-live-dork — live SERP + path-map + elite dork pack.
-// This is the port of the Cursor asherin dork loop into the cloud so
+// This is the port of the local asherin dork loop into the cloud so
 // asherin.com can dork WITHOUT a laptop kernel. No SERP is invented, no
 // secret is echoed, and the elite pack is stored server-side so the HTTP
 // body stays small.
@@ -15,7 +15,7 @@ const UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 // ── Secret masking. Any URL that carries token/key/password/secret in a query
-// string is redacted before we hand it back — same rule as Cursor asherin. ──
+// string is redacted before we hand it back — same rule as the local kernel. ──
 function maskUrl(u: string): string {
   return u.replace(
     /([?&](?:token|key|apikey|api_key|password|passwd|pwd|secret|auth|access_token|refresh_token|session|sid|otp)=)[^&#]+/gi,
