@@ -1229,6 +1229,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       })();
 
       // ── Leg 7: Folded software — the rest of the platform as chat tools ──
+      // Dispatch list (real edge-function invokes, see foldedToolsBridge.ts):
+      //   vault-retrieve, vault-agent, zerlal-domain-recon, asherin-live-dork
+      //   (path_map), axrlen-analyze, generate-briefing, notebook-execute,
+      //   agent-execute, google-data, zali-analyze, coding-laws-engine,
+      //   scrapper-extract.
       // Knowledge vault, zerlal recon, AXRLEN, briefings, notebooks, Zahten
       // procedures, the operator's own Google account, the design lab, the
       // coding-laws ledger, and text extraction over attached files. Every
