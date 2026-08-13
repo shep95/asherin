@@ -102,7 +102,7 @@ export function buildSoftwareApplication(): Json {
       { name: "Product category", value: "AI intelligence platform" },
       { name: "Deployment model", value: "Hosted web application" },
       { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
-      { name: "Free trial", value: "24", unit: "hours" },
+      { name: "Free trial", value: "None" },
       { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
       { name: "Supported BYOK providers", value: "8" },
       { name: "Training on user conversations", value: "No" },

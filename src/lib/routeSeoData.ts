@@ -412,9 +412,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "Asherin Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
   },
   "/zophiel": {
-    title: "Zophiel Free | Public OSINT & Truth Engine | Asherin",
+    title: "Zophiel Search | OSINT & Veracity Engine | Asherin",
     description:
-      "Zophiel Free: 30-source OSINT search, veracity scoring, and verified intelligence. Public, no login.",
+      "Zophiel: 30-source OSINT search with veracity scoring, inside the signed-in Asherin dashboard at /dashboard/search.",
   },
   "/search": {
     title: "Zophiel Search | Verified OSINT Intelligence | Asherin",

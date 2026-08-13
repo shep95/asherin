@@ -39,7 +39,7 @@ const FeatureZerlal = () => (
       id="feature-zerlal"
       items={[
         { name: "Asherin", url: "/" },
-        { name: "Features", url: "/features" },
+        { name: "Software", url: "/software" },
         { name: "ZERLAL", url: "/feature/zerlal" },
       ]}
     />

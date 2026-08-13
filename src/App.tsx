@@ -214,6 +214,13 @@ const App = () => (
             <Route path="/blog/asherin-pricing-explained" element={<Navigate to="/blog/aureon-pricing-explained" replace />} />
             <Route path="/blog/how-asherin-uses-c-seo-research" element={<Navigate to="/blog/how-aureon-uses-c-seo-research" replace />} />
             <Route path="/blog/how-we-make-asherin-sound-human" element={<Navigate to="/blog/how-we-make-aureon-sound-human" replace />} />
+            {/* Honest-surface redirects. /features was a duplicate catalogue —
+                /software is the single catalogue of record. Zophiel is not a
+                public no-account engine; it lives inside the signed-in
+                dashboard, so /zophiel points at the real surface. */}
+            <Route path="/features" element={<Navigate to="/software" replace />} />
+            <Route path="/zophiel" element={<Navigate to="/dashboard/search" replace />} />
+
             <Route path="/zaxin/theories" element={<ZaxinTheories />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Investors />} />

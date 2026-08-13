@@ -115,7 +115,7 @@ const FeaturePageShell = ({
             Get Access <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
-            to="/features"
+            to="/software"
             className="rounded-full border border-border/30 bg-card/30 backdrop-blur-md px-8 py-3 text-xs font-light tracking-[0.22em] uppercase text-foreground transition-colors hover:bg-foreground/10"
           >
             All Features

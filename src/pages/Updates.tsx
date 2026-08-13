@@ -337,9 +337,9 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-06-25",
-    title: "24-Hour Trial & Gated Access",
+    title: "Gated Access Hardening",
     body:
-      "New accounts unlock full-platform access for 24 hours with a welcome announcement modal. Gating logic was hardened to prevent permissive loading leaks so paid modules stay behind the paywall after the trial expires.",
+      "Gating logic was hardened to prevent permissive loading leaks, so paid modules stay behind the paywall for every unsubscribed account. Asherin does not run a free trial — access follows the subscription.",
     icon: <Clock className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Access",
   },
