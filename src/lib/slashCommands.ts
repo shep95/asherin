@@ -16,24 +16,6 @@ export interface SlashCommand {
 export const SLASH_COMMANDS: SlashCommand[] = [
   // ── FINANCE (Zeeion) ──────────────────────────────────────────────────
   {
-    command: "/comps",
-    label: "Comparable Analysis",
-    description: "Run comparable company analysis",
-    category: "finance",
-    icon: "BarChart3",
-    skillPrompt: (args) => `[SKILL: FINANCIAL ANALYSIS — COMPARABLE COMPANY ANALYSIS]
-You are a Senior Equity Research Analyst. Perform a thorough comparable company analysis for: ${args}
-
-Follow this workflow:
-1. **Identify Peer Group**: Select 5-8 direct competitors based on industry, size, geography, and business model
-2. **Key Metrics Table**: Build a comparison table with: Market Cap, Revenue (TTM), EBITDA, P/E, EV/EBITDA, P/S, Revenue Growth (YoY%), EBITDA Margin%, Net Margin%
-3. **Valuation Assessment**: Where does the target trade relative to peers? Premium or discount? Why?
-4. **Catalysts & Risks**: 3 upside catalysts, 3 downside risks
-5. **Verdict**: Fair value range based on peer multiples
-
-Format output as a professional equity research note with tables.`,
-  },
-  {
     command: "/dcf",
     label: "DCF Valuation",
     description: "Build a DCF valuation model",
@@ -115,27 +97,6 @@ Structure:
 8. **SOURCES**: Open-source intelligence sources used
 
 Format with military-grade structure, bold headers, bullet points.`,
-  },
-  {
-    command: "/scan",
-    label: "OSINT Scan",
-    description: "Run open-source intelligence scan",
-    category: "intelligence",
-    icon: "Radar",
-    skillPrompt: (args) => `[SKILL: OSINT — RECONNAISSANCE SCAN]
-You are a Senior OSINT Analyst. Conduct a comprehensive open-source intelligence scan on: ${args}
-
-Execute these modules:
-1. **Digital Footprint**: Domain registrations, WHOIS, DNS records, SSL certificates
-2. **Social Media Presence**: Platform identification, activity patterns, influence metrics
-3. **Corporate Intelligence**: Company filings, leadership, funding, partnerships
-4. **News & Media**: Recent coverage, sentiment analysis, key narratives
-5. **Technical Infrastructure**: Tech stack detection, exposed services, architecture
-6. **Network Analysis**: Key connections, organizational relationships, influence graph
-7. **Risk Assessment**: Identified vulnerabilities, exposure points, threat vectors
-8. **Confidence Rating**: Rate each finding's reliability (A1-F6 scale)
-
-Format as a structured OSINT dossier.`,
   },
   {
     command: "/profile",
@@ -308,26 +269,6 @@ Format: Professional consulting deck style with tables, metrics, and clear hiera
   },
 
   // ── LEGAL ─────────────────────────────────────────────────────────────
-  {
-    command: "/legal",
-    label: "Legal Analysis",
-    description: "Legal review and compliance analysis",
-    category: "legal",
-    icon: "Scale",
-    skillPrompt: (args) => `[SKILL: LEGAL — CONTRACT & COMPLIANCE ANALYSIS]
-You are a Senior Corporate Attorney at a top-tier law firm. Analyze: ${args}
-
-Workflow:
-1. **Document Classification**: Contract type, governing law, parties identified
-2. **Key Terms Extraction**: Duration, payment terms, termination clauses, liability caps
-3. **Risk Identification**: Unfavorable clauses, missing protections, ambiguous language
-4. **Compliance Check**: GDPR, SOX, HIPAA, or industry-specific regulations as applicable
-5. **Redline Recommendations**: Specific clause modifications with suggested language
-6. **Negotiation Strategy**: Top 3 points to negotiate, acceptable fallback positions
-7. **Summary Opinion**: Overall risk assessment (Low/Medium/High/Critical)
-
-⚠️ This is legal analysis, not legal advice. Consult qualified counsel for decisions.`,
-  },
   {
     command: "/nda",
     label: "NDA Triage",

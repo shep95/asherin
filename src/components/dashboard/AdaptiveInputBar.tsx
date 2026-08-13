@@ -3,7 +3,9 @@ import { Send, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, C
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
-import { classifyMessage, buildRoutingHint } from "@/lib/adaptiveIntent";
+import { classifyMessage, buildRoutingHint, detectLegalSpeechAct } from "@/lib/adaptiveIntent";
+import { expandPromptToLegal } from "@/lib/legalAdvisor";
+import { emitPull } from "@/lib/connect/emitPull";
 import { setModelPromptOverride } from "@/lib/promptOverrideMap";
 
 import type { FileAttachment } from "./types";
@@ -167,6 +169,24 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     let outbound = raw;
     const hint = buildRoutingHint(send);
     if (hint) outbound = `${hint}\n\n${outbound}`;
+
+    // Legal organ arms itself off the speech-act of THIS message — no chip, no
+    // stored mode. It stands down on the next turn simply by not matching.
+    const legal = detectLegalSpeechAct(raw);
+    if (legal.arm) {
+      const expanded = expandPromptToLegal(outbound);
+      if (expanded.wrapped) {
+        outbound = expanded.transformed;
+        void emitPull({
+          organ: "chat",
+          capability: "legal-arm",
+          fromSurface: "composer",
+          status: "ok",
+          quote: legal.reason,
+        }).catch(() => {});
+      }
+    }
+
     if (outbound !== raw) setModelPromptOverride(raw, outbound);
 
     onSendMessage(raw, attachments.length > 0 ? attachments : undefined);
