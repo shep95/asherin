@@ -877,6 +877,37 @@ export async function runFoldedTools(
         );
         return;
       }
+      if (m.action === "harvest") {
+        const mail = out.body?.mail ?? {};
+        parts.push(
+          `GOOGLE MESH harvest — collection pass over the operator's OWN accounts (${mail.mode ?? "?"} path):`,
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- Report the counts that came back. A harvest that read zero headers is a real answer.",
+        );
+        quoteRow("google-mesh", `${mail.headers ?? 0} header(s) · ${out.body?.places?.indexed ?? 0} place(s) · ${out.body?.contacts?.count ?? 0} contact(s)`);
+        return;
+      }
+      if (m.action === "location_signals") {
+        const places: any[] = out.body?.calendarPlaces ?? [];
+        parts.push(
+          "GOOGLE MESH location signals — calendar LOCATION strings the operator wrote themselves, plus Fit points when that dataset exists:",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- These are recurring strings, not a measured position. Never attach an accuracy percentage to them.",
+          "- Device locating is a GAP: Find Hub has no supported third-party API and asherin refuses the unofficial scrape. Say that if they asked to find a phone.",
+        );
+        // The refusal is a real posture and belongs in the trace as its own
+        // row, so the gap is visible in Connect and not only in the prose.
+        void emitPull(trace?.userId, {
+          organ: "google",
+          capability: "device-locate",
+          fromSurface: "chat",
+          status: "skip",
+          quote: "Find Hub unofficial scrape refused",
+          meta: trace?.turnId ? { turn_id: trace.turnId } : undefined,
+        });
+        quoteRow("google-mesh", places.length ? `${places.length} calendar place string(s)` : "no calendar LOCATION strings in window");
+        return;
+      }
       if (m.action === "fit_location") {
         parts.push(
           "GOOGLE MESH fit location — Google Fit location history, which is NOT device locating, NOT Find Hub, NOT a live position:",
