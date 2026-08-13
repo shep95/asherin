@@ -721,8 +721,17 @@ const GuardianVaultView = () => {
             <>
               <div>
                 <h2 className="text-sm font-extralight tracking-wide text-foreground">Multi-Factor Authentication</h2>
-                <p className="text-[10px] text-muted-foreground/50 mt-0.5">Add an extra verification step to protect your account</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                  Once a factor is verified, sign-in stops at the challenge screen — the dashboard does not open until the code is accepted, and password change, data export, account deletion and provider-key writes ask again.
+                </p>
               </div>
+
+              <div className="rounded-xl border border-border/20 bg-card/10 px-4 py-3">
+                <p className="text-[10px] font-light text-muted-foreground/70">
+                  Authenticator app (TOTP) is the second factor this account supports today. Passkeys and hardware security keys are not enabled on this platform — nothing here pretends otherwise.
+                </p>
+              </div>
+
 
               {mfaFactors.filter((f: any) => f.status === "verified").length > 0 && (
                 <div className="space-y-2">
