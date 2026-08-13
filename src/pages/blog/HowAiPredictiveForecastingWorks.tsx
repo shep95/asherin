@@ -128,7 +128,7 @@ const HowAiPredictiveForecastingWorks = () => (
         <a href="/feature/zophiel" className="text-accent hover:underline">
           Zophiel
         </a>{" "}
-        — 30-source cross-validation of the underlying claims.
+        — multi-engine cross-validation of the underlying claims.
       </li>
       <li>
         <strong>Base-rate priors</strong> — historical frequency of
@@ -230,7 +230,7 @@ const HowAiPredictiveForecastingWorks = () => (
         {
           to: "/feature/zophiel",
           label: "Zophiel OSINT — the corroboration layer",
-          description: "30-source cross-validation feeds AXRLEN's signal fusion.",
+          description: "multi-engine cross-validation feeds AXRLEN's signal fusion.",
         },
       ]}
     />

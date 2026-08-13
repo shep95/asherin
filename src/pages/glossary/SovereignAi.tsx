@@ -207,7 +207,7 @@ const SovereignAi = () => (
         {
           to: "/feature/zophiel",
           label: "Zophiel OSINT — sovereign in practice",
-          description: "Asherin's 30-source intelligence engine, deployed on the sovereign stack.",
+          description: "Asherin's multi-engine intelligence engine, deployed on the sovereign stack.",
         },
       ]}
     />

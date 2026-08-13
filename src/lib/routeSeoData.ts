@@ -181,7 +181,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
 
   // Feature pages
   "/feature/zophiel": {
-    title: "Zophiel | 30-Source OSINT & Truth Engine | Asherin",
+    title: "Zophiel | Multi-Engine OSINT & Truth Engine | Asherin",
     description:
       "Zophiel cross-validates 30+ live OSINT sources, scores veracity, and surfaces verified intelligence with citations.",
   },

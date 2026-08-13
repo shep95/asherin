@@ -160,7 +160,7 @@ const DigitalGnostic = () => (
         {
           to: "/feature/zophiel",
           label: "Zophiel OSINT — built for this operator",
-          description: "30-source intelligence engine built on the sovereign stack.",
+          description: "multi-engine intelligence engine built on the sovereign stack.",
         },
       ]}
     />

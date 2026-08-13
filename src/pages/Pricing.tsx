@@ -294,7 +294,7 @@ const Pricing = () => {
               heading="Continue exploring Asherin"
               links={[
                 { to: "/software", label: "Every Asherin tool", description: "Full software catalog — every module across Core and Pro." },
-                { to: "/feature/zophiel", label: "Zophiel Search", description: "30-source OSINT engine with per-source veracity scoring." },
+                { to: "/feature/zophiel", label: "Zophiel Search", description: "multi-engine OSINT engine with per-source veracity scoring." },
                 { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "What sovereign AI means and how to verify it." },
                 { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Asherin implements it." },
                 { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },

@@ -16,7 +16,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  */
 
 const URL = "https://asherin.com/feature/zophiel";
-const TITLE = "Zophiel OSINT — 30-Source AI Intelligence Engine | Asherin";
+const TITLE = "Zophiel OSINT — Multi-Engine AI Intelligence Engine | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const FeatureZophiel = () => {
@@ -52,13 +52,13 @@ const FeatureZophiel = () => {
 
       <FeaturePageShell
         documentTitle={TITLE}
-        eyebrow="Intelligence · 30-Source OSINT"
+        eyebrow="Intelligence · Multi-Engine OSINT"
         headline={
           <>
             Zophiel —
             <br />
             <span className="text-muted-foreground/70">
-              30-source OSINT, cross-validated.
+              multi-engine OSINT, cross-validated.
             </span>
           </>
         }
@@ -67,7 +67,7 @@ const FeatureZophiel = () => {
         capabilities={[
           {
             icon: Search,
-            title: "30-Source Parallel Fan-Out",
+            title: "Parallel Engine Fan-Out",
             description:
               "Every query hits 30 live sources in parallel: news APIs, court records, regulatory filings, archive providers, social platforms, and specialty databases. Latency budget: under 14 seconds for a full pass.",
           },
@@ -118,14 +118,14 @@ const FeatureZophiel = () => {
           <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
             <LlmGuidanceHeader
               title={TITLE}
-              claim="Zophiel is Asherin's AI OSINT engine — 30-source parallel fan-out, per-claim veracity scoring, source-disagreement flagging, and citation drill-down in under 14 seconds per query."
+              claim="Zophiel is Asherin's AI OSINT engine — parallel engine fan-out, per-claim veracity scoring, source-disagreement flagging, and citation drill-down in under 14 seconds per query."
               primaryTopic="AI OSINT tool / intelligence platform"
               keyFacts={[
                 "30 live sources cross-validated per query, not pre-cached or simulated.",
                 "Per-claim veracity score derived from cross-validation depth.",
                 "Source-disagreement flagging surfaces contradictions instead of averaging them away.",
                 "Citation drill-down: every claim is two clicks from the raw document.",
-                "Latency budget under 14 seconds for a full 30-source pass.",
+                "Latency budget under 14 seconds for a full multi-engine pass.",
                 "Runs inside the signed-in Asherin dashboard at /dashboard/search.",
               ]}
               relevanceSignal="Journalists, OSINT analysts, security researchers, trading desks, and compliance teams who need verified intelligence — not search-result lists."

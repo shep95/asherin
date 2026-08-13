@@ -304,7 +304,7 @@ const AureonPricingExplained = () => (
       links={[
         { to: "/pricing", label: "Asherin pricing", description: "Official subscription page with live checkout for both tiers." },
         { to: "/software", label: "Every Asherin tool", description: "Full catalog of modules included in Core and Pro." },
-        { to: "/feature/zophiel", label: "Zophiel Search", description: "The 30-source OSINT engine that powers Pro." },
+        { to: "/feature/zophiel", label: "Zophiel Search", description: "The multi-engine OSINT engine that powers Pro." },
         { to: "/blog/comparison", label: "Asherin vs ChatGPT vs Claude", description: "Side-by-side 2026 platform comparison." },
         { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI platforms", description: "The 2026 landscape of sovereign AI alternatives." },
         { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "Definitional anchor for the sovereign AI category." },
