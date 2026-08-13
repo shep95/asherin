@@ -884,7 +884,7 @@ export async function runFoldedTools(
           maskPii(JSON.stringify(out.body).slice(0, 3000)),
           "- Report the counts that came back. A harvest that read zero headers is a real answer.",
         );
-        quoteRow("google-mesh", `${mail.headers ?? 0} header(s) · ${out.body?.places?.indexed ?? 0} place(s) · ${out.body?.contacts?.count ?? 0} contact(s)`);
+        quoteRow(m.action, `${mail.headers ?? 0} header(s) · ${out.body?.places?.indexed ?? 0} place(s) · ${out.body?.contacts?.count ?? 0} contact(s)`);
         return;
       }
       if (m.action === "location_signals") {
@@ -905,7 +905,7 @@ export async function runFoldedTools(
           quote: "Find Hub unofficial scrape refused",
           meta: trace?.turnId ? { turn_id: trace.turnId } : undefined,
         });
-        quoteRow("google-mesh", places.length ? `${places.length} calendar place string(s)` : "no calendar LOCATION strings in window");
+        quoteRow(m.action, places.length ? `${places.length} calendar place string(s)` : "no calendar LOCATION strings in window");
         return;
       }
       if (m.action === "fit_location") {
