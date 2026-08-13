@@ -72,7 +72,6 @@ export const BLOG_POSTS: Post[] = [
     tag: "Security",
     published: "2026-08-06T00:00:00.000Z",
     readTime: "11 min",
-    featured: true,
   },
   {
     slug: "/blog/transit-guardian",
@@ -81,7 +80,6 @@ export const BLOG_POSTS: Post[] = [
     tag: "Product",
     published: "2026-08-05T00:00:00.000Z",
     readTime: "11 min",
-    featured: true,
   },
   {
     slug: "/blog/asherin-maps-find-my",
