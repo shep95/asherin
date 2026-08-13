@@ -388,9 +388,19 @@ const AureonIdeView = () => {
       autoOpenedSessionRef.current = true;
       setSessions(prev => [data as IdeSession, ...prev]);
       await loadSession(data.id);
-      setCenterTab("preview");
+      setCenterTab("code");
     }
   }, [user, sessions.length, loadSession, toast]);
+
+  // Never land on an empty workspace: reopen the most recent project, or
+  // scaffold the asherin-project starter on a brand-new account.
+  useEffect(() => {
+    if (!user || sessionsLoading || activeSessionId || autoOpenedSessionRef.current) return;
+    autoOpenedSessionRef.current = true;
+    if (sessions.length > 0) void loadSession(sessions[0].id);
+    else void createSession();
+  }, [user, sessionsLoading, sessions, activeSessionId, loadSession, createSession]);
+
 
   const deleteSession = useCallback(async (id: string) => {
     // Phase 5: Purge local IndexedDB checkpoints and localStorage autosave so
