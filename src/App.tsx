@@ -158,6 +158,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
           <main>
           <Routes>
+            <Route path="/__ui-probe" element={<UiProbe />} />
             <Route path="/" element={<Index />} />
             {/* /auth is the sign-in surface every gated route falls back to. */}
             <Route path="/auth" element={<Index />} />
