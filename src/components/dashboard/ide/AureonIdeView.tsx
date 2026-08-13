@@ -481,14 +481,6 @@ const AureonIdeView = () => {
   const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
   const [chatDraft, setChatDraft] = useState("");
 
-  // Auto-Approve: when enabled, any pending approval gate is auto-accepted instantly.
-  useEffect(() => {
-    if (autoApprove && approval) {
-      const a = approval;
-      setApproval(null);
-      a.resolve(true);
-    }
-  }, [autoApprove, approval]);
 
   // Terminal output for AI context (also auto-detects errors → Bug Doctor)
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
