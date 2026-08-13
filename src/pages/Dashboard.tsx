@@ -602,7 +602,7 @@ const Dashboard = () => {
           try {
             content = await decryptText(m.content, user.id);
           } catch {
-            content = "_[Encrypted on another device — unable to decrypt here.]_";
+            content = "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
           }
           const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
           return {
@@ -728,7 +728,7 @@ const Dashboard = () => {
             try {
               content = await decryptText(m.content, user.id);
             } catch {
-              content = "_[Encrypted on another device — unable to decrypt here.]_";
+              content = "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
             }
             const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
             return {
