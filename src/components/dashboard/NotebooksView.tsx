@@ -1,9 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check, History, RotateCcw } from "lucide-react";
+import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check, History, RotateCcw, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { emitPull } from "@/lib/connect/emitPull";
+import CellOutput, { parseOutput } from "@/components/dashboard/notebooks/CellOutput";
+
+/** Azplen tables the runner exposes. Bound by id, never by pasted credentials. */
+const AZPLEN_TABLES = [
+  "asha_datasets", "asha_documents", "asha_document_entities", "asha_insights",
+  "asha_alerts", "asha_reports", "asha_queries", "asha_workflows",
+  "asha_sessions", "asha_entity_matches", "asha_monitor_rules",
+];
+
+type SourceRef = { kind: "dataset" | "library" | "azplen"; id: string };
+
+function encodeSource(s: SourceRef | null): string { return s ? `${s.kind}:${s.id}` : ""; }
+function decodeSource(v: string): SourceRef | null {
+  const i = v.indexOf(":");
+  if (i < 0) return null;
+  const kind = v.slice(0, i);
+  if (kind !== "dataset" && kind !== "library" && kind !== "azplen") return null;
+  return { kind, id: v.slice(i + 1) };
+}
+
 
 interface NotebookVersion {
   id: string;
@@ -58,8 +79,11 @@ const NotebooksView = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [source, setSource] = useState<SourceRef | null>(null);
   const [datasets, setDatasets] = useState<{ id: string; file_name: string }[]>([]);
+  const [libraryCsvs, setLibraryCsvs] = useState<{ id: string; file_name: string }[]>([]);
+  const [runningCell, setRunningCell] = useState<string | null>(null);
+
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState<NotebookVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
@@ -85,12 +109,18 @@ const NotebooksView = () => {
     };
   }, []);
 
-  // Load datasets for notebook execution
+  // Bindable sources: azplen datasets + tabular library files. Bound by id.
   useEffect(() => {
     if (!user) return;
     (supabase.from as any)("asha_datasets").select("id, file_name").eq("user_id", user.id).order("created_at", { ascending: false })
       .then(({ data }: any) => setDatasets((data ?? []) as { id: string; file_name: string }[]));
+    (supabase.from as any)("library_files").select("id, file_name, file_type").eq("user_id", user.id).order("created_at", { ascending: false })
+      .then(({ data }: any) => {
+        const rows = (data ?? []) as { id: string; file_name: string; file_type: string }[];
+        setLibraryCsvs(rows.filter(r => /\.csv$/i.test(r.file_name) || (r.file_type ?? "").includes("csv")).map(r => ({ id: r.id, file_name: r.file_name })));
+      });
   }, [user]);
+
 
   const loadCells = useCallback(async (notebookId: string) => {
     const { data } = await (supabase.from as any)("notebook_cells").select("*").eq("notebook_id", notebookId).order("position", { ascending: true });
@@ -143,7 +173,12 @@ const NotebooksView = () => {
   const addCell = async (type: string) => {
     if (!selectedId || !user) return;
     const pos = cells.length;
-    const defaultContent = type === "text" ? "Add notes here…" : type === "query" ? "-- Write your SQL query\nSELECT * FROM data LIMIT 10;" : type === "code" ? "# Python analysis\nimport pandas as pd\n\n# Your code here" : "";
+    const defaultContent =
+      type === "text" ? "# Notes\n\nWhat this notebook is answering."
+      : type === "query" || type === "code" ? "-- read-only SELECT over the bound source\nSELECT * FROM data LIMIT 25;"
+      : type === "visualization" ? '{\n  "type": "bar",\n  "x": "label",\n  "y": ["value"],\n  "query": "SELECT label, COUNT(*) AS value FROM data GROUP BY label ORDER BY value DESC LIMIT 12"\n}'
+      : "";
+
     await (supabase.from as any)("notebook_cells").insert({ notebook_id: selectedId, cell_type: type, content: defaultContent, position: pos });
     const nb = notebooks.find(n => n.id === selectedId);
     if (nb) {
@@ -171,40 +206,86 @@ const NotebooksView = () => {
     if (selectedId) loadCells(selectedId);
   };
 
-  // Run All - executes each cell sequentially and saves output
+  // A single bounded cell run. The runner enforces the timeout and the row cap;
+  // the client mirrors the timeout so a dead socket cannot hang the UI, and
+  // traces the outcome to Asherin Connect either way.
+  const CLIENT_TIMEOUT_MS = 25_000;
+
+  const cellTitle = useCallback((cell: NotebookCell) => {
+    const body = (localContent[cell.id] ?? cell.content ?? "").trim();
+    const firstLine = body.split("\n").find(l => l.trim()) ?? "";
+    return `${cell.cell_type} · ${firstLine.replace(/^[-#\s]+/, "").slice(0, 60) || "untitled cell"}`;
+  }, [localContent]);
+
+  const runCell = useCallback(async (cell: NotebookCell): Promise<void> => {
+    const started = performance.now();
+    const capability = cell.cell_type === "visualization" ? "chart" : cell.cell_type === "text" ? "markdown" : "sql";
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS);
+    setRunningCell(cell.id);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notebook-execute`, {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          cellId: cell.id,
+          cellType: cell.cell_type,
+          content: localContent[cell.id] ?? cell.content,
+          source,
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      const output: string = typeof payload.output === "string"
+        ? payload.output
+        : JSON.stringify(payload.result ?? { kind: "error", text: payload.error ?? `Runner returned ${res.status}`, columns: [], rows: [], rowCount: 0, scanned: 0, truncated: false, elapsedMs: 0, source: null });
+      setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+      const envelope = parseOutput(output);
+      void emitPull({
+        organ: "notebooks",
+        capability,
+        fromSurface: "notebooks",
+        status: envelope?.kind === "error" ? "fail" : (envelope?.rowCount ?? 0) === 0 && capability !== "markdown" ? "skip" : "ok",
+        latencyMs: performance.now() - started,
+        quote: cellTitle(cell),
+        meta: {
+          notebook_id: cell.notebook_id,
+          rows: envelope?.rowCount ?? 0,
+          scanned: envelope?.scanned ?? 0,
+          truncated: Boolean(envelope?.truncated),
+          bound_source: envelope?.source ?? encodeSource(source),
+        },
+      });
+    } catch (e: unknown) {
+      const aborted = e instanceof DOMException && e.name === "AbortError";
+      const text = aborted ? `Timed out after ${CLIENT_TIMEOUT_MS}ms — narrow the query or reduce the row count.` : (e instanceof Error ? e.message : "Run failed.");
+      const output = JSON.stringify({ kind: "error", text, columns: [], rows: [], rowCount: 0, scanned: 0, truncated: false, elapsedMs: Math.round(performance.now() - started), source: encodeSource(source) || null });
+      setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+      void emitPull({
+        organ: "notebooks", capability, fromSurface: "notebooks", status: "fail",
+        latencyMs: performance.now() - started, quote: cellTitle(cell),
+        meta: { notebook_id: cell.notebook_id, timeout: aborted },
+      });
+    } finally {
+      clearTimeout(timer);
+      setRunningCell(prev => (prev === cell.id ? null : prev));
+    }
+  }, [localContent, source, cellTitle]);
+
+  // Run All — sequential so a notebook cannot fan out unbounded work.
   const runAll = async () => {
     if (!selectedId || !user) return;
     setRunningAll(true);
     try {
-      // Save snapshot before running
       await saveSnapshot();
-      const { data: session } = await supabase.auth.getSession();
       for (const cell of cells) {
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notebook-execute`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.session?.access_token}`,
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              },
-              body: JSON.stringify({
-                cellId: cell.id,
-                cellType: cell.cell_type,
-                content: localContent[cell.id] || cell.content,
-                datasetId: selectedDatasetId,
-              }),
-            }
-          );
-          const result = await res.json();
-          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: result.output } : c));
-        } catch (e: any) {
-          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: `Error: ${e.message}` } : c));
-        }
+        await runCell(cell);
       }
-      // Update notebook last_run_at
       await (supabase.from as any)("notebooks").update({ last_run_at: new Date().toISOString(), status: "published" }).eq("id", selectedId);
       toast({ title: "All cells executed" });
       loadNotebooks();
@@ -212,6 +293,7 @@ const NotebooksView = () => {
       setRunningAll(false);
     }
   };
+
 
   // Share notebook
   const shareNotebook = async () => {
@@ -380,16 +462,30 @@ const NotebooksView = () => {
                 {cells.map(cell => {
                   const CellIcon = cellTypeIcons[cell.cell_type] ?? FileText;
                   const isEditing = editingCell === cell.id;
+                  const isRunning = runningCell === cell.id;
+                  const env = parseOutput(cell.output);
+                  const runnable = cell.cell_type !== "text";
+                  const label = cell.cell_type === "query" ? "sql" : cell.cell_type === "visualization" ? "chart" : cell.cell_type === "text" ? "markdown" : cell.cell_type.replace("_", " ");
                   return (
-                    <div key={cell.id} className="rounded-xl border border-border/10 bg-card/20 overflow-hidden group">
-                      <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-card/10">
+                    <div key={cell.id} className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm overflow-hidden group transition-colors hover:border-border/20">
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-foreground/[0.02]">
                         <div className="flex items-center gap-2">
-                          <CellIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-[10px] font-light text-muted-foreground capitalize">{cell.cell_type}</span>
+                          <CellIcon className="h-3.5 w-3.5 text-muted-foreground/70" />
+                          <span className="text-[10px] font-light tracking-widest text-muted-foreground uppercase">{label}</span>
+                          {env?.source && <span className="text-[9px] font-light text-muted-foreground/40">· {env.source}</span>}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                          {runnable && (
+                            <button
+                              onClick={() => runCell(cell)}
+                              disabled={isRunning || runningAll}
+                              title="Run cell"
+                              className="p-1 rounded hover:bg-foreground/10 disabled:opacity-40"
+                            >
+                              {isRunning ? <Loader2 className="h-3 w-3 text-accent animate-spin" /> : <Play className="h-3 w-3 text-accent" />}
+                            </button>
+                          )}
                           <button onClick={() => setEditingCell(isEditing ? null : cell.id)} className="p-1 rounded hover:bg-foreground/10"><Edit3 className="h-3 w-3 text-muted-foreground" /></button>
-                          {cell.cell_type === "query" && <button className="p-1 rounded hover:bg-emerald-500/10"><Play className="h-3 w-3 text-emerald-400" /></button>}
                           <button onClick={() => deleteCell(cell.id)} className="p-1 rounded hover:bg-red-500/10"><Trash2 className="h-3 w-3 text-red-400" /></button>
                         </div>
                       </div>
@@ -405,31 +501,40 @@ const NotebooksView = () => {
                         ) : (
                           <pre className="text-xs font-light text-foreground/80 whitespace-pre-wrap font-mono">{localContent[cell.id] ?? cell.content}</pre>
                         )}
-                        {cell.output && (
-                          <div className="mt-3 pt-3 border-t border-border/10">
-                            <p className="text-[10px] text-muted-foreground/50 mb-1">Output</p>
-                            <pre className="text-xs text-emerald-400/80 font-mono whitespace-pre-wrap">{cell.output}</pre>
-                          </div>
-                        )}
+                        {env && <CellOutput env={env} />}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Dataset selector + Add cell buttons */}
+              {/* Source binding + Add cell buttons */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground/50">Dataset:</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground/50">Source:</span>
                   <select
-                    value={selectedDatasetId ?? ""}
-                    onChange={e => setSelectedDatasetId(e.target.value || null)}
-                    className="rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] text-foreground outline-none"
+                    value={encodeSource(source)}
+                    onChange={e => setSource(decodeSource(e.target.value))}
+                    className="rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] text-foreground outline-none max-w-[280px]"
                   >
-                    <option value="">No dataset</option>
-                    {datasets.map(d => <option key={d.id} value={d.id}>{d.file_name}</option>)}
+                    <option value="">No source bound</option>
+                    {datasets.length > 0 && (
+                      <optgroup label="Azplen datasets">
+                        {datasets.map(d => <option key={d.id} value={`dataset:${d.id}`}>{d.file_name}</option>)}
+                      </optgroup>
+                    )}
+                    {libraryCsvs.length > 0 && (
+                      <optgroup label="Library CSVs">
+                        {libraryCsvs.map(d => <option key={d.id} value={`library:${d.id}`}>{d.file_name}</option>)}
+                      </optgroup>
+                    )}
+                    <optgroup label="Azplen tables">
+                      {AZPLEN_TABLES.map(t => <option key={t} value={`azplen:${t}`}>{t}</option>)}
+                    </optgroup>
                   </select>
+                  <span className="text-[9px] font-light text-muted-foreground/40">bound by id · read-only · 500-row cap · 20s timeout</span>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground/50">Add cell:</span>
                   {["text", "query", "code", "visualization", "data_source"].map(type => {
