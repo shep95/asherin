@@ -250,18 +250,21 @@ const PRODUCTS: Product[] = [
     name: "Google Cloud Intelligence",
     tagline: "Your linked accounts, read as intelligence",
     description:
-      "Pair multiple Google accounts and read them as one ledger: Gmail, Calendar and Drive metadata, plus Meet links carried on your calendar events. Contact dossiers are built from public sources on request. Device battery and position are reported only by devices you have signed in and granted permission on — Asherin cannot poll a device that has not reported in.",
+      "Pair multiple Google accounts and read them as one ledger: Gmail, Calendar, Contacts and Drive metadata, plus Meet links carried on your calendar events. Asherin derives a relationship graph, open commitments and a daily digest from that mail and calendar history, and searches your own mail from chat. It reads accounts — it does not locate phones: Google publishes no Find Hub or device-location API to third parties, so there is no device roster here.",
     icon: Globe,
     features: [
-      "Multi-account Google pairing (Gmail, Calendar, Drive)",
-      "Contact dossiers assembled from public sources, with per-claim provenance",
-      "Device roster — battery and position from devices that opted in and reported; stale entries show their last report time",
-      "Sentinel alerts by email and web push",
+      "Multi-account Google pairing read as one ledger (Gmail, Calendar, Contacts, Drive metadata)",
+      "Relationship graph from mail headers — who is close, who has gone quiet, who is waiting on your reply",
+      "Commitment extraction — what you promised, what is overdue, pulled from your own sent mail",
+      "Daily digest fusing attention, obligations and relationships into one read",
+      "Search your own mail from Asherin chat, in the thread, with real subjects and dates",
+      "Drafts written in your voice — Asherin composes, you press send; it never sends for you",
       "Meet links from your calendar events; a recording is listed only when Drive actually returns one",
     ],
     route: "/dashboard/google",
     tier: "aureon",
   },
+
 
   /* ═══════════════ PRO — ASHERIN PRO $79 ═══════════════ */
   {
