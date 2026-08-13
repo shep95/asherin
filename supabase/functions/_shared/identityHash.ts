@@ -91,6 +91,9 @@ export function canonicalizeEmail(email: string | null | undefined): string {
     const plus = local.indexOf("+");
     if (plus >= 0) local = local.slice(0, plus);
     local = local.replaceAll(".", "");
+    // googlemail.com is the same mailbox as gmail.com; fold to one identity so
+    // the alias domain does not silently produce a different digest.
+    return `${local}@gmail.com`;
   }
   return `${local}@${host}`;
 }
