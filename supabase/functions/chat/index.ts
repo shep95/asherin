@@ -971,7 +971,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
+    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale, turnId } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1288,7 +1288,19 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           : [];
         const plan = planFoldedTools(bridgeQ, atts);
         if (!plan) return;
-        const out = await runFoldedTools(plan, authHeader);
+        // Trace context: the caller and the assistant message this turn will
+        // become, so every Connect row can be joined back to the transcript.
+        const traceUser = authHeader
+          ? await resolveCallerCached(
+              authHeader,
+              Deno.env.get("SUPABASE_URL") || "",
+              Deno.env.get("SUPABASE_ANON_KEY") || "",
+            )
+          : null;
+        const out = await runFoldedTools(plan, authHeader, {
+          userId: traceUser?.id ?? null,
+          turnId: typeof turnId === "string" ? turnId : null,
+        });
         foldedToolContext = out.context;
         for (const f of out.fired) firedToolRows.push({ label: toolRowLabel(f), detail: f });
         for (const o of out.offline) firedToolRows.push({ label: "Offline", detail: o });
