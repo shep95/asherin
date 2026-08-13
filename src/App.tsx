@@ -281,6 +281,19 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Retired dashboard modules — deep links collapse onto chat. */}
+            {[
+              "nomad", "cipher", "plugins", "video-intelligence", "vibe-video",
+              "cross", "bulwark", "geo-audit", "media2code", "elion", "tracker",
+              "predictive", "lavba", "zaplen", "self-learning", "self-access",
+              "imagine-intelligence", "security", "persona-store", "stats",
+            ].map((retired) => (
+              <Route
+                key={retired}
+                path={`/dashboard/${retired}`}
+                element={<Navigate to="/dashboard" replace />}
+              />
+            ))}
             <Route
               path="/dashboard/:view?"
               element={
