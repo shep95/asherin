@@ -1069,14 +1069,29 @@ const IntelligenceMapModule = () => {
       if (!map) return;
       const bounds = map.getBounds();
       const tasks: Promise<void>[] = [];
+      /* Each live layer is its own capability pull. The fetchers swallow their
+         own network errors and return [], so an empty array is traced as skip:
+         Connect shows a quiet layer, never a fabricated field of pins. */
+      const traced = (capability: string, run: Promise<ThreatPoint[]>, apply: (d: ThreatPoint[]) => void) => {
+        const started = performance.now();
+        return run.then((d) => {
+          apply(d);
+          void emitPull({
+            organ: "maps", capability, fromSurface: "maps",
+            status: d.length ? "ok" : "skip",
+            latencyMs: performance.now() - started,
+            quote: d.length ? `${d.length} live returns in view` : "no returns published for this viewport",
+          });
+        });
+      };
       if (activeThreats["h-quake"]) {
-        tasks.push(fetchEarthquakes().then((d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
+        tasks.push(traced("quakes", fetchEarthquakes(), (d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
       }
       if (activeThreats["h-fire"]) {
-        tasks.push(fetchWildfires(bounds).then((d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
+        tasks.push(traced("wildfires", fetchWildfires(bounds), (d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
       }
       if (activeThreats["h-air"]) {
-        tasks.push(fetchAircraft(bounds).then((d) => setThreatData((p) => ({ ...p, "h-air": d }))));
+        tasks.push(traced("aircraft", fetchAircraft(bounds), (d) => setThreatData((p) => ({ ...p, "h-air": d }))));
       }
       await Promise.all(tasks);
     };
@@ -1624,6 +1639,7 @@ const IntelligenceMapModule = () => {
       address || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
     setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    const indexStarted = performance.now();
     try {
       const { data, error } = await supabase.functions.invoke("asherin-public-index", {
         body: { lat, lon: lng, address: resolvedAddress },
@@ -1657,8 +1673,26 @@ const IntelligenceMapModule = () => {
         })) as any,
         error: null,
       });
+      // Connect trace: the register really answered. The quote counts filled
+      // fields so a mostly-empty record reads as thin coverage rather than a
+      // full dossier — the map already refuses to invent the missing ones.
+      const filled = [data.ownership, data.year_built, data.building_type, data.criminal]
+        .filter((v: unknown) => typeof v === "string" && v && v !== NIL).length;
+      void emitPull({
+        organ: "maps", capability: "property", fromSurface: "maps",
+        status: filled ? "ok" : "skip",
+        latencyMs: performance.now() - indexStarted,
+        quote: filled
+          ? `${filled}/4 core register fields published`
+          : "no core register fields — not in public index",
+      });
       logAsherEvent("module_open", { module: "public_index", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
     } catch (e: any) {
+      void emitPull({
+        organ: "maps", capability: "property", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - indexStarted,
+        quote: e?.message || "public index unavailable",
+      });
       setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Public index unavailable" });
     }
   };
