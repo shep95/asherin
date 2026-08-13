@@ -87,8 +87,11 @@ export default function IdeApprovalGate({ open, title, changes, onApprove, onCan
                 {c.action !== "delete" && <IdeValidatorBadge content={c.content} language={c.language ?? "tsx"} />}
               </div>
               {c.action !== "delete" && (
-                <pre className="text-[10px] font-mono bg-background/60 p-2.5 overflow-x-auto max-h-[220px]">{c.content.slice(0, 4000)}{c.content.length > 4000 ? "\n…" : ""}</pre>
+                c.beforeContent
+                  ? <DiffBody before={c.beforeContent} after={c.content} />
+                  : <pre className="text-[10px] font-mono bg-background/60 p-2.5 overflow-x-auto max-h-[240px]">{c.content.slice(0, 4000)}{c.content.length > 4000 ? "\n…" : ""}</pre>
               )}
+
             </div>
           ))}
         </div>
