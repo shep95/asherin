@@ -195,7 +195,7 @@ const FeatureZophiel = () => {
                 },
                 {
                   q: "What sources does Zophiel use?",
-                  a: "Thirty live sources spanning news APIs, court records, regulatory filings, archive providers, social platforms, and specialty databases. Each query hits all 30 in parallel; the live source mix can be inspected in the response metadata.",
+                  a: "A parallel fan-out across news APIs, court records, regulatory filings, archive providers, social platforms and specialty databases. The engine roster varies per query and per key coverage — the run reports the engines that actually returned, and only those are counted.",
                 },
                 {
                   q: "How is Zophiel different from a regular AI search?",

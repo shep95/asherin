@@ -33,7 +33,7 @@ const TESTIMONIALS: Testimonial[] = [
   {
     badge: "Field Analyst",
     tool: "Zophiel Search",
-    quote: "Thirty sources, cross-validated in one pass. What used to be a week of tab-juggling is now a single query with a veracity score on every claim.",
+    quote: "Every engine that answers gets cross-validated in one pass. What used to be a week of tab-juggling is now a single query with a veracity score on every claim.",
     initials: "M.R.",
     role: "Marisa R. — Senior OSINT Analyst",
     meta: "Defense contractor · Asherin Tier · 4 months",
