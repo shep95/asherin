@@ -291,9 +291,13 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
   const findings: ClassFinding[] = [];
   const push = (f: ClassFinding) => { if (findings.length < 200) findings.push(f); };
 
-  // One card per class, per host+path. A missing header on the root and the
-  // same missing header on /login are two separate audit facts, so they get
-  // separate cards — but a card never bundles two classes together.
+  // Header policy is a HOST property when the host answers every path with
+  // one shell. Emitting the same "csp absent" card 38 times would be a
+  // scanner dump, and the count would read as 38 problems instead of one.
+  // So a header class collapses to one card per host+header, carrying the
+  // path count as evidence.
+  const headerGaps = new Map<string, { host: string; key: string; paths: string[]; sample: PathAudit }>();
+
   for (const a of audits) {
     if (a.status === null || a.status >= 500 || a.error) continue;
 
@@ -302,20 +306,14 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
     if (isHtml && a.status < 400) {
       for (const key of ["content-security-policy", "x-frame-options", "x-content-type-options", "referrer-policy", "strict-transport-security"]) {
         if (!a.headers[key]) {
-          push({
-            klass: "missing-security-header",
-            severity: key === "content-security-policy" ? "medium" : "low",
-            title: `${key} absent on ${a.path}`,
-            host: a.host, path: a.path,
-            evidence: `HTTP ${a.status} · ${key}: <not present> · observed headers: ${Object.keys(a.headers).join(", ") || "none of the protective set"}`,
-            meaning: "This response is delivered without that protective header, so the browser falls back to defaults for this path.",
-            remediation: `Emit ${key} on this path at the edge or origin, with the same value the rest of the surface uses.`,
-            wstg: "WSTG-CONF-12",
-          });
+          const id = `${a.host}|${key}`;
+          const entry = headerGaps.get(id) ?? { host: a.host, key, paths: [], sample: a };
+          entry.paths.push(a.path);
+          headerGaps.set(id, entry);
         }
       }
       const csp = a.headers["content-security-policy"];
-      if (csp && /unsafe-inline|unsafe-eval|\*\s*;|default-src\s+\*/i.test(csp)) {
+      if (csp && /unsafe-inline|unsafe-eval|\*\s*;|default-src\s+\*/i.test(csp) && !a.softNotFound) {
         push({
           klass: "weak-csp-directive",
           severity: "low",
@@ -328,6 +326,7 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
         });
       }
     }
+
 
     for (const c of a.cookies) {
       const missing = [!c.secure && "Secure", !c.httpOnly && "HttpOnly", !c.sameSite && "SameSite"].filter(Boolean);
