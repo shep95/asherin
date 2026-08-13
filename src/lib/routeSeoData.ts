@@ -272,10 +272,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "Generate full e-books from multi-session text uploads with 500-word chapters and AI-generated cover art.",
   },
-  "/feature/plugin-marketplace": {
-    title: "Plugin Marketplace | Third-Party Integrations | Asherin",
-    description: "Live execution engine for third-party plugins and integrations inside Aureon.",
-  },
   "/feature/coding-laws": {
     title: "Coding Laws | Asherin's Engineering Doctrine | Asherin",
     description:
