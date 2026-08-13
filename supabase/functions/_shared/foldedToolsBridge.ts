@@ -24,6 +24,38 @@
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+/**
+ * The exact service ids `google-data` dispatches on. Kept as a closed union so
+ * a planner typo fails the typecheck instead of failing at runtime, mid-turn,
+ * as an `Unknown service` throw the operator never sees.
+ */
+export type GoogleDataService =
+  | "gmail_inbox"
+  | "gmail_stats"
+  | "gmail_forensics"
+  | "calendar_events"
+  | "contacts"
+  | "drive_files";
+
+/**
+ * The `google-mesh` actions chat may fire. `send_draft` is deliberately absent:
+ * mail leaves the account only from the Google surface, after an explicit
+ * confirmation the chat turn cannot supply.
+ */
+export type GoogleMeshAction =
+  | "status"
+  | "search_mail"
+  | "daily_digest"
+  | "relationship_graph"
+  | "commitments"
+  | "pattern_map"
+  | "attention_ledger"
+  | "build_voiceprint"
+  | "ghostwrite"
+  | "audit_log";
+
+
+
 export interface FoldedFile {
   name: string;
   type: string;
