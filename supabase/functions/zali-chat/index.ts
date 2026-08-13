@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { ASHERIN_IDENTITY, buildAsherinProcedures } from "../_shared/asherinPatternIndex.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
@@ -389,7 +390,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, projectContext, mode, depth, personaSystemPrompt, brainContext } = await req.json();
+    const { messages, projectContext, mode, depth, brainContext } = await req.json();
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP is not configured");
@@ -445,7 +446,7 @@ serve(async (req) => {
       }
     }
 
-    const aureonContext = `\n\n## AUREON BRAIN + PERSONALITY CONTEXT\nZANOEM inherits the active Aureon personality and brain context when supplied. Apply it silently and naturally; never mention implementation details.\n${personaSystemPrompt ? `\n### ACTIVE PERSONALITY\n${String(personaSystemPrompt).slice(0, 12000)}` : ""}\n${brainContext?.prompt ? `\n### ACTIVE BRAIN SYSTEM PROMPT\n${String(brainContext.prompt).slice(0, 12000)}` : ""}\n${Array.isArray(brainContext?.fileContents) && brainContext.fileContents.length ? `\n### ACTIVE BRAIN FILES\n${brainContext.fileContents.map((f: { name: string; content: string }) => `FILE: ${f.name}\n${String(f.content).slice(0, 40000)}`).join("\n\n---\n\n")}` : ""}\n\n## CHAT / WORKSPACE SEPARATION\nIf generating software, put ALL code exclusively inside one structured \`code_output\` block. Do not paste raw code, escaped code strings, filenames with code snippets, terminal commands, or JSON file contents in conversational prose. The frontend will route code to the workspace preview.`;
+    const aureonContext = `\n\n## AUREON BRAIN CONTEXT\nZANOEM inherits the operator brain context when supplied. Apply it silently; never mention implementation details.\n${brainContext?.prompt ? `\n### ACTIVE BRAIN SYSTEM PROMPT\n${String(brainContext.prompt).slice(0, 12000)}` : ""}\n${Array.isArray(brainContext?.fileContents) && brainContext.fileContents.length ? `\n### ACTIVE BRAIN FILES\n${brainContext.fileContents.map((f: { name: string; content: string }) => `FILE: ${f.name}\n${String(f.content).slice(0, 40000)}`).join("\n\n---\n\n")}` : ""}\n\n## CHAT / WORKSPACE SEPARATION\nIf generating software, put ALL code exclusively inside one structured \`code_output\` block. Do not paste raw code, escaped code strings, filenames with code snippets, terminal commands, or JSON file contents in conversational prose. The frontend will route code to the workspace preview.`;
 
     const responseDepth = depth || "standard";
 
