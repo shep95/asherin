@@ -900,10 +900,45 @@ const IntelligenceMapModule = () => {
   // One-shot guard so the BYOK dialog can't fire on every map click / fly-to.
   const byokPromptedRef = useRef(false);
 
-  const flyTo = (lat: number, lng: number, zoom = 11) => {
+  /* AUTO-PULL contract (Wave 8): arriving somewhere IS the request for local
+     sensor context. The operator should never have to press a "Cameras" button
+     to learn that the corridor they are looking at is under public CCTV.
+     flyTo is the single choke point every navigation path already funnels
+     through (search, chat intent, marker focus, property click), so the sweep
+     hangs here rather than being re-wired into a dozen call sites.
 
+     Flaws guarded against:
+      - Sweep storms: a coarse fly (zoom < 14) covers a whole metro; pulling
+        cameras there is thousands of nodes and useless at that scale. Gated.
+      - Duplicate sweeps: consecutive flies to the same block re-fetch the same
+        corridor. A last-sweep key (4dp ≈ 11 m) suppresses the repeat.
+      - Race on rapid navigation: the fly animation is 0.8 s and the operator
+        may fly three times in a row. The pull is debounced to the last one.
+      - Unmount writes: the timer is cleared on unmount by the effect below. */
+  const autoCamTimerRef = useRef<number | null>(null);
+  const lastCamSweepRef = useRef<string>("");
+
+  const flyTo = (lat: number, lng: number, zoom = 11) => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
+
+    if (zoom < 14) return; // metro-scale fly — a camera sweep there is noise.
+    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (key === lastCamSweepRef.current) return;
+    lastCamSweepRef.current = key;
+
+    if (autoCamTimerRef.current !== null) window.clearTimeout(autoCamTimerRef.current);
+    autoCamTimerRef.current = window.setTimeout(() => {
+      autoCamTimerRef.current = null;
+      // Tighter radius the closer we are: z19 is a rooftop, not a corridor.
+      const radiusM = zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1800;
+      void loadCamerasQuiet({ center: { lat, lng }, radiusM });
+    }, 850);
   };
+
+  useEffect(() => () => {
+    if (autoCamTimerRef.current !== null) window.clearTimeout(autoCamTimerRef.current);
+  }, []);
+
 
   /* ── Sidebar geometry ────────────────────────────────────────────────────
      The drag is tracked on `document` (not the handle) so a fast pointer that
