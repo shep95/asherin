@@ -63,6 +63,42 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       logStep("Processing checkout session", { sessionId: session.id });
 
+      // ── Asherin Team ────────────────────────────────────────────────────
+      // A team purchase does not create a personal `user_subscriptions` row.
+      // The workspace container itself is the entitlement: members inherit
+      // Pro-class access from `teams.billing_status = 'active'`.
+      if ((session.metadata || {}).plan === "team") {
+        const teamId = (session.metadata || {}).team_id;
+        const subId = typeof session.subscription === "string"
+          ? session.subscription
+          : (session.subscription as any)?.id ?? null;
+        let seats: number | null = null;
+        if (subId) {
+          try {
+            const teamSub = await stripe.subscriptions.retrieve(subId);
+            const seatItem = teamSub.items.data.find((i) => (i.quantity ?? 1) > 1);
+            seats = seatItem?.quantity ?? null;
+          } catch (subErr) {
+            logStep("WARNING: could not read team subscription items", { error: String(subErr) });
+          }
+        }
+        const { error: teamErr } = await supabaseAdmin
+          .from("teams")
+          .update({
+            billing_status: "active",
+            past_due_since: null,
+            stripe_subscription_id: subId,
+            stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+            ...(seats ? { seat_quantity: seats } : {}),
+          })
+          .eq("id", teamId);
+        if (teamErr) logStep("ERROR: team activation failed", { teamId, error: teamErr.message });
+        else logStep("Team workspace activated", { teamId, subId, seats });
+        return new Response(JSON.stringify({ received: true, team: teamId }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
+      }
+
       // P0: Idempotency guard. Stripe retries on 5xx / timeout. Without this,
       // a single payment could insert two active subscriptions.
       const { data: existingRow } = await supabaseAdmin
@@ -309,6 +345,14 @@ serve(async (req) => {
     // Handle subscription cancellation — keep DB in sync with Stripe.
     if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object as Stripe.Subscription;
+      if ((sub.metadata || {}).plan === "team") {
+        // Never destroy the workspace on Stripe's word alone — deletion is an
+        // owner action. Freezing drops inherited Pro; personal data is untouched.
+        await supabaseAdmin.from("teams")
+          .update({ billing_status: "canceled" })
+          .eq("stripe_subscription_id", sub.id);
+        logStep("Team subscription canceled — workspace frozen", { stripeSubId: sub.id });
+      }
       const { error: cancelErr } = await supabaseAdmin
         .from("user_subscriptions")
         .update({ status: "cancelled" })
@@ -319,6 +363,26 @@ serve(async (req) => {
 
     if (event.type === "customer.subscription.updated") {
       const sub = event.data.object as Stripe.Subscription;
+      if ((sub.metadata || {}).plan === "team") {
+        const seatItem = sub.items.data.find((i) => (i.quantity ?? 1) > 1);
+        // past_due keeps members working through the 3-day grace window; the
+        // grace clock is the timestamp below, read by check-subscription.
+        const nextStatus =
+          sub.status === "active" ? "active"
+          : sub.status === "past_due" || sub.status === "unpaid" ? "past_due"
+          : sub.status === "canceled" ? "canceled"
+          : "pending";
+        const { data: current } = await supabaseAdmin
+          .from("teams").select("past_due_since").eq("stripe_subscription_id", sub.id).maybeSingle();
+        await supabaseAdmin.from("teams").update({
+          billing_status: nextStatus,
+          past_due_since: nextStatus === "past_due"
+            ? (current?.past_due_since ?? new Date().toISOString())
+            : null,
+          ...(seatItem?.quantity ? { seat_quantity: seatItem.quantity } : {}),
+        }).eq("stripe_subscription_id", sub.id);
+        logStep("Team billing synced", { stripeSubId: sub.id, nextStatus, seats: seatItem?.quantity });
+      }
       if (sub.status === "canceled" || sub.status === "unpaid" || sub.status === "past_due") {
         await supabaseAdmin
           .from("user_subscriptions")

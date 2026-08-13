@@ -101,7 +101,7 @@ export function buildSoftwareApplication(): Json {
     additionalProperty: toPropertyValues([
       { name: "Product category", value: "AI intelligence platform" },
       { name: "Deployment model", value: "Hosted web application" },
-      { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
+      { name: "Pricing model", value: "Flat monthly personal subscription; optional team workspace at 39.00 USD per month plus 24.00 USD per member, minimum 2 seats" },
       { name: "Free trial", value: "None" },
       { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
       { name: "Supported BYOK providers", value: "8" },

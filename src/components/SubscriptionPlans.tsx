@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useState } from "react";
 import { usePppQuote, quoteCents } from "@/hooks/usePppQuote";
-import { formatUsd, type Term } from "@/lib/pricing/ppp";
+import { formatUsd, TEAM_MIN_SEATS, type Term } from "@/lib/pricing/ppp";
 
 /** ISO-3166 alpha-2 → readable country name, with a safe fallback. */
 function countryName(code: string | null): string {
@@ -63,7 +63,7 @@ const PLANS = [
           "Guardian Vault",
           "Whiteboard",
           "Persistent memory (standard limits)",
-          "Team workspace (limited) + basic sharing",
+          "Can start an Asherin Team workspace (billed separately)",
         ],
       },
       {
@@ -110,7 +110,10 @@ const PLANS = [
       },
       {
         title: "Team",
-        items: ["Full team workspace", "Shared threads + outputs", "Admin controls"],
+        items: [
+          "Shared threads + outputs on any team you belong to",
+          "Multi-person workspaces are the separate Asherin Team plan below",
+        ],
       },
     ],
   },
@@ -164,7 +167,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           Pick the tier that fits the work.
         </h2>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
-          Two plans. No trial countdown, no upsell wall. Cancel from the dashboard in one click —
+          Two personal plans plus an admin-billed team workspace. No trial countdown, no upsell wall. Cancel from the dashboard in one click —
           your data is exported or deleted on request.
         </p>
 
@@ -304,6 +307,74 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Asherin Team — admin-billed, per-seat */}
+      {(() => {
+        const ws = quoteCents(ppp, "team_workspace", term).cents;
+        const seat = quoteCents(ppp, "team_seat", term).cents;
+        const example = ws + seat * 5;
+        const isSemi = term === "semiannual";
+        return (
+          <div className="mt-6 rounded-3xl border border-foreground/15 bg-background/40 backdrop-blur-2xl p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
+                  ◈ Asherin Team · admin-billed
+                </p>
+                <h3 className="mt-2 text-2xl font-extralight tracking-tight text-foreground">
+                  Your company workspace on asherin.
+                </h3>
+                <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-4xl font-extralight tracking-tight text-foreground">
+                    {formatUsd(ws)}
+                  </span>
+                  <span className="text-sm font-extralight text-muted-foreground">
+                    {isSemi ? "/ 6 months workspace" : "/month workspace"}
+                  </span>
+                  <span className="text-foreground/30">+</span>
+                  <span className="text-4xl font-extralight tracking-tight text-foreground">
+                    {formatUsd(seat)}
+                  </span>
+                  <span className="text-sm font-extralight text-muted-foreground">
+                    per member{isSemi ? " / 6 months" : " / month"}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                  Minimum {TEAM_MIN_SEATS} seats. Five people ={" "}
+                  {formatUsd(ws)} + (5 × {formatUsd(seat)}) ={" "}
+                  <span className="text-foreground">{formatUsd(example)}</span>
+                  {isSemi ? " for six months" : " per month"}. The owner pays one invoice; members
+                  never enter a card and work at Pro-class limits while the workspace is active.
+                </p>
+                <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
+                  {[
+                    "Admin console: invite, revoke, roles",
+                    "Four enforced roles — owner, admin, member, viewer",
+                    "Shared Team Projects space",
+                    "Membership audit of joins, leaves, role changes",
+                    "Seats update on the same invoice, prorated",
+                    "Vault, provider keys, and private chats stay personal",
+                  ].map((i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm font-extralight text-muted-foreground">
+                      <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-foreground/70" />
+                      <span>{i}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex-shrink-0">
+                <Link
+                  to={user ? "/dashboard?view=teams" : "/dashboard"}
+                  className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-background hover:bg-foreground/90 transition-colors"
+                >
+                  Start a team
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Enterprise */}
       <div className="mt-6 rounded-3xl border border-foreground/10 bg-background/40 backdrop-blur-2xl p-8">

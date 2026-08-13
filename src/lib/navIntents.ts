@@ -38,7 +38,7 @@ export interface NavIntent {
 // capability is reached by asking for it in chat, which routes to the tool.
 // Folded tools (search, zerlal, azplen, geospatial, google, zali, ide, zahten,
 // briefing, notebooks, knowledge-vault, axrlen, ghost-engine, zeeion, gematria,
-// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper, teams,
+// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper,
 // community, snippets, stats, audit, bug-reports) still resolve as views so
 // deep links keep working — they simply have no nav row.
 export const NAV_INTENTS: NavIntent[] = [
@@ -49,6 +49,8 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },
   { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat", keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"], group: "Workspace" },
   { view: "whiteboard", label: "Whiteboard", codename: "Canvas", blurb: "Infinite canvas with layers, snap grids, and freeform sketching", keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"], group: "Workspace" },
+  { view: "teams", label: "Team", codename: "Team", blurb: "Your company workspace — members, roles, invites, shared projects", keywords: ["team", "teams", "workspace", "members", "invite", "roles", "company", "org", "seats", "colleagues"], group: "Workspace" },
+
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },

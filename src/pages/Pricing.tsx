@@ -34,6 +34,14 @@ const FAQ = [
     a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
+    q: "How much does Asherin Team cost?",
+    a: "Asherin Team is $39 per month for the workspace plus $24 per member per month, minimum 2 seats. Five people cost $39 + (5 x $24) = $159 per month. The owner is billed for every occupied seat including their own; invited members never enter a card and receive Pro-class access for as long as the workspace stays active.",
+  },
+  {
+    q: "Do team members need their own subscription?",
+    a: "No. Team access is inherited from membership. While the workspace is billing-active, every member and the owner work at Pro-class limits. If someone also holds a personal $18 or $79 plan, their subscription page shows that they are covered by the team — they can cancel the personal plan themselves.",
+  },
+  {
     q: "Is there a free trial?",
     a: "No. Asherin does not run a trial countdown or upsell wall. Subscribe month-to-month, cancel in one click from the dashboard, and request data export or deletion at any time.",
   },
@@ -81,8 +89,8 @@ const Pricing = () => {
         "@type": "AggregateOffer",
         priceCurrency: "USD",
         lowPrice: "18",
-        highPrice: "79",
-        offerCount: "2",
+        highPrice: "159",
+        offerCount: "3",
         offers: [
           {
             "@type": "Offer",
@@ -110,6 +118,24 @@ const Pricing = () => {
             priceSpecification: {
               "@type": "UnitPriceSpecification",
               price: "79",
+              priceCurrency: "USD",
+              billingIncrement: 1,
+              unitCode: "MON",
+              referenceQuantity: { "@type": "QuantitativeValue", value: "1", unitCode: "MON" },
+            },
+          },
+          {
+            "@type": "Offer",
+            name: "Asherin Team",
+            description:
+              "Company workspace: $39/month plus $24 per member per month, minimum 2 seats. Example: 5 people = $159/month.",
+            price: "159",
+            priceCurrency: "USD",
+            url: URL,
+            availability: "https://schema.org/InStock",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: "24",
               priceCurrency: "USD",
               billingIncrement: 1,
               unitCode: "MON",
@@ -161,7 +187,7 @@ const Pricing = () => {
               Asherin pricing — $18/mo core, $79/mo Pro.
             </h1>
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
-              Two monthly subscriptions and an Enterprise plan. No free trial countdown, no upsell
+              Two personal subscriptions, an admin-billed team workspace, and an Enterprise plan. No free trial countdown, no upsell
               wall, no retention loop. Cancel in one click from the dashboard.
             </p>
           </header>
@@ -173,6 +199,7 @@ const Pricing = () => {
             keyFacts={[
               "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), a capable coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
               "Asherin Pro: $79/month — everything in Asherin plus Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin Team: $39/month workspace + $24 per member per month, minimum 2 seats (5 people = $159/month). Billed to the owner; members inherit Pro-class access and are never charged.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
