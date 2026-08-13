@@ -1,3 +1,4 @@
+import UiProbe from "./pages/__UiProbe";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import ByokRequiredDialog from "@/components/ByokRequiredDialog";
