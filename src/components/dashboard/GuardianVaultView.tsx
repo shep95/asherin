@@ -101,7 +101,9 @@ const eventIcon = (type: string, outcome: string) => {
 };
 
 const GuardianVaultView = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const stepUp = useStepUp();
+
   const { toast } = useToast();
   const [tab, setTab] = useState<VaultTab>("overview");
   const [sessions, setSessions] = useState<Session[]>([]);
