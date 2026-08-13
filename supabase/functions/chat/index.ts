@@ -2535,7 +2535,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       // ── USER-CONTROLLED OVERRIDES (highest recency priority) ──
-      userContextStr,
+      _R.trivial ? "" : userContextStr,
       memoryContextStr,
       projectCorpusStr,
       vaultContextStr,
