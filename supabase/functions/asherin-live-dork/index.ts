@@ -222,6 +222,9 @@ async function runDorks(host: string): Promise<{ hits: Hit[]; blocked: Array<{ e
   const blocked: Array<{ engine: string; status: string }> = [];
   const seen = new Set<string>();
   const queries = baseQueries(host);
+  const { auxKey } = await import("../_shared/keyResolution.ts");
+  const braveKey = auxKey("brave");
+  const githubToken = auxKey("github");
   for (const q of queries) {
     let rows: Array<{ url: string; title: string }> = [];
     let engine = "duckduckgo";
