@@ -250,6 +250,7 @@ const SettingsView = () => {
     localStorage.setItem("aureon_landing_wallpaper", "custom");
     window.dispatchEvent(new Event("aureon-wallpaper-change"));
     window.dispatchEvent(new Event("wallpaper-change"));
+    applyAppearance({ mode: "wallpaper" });
     toast({ title: "Custom wallpaper applied" });
   };
 
