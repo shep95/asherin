@@ -6,7 +6,8 @@
 //   if (!gate.ok) return gate.response;
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCallerEmail, isAdminEmail } from "./adminGate.ts";
+import { getCallerEmail } from "./adminGate.ts";
+import { isInternalProEmail } from "./identityHash.ts";
 
 export type Tier = "free" | "chat" | "aureon" | "pro" | "lifetime";
 
@@ -52,9 +53,11 @@ export async function requireTier(
   corsHeaders: Record<string, string> = {},
 ): Promise<TierResult> {
   const email = await getCallerEmail(req);
-  const admin = isAdminEmail(email);
-  // Admin bypass — universal.
-  if (admin) return { ok: true, tier: "lifetime", email, isAdmin: true };
+  // Internal Pro grant. Resolves to "pro", NOT "lifetime": the client maps a
+  // lifetime-shaped grant through a different branch and would lock these
+  // accounts out of the $79 surfaces this grant exists to open. Same tier a
+  // paid monthly_pro seat receives — no more, no less.
+  if (isInternalProEmail(email)) return { ok: true, tier: "pro", email, isAdmin: true };
 
   if (!email) {
     return {

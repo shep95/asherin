@@ -1,5 +1,5 @@
 // PRO / ADMIN gate — grants access when the caller is either:
-//   - An admin email (ADMIN_EMAILS in constants.ts), OR
+//   - An internal Pro identity (sha256 digest match, identityHash.ts), OR
 //   - Holds an active $79 Aureon Pro-class subscription in
 //     public.user_subscriptions (subscription_type in the pro ladder,
 //     status='active', not expired).
@@ -11,7 +11,8 @@
 // Aureon/Asher chat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { getCallerEmail, isAdminEmail } from "./adminGate.ts";
+import { getCallerEmail } from "./adminGate.ts";
+import { isInternalProEmail } from "./identityHash.ts";
 
 // Pro-class tiers per SubscriptionContext.tsx: PRO_TIERS.
 export const PRO_SUBSCRIPTION_TYPES = new Set([
@@ -41,7 +42,7 @@ export async function resolveAxrlenAccess(req: Request): Promise<AxrlenAccess> {
   }
 
   const email = await getCallerEmail(req);
-  if (isAdminEmail(email)) {
+  if (isInternalProEmail(email)) {
     return { granted: true, reason: "admin", email, userId: null, tierType: null };
   }
 
