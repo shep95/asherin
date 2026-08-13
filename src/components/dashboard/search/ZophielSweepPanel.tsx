@@ -409,6 +409,25 @@ const ZophielSweepPanel = ({ query }: Props) => {
               </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          {layout.nodes.length > 0 && (
+            <button
+              onClick={() => {
+                queueBoardDrop({
+                  kind: "graph",
+                  source: "zophiel",
+                  title: `zophiel graph · ${query.trim().slice(0, 48)}`,
+                  nodes: layout.nodes.map((n) => ({ id: n.id, label: n.label, type: n.type })),
+                  edges: layout.edges.map((e) => ({ source: e.source, target: e.target, label: e.label })),
+                });
+                window.location.assign("/dashboard?view=whiteboard");
+              }}
+              className="rounded-xl border border-border/30 px-4 py-2 text-[11px] font-light text-muted-foreground/80 transition-colors hover:text-foreground"
+              title="Paste these nodes onto the whiteboard"
+            >
+              Send graph to board
+            </button>
+          )}
           <button
             onClick={runSweep}
             disabled={!query.trim() || running}
@@ -416,6 +435,7 @@ const ZophielSweepPanel = ({ query }: Props) => {
           >
             {running ? <span className="flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> sweeping</span> : "Run sweep"}
           </button>
+          </div>
         </div>
       </div>
 
