@@ -123,7 +123,7 @@ export default function RadarIntelPack({
     return out.sort((a, b) => b.spanM - a.spanM).slice(0, 8);
   }, [track]);
 
-  // ── sci-fi audio ping (Aliens) ───────────────────────────────────────────
+  // ── proximity audio ping ───────────────────────────────────────────
   const [audioOn, setAudioOn] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const pingTimerRef = useRef<number | null>(null);
