@@ -1,5 +1,5 @@
-// Zaxin — five-brain BLE tactical scanner UI.
-// Theory by Asher · #houseofasher. Built browser-native (Web Bluetooth + DeviceOrientation).
+// Zaxin — BLE field scout UI with honest capability labels.
+// Built browser-native (Web Bluetooth + DeviceOrientation).
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
