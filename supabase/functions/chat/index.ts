@@ -1031,6 +1031,44 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // relationship-shaped turns. DuckDuckGo remains only as a degradation path
     // so a Zophiel outage never leaves the turn ungrounded.
     let webSearchContext = "";
+    // ── QUEUE 09 (C): geography RUNS. asher-property-intel (+ street cameras)
+    // fires before we answer. Never zophiel-intelmap for cartography. ──
+    let geoToolContext = "";
+    try {
+      const _lastGeoMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      if (_lastGeoMsg) {
+        const { detectGeoTarget, runGeoTools } = await import("../_shared/geoToolBridge.ts");
+        const _geo = detectGeoTarget(String(_lastGeoMsg.content || ""));
+        if (_geo) {
+          const _out = await runGeoTools(_geo, req.headers.get("Authorization"));
+          geoToolContext = _out.context;
+          console.log(`[chat] geo tools fired: ${_out.fired.join(",")}`);
+        }
+      }
+    } catch (e) {
+      console.error("[chat] geo tool bridge failed:", (e as Error).message);
+    }
+    // ── QUEUE 10: LIVE DORK. If the turn mentions a host + a dork/path trigger,
+    // invoke asherin-live-dork here and inject the results. On failure we hand
+    // the model an honest offline banner so it does not hallucinate URLs. ──
+    let liveDorkContext = "";
+    let liveDorkOffline = "";
+    try {
+      const _lastDorkMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      if (_lastDorkMsg) {
+        const { planDork, runLiveDork } = await import("../_shared/liveDorkBridge.ts");
+        const _plan = planDork(String(_lastDorkMsg.content || ""));
+        if (_plan) {
+          const _out = await runLiveDork(_plan, req.headers.get("Authorization"));
+          liveDorkContext = _out.context;
+          if (_out.offline) liveDorkOffline = _out.offline;
+          console.log(`[chat] live dork fired: ${_out.fired.join(",")}${_out.offline ? ` | ${_out.offline}` : ""}`);
+        }
+      }
+    } catch (e) {
+      console.error("[chat] live dork bridge failed:", (e as Error).message);
+      liveDorkOffline = `live dork offline (${(e as Error).message})`;
+    }
     // Classified once here and reused by the jurisdictional sweep below, so the
     // two retrieval layers cannot double-charge the turn's wall-clock budget.
     let intelIntent: any = null;
