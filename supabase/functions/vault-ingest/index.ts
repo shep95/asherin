@@ -45,8 +45,8 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const name = String(body.name ?? "").slice(0, 200).trim();
-    const sourceType = body.sourceType as "file" | "text" | "api";
-    if (!name || !["file", "text", "api"].includes(sourceType)) {
+    const sourceType = body.sourceType as "file" | "text" | "api" | "url" | "youtube";
+    if (!name || !["file", "text", "api", "url", "youtube"].includes(sourceType)) {
       return new Response(JSON.stringify({ error: "bad_input" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -56,7 +56,7 @@ serve(async (req) => {
     let rawText = "";
     if (sourceType === "api") {
       const url = String(body.apiUrl ?? "");
-      if (!/^https?:\/\//i.test(url)) {
+      if (!isPublicHttpUrl(url)) {
         return new Response(JSON.stringify({ error: "api_url_required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -80,9 +80,26 @@ serve(async (req) => {
       } else {
         rawText = await r.text();
       }
+    } else if (sourceType === "url" || sourceType === "youtube") {
+      const url = String(body.url ?? body.apiUrl ?? "");
+      if (!isPublicHttpUrl(url)) {
+        return new Response(JSON.stringify({ error: "url_required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        rawText = sourceType === "youtube"
+          ? await fetchYoutubeTranscript(url)
+          : await fetchReadableText(url);
+      } catch (e) {
+        return new Response(JSON.stringify({
+          error: e instanceof Error ? e.message : "fetch_failed",
+        }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     } else {
       rawText = String(body.content ?? "");
     }
+
 
     rawText = rawText.replace(/\u0000/g, "").trim();
     if (!rawText) {
