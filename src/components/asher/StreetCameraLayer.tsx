@@ -10,7 +10,7 @@
 //    hollow so an operator can never mistake a position for a viewable feed.
 
 import { useEffect, useRef, useState } from "react";
-import { CircleMarker, Popup, Tooltip } from "react-leaflet";
+import { CircleMarker, Polygon, Polyline, Popup, Tooltip } from "react-leaflet";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { liveFrameUrl, type StreetCamera } from "@/lib/asher/streetCameras";
 
@@ -18,6 +18,40 @@ interface Props {
   cameras: StreetCamera[];
   /** Frame refresh cadence while a popup is open, ms. */
   refreshMs?: number;
+  /** Camera the operator picked from the glass list. */
+  selectedId?: string | null;
+  onSelect?: (cam: StreetCamera) => void;
+  /** Property pin — a dashed sight-line is drawn from it to the selection. */
+  anchor?: { lat: number; lng: number } | null;
+}
+
+/** Compass token → bearing. Agencies publish "NB"/"North"/"E"; OSM publishes
+ *  camera:direction in degrees. Anything we cannot parse returns null and the
+ *  cone is simply not drawn — a guessed bearing would be a fabricated fact. */
+const COMPASS: Record<string, number> = {
+  n: 0, nb: 0, north: 0, ne: 45, northeast: 45, e: 90, eb: 90, east: 90,
+  se: 135, southeast: 135, s: 180, sb: 180, south: 180, sw: 225, southwest: 225,
+  w: 270, wb: 270, west: 270, nw: 315, northwest: 315,
+};
+function bearingOf(direction?: string): number | null {
+  if (!direction) return null;
+  const raw = direction.trim().toLowerCase();
+  const num = Number(raw.replace(/[^\d.-]/g, ""));
+  if (raw && /^-?\d+(\.\d+)?$/.test(raw) && Number.isFinite(num)) return ((num % 360) + 360) % 360;
+  return COMPASS[raw] ?? COMPASS[raw.replace(/[^a-z]/g, "")] ?? null;
+}
+
+/** Schematic facing wedge. The half-angle is a drawing constant, NOT a
+ *  measured lens field of view, and the range is a drawing constant too. */
+function conePoints(lat: number, lng: number, bearing: number, rangeM = 140, halfAngle = 22): Array<[number, number]> {
+  const pts: Array<[number, number]> = [[lat, lng]];
+  const mPerDegLat = 111_320;
+  const mPerDegLng = 111_320 * Math.max(0.1, Math.cos((lat * Math.PI) / 180));
+  for (let a = -halfAngle; a <= halfAngle; a += 4) {
+    const t = ((bearing + a) * Math.PI) / 180;
+    pts.push([lat + (Math.cos(t) * rangeM) / mPerDegLat, lng + (Math.sin(t) * rangeM) / mPerDegLng]);
+  }
+  return pts;
 }
 
 const LIVE = "#c98b3a";
@@ -128,21 +162,39 @@ const CameraFrame = ({ cam, refreshMs }: { cam: StreetCamera; refreshMs: number 
   );
 };
 
-const StreetCameraLayer = ({ cameras, refreshMs = 15_000 }: Props) => {
+const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onSelect, anchor = null }: Props) => {
   if (!cameras.length) return null;
+  const selected = cameras.find((c) => c.id === selectedId) ?? null;
+  const selBearing = selected ? bearingOf(selected.direction) : null;
   return (
     <>
+      {selected && selBearing !== null && (
+        <Polygon
+          positions={conePoints(selected.lat, selected.lng, selBearing)}
+          pathOptions={{ color: "#e0a955", weight: 1, opacity: 0.6, fillColor: "#e0a955", fillOpacity: 0.12 }}
+          interactive={false}
+        />
+      )}
+      {selected && anchor && (
+        <Polyline
+          positions={[[anchor.lat, anchor.lng], [selected.lat, selected.lng]]}
+          pathOptions={{ color: "#e0a955", weight: 1.2, opacity: 0.7, dashArray: "5 6" }}
+          interactive={false}
+        />
+      )}
       {cameras.map((cam) => {
         const live = !!(cam.imageUrl || cam.streamUrl);
-        const color = live ? LIVE : POSITION_ONLY;
+        const isSel = cam.id === selectedId;
+        const color = isSel ? "#f5d08a" : live ? LIVE : POSITION_ONLY;
         return (
           <CircleMarker
             key={cam.id}
             center={[cam.lat, cam.lng]}
-            radius={live ? 6 : 4}
+            radius={isSel ? 9 : live ? 6 : 4}
+            eventHandlers={{ click: () => onSelect?.(cam) }}
             pathOptions={{
               color,
-              weight: 2,
+              weight: isSel ? 3 : 2,
               fillColor: color,
               fillOpacity: live ? 0.85 : 0.15,
             }}
