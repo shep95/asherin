@@ -519,6 +519,27 @@ export function buildQueryPlan(raw: string): QueryPlan {
   if (shape === "operator-dork") {
     requiredOut = requiredFinal.filter((t) => (confidence.get(t)?.confidence ?? 0) >= 0.9);
   }
+  // FORM/PATH: the extension and the path segment ARE the gate. The words that
+  // named the form ("html", "typescript", "files") describe the CONTAINER, not
+  // the content, and gating on them is exactly the title-matching failure this
+  // shape exists to kill. Demote them to context, keep every other selector.
+  if (shape === "form-path" && formPath) {
+    const formWords = new Set<string>([
+      ...Object.keys(FORM_EXT),
+      ...formPath.exts,
+      "file", "files", "filetype", "extension", "extensions", "source", "code",
+      "script", "scripts", "directory", "directories", "folder", "path", "paths",
+      "indexed", "unindexed", "listing", "repo", "repository",
+    ]);
+    const kept: string[] = [];
+    for (const t of requiredFinal) {
+      const words = normalizeTerm(t).split(" ").filter(Boolean);
+      if (words.length && words.every((w) => formWords.has(w))) { optional.add(t); continue; }
+      kept.push(t);
+    }
+    requiredOut = kept;
+  }
+
 
   // A span may have been captured with a leading/trailing function word — a
   // natural question such as "who is the CEO of Reuters" yielded the selector
