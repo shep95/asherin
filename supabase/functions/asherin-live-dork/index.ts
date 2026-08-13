@@ -79,14 +79,42 @@ function parseBing(html: string): Array<{ url: string; title: string }> {
 }
 
 async function ddg(q: string): Promise<Array<{ url: string; title: string }>> {
+  // DDG serves the anomaly page to unknown IPs on GET. POST with a form body
+  // matches the browser's real request and often passes where GET gets 202.
   const r = await fetchWithTimeout(
-    `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,
-    { headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" } },
+    `https://html.duckduckgo.com/html/`,
+    {
+      method: "POST",
+      headers: {
+        "User-Agent": UA,
+        "Accept-Language": "en-US,en;q=0.9",
+        "Content-Type": "application/x-www-form-urlencoded",
+        Referer: "https://html.duckduckgo.com/",
+      },
+      body: `q=${encodeURIComponent(q)}&b=&kl=us-en`,
+    },
     9000,
   );
   const body = await r.text();
   if (r.status === 202 || /anomaly|captcha/i.test(body)) throw new Error("blocked");
   return parseDdg(body);
+}
+
+async function mojeek(q: string): Promise<Array<{ url: string; title: string }>> {
+  const r = await fetchWithTimeout(
+    `https://www.mojeek.com/search?q=${encodeURIComponent(q)}`,
+    { headers: { "User-Agent": UA } },
+    9000,
+  );
+  const body = await r.text();
+  if (!r.ok) throw new Error(`mojeek_${r.status}`);
+  const out: Array<{ url: string; title: string }> = [];
+  const re = /<a class="ob"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) && out.length < 20) {
+    out.push({ url: m[1], title: m[2].replace(/<[^>]+>/g, "").trim() });
+  }
+  return out;
 }
 
 async function bing(q: string): Promise<Array<{ url: string; title: string }>> {
