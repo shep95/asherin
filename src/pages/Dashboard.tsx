@@ -663,14 +663,6 @@ const Dashboard = () => {
   }, [activeBrainId]);
 
   useEffect(() => {
-    if (personaId) {
-      localStorage.setItem("aureon_active_persona_id", personaId);
-    } else {
-      localStorage.removeItem("aureon_active_persona_id");
-    }
-  }, [personaId]);
-
-  useEffect(() => {
     if (!loaded || conversations.length === 0) return;
     if (!activeConvId || !conversations.some((conversation) => conversation.id === activeConvId)) {
       setActiveConvId(conversations[0].id);
@@ -874,33 +866,6 @@ const Dashboard = () => {
     abortRef.current = earlyController;
     setSuggestions([]);
 
-    // Auto-suggest persona based on task content
-    if (!personaId) {
-      const lower = content.toLowerCase();
-      const TASK_PERSONA_MAP: { keywords: string[]; personaId: string; label: string }[] = [
-        { keywords: ["review code", "debug", "refactor", "fix bug", "code audit", "codebase", "architecture"], personaId: "codeforge", label: "The Code Forge" },
-        { keywords: ["ui", "design", "layout", "css", "responsive", "component", "animation", "pixel"], personaId: "uiforge", label: "The UI Forge" },
-        { keywords: ["research", "sources", "study", "paper", "academic", "citation", "literature"], personaId: "researcher", label: "The Researcher" },
-        { keywords: ["strategy", "plan", "roadmap", "decision", "pros and cons", "trade-off", "long-term"], personaId: "strategist", label: "The Strategist" },
-        { keywords: ["analyze", "data", "metrics", "numbers", "statistics", "trend", "forecast"], personaId: "analyst", label: "The Analyst" },
-        { keywords: ["write", "blog", "article", "copy", "email", "story", "tone", "voice"], personaId: "writer", label: "The Writer" },
-        { keywords: ["truth", "uncensored", "honest", "direct", "raw", "no filter"], personaId: "truth", label: "The Truth Engine" },
-        { keywords: ["code", "function", "api", "implement", "build", "develop", "script", "python", "typescript", "react"], personaId: "engineer", label: "The Engineer" },
-      ];
-      const match = TASK_PERSONA_MAP.find(m => m.keywords.some(k => lower.includes(k)));
-      if (match) {
-        toast({
-          title: `Persona suggestion: ${match.label}`,
-          description: "Asherin detected a task that matches this persona.",
-          action: React.createElement(ToastAction, {
-            altText: "Switch persona",
-            onClick: () => setPersonaId(match.personaId),
-          } as any, "Switch") as any,
-          duration: 6000,
-        });
-      }
-    }
-
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
@@ -988,10 +953,6 @@ const Dashboard = () => {
       attachments: m.attachments,
     }));
 
-
-    const activePersona = customPersonas.find((p) => p.id === personaId) 
-      || builtInPersonas.find((p) => p.id === personaId);
-    const personaSystemPrompt = activePersona?.systemPrompt || null;
 
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
@@ -1095,8 +1056,6 @@ const Dashboard = () => {
       await streamChat({
         messages: history,
         mode,
-        personaId,
-        personaSystemPrompt,
         depth,
         userProfile,
         brainContext,
@@ -1230,7 +1189,7 @@ const Dashboard = () => {
       });
     }
     processingQueue.current = false;
-  }, [user, mode, depth, personaId, userProfile, customPersonas]);
+  }, [user, mode, depth, userProfile]);
 
   const toggleQueuePause = useCallback(() => {
     setQueuePaused(prev => {
@@ -1502,9 +1461,6 @@ const Dashboard = () => {
           onProcessQueueNow={forceProcessQueue}
           queuePaused={queuePaused}
           onToggleQueuePause={toggleQueuePause}
-          personaSystemPrompt={
-            (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
-          }
           consensusEnabled={consensusEnabled}
           onConsensusToggle={setConsensusEnabled}
           consensusModels={consensusModels}
@@ -1644,12 +1600,6 @@ const Dashboard = () => {
             onViewChange={setActiveView}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            personaId={personaId}
-            onPersonaChange={setPersonaId}
-            customPersonas={customPersonas}
-            onAddCustomPersona={addCustomPersona}
-            onEditCustomPersona={editCustomPersona}
-            onDeleteCustomPersona={deleteCustomPersona}
             publishedAgents={publishedAgents}
           />
         )}
@@ -1700,9 +1650,6 @@ const Dashboard = () => {
               onStopStreaming={stopStreaming}
               focusMode={focusMode}
               messageStatuses={messageStatuses}
-              personaSystemPrompt={
-                (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
-              }
               storedProviders={storedProviders}
               activeBrainId={activeBrainId}
               onBrainChange={setActiveBrainId}
