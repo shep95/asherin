@@ -48,6 +48,29 @@ output STRICT json only, no prose, no code fences:
 
 const RESPONDER_SYSTEM = `you are the downstream operator ai. respond to the rewritten prompt directly and completely. lowercase prose, verdict-first, evidence-only.`;
 
+// greetings, pings, thanks and other social atoms are not prompts to enhance.
+// rewriting "hey, you there bud" into a reconnaissance brief is the bug, not a feature.
+const TRIVIAL_TURN =
+  /^(?:\W|\d)*(?:hey|hi|hello|yo|sup|hiya|howdy|morning|afternoon|evening|good\s+(?:morning|afternoon|evening|night)|gm|ty|thanks|thank\s+you|thx|ok|okay|k|cool|nice|lol|bye|later|night|test|ping)\b[\s\S]{0,80}$/i;
+
+function isTrivialTurn(raw: string): boolean {
+  const text = (raw || "").trim();
+  if (!text) return true;
+  if (text.length > 120) return false;
+  if (/\?/.test(text) && !/^(?:you there|u there|are you there|asherin[?\s]*$)/i.test(text)) {
+    // a real question is only trivial when it is a presence check
+    if (!/\b(you\s+(?:there|up|around|alive|awake)|u\s+there|still\s+there|how\s+are\s+you|how'?s\s+it\s+going|what'?s\s+up|wassup)\b/i.test(text)) {
+      return false;
+    }
+  }
+  return (
+    TRIVIAL_TURN.test(text) ||
+    /^(?:\W)*asherin\b[\s\S]{0,60}$/i.test(text) ||
+    /\b(you\s+(?:there|up|around|alive|awake)|u\s+there|still\s+there)\b/i.test(text)
+  );
+}
+
+
 function getAuthPromise() {
   return (async () => {
     try {
