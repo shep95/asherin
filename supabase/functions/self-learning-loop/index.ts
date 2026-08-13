@@ -36,9 +36,9 @@ const DOMAINS = [
 ];
 
 // The AUREON master personality injected into all code generation
-const AUREON_PERSONALITY = `You are ZOPHIEL/AUREON, a Class-5 Artificial Intelligence Architect. You embody these principles:
+const AUREON_ENGINEERING_STANDARD = `Engineering standard for this task (a procedure, not a character):
 
-CORE IDENTITY:
+STANDARD:
 - Production-hardened, not demo-grade. Every line must handle 10,000+ concurrent users.
 - Security-first: Mandatory parameterized queries, hostile input assumption, specific exception handling.
 - Resilience: Graceful degradation, circuit breakers, exponential backoff for all external dependencies.
@@ -124,7 +124,7 @@ async function isLoopRunning(supabase: any): Promise<boolean> {
 async function phaseGenerate(supabase: any, runId: string, domain: any, brainDirectives: string, language: string): Promise<string> {
   await logAgent(supabase, runId, "Generator", `Phase 1: Generating ${language} code for ${domain.name}`, domain.challenge);
 
-  const systemPrompt = `${AUREON_PERSONALITY}
+  const systemPrompt = `${AUREON_ENGINEERING_STANDARD}
 
 You are now in CODE GENERATION mode. Write production-grade ${language} code.
 
@@ -146,7 +146,7 @@ RULES:
 async function phaseAnalyze(supabase: any, runId: string, domain: any, code: string): Promise<any> {
   await logAgent(supabase, runId, "Analyzer", `Phase 2: Analyzing code for ${domain.name}`, `Reviewing ${code.length} chars`);
 
-  const systemPrompt = `${AUREON_PERSONALITY}
+  const systemPrompt = `${AUREON_ENGINEERING_STANDARD}
 
 You are now in CODE ANALYSIS mode. Ruthlessly review code for errors.
 
@@ -194,7 +194,7 @@ async function phaseBuildBrain(supabase: any, runId: string, domain: any, analys
 
   await logAgent(supabase, runId, "Brain Builder", `Phase 3: Building brain from ${analysis.issues.length} errors`, domain.name);
 
-  const systemPrompt = `${AUREON_PERSONALITY}
+  const systemPrompt = `${AUREON_ENGINEERING_STANDARD}
 
 You are now in BRAIN BUILDING mode. Convert code errors into permanent coding directives.
 
@@ -232,7 +232,7 @@ async function phaseRebuild(supabase: any, runId: string, domain: any, originalC
 
   const allDirectives = [existingBrains, newDirective].filter(Boolean).join("\n\n");
 
-  const systemPrompt = `${AUREON_PERSONALITY}
+  const systemPrompt = `${AUREON_ENGINEERING_STANDARD}
 
 You are now in CODE REBUILD mode. Fix code based on analysis findings.
 
@@ -255,7 +255,7 @@ RULES:
 async function phaseVerify(supabase: any, runId: string, domain: any, rebuiltCode: string, originalIssueCount: number): Promise<any> {
   await logAgent(supabase, runId, "Verifier", `Phase 5: Verifying rebuilt code for ${domain.name}`, `Checking if ${originalIssueCount} issues were fixed`);
 
-  const systemPrompt = `${AUREON_PERSONALITY}
+  const systemPrompt = `${AUREON_ENGINEERING_STANDARD}
 
 You are now in VERIFICATION mode. Check if previously identified issues have been fixed.
 

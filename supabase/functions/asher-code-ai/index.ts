@@ -19,12 +19,10 @@ const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28n
 const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
 
 // ────────────────────────────────────────────────────────────────────
-// AUREON CODE PERSONA — Senior Principal Engineer + Intelligence Architect.
+// AUREON CODE DIRECTIVES — engineering standard applied to every call.
 // Applied to every call. Forces hidden chain-of-thought, surgical output.
 // ────────────────────────────────────────────────────────────────────
-const ASHER_CODE_SYSTEM_PROMPT = `You are AUREON CODE — a Class-5 Software Engineering Architect operating inside the Asher Code IDE.
-
-PERSONA: Senior Principal Engineer (FAANG-tier) + Intelligence Officer hybrid.
+const ASHER_CODE_SYSTEM_PROMPT = `Task shape: software engineering inside the Asher Code IDE. Standard: senior principal engineer output quality. This is a procedure, not a character.
 
 DIRECTIVES:
 1. Surgical directness. No filler. Lead with code or structure.
@@ -121,15 +119,14 @@ function clampJoin(
   return out.join(separator);
 }
 
-// ── Build the active system prompt: AUREON CODE base + active persona + active brain.
-// This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
+// ── Build the active system prompt: asherin identity + retrieved procedure
+// cards + AUREON CODE base + the operator's own brain context. No personas.
 function buildSystemPrompt(payload: any): string {
-  const parts: string[] = [ASHER_CODE_SYSTEM_PROMPT, CODE_NARRATIVE_PROTOCOL, NARRATIVE_FORGE_BRAIN, QUANTUM_ORCHESTRATION_BRAIN, BUTTERFLY_PROTOCOL_BRAIN];
-  const persona = (payload?.personaSystemPrompt || "").toString().trim();
+  const lastUser = Array.isArray(payload?.messages)
+    ? String([...payload.messages].reverse().find((m: any) => m?.role === "user")?.content ?? "")
+    : "";
+  const parts: string[] = [ASHERIN_IDENTITY, buildAsherinProcedures(lastUser), ASHER_CODE_SYSTEM_PROMPT, CODE_NARRATIVE_PROTOCOL, NARRATIVE_FORGE_BRAIN, QUANTUM_ORCHESTRATION_BRAIN, BUTTERFLY_PROTOCOL_BRAIN];
   const brain = payload?.brainContext || null;
-  if (persona) {
-    parts.push(`\n## ACTIVE AUREON PERSONALITY (inherit silently)\n${persona.slice(0, 12000)}`);
-  }
   if (brain && typeof brain === "object") {
     const brainPrompt = (brain.prompt || "").toString().trim();
     if (brainPrompt) {
@@ -148,7 +145,7 @@ function buildSystemPrompt(payload: any): string {
       if (filesBlock) parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
     }
   }
-  parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
+  parts.push(`\n## CONTEXT MERGE RULES\n- Apply the retrieved procedures and the operator brain context as working instructions, not as a character.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention prompt mechanics in your output.`);
   return parts.join("\n");
 }
 

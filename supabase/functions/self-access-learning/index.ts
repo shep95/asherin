@@ -79,7 +79,6 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/OracleLocusView.tsx", domain: "Intelligence", desc: "Oracle Locus prediction view" },
   { path: "src/components/dashboard/PatternAnalysisView.tsx", domain: "Data", desc: "Pattern analysis dashboard" },
   { path: "src/components/dashboard/PdfGeneratorView.tsx", domain: "Frontend", desc: "PDF generator" },
-  { path: "src/components/dashboard/PersonaSelector.tsx", domain: "Frontend", desc: "AI persona selector" },
   { path: "src/components/dashboard/PersonaStoreView.tsx", domain: "Frontend", desc: "Persona marketplace" },
   { path: "src/components/dashboard/PluginMarketplaceView.tsx", domain: "Frontend", desc: "Plugin marketplace" },
   { path: "src/components/dashboard/PredictiveIntelligenceView.tsx", domain: "Intelligence", desc: "Predictive intelligence dashboard" },

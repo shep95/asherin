@@ -31,8 +31,6 @@ export interface BrainContext {
 export async function streamChat({
   messages,
   mode,
-  personaId,
-  personaSystemPrompt,
   depth,
   userProfile,
   brainContext,
@@ -47,8 +45,6 @@ export async function streamChat({
 }: {
   messages: Msg[];
   mode: ChatMode;
-  personaId?: string | null;
-  personaSystemPrompt?: string | null;
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
@@ -180,7 +176,7 @@ export async function streamChat({
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ messages: requestMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
+        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
         signal,
       });
 

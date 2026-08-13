@@ -5,7 +5,7 @@ import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Conversation, ChatMode, DashboardView, Message, Persona, FileAttachment } from "@/components/dashboard/types";
+import type { Conversation, ChatMode, DashboardView, Message, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
@@ -42,7 +42,6 @@ const TimeSeriesView = lazyWithRetry(() => import("@/components/dashboard/TimeSe
 const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
 const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/PredictiveIntelligenceView"));
 
-const PersonaStoreView = lazyWithRetry(() => import("@/components/dashboard/PersonaStoreView"));
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
 const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
@@ -85,7 +84,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import { thinkingStore } from "@/hooks/useAureonThinking";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
-import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch, hydrateMessageBranches, restoreBranchesFromDB, saveBranchesToDB } from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
@@ -157,7 +155,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","persona-store","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","zerlal","bulwark","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code","gematria","vibe-video","geo-audit","ghost-engine"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","zerlal","bulwark","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code","gematria","vibe-video","geo-audit","ghost-engine"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -189,7 +187,6 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
   const [depth, setDepth] = useState<ResponseDepth>("standard");
-  const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   // Donation Era: Asherin is fully free. Everyone gets the toggle and can pick
   // between the Algorithm LLM and BYOK chat. Nothing is locked behind a tier.
@@ -226,18 +223,6 @@ const Dashboard = () => {
   const [isDraggingConvo, setIsDraggingConvo] = useState(false);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
-  });
-  const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
-    try {
-      const oldStored = localStorage.getItem("zialiel_custom_personas");
-      const newStored = localStorage.getItem("aureon_custom_personas");
-      if (oldStored && !newStored) {
-        localStorage.setItem("aureon_custom_personas", oldStored);
-        localStorage.removeItem("zialiel_custom_personas");
-        return JSON.parse(oldStored);
-      }
-      return newStored ? JSON.parse(newStored) : [];
-    } catch { return []; }
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try {
@@ -419,13 +404,10 @@ const Dashboard = () => {
             const history = [...conv.messages, { role: "user" as const, content: msg.content }]
               .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-            const activePersona = customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId);
             try {
               await streamChat({
                 messages: history,
                 mode,
-                personaId,
-                personaSystemPrompt: activePersona?.systemPrompt || null,
                 depth,
                 userProfile,
                 conversationId: msg.conversationId,
@@ -468,51 +450,7 @@ const Dashboard = () => {
     } finally {
       processingQueue.current = false;
     }
-  }, [user, conversations, customPersonas, personaId, mode, depth, userProfile]);
-
-  // customPersonas declared above processMessageQueue
-
-  const addCustomPersona = useCallback((persona: Persona) => {
-    setCustomPersonas((prev) => {
-      const next = [...prev, persona];
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const editCustomPersona = useCallback((persona: Persona) => {
-    setCustomPersonas((prev) => {
-      const next = prev.map(p => p.id === persona.id ? persona : p);
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const deleteCustomPersona = useCallback((id: string) => {
-    setCustomPersonas((prev) => {
-      const next = prev.filter(p => p.id !== id);
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
-      return next;
-    });
-    if (personaId === id) setPersonaId(null);
-  }, [personaId]);
-
-  // Sync custom personas to localStorage on every change (safety net)
-  useEffect(() => {
-    localStorage.setItem("aureon_custom_personas", JSON.stringify(customPersonas));
-  }, [customPersonas]);
-
-  // Listen for persona changes from store installs
-  useEffect(() => {
-    const handler = () => {
-      try {
-        const stored = localStorage.getItem("aureon_custom_personas");
-        if (stored) setCustomPersonas(JSON.parse(stored));
-      } catch {}
-    };
-    window.addEventListener("aureon-personas-change", handler);
-    return () => window.removeEventListener("aureon-personas-change", handler);
-  }, []);
+  }, [user, conversations, mode, depth, userProfile]);
 
   // CMD+K and CMD+1-4 global shortcuts
   useEffect(() => {
@@ -725,14 +663,6 @@ const Dashboard = () => {
   }, [activeBrainId]);
 
   useEffect(() => {
-    if (personaId) {
-      localStorage.setItem("aureon_active_persona_id", personaId);
-    } else {
-      localStorage.removeItem("aureon_active_persona_id");
-    }
-  }, [personaId]);
-
-  useEffect(() => {
     if (!loaded || conversations.length === 0) return;
     if (!activeConvId || !conversations.some((conversation) => conversation.id === activeConvId)) {
       setActiveConvId(conversations[0].id);
@@ -936,33 +866,6 @@ const Dashboard = () => {
     abortRef.current = earlyController;
     setSuggestions([]);
 
-    // Auto-suggest persona based on task content
-    if (!personaId) {
-      const lower = content.toLowerCase();
-      const TASK_PERSONA_MAP: { keywords: string[]; personaId: string; label: string }[] = [
-        { keywords: ["review code", "debug", "refactor", "fix bug", "code audit", "codebase", "architecture"], personaId: "codeforge", label: "The Code Forge" },
-        { keywords: ["ui", "design", "layout", "css", "responsive", "component", "animation", "pixel"], personaId: "uiforge", label: "The UI Forge" },
-        { keywords: ["research", "sources", "study", "paper", "academic", "citation", "literature"], personaId: "researcher", label: "The Researcher" },
-        { keywords: ["strategy", "plan", "roadmap", "decision", "pros and cons", "trade-off", "long-term"], personaId: "strategist", label: "The Strategist" },
-        { keywords: ["analyze", "data", "metrics", "numbers", "statistics", "trend", "forecast"], personaId: "analyst", label: "The Analyst" },
-        { keywords: ["write", "blog", "article", "copy", "email", "story", "tone", "voice"], personaId: "writer", label: "The Writer" },
-        { keywords: ["truth", "uncensored", "honest", "direct", "raw", "no filter"], personaId: "truth", label: "The Truth Engine" },
-        { keywords: ["code", "function", "api", "implement", "build", "develop", "script", "python", "typescript", "react"], personaId: "engineer", label: "The Engineer" },
-      ];
-      const match = TASK_PERSONA_MAP.find(m => m.keywords.some(k => lower.includes(k)));
-      if (match) {
-        toast({
-          title: `Persona suggestion: ${match.label}`,
-          description: "Asherin detected a task that matches this persona.",
-          action: React.createElement(ToastAction, {
-            altText: "Switch persona",
-            onClick: () => setPersonaId(match.personaId),
-          } as any, "Switch") as any,
-          duration: 6000,
-        });
-      }
-    }
-
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
@@ -1050,10 +953,6 @@ const Dashboard = () => {
       attachments: m.attachments,
     }));
 
-
-    const activePersona = customPersonas.find((p) => p.id === personaId) 
-      || builtInPersonas.find((p) => p.id === personaId);
-    const personaSystemPrompt = activePersona?.systemPrompt || null;
 
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
@@ -1157,8 +1056,6 @@ const Dashboard = () => {
       await streamChat({
         messages: history,
         mode,
-        personaId,
-        personaSystemPrompt,
         depth,
         userProfile,
         brainContext,
@@ -1292,7 +1189,7 @@ const Dashboard = () => {
       });
     }
     processingQueue.current = false;
-  }, [user, mode, depth, personaId, userProfile, customPersonas]);
+  }, [user, mode, depth, userProfile]);
 
   const toggleQueuePause = useCallback(() => {
     setQueuePaused(prev => {
@@ -1536,7 +1433,6 @@ const Dashboard = () => {
       case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
       case "api-keys": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-6 py-8"><div className="mb-6"><h2 className="text-2xl font-light text-foreground tracking-tight">API Keys</h2><p className="mt-1 text-sm text-muted-foreground">Add and manage your AI provider API keys. Your keys are encrypted and used for BYOK (Bring Your Own Key) requests.</p></div><AIKeysSettings /></div></div></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
-      case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
       case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
       case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><DocumentExportLanding /></Suspense></ErrorBoundary>;
       case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
@@ -1565,9 +1461,6 @@ const Dashboard = () => {
           onProcessQueueNow={forceProcessQueue}
           queuePaused={queuePaused}
           onToggleQueuePause={toggleQueuePause}
-          personaSystemPrompt={
-            (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
-          }
           consensusEnabled={consensusEnabled}
           onConsensusToggle={setConsensusEnabled}
           consensusModels={consensusModels}
@@ -1707,12 +1600,6 @@ const Dashboard = () => {
             onViewChange={setActiveView}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            personaId={personaId}
-            onPersonaChange={setPersonaId}
-            customPersonas={customPersonas}
-            onAddCustomPersona={addCustomPersona}
-            onEditCustomPersona={editCustomPersona}
-            onDeleteCustomPersona={deleteCustomPersona}
             publishedAgents={publishedAgents}
           />
         )}
@@ -1763,9 +1650,6 @@ const Dashboard = () => {
               onStopStreaming={stopStreaming}
               focusMode={focusMode}
               messageStatuses={messageStatuses}
-              personaSystemPrompt={
-                (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
-              }
               storedProviders={storedProviders}
               activeBrainId={activeBrainId}
               onBrainChange={setActiveBrainId}

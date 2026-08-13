@@ -4,7 +4,7 @@ import JSZip from "https://esm.sh/jszip@3.10.1";
 import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
-import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
+import { ASHERIN_PATTERN_CARDS } from "../_shared/asherinPatternIndex.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { fullThinkingPatternDatabaseMarkdown } from "../_shared/thinkingPatterns.ts";
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       "AsherLogicBrain.md": ASHER_LOGIC_BRAIN,
       "ButterflyProtocolBrain.md": BUTTERFLY_PROTOCOL_BRAIN,
       "ComedyBrain.md": COMEDY_BRAIN,
-      "EmotionalPersonaBrain.md": EMOTIONAL_PERSONA_BRAIN,
+      "AsherinPatternIndex.md": ASHERIN_PATTERN_CARDS.map((c) => `## ${c.id}\nfire_when: ${c.fire_when.join(", ")}\nnever: ${c.never.join(", ")}\ntools: ${c.tools.join(", ") || "none"}\n${c.procedure}`).join("\n\n"),
       "NarrativeForgeBrain.md": NARRATIVE_FORGE_BRAIN,
       "SynthesisEngineBrain.md": SYNTHESIS_ENGINE_BRAIN,
       "VisualIntelligenceBrain.md": VISUAL_INTELLIGENCE_BRAIN,

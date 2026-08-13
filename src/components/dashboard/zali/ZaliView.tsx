@@ -9,7 +9,6 @@ import type { ChatMode } from "../types";
 import type { ResponseDepth } from "../DepthSelector";
 import ZaliWorkspace from "./ZaliWorkspace";
 import ZaliChatPanel from "./ZaliChatPanel";
-import { builtInPersonas } from "../PersonaSelector";
 import { extractZanoemCodeFiles } from "./zanoemOutput";
 import ZaliResearchPanel from "./ZaliResearchPanel";
 import ZaliProjectSelector from "./ZaliProjectSelector";
@@ -370,15 +369,7 @@ const ZaliView = () => {
         role: m.role, content: m.content,
       }));
 
-      let personaSystemPrompt: string | null = null;
       let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
-      try {
-        const personaId = localStorage.getItem("aureon_active_persona_id");
-        const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
-        const activePersona = customPersonas.find((p: any) => p.id === personaId) || builtInPersonas.find((p) => p.id === personaId);
-        personaSystemPrompt = activePersona?.systemPrompt || null;
-      } catch { /* no persona context */ }
-
       const activeBrainId = localStorage.getItem("aureon_active_brain_id");
       if (activeBrainId) {
         try {
@@ -440,7 +431,6 @@ const ZaliView = () => {
               phase: activeProject.phase,
               designType: activeProject.designType,
             },
-            personaSystemPrompt,
             brainContext,
           }),
           signal: controller.signal,

@@ -67,15 +67,6 @@ export interface Project {
   createdAt: Date;
 }
 
-export interface Persona {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  systemPrompt: string;
-  builtIn: boolean;
-}
-
 export interface MemoryEntry {
   id: string;
   content: string;
@@ -94,4 +85,4 @@ export interface SavedPrompt {
 }
 
 export type ChatMode = "research" | "chat" | "code" | "truth";
-export type DashboardView = "chat" | "library" | "projects" | "memory" | "stats" | "settings" | "api-keys" | "search" | "subscription" | "azplen" | "nomad" | "briefing" | "snippets" | "teams" | "notebooks" | "geospatial" | "plugins" | "timeseries" | "audit" | "zali" | "community" | "predictive" | "security" | "elion" | "tracker" | "persona-store" | "google" | "ide" | "pdf-generator" | "pattern-analysis" | "slideshow" | "self-learning" | "self-access" | "imagine-intelligence" | "video-intelligence" | "bug-reports" | "ebook" | "lavba" | "cross" | "guardian-vault" | "knowledge-vault" | "zaplen" | "zeeion" | "axrlen" | "zerlal" | "zaxin" | "zacoon" | "file-scrapper" | "cipher" | "vedic-astrology" | "zahten" | "media2code" | "whiteboard" | "gematria" | "vibe-video" | "bulwark" | "geo-audit" | "ghost-engine";
+export type DashboardView = "chat" | "library" | "projects" | "memory" | "stats" | "settings" | "api-keys" | "search" | "subscription" | "azplen" | "nomad" | "briefing" | "snippets" | "teams" | "notebooks" | "geospatial" | "plugins" | "timeseries" | "audit" | "zali" | "community" | "predictive" | "security" | "elion" | "tracker" | "google" | "ide" | "pdf-generator" | "pattern-analysis" | "slideshow" | "self-learning" | "self-access" | "imagine-intelligence" | "video-intelligence" | "bug-reports" | "ebook" | "lavba" | "cross" | "guardian-vault" | "knowledge-vault" | "zaplen" | "zeeion" | "axrlen" | "zerlal" | "zaxin" | "zacoon" | "file-scrapper" | "cipher" | "vedic-astrology" | "zahten" | "media2code" | "whiteboard" | "gematria" | "vibe-video" | "bulwark" | "geo-audit" | "ghost-engine";

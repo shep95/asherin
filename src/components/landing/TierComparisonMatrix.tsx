@@ -48,7 +48,6 @@ const ROWS: Row[] = [
   { group: "Creation", label: "Asherin IDE & Imagine-to-Code", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "ZANOEM Design Lab (FEA / Thermal)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
 
-  { group: "Agents", label: "AI Personas & Persona Store", tiers: { chat: true, aureon: true, pro: true, lifetime: true } },
   { group: "Agents", label: "Zahten Agent Forge", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Agents", label: "Automated Agents (scheduled)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
   { group: "Agents", label: "Voice Chat (ElevenLabs)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },

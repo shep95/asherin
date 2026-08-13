@@ -9,8 +9,7 @@ import {
   Plus, Search, LogOut, Zap,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2, PanelLeftClose, PanelLeftOpen, Ghost, Calculator, Gauge,
 } from "lucide-react";
-import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
-import PersonaSelector from "./PersonaSelector";
+import type { Conversation, DashboardView, ChatMode, Message } from "./types";
 import SwipeableConversationItem from "./SwipeableConversationItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
@@ -46,12 +45,6 @@ interface DashboardSidebarProps {
   onViewChange: (view: DashboardView) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  personaId?: string | null;
-  onPersonaChange?: (id: string | null) => void;
-  customPersonas?: Persona[];
-  onAddCustomPersona?: (persona: Persona) => void;
-  onEditCustomPersona?: (persona: Persona) => void;
-  onDeleteCustomPersona?: (id: string) => void;
   publishedAgents?: { id: string; name: string }[];
 }
 
@@ -102,7 +95,6 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "memory": Brain,
   "teams": Users,
   "community": MessagesSquare,
-  "persona-store": Sparkles,
   "vedic-astrology": Moon,
   "guardian-vault": LockIcon,
   "settings": Settings,
@@ -173,8 +165,7 @@ function groupByDate(convs: Conversation[]) {
 const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
-  sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
-  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona, publishedAgents = [],
+  sidebarOpen, onToggleSidebar, publishedAgents = [],
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -187,8 +178,6 @@ const DashboardSidebar = ({
   const [archivedLoading, setArchivedLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const personaId = externalPersonaId ?? null;
-  const setPersonaId = onPersonaChange ?? (() => {});
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
   });
@@ -568,12 +557,6 @@ const DashboardSidebar = ({
                     )}
                   </div>
                 </>
-              )}
-
-              {!collapsed && (
-                <div className="px-2 py-2 border-t border-border/20">
-                  <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
-                </div>
               )}
 
               <div data-dashboard-sidebar-nav className={`py-2 border-t border-border/20 space-y-1 ${collapsed ? "px-1.5" : "px-2"}`}>

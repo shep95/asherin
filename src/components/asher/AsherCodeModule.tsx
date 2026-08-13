@@ -50,7 +50,6 @@ import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
-import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -193,23 +192,12 @@ async function parseZipImport(file: File, currentFiles: AsherCodeFile[]): Promis
   return { archiveName: file.name, entries, totalEntries: zipEntries.length, acceptedBytes };
 }
 
-// Load active Asherin persona + brain (mirrors Asherin Chat / ZALI). Result is spread into every
+// Load the operator brain context (mirrors Asherin Chat / ZALI). Result is spread into every
 // asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
 async function loadAureonContext(): Promise<{
-  personaSystemPrompt: string | null;
   brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null;
 }> {
-  let personaSystemPrompt: string | null = null;
   let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
-  try {
-    const personaId = localStorage.getItem("aureon_active_persona_id");
-    if (personaId) {
-      const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
-      const activePersona = customPersonas.find((p: any) => p.id === personaId)
-        || builtInPersonas.find((p) => p.id === personaId);
-      personaSystemPrompt = activePersona?.systemPrompt || null;
-    }
-  } catch { /* ignore */ }
   try {
     const activeBrainId = localStorage.getItem("aureon_active_brain_id");
     if (activeBrainId) {
@@ -240,7 +228,7 @@ async function loadAureonContext(): Promise<{
       }
     }
   } catch (e) { console.error("Asher Code: failed to load Asherin brain context:", e); }
-  return { personaSystemPrompt, brainContext };
+  return { brainContext };
 }
 
 function relTime(iso: string | null | undefined): string {
