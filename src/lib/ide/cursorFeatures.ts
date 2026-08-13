@@ -52,6 +52,14 @@ export interface CursorFeaturesOptions {
   ghostDebounceMs?: number;
   /** Called when the user accepts an inline edit (Cmd+K). */
   onInlineEditApplied?: (info: { path: string; instruction: string }) => void;
+  /**
+   * Write gate. Chat mode answers only — the model may never mutate the
+   * buffer behind the operator's back. When this returns false, ⌘K refuses
+   * and ghost completions stay silent instead of failing quietly.
+   */
+  canWrite?: () => boolean;
+  /** Told why a write was refused, so the surface can say it out loud. */
+  onWriteBlocked?: (reason: string) => void;
   /** Called when a bridge-to-chat event is fired. */
   onSendToChat?: (payload: SendToChatPayload) => void;
 }
@@ -164,11 +172,15 @@ function installInlineEditWidget(
 
   const action = editor.addAction({
     id: "aureon.inlineEdit",
-    label: "Aureon: Inline Edit (Cursor-style)",
+    label: "asherin: inline edit (⌘K)",
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
     contextMenuGroupId: "1_modification",
     contextMenuOrder: 0,
     run: (ed) => {
+      if (opts.canWrite && !opts.canWrite()) {
+        opts.onWriteBlocked?.("inline edit needs Agent mode — Chat mode answers only.");
+        return;
+      }
       const pos = ed.getPosition();
       if (!pos) return;
       // Ensure some selection exists; if none, select current line.
@@ -236,7 +248,7 @@ function installAddToChat(
 ): () => void {
   const action = editor.addAction({
     id: "aureon.addToChat",
-    label: "Aureon: Add Selection to Chat",
+    label: "asherin: add selection to chat (⌘L)",
     keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL],
     contextMenuGroupId: "9_cutcopypaste",
     contextMenuOrder: 5,
