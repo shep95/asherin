@@ -494,11 +494,8 @@ const AureonIdeView = () => {
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const handleTerminalOutput = useCallback((output: string) => {
     setTerminalOutput(prev => [...prev.slice(-20), output]);
-    if (/^(error|uncaught|unhandled|exception|traceback|panic|fatal)/i.test(output) ||
-        /\b[A-Z][a-z]+Error: /.test(output) || /Cannot read propert/i.test(output)) {
-      if (!bugDoctorOpen) { setBugDoctorMsg(output.slice(0, 600)); setBugDoctorOpen(true); }
-    }
-  }, [bugDoctorOpen]);
+  }, []);
+
 
   const routeDecision: RoutingDecision = useMemo(
     () => routeTask(chatDraft || (chatMessages[chatMessages.length - 1]?.content ?? ""), modelOverride ?? undefined),
