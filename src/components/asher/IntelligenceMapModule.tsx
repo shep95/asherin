@@ -3469,15 +3469,19 @@ const IntelligenceMapModule = () => {
                                 {/* Fact grid */}
                                 {facts.length > 0 && (
                                   <div className="grid grid-cols-2 gap-1.5">
-                                    {facts.map(({ icon: Icon, label, value }) => (
+                                    {facts.map(({ icon: Icon, label, value, missing }) => (
                                       <div key={label} className="rounded-md border border-border/10 bg-background/30 px-2 py-1.5">
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <Icon className="h-2.5 w-2.5 text-muted-foreground/50" strokeWidth={1.5} />
                                           <span className="text-[8.5px] uppercase tracking-[0.18em] text-muted-foreground/55 font-light">{label}</span>
                                         </div>
-                                        <p className="text-[10.5px] text-foreground/90 font-light leading-snug truncate" title={value}>{value}</p>
+                                        <p
+                                          className={`text-[10.5px] font-light leading-snug truncate ${missing ? "text-muted-foreground/45 italic" : "text-foreground/90"}`}
+                                          title={value}
+                                        >{value}</p>
                                       </div>
                                     ))}
+
                                   </div>
                                 )}
 
