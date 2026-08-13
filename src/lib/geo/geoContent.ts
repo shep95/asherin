@@ -346,16 +346,18 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Asherin pricing",
     topic: "Asherin pricing",
     answer:
-      "Asherin pricing has three tiers. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $79 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Enterprise is quoted individually. There is no free trial; billing starts when the subscription starts.",
+      "Asherin pricing has four published plans. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $79 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Asherin Team costs $39 per month for the workspace plus $24 per member per month with a minimum of two seats, billed to the owner, and gives every member Pro-class access. Enterprise is quoted individually. There is no free trial; billing starts when the subscription starts.",
     attributes: [
-      { name: "Number of published tiers", value: "3" },
+      { name: "Number of published tiers", value: "4" },
       { name: "Core plan price", value: "18.00", unit: "USD per month" },
       { name: "Asherin Pro price", value: "79.00", unit: "USD per month" },
+      { name: "Asherin Team workspace fee", value: "39.00", unit: "USD per month" },
+      { name: "Asherin Team seat fee", value: "24.00", unit: "USD per member per month" },
       { name: "Enterprise price", value: "Quoted on request" },
       { name: "Billing period", value: "Monthly" },
       { name: "Free trial", value: "None" },
       { name: "Cancellation", value: "Monthly, cancel any time from the dashboard" },
-      { name: "Per-seat minimum", value: "None" },
+      { name: "Per-seat minimum", value: "None on personal plans; 2 seats on Asherin Team" },
     ],
     stats: [PRICE_CORE, PRICE_PRO, NO_TRIAL],
     faqs: [
