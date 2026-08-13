@@ -407,9 +407,34 @@ serve(async (req) => {
       ? "\n\n## NUMBERED-LIST BRAIN: DISABLED\nThe operator has turned OFF numbered-list answers for this session. Reply in natural prose, short paragraphs, or headers/bullets — only use 1., 2., 3. when the content is truly ordinal (procedural steps, ranked items the user asked for)."
       : "\n\n## CODE OVERRIDE FOR NUMBERED-LIST BRAIN\nEven when numbered-list answers are enabled, generated code/config/SQL/JSON/YAML/shell is NEVER numbered or line-numbered. Code must be contiguous inside fenced code blocks and copy/paste-ready.";
 
+    // Resolution order (_shared/keyResolution.ts): request-supplied BYOK →
+    // the signed-in user's saved google key → platform GEMINI secret. This
+    // path speaks the Gemini wire format, so only google keys qualify; when
+    // none is bound the text path still runs keyless below.
     const headerKey = req.headers.get("x-byok-gemini-key");
-    const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
-    const apiKey = (headerKey || byokGeminiKey || adminKey || "").trim();
+    let storedGoogleKey = "";
+    {
+      const authHeader = req.headers.get("Authorization") || "";
+      if (!headerKey && !byokGeminiKey && authHeader.startsWith("Bearer ")) {
+        try {
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const url = Deno.env.get("SUPABASE_URL") || "";
+          const anon = Deno.env.get("SUPABASE_ANON_KEY") || "";
+          const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const authSb = createClient(url, anon, { auth: { persistSession: false } });
+          const { data: u } = await authSb.auth.getUser(authHeader.slice(7));
+          if (u?.user?.id) {
+            const adminSb = createClient(url, service, { auth: { persistSession: false } });
+            const { userByokKey } = await import("../_shared/keyResolution.ts");
+            storedGoogleKey = await userByokKey(adminSb, u.user.id, "google");
+          }
+        } catch {
+          storedGoogleKey = "";
+        }
+      }
+    }
+    const platformGemini = (await import("../_shared/keyResolution.ts")).platformKeyFor("google");
+    const apiKey = (headerKey || byokGeminiKey || storedGoogleKey || platformGemini || "").trim();
 
     // Gemini key only required for multimodal (image/video/pdf). Text path uses gpt-oss.
     const hasAttachmentsEarly = Array.isArray(messages) && messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length);
