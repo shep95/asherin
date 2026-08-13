@@ -10,6 +10,14 @@ export { AI_PROVIDERS };
 export type { ProviderConfig };
 
 
+/** Presence flags from the key-status edge function. No key material. */
+interface KeyStatusRow {
+  provider: string;
+  byok: boolean;
+  platform: boolean;
+  effective: boolean;
+}
+
 interface StoredKey {
   id: string;
   provider: string;
@@ -40,6 +48,9 @@ const AIKeysSettings = () => {
   const [savingPref, setSavingPref] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  // Booleans only — the key-status function returns presence flags, never values.
+  const [keyStatus, setKeyStatus] = useState<KeyStatusRow[] | null>(null);
+  const [keyStatusError, setKeyStatusError] = useState<string | null>(null);
 
   // Country count is a constant of the static provider catalog — compute once.
   const countryCount = useMemo(() => new Set(AI_PROVIDERS.map(p => p.country)).size, []);
@@ -65,6 +76,27 @@ const AIKeysSettings = () => {
   useEffect(() => {
     if (!user) return;
     loadData();
+  }, [user]);
+
+  // Presence check. Failure is reported as "offline", never as a fake yes.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("key-status", { body: {} });
+        if (cancelled) return;
+        if (error) throw error;
+        const rows = Array.isArray((data as any)?.providers) ? ((data as any).providers as KeyStatusRow[]) : [];
+        setKeyStatus(rows);
+        setKeyStatusError(null);
+      } catch (e: any) {
+        if (cancelled) return;
+        setKeyStatus([]);
+        setKeyStatusError(String(e?.message || e));
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user]);
 
   const loadData = async () => {
@@ -178,6 +210,39 @@ const AIKeysSettings = () => {
           <h3 className="text-sm font-light text-foreground">AI Model Keys</h3>
           <p className="text-[10px] text-muted-foreground/50 mt-0.5">Bring your own API keys. Aureon never lends out a shared key — every request runs on the keys you add here.</p>
         </div>
+      </div>
+
+      {/* Detected key bindings — booleans only. The endpoint returns yes/no per
+          provider and never any key material, for BYOK or platform secrets. */}
+      <div className="rounded-lg border border-border/15 bg-card/10 p-4">
+        <p className="text-xs font-light text-foreground">Detected key bindings</p>
+        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+          Resolution order per call: your saved key → platform key → keyless public source → offline.
+          Values are never displayed here.
+        </p>
+        {keyStatusError ? (
+          <p className="text-[10px] text-muted-foreground/50 mt-3">Key status offline — {keyStatusError}</p>
+        ) : keyStatus === null ? (
+          <p className="text-[10px] text-muted-foreground/40 mt-3">Checking…</p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {keyStatus.map((s) => (
+              <span
+                key={s.provider}
+                className={`text-[10px] font-light rounded-md border px-2 py-1 ${
+                  s.effective
+                    ? "border-border/30 text-foreground/80"
+                    : "border-border/15 text-muted-foreground/40"
+                }`}
+              >
+                {s.provider}={s.effective ? "yes" : "no"}
+                {s.effective && (
+                  <span className="text-muted-foreground/40"> · {s.byok ? "your key" : "platform"}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Active Model Display */}

@@ -917,11 +917,24 @@ serve(async (req) => {
           _parsedBody.byokModel = resolved.byok.model;
           _injectedKey = resolved.byok.apiKey;
         } else {
-          // No admin key, no stored BYOK, no Venice → surface BYOK_REQUIRED.
-          const e: any = new Error("BYOK_REQUIRED");
-          e.status = 403;
-          e.code = "BYOK_REQUIRED";
-          throw e;
+          // Step 2 of the resolution order (_shared/keyResolution.ts): any
+          // platform model secret that is actually bound — GEMINI, OPENAI,
+          // ANTHROPIC, GROQ, OPENROUTER, XAI, MISTRAL, TOGETHER, DEEPSEEK.
+          // Only after every one of those is unset do we surface the BYOK
+          // dead-end, so ordinary chat is never blocked by a missing Gemini
+          // key alone.
+          const { resolveModelKey } = await import("../_shared/keyResolution.ts");
+          const platform = await resolveModelKey(null, null, {});
+          if (platform) {
+            _parsedBody.byokProvider = platform.provider;
+            _parsedBody.byokModel = platform.model;
+            _injectedKey = platform.apiKey;
+          } else {
+            const e: any = new Error("BYOK_REQUIRED");
+            e.status = 403;
+            e.code = "BYOK_REQUIRED";
+            throw e;
+          }
         }
       }
     }
