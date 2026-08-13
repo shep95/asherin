@@ -1480,12 +1480,6 @@ const AureonIdeView = () => {
 
       <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
 
-      <ZanoemDecisionLog
-        open={decisionLogOpen}
-        surface="aureon_ide"
-        projectRef={activeSessionId ?? null}
-        onClose={() => setDecisionLogOpen(false)}
-      />
 
       {/* Shared IDE upgrade pack modals */}
       <IdeFuzzyFinder
