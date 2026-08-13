@@ -1284,9 +1284,60 @@ const Whiteboard = () => {
     }
 
     const visibleLayerIds = new Set(activeBoard.layers.filter((layer) => layer.visible).map((layer) => layer.id));
+    const elementById = new Map(activeBoard.elements.map((element) => [element.id, element]));
+    // Frames are containers: draw them first so their wash never sits on top
+    // of the objects they hold.
+    const renderOrder = [
+      ...activeBoard.elements.filter((element) => element.type === "frame"),
+      ...activeBoard.elements.filter((element) => element.type !== "frame"),
+    ];
 
-    for (const element of activeBoard.elements) {
+    for (const element of renderOrder) {
       if (!visibleLayerIds.has(element.layerId)) continue;
+
+      if (element.type === "frame") {
+        const rectData = normalizeRect(element.x || 0, element.y || 0, element.w || 0, element.h || 0);
+        context.save();
+        drawRoundedRectPath(context, rectData.x, rectData.y, rectData.w, rectData.h, 18);
+        context.fillStyle = "rgba(255,255,255,0.02)";
+        context.fill();
+        context.strokeStyle = element.color || "rgba(255,255,255,0.28)";
+        context.lineWidth = element.width || 1.5;
+        context.stroke();
+        context.fillStyle = "rgba(255,255,255,0.62)";
+        context.font = `400 12px ${FONT_FAMILIES.Mono}`;
+        context.fillText(element.title || "Frame", rectData.x + 4, rectData.y - 10);
+        context.restore();
+      }
+
+      if (element.type === "arrow") {
+        const { from, to } = resolveArrow(element, elementById);
+        const angle = Math.atan2(to.y - from.y, to.x - from.x);
+        const head = 12;
+        context.save();
+        context.strokeStyle = element.color || "#ffffff";
+        context.fillStyle = element.color || "#ffffff";
+        context.lineWidth = element.width || 2;
+        context.lineCap = "round";
+        context.beginPath();
+        context.moveTo(from.x, from.y);
+        context.lineTo(to.x, to.y);
+        context.stroke();
+        context.beginPath();
+        context.moveTo(to.x, to.y);
+        context.lineTo(to.x - head * Math.cos(angle - Math.PI / 7), to.y - head * Math.sin(angle - Math.PI / 7));
+        context.lineTo(to.x - head * Math.cos(angle + Math.PI / 7), to.y - head * Math.sin(angle + Math.PI / 7));
+        context.closePath();
+        context.fill();
+        if (element.text) {
+          context.fillStyle = "rgba(255,255,255,0.6)";
+          context.font = `400 11px ${FONT_FAMILIES.Mono}`;
+          context.textAlign = "center";
+          context.fillText(element.text, (from.x + to.x) / 2, (from.y + to.y) / 2 - 6);
+          context.textAlign = "left";
+        }
+        context.restore();
+      }
 
       if (element.type === "path" && element.points?.length) {
         context.save();
@@ -1409,10 +1460,14 @@ const Whiteboard = () => {
         context.stroke();
         context.fillStyle = "rgba(255,255,255,0.9)";
         context.font = `600 14px ${FONT_FAMILIES.Sans}`;
-        context.fillText(element.text || "Live chart", x + 18, y + 30);
+        context.fillText(element.text || "Sketch series", x + 18, y + 30);
         context.fillStyle = "rgba(255,255,255,0.45)";
         context.font = `400 11px ${FONT_FAMILIES.Mono}`;
-        context.fillText(element.live ? "auto-updating" : "static", x + 18, y + 50);
+        context.fillText(
+          series.length ? "hand-entered — not a live feed" : "no series yet — add values in the inspector",
+          x + 18,
+          y + 50,
+        );
         const chartX = x + 18;
         const chartY = y + 70;
         const chartWidth = width - 36;
@@ -1515,6 +1570,20 @@ const Whiteboard = () => {
           context.moveTo(element.x || 0, element.y || 0);
           context.lineTo((element.x || 0) + (element.w || 0), (element.y || 0) + (element.h || 0));
           context.stroke();
+        }
+        // Shapes can carry a caption — that is how a dropped entity graph
+        // renders its nodes as one selectable, bindable object each.
+        if (element.text && element.type !== "line") {
+          const labelSize = element.fontSize || 13;
+          const lines = element.text.split("\n");
+          context.fillStyle = element.color || "#ffffff";
+          context.font = `${element.fontWeight || "400"} ${labelSize}px ${FONT_FAMILIES[element.fontFamily || "Sans"]}`;
+          context.textAlign = "center";
+          const startY = rectData.y + rectData.h / 2 - ((lines.length - 1) * labelSize * 1.25) / 2 + labelSize * 0.34;
+          lines.forEach((line, index) => {
+            context.fillText(line, rectData.x + rectData.w / 2, startY + index * labelSize * 1.25);
+          });
+          context.textAlign = "left";
         }
         context.restore();
       }
@@ -1805,10 +1874,21 @@ const Whiteboard = () => {
           )}
           {selectedChart && (
             <>
-              <span className="text-xs text-foreground">Live chart</span>
-              <button onClick={() => updateSelectedElement((element) => ({ ...element, live: !element.live }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">
-                {selectedChart.live ? "Pause live" : "Resume live"}
-              </button>
+              <span className="text-xs text-foreground">Sketch series</span>
+              <input
+                value={(selectedChart.series || []).join(", ")}
+                onChange={(event) => {
+                  const values = event.target.value
+                    .split(/[,\s]+/)
+                    .map((entry) => Number(entry))
+                    .filter((entry) => Number.isFinite(entry))
+                    .slice(0, 48);
+                  updateSelectedElement((element) => ({ ...element, series: values }));
+                }}
+                placeholder="12, 18, 9, 24"
+                className="w-52 rounded-lg border border-border/20 bg-background/40 px-2 py-1 text-xs text-foreground outline-none"
+              />
+              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/55">Your numbers — no feed attached</span>
             </>
           )}
           <button onClick={deleteSelected} className="rounded-lg border border-destructive/20 px-2 py-1 text-xs text-destructive">Delete</button>
