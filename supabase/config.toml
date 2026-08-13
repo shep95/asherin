@@ -254,3 +254,6 @@ verify_jwt = true
 
 [functions.organism-cron]
 verify_jwt = false
+
+[functions.asherin-kernel-proxy]
+verify_jwt = true
