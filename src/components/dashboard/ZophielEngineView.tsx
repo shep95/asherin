@@ -90,7 +90,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
-  const [resolveOpen, setXkeyscoreOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
@@ -783,7 +783,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           </div>
                         </div>
                         <button
-                          onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) { setIntelSuiteOpen(false); setXkeyscoreOpen(false); } }}
+                          onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) { setIntelSuiteOpen(false); setResolveOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelMapOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
@@ -811,7 +811,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           <span className="sm:hidden">Key</span>
                         </button>
                         <button
-                          onClick={() => { setXkeyscoreOpen((v) => !v); if (!resolveOpen) { setIntelMapOpen(false); setIntelSuiteOpen(false); } }}
+                          onClick={() => { setResolveOpen((v) => !v); if (!resolveOpen) { setIntelMapOpen(false); setIntelSuiteOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             resolveOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
@@ -824,7 +824,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           <span className="sm:hidden">XKS</span>
                         </button>
                         <button
-                          onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) { setIntelMapOpen(false); setXkeyscoreOpen(false); } }}
+                          onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) { setIntelMapOpen(false); setResolveOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelSuiteOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
@@ -935,7 +935,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             <ResolvePanel
               query={query}
               results={results}
-              onClose={() => setXkeyscoreOpen(false)}
+              onClose={() => setResolveOpen(false)}
             />
           </Suspense>
         </div>
