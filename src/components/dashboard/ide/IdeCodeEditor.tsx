@@ -92,7 +92,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
   const language = activeFile ? getLanguage(activeFile.name) : "plaintext";
   const monacoLang = toMonacoLang(language);
 
-  // Run our shared ZANOEM validator and convert issues into Monaco markers (red squiggles).
+  // Run our shared validator and convert issues into Monaco markers (red squiggles).
   useEffect(() => {
     if (!activeFile || !editorRef.current || !monacoRef.current) return;
     const monaco = monacoRef.current;
