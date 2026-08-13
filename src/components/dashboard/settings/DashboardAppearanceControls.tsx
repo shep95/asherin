@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, Image as ImageIcon, Paintbrush } from "lucide-react";
+import { Check, Image as ImageIcon, Paintbrush, PanelLeft, MessageSquare } from "lucide-react";
+import type { DashboardUi } from "@/lib/dashboardUi";
 import {
   CURATED_SWATCHES,
   MAX_DIM,
@@ -16,6 +17,10 @@ interface Props {
   onChange: (patch: Partial<DashboardAppearance>) => void;
   /** Label of the photo the operator returns to when they leave colour mode. */
   wallpaperLabel: string;
+  /** Chrome layout the operator is on. Default stays "current". */
+  ui: DashboardUi;
+  /** Applies immediately (local + broadcast) and persists for signed-in operators. */
+  onUiChange: (next: DashboardUi) => void;
 }
 
 /**
@@ -23,7 +28,7 @@ interface Props {
  * Everything here is free — only the photo upload add-on is paid, and that
  * lives in the wallpaper block below.
  */
-const DashboardAppearanceControls = ({ appearance, onChange, wallpaperLabel }: Props) => {
+const DashboardAppearanceControls = ({ appearance, onChange, wallpaperLabel, ui, onUiChange }: Props) => {
   const [hexDraft, setHexDraft] = useState(appearance.color);
   const [hexError, setHexError] = useState<string | null>(null);
 
@@ -57,7 +62,88 @@ const DashboardAppearanceControls = ({ appearance, onChange, wallpaperLabel }: P
   const light = isLightBackground(appearance.color);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Chrome layout — opt-in, never forced. */}
+      <div className="space-y-3">
+        <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider">Dashboard layout</p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div
+            role="tablist"
+            aria-label="Dashboard layout"
+            className="inline-flex rounded-xl border border-border/20 bg-background/40 p-1 self-start"
+          >
+            {([
+              { key: "current" as const, label: "Current", Icon: PanelLeft },
+              { key: "v2" as const, label: "v.2", Icon: MessageSquare },
+            ]).map(({ key, label, Icon }) => {
+              const active = ui === key;
+              return (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => { if (!active) onUiChange(key); }}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-light transition-all ${
+                    active
+                      ? "bg-foreground/10 text-foreground shadow-[inset_0_0_0_1px_hsl(var(--foreground)/0.15)]"
+                      : "text-muted-foreground/60 hover:text-foreground/80"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Live shape of the left rail — the real stack, not a mock. */}
+          <div className="flex-1 min-w-0 grid gap-3 sm:grid-cols-2">
+            {([
+              {
+                key: "current" as const,
+                copy: "the dashboard you already know.",
+                rows: ["Search software…", "Past Convos", "Workspace", "Account"],
+              },
+              {
+                key: "v2" as const,
+                copy: "quieter. conversations first. chat is the mouth. fewer doors.",
+                rows: ["+ new chat", "conversations", "archived", "Chat · Library · Settings"],
+              },
+            ]).map(({ key, copy, rows }) => {
+              const active = ui === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => { if (!active) onUiChange(key); }}
+                  aria-pressed={active}
+                  className={`text-left rounded-xl border p-3 transition-all ${
+                    active ? "border-foreground/40 bg-foreground/[0.04]" : "border-border/20 hover:border-foreground/25"
+                  }`}
+                >
+                  <div className="flex gap-2">
+                    <div className="w-14 shrink-0 space-y-1 rounded-md border border-border/25 bg-background/40 p-1.5">
+                      {rows.map((r) => (
+                        <div key={r} className="h-1.5 rounded-full bg-foreground/15" />
+                      ))}
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-xs font-light text-foreground">{key === "current" ? "Current" : "v.2"}</p>
+                      <p className="text-[10px] font-light leading-relaxed text-muted-foreground/70">{copy}</p>
+                      <p className="text-[9px] font-mono leading-relaxed text-muted-foreground/45 truncate">
+                        {rows.join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground/40 leading-relaxed">
+          v.2 has no rows for folded capabilities — you reach those by asking in chat, and old links still open them.
+        </p>
+      </div>
+
       {/* Segmented control */}
       <div
         role="tablist"

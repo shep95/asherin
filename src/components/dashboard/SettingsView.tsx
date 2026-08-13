@@ -16,6 +16,12 @@ import { validateDisplayName } from "@/lib/auth/blockedNames";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 import DashboardAppearanceControls from "./settings/DashboardAppearanceControls";
 import {
+  DASHBOARD_UI_EVENT,
+  readDashboardUi,
+  writeDashboardUi,
+  type DashboardUi,
+} from "@/lib/dashboardUi";
+import {
   APPEARANCE_EVENT,
   readAppearance,
   writeAppearance,
@@ -125,14 +131,20 @@ const SettingsView = () => {
   const [uploadingWallpaper, setUploadingWallpaper] = useState(false);
   const [hasWallpaperAddon, setHasWallpaperAddon] = useState(false);
   const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
+  const [dashboardUi, setDashboardUi] = useState<DashboardUi>(() => readDashboardUi());
 
   // Another surface (or another tab) may change appearance; stay in step.
   useEffect(() => {
-    const sync = () => setAppearance(readAppearance());
+    const sync = () => {
+      setAppearance(readAppearance());
+      setDashboardUi(readDashboardUi());
+    };
     window.addEventListener(APPEARANCE_EVENT, sync);
+    window.addEventListener(DASHBOARD_UI_EVENT, sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener(APPEARANCE_EVENT, sync);
+      window.removeEventListener(DASHBOARD_UI_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
   }, []);
@@ -149,6 +161,21 @@ const SettingsView = () => {
         .eq("user_id", user.id)
         .then(({ error }) => {
           if (error) console.warn("appearance persist failed", error.message);
+        });
+    }
+  };
+
+  // Same one-writer contract as appearance: local + broadcast first so the
+  // chrome swaps instantly, then the account row for the next device.
+  const applyDashboardUi = (next: DashboardUi) => {
+    setDashboardUi(writeDashboardUi(next));
+    if (user) {
+      supabase
+        .from("user_settings")
+        .update({ dashboard_ui: next })
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.warn("layout persist failed", error.message);
         });
     }
   };
@@ -506,6 +533,8 @@ const SettingsView = () => {
           <DashboardAppearanceControls
             appearance={appearance}
             onChange={applyAppearance}
+            ui={dashboardUi}
+            onUiChange={applyDashboardUi}
             wallpaperLabel={
               WALLPAPERS.find((w) => w.key === (localStorage.getItem("aureon_wallpaper") || "aureon"))?.label ?? "photo"
             }

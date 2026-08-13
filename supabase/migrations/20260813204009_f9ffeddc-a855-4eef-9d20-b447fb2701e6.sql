@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS dashboard_ui text NOT NULL DEFAULT 'current' CHECK (dashboard_ui IN ('current','v2'));

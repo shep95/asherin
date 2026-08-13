@@ -18,6 +18,13 @@ import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import DashboardSidebarV2 from "@/components/dashboard/DashboardSidebarV2";
+import {
+  DASHBOARD_UI_EVENT,
+  hydrateDashboardUiFromDb,
+  readDashboardUi,
+  type DashboardUi,
+} from "@/lib/dashboardUi";
 import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
@@ -246,6 +253,10 @@ const Dashboard = () => {
     } catch { return "aureon"; }
   });
   const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
+  // Chrome layout is a preference, not a deploy. Swapping it exchanges the
+  // <aside> only — <main> and the live ChatView keep their identity, so a
+  // stream in flight is never remounted mid-token.
+  const [dashboardUi, setDashboardUi] = useState<DashboardUi>(() => readDashboardUi());
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
   const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
@@ -280,11 +291,16 @@ const Dashboard = () => {
     // Appearance (photo vs flat colour) applies in the same session — the
     // operator is editing swatches and must see the surface move, not reload.
     const appearanceHandler = () => setAppearance(readAppearance());
+    const uiHandler = () => setDashboardUi(readDashboardUi());
+    window.addEventListener(DASHBOARD_UI_EVENT, uiHandler);
+    window.addEventListener("storage", uiHandler);
     window.addEventListener("storage", handler);
     window.addEventListener("storage", appearanceHandler);
     window.addEventListener("aureon-wallpaper-change", handler);
     window.addEventListener(APPEARANCE_EVENT, appearanceHandler);
     return () => {
+      window.removeEventListener(DASHBOARD_UI_EVENT, uiHandler);
+      window.removeEventListener("storage", uiHandler);
       window.removeEventListener("storage", handler);
       window.removeEventListener("storage", appearanceHandler);
       window.removeEventListener("aureon-wallpaper-change", handler);
@@ -555,6 +571,13 @@ const Dashboard = () => {
             hydrateAppearanceFromDb(row.dashboard_bg_mode, row.dashboard_bg_color),
           );
         }
+      }
+
+      // Chrome layout hydrates the same way; an absent column leaves the
+      // operator on whatever this device already had (default: current).
+      {
+        const row = settingsResult.data as { dashboard_ui?: string | null } | null;
+        if (row?.dashboard_ui) setDashboardUi(hydrateDashboardUiFromDb(row.dashboard_ui));
       }
 
       const convRows = convResult.data ?? [];
@@ -1594,9 +1617,13 @@ const Dashboard = () => {
         <div className="flex h-full w-full items-center justify-center px-6">
           <div className="max-w-md text-center space-y-4">
             <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground">Welcome to your workspace.</h2>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground">
+              {dashboardUi === "v2" ? "start with a question." : "Welcome to your workspace."}
+            </h2>
             <p className="text-sm font-extralight text-muted-foreground">
-              Spin up your first conversation, or pick a module from the sidebar.
+              {dashboardUi === "v2"
+                ? "ask, and asherin will use search, files, or a map when it needs them."
+                : "Spin up your first conversation, or pick a module from the sidebar."}
             </p>
             <button
               onClick={async () => {
@@ -1686,7 +1713,23 @@ const Dashboard = () => {
       {!focusMode && <IntelAlertCenter />}
 
       <div className="relative z-10 flex h-dvh">
-        {!focusMode && (
+        {!focusMode && (dashboardUi === "v2" ? (
+          <DashboardSidebarV2
+            conversations={conversations}
+            activeConversationId={activeConvId ?? ""}
+            activeView={activeView}
+            onSelectConversation={(id) => { setActiveConvId(id); setSuggestions([]); }}
+            onNewConversation={newConversation}
+            onDeleteConversation={deleteConversation}
+            onArchiveConversation={archiveConversation}
+            onRenameConversation={renameConversation}
+            onTogglePin={togglePin}
+            onViewChange={setActiveView}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            publishedAgents={publishedAgents}
+          />
+        ) : (
           <DashboardSidebar
             conversations={conversations}
             activeConversationId={activeConvId ?? ""}
@@ -1702,7 +1745,7 @@ const Dashboard = () => {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             publishedAgents={publishedAgents}
           />
-        )}
+        ))}
 
         <main
           className="flex flex-1 flex-col min-w-0 overflow-hidden h-full relative"
