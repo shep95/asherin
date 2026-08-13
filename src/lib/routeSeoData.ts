@@ -50,7 +50,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/asher": {
     title: "Asher | Operator Workspace | Asherin",
     description:
-      "Asher: the operator workspace inside Aureon. Encrypted channels, intelligence modules, and live collaboration.",
+      "Asher: the operator workspace inside Asherin. Encrypted channels, intelligence modules, and live collaboration.",
   },
   "/privacy": {
     title: "Privacy Policy | Asherin",
