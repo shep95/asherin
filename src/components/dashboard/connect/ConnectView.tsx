@@ -138,7 +138,9 @@ const ConnectView = () => {
   // graph opens already filtered to the organ the operator clicked.
   const [searchParams] = useSearchParams();
   const [selected, setSelected] = useState<string | null>(searchParams.get("organ"));
-  const [google, setGoogle] = useState<{ connected: boolean; count: number }>({ connected: false, count: 0 });
+  const [google, setGoogle] = useState<{
+    connected: boolean; count: number; valid: number; lastHarvest: string | null;
+  }>({ connected: false, count: 0, valid: 0, lastHarvest: null });
   const [github, setGithub] = useState<{ connected: boolean; login: string | null }>({ connected: false, login: null });
   const [byok, setByok] = useState<string[]>([]);
 
@@ -164,12 +166,25 @@ const ConnectView = () => {
 
   const loadBindings = useCallback(async () => {
     if (!user) return;
-    const [g, gh, keys] = await Promise.all([
-      supabase.from("google_accounts").select("id").eq("user_id", user.id).eq("status", "active"),
+    const [g, gh, keys, harvest] = await Promise.all([
+      // The OAuth edge is green only when a token is actually still valid;
+      // a connected row with an expired token is a stale edge, not a link.
+      supabase.from("google_accounts").select("id, token_expires_at, status").eq("user_id", user.id),
       supabase.from("github_connections").select("github_username").eq("user_id", user.id).maybeSingle(),
       supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("asherin_connect_pulls").select("ts")
+        .eq("user_id", user.id).eq("organ", "google").eq("capability", "harvest")
+        .eq("status", "ok").order("ts", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    setGoogle({ connected: (g.data?.length ?? 0) > 0, count: g.data?.length ?? 0 });
+    const gRows = ((g.data as { token_expires_at: string; status: string }[] | null) ?? [])
+      .filter(r => !/revoked|disconnected|error/i.test(r.status ?? ""));
+    const now = Date.now();
+    setGoogle({
+      connected: gRows.length > 0,
+      count: gRows.length,
+      valid: gRows.filter(r => Date.parse(r.token_expires_at) > now).length,
+      lastHarvest: (harvest.data as { ts?: string } | null)?.ts ?? null,
+    });
     setGithub({
       connected: !!gh.data,
       login: (gh.data as { github_username?: string } | null)?.github_username ?? null,
@@ -258,8 +273,18 @@ const ConnectView = () => {
           <BindingCard
             icon={<Globe className="h-4 w-4" />}
             title="Google"
-            state={google.connected ? `${google.count} account${google.count === 1 ? "" : "s"} connected` : "not connected"}
-            ok={google.connected}
+            state={
+              !google.connected
+                ? "not connected"
+                : google.valid === 0
+                  ? `${google.count} account${google.count === 1 ? "" : "s"} · token expired, reconnect`
+                  : `${google.valid}/${google.count} token${google.count === 1 ? "" : "s"} valid · ${
+                      google.lastHarvest
+                        ? `harvested ${new Date(google.lastHarvest).toLocaleDateString()}`
+                        : "no harvest yet"
+                    }`
+            }
+            ok={google.connected && google.valid > 0}
             href="/dashboard/google"
           />
           <BindingCard
