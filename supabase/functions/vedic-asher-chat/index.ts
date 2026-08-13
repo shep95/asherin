@@ -8,9 +8,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 const PLATFORM_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
+import { isStaffEmail } from "../_shared/identityHash.ts";
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 
 type Provider = "gemini" | "openai" | "anthropic";
 

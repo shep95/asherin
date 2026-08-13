@@ -4,9 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
+import { isStaffEmail } from "../_shared/identityHash.ts";
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);

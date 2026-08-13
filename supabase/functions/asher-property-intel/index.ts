@@ -218,7 +218,7 @@ serve(async (req) => {
     //  2. BYOK string (frontend sends byok as raw string) → use as Gemini key when provider is gemini or unspecified.
     //  3. BYOK object (shared shape) → pull .apiKey when provider === "gemini".
     //  4. Otherwise 402 BYOK_REQUIRED (this engine is Gemini-only by design).
-    const isAdmin = ["ashernewtonx@gmail.com","shepherdnewtonx@gmail.com","28numberofmoney@gmail.com"]
+    const isAdmin = ASHERIN_STAFF
       .includes(String(user.email || "").toLowerCase());
 
     let apiKey: string | null = null;

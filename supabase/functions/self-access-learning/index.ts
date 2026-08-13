@@ -4,9 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
+import { isStaffEmail } from "../_shared/identityHash.ts";
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

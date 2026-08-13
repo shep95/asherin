@@ -275,7 +275,7 @@ serve(async (req) => {
     if (!area && !landmark) return new Response(JSON.stringify({ error: "area or landmark required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!criteria) return new Response(JSON.stringify({ error: "criteria required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const isAdmin = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
     const apiKey = (typeof byok === "string" && byok.trim()) || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Gemini API key required (BYOK or admin)" }), {

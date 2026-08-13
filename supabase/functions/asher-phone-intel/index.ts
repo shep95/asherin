@@ -256,7 +256,7 @@ serve(async (req) => {
     })));
 
     // ---- GEMINI extraction ----
-    const isAdmin = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
     const apiKey = (typeof byok === "string" && byok.trim())
       || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
 

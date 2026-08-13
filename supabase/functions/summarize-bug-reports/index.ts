@@ -33,7 +33,7 @@ serve(async (req) => {
     // Verify admin
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: { user } } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (!user || !["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase())) {
+    if (!user || !isStaffEmail(user.email)) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

@@ -1013,9 +1013,8 @@ serve(async (req) => {
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
-    const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
+    import { isStaffEmail } from "../_shared/identityHash.ts";
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const backendKeywords = [
       "supabase", "edge function", "backend", "database schema", "rls", "row level security",

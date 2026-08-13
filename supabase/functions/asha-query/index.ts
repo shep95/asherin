@@ -40,8 +40,7 @@ serve(async (req) => {
 
     // ── Server-side tier validation ──────────────────────────────────────
     // Azplen is a Pro+ feature. Verify the user's subscription before proceeding.
-    const ADMIN_EMAILS_LIST = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"];
-    const isAdmin = ADMIN_EMAILS_LIST.includes(String(userEmail||"").toLowerCase());
+    const isAdmin = isStaffEmail(userEmail);
 
     if (!isAdmin) {
       const svcClient = createClient(
