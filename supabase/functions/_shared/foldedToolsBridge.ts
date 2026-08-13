@@ -698,10 +698,55 @@ export async function runFoldedTools(
         );
         return;
       }
+      if (m.action === "dossier") {
+        const b: any = out.body ?? {};
+        if (!b.found) {
+          parts.push(
+            `GOOGLE MESH dossier — \`${m.email ?? m.name}\` does not appear in the operator's connected mailboxes or contacts.`,
+            "- Say there is no record in the owned accounts. Do not search the open web for this person and do not infer anything.",
+          );
+          return;
+        }
+        parts.push(
+          `GOOGLE MESH dossier — fused from the operator's OWN mailboxes, contacts and calendar only:`,
+          maskPii(JSON.stringify(b).slice(0, 4000)),
+          b.uncertain ? `- Carry this caveat into the answer: ${b.uncertain}` : "",
+          "- Do not add employer, location or history that is not in this payload.",
+        );
+        return;
+      }
+      if (m.action === "meet_vault") {
+        const total = Number(out.body?.total ?? 0);
+        parts.push(
+          total
+            ? `GOOGLE MESH meet records — ${total} file(s) already stored in Drive:`
+            : "GOOGLE MESH meet records — none in Drive.",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          total ? "" : "- Say plainly: none in Drive. Do not describe meetings that were never recorded.",
+        );
+        return;
+      }
+      if (m.action === "sentinel") {
+        parts.push(
+          `GOOGLE MESH sentinel — cadence: ${String(out.body?.cadence ?? "unknown")}.`,
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- Quote the cadence exactly. Never call this always-on unless the cadence says push.",
+        );
+        return;
+      }
+      if (m.action === "fit_location") {
+        parts.push(
+          "GOOGLE MESH fit location — Google Fit location history, which is NOT device locating, NOT Find Hub, NOT a live position:",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- If unavailable, say it is not in Fit location history and stop there.",
+        );
+        return;
+      }
       parts.push(
         `GOOGLE MESH ${m.action} — derived from the operator's OWN connected account(s):`,
         maskPii(JSON.stringify(out.body).slice(0, 4000)),
       );
+
     })()]);
   }
 
