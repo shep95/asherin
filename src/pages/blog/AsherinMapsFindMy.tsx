@@ -18,7 +18,7 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/asherin-maps-find-my";
 const TITLE =
-  "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Find-My";
+  "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Bluetooth recovery";
 const DEK =
   "Asherin Maps replaces the property-map panel with a satellite-default mapping surface: a resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, self-reporting device telemetry from the browsers you sign in on, and Bluetooth recovery rings for hardware that cannot report.";
 const PUBLISHED = "2026-08-04T00:00:00.000Z";
@@ -139,7 +139,7 @@ const AsherinMapsFindMy = () => {
  ▸ Live feeds
      ● DOT cameras  (2,7xx)    ○ Incidents
  ▸ Mesh
-     ● My devices              ● Find-My rings
+     ● My devices              ● Recovery rings
  ▸ Routing
      ● Fast Lane path          ○ Alternates
  ▸ Analysis
@@ -201,7 +201,7 @@ const AsherinMapsFindMy = () => {
           scans, not a network of strangers' phones.
         </p>
 
-        <Box>{`FIND-MY — "AirPods Pro"
+        <Box>{`BLUETOOTH RECOVERY — "AirPods Pro"
   last self-report      none (passive device)
   observations          3 sightings, 2 devices
     ├─ phone   18:41  RSSI -67  → ~4 m radius
