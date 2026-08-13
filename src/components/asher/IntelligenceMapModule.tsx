@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap, CircleMarker, Polyline, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, CircleMarker, Polyline, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -12,6 +12,8 @@ import DirectionsPanel, { type DirectionsEndpoint } from "@/components/asher/Dir
 import PlacesNearbyPanel from "@/components/asher/PlacesNearbyPanel";
 import JobsNearbyPanel, { type JobPosting } from "@/components/asher/JobsNearbyPanel";
 import StreetCameraLayer from "@/components/asher/StreetCameraLayer";
+import { pullNearbyOrgans, buildOrganDigest, type OrganPoint, type OrganDigest } from "@/lib/asher/nearbyOrgans";
+import { sampleRoofColor, type RoofColorVote } from "@/lib/asher/roofColor";
 import CameraIntelligencePanel from "@/components/asher/CameraIntelligencePanel";
 
 import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
@@ -767,6 +769,18 @@ const IntelligenceMapModule = () => {
   const [seedDest, setSeedDest] = useState<DirectionsEndpoint | null>(null);
   const [routeLayer, setRouteLayer] = useState<{ routes: RouteOption[]; activeId: string | null; highlight: Array<{ lat: number; lng: number }> | null }>({ routes: [], activeId: null, highlight: null });
   const [cameras, setCameras] = useState<StreetCamera[]>([]);
+  /* Camera the operator picked from the glass list — drives the highlight,
+     the schematic facing cone and the dashed sight-line to the property pin. */
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  /* Public-organ sweep for the current fly. Never inferred: a dead endpoint is
+     a gap row, never a green chip. */
+  const [organPoints, setOrganPoints] = useState<OrganPoint[]>([]);
+  const [organDigest, setOrganDigest] = useState<OrganDigest | null>(null);
+  const [organBusy, setOrganBusy] = useState(false);
+  const [organsOpen, setOrgansOpen] = useState(false);
+  const [roofVote, setRoofVote] = useState<RoofColorVote | null>(null);
+  /* One sweep owns the paint: an older arrival must never overwrite a newer. */
+  const organRunRef = useRef(0);
   /** True while the Asher AI dock is expanded — the top bar shrinks so no
    *  control is ever rendered underneath the 380px dock. */
   const [aiDocked, setAiDocked] = useState(true);
@@ -1380,8 +1394,40 @@ const IntelligenceMapModule = () => {
       } catch { /* cameras optional */ }
     })();
 
+    /* AUTO-PULL (Queue MAP-B): cameras were one organ. Arriving pulls the whole
+       browser-reachable public field in parallel on the same choke. Each organ
+       owns its own failure, so one dead agency endpoint cannot stall the fly. */
+    const organSweep = (async () => {
+      if (zoom < 14) { setOrganPoints([]); setOrganDigest(null); setRoofVote(null); return; }
+      const run = ++organRunRef.current;
+      setOrganBusy(true);
+      setSelectedCameraId(null);
+      try {
+        const radius = zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1600;
+        const [pull, roof] = await Promise.all([
+          pullNearbyOrgans(lat, lng, { radiusM: radius }),
+          zoom >= 17 ? sampleRoofColor(lat, lng) : Promise.resolve(null),
+        ]);
+        if (run !== organRunRef.current) return; // a newer arrival owns the paint
+        const rows = [...pull.results];
+        rows.push(
+          roof
+            ? { id: "roof-color", label: "Roof colour", status: "live" as const, count: 1, note: `${roof.klass} · ${Math.round(roof.confidence * 100)}% of sampled pixels — ${roof.note}` }
+            : { id: "roof-color", label: "Roof colour", status: "gap" as const, count: 0, note: zoom >= 17 ? "Imagery tile unavailable or canvas read blocked — not in public index." : "Only sampled at rooftop zoom." },
+        );
+        setRoofVote(roof);
+        setOrganPoints(pull.points);
+        setOrganDigest(buildOrganDigest(rows));
+      } catch {
+        if (run === organRunRef.current) { setOrganPoints([]); setOrganDigest(null); }
+      } finally {
+        if (run === organRunRef.current) setOrganBusy(false);
+      }
+    })();
+
     await loadEntity(lat, lng);
     void camSweep;
+    void organSweep;
   };
 
 
@@ -2609,6 +2655,89 @@ const IntelligenceMapModule = () => {
           </div>
         </div>
 
+        {/* GLASS DIGEST — organ counts and the clickable camera roll.
+            Fifty-five rows would be a Palantir dump; the operator gets counts
+            and can open the roster. A gap is printed as a gap. */}
+        {(organDigest || cameras.length > 0) && (
+          <div className="pointer-events-auto absolute bottom-3 left-3 z-[1000] w-[300px] max-w-[calc(100%-24px)] space-y-2">
+            {organDigest && (
+              <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
+                <button
+                  onClick={() => setOrgansOpen((o) => !o)}
+                  aria-expanded={organsOpen}
+                  className="flex w-full items-center gap-2 text-left"
+                >
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Public organs</span>
+                  {organBusy && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground motion-reduce:animate-none" />}
+                  <span className="ml-auto flex items-center gap-1.5 text-[10px] font-light">
+                    <span className="rounded-md bg-[#c98b3a]/20 px-1.5 py-0.5 text-[#e0a955]">{organDigest.live} live</span>
+                    <span className="rounded-md bg-foreground/5 px-1.5 py-0.5 text-muted-foreground">{organDigest.gap} gap</span>
+                    <span className="rounded-md bg-foreground/5 px-1.5 py-0.5 text-muted-foreground">{organDigest.engine} engine</span>
+                  </span>
+                </button>
+                {organsOpen && (
+                  <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1">
+                    {organDigest.rows.map((r) => (
+                      <li key={r.id} className="flex items-start gap-2 text-[10px] leading-snug">
+                        <span
+                          className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
+                            r.status === "live" ? "bg-[#e0a955]"
+                              : r.status === "engine" ? "bg-sky-400/60"
+                              : r.status === "refused" ? "bg-red-400/60"
+                              : "bg-foreground/20"
+                          }`}
+                        />
+                        <span className="min-w-0">
+                          <span className="text-foreground/85">{r.label}</span>
+                          {r.count > 0 && <span className="text-[#e0a955]"> · {r.count}</span>}
+                          <span className="block text-muted-foreground/70">{r.note}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {roofVote && (
+                  <p className="mt-1.5 text-[9px] leading-snug text-muted-foreground/70">
+                    Roof reads {roofVote.klass} — {roofVote.note}.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {cameras.length > 0 && (
+              <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Corridor stills</span>
+                  <span className="ml-auto text-[10px] text-[#e0a955]">{cameras.length}</span>
+                </div>
+                <ul className="mt-1.5 max-h-40 space-y-0.5 overflow-y-auto pr-1">
+                  {cameras.slice(0, 60).map((cam) => (
+                    <li key={cam.id}>
+                      <button
+                        onClick={() => {
+                          setSelectedCameraId(cam.id);
+                          flyTo(cam.lat, cam.lng, Math.max(17, mapRef.current?.getZoom() ?? 17));
+                        }}
+                        className={`w-full truncate rounded-lg px-2 py-1 text-left text-[10px] font-light transition-colors ${
+                          selectedCameraId === cam.id ? "bg-[#c98b3a]/20 text-[#e0a955]" : "text-foreground/80 hover:bg-foreground/10"
+                        }`}
+                      >
+                        {cam.name}
+                        <span className="text-muted-foreground/70">
+                          {cam.direction ? ` · ${cam.direction}` : " · direction not in public index"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-[9px] leading-snug text-muted-foreground/60">
+                  Highway / corridor stills published by transport agencies. Not doorbell or private CCTV. The facing wedge is schematic, not a measured lens field of view.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TOOL PANELS */}
         <div className="pointer-events-none absolute right-3 top-16 z-[1000] flex flex-col items-end gap-2">
           <div className="pointer-events-auto">
@@ -2772,7 +2901,24 @@ const IntelligenceMapModule = () => {
           )}
 
           {/* LIVE STREET CAMERAS */}
-          <StreetCameraLayer cameras={cameras} />
+          <StreetCameraLayer
+            cameras={cameras}
+            selectedId={selectedCameraId}
+            anchor={focusPin ? { lat: focusPin.lat, lng: focusPin.lng } : null}
+            onSelect={(cam) => setSelectedCameraId(cam.id)}
+          />
+
+          {/* AUTO-PULLED PUBLIC ORGANS — position only, no inference */}
+          {organPoints.map((p, i) => (
+            <CircleMarker
+              key={`organ-${p.kind}-${i}-${p.lat.toFixed(5)}-${p.lng.toFixed(5)}`}
+              center={[p.lat, p.lng]}
+              radius={3}
+              pathOptions={{ color: "#7fa6b8", weight: 1, fillColor: "#7fa6b8", fillOpacity: 0.5 }}
+            >
+              <Tooltip direction="top" opacity={0.9}>{`${p.label} · ${p.kind}`}</Tooltip>
+            </CircleMarker>
+          ))}
 
           {/* NEARBY PLACES */}
           {placePins.map((p) => (
