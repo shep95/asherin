@@ -4,7 +4,7 @@ import { Brain, Trash2, Upload, Loader2, X, ToggleLeft, ToggleRight, FileText } 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 interface AxrlenBrain {
   id: string;
@@ -61,7 +61,7 @@ const AxrlenBrainsManager = () => {
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   useEffect(() => {
     if (!showPanel) return;

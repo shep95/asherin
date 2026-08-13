@@ -1,17 +1,24 @@
-// Centralized admin identity for client-side UI gating.
-// NOTE: This is only used for cosmetic UI decisions (showing admin tabs, etc.).
-// Real authorization is enforced server-side via the `is_admin_user(uuid)` SQL
-// function and RLS policies — never trust these constants for security.
+// Centralized operator identity for client-side UI gating.
+//
+// There are no addresses here. Recognition is a SHA-256 digest match over the
+// canonical address (see identityHash.ts) so no operator mailbox ships in the
+// JS bundle where anyone can scrape it.
+//
+// NOTE: these checks are cosmetic only — showing an admin tab, unlocking an
+// internal panel. Real authorization is enforced server-side by the
+// `is_admin_user(uuid)` SQL function, RLS, and the edge-function digest gates.
+// Never trust this file for security.
 
-/** Primary admin (platform owner). Identity references throughout the codebase. */
-export const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+export {
+  isOwnerEmail,
+  isStaffEmail,
+  isInternalProEmail,
+  isContributorEmail,
+  emailHash,
+  canonicalizeEmail,
+} from "@/lib/identityHash";
 
-/** All authorized admin emails. Add new admins here. */
-export const ADMIN_EMAILS: readonly string[] = [
-  "ashernewtonx@gmail.com",
-  "shepherdnewtonx@gmail.com",
-  "28numberofmoney@gmail.com",
-];
+import { isStaffEmail } from "@/lib/identityHash";
 
-export const isAdminEmail = (email?: string | null): boolean =>
-  !!email && ADMIN_EMAILS.includes(email.toLowerCase());
+/** Historical name kept so existing call sites keep compiling. */
+export const isAdminEmail = (email?: string | null): boolean => isStaffEmail(email);

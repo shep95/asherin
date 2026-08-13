@@ -1,5 +1,5 @@
 // asher-incident-response — Authorized incident response audit/control stub.
-// Strictly admin-only (ashernewtonx@gmail.com). This function intentionally does
+// Strictly staff-only (sha256 digest match). This function intentionally does
 // not simulate provider control and does not perform destructive operations. It
 // records the verified admin request and returns the real control-state:
 // "provider_control_not_connected" until explicit provider integrations exist.
@@ -9,9 +9,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
+import { isStaffEmail } from "../_shared/identityHash.ts";
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 
 interface Step { action: string; status: "ok" | "skipped" | "error"; detail?: string; }
 

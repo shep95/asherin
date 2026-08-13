@@ -17,8 +17,7 @@ import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 
-import { ADMIN_EMAILS as SHARED_ADMIN_EMAILS } from "../_shared/constants.ts";
-const ADMIN_EMAILS = Array.from(SHARED_ADMIN_EMAILS);
+import { isStaffEmail } from "../_shared/identityHash.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +42,7 @@ Deno.serve(async (req) => {
     if (error || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const email = (user.email || "").toLowerCase();
-    if (!ADMIN_EMAILS.includes(email)) {
+    if (!isStaffEmail(email)) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

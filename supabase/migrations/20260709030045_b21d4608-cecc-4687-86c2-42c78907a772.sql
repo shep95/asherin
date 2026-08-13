@@ -1,3 +1,7 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 DO $$ BEGIN CREATE TYPE public.hoa_channel_kind AS ENUM ('text','voice','vault','broadcast'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE public.hoa_server_role AS ENUM ('owner','operator','analyst','guest','houseofasher'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
@@ -239,6 +243,6 @@ SELECT s.id, v.name, v.kind::public.hoa_channel_kind, v.min_clearance, v.topic
 INSERT INTO public.hoa_members (server_id, user_id, handle, rank_label, role, clearance_rank)
 SELECT s.id, u.id, COALESCE(split_part(u.email,'@',1),'sovereign'), 'Sovereign', 'houseofasher', 4
   FROM public.hoa_servers s
-  JOIN auth.users u ON lower(u.email) IN ('ashernewtonx@gmail.com','shepherdnewtonx@gmail.com')
+  JOIN auth.users u ON lower(u.email) IN ('operator-owner@redacted.invalid','operator-two@redacted.invalid')
  WHERE s.code = 'HOA'
 ON CONFLICT (server_id, user_id) DO UPDATE SET role='houseofasher', clearance_rank=4;

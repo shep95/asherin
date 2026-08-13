@@ -5649,7 +5649,8 @@ export type Database = {
       granted_subscriptions: {
         Row: {
           active: boolean
-          email: string
+          email: string | null
+          email_sha256: string | null
           expires_at: string | null
           granted_at: string
           id: string
@@ -5658,7 +5659,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          email: string
+          email?: string | null
+          email_sha256?: string | null
           expires_at?: string | null
           granted_at?: string
           id?: string
@@ -5667,7 +5669,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          email?: string
+          email?: string | null
+          email_sha256?: string | null
           expires_at?: string | null
           granted_at?: string
           id?: string
@@ -13647,12 +13650,14 @@ export type Database = {
         Returns: boolean
       }
       ble_can_claim: { Args: { _fingerprint: string }; Returns: Json }
+      canonical_email: { Args: { _email: string }; Returns: string }
       delete_conversation: { Args: { p_conv_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
+      email_sha256: { Args: { _email: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -13710,6 +13715,9 @@ export type Database = {
       is_asher_super_owner: { Args: { _uid: string }; Returns: boolean }
       is_blocked_display_name: { Args: { raw: string }; Returns: boolean }
       is_countable_download: { Args: { _slug: string }; Returns: boolean }
+      is_internal_operator: { Args: { _uid: string }; Returns: boolean }
+      is_internal_owner: { Args: { _uid: string }; Returns: boolean }
+      is_internal_staff: { Args: { _uid: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
@@ -13845,6 +13853,7 @@ export type Database = {
         }[]
       }
       unaccent_fallback: { Args: { raw: string }; Returns: string }
+      user_email_sha256: { Args: { _uid: string }; Returns: string }
       ziaassets_bootstrap_emperor: { Args: never; Returns: string }
       ziaassets_has_min_rank: {
         Args: {

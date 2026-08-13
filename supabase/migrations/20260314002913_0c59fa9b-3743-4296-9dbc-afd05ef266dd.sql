@@ -1,3 +1,7 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 
 -- Bug reports & feature requests table
 CREATE TABLE public.bug_reports (
@@ -45,7 +49,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM auth.users WHERE id = _user_id AND email = 'ashernewtonx@gmail.com'
+    SELECT 1 FROM auth.users WHERE id = _user_id AND email = 'operator-owner@redacted.invalid'
   );
 $$;
 

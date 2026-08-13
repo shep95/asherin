@@ -17,6 +17,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isStaffEmail } from "../_shared/identityHash.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const UA = "AsherVisualRecon/1.0 (intel-map)";
@@ -377,7 +378,7 @@ serve(async (req) => {
     }
 
     // Resolve key (admin or BYOK)
-    const isAdmin = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
     const apiKey = (typeof byok === "string" && byok.trim())
       || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
     if (!apiKey) {

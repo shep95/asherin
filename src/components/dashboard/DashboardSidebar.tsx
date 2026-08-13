@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
@@ -199,11 +199,11 @@ const DashboardSidebar = ({
   };
 
   const itemAllowed = (item: IntentNavItem) => {
-    if (item.id === "security") return user?.email === ADMIN_EMAIL;
-    if (item.id === "self-access") return user?.email === ADMIN_EMAIL;
-    if (item.id === "ebook") return user?.email === ADMIN_EMAIL;
-    if (item.adminOnly) return user?.email === ADMIN_EMAIL;
-    if (user?.email === ADMIN_EMAIL) return true;
+    if (item.id === "security") return isOwnerEmail(user?.email);
+    if (item.id === "self-access") return isOwnerEmail(user?.email);
+    if (item.id === "ebook") return isOwnerEmail(user?.email);
+    if (item.adminOnly) return isOwnerEmail(user?.email);
+    if (isOwnerEmail(user?.email)) return true;
     // Connected-account surfaces ($18/mo Asherin and above). Checked ahead of
     // the feature map because `tierHasFeature` is currently open to every tier —
     // routing this surface through it would publish the entry to unentitled operators.

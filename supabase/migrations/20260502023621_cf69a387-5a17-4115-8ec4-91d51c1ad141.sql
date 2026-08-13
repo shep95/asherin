@@ -1,3 +1,7 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 
 -- ASHER BRAINS: admin-only personality + knowledge files for Asher AI
 CREATE TYPE public.asher_brain_category AS ENUM ('general', 'map', 'coding', 'personality', 'azplen', 'zali');
@@ -21,7 +25,7 @@ CREATE INDEX idx_asher_brains_category_active ON public.asher_brains (category, 
 
 ALTER TABLE public.asher_brains ENABLE ROW LEVEL SECURITY;
 
--- Only the super owner (ashernewtonx@gmail.com) can read/write
+-- Only the super owner (operator-owner@redacted.invalid) can read/write
 CREATE POLICY "Asher super owner can select brains"
   ON public.asher_brains FOR SELECT
   USING (public.is_asher_super_owner(auth.uid()));

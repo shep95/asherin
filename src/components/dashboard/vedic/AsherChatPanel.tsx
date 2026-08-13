@@ -3,7 +3,7 @@ import { Loader2, MessageSquare, Send, Settings, StickyNote, Trash2, X, Plus, Sh
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 interface Note {
   id: string;
@@ -66,7 +66,7 @@ interface CrossResult { provider: Provider; model: string; reply: string }
 
 export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, chartContext, onDatesExtracted }: Props) {
   const { user } = useAuth();
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   const [tab, setTab] = useState<"chat" | "notes">("chat");
   const [messages, setMessages] = useState<Msg[]>([]);

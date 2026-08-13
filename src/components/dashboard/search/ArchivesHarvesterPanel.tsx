@@ -6,7 +6,7 @@ import { Loader2, Database, Download, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 const PRESETS: { label: string; domain: string; category: string; years: number }[] = [
   { label: "Modern Cybersecurity",        domain: "modern cybersecurity threats exploits CVE zero-day", category: "general", years: 4 },
   { label: "Modern Coding Knowledge",     domain: "modern software engineering languages frameworks best practices", category: "coding", years: 4 },
@@ -21,7 +21,7 @@ const CATEGORIES = ["general", "map", "coding", "personality", "azplen", "zali"]
 
 export const ArchivesHarvesterPanel = () => {
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   const [domain, setDomain] = useState("");
   const [category, setCategory] = useState("general");

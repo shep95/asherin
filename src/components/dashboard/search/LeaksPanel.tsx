@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 const ALEPH = "https://search.libraryofleaks.org/api/2";
 const UI = "https://search.libraryofleaks.org";
 const PROXY = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/asher-eyes-proxy?url=`;
@@ -42,7 +42,7 @@ const firstProp = (p: any, ...keys: string[]): string => {
 
 const LeaksPanel = () => {
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AlephResult[]>([]);
   const [total, setTotal] = useState(0);

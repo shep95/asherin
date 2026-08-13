@@ -11,6 +11,7 @@ import { Loader2, ShieldCheck, KeyRound, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { randomSalt, scorePassphrase } from "@/lib/ziaassets/crypto";
 import { unlock, subscribeSession, getSessionKey } from "@/lib/ziaassets/session";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 type MemberRow = {
   id: string;
@@ -39,7 +40,7 @@ export default function GateScreen({ onUnlocked }: { onUnlocked: () => void }) {
   useSyncExternalStore(subscribeSession, () => getSessionKey());
 
   const isEmperor =
-    (user?.email ?? "").toLowerCase() === "ashernewtonx@gmail.com";
+    isOwnerEmail(user?.email);
 
   useEffect(() => {
     let alive = true;

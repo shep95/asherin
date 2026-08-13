@@ -26,6 +26,10 @@ import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoc
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
+import { isStaffEmail } from "../_shared/identityHash.ts";
+
+// Staff recognition is a digest match — no mailbox is written into this file.
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 import {
   assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
 } from "../_shared/artifactLedger.ts";
@@ -1013,9 +1017,6 @@ serve(async (req) => {
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
-    const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const ADMIN_EMAILS: ReadonlySet<string> = new Set(["ashernewtonx@gmail.com","28numberofmoney@gmail.com"]);
-const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAILS.has(String(e).toLowerCase());
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const backendKeywords = [
       "supabase", "edge function", "backend", "database schema", "rls", "row level security",
@@ -1050,7 +1051,7 @@ const isAuthorizedAdminEmail = (e?: string | null): boolean => !!e && ADMIN_EMAI
     let adminBackendContext = "";
     if (isBackendQuery && isAdmin) {
       adminBackendContext = `\n\n## ADMIN BACKEND ACCESS (ASHER ONLY)
-You are speaking to an authorized administrator (ashernewtonx@gmail.com or 28numberofmoney@gmail.com). You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Azplen-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full AZPLEN intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
+You are speaking to an authorized administrator of this platform. You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Azplen-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full AZPLEN intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
     } else if (isBackendQuery && !isAdmin) {
       adminBackendContext = `\n\n## BACKEND DISCUSSION BLOCKED
 The user is asking about internal code, backend, or architecture. You are FORBIDDEN from discussing any internal implementation details. Respond with: "Aureon's architecture is proprietary. I can help you use the platform's features — what would you like to accomplish?"`;

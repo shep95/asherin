@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 /**
  * ZAHTEN — House of Asher
@@ -724,7 +724,7 @@ const AsherZahtenModule = () => {
   const [adminFilter, setAdminFilter] = useState("");
   const [adminVisFilter, setAdminVisFilter] = useState<"all" | "public" | "private" | "team" | "organization">("all");
   const [adminSelected, setAdminSelected] = useState<AdminAgentRow | null>(null);
-  const isAdmin = (currentEmail || "").toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(currentEmail);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));
@@ -1636,7 +1636,7 @@ Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend m
           )}
 
 
-          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (ashernewtonx@gmail.com only) ─────────── */}
+          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (owner only) ─────────── */}
           {viewTab === "admin" && isAdmin && (
             <div className="mx-auto max-w-7xl px-6 py-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">

@@ -1,3 +1,7 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 
 -- Create app_role enum
 DO $$ BEGIN
@@ -45,7 +49,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = 'admin'
   ) OR EXISTS (
-    SELECT 1 FROM auth.users WHERE id = _user_id AND lower(email) = 'ashernewtonx@gmail.com'
+    SELECT 1 FROM auth.users WHERE id = _user_id AND lower(email) = 'operator-owner@redacted.invalid'
   );
 $$;
 
@@ -54,5 +58,5 @@ GRANT EXECUTE ON FUNCTION public.is_admin_user(uuid) TO authenticated, service_r
 
 -- Seed admin role for existing super owner
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin'::public.app_role FROM auth.users WHERE lower(email) = 'ashernewtonx@gmail.com'
+SELECT id, 'admin'::public.app_role FROM auth.users WHERE lower(email) = 'operator-owner@redacted.invalid'
 ON CONFLICT DO NOTHING;

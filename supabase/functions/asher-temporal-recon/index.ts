@@ -19,6 +19,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isStaffEmail } from "../_shared/identityHash.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const UA = "AsherTemporalRecon/1.0 (intel-map)";
@@ -275,7 +276,7 @@ serve(async (req) => {
     if (!area && !landmark) return new Response(JSON.stringify({ error: "area or landmark required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!criteria) return new Response(JSON.stringify({ error: "criteria required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const isAdmin = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"].includes(String(user.email||"").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
     const apiKey = (typeof byok === "string" && byok.trim()) || (isAdmin ? Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") : null);
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Gemini API key required (BYOK or admin)" }), {

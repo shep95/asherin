@@ -1,3 +1,4 @@
+import { isStaffEmail } from "@/lib/adminEmail";
 import { useState, useRef, useCallback } from "react";
 import JSZip from "jszip";
 import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary, CloudOff } from "lucide-react";
@@ -8,7 +9,6 @@ import { toast } from "sonner";
 
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 
-const ADMIN_EMAILS = new Set(["ashernewtonx@gmail.com", "28numberofmoney@gmail.com"]);
 
 interface ScanModalProps {
   open: boolean;
@@ -183,7 +183,7 @@ const ScanModal = ({ open, onClose, onScanComplete, onScanStarted }: ScanModalPr
         if ((keyRow as any)?.api_key) byok = { provider: ap, model: am, apiKey: (keyRow as any).api_key };
       }
     } catch { /* ignore */ }
-    const isAdmin = ADMIN_EMAILS.has((user.email || "").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
     if (!byok && !isAdmin) {
       triggerByokRequired({ source: "zerlal", reason: "Zerlal scans require your own AI key. Add one in Settings → AI Keys." });
       setScanError("Add your AI key in Settings → AI Keys, then retry the scan.");

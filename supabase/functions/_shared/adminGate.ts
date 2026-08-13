@@ -1,11 +1,16 @@
-// Strict BYOK gate — only the platform owner may consume the platform Gemini
+// Strict BYOK gate — only staff identities may consume the platform Gemini
 // key. Every other caller MUST ship a valid BYOK config or get a clean 403.
 //
-// Used by every Zophiel / Aureon / Asher AI edge function.
+// Staff recognition is a SHA-256 digest match (identityHash.ts). No mailbox
+// appears in this file, in any comment, in any log line, or in any response
+// body — a committed operator address is a disclosure, and this gate is the
+// one place tempted to write one down.
+//
+// Used by every Zophiel / Asherin / Asher AI edge function.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
-import { ADMIN_EMAILS } from "./constants.ts";
+import { isStaffEmail } from "./identityHash.ts";
 
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
@@ -35,8 +40,12 @@ export async function getCallerEmail(req: Request): Promise<string | null> {
   }
 }
 
+/**
+ * Staff identity check — the single implementation. constants.ts re-exports
+ * this same rule so the two cannot drift apart.
+ */
 export function isAdminEmail(email: string | null): boolean {
-  return !!email && ADMIN_EMAILS.has(email.toLowerCase());
+  return isStaffEmail(email);
 }
 
 export interface KeyResolution {
@@ -76,13 +85,12 @@ export async function resolveKeyForEmail(
   opts: { strict?: boolean } = {},
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
-  const isAureonTeam = isAdminEmail(email);
+  const isInternalTeam = isAdminEmail(email);
 
-  // AUREON TEAM (ashernewtonx@gmail.com, shepherdnewtonx@gmail.com, etc.):
-  // never prompted for BYOK — always routed through the platform Gemini key.
-  // Applies in BOTH normal and strict modes. No software they touch should
-  // ever ask them to supply a Gemini key.
-  if (isAureonTeam) {
+  // Staff digests are never prompted for BYOK — always routed through the
+  // platform Gemini key, in BOTH normal and strict modes. No software they
+  // touch should ever ask them to supply a Gemini key.
+  if (isInternalTeam) {
     const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
     if (geminiKey) return { mode: "admin", geminiKey };
     // If platform key is missing, fall through so a team member's own BYOK still works.

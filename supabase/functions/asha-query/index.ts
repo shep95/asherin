@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isStaffEmail, emailHash } from "../_shared/identityHash.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 serve(async (req) => {
@@ -40,8 +41,7 @@ serve(async (req) => {
 
     // ── Server-side tier validation ──────────────────────────────────────
     // Azplen is a Pro+ feature. Verify the user's subscription before proceeding.
-    const ADMIN_EMAILS_LIST = ["ashernewtonx@gmail.com","28numberofmoney@gmail.com"];
-    const isAdmin = ADMIN_EMAILS_LIST.includes(String(userEmail||"").toLowerCase());
+    const isAdmin = isStaffEmail(userEmail);
 
     if (!isAdmin) {
       const svcClient = createClient(
@@ -54,7 +54,8 @@ serve(async (req) => {
       const { data: granted } = await svcClient
         .from("granted_subscriptions")
         .select("tier")
-        .eq("email", userEmail)
+        // Digest match — operator grant rows deliberately carry no address.
+        .eq("email_sha256", emailHash(userEmail))
         .eq("active", true)
         .maybeSingle();
 

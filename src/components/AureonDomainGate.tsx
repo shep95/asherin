@@ -1,15 +1,14 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isStaffEmail } from "@/lib/adminEmail";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
-const ALLOWED_EMAILS = new Set([ADMIN_EMAIL, "ekk447@gmail.com", "28numberofmoney@gmail.com"]);
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
 /**
- * Hard restriction: on the aureonai.app production domain, ONLY
- * ashernewtonx@gmail.com is permitted. Everyone else sees a lockout
+ * Hard restriction: on the aureonai.app production domain, only staff
+ * identities (sha256 digest match) are permitted. Everyone else sees a lockout
  * screen and is signed out. Other hosts (preview, lovable.app, custom
  * staging) are unaffected.
  */
@@ -30,7 +29,7 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   if (loading) return null;
 
   const email = (user?.email || "").toLowerCase();
-  const allowed = ALLOWED_EMAILS.has(email);
+  const allowed = isStaffEmail(email);
   if (allowed) return <>{children}</>;
 
   // Block everyone else on this domain. Redirect to a stable internal path

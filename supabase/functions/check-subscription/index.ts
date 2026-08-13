@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { emailHash, isInternalProEmail, INTERNAL_PRO_PRODUCT_ID } from "../_shared/identityHash.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const logStep = (step: string, details?: any) => {
@@ -56,7 +57,28 @@ serve(async (req) => {
     const userData = { user: userPayload };
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { email: user.email });
+    // Never log the address — these logs are retained and readable.
+    logStep("User authenticated", { uid: user.id });
+
+    // Internal Pro grant: the operator identities hold $79 Asherin Pro without
+    // a Stripe subscription. Answered before any Stripe lookup so a missing or
+    // rate-limited Stripe customer cannot strand them on the free tier.
+    if (isInternalProEmail(user.email)) {
+      logStep("Internal Pro grant");
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: INTERNAL_PRO_PRODUCT_ID,
+        price_id: null,
+        subscription_end: null,
+        status: "active",
+        cancel_at_period_end: false,
+        subscription_type: "monthly_pro",
+        granted: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Check user_subscriptions table first (includes gifts, addons, lifetime)
     const { data: userSubs } = await supabaseClient
@@ -93,7 +115,9 @@ serve(async (req) => {
     const { data: grantedRows } = await supabaseClient
       .from("granted_subscriptions")
       .select("*")
-      .eq("email", user.email)
+      // Matched on the digest: operator rows carry no address at all, and the
+      // digest also folds Gmail dot/plus aliases onto one identity.
+      .eq("email_sha256", emailHash(user.email))
       .eq("active", true)
       .order("granted_at", { ascending: false })
       .limit(1);

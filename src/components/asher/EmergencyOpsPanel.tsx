@@ -1,5 +1,5 @@
 // EmergencyOpsPanel — Incident Response Control Panel.
-// ASHER-DASHBOARD ONLY · ADMIN ONLY (ashernewtonx@gmail.com).
+// ASHER-DASHBOARD ONLY · OWNER ONLY (sha256 digest match).
 // Authorized administrators perform multi-level emergency service interruption
 // against infrastructure they own. Every action is gated by a 3-step confirmation
 // (password → acknowledgments → typed phrase) and written to the audit log.
@@ -17,7 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { logAsherEvent } from "@/lib/asherAudit";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
 
 type Level = 1 | 2 | 3 | 4;
@@ -83,7 +83,7 @@ function useAsherAdminGate() {
     window.addEventListener("storage", tick);
     return () => window.removeEventListener("storage", tick);
   }, []);
-  return user?.email === ADMIN_EMAIL && unlocked;
+  return isOwnerEmail(user?.email) && unlocked;
 }
 
 interface Props { target: string; }
@@ -117,7 +117,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
     if (!def) return;
     setBusy(true); setError(null);
     const { data: u } = await supabase.auth.getUser();
-    if (!u?.user || u.user.email !== ADMIN_EMAIL) {
+    if (!u?.user || !isOwnerEmail(u.user.email)) {
       setError("Authorization revoked."); setBusy(false); return;
     }
 

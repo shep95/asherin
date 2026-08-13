@@ -7,7 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_RECIPIENT = "shepherdnewtonx@gmail.com";
+// Recipient lives in ASHERIN_DIGEST_RECIPIENT. A mailbox written into the
+// repository is a disclosure that survives every later cleanup, so the digest
+// simply does not send when the secret is absent.
+const ADMIN_RECIPIENT = (Deno.env.get("ASHERIN_DIGEST_RECIPIENT") || "").trim();
 
 interface Post {
   id: string;
