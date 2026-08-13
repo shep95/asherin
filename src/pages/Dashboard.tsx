@@ -1419,7 +1419,7 @@ const Dashboard = () => {
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.");
       
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
-      case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
+      case "guardian-vault": return gatedView("guardian-vault", GuardianVaultView, "Guardian Vault", "Sessions, MFA, audit trail, encrypted item storage, and Watchtower exposure review. Included on every paid plan.");
       case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $79/mo Pro plan.");
       case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
       // Always-accessible views
