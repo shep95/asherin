@@ -12,8 +12,8 @@
 //   1. An agent is a procedure pack plus real tools. There is no
 //      "you are the X agent" costume — a persona sentence changes the tone of
 //      the output and nothing about what actually ran.
-//   2. A step that did not run is never recorded as success. Zapier's silent
-//      fail is the failure mode we are pricing against: unbound runners report
+//   2. A step that did not run is never recorded as success. Silent-fail is
+//      the failure mode this runtime refuses: unbound runners report
 //      `skipped`, broken ones report `failed`, and the run inherits the worst
 //      status of its steps.
 

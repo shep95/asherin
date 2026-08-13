@@ -1727,7 +1727,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
-    // ── Persistent user memory (ChatGPT-style cross-chat rules) ────────────
+    // ── Persistent user memory (cross-chat rules) ────────────
     // Suppressed entirely on intel turns: saved memories are the operator's own
     // assertions from OTHER conversations, not public-record evidence, and were
     // leaking into dossiers as if they had been sourced.
