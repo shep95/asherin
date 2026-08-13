@@ -588,6 +588,8 @@ export function buildQueryPlan(raw: string): QueryPlan {
       : undefined,
     operators,
     wireQuery,
+    formPath: formPath ?? undefined,
+
   };
 
 }
