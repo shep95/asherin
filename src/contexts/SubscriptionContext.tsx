@@ -44,6 +44,14 @@ export const TIERS = {
 
 export type TierKey = keyof typeof TIERS;
 
+export interface TeamGrant {
+  team_id: string;
+  team_name: string;
+  team_role: string;
+  is_owner: boolean;
+  billing_status?: string;
+}
+
 interface SubscriptionState {
   subscribed: boolean;
   productId: string | null;
@@ -54,6 +62,8 @@ interface SubscriptionState {
   loading: boolean;
   isPastDue: boolean;
   isTrialing: boolean;
+  /** Set when Pro-class access is inherited from an Asherin Team seat. */
+  team: TeamGrant | null;
 }
 
 interface SubscriptionContextValue extends SubscriptionState {
@@ -77,6 +87,7 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   loading: true,
   isPastDue: false,
   isTrialing: false,
+  team: null,
   checkSubscription: async () => {},
   startCheckout: async () => {},
   openPortal: async () => {},
@@ -155,12 +166,13 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     loading: true,
     isPastDue: false,
     isTrialing: false,
+    team: null,
   });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false });
+      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false, team: null });
       return;
     }
     try {
@@ -168,7 +180,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         const contextStatus = (error as { context?: { status?: number } })?.context?.status;
         if (contextStatus === 401) {
-          setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false });
+          setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false, team: null });
           return;
         }
         throw error;
@@ -185,6 +197,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         loading: false,
         isPastDue: status === "past_due",
         isTrialing: status === "trialing",
+        team: (data?.team as TeamGrant | null) ?? null,
       });
     } catch (e) {
       console.error("check-subscription error:", e);
