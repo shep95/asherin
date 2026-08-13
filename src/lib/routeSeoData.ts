@@ -67,11 +67,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "The Zophiel prompt-engineering protocols: 45 sections of elite techniques for turning LLMs into surgical intelligence operators.",
   },
-  "/features": {
-    title: "Features | Every Asherin Intelligence Module",
-    description:
-      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, Asherin Engine dossiers, ZALI design, ZERLAL security, and the full operator stack.",
-  },
   "/benchmarks": {
     title: "Benchmarks | Asherin Model & Engine Performance",
     description: "Live benchmarks across Asherin's intelligence engines, model consensus, and predictive performance.",
