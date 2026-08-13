@@ -246,9 +246,19 @@ async function runDorks(host: string): Promise<{ hits: Hit[]; blocked: Array<{ e
         engine = "mojeek";
       } catch (_e) {
         blocked.push({ engine: "mojeek", status: "blocked" });
-        continue;
       }
     }
+    // Last keyed leg — only attempted when every keyless engine came back
+    // empty AND the operator bound BRAVE_SEARCH_API_KEY.
+    if (!rows.length && braveKey) {
+      try {
+        rows = await brave(q, braveKey);
+        engine = "brave";
+      } catch (_e) {
+        blocked.push({ engine: "brave", status: "blocked" });
+      }
+    }
+    if (!rows.length) continue;
     let per = 0;
     for (const r of rows) {
       if (per >= 8) break;
