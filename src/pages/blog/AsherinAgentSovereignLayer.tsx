@@ -29,7 +29,7 @@ const DownloadCard = () => {
       <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
         465 files · 1.03 MB compressed · 3.19 MB extracted · secret-safe mirror
         (every credential value masked or omitted at export time). skill corpus,
-        hook runners, always-on rules, and the cursor wiring — one unit.
+        hook runners, always-on rules, and the editor wiring — one unit.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <a
@@ -115,7 +115,7 @@ const AsherinAgentSovereignLayer = () => (
         "ai agent plugin",
         "self-modifying agent",
         "osint agent",
-        "cursor hooks",
+        "editor hooks",
         "thinking patterns",
       ]}
     />
@@ -129,7 +129,7 @@ const AsherinAgentSovereignLayer = () => (
     />
     <p>
       this is the release note for the package that supersedes the current
-      aureon model on asherin.com. everything below is read directly out of the
+      asherin model on asherin.com. everything below is read directly out of the
       archive — file counts, manifest values, hook wiring, doctrine text. no
       marketing numbers. and the archive itself is at the top and bottom of this
       page, free.
@@ -147,7 +147,7 @@ const AsherinAgentSovereignLayer = () => (
       asherin custom build agent plugin on top of any ai llm model.
       <br />
       <br />
-      supersedes current aureon model on asherin.com
+      supersedes current asherin model on asherin.com
       <br />
       <br />
       this model classification: <strong>"personal sovereign intelligence layer"</strong>
