@@ -289,6 +289,7 @@ const ARTIFACT_PATHS = [
 
 function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): ClassFinding[] {
   const findings: ClassFinding[] = [];
+  const seenCookie = new Set<string>();
   const push = (f: ClassFinding) => { if (findings.length < 200) findings.push(f); };
 
   // Header policy is a HOST property when the host answers every path with
@@ -512,7 +513,25 @@ export async function runPathMap(target: string, opts: PathMapOptions = {}): Pro
 
   // Equal audit: a subdomain root is walked with exactly the same probe and
   // the same classifier as an apex path. No host gets a lighter pass.
+  // Control probe: a path that certainly does not exist. Whatever this host
+  // answers here IS its "unknown path" response, so any probed path matching
+  // that signature is the shell, not a discovered route. Without this, every
+  // SPA reads as a wide-open filesystem.
+  const control = await auditOne(`${origin}/asherin-control-${crypto.randomUUID().slice(0, 12)}`, "seed", timeoutMs);
+  const controlSig = control.status !== null && control.status < 400
+    ? { status: control.status, title: control.title, bytes: control.bytes }
+    : null;
+  if (controlSig) notes.push("this host returns a 200 shell for unknown paths — path existence is not inferable from status.");
+
   const audits = await pool([...pathList, ...subList], concurrency, ([url, source]) => auditOne(url, source, timeoutMs));
+  if (controlSig) {
+    for (const a of audits) {
+      const near = a.bytes !== null && controlSig.bytes !== null
+        ? Math.abs(a.bytes - controlSig.bytes) <= Math.max(512, controlSig.bytes * 0.05)
+        : a.bytes === controlSig.bytes;
+      a.softNotFound = a.status === controlSig.status && a.title === controlSig.title && near;
+    }
+  }
   audits.sort((a, b) => (a.host === b.host ? a.path.localeCompare(b.path) : a.host.localeCompare(b.host)));
 
   const findings = classify(audits, hostname, secTxt.ok && /contact/i.test(secTxt.body));
