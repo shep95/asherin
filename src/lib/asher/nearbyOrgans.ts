@@ -100,11 +100,17 @@ async function pullOverpass(lat: number, lng: number, radiusM: number, signal?: 
     way(around:${r},${lat},${lng})["building"="construction"];
   );out center ${MAX_POINTS_PER_ORGAN * 12};`;
 
-  const j = await getJson<{ elements?: OsmEl[] }>("https://overpass-api.de/api/interpreter", signal, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(q)}`,
-  });
+  /* One mirror rate-limits under load; the second answers. Two tries, then it
+     is honestly "not fetched", never "nothing is here". */
+  let j: { elements?: OsmEl[] } | null = null;
+  for (const host of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]) {
+    j = await getJson<{ elements?: OsmEl[] }>(host, signal, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(q)}`,
+    });
+    if (j) break;
+  }
 
   const els = j?.elements ?? [];
   const pt = (e: OsmEl, kind: string): OrganPoint | null => {
@@ -239,11 +245,17 @@ async function pullPanoramax(lat: number, lng: number, signal?: AbortSignal): Pr
 }
 
 async function pullFloodZone(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
-  const url =
-    "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query" +
+  const tail =
     `?geometry=${lng.toFixed(5)},${lat.toFixed(5)}&geometryType=esriGeometryPoint&inSR=4326` +
     "&spatialRel=esriSpatialRelIntersects&outFields=FLD_ZONE,ZONE_SUBTY&returnGeometry=false&f=json";
-  const j = await getJson<any>(url, signal);
+  let j: any = null;
+  for (const base of [
+    "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query",
+    "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query",
+  ]) {
+    j = await getJson<any>(base + tail, signal);
+    if (j) break;
+  }
   if (!j) return gap("flood-zone", "FEMA flood zone", "FEMA NFHL did not answer (US-only service).");
   const a = j?.features?.[0]?.attributes;
   if (!a?.FLD_ZONE) return gap("flood-zone", "FEMA flood zone", "No NFHL polygon covers this point.");
