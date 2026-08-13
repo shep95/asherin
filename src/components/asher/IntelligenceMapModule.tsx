@@ -266,6 +266,24 @@ function detectUsState(q: string): string | null {
 
 const GEOCODE_TIMEOUT_MS = 9000;
 
+async function nominatimQuery(params: URLSearchParams): Promise<SearchHit[]> {
+  // A geocode with no deadline hangs the whole navigation path when Nominatim
+  // is rate-limiting. Bounded, and the abort surfaces as a normal failure.
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!r.ok) throw new Error("search_failed");
+    const hits = await r.json();
+    return Array.isArray(hits) ? hits : [];
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 async function nominatimSearch(q: string): Promise<SearchHit[]> {
   if (!q.trim()) return [];
   const state = detectUsState(q);
@@ -277,33 +295,43 @@ async function nominatimSearch(q: string): Promise<SearchHit[]> {
   });
   if (state) params.set("countrycodes", "us");
 
-  // A geocode with no deadline hangs the whole navigation path when Nominatim
-  // is rate-limiting. Bounded, and the abort surfaces as a normal failure.
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
-  let hits: SearchHit[];
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    if (!r.ok) throw new Error("search_failed");
-    hits = await r.json();
-  } finally {
-    window.clearTimeout(timer);
-  }
+  let hits = await nominatimQuery(params);
 
-  if (!state || !Array.isArray(hits)) return hits;
-  // Stable re-rank: hits whose resolved state matches the named state come
-  // first, original order preserved inside each group.
-  const matches = hits.filter((h) => {
+  const inState = (h: SearchHit) => {
     const addr = (h as any)?.address ?? {};
     const st = String(addr.state ?? "").toLowerCase();
     return US_STATES[st] === state || String(addr["ISO3166-2-lvl4"] ?? "").endsWith(`-${state}`);
-  });
+  };
+
+  /* Wrong-continent guard: "Dallas Texas" must not land on Dallas, Scotland.
+     If a US state was named and NO hit resolves inside it, retry ONCE with a
+     structured query before giving the operator a pin. If the retry is also
+     empty we return what we have — the caller shows the miss, we never
+     silently pin the wrong place. */
+  if (state && (!hits.length || !hits.some(inState))) {
+    const retry = new URLSearchParams({
+      format: "json",
+      addressdetails: "1",
+      limit: "8",
+      countrycodes: "us",
+      state,
+      q: q.replace(new RegExp(`\\b${state}\\b`, "i"), "").trim() || q,
+    });
+    try {
+      const second = await nominatimQuery(retry);
+      const good = second.filter(inState);
+      if (good.length) return [...good, ...second.filter((h) => !good.includes(h)), ...hits];
+    } catch { /* keep the first pass */ }
+  }
+
+  if (!state || !hits.length) return hits;
+  // Stable re-rank: hits whose resolved state matches the named state come
+  // first, original order preserved inside each group.
+  const matches = hits.filter(inState);
   if (!matches.length) return hits;
   return [...matches, ...hits.filter((h) => !matches.includes(h))];
 }
+
 
 
 async function reverseGeocode(lat: number, lon: number): Promise<SearchHit | null> {
