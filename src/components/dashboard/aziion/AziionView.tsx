@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Brain, Droplets, Loader2, Power, PowerOff, AlertTriangle, TrendingUp, TrendingDown, Clock, RefreshCw, Trash2, X, DollarSign, BarChart3, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 interface BotState {
   enabled: boolean;
   emergency_stopped: boolean;
@@ -61,7 +61,7 @@ const AziionView = () => {
 
   const invoke = useCallback(async (action: string, extra: any = {}) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+    if (!user || !isOwnerEmail(user.email)) throw new Error("Unauthorized");
 
     const { data: { session } } = await supabase.auth.getSession();
     const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aziion-predict`, {

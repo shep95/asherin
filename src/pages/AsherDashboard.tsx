@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -314,7 +314,7 @@ const AsherDashboard = () => {
   // Admin hard-coded bypass — admin should never see the clearance gate.
   useEffect(() => {
     const email = (user?.email || "").toLowerCase();
-    if (email && email === ADMIN_EMAIL && !unlocked) {
+    if (isOwnerEmail(email) && !unlocked) {
       try {
         sessionStorage.setItem(ASHER_GATE_KEY, "1");
         sessionStorage.setItem(ASHER_OPERATOR_KEY, "ADMIN");
@@ -326,7 +326,7 @@ const AsherDashboard = () => {
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
   useEffect(() => {
     const email = (user?.email || "").toLowerCase();
-    setBrainContributor(email === ADMIN_EMAIL || email === "ekk447@gmail.com");
+    setBrainContributor(isContributorEmail(email));
   }, [user?.email]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
@@ -401,7 +401,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === ADMIN_EMAIL, publishedTabs, agentStore).map((branch) => {
+          {buildBranches(superOwner, brainContributor, isOwnerEmail(user?.email), publishedTabs, agentStore).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>

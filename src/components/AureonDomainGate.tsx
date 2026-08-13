@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";

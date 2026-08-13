@@ -24,7 +24,7 @@ import type { ChatMode } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { extractZanoemCodeFiles } from "@/components/dashboard/zali/zanoemOutput";
 import React from "react";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 const ZaliWorkspace = lazy(() => import("@/components/dashboard/zali/ZaliWorkspace"));
 const ZaliChatPanel = lazy(() => import("@/components/dashboard/zali/ZaliChatPanel"));
@@ -85,7 +85,7 @@ const PanelLoader = () => (
 const AsherZaliModule = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   const [downloading, setDownloading] = useState(false);
   const [projects, setProjects] = useState<ZaliProject[]>([]);

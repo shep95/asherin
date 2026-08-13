@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 type Range = 7 | 14 | 30 | 90;
 
 const fmt = (n: number) => new Intl.NumberFormat().format(n);
@@ -77,7 +77,7 @@ const initialStats: Stats = {
 
 export default function AsherAureonDataModule() {
   const { user } = useAuth();
-  const isAdmin = (user?.email || "").toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
   const [range, setRange] = useState<Range>(30);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [active, setActive] = useState<ActiveSession[]>([]);

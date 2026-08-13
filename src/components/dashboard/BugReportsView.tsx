@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 interface BugReport {
   id: string;
   user_id: string;
@@ -34,7 +34,7 @@ type FilterStatus = "all" | "open" | "in_progress" | "resolved" | "dismissed";
 const BugReportsView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   // Submit form state
   const [type, setType] = useState<"bug" | "feature">("bug");

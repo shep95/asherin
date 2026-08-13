@@ -16,7 +16,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 interface Attachment {
   name: string;
@@ -101,7 +101,7 @@ const MessageBubble = memo(function MessageBubble({ m }: { m: Msg }) {
 
 const AsherCommandCenter = () => {
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);

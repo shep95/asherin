@@ -23,7 +23,7 @@ import OptimizationPanel from "./OptimizationPanel";
 import GodModePanel from "./GodModePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import React from "react";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import { redact } from "@/lib/zanoem/redact";
 import { readOpenAiSseStream } from "@/lib/zanoem/sseParse";
 import { extractDesignOutput } from "@/lib/zanoem/designOutputSchema";
@@ -69,7 +69,7 @@ const TABS: { id: ZaliTab; label: string }[] = [
 const ZaliView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
   const [downloading, setDownloading] = useState(false);
   const [projects, setProjects] = useState<ZaliProject[]>([]);
   const [activeProject, setActiveProject] = useState<ZaliProject | null>(null);

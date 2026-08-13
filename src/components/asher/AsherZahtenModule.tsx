@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { routeBrainsForPrompt } from "@/lib/asherBrainRouter";
 import { toast } from "sonner";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 /**
  * ZAHTEN — House of Asher
@@ -724,7 +724,7 @@ const AsherZahtenModule = () => {
   const [adminFilter, setAdminFilter] = useState("");
   const [adminVisFilter, setAdminVisFilter] = useState<"all" | "public" | "private" | "team" | "organization">("all");
   const [adminSelected, setAdminSelected] = useState<AdminAgentRow | null>(null);
-  const isAdmin = (currentEmail || "").toLowerCase() === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(currentEmail);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? null));

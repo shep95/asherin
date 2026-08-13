@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";

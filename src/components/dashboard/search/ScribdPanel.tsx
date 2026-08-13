@@ -7,7 +7,7 @@ import { Loader2, BookOpen, Download, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { ADMIN_EMAIL } from "@/lib/adminEmail";
+import { isOwnerEmail } from "@/lib/adminEmail";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
 const PRESETS: { label: string; topic: string; category: string }[] = [
@@ -25,7 +25,7 @@ const CATEGORIES = ["general", "map", "coding", "personality", "azplen", "zali"]
 
 const ScribdPanel = () => {
   const { user } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = isOwnerEmail(user?.email);
 
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState("general");
