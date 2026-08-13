@@ -330,7 +330,10 @@ const SettingsView = () => {
 
   const handleDeleteAccount = async () => {
     if (!user || deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    // Irreversible. The typed phrase proves intent; step-up proves identity.
+    if (!(await stepUp("delete this account"))) return;
     setDeleting(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
