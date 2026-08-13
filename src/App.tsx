@@ -203,17 +203,21 @@ const App = () => (
                 than serving a stale clone or falling into the 404 catch-all. */}
             <Route path="/zaxin/theories" element={<Navigate to="/software" replace />} />
             <Route path="/updates" element={<Updates />} />
-            <Route path="/investors" element={<Navigate to="/" replace />} />
-            <Route path="/valuation" element={<Navigate to="/" replace />} />
+            <Route path="/investors" element={<Navigate to="/software" replace />} />
+            <Route path="/valuation" element={<Navigate to="/software" replace />} />
             <Route path="/sources" element={<Sources />} />
-            <Route path="/asherin.gov" element={<Navigate to="/" replace />} />
-            <Route path="/asherin-gov" element={<Navigate to="/" replace />} />
-            <Route path="/asherin.gov/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/asherin-gov/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/houseofasher/theories" element={<Navigate to="/" replace />} />
-            <Route path="/hosrad" element={<Navigate to="/" replace />} />
-            <Route path="/symbols-of-the-bible" element={<Navigate to="/" replace />} />
-            <Route path="/HOSRAD" element={<Navigate to="/" replace />} />
+            <Route path="/asherin.gov" element={<Navigate to="/software" replace />} />
+            <Route path="/asherin-gov" element={<Navigate to="/software" replace />} />
+            {/* Gov dashboard clones were operator surfaces, not public pages —
+                they are gated behind sign-in rather than shown to visitors. */}
+            <Route path="/asherin.gov/dashboard" element={<Navigate to="/auth?next=%2Fdashboard" replace />} />
+            <Route path="/asherin-gov/dashboard" element={<Navigate to="/auth?next=%2Fdashboard" replace />} />
+            <Route path="/asherin.gov/*" element={<Navigate to="/software" replace />} />
+            <Route path="/asherin-gov/*" element={<Navigate to="/software" replace />} />
+            <Route path="/houseofasher/theories" element={<Navigate to="/software" replace />} />
+            <Route path="/hosrad" element={<Navigate to="/software" replace />} />
+            <Route path="/symbols-of-the-bible" element={<Navigate to="/software" replace />} />
+            <Route path="/HOSRAD" element={<Navigate to="/software" replace />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
             <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />
