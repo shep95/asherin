@@ -172,11 +172,6 @@ const SovereignAiPlatforms = () => (
           description: "The four-layer test every platform on this map gets evaluated against.",
         },
         {
-          to: "/blog/comparison",
-          label: "Asherin vs ChatGPT vs Claude — comparison",
-          description: "Side-by-side metrics including the sovereignty axis.",
-        },
-        {
           to: "/glossary/byok-ai",
           label: "BYOK AI — definition",
           description: "The key layer that underpins every sovereign architecture pattern.",
