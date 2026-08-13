@@ -51,8 +51,25 @@ export interface FoldedPlan {
   /** Zahten procedure / scheduled agent uuid. */
   agentId?: string;
   agentNeedsId?: boolean;
-  /** Owned Google account service pull. */
-  googleService?: string;
+  /**
+   * Owned Google account service pull. Must be a service id google-data
+   * actually implements — a friendly noun like "gmail" throws
+   * `Unknown service` inside the function and the turn loses the leg.
+   */
+  googleService?: GoogleDataService;
+  /**
+   * google-mesh control-surface action. Read and compose only: `ghostwrite`
+   * is preview-shaped here and `send_draft` is never planned from chat, so a
+   * conversational turn can never put mail on the wire.
+   */
+  googleMesh?: {
+    action: GoogleMeshAction;
+    query?: string;
+    to?: string;
+    subject?: string;
+    intent?: string;
+  };
+
   /** Design-lab analysis over text the operator supplied. */
   zali?: { analysisType: string; projectData: string };
   /** Coding-laws engine: read the ledger, or run a discovery pass. */
