@@ -1417,11 +1417,10 @@ const AureonIdeView = () => {
                     </div>
                   )}
                   <div className="flex-1 overflow-hidden">
-                    {centerTab === "workflow"
-                      ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
-                      : centerTab === "code"
-                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
-                        : <IdePreviewPanel files={files} />}
+                    {centerTab === "code"
+                      ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
+                      : <IdePreviewPanel files={files} />}
+
                   </div>
                 </div>
               </ResizablePanel>
