@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MessageSquare, Pin, Trash2, Archive, Pencil, CornerDownRight } from "lucide-react";
+import { MessageSquare, Pin, Trash2, Archive, Pencil, CornerDownRight, MoreHorizontal } from "lucide-react";
 import type { Conversation } from "./types";
 
 interface SwipeableConversationItemProps {
@@ -23,6 +23,12 @@ const SwipeableConversationItem = ({
   const currentX = useRef(0);
   const [offset, setOffset] = useState(0);
   const [swiping, setSwiping] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  // Hover is a desktop affordance. On a touch panel the row actions must be
+  // reachable by tap, so they hide behind an explicit ⋯ toggle instead.
+  const [touchDevice] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(hover: none)").matches
+  );
 
   const rowRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
