@@ -177,24 +177,30 @@ const AsherinMapsFindMy = () => {
           at before you commit to it.
         </p>
 
-        <h2>5. Device mesh — your fleet on one canvas</h2>
+        <h2>5. Device roster — the browsers that report in</h2>
         <p>
-          Any device signed into the same account joins the mesh. Each one
-          reports position and battery percentage on an interval, and the
-          map renders them as a live fleet: laptop, phone, tablet, each
-          with its own last-report timestamp so a stale position is
-          visibly stale rather than quietly wrong.
+          A device joins the roster when you open Asherin on it, sign in and
+          grant location and battery permission in that browser. It then
+          reports its own position and battery on an interval, and the map
+          renders each reporter with its last-report timestamp so a stale
+          position is visibly stale rather than quietly wrong. This is
+          self-reporting, not remote locating: Google publishes no Find Hub
+          or device-location API to third parties, so a phone that has never
+          opened Asherin and granted permission cannot be placed on this map
+          at all.
         </p>
 
-        <h2>6. Find-My — recovering hardware that cannot speak</h2>
+        <h2>6. Bluetooth recovery — hardware that cannot speak</h2>
         <p>
-          A laptop can report its own coordinates. A pair of earbuds
-          cannot. Find-My handles the second case by fusing signal-strength
-          observations: whenever any of your signed-in devices has seen the
-          missing hardware over Bluetooth, that sighting carries a rough
-          range and a position. Several sightings intersect into a
-          probability ring.
+          A laptop running Asherin can report its own coordinates. A pair of
+          earbuds cannot. The recovery view handles the second case by fusing
+          signal-strength observations: whenever one of your reporting
+          browsers has seen the missing hardware over Web Bluetooth, that
+          sighting carries a rough range and a position. Several sightings
+          intersect into a probability ring. It is an estimate from your own
+          scans, not a network of strangers' phones.
         </p>
+
         <Box>{`FIND-MY — "AirPods Pro"
   last self-report      none (passive device)
   observations          3 sightings, 2 devices
