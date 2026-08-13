@@ -1108,6 +1108,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let googleSubstrateContext = "";
     let azplenContext = "";
     let socialContext = "";
+    let foldedToolContext = "";
 
     {
       const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
