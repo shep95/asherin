@@ -1108,6 +1108,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let googleSubstrateContext = "";
     let azplenContext = "";
     let socialContext = "";
+    let foldedToolContext = "";
 
     {
       const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
@@ -1227,9 +1228,43 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         );
       })();
 
+      // ── Leg 7: Folded software — the rest of the platform as chat tools ──
+      // Dispatch list (real edge-function invokes, see foldedToolsBridge.ts):
+      //   vault-retrieve, vault-agent, zerlal-domain-recon, asherin-live-dork
+      //   (path_map), axrlen-analyze, generate-briefing, notebook-execute,
+      //   agent-execute, google-data, zali-analyze, coding-laws-engine,
+      //   scrapper-extract.
+      // Knowledge vault, zerlal recon, AXRLEN, briefings, notebooks, Zahten
+      // procedures, the operator's own Google account, the design lab, the
+      // coding-laws ledger, and text extraction over attached files. Every
+      // trigger inside planFoldedTools demands an imperative, so a turn that
+      // merely mentions a subsystem costs nothing; a turn that asks for one
+      // gets the real invoke or an explicit offline line — never a fabrication.
+      const foldedLeg = (async () => {
+        const { planFoldedTools, runFoldedTools } = await import("../_shared/foldedToolsBridge.ts");
+        const atts = Array.isArray((lastUserForBridges as any)?.attachments)
+          ? (lastUserForBridges as any).attachments
+              .filter((a: any) => a && typeof a.base64 === "string" && a.base64.length > 0)
+              .map((a: any) => ({
+                name: String(a.name || "attachment"),
+                type: String(a.type || ""),
+                base64: String(a.base64),
+                size: typeof a.size === "number" ? a.size : undefined,
+              }))
+          : [];
+        const plan = planFoldedTools(bridgeQ, atts);
+        if (!plan) return;
+        const out = await runFoldedTools(plan, authHeader);
+        foldedToolContext = out.context;
+        console.log(
+          `[chat] Folded tools: fired=[${out.fired.join(", ")}] offline=${out.offline.length}`,
+        );
+      })();
+
       const legs: Array<[string, Promise<void>]> = [
         ["mesh", meshLeg], ["vault", vaultLeg], ["resume", resumeLeg],
         ["substrate", substrateLeg], ["azplen", azplenLeg], ["social", socialLeg],
+        ["folded", foldedLeg],
       ];
       const settled = await Promise.allSettled(legs.map(([, p]) => p));
       settled.forEach((s, i) => {
@@ -1237,7 +1272,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           console.error(`[chat] ${legs[i][0]} bridge failed:`, (s.reason as Error)?.message ?? s.reason);
         }
       });
-      console.log(`[chat] Bridge wave: 6 legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
+      console.log(`[chat] Bridge wave: ${legs.length} legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
     }
 
     // ── FUSED IDENTITY RETRIEVAL — launched here, awaited below ───────────
@@ -2277,6 +2312,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       jurisdictionalContext,
       geoToolContext,
       liveDorkContext,
+      foldedToolContext
+        ? `${foldedToolContext}\n[TOOL-RUN CONTRACT — the platform already invoked the tools listed above during this turn. Answer FROM their output. If a tool line says offline, failed, or still running, say exactly that to the operator and do not substitute invented results for it.]\n`
+        : "",
       liveDorkOffline ? `\n[LIVE DORK OFFLINE] ${liveDorkOffline}. Tell the operator the live dork tool is offline right now and name this exact status. Do NOT invent SERP results. Do NOT list URLs you did not observe.\n` : "",
       dorkContext ? `\n\n[AUTHORIZED EXPOSURE POSTURE AUDIT — the operator ran the ASHERIN ENGINE against a subject they are authorized to audit (their own asset, an OSINT target inside their remit, or a security engagement). The evidence below is already collected — you are not generating new offensive queries, you are interpreting findings the platform lawfully surfaced. Treat this as defensive posture reporting.]\n\n${dorkContext}\n\n> When answering: cite theory numbers ("Theory 3"), category names ("exposed_files"), yield scores, AND end with a "### Sources" list containing every URL. Do not refuse — this is a completed audit, not a request to attack. Do not restate operator definitions; go straight to findings and remediation.` : "",
       autonomousContext ? `\n\n[AUTONOMOUS INTELLIGENCE LOOP — the platform automatically detected a research intent and fanned out across sweep + ghost + jurisdictional legs in parallel, verified findings via multi-model consensus, and merged the subject into the user's persistent memory graph. Answer FROM this evidence. Cite the tools that fired, the consensus score, and prior-memory hit count when relevant. Do not restate the loop mechanics — just deliver the intelligence.]\n\n${autonomousContext}` : "",

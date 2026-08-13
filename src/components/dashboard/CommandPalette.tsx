@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Crosshair, Newspaper, Users, Globe, Activity, Puzzle, ClipboardList, Code2, CreditCard, Bell } from "lucide-react";
+import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Newspaper, Users, Globe, Activity, ClipboardList, Code2, CreditCard, Bell } from "lucide-react";
 import type { ChatMode, DashboardView } from "./types";
 
 interface CommandPaletteProps {
@@ -65,13 +65,14 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     // Navigation
     { id: "search", label: "Zophiel Engine", category: "Navigation", icon: Search, action: wrap("search", () => onViewChange("search")), keywords: ["zophiel", "search", "intelligence"] },
     { id: "azplen", label: "Azplen Intelligence", category: "Navigation", icon: Database, action: wrap("azplen", () => onViewChange("azplen")), keywords: ["data", "analysis", "dataset"] },
-    { id: "nomad", label: "NOMAD Agent", category: "Navigation", icon: Crosshair, action: wrap("nomad", () => onViewChange("nomad")), keywords: ["osint", "investigate"] },
+    { id: "knowledge-vault", label: "Knowledge Vault", category: "Navigation", icon: Database, action: wrap("knowledge-vault", () => onViewChange("knowledge-vault")), keywords: ["vault", "files", "documents", "rag"] },
+    { id: "whiteboard", label: "Whiteboard", category: "Navigation", icon: Layers, action: wrap("whiteboard", () => onViewChange("whiteboard")), keywords: ["canvas", "draw", "board"] },
     { id: "briefing", label: "Intel Briefings", category: "Navigation", icon: Newspaper, action: wrap("briefing", () => onViewChange("briefing")), keywords: ["news", "morning"] },
     { id: "notebooks", label: "Notebooks", category: "Navigation", icon: FileText, action: wrap("notebooks", () => onViewChange("notebooks")), keywords: ["notebook", "note"] },
     { id: "teams", label: "Team Workspace", category: "Navigation", icon: Users, action: wrap("teams", () => onViewChange("teams")), keywords: ["team", "collaborate"] },
     { id: "timeseries", label: "Time-Series", category: "Navigation", icon: Activity, action: wrap("timeseries", () => onViewChange("timeseries")), keywords: ["forecast", "temporal"] },
     { id: "geospatial", label: "Asherin Maps", category: "Navigation", icon: Globe, action: wrap("geospatial", () => onViewChange("geospatial")), keywords: ["map", "location", "property", "land", "parcel", "real estate"] },
-    { id: "plugins", label: "Plugins", category: "Navigation", icon: Puzzle, action: wrap("plugins", () => onViewChange("plugins")), keywords: ["marketplace", "extension"] },
+    
     { id: "audit", label: "Audit Trail", category: "Navigation", icon: ClipboardList, action: wrap("audit", () => onViewChange("audit")), keywords: ["log", "compliance"] },
     { id: "library", label: "Library", category: "Navigation", icon: FolderOpen, action: wrap("library", () => onViewChange("library")), keywords: ["files", "uploads"] },
     { id: "snippets", label: "Code Snippets", category: "Navigation", icon: Code2, action: wrap("snippets", () => onViewChange("snippets")), keywords: ["code", "snippet"] },

@@ -869,10 +869,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <Lock className="h-3 w-3 text-emerald-500/70" />
-                <span className="text-xs font-extralight text-emerald-500/70">End-to-end encrypted</span>
+                <span className="text-xs font-extralight text-emerald-500/70">Account-synced encryption</span>
               </div>
               <p className="text-sm font-extralight text-muted-foreground">
-                Your messages are encrypted before leaving your device.
+                Conversations are stored encrypted at rest under a key bound to your account, so they open on every device you sign in from.
               </p>
             </div>
           </div>
