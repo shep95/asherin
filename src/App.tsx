@@ -198,7 +198,10 @@ const App = () => (
                 dashboard, so /zophiel points at the real surface. */}
             <Route path="/features" element={<Navigate to="/software" replace />} />
             <Route path="/zophiel" element={<Navigate to="/dashboard/search" replace />} />
-            <Route path="/zaxin/theories" element={<Navigate to="/" replace />} />
+            {/* Retired surfaces. These pages no longer exist; /software is the
+                single live catalogue, so the dropped routes point there rather
+                than serving a stale clone or falling into the 404 catch-all. */}
+            <Route path="/zaxin/theories" element={<Navigate to="/software" replace />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/investors" element={<Navigate to="/" replace />} />
             <Route path="/valuation" element={<Navigate to="/" replace />} />
