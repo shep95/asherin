@@ -4,7 +4,6 @@ import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Sa
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
-import IdeChatPanel from "./IdeChatPanel";
 import IdeTerminal from "./IdeTerminal";
 import IdePreviewPanel from "./IdePreviewPanel";
 import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
@@ -36,6 +35,7 @@ import { History, Stethoscope, Wand2, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
+import { IDE_HANDOFF_EVENT, takeIdeHandoff, requestReturnToChat, type IdeHandoff } from "@/lib/ide/chatHandoff";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
