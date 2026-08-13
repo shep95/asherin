@@ -180,6 +180,39 @@ const AIKeysSettings = () => {
         </div>
       </div>
 
+      {/* Detected key bindings — booleans only. The endpoint returns yes/no per
+          provider and never any key material, for BYOK or platform secrets. */}
+      <div className="rounded-lg border border-border/15 bg-card/10 p-4">
+        <p className="text-xs font-light text-foreground">Detected key bindings</p>
+        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+          Resolution order per call: your saved key → platform key → keyless public source → offline.
+          Values are never displayed here.
+        </p>
+        {keyStatusError ? (
+          <p className="text-[10px] text-muted-foreground/50 mt-3">Key status offline — {keyStatusError}</p>
+        ) : keyStatus === null ? (
+          <p className="text-[10px] text-muted-foreground/40 mt-3">Checking…</p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {keyStatus.map((s) => (
+              <span
+                key={s.provider}
+                className={`text-[10px] font-light rounded-md border px-2 py-1 ${
+                  s.effective
+                    ? "border-border/30 text-foreground/80"
+                    : "border-border/15 text-muted-foreground/40"
+                }`}
+              >
+                {s.provider}={s.effective ? "yes" : "no"}
+                {s.effective && (
+                  <span className="text-muted-foreground/40"> · {s.byok ? "your key" : "platform"}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Active Model Display */}
       <div className="rounded-lg border border-border/15 bg-card/10 p-4">
         <div className="flex items-center justify-between">
