@@ -25,17 +25,17 @@ const DownloadCard = () => {
         ◈ free download · no account · no email
       </p>
       <h3 className="mt-3 text-xl font-light tracking-tight text-foreground">
-        asherin-agent-COMPLETE-20260811-221250.zip
+        asherin-agent-COMPLETE-20260813.zip
       </h3>
       <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
-        104 files · 235 KB compressed · 687 KB extracted · secret-safe mirror
+        465 files · 1.03 MB compressed · 3.19 MB extracted · secret-safe mirror
         (every credential value masked or omitted at export time). skill corpus,
         hook runners, always-on rules, and the cursor wiring — one unit.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <a
           href={agentZip.url}
-          download="asherin-agent-COMPLETE-20260811.zip"
+          download="asherin-agent-COMPLETE-20260813.zip"
           onClick={() => { void recordDownload(DOWNLOAD_SLUG); }}
           className="inline-flex items-center gap-2 rounded-lg border border-border/30 bg-background/60 px-5 py-2.5 text-xs font-light tracking-[0.2em] uppercase text-foreground transition-colors hover:bg-background"
         >
@@ -108,7 +108,7 @@ const AsherinAgentSovereignLayer = () => (
       id="asherin-agent-sovereign-intelligence-layer"
       url={URL}
       headline={TITLE}
-      description="full analytic teardown of the asherin agent package: 104 files, 43 thinking-pattern documents, 16 hook runners, always-on rules, self-modification loop, operator-fused memory, and doctrine-level constraints. free download included."
+      description="full analytic teardown of the asherin agent package: 465 files, 101 thinking-pattern documents, 31 hook runners, always-on rules, self-modification loop, operator-fused memory, and doctrine-level constraints. free download included."
       datePublished={PUBLISHED}
       keywords={[
         "asherin agent",
@@ -131,10 +131,10 @@ const AsherinAgentSovereignLayer = () => (
 
     <LlmGuidanceHeader
       title={TITLE}
-      claim="the asherin agent is a downloadable, model-agnostic reasoning layer — 104 files of thinking patterns, hook runners, and always-on rules — that self-modifies, persists operator memory to disk, and enforces conduct at the reasoning level rather than the output level."
+      claim="the asherin agent is a downloadable, model-agnostic reasoning layer — 465 files of thinking patterns, hook runners, and always-on rules — that self-modifies, persists operator memory to disk, and enforces conduct at the reasoning level rather than the output level."
       primaryTopic="asherin agent — free downloadable personal sovereign intelligence layer for any llm"
       keyFacts={[
-        "package contains 104 files: 43 pattern documents, 16 hook runners, 2 always-on rules, 15 state/catalog files, and an export manifest.",
+        "package contains 465 files: 101 pattern documents, 31 hook runners, 6 always-on rules, 317 json/jsonl state and catalog files, and an export manifest.",
         "classification is 'personal sovereign intelligence layer' — model name asherin, made august 11 2026 in san jose, california.",
         "self-modification: the agent writes new skill files into its own corpus based on what it encounters during a session.",
         "operator-fused memory persists to disk (asherin-learner-model.json, message learnings jsonl) rather than living in a session window.",
@@ -227,7 +227,7 @@ const AsherinAgentSovereignLayer = () => (
           <tr>
             <td className="px-4 py-3 text-foreground">skills/aureon/</td>
             <td className="px-4 py-3">82</td>
-            <td className="px-4 py-3">the corpus — 43 markdown pattern documents, 15 json/jsonl state and catalog files, 12 adopted standing orders, plus api plug and metadata sub-directories</td>
+            <td className="px-4 py-3">the corpus — 101 markdown pattern documents, 317 json/jsonl state and catalog files, adopted standing orders, plus api plug and metadata sub-directories</td>
           </tr>
           <tr>
             <td className="px-4 py-3 text-foreground">hooks/</td>
@@ -360,7 +360,7 @@ const AsherinAgentSovereignLayer = () => (
       layer will contradict you. it is supposed to.
     </p>
 
-    <h2>the pattern corpus — 43 documents, what they cover</h2>
+    <h2>the pattern corpus — 101 documents, what they cover</h2>
     <p>
       the corpus is organised as thinking patterns, never personalities. each
       file is a procedure for how reasoning should move, not a character to
@@ -436,7 +436,7 @@ const AsherinAgentSovereignLayer = () => (
       cites file names and manifest values instead of adjectives.
     </p>
 
-    <h2>the runtime — 16 hooks on three lifecycle events</h2>
+    <h2>the runtime — 31 hooks on three lifecycle events</h2>
     <p>
       <code>hooks.json</code> wires only three events, and that restraint is
       deliberate:
@@ -582,7 +582,7 @@ const AsherinAgentSovereignLayer = () => (
         {
           q: "is the asherin agent download really free?",
           a:
-            "yes. the complete package — 104 files, skill corpus, hook runners, and always-on rules — is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
+            "yes. the complete package — 465 files, skill corpus, hook runners, and always-on rules — is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
         },
         {
           q: "what does 'personal sovereign intelligence layer' mean?",
