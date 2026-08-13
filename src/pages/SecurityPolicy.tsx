@@ -46,7 +46,7 @@ const SecurityPolicy = () => {
               Security &amp; Vulnerability Disclosure Policy
             </h1>
             <p className="mb-10 text-xs font-extralight uppercase tracking-[0.2em] text-muted-foreground">
-              Last reviewed 11 August 2026
+              Last reviewed 13 August 2026
             </p>
 
             <Section title="Reporting channel">
@@ -61,6 +61,13 @@ const SecurityPolicy = () => {
               <p>
                 This channel is monitored for security reports only. Account, billing, and product questions sent here
                 are not triaged as security.
+              </p>
+              <p>
+                Honest limitation: delivery of that address depends on the MX records on the asherin.com zone, which are
+                operator DNS and not something this application can assert. If MX is absent or misconfigured at the time
+                you write, your mail may bounce or silently fail to arrive. If you receive no acknowledgement inside the
+                3 business days below, assume delivery failed rather than that the report was ignored, and reach the
+                operator through the contact route on the site.
               </p>
             </Section>
 

@@ -6,8 +6,7 @@
 const ALLOWED_ORIGINS = [
   "https://asherin.com",
   "https://www.asherin.com",
-  "https://aureonai.app",
-  "https://www.aureonai.app",
+  // The two Lovable hosts this project actually serves from.
   "https://ziali-magic-pixels.lovable.app",
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
   "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com",
@@ -16,11 +15,16 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+/**
+ * Exact-match only.
+ *
+ * The previous version also accepted any `*.lovable.app` / `*.lovableproject.com`
+ * subdomain. Those are shared multi-tenant hosts: that wildcard let a page on
+ * any other tenant's app read credentialed responses from these functions in a
+ * victim's browser. Wildcards on a shared apex are not an allowlist.
+ */
 function isAllowedOrigin(origin: string): boolean {
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  // Lovable preview/published subdomains
-  return /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin)
-    || /^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(origin);
+  return ALLOWED_ORIGINS.includes(origin);
 }
 
 
@@ -34,6 +38,8 @@ const BASE_ALLOWED_HEADERS =
  */
 export function getCorsHeaders(req: Request, extraAllowedHeaders = ""): Record<string, string> {
   const origin = req.headers.get("origin") || "";
+  // Unknown origin: never reflect it. Answer with the canonical production
+  // origin so the preflight is well-formed but useless to the caller.
   const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
