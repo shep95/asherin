@@ -159,7 +159,9 @@ const TOOLS = [
   /* ── KERNEL-OWNED OPERATOR TOOLS ─────────────────────────────────────
      These do NOT run in the vessel. They are forwarded to the asherin kernel
      through `asherin-kernel-proxy`. If the kernel is unreachable the caller
-     says "kernel offline" and performs nothing
+     says "kernel offline" and performs nothing — never a local stand-in,
+     never fabricated output. */
+  { type: "function", function: { name: "zophiel_search", description: "Kernel search. Matches FORM and PATH (html, python, typescript, non-indexed directories) rather than exact titles. Use when the operator wants files, source, artefacts or unindexed material rather than articles.", parameters: { type: "object", properties: { query: { type: "string" }, depth: { type: "string", enum: ["fast", "deep"] } }, required: ["
 
 
 
