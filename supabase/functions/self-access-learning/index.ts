@@ -79,7 +79,6 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/OracleLocusView.tsx", domain: "Intelligence", desc: "Oracle Locus prediction view" },
   { path: "src/components/dashboard/PatternAnalysisView.tsx", domain: "Data", desc: "Pattern analysis dashboard" },
   { path: "src/components/dashboard/PdfGeneratorView.tsx", domain: "Frontend", desc: "PDF generator" },
-  { path: "src/components/dashboard/PersonaStoreView.tsx", domain: "Frontend", desc: "Persona marketplace" },
   { path: "src/components/dashboard/PluginMarketplaceView.tsx", domain: "Frontend", desc: "Plugin marketplace" },
   { path: "src/components/dashboard/PredictiveIntelligenceView.tsx", domain: "Intelligence", desc: "Predictive intelligence dashboard" },
   { path: "src/components/dashboard/ProjectsView.tsx", domain: "Frontend", desc: "Projects manager" },
@@ -135,7 +134,6 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/zali/MaterialIntelligencePanel.tsx", domain: "Design", desc: "Material AI analysis" },
   { path: "src/components/dashboard/zali/ManufacturingVerifyPanel.tsx", domain: "Design", desc: "Manufacturing verification" },
   // ── Intelligence: Nomad, Google ──
-  { path: "src/components/dashboard/NomadView.tsx", domain: "Intelligence", desc: "OSINT investigation agent" },
   { path: "src/components/dashboard/google/GoogleIntelligenceView.tsx", domain: "Intelligence", desc: "Google data intelligence" },
   { path: "src/components/dashboard/google/MultiAccountManager.tsx", domain: "Intelligence", desc: "Multi-account management" },
   { path: "src/components/dashboard/google/NexusChatPanel.tsx", domain: "Intelligence", desc: "Nexus AI chat panel" },
