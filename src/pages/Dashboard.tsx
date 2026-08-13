@@ -1,3 +1,4 @@
+import { IDE_RETURN_TO_CHAT_EVENT } from "@/lib/ide/chatHandoff";
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { getWallpaperSrc } from "@/lib/wallpapers";
@@ -151,6 +152,14 @@ const Dashboard = () => {
   })();
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
+  // The code workspace can hand the operator back to the mouth. One chat only —
+  // the workspace never hosts a transcript of its own.
+  useEffect(() => {
+    const back = () => setActiveViewRaw("chat");
+    window.addEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+    return () => window.removeEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+  }, []);
+
   // Sync URL -> state (back/forward navigation, deep links)
   useEffect(() => {
     if (asherEmbed) return;

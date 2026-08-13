@@ -75,6 +75,7 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     
     { id: "audit", label: "Audit Trail", category: "Navigation", icon: ClipboardList, action: wrap("audit", () => onViewChange("audit")), keywords: ["log", "compliance"] },
     { id: "library", label: "Library", category: "Navigation", icon: FolderOpen, action: wrap("library", () => onViewChange("library")), keywords: ["files", "uploads"] },
+    { id: "ide", label: "Code Workspace", category: "Navigation", icon: Code, action: wrap("ide", () => onViewChange("ide")), keywords: ["ide", "editor", "code", "workspace", "files", "diff"] },
     { id: "snippets", label: "Code Snippets", category: "Navigation", icon: Code2, action: wrap("snippets", () => onViewChange("snippets")), keywords: ["code", "snippet"] },
     { id: "projects", label: "Projects", category: "Navigation", icon: Layers, action: wrap("projects", () => onViewChange("projects")) },
     { id: "memory", label: "Memory Center", category: "Navigation", icon: Brain, action: wrap("memory", () => onViewChange("memory")), keywords: ["remember", "recall"] },
