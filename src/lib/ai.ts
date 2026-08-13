@@ -12,6 +12,8 @@ import {
   shouldRunThinkingPass,
 } from "@/lib/aureonThinking";
 
+import { getActiveScope } from "@/lib/projects/scope";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
 
@@ -181,7 +183,7 @@ export async function streamChat({
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, turnId }),
+        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, turnId, projectScope: getActiveScope() }),
         signal,
       });
 

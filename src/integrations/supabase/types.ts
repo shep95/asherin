@@ -7120,32 +7120,55 @@ export type Database = {
       library_files: {
         Row: {
           created_at: string
+          extracted_text: string | null
           file_name: string
           file_size: number
           file_type: string
+          folder: string | null
           id: string
+          project_id: string | null
           storage_path: string
+          text_chars: number
+          text_status: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          extracted_text?: string | null
           file_name: string
           file_size?: number
           file_type?: string
+          folder?: string | null
           id?: string
+          project_id?: string | null
           storage_path: string
+          text_chars?: number
+          text_status?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          extracted_text?: string | null
           file_name?: string
           file_size?: number
           file_type?: string
+          folder?: string | null
           id?: string
+          project_id?: string | null
           storage_path?: string
+          text_chars?: number
+          text_status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "library_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       memory_entries: {
         Row: {
@@ -7154,6 +7177,8 @@ export type Database = {
           created_at: string
           enabled: boolean
           id: string
+          kind: string
+          project_id: string | null
           reason: string | null
           source: string
           updated_at: string
@@ -7165,6 +7190,8 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          kind?: string
+          project_id?: string | null
           reason?: string | null
           source?: string
           updated_at?: string
@@ -7176,12 +7203,22 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          kind?: string
+          project_id?: string | null
           reason?: string | null
           source?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "memory_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mesh_devices: {
         Row: {
@@ -9075,6 +9112,7 @@ export type Database = {
           description: string
           files: string[]
           id: string
+          mode: string
           name: string
           updated_at: string
           user_id: string
@@ -9084,6 +9122,7 @@ export type Database = {
           description?: string
           files?: string[]
           id?: string
+          mode?: string
           name: string
           updated_at?: string
           user_id: string
@@ -9093,6 +9132,7 @@ export type Database = {
           description?: string
           files?: string[]
           id?: string
+          mode?: string
           name?: string
           updated_at?: string
           user_id?: string
