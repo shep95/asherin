@@ -27,6 +27,8 @@ const TITLES: Partial<Record<string, V2Title>> = {
   geospatial: { title: "asherin.maps", canvas: true },
   "ghost-engine": { title: "asherinx.eng", subtitle: "public-index search. no tap." },
   ide: { title: "ide", canvas: true },
+  "asherin-defender": { title: "asherin.defender", subtitle: "your own device, watched honestly." },
+  "asherin-arvision": { title: "asherin.arvision", canvas: true },
   google: { title: "google", subtitle: "your connected accounts, read on request." },
   search: { title: "search", subtitle: "sourced search with credibility tiers." },
   "knowledge-vault": { title: "knowledge", subtitle: "private files asherin can cite." },
