@@ -1,12 +1,20 @@
-import { createContext, useContext, useEffect, useState, useRef, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useMemo, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { registerSession, updateSessionActivity } from "@/utils/sessionTracker";
+import { registerSession, updateSessionActivity, isSessionRevoked } from "@/utils/sessionTracker";
+import { readAssurance, sessionKeyFromToken, UNKNOWN_ASSURANCE, type Assurance } from "@/lib/accountAssurance";
+import { wipeKeyMaterial } from "@/lib/encryption";
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** How strongly the live session is authenticated, and whether it can go higher. */
+  assurance: Assurance;
+  /** True while a verified factor exists but this session is still aal1. */
+  mfaRequired: boolean;
+  /** Re-read the assurance level (call after enrolling or passing a challenge). */
+  refreshAssurance: () => Promise<Assurance>;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +22,9 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   loading: true,
+  assurance: UNKNOWN_ASSURANCE,
+  mfaRequired: false,
+  refreshAssurance: async () => UNKNOWN_ASSURANCE,
   signOut: async () => {},
 });
 
@@ -23,8 +34,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [assurance, setAssurance] = useState<Assurance>(UNKNOWN_ASSURANCE);
   const sessionRegisteredRef = useRef<string | null>(null);
   const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
 
   useEffect(() => {
     let mounted = true;
