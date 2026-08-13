@@ -742,7 +742,6 @@ const Index = () => {
                 { icon: Cpu, name: "Pattern Analysis", codename: "Pattern Engine", desc: "Visual pattern recognition and forecasting across complex datasets." },
                 { icon: Clock, name: "Time-Series", codename: "Temporal Analysis", desc: "Temporal analysis with anomaly detection and forecasting." },
                 { icon: Globe, name: "Geospatial", codename: "Geo Intelligence", desc: "Spatial-temporal analysis and route optimization." },
-                { icon: Monitor, name: "Video Intelligence", codename: "Behavior Analysis", desc: "Deception detection, personality profiling, and FACS behavioral tracking from video." },
               ]
             },
             {
@@ -750,10 +749,8 @@ const Index = () => {
               blurb: "Search, OSINT, prediction, and security tools",
               items: [
                 { icon: Search, name: "Zophiel", codename: "Search Intelligence", desc: "Privacy-first source-credibility search across 30+ intelligence lanes." },
-                { icon: Globe, name: "NOMAD", codename: "OSINT Investigation", desc: "30+ source open-source intelligence with AI correlation and dossier output." },
                 { icon: Brain, name: "AXRLEN", codename: "Predictive Intelligence", desc: "Live global event prediction, scenario simulation, and Monte Carlo modeling." },
                 { icon: Download, name: "File Scrapper", codename: "Document Extraction", desc: "Pull all text from any document format via AI-powered extraction." },
-                { icon: Lock, name: "Cipher Toolkit", codename: "Crypto Tools", desc: "Encoding, hashing, and encryption, all client-side, zero server exposure." },
                 { icon: Flag, name: "Daily Briefings", codename: "Intel Briefings", desc: "Competitor, regulatory, and market signals delivered every morning." },
               ]
             },
@@ -764,7 +761,6 @@ const Index = () => {
                 { icon: Code, name: "Asherin IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
                 { icon: Feather, name: "Intelligence Notebooks", codename: "Notebooks", desc: "Shared analysis sessions with live SQL execution and team collaboration." },
                 { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents, then publish them as custom tabs." },
-                { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Asherin with third-party integrations." },
                 { icon: Code, name: "Code Snippets", codename: "Snippet Vault", desc: "Save, tag, and reuse code blocks across all your conversations." },
               ]
             },
