@@ -85,7 +85,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/asherin-maps-find-my",
-    title: "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Find-My",
+    title: "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Bluetooth recovery",
     dek: "Satellite by default, a resizable layer tree, 2,700+ live public DOT camera feeds, OSRM fastest-path routing, device-mesh battery and position telemetry, and RSSI-fused recovery rings for lost Bluetooth hardware.",
     tag: "Product",
     published: "2026-08-04T00:00:00.000Z",
