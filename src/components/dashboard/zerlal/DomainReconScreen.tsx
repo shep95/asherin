@@ -407,7 +407,7 @@ const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
 
   const downloadFindings = () => {
     const text = `ZERLAL DOMAIN RECONNAISSANCE REPORT\nTarget: ${domain}\nDate: ${new Date().toISOString()}\nGrade: ${result?.risk_grade || "N/A"}\nTotal Findings: ${findings.length}\n\n${"=".repeat(80)}\n\n${result?.summary || ""}\n\n${"=".repeat(80)}\n\nFINDINGS:\n\n${findings.map((f, i) =>
-      `${"─".repeat(60)}\n${i + 1}. [${f.severity.toUpperCase()}] ${f.title}\nCategory: ${f.category} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id} | Confidence: ${f.confidence}%\n\nDescription:\n${f.description}\n\nImpact:\n${f.impact}\n\nExploitation Steps:\n${(f.exploitation_steps || []).map((s: string, j: number) => `  ${j + 1}. ${s}`).join("\n")}\n\nVulnerable Evidence:\n${f.code_snippet}\n\nRemediation:\n${f.suggested_fix}\n\nCompliance Controls: ${(f.compliance_controls || []).join(", ")}\nSimilar CVEs: ${(f.similar_cves || []).join(", ")}\n`
+      `${"─".repeat(60)}\n${i + 1}. [${f.severity.toUpperCase()}] ${f.title}\nCategory: ${f.category} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id} | Confidence: ${f.confidence}%\n\nDescription:\n${f.description}\n\nImpact:\n${f.impact}\n\nDefensive Verification:\n${(f.exploitation_steps || []).map((s: string, j: number) => `  ${j + 1}. ${s}`).join("\n")}\n\nVulnerable Evidence:\n${f.code_snippet}\n\nRemediation:\n${f.suggested_fix}\n\nCompliance Controls: ${(f.compliance_controls || []).join(", ")}\nSimilar CVEs: ${(f.similar_cves || []).join(", ")}\n`
     ).join("\n")}`;
 
     const blob = new Blob([text], { type: "text/plain" });
@@ -776,7 +776,7 @@ const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
 
                         {f.exploitation_steps && f.exploitation_steps.length > 0 && (
                           <div>
-                            <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Exploitation Steps</span>
+                            <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Defensive Verification</span>
                             <ol className="mt-1 space-y-1">
                               {f.exploitation_steps.map((step: string, i: number) => (
                                 <li key={i} className="text-[9px] text-foreground/50 flex gap-2">

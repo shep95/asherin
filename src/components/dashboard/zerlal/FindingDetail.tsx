@@ -17,7 +17,7 @@ const generateFindingReport = (f: ZerlalFinding): string => {
   report += `── WHAT'S WRONG ──────────────────────────\n${f.description}\n\n`;
   report += `── IMPACT ────────────────────────────────\n${f.impact}\n\n`;
   if (f.exploitation_steps?.length > 0) {
-    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    report += `── DEFENSIVE VERIFICATION ────────────────\n`;
     f.exploitation_steps.forEach((step, i) => { report += `  ${i + 1}. ${step}\n`; });
     report += `\n`;
   }
@@ -159,14 +159,14 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
               </div>
             </div>
 
-            {/* Exploitation Steps */}
+            {/* Defensive verification — checks a maintainer runs to confirm the class, never reproduction steps */}
             {exploitSteps.length > 0 && (
               <div className="rounded-xl border border-red-500/[0.08] bg-card/20 backdrop-blur-sm p-4">
-                <h3 className="text-[10px] text-red-400/60 uppercase tracking-wider mb-3">How a Hacker Exploits This</h3>
+                <h3 className="text-[10px] text-foreground/60 uppercase tracking-wider mb-3">Defensive Verification</h3>
                 <ol className="space-y-2">
                   {exploitSteps.map((step, i) => (
                     <li key={i} className="flex gap-3">
-                      <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-400 text-[9px] flex items-center justify-center shrink-0">{i + 1}</span>
+                      <span className="w-5 h-5 rounded-full bg-foreground/[0.06] text-foreground/60 text-[9px] flex items-center justify-center shrink-0">{i + 1}</span>
                       <span className="text-[10px] text-foreground/55 leading-relaxed">{String(step)}</span>
                     </li>
                   ))}

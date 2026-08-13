@@ -1,4 +1,4 @@
-import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch, BookOpen, Rss, ScrollText, Award, Code2, Wifi, Clock, Eye, Ghost } from "lucide-react";
+import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch, BookOpen, Rss, ScrollText, Award, Code2, Wifi, Clock, Eye, Ghost, Route } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface ZerlalNavProps {
@@ -9,6 +9,7 @@ interface ZerlalNavProps {
 
 const mainNav: { id: ZerlalScreen; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "Dashboard", icon: Shield },
+  { id: "path-map", label: "Path Map", icon: Route },
   { id: "domain-recon", label: "Domain Recon", icon: ScanSearch },
   { id: "ghostchain", label: "GhostChain", icon: Ghost },
   { id: "project", label: "Projects", icon: FolderSearch },
