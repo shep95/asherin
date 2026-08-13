@@ -819,84 +819,37 @@ const AureonIdeView = () => {
   }, [files, sessions, activeSessionId, toast]);
 
   // ── Chat ──
-  // When ZANOEM mode is on we prepend a "first-principles inventor" preamble.
-  // When "You Decide ZANOEM" is also on, we recursively self-answer any
-  // clarifying question the assistant comes back with (up to 6 rounds).
-  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string, _isAutopilotTurn = false) => {
+  // Chat mode answers only. Agent mode proposes writes, which always pass
+  // through: checkpoint snapshot → visible diff → explicit approval → apply.
+  const sendChatMessage = useCallback(async (content: string) => {
     if (creditsRemaining <= 0) {
       toast({ title: "Credit limit reached", description: `You've used all ${maxCredits} credits this hour.`, variant: "destructive" });
       return;
     }
 
-    // ── GOAL ROUTER (mirrors Asher IDE) ─────────────────────
-    // Auto-dispatch high-level commands like "finish building this product"
-    // or "fix every bug" to the swarm/autopilot — user does NOT need to
-    // be on a specific file. Only fires for fresh user turns, never for
-    // autopilot loops (which would otherwise re-trigger themselves).
-    if (!_isAutopilotTurn) {
-      const goal = routeGoal(content);
-      if (goal.intent === "swarm_fix" && activeSessionId) {
-        toast({ title: "◈ Goal Router → Swarm Fix", description: goal.reason });
-        const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
-        const ackMsg: ChatMsg = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: `◈ **Swarm dispatched.** Scanning every file in this session for bugs and validator errors. One agent per broken file, all in parallel — I'll re-engage until clean.`,
-          timestamp: new Date(),
-        };
-        setChatMessages(prev => [...prev, userMsg, ackMsg]);
-        if (!autoDebugRef.current) autoDebugRef.current = true;
-        void zqEnqueue({
-          kind: "autofix",
-          payload: { projectRef: activeSessionId },
-          surface: "aureon_ide",
-          projectRef: activeSessionId,
-          ownerUserId: user?.id,
-        });
-        return;
-      }
-      if (goal.intent === "build_all") {
-        toast({ title: "◈ Goal Router → Build All", description: goal.reason });
-        if (!zanoemMode) setZanoemMode(true);
-        if (!autopilotZanoem) { setAutopilotZanoem(true); autopilotZanoemRef.current = true; }
-        autopilotRoundsRef.current = 0;
-        // Fall through with an enriched prompt — ZANOEM autopilot will then
-        // run round-by-round until the build is complete.
-        content = `${content}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.\n\n${IDE_BUILD_CONTRACT}`;
-      }
-    }
-
     useCredit();
-    const isAutopilotTurn = _isAutopilotTurn;
-    if (!isAutopilotTurn) {
-      autopilotRoundsRef.current = 0;
-      lastIntentRef.current = content;
-    }
     const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
-    setSuggestions([]);
 
     const assistantId = crypto.randomUUID();
     let assistantContent = "";
     const allMsgs = [...chatMessages, userMsg].map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const contextParts: string[] = [];
-    if (zanoemMode) {
-      contextParts.push([
-        "[ZANOEM MODE — Aureon IDE]",
-        "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
-        "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
-        "When you create or update files, prefix EVERY code fence with the exact project path on its own line, for example: src/App.tsx then the fenced code block. This lets the IDE write the file into Explorer/Preview automatically.",
-        IDE_BUILD_CONTRACT,
-      ].join("\n"));
-    } else if (/\b(code|build|create|make|app|component|file|fix|rewrite|implement|page)\b/i.test(content)) {
-      contextParts.push([
-        "[AUREON IDE FILE-WRITE CONTRACT]",
-        "If you output code, prefix each fenced code block with the exact file path on its own line.",
-        "Return complete files, not fragments or diffs. If the job is not done, end with STATUS: REFINING. If done, end with STATUS: MISSION_COMPLETE.",
-      ].join("\n"));
-    }
+    contextParts.push(
+      ideMode === "agent"
+        ? [
+            "[ASHERIN IDE — AGENT MODE]",
+            "You may propose file writes. Prefix EVERY fenced code block with the exact project file path on its own line.",
+            "Return complete files, never fragments or diffs. The user reviews a diff and approves before anything is written.",
+          ].join("\n")
+        : [
+            "[ASHERIN IDE — CHAT MODE]",
+            "Answer the question. Do not write or modify files, and do not prefix code blocks with file paths.",
+            "Show code inline for reference only.",
+          ].join("\n")
+    );
     if (allFiles.length > 0) {
       contextParts.push(`[Current project files]\n${allFiles.map((f) => `- ${f.name} (${getLanguage(f.name)})`).join("\n")}`);
     }
@@ -904,9 +857,7 @@ const AureonIdeView = () => {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
     }
 
-    // ── Phase 4: RAG-grounded codebase recall ──
-    // Pull the top-k most semantically similar chunks from the project's pgvector index
-    // and inject them as additional grounding so the model never hallucinates symbols.
+    // RAG-grounded codebase recall (best-effort; never blocks the turn).
     try {
       const matches = await rag.search(content, 6);
       const cross = matches
@@ -914,19 +865,12 @@ const AureonIdeView = () => {
         .slice(0, 5)
         .map(m => `// ${m.file_path} · chunk ${m.chunk_index} · sim ${(m.similarity ?? 0).toFixed(2)}\n${m.content.slice(0, 900)}`)
         .join("\n\n");
-      if (cross) {
-        contextParts.push(`[Codebase RAG — top matches across project]\n${cross}`);
-      }
-    } catch { /* RAG is best-effort; never block chat */ }
+      if (cross) contextParts.push(`[Codebase RAG — top matches across project]\n${cross}`);
+    } catch { /* ignore */ }
     if (terminalOutput.length > 0) {
       contextParts.push(`[Terminal Output]\n${terminalOutput.join("\n")}`);
     }
-    if (customBrainPrompt) {
-      contextParts.push(`[Custom Instructions]\n${customBrainPrompt}`);
-    }
-    if (contextParts.length > 0) {
-      allMsgs.unshift({ role: "user" as const, content: contextParts.join("\n\n") });
-    }
+    allMsgs.unshift({ role: "user" as const, content: contextParts.join("\n\n") });
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -942,102 +886,85 @@ const AureonIdeView = () => {
             return [...prev, { id: assistantId, role: "assistant", content: assistantContent, timestamp: new Date() }];
           });
         },
-        onReplace: (content) => {
-          assistantContent = content;
+        onReplace: (text) => {
+          assistantContent = text;
           setChatMessages(prev => {
             const last = prev[prev.length - 1];
-            if (last?.role === "assistant" && last.id === assistantId) return prev.map((m, i) => i === prev.length - 1 ? { ...m, content } : m);
-            return [...prev, { id: assistantId, role: "assistant", content, timestamp: new Date() }];
+            if (last?.role === "assistant" && last.id === assistantId) return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: text } : m);
+            return [...prev, { id: assistantId, role: "assistant", content: text, timestamp: new Date() }];
           });
         },
-        onDone: () => {
-          setIsStreaming(false);
-          fetchSuggestions(assistantContent).then(setSuggestions).catch(() => {});
-        },
+        onDone: () => setIsStreaming(false),
       });
 
       lastAssistantRef.current = assistantContent;
 
+      // Chat mode never touches the file tree.
+      if (ideMode !== "agent") return;
+
       const rawGenerated = extractZanoemCodeFiles(assistantContent);
-      const generatedFiles = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
+      const generatedFiles: ZanoemCodeFile[] = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
         ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
         : rawGenerated;
-      if (generatedFiles.length > 0) {
-        const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
-        if (result.applied > 0) {
-          setFiles(result.next);
-          filesRefAureon.current = result.next;
-          const flatNext = flattenFiles(result.next);
-          const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
-          if (primary) {
-            setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
-            setActiveFileId(primary.id);
-            setCenterTab("preview");
-            if (isMobile) setMobilePanel("editor");
-          }
-          toast({ title: "Code applied to IDE", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written to Explorer/Preview.` });
+      if (generatedFiles.length === 0) return;
+
+      const flatNow = flattenFiles(filesRefAureon.current);
+      const changes: PlannedChange[] = generatedFiles
+        .map((g) => {
+          const path = normalizeGeneratedFilePath(g.filename);
+          if (!path || !g.content?.trim()) return null;
+          const base = path.split("/").pop() ?? path;
+          const existing = flatNow.find(f => f.name === path || f.name === base);
+          return {
+            path,
+            action: existing ? "update" : "create",
+            content: g.content,
+            language: getLanguage(base),
+            beforeContent: existing?.content ?? "",
+          } as PlannedChange;
+        })
+        .filter(Boolean) as PlannedChange[];
+      if (changes.length === 0) return;
+
+      const ok = await requestApproval(`${changes.length} file change${changes.length === 1 ? "" : "s"}`, changes);
+      if (!ok) {
+        setChatMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Changes rejected. Nothing was written to the project.",
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+
+      // Checkpoint the whole working set before the first byte is written.
+      if (activeSessionId) {
+        try {
+          await saveCheckpoint({
+            scope: "aureon",
+            projectId: activeSessionId,
+            label: `Before agent edit · ${new Date().toLocaleTimeString()}`,
+            trigger: content.slice(0, 200),
+            files: flatNow.map(f => ({ fileId: f.id, filePath: f.name, content: f.content ?? "" })),
+          });
+        } catch (e) {
+          console.warn("[ide] checkpoint failed", e);
         }
       }
 
-      // ── Autopilot loop (ZAHTEN-style: continue on question OR STATUS:REFINING) ──
-      const buildStatus = parseIdeBuildStatus(assistantContent);
-      const cutOff = responseLooksCutOff(assistantContent);
-      const shouldContinue =
-        zanoemMode &&
-        autopilotZanoem &&
-        autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS &&
-        (zanoemNeedsDecision(assistantContent) || buildStatus === "refining" || cutOff);
-      if (shouldContinue) {
-        if (isAutopilotTurn && autopilotTriggerRef.current) {
-          void zanoemLogDecision({
-            surface: "aureon_ide",
-            projectRef: activeSessionId ?? null,
-            round: autopilotRoundsRef.current,
-            triggerText: autopilotTriggerRef.current,
-            replySent: zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS),
-            responseText: assistantContent,
-          });
+      const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
+      if (result.applied > 0) {
+        setFiles(result.next);
+        filesRefAureon.current = result.next;
+        const flatNext = flattenFiles(result.next);
+        const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
+        if (primary) {
+          setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
+          setActiveFileId(primary.id);
+          setCenterTab("code");
+          if (isMobile) setMobilePanel("editor");
         }
-        autopilotRoundsRef.current += 1;
-        autopilotTriggerRef.current = assistantContent;
-        const autoReply = cutOff
-          ? `[IDE BUILD AUTOPILOT — pass ${autopilotRoundsRef.current}/${AUTOPILOT_MAX_ROUNDS}]\n\nYour previous response was cut off or ended with an unclosed code block. Continue from the exact stopping point, finish every incomplete file, close every code fence, and then end with STATUS: REFINING or STATUS: MISSION_COMPLETE. Do not restart or summarize.`
-          : buildStatus === "refining"
-          ? buildCritiqueContinuationReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS)
-          : zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
-        setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
-      } else if (isAutopilotTurn && autopilotRoundsRef.current > 0) {
-        toast({ title: "ZANOEM autopilot complete", description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"}` });
-        autopilotRoundsRef.current = 0;
-        autopilotTriggerRef.current = "";
-
-        // Background sweep — autofix + vision verification.
-        if (!autopilotEnqueueGuardRef.current) {
-          autopilotEnqueueGuardRef.current = true;
-          if (autoDebugRef.current) {
-            void zqEnqueue({
-              kind: "autofix",
-              payload: { projectRef: activeSessionId ?? undefined },
-              surface: "aureon_ide",
-              projectRef: activeSessionId ?? undefined,
-              ownerUserId: user?.id,
-            });
-          }
-          if (autoUiDebugRef.current) {
-            void zqEnqueue({
-              kind: "vision",
-              payload: {
-                intent: lastIntentRef.current,
-                recentAssistant: assistantContent,
-                projectRef: activeSessionId ?? undefined,
-              },
-              surface: "aureon_ide",
-              projectRef: activeSessionId ?? undefined,
-              ownerUserId: user?.id,
-            });
-          }
-          setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
-        }
+        toast({ title: "Applied", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written. Restore from Checkpoints to undo.` });
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
@@ -1045,12 +972,10 @@ const AureonIdeView = () => {
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId, rag, isMobile]);
-
-  // Expose sendChatMessage to the offline queue worker as a stable ref.
-  useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
+  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, activeSessionId, rag, isMobile, ideMode, requestApproval]);
 
   const stopStreaming = useCallback(() => { abortRef.current?.abort(); setIsStreaming(false); }, []);
+
 
 
   const handleTerminalAiCommand = useCallback((query: string) => {
