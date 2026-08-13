@@ -108,7 +108,17 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // A tab return must never blank a mounted surface. Focus refetches are
+      // what made the chat column flash a loading state every time the
+      // operator came back; data still refreshes on mount and on demand.
+      refetchOnWindowFocus: false,
+      staleTime: 30_000,
+    },
+  },
+});
 
 /**
  * Route-scoped recovery. A throw inside any page module used to unmount the
