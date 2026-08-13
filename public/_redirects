@@ -1,12 +1,19 @@
-# Recon-path deny for hosts that honour a Netlify-style _redirects file.
+# Host routing for asherin.com (Netlify-style _redirects; the Cloudflare path
+# is mirrored in cloudflare/worker-edge-deny.js).
 #
-# These paths must never reach the SPA catch-all: answering them with 200 HTML
-# is a soft-404 that reads to a scanner as "this path exists". A real 404 with
-# an empty body is the correct answer.
+# Two jobs here:
 #
-# This file is a second line only. The authoritative deny is
-# cloudflare/worker-edge-deny.js — see cloudflare/APPLY.md. A host that ignores
-# _redirects will keep serving the shell, so do not treat this file as proof.
+# 1. Recon paths never reach the SPA. Answering /.git/* with a 200 HTML shell
+#    reads to a scanner as "this path exists".
+#
+# 2. Unknown paths return a real HTTP 404. Every public marketing route is
+#    written to disk as its own index.html by scripts/seoPrerenderPlugin.ts, so
+#    those are served as static files with a 200 before any rule below runs.
+#    The app-only routes are listed explicitly so they still get the SPA shell
+#    with a 200; everything left over falls through to the 404 rule, which
+#    serves the same shell (React renders the 404 page) with status 404.
+#    That is the difference between a real 404 and a soft-404 homepage clone.
+
 /.git/*        /404-not-found  404
 /.svn/*        /404-not-found  404
 /.hg/*         /404-not-found  404
@@ -24,4 +31,43 @@
 /actuator/*    /404-not-found  404
 /debug/*       /404-not-found  404
 /api/internal/* /404-not-found 404
-/*             /index.html     200
+
+# Signed-in app surfaces — real routes, gated by the app, not marketing pages.
+/auth              /index.html  200
+/dashboard         /index.html  200
+/dashboard/*       /index.html  200
+/asher-dashboard   /index.html  200
+/asher-dashboard/* /index.html  200
+/report/*          /index.html  200
+/whiteboard        /index.html  200
+/ziaassets         /index.html  200
+/ZIAASSETS         /index.html  200
+/unsubscribe       /index.html  200
+
+# Legacy public paths the router still redirects in-app.
+/features          /index.html  200
+/benchmark         /index.html  200
+/search            /index.html  200
+/zophiel           /index.html  200
+/investors         /index.html  200
+/valuation         /index.html  200
+/hosrad            /index.html  200
+/HOSRAD            /index.html  200
+/symbols-of-the-bible /index.html 200
+/asherin.gov/*     /index.html  200
+/asherin-gov/*     /index.html  200
+/houseofasher/*    /index.html  200
+/zaxin/*           /index.html  200
+/blog/comparison   /index.html  200
+/blog/predictions/* /index.html 200
+/blog/uncensored-ai-text-generator-guide /index.html 200
+/blog/the-crypto-dump-october-2026 /index.html 200
+/blog/btc-daily-predictions /index.html 200
+/blog/how-to-break-any-encryption-theory /index.html 200
+/blog/asherin-legal-advisor-multi-jurisdictional /index.html 200
+/blog/asherin-pricing-explained /index.html 200
+/blog/how-asherin-uses-c-seo-research /index.html 200
+/blog/how-we-make-asherin-sound-human /index.html 200
+
+# Everything else: the SPA shell, served with a real 404 status.
+/*                 /404.html    404

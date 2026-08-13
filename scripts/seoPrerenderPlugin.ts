@@ -17,12 +17,6 @@ import { dirname, join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
-import {
-  effectiveUpdated,
-  getGeoPage,
-  SOURCE_KIND_LABEL,
-  type GeoSourceKind,
-} from "../src/lib/geo/geoContent";
 
 
 /** Hard ceiling so route growth can never push the build past publish limits. */
@@ -123,127 +117,8 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   }
 
   html = html.replace("</head>", `  ${buildJsonLd(path, entry)}\n</head>`);
-  html = injectGeoBody(html, path);
   return html;
 }
-
-/**
- * GeoBlock renders client-side, so a crawler that does not execute JS would see
- * the head metadata but none of the extractable answer or sourced statistics.
- * Mirror that block as static markup *inside* #root: React's createRoot render
- * discards the container's children on mount, so the live app is untouched
- * while JS-less fetchers get the full absorption unit.
- */
-function injectGeoBody(html: string, path: string) {
-  const geo = getGeoPage(path);
-  if (!geo) return html;
-
-  const esc = (v: string) =>
-    v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  const stats = (geo.stats ?? [])
-    .map(
-      (s) =>
-        `<tr><th scope="row">${esc(s.label)}</th><td>${esc(s.value)}</td>` +
-        `<td>${esc(s.source)}<span>as of <time datetime="${esc(s.asOf)}">${esc(
-          s.asOf,
-        )}</time></span></td></tr>`,
-    )
-    .join("");
-
-  const attributes = (geo.attributes ?? [])
-    .map(
-      (a) =>
-        `<div data-geo-attribute="${escapeAttr(a.name)}"><dt>${esc(a.name)}</dt>` +
-        `<dd>${esc(a.value)}${a.unit ? ` ${esc(a.unit)}` : ""}</dd></div>`,
-    )
-    .join("");
-
-  // The institutional class travels in the visible text, not only the JSON-LD,
-  // so a text-only extractor keeps the government/academic/press signal.
-  const kindTag = (kind?: string) => (kind ? `<span data-geo-source-kind="${escapeAttr(kind)}">${esc(SOURCE_KIND_LABEL[kind as GeoSourceKind] ?? kind)}</span> ` : "");
-
-  const corroboration = (geo.corroboration ?? [])
-    .map(
-      (c) =>
-        `<li>${kindTag(c.kind)}<a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.label)}</a> — ${esc(
-          c.confirms,
-        )}</li>`,
-    )
-    .join("");
-
-  const comparisons = (geo.comparisons ?? [])
-    .map(
-      (c) =>
-        `<tr data-geo-comparison="${escapeAttr(c.versus)}"><th scope="row">${esc(c.versus)}</th>` +
-        `<td>${esc(c.dimension)}</td><td>${esc(c.asherin)}</td><td>${esc(c.other)}</td></tr>`,
-    )
-    .join("");
-
-  const revisions = (geo.revisions ?? [])
-    .map(
-      (r) =>
-        `<li><time datetime="${escapeAttr(r.date)}">${esc(r.date)}</time> ${esc(r.note)}</li>`,
-    )
-    .join("");
-
-  const supersedes = (geo.supersedes ?? [])
-    .map((sup) => `<a href="${escapeAttr(sup.path)}">${esc(sup.label)}</a>`)
-    .join(", ");
-
-  const citations = (geo.citations ?? [])
-    .map(
-      (c) =>
-        `<li>${kindTag(c.kind)}<a href="${escapeAttr(c.url)}" rel="noopener">${esc(c.title)}</a> (${esc(
-          c.publisher,
-        )}, ${c.year})</li>`,
-    )
-    .join("");
-
-  const faqs = (geo.faqs ?? [])
-    .map((f) => `<div><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`)
-    .join("");
-
-  const stamp = effectiveUpdated(geo);
-
-  // Visually clipped, never display:none. The markup stays in the served HTML
-  // byte-for-byte for JS-less fetchers and text extractors, but it occupies a
-  // 1x1 clipped box so it cannot paint a flash of unstyled text (or shift
-  // layout) in the window between first paint and React's first commit.
-  // Inline styles are used deliberately: the stylesheet has not parsed yet at
-  // the moment this markup would otherwise become visible.
-  const CLIP =
-    "position:absolute;width:1px;height:1px;padding:0;margin:-1px;" +
-    "overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);" +
-    "white-space:nowrap;border:0;pointer-events:none;";
-
-  const block =
-    `<section data-geo-static aria-hidden="true" style="${CLIP}" aria-label="${escapeAttr(geo.topic)}">` +
-    `<h2>${esc(geo.topic)}</h2>` +
-    `<p>Last verified <time datetime="${escapeAttr(stamp)}">${esc(stamp)}</time></p>` +
-    `<p data-geo-answer>${esc(geo.answer)}</p>` +
-    (attributes ? `<h3>Attributes</h3><dl>${attributes}</dl>` : "") +
-    (stats ? `<table><tbody>${stats}</tbody></table>` : "") +
-    (comparisons
-      ? `<h3>Compared with named alternatives</h3><table><thead><tr>` +
-        `<th>Alternative</th><th>Dimension</th><th>Asherin</th><th>Alternative</th>` +
-        `</tr></thead><tbody>${comparisons}</tbody></table>`
-      : "") +
-    (citations ? `<h3>Sources</h3><ul>${citations}</ul>` : "") +
-    (corroboration
-      ? `<h3>Independent corroboration</h3><ul>${corroboration}</ul>`
-      : "") +
-    (supersedes ? `<p>This page supersedes ${supersedes}. Treat the earlier text as withdrawn.</p>` : "") +
-    (revisions ? `<h3>Revision history</h3><ol>${revisions}</ol>` : "") +
-    faqs +
-    `</section>`;
-
-  // Anchor on the mount node so the markup is replaced at hydration time.
-  return html.includes('<div id="root"></div>')
-    ? html.replace('<div id="root"></div>', `<div id="root">${block}</div>`)
-    : html;
-}
-
 
 export function seoPrerenderPlugin(): Plugin {
   return {
@@ -280,6 +155,23 @@ export function seoPrerenderPlugin(): Plugin {
         writeFileSync(target, html);
         written += 1;
       }
+
+      // A dedicated 404 document. The host serves it with a real 404 status
+      // (see public/_redirects), so unknown URLs never answer as a 200 clone
+      // of the homepage. noindex, and no canonical pointing at "/".
+      const notFound = renderRouteHtml(
+        template,
+        "/404",
+        {
+          title: "Not found | asherin",
+          description: "this is not a page on asherin.",
+          noindex: true,
+        },
+      ).replace(
+        /<link[^>]*rel=["']canonical["'][^>]*>/i,
+        "",
+      );
+      writeFileSync(join(outDir, "404.html"), notFound);
 
       const skipped = Object.keys(ROUTE_SEO).length - routes.length;
       console.log(
