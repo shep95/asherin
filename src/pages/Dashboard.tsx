@@ -2,6 +2,7 @@ import { IDE_RETURN_TO_CHAT_EVENT } from "@/lib/ide/chatHandoff";
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import DashboardSurface from "@/components/dashboard/DashboardSurface";
 import {
   APPEARANCE_EVENT,
   hydrateAppearanceFromDb,
@@ -1632,54 +1633,12 @@ const Dashboard = () => {
     <div className="relative min-h-dvh w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
       <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
-      {/* Colour mode: no photograph at all, and no 80% scrim that would hide
-          the colour the operator chose — only the thin veil they set. */}
-      {solidMode ? (
-        <>
-          <div
-            data-dashboard-surface="color"
-            className="fixed inset-0 pointer-events-none transition-colors duration-300"
-            style={{ backgroundColor: appearance.color, zIndex: 1 }}
-          />
-          <div
-            className="fixed inset-0 pointer-events-none transition-opacity duration-300"
-            style={{
-              zIndex: 3,
-              // A light hex needs a heavier scrim or asherin's pale type is
-              // white-on-white; a dark hex keeps the operator's veil value.
-              backgroundColor: lightSurface ? "hsl(0 0% 0% / 0.62)" : "hsl(0 0% 0% / 1)",
-              opacity: lightSurface ? 1 : appearance.dim / 100,
-            }}
-          />
-        </>
-      ) : (
-        <>
-          {/* Previous wallpaper (fades out during transition) */}
-          {prevDashWallpaper && isDashTransitioning && (
-            <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />
-          )}
-          {/* Current wallpaper (fades in) */}
-          <div
-            data-dashboard-surface="wallpaper"
-            className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-            style={{
-              backgroundImage: `url(${activeWallpaper})`,
-              zIndex: 1,
-              opacity: isDashTransitioning ? 0 : 1,
-              animation: isDashTransitioning ? "wpFadeIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s forwards" : undefined,
-            }}
-          />
-          {/* Dark overlay — dims during transition to reveal the light streak */}
-          <div
-            className="fixed inset-0 pointer-events-none transition-opacity duration-500"
-            style={{
-              zIndex: 3,
-              backgroundColor: 'hsl(0 0% 0% / 0.8)',
-              opacity: isDashTransitioning ? 0.5 : 1,
-            }}
-          />
-        </>
-      )}
+      <DashboardSurface
+        appearance={appearance}
+        activeWallpaper={activeWallpaper}
+        prevWallpaper={prevDashWallpaper}
+        transitioning={isDashTransitioning}
+      />
       {/* Light streak wipe — ABOVE overlay */}
       {isDashTransitioning && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 4 }}>
