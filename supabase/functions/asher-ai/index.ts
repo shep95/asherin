@@ -172,7 +172,12 @@ const TOOLS = [
 
 /** Tools the vessel must hand to the kernel rather than run locally. */
 const KERNEL_TOOLS = new Set([
-  "zophiel_search", "elite_dorks", "dork", "path_map
+  "zophiel_search", "elite_dorks", "dork", "path_map",
+  "search_swarm", "site_cyber_map", "intel_map",
+]);
+export { KERNEL_TOOLS };
+
+
 function sse(data: unknown): string {
   return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
 }
