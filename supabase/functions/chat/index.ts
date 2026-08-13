@@ -2487,9 +2487,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
       HYPOTHETICAL_REALISM_DOCTRINE,
       _temporalBlock,
       ASHERIN_IDENTITY,
-      _asherinProcedures,
+      _R.trivial ? "" : _asherinProcedures,
       _taskDirective,
-      ASHERIN_OPERATING_NOTES,
+      _R.trivial ? "" : ASHERIN_OPERATING_NOTES,
+
       // Form-level law. Ships on EVERY turn including trivial ones — casing and
       // the seven patterns govern a one-line greeting as much as a dossier.
       OUTPUT_CONDUCT_DOCTRINE,
