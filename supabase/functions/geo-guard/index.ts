@@ -10,7 +10,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { BASE_CENTS, observeAndJudge, priceCents, type PppTier, type Term } from "../_shared/ppp.ts";
+import { BASE_CENTS, observeAndJudge, priceCents, roundCents, type PppTier, type Term } from "../_shared/ppp.ts";
+import { TEAM_SEAT_CENTS, TEAM_WORKSPACE_CENTS } from "../_shared/teamPricing.ts";
 
 const TIERS: PppTier[] = ["monthly_aureon", "monthly_pro"];
 const TERMS: Term[] = ["monthly", "semiannual"];
@@ -25,7 +26,20 @@ serve(async (req) => {
 
     const visitorId = typeof body?.visitorId === "string" ? body.visitorId.slice(0, 64) : "";
     if (!/^[A-Za-z0-9_-]{8,64}$/.test(visitorId)) {
-      return new Response(JSON.stringify({ error: "invalid visitorId" }), {
+      // Asherin Team lines quote separately: the workspace fee and the per-seat
+    // fee are two distinct recurring lines, so the card can show 39 + 24 x N.
+    const teamLine = (base: number) =>
+      verdict.multiplier >= 1 ? base : roundCents(base * verdict.multiplier);
+    quote["team_workspace"] = {
+      monthly: { cents: teamLine(TEAM_WORKSPACE_CENTS.monthly), baseCents: TEAM_WORKSPACE_CENTS.monthly },
+      semiannual: { cents: teamLine(TEAM_WORKSPACE_CENTS.semiannual), baseCents: TEAM_WORKSPACE_CENTS.semiannual },
+    };
+    quote["team_seat"] = {
+      monthly: { cents: teamLine(TEAM_SEAT_CENTS.monthly), baseCents: TEAM_SEAT_CENTS.monthly },
+      semiannual: { cents: teamLine(TEAM_SEAT_CENTS.semiannual), baseCents: TEAM_SEAT_CENTS.semiannual },
+    };
+
+    return new Response(JSON.stringify({ error: "invalid visitorId" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

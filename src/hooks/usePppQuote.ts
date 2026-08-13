@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BASE_CENTS, type Term } from "@/lib/pricing/ppp";
+import { BASE_CENTS, type PriceLineId, type Term } from "@/lib/pricing/ppp";
 
 export interface PppQuote {
   country: string | null;
@@ -26,16 +26,15 @@ function visitorId(): string {
   }
 }
 
-const FULL_PRICE: PppQuote["quote"] = {
-  monthly_aureon: {
-    monthly: { cents: BASE_CENTS.monthly_aureon.monthly, baseCents: BASE_CENTS.monthly_aureon.monthly },
-    semiannual: { cents: BASE_CENTS.monthly_aureon.semiannual, baseCents: BASE_CENTS.monthly_aureon.semiannual },
-  },
-  monthly_pro: {
-    monthly: { cents: BASE_CENTS.monthly_pro.monthly, baseCents: BASE_CENTS.monthly_pro.monthly },
-    semiannual: { cents: BASE_CENTS.monthly_pro.semiannual, baseCents: BASE_CENTS.monthly_pro.semiannual },
-  },
-};
+const FULL_PRICE: PppQuote["quote"] = Object.fromEntries(
+  (Object.keys(BASE_CENTS) as PriceLineId[]).map((id) => [
+    id,
+    {
+      monthly: { cents: BASE_CENTS[id].monthly, baseCents: BASE_CENTS[id].monthly },
+      semiannual: { cents: BASE_CENTS[id].semiannual, baseCents: BASE_CENTS[id].semiannual },
+    },
+  ]),
+);
 
 /**
  * Regional pricing quote.
@@ -88,7 +87,7 @@ export function usePppQuote(): PppQuote {
 
 export function quoteCents(
   q: PppQuote,
-  tier: "monthly_aureon" | "monthly_pro",
+  tier: PriceLineId,
   term: Term,
 ): { cents: number; baseCents: number } {
   return q.quote?.[tier]?.[term] ?? FULL_PRICE[tier][term];

@@ -80,7 +80,38 @@ serve(async (req) => {
       });
     }
 
+    // Asherin Team inheritance. A seat on a billing-active workspace carries
+    // Pro-class product access for as long as the owner's Team subscription is
+    // `active`. The member is never charged and never holds their own Stripe
+    // subscription for it — the entitlement is membership, not a purchase.
+    const { data: teamSeats } = await supabaseClient
+      .from("team_members")
+      .select("role, teams!inner(id, name, billing_status, owner_id, past_due_since)")
+      .eq("user_id", user.id);
+    // `active` grants outright. `past_due` keeps the team working for a 3-day
+    // grace window measured from the first failed charge; after that the
+    // inherited access drops while every personal artefact stays untouched.
+    const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+    const inGrace = (t: any) =>
+      t?.billing_status === "past_due" &&
+      t?.past_due_since != null &&
+      Date.now() - new Date(t.past_due_since).getTime() < GRACE_MS;
+    const liveSeat = (teamSeats ?? []).find(
+      (row: any) => row?.teams?.billing_status === "active" || inGrace(row?.teams),
+    ) as any;
+    const teamGrant = liveSeat
+      ? {
+          team_id: liveSeat.teams.id,
+          team_name: liveSeat.teams.name,
+          team_role: liveSeat.role,
+          is_owner: liveSeat.teams.owner_id === user.id,
+          billing_status: liveSeat.teams.billing_status,
+        }
+      : null;
+    if (teamGrant) logStep("Team seat found", { role: teamGrant.team_role });
+
     // Check user_subscriptions table first (includes gifts, addons, lifetime)
+
     const { data: userSubs } = await supabaseClient
       .from("user_subscriptions")
       .select("*")
@@ -105,6 +136,7 @@ serve(async (req) => {
         cancel_at_period_end: false,
         subscription_type: activeSub.subscription_type,
         addons: userSubs.filter(s => s.subscription_type === "addon").map(s => s.product_id),
+        team: teamGrant,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -133,6 +165,27 @@ serve(async (req) => {
         status: "active",
         cancel_at_period_end: false,
         granted: true,
+        team: teamGrant,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Team-inherited Pro-class access, answered before Stripe so a member with
+    // no card of their own resolves instantly.
+    if (teamGrant) {
+      logStep("Team-inherited access granted", { role: teamGrant.team_role });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: "prod_UjaQFcAkQnTOm1",
+        price_id: null,
+        subscription_end: null,
+        status: "active",
+        cancel_at_period_end: false,
+        subscription_type: "monthly_pro",
+        granted: true,
+        team: teamGrant,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

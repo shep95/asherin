@@ -9117,6 +9117,7 @@ export type Database = {
           id: string
           mode: string
           name: string
+          team_id: string | null
           updated_at: string
           user_id: string
         }
@@ -9127,6 +9128,7 @@ export type Database = {
           id?: string
           mode?: string
           name: string
+          team_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -9137,10 +9139,19 @@ export type Database = {
           id?: string
           mode?: string
           name?: string
+          team_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -10889,6 +10900,8 @@ export type Database = {
       }
       team_invites: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
           created_at: string
           email: string
           expires_at: string
@@ -10899,6 +10912,8 @@ export type Database = {
           team_id: string
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           email: string
           expires_at?: string
@@ -10909,6 +10924,8 @@ export type Database = {
           team_id: string
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           email?: string
           expires_at?: string
@@ -10976,30 +10993,48 @@ export type Database = {
       }
       teams: {
         Row: {
+          billing_status: string
+          billing_term: string
           created_at: string
           description: string
           icon: string
           id: string
           name: string
           owner_id: string
+          past_due_since: string | null
+          seat_quantity: number
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           updated_at: string
         }
         Insert: {
+          billing_status?: string
+          billing_term?: string
           created_at?: string
           description?: string
           icon?: string
           id?: string
           name: string
           owner_id: string
+          past_due_since?: string | null
+          seat_quantity?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
         }
         Update: {
+          billing_status?: string
+          billing_term?: string
           created_at?: string
           description?: string
           icon?: string
           id?: string
           name?: string
           owner_id?: string
+          past_due_since?: string | null
+          seat_quantity?: number
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -13728,6 +13763,7 @@ export type Database = {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
       }
+      is_team_billing_active: { Args: { _team_id: string }; Returns: boolean }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
@@ -13850,6 +13886,7 @@ export type Database = {
         Args: { p_id: string; p_table: string }
         Returns: undefined
       }
+      team_seat_usage: { Args: { _team_id: string }; Returns: number }
       try_acquire_intel_slot: {
         Args: { _job_id: string; _job_type: string; _max_concurrent?: number }
         Returns: {
@@ -13860,6 +13897,7 @@ export type Database = {
       }
       unaccent_fallback: { Args: { raw: string }; Returns: string }
       user_email_sha256: { Args: { _uid: string }; Returns: string }
+      user_has_active_team: { Args: { _user_id: string }; Returns: boolean }
       ziaassets_bootstrap_emperor: { Args: never; Returns: string }
       ziaassets_has_min_rank: {
         Args: {

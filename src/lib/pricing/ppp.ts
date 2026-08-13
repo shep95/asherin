@@ -9,12 +9,24 @@
  */
 
 export type Term = "monthly" | "semiannual";
+export type PriceLineId =
+  | "monthly_aureon"
+  | "monthly_pro"
+  | "team_workspace"
+  | "team_seat";
 
 /** Base USD amounts, in cents, at multiplier 1.0. */
-export const BASE_CENTS: Record<"monthly_aureon" | "monthly_pro", Record<Term, number>> = {
+export const BASE_CENTS: Record<PriceLineId, Record<Term, number>> = {
   monthly_aureon: { monthly: 1800, semiannual: 10800 },
   monthly_pro: { monthly: 7900, semiannual: 47400 },
+  // Asherin Team is two recurring lines, not one sticker: the workspace
+  // container and one seat. A five-person team renders 3900 + 5 x 2400.
+  team_workspace: { monthly: 3900, semiannual: 23400 },
+  team_seat: { monthly: 2400, semiannual: 14400 },
 };
+
+/** Minimum occupied seats. A one-person "team" is the $18 or $79 seat instead. */
+export const TEAM_MIN_SEATS = 2;
 
 /**
  * ISO-3166 alpha-2 → affordability multiplier.
@@ -82,7 +94,7 @@ export interface PricePoint {
 }
 
 export function priceFor(
-  tier: "monthly_aureon" | "monthly_pro",
+  tier: PriceLineId,
   term: Term,
   multiplier: number,
 ): PricePoint {
