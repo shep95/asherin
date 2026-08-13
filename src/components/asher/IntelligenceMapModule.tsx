@@ -213,7 +213,8 @@ function zoomForHit(map: L.Map | null, hit?: SearchHit | null, fallback = 16): n
       } catch { /* degenerate bbox — keep the fallback */ }
     }
   }
-  if (isRooftopHit(hit)) z = Math.max(z, 18);
+  // A property is a rooftop question: push to building scale, not block scale.
+  if (isRooftopHit(hit)) z = Math.max(z, 19);
   if (!Number.isFinite(z)) z = fallback;
   return Math.max(3, Math.min(19, Math.round(z)));
 }
