@@ -299,8 +299,6 @@ const Pricing = () => {
                 { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Asherin implements it." },
                 { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },
                 { to: "/blog/aureon-pricing-explained", label: "Blog: Asherin pricing explained", description: "Why $18 and $79 — full operator brief." },
-                { to: "/blog/comparison", label: "Asherin vs ChatGPT vs Claude", description: "Side-by-side 2026 comparison across every axis." },
-                { to: "/benchmark", label: "Benchmark", description: "Asherin vs Opus 4.8 vs GPT-5.5 head-to-head results." },
               ]}
             />
 

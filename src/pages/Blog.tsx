@@ -241,14 +241,6 @@ export const BLOG_POSTS: Post[] = [
     readTime: "8 min",
   },
   {
-    slug: "/blog/comparison",
-    title: "Asherin vs ChatGPT vs Claude — the honest 2026 comparison",
-    dek: "Side-by-side across price, censorship, BYOK, OSINT, IDE, simulation, and privacy. Includes the model-vs-model radar.",
-    tag: "Comparison",
-    published: "2026-06-14",
-    readTime: "9 min",
-  },
-  {
     slug: "/blog/venice-integration",
     title: "Venice AI integration in Asherin — unfiltered intelligence, zero setup",
     dek: "How Asherin ships Venice's uncensored stack to every operator by default — no key, no account, no monthly subscription.",

@@ -177,11 +177,6 @@ const WhatIsAiOsint = () => (
           label: "Sovereign AI — definition",
           description: "Why serious OSINT work runs on the sovereign stack, not consumer AI.",
         },
-        {
-          to: "/blog/comparison",
-          label: "Asherin vs ChatGPT vs Claude — comparison",
-          description: "Side-by-side across price, OSINT depth, and BYOK support.",
-        },
       ]}
     />
   </ArticleShell>

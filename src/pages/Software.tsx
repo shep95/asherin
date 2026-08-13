@@ -688,12 +688,6 @@ const Software = () => {
               >
                 Compare plans
               </Link>
-              <Link
-                to="/benchmark"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border/40 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
-              >
-                See coding benchmark
-              </Link>
             </div>
           </section>
         </div>

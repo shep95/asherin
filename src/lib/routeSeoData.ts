@@ -42,11 +42,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "Every Asherin tool, OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper, on the $18/mo and $79/mo plans.",
   },
 
-  "/benchmark": {
-    title: "Asherin Benchmark | Cheap Models, Groomed to Outperform",
-    description:
-      "Asherin vs Opus 4.8 vs GPT-5.5 on a thread-safe LRU cache: prompts, code, and scored results in the open.",
-  },
   "/asher": {
     title: "Asher | Operator Workspace | Asherin",
     description:
@@ -84,13 +79,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     title: "Asherin Blog | Field Reports from the Operator Stack",
     description:
       "Long-form comparisons, benchmarks, and intelligence write-ups from the Asherin team. No fluff, no affiliate links.",
-  },
-  "/blog/comparison": {
-    title: "Asherin vs ChatGPT vs Claude | Honest 2026 Comparison",
-    description:
-      "Side-by-side: price, censorship, BYOK, OSINT, IDE, simulation, and privacy across Asherin, ChatGPT Plus, and Claude Pro.",
-    ogType: "article",
-    datePublished: "2026-06-17",
   },
   "/blog/venice-integration": {
     title: "Venice AI in Asherin | Unfiltered, Zero Setup",
