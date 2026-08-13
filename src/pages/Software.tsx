@@ -33,7 +33,6 @@ type Product = {
   description: string;
   icon: React.ElementType;
   features: string[];
-  competitors?: string[];
   route?: string;
   tier: Tier;
   badge?: string;
@@ -51,7 +50,7 @@ const PRODUCTS: Product[] = [
     codename: "Flagship",
     tagline: "Conversational intelligence",
     description:
-      "Multi-model consensus chat with reasoning visualization, vision, voice, uncensored responses, and persistent memory. Replaces ChatGPT, Claude, and Gemini in one surface.",
+      "Multi-model consensus chat with reasoning visualization, vision, voice, uncensored responses, and persistent memory in one surface.",
     icon: MessageSquare,
     features: [
       "Chat / Code / Research / Truth modes",
@@ -62,7 +61,6 @@ const PRODUCTS: Product[] = [
       "Response depth + determinism control",
       "60 messages / 3-hour window",
     ],
-    competitors: ["ChatGPT Plus", "Claude Pro", "Gemini Advanced"],
     route: "/dashboard/chat",
     tier: "aureon",
     badge: "Flagship",
@@ -82,7 +80,6 @@ const PRODUCTS: Product[] = [
       "Intel Map, URL/Domain mapping, Zophiel V2",
       "Citation-first answers",
     ],
-    competitors: ["Perplexity", "Google", "Kagi"],
     route: "/dashboard/search",
     tier: "aureon",
   },
@@ -120,7 +117,6 @@ const PRODUCTS: Product[] = [
       "Project index + semantic search",
       "Checkpoints + version history",
     ],
-    competitors: ["Cursor", "Replit", "Lovable"],
     route: "/dashboard/ide",
     tier: "aureon",
   },
@@ -130,7 +126,6 @@ const PRODUCTS: Product[] = [
     description: "Photoshop-style layer stack on an infinite canvas with snap grids, freeform sketching, and live AI collaboration.",
     icon: Layers,
     features: ["Infinite pan + zoom", "Layer stack with blend modes", "Snap grids + smart guides", "AI object generation"],
-    competitors: ["Miro", "FigJam", "Excalidraw"],
     route: "/dashboard/whiteboard",
     tier: "aureon",
   },
@@ -140,7 +135,6 @@ const PRODUCTS: Product[] = [
     description: "Multi-session authoring pipeline. 500-word chapter pacing, AI-generated covers, one-click PDF/EPUB export.",
     icon: BookOpen,
     features: ["Long-form eBook mode", "Slide deck generator", "PDF layout engine", "AI cover art"],
-    competitors: ["Sudowrite", "NovelAI", "Canva"],
     route: "/dashboard/pdf-generator",
     tier: "aureon",
   },
@@ -159,7 +153,6 @@ const PRODUCTS: Product[] = [
     description: "Swiss Ephemeris precision, full Vimshottari Dasha, compatibility, 27-nakshatra mythology matching, and local transits.",
     icon: Sparkles,
     features: ["Swiss Ephemeris (arcsecond)", "Full Dasha reading", "Compatibility engine", "27 nakshatra decoder", "Moon-driven local transits"],
-    competitors: ["Astro-Seek", "AstroSage"],
     route: "/dashboard/vedic-astrology",
     tier: "aureon",
   },
@@ -169,7 +162,6 @@ const PRODUCTS: Product[] = [
     description: "Full-spectrum vulnerability scanning, domain recon, exploit intelligence, and Cyber Kill Chain analysis.",
     icon: Shield,
     features: ["Domain + subdomain recon", "CVE + exploit intelligence", "Cyber Kill Chain mapping", "Dark-web indicator sweep"],
-    competitors: ["Tenable Nessus", "Qualys", "Rapid7"],
     route: "/dashboard/zerlal",
     tier: "aureon",
   },
@@ -179,7 +171,6 @@ const PRODUCTS: Product[] = [
     description: "14-pass deep analysis with persistent dossier trees. Built for investigators, journalists, and analysts.",
     icon: Network,
     features: ["30+ live OSINT sources", "14-pass correlation engine", "Persistent dossier tree", "Entity + relationship graph"],
-    competitors: ["Maltego", "Palantir Gotham"],
     route: "/dashboard/nomad",
     tier: "aureon",
   },
@@ -199,7 +190,6 @@ const PRODUCTS: Product[] = [
     description: "Generative material and assembly design with simulation-grade physics — FEA, thermal, and CFD hints.",
     icon: Hammer,
     features: ["Parametric CAD-class output", "FEA + thermal simulation", "Material property library", "Assembly + tolerance solver"],
-    competitors: ["Fusion 360", "ANSYS", "Onshape"],
     route: "/dashboard/zali",
     tier: "aureon",
   },
@@ -245,7 +235,6 @@ const PRODUCTS: Product[] = [
     description: "Tracker eviction, DoH audit, hardening, and storage forensics. Lives in your browser, not our servers.",
     icon: Globe,
     features: ["Tracker eviction", "DoH provider audit", "Storage forensics", "Extension hardening"],
-    competitors: ["DuckDuckGo Privacy", "uBlock Origin"],
     tier: "aureon",
   },
   {
@@ -316,7 +305,6 @@ const PRODUCTS: Product[] = [
       "Higher query limits",
       "Sovereign Source Atlas access",
     ],
-    competitors: ["Perplexity Pro", "Kagi Ultimate"],
     route: "/dashboard/search",
     tier: "pro",
   },
@@ -338,8 +326,6 @@ const PRODUCTS: Product[] = [
       "Payload viewer with signed raw-byte download and one-click buffer purge",
       "Wired into Asherin Chat as a provenance substrate",
     ],
-
-    competitors: ["Maltego", "Shodan", "ExifTool"],
     route: "/dashboard/ghost-engine",
     tier: "pro",
   },
@@ -373,7 +359,6 @@ const PRODUCTS: Product[] = [
       "Scenario + threat modeling",
       "Flow, Sankey, and geospatial visualization",
     ],
-    competitors: ["Palantir Foundry", "Tableau"],
     route: "/dashboard/azplen",
     tier: "pro",
   },
@@ -410,7 +395,6 @@ const PRODUCTS: Product[] = [
     description: "Image locus mapping and FACS-based behavioral video tracking with deception scoring and personality profiling.",
     icon: Video,
     features: ["FACS micro-expression tracking", "Deception scoring", "Personality profiling", "Frame-level annotation"],
-    competitors: ["Google Vision", "AWS Rekognition"],
     route: "/dashboard/video-intelligence",
     tier: "pro",
   },
@@ -573,23 +557,6 @@ const ProductCard = ({ p }: { p: Product }) => {
             ))}
           </ul>
         </div>
-        {p.competitors && p.competitors.length > 0 && (
-          <div>
-            <p className="text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground/70 mb-2">
-              Replaces
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {p.competitors.map((c) => (
-                <span
-                  key={c}
-                  className="text-[10px] font-light px-2 py-0.5 rounded-full bg-foreground/[0.04] border border-border/30 text-foreground/60"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
