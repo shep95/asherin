@@ -174,8 +174,8 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "Zophiel cross-validates 30+ live OSINT sources, scores veracity, and surfaces verified intelligence with citations.",
   },
   "/feature/azplen": {
-    title: "Azplen Foundry | 20-Tab Data Intelligence Suite | Asherin",
-    description: "Azplen Foundry: a 20-tab data suite for live analysis, transformation, and intelligence operations.",
+    title: "Azplen Intelligence | 20-Tab Data Suite | Asherin",
+    description: "Azplen Intelligence: a 20-tab data suite for live analysis, transformation, and intelligence operations.",
   },
   "/feature/briefings": {
     title: "Intelligence Briefings | Truth Extraction | Asherin",

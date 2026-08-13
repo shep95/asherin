@@ -331,7 +331,7 @@ const PRODUCTS: Product[] = [
     tier: "pro",
   },
   {
-    name: "Azplen Foundry",
+    name: "Azplen Intelligence",
     tagline: "Data intelligence platform",
     description:
       "20-tab analytical workspace with entity resolution, workforce optimization, financial forensics, workflow automation, and flow visualizations.",

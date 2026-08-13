@@ -532,7 +532,7 @@ export function detectIntent(text: string): OsintIntent {
 
   // Company/entity detection is layered:
   //   (a) Explicit "for X" / "about X" / "of X" / "on X" tails.
-  //   (b) Multi-word Proper Case phrases (Lockheed Martin, Palantir Tech).
+  //   (b) Multi-word Proper Case phrases (two or more capitalised tokens).
   //   (c) Well-known ALL-CAPS acronyms (NATO, OPEC, WHO, IMF, UN, EU, NASA).
   const COMPANY_STOP = new Set([
     "the","and","for","with","from","about","what","who","why","how","when","where","which","that","this","these","those",

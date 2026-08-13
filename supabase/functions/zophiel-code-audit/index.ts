@@ -211,7 +211,7 @@ You perform DEEP forensic analysis on uploaded code. You hunt for:
 
 ${CODE_SCAN_CHECKLIST}
 
-Return a complete VISUAL BLUEPRINT MAP as a structured JSON tree (Palantir-style web diagram).
+Return a complete VISUAL BLUEPRINT MAP as a structured JSON tree (node-and-edge web diagram).
 
 Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
 
