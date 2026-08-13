@@ -56,7 +56,7 @@ const ThinkingPanel = ({
           className={`h-3.5 w-3.5 text-muted-foreground/70 ${live ? "animate-pulse motion-reduce:animate-none" : ""}`}
         />
         <span className="text-[11px] font-mono font-light tracking-wide text-muted-foreground/80">
-          Aureon Reasoning Process
+          asherin Reasoning Process
         </span>
         <span className="ml-auto text-[10px] font-mono text-muted-foreground/45">
           {live ? "processing…" : secs ? `${secs}s` : "complete"}

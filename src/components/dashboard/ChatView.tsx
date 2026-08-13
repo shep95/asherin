@@ -132,7 +132,7 @@ const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
   isStreaming: boolean;
   conversationId?: string;
 }>((props, ref) => {
-  // Free dashboard users are allowed to message through Aureon Algorithm.
+  // Free dashboard users are allowed to message through the Asherin Algorithm.
   // The backend owns the 10 messages / 2 hours quota and only blocks after it is exhausted.
   return <AdaptiveInputBar ref={ref} {...props} disabled={false} />;
 });
@@ -435,7 +435,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   }, [highlightedMsgId, branchMessages.length]);
 
   // ── Inline property/address satellite maps ────────────────────────────────
-  // When ANY message (user prompt OR Aureon's assistant reply) mentions a real
+  // When ANY message (user prompt OR the assistant reply) mentions a real
   // address, geocode it via Nominatim on the client and render a PropertyMapCard
   // beneath that bubble. For assistant messages we wait until streaming has
   // finished for that message so we don't fire geocodes on partial tokens.
@@ -510,7 +510,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const downloadConversation = () => {
     if (!branchMessages.length) return;
     const lines = branchMessages.map(m =>
-      `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
+      // Speaker label is the product name the operator sees: asherin.
+      `**${m.role === "user" ? "You" : "asherin"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });

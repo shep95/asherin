@@ -58,7 +58,7 @@ const NotFound = () => {
     applySeoHead({
       title: "404 — Lost in Orbit | Asherin",
       description:
-        "This isn't a page on Aureon. Click to return — or play the offline space-dino game while you're here.",
+        "This isn't a page on asherin. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
     });
     // Dork-hardening: every 404 must be de-indexable so recon probes for
@@ -499,7 +499,7 @@ const NotFound = () => {
         <h1 className="text-center font-semibold tracking-tight">
           <span className="block text-[88px] leading-none text-white sm:text-[128px]">404</span>
           <span className="mt-3 block text-lg text-zinc-300 sm:text-xl">
-            this isn't a page on aureon.
+            this isn't a page on asherin.
           </span>
         </h1>
 

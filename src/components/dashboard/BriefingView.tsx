@@ -443,7 +443,7 @@ const BriefingView = () => {
             <div className="max-w-2xl mx-auto flex items-center gap-3">
               <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
-                placeholder="Tell Aureon about your business..."
+                placeholder="Tell asherin about your business..."
                 className="flex-1 rounded-xl border border-border/20 bg-card/20 px-4 py-3 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30"
                 disabled={chatLoading} />
               <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}

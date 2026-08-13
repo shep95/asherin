@@ -130,7 +130,7 @@ export default function KnowledgeVaultView() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Knowledge Vault</h1>
             <p className="text-sm text-muted-foreground">
-              Private RAG — upload files, paste text, or connect APIs. Aureon retrieves matching chunks during every chat automatically.
+              Private RAG — upload files, paste text, or connect APIs. asherin retrieves matching chunks during every chat automatically.
             </p>
           </div>
           <Badge variant="secondary" className="ml-auto bg-background/60 backdrop-blur border-border/40">Pro · $399/mo</Badge>
@@ -153,7 +153,7 @@ export default function KnowledgeVaultView() {
             <div className="mb-3 max-h-72 overflow-y-auto space-y-2 rounded-lg border border-border/40 bg-background/30 backdrop-blur p-3">
               {agentLog.map((t, i) => (
                 <div key={i} className={t.role === "user" ? "text-sm" : "text-sm text-muted-foreground"}>
-                  <span className="font-medium text-foreground">{t.role === "user" ? "You" : "Aureon"}</span>
+                  <span className="font-medium text-foreground">{t.role === "user" ? "You" : "asherin"}</span>
                   {t.intent && <Badge variant="outline" className="ml-2 text-[9px] uppercase border-border/40">{t.intent}</Badge>}
                   <div className="mt-1 whitespace-pre-wrap">{t.text}</div>
                   {t.matches && t.matches.length > 0 && (
@@ -172,7 +172,7 @@ export default function KnowledgeVaultView() {
 
           <div className="flex gap-2">
             <Input
-              placeholder="Talk to the vault — Aureon decides whether to store, fetch, or answer."
+              placeholder="Talk to the vault — asherin decides whether to store, fetch, or answer."
               value={agentCmd}
               onChange={(e) => setAgentCmd(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !agentBusy) { e.preventDefault(); runAgent(); } }}
@@ -234,7 +234,7 @@ export default function KnowledgeVaultView() {
           {loading ? (
             <div className="py-10 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading…</div>
           ) : sources.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground text-sm">No sources yet. Add one above and Aureon will start citing it.</div>
+            <div className="py-10 text-center text-muted-foreground text-sm">No sources yet. Add one above and asherin will start citing it.</div>
           ) : (
             <div className="divide-y divide-border/40">
               {sources.map((s) => (

@@ -103,7 +103,7 @@ Instructions:
 Return ONLY the JSON array.`;
 
     try {
-      setProgress("Running Aureon pattern recognition…");
+      setProgress("Running asherin pattern recognition…");
       await streamChat({
         messages: [{ role: "user", content: prompt }],
         mode: "research",
@@ -195,7 +195,7 @@ Return ONLY the JSON array.`;
             <TrendingUp className="h-5 w-5 text-accent" />
             <div>
               <h1 className="text-lg font-extralight tracking-wide text-foreground">Pattern Analysis</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">Azplen + Aureon Predictive Pattern Engine</p>
+              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">Azplen + asherin Predictive Pattern Engine</p>
             </div>
           </div>
           <button onClick={runAnalysis} disabled={dataSources.length === 0 || analyzing}

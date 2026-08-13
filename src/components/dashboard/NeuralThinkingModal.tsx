@@ -254,7 +254,7 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
 
   const handleDownload = useCallback(() => {
     const text = [
-      `# Aureon Neural Thought Process`,
+      `# asherin Neural Thought Process`,
       `## Query: ${query}`,
       ``,
       ...steps.map((s, i) => `### Step ${i + 1}: ${s.title}\n${s.detail}\nConfidence: ${s.confidence}%`),
@@ -290,7 +290,7 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
               <Brain className="h-4 w-4 text-accent" />
             </div>
             <div>
-              <h2 className="text-sm font-light text-foreground tracking-wide">Aureon's Neural Thought Process</h2>
+              <h2 className="text-sm font-light text-foreground tracking-wide">asherin Neural Thought Process</h2>
               <p className="text-[9px] font-extralight text-muted-foreground/50 tracking-wider uppercase">Real-time reasoning visualization</p>
             </div>
           </div>
