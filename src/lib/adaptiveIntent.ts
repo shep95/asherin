@@ -153,15 +153,18 @@ const DOMAIN_CEILING: Record<string, number> = {
 };
 
 const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
-  osint: ["zophiel-search", "nomad", "cloud-intelligence"],
-  maps: ["asherin-maps", "zaxin"],
-  astrology: ["vedic"],
-  market: ["imagine"],
-  imagine: ["imagine"],
-  security: ["bulwark", "cloud-intelligence"],
-  code: ["development-suite"],
-  research: ["zophiel-search"],
-  quickintel: ["zophiel-search", "asherin-maps"],
+  // Living dashboard surfaces only. A target that names a deleted module
+  // (nomad, bulwark, cloud-intelligence, imagine, development-suite) routes the
+  // operator into a silent ChatView fallback, which reads as a hallucinated tool.
+  osint: ["search", "ghost-engine"],
+  maps: ["geospatial", "zaxin"],
+  astrology: ["vedic-astrology"],
+  market: ["axrlen", "timeseries"],
+  imagine: ["whiteboard"],
+  security: ["zerlal"],
+  code: ["ide"],
+  research: ["search", "knowledge-vault"],
+  quickintel: ["search", "geospatial"],
   legal: [],
 };
 

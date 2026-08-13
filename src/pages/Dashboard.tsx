@@ -69,6 +69,7 @@ const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/Gua
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
+const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
 
@@ -158,7 +159,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","axrlen","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1549,6 +1550,7 @@ const Dashboard = () => {
       
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
+      case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — scenario forecasting", "named-method scenario forecasting with intervals and invalidation conditions. available on the asherin pro plan.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
       case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $79/mo, Maximum Intelligence.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — BLE Field Scout", "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.");
