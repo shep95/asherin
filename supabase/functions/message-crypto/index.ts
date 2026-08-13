@@ -66,6 +66,18 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims?.sub) return json({ error: "Unauthorized" }, 401);
     const userId = String(claimsData.claims.sub);
 
+    // The DEK opens every stored message. An aal1 token on an MFA-capable
+    // account is precisely the stolen-token case, so it does not get the key.
+    const aal = (claimsData.claims as { aal?: string }).aal ?? null;
+    if (aal !== "aal2") {
+      const { data: factors, error: factorError } = await supabase.auth.mfa.listFactors();
+      if (factorError) return json({ error: "assurance_check_failed" }, 503);
+      if ((factors?.all ?? []).some((f) => f.status === "verified")) {
+        return json({ error: "step_up_required" }, 403);
+      }
+    }
+
+
     let action = "get_or_create";
     try {
       const body = await req.json();
