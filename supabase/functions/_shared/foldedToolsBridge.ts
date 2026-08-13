@@ -559,6 +559,17 @@ export async function runFoldedTools(
     });
   };
 
+  /**
+   * Attaches the first live line an organ returned to its already-written row,
+   * so the chat tool card quotes real bytes instead of a generic "ran ok".
+   * Masked, clipped, and only ever applied to a row that exists.
+   */
+  const quoteRow = (fn: string, text: string) => {
+    const key = fn.split(":")[0];
+    const row = [...rows].reverse().find((r) => r.capability === key || r.capability === fn);
+    if (row && !row.quote && text) row.quote = maskPii(text).replace(/\s+/g, " ").trim().slice(0, 180);
+  };
+
   // ── Knowledge Vault read ───────────────────────────────────────────────
   if (plan.vaultQuery) {
     legs.push(["vault-retrieve", (async () => {
@@ -571,6 +582,7 @@ export async function runFoldedTools(
         return;
       }
       parts.push(`KNOWLEDGE VAULT (${matches.length} chunk(s), operator's own files):`);
+      quoteRow("vault-retrieve", `${matches.length} chunk(s) · ${String(matches[0]?.content || "").slice(0, 140)}`);
       matches.slice(0, 6).forEach((m, i) => {
         const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
         parts.push(`[Vault ${i + 1} · ${m.sourceName || "source"} · sim=${sim}] ${String(m.content || "").slice(0, 1200)}`);
