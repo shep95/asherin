@@ -1168,6 +1168,21 @@ const Dashboard = () => {
               console.error("Retry save also failed:", retryErr);
             }
           }
+          // A code write is the only thing that opens the workspace hand: real
+          // files with real paths, extracted from what the model actually
+          // returned. Chat stays the mouth — the diff and the approval gate
+          // live in the workspace, so nothing is written from here.
+          try {
+            const { extractZanoemCodeFiles } = await import("@/components/dashboard/zali/zanoemOutput");
+            const written = extractZanoemCodeFiles(assistantContent)
+              .filter((f) => f.filename && !/^snippet-\d+\./i.test(f.filename) && f.content?.trim());
+            if (written.length > 0) {
+              const { queueIdeHandoff } = await import("@/lib/ide/chatHandoff");
+              if (queueIdeHandoff(written, content)) setActiveView("ide" as DashboardView);
+            }
+          } catch (handoffErr) {
+            console.warn("[chat] ide handoff skipped", handoffErr);
+          }
           try {
             const sug = await fetchSuggestions(assistantContent);
             setSuggestions(sug);

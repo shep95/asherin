@@ -1,7 +1,7 @@
 // IDE Pain Point #2 + #20: AI suggestions are "almost right but not quite".
 // Lightweight validator that catches the obvious classes of errors BEFORE
 // AI-generated code is shown to the user. Runs entirely in-browser (no network)
-// so it's safe for both Aureon IDE (IdeChatPanel) and Asher IDE (AsherCodeModule).
+// so it's safe for both the asherin code workspace and Asher IDE (AsherCodeModule).
 
 export interface ValidationIssue {
   severity: "error" | "warning" | "info";
