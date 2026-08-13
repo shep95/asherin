@@ -213,7 +213,8 @@ function zoomForHit(map: L.Map | null, hit?: SearchHit | null, fallback = 16): n
       } catch { /* degenerate bbox — keep the fallback */ }
     }
   }
-  if (isRooftopHit(hit)) z = Math.max(z, 18);
+  // A property is a rooftop question: push to building scale, not block scale.
+  if (isRooftopHit(hit)) z = Math.max(z, 19);
   if (!Number.isFinite(z)) z = fallback;
   return Math.max(3, Math.min(19, Math.round(z)));
 }
@@ -266,6 +267,24 @@ function detectUsState(q: string): string | null {
 
 const GEOCODE_TIMEOUT_MS = 9000;
 
+async function nominatimQuery(params: URLSearchParams): Promise<SearchHit[]> {
+  // A geocode with no deadline hangs the whole navigation path when Nominatim
+  // is rate-limiting. Bounded, and the abort surfaces as a normal failure.
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!r.ok) throw new Error("search_failed");
+    const hits = await r.json();
+    return Array.isArray(hits) ? hits : [];
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 async function nominatimSearch(q: string): Promise<SearchHit[]> {
   if (!q.trim()) return [];
   const state = detectUsState(q);
@@ -277,33 +296,43 @@ async function nominatimSearch(q: string): Promise<SearchHit[]> {
   });
   if (state) params.set("countrycodes", "us");
 
-  // A geocode with no deadline hangs the whole navigation path when Nominatim
-  // is rate-limiting. Bounded, and the abort surfaces as a normal failure.
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
-  let hits: SearchHit[];
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    if (!r.ok) throw new Error("search_failed");
-    hits = await r.json();
-  } finally {
-    window.clearTimeout(timer);
-  }
+  let hits = await nominatimQuery(params);
 
-  if (!state || !Array.isArray(hits)) return hits;
-  // Stable re-rank: hits whose resolved state matches the named state come
-  // first, original order preserved inside each group.
-  const matches = hits.filter((h) => {
+  const inState = (h: SearchHit) => {
     const addr = (h as any)?.address ?? {};
     const st = String(addr.state ?? "").toLowerCase();
     return US_STATES[st] === state || String(addr["ISO3166-2-lvl4"] ?? "").endsWith(`-${state}`);
-  });
+  };
+
+  /* Wrong-continent guard: "Dallas Texas" must not land on Dallas, Scotland.
+     If a US state was named and NO hit resolves inside it, retry ONCE with a
+     structured query before giving the operator a pin. If the retry is also
+     empty we return what we have — the caller shows the miss, we never
+     silently pin the wrong place. */
+  if (state && (!hits.length || !hits.some(inState))) {
+    const retry = new URLSearchParams({
+      format: "json",
+      addressdetails: "1",
+      limit: "8",
+      countrycodes: "us",
+      state,
+      q: q.replace(new RegExp(`\\b${state}\\b`, "i"), "").trim() || q,
+    });
+    try {
+      const second = await nominatimQuery(retry);
+      const good = second.filter(inState);
+      if (good.length) return [...good, ...second.filter((h) => !good.includes(h)), ...hits];
+    } catch { /* keep the first pass */ }
+  }
+
+  if (!state || !hits.length) return hits;
+  // Stable re-rank: hits whose resolved state matches the named state come
+  // first, original order preserved inside each group.
+  const matches = hits.filter(inState);
   if (!matches.length) return hits;
   return [...matches, ...hits.filter((h) => !matches.includes(h))];
 }
+
 
 
 async function reverseGeocode(lat: number, lon: number): Promise<SearchHit | null> {
@@ -1260,8 +1289,32 @@ const IntelligenceMapModule = () => {
     if (zoom >= 17 && activeBase === "carto-dark") setActiveBase("esri-sat");
 
     flyTo(lat, lng, zoom);
+
+    /* AUTO-PULL (Queue 06 B): arriving at a target IS the request for local
+       sensor context. The Cameras button is a manual refresh, never the
+       precondition for first paint. Cameras must never block the dossier, so
+       the sweep runs alongside loadEntity and swallows its own failure. */
+    const camSweep = (async () => {
+      if (zoom < 14) return; // metro scale — a sweep there is thousands of noise nodes
+      // flyTo queues a debounced sweep for the same point; cancel it so the
+      // corridor is fetched exactly once per arrival.
+      if (autoCamTimerRef.current !== null) {
+        window.clearTimeout(autoCamTimerRef.current);
+        autoCamTimerRef.current = null;
+      }
+      const b = mapRef.current?.getBounds();
+      const radiusM = b
+        ? Math.min(4000, Math.max(400, b.getNorthEast().distanceTo(b.getSouthWest()) / 2))
+        : zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1800;
+      try {
+        await loadCamerasQuiet({ center: { lat, lng }, radiusM });
+      } catch { /* cameras optional */ }
+    })();
+
     await loadEntity(lat, lng);
+    void camSweep;
   };
+
 
 
   const loadEntity = async (lat: number, lng: number) => {
@@ -3292,14 +3345,36 @@ const IntelligenceMapModule = () => {
                   {/* ── Property Intelligence · Zophiel Live Web Scrape ── */}
                   {(() => {
                     const intel = propertyIntel.intel as any;
-                    const facts: Array<{ icon: any; label: string; value?: string }> = intel ? [
+                    /* PUBLIC-INDEX LAW (Queue 06 C): every dossier field is
+                       rendered, present or not. A missing field prints the
+                       literal string "not in public index" — the model is
+                       never allowed to fill an owner, occupant, or offence
+                       that no registry published. */
+                    const NIL = "not in public index";
+                    const occupants = Array.isArray(intel?.tenants_or_occupants)
+                      ? intel.tenants_or_occupants.filter(Boolean)
+                      : Array.isArray(intel?.residents?.occupants)
+                        ? intel.residents.occupants.map((o: any) => (typeof o === "string" ? o : o?.name)).filter(Boolean)
+                        : [];
+                    const crimeAtAddress = Array.isArray(intel?.criminal_at_address)
+                      ? intel.criminal_at_address.filter(Boolean).join("; ")
+                      : intel?.criminal_at_address || intel?.crime_at_address;
+                    const facts: Array<{ icon: any; label: string; value: string; missing: boolean }> = intel ? [
                       { icon: User,        label: "Owner",      value: intel.owner },
                       { icon: Building2,   label: "Operator",   value: intel.operator },
                       { icon: Hash,        label: "Type",       value: intel.property_type },
                       { icon: CalendarDays,label: "Year Built", value: intel.year_built },
                       { icon: Ruler,       label: "Size",       value: intel.size },
                       { icon: DollarSign,  label: "Est. Value", value: intel.value_estimate },
-                    ].filter(f => !!f.value) : [];
+                      { icon: UsersIcon,   label: "Who Lives Here", value: occupants.length ? occupants.slice(0, 4).join(", ") : "" },
+                      { icon: AlertTriangle, label: "Criminal At Address", value: crimeAtAddress },
+                    ].map(f => ({
+                      icon: f.icon,
+                      label: f.label,
+                      value: f.value ? String(f.value) : NIL,
+                      missing: !f.value,
+                    })) : [];
+
 
                     const status = propertyIntel.loading
                       ? { dot: "bg-amber-400 animate-pulse", text: "SCRAPING", color: "text-amber-300/90" }
@@ -3395,15 +3470,19 @@ const IntelligenceMapModule = () => {
                                 {/* Fact grid */}
                                 {facts.length > 0 && (
                                   <div className="grid grid-cols-2 gap-1.5">
-                                    {facts.map(({ icon: Icon, label, value }) => (
+                                    {facts.map(({ icon: Icon, label, value, missing }) => (
                                       <div key={label} className="rounded-md border border-border/10 bg-background/30 px-2 py-1.5">
                                         <div className="flex items-center gap-1 mb-0.5">
                                           <Icon className="h-2.5 w-2.5 text-muted-foreground/50" strokeWidth={1.5} />
                                           <span className="text-[8.5px] uppercase tracking-[0.18em] text-muted-foreground/55 font-light">{label}</span>
                                         </div>
-                                        <p className="text-[10.5px] text-foreground/90 font-light leading-snug truncate" title={value}>{value}</p>
+                                        <p
+                                          className={`text-[10.5px] font-light leading-snug truncate ${missing ? "text-muted-foreground/45 italic" : "text-foreground/90"}`}
+                                          title={value}
+                                        >{value}</p>
                                       </div>
                                     ))}
+
                                   </div>
                                 )}
 

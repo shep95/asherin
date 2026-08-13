@@ -156,7 +156,12 @@ const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
     "search_swarm", "site_cyber_map", "intel_map",
   ]);
 
+  /* Geography tools own the canvas: resolving a place surfaces the map tab
+     itself. Entity tools (intel_map) are graph work and never steal focus. */
+  const GEO_TOOLS = new Set(["map_search", "property_intel", "get_directions", "place_marker", "focus_on"]);
+
   const dispatchToolCall = async (name: string, args: any): Promise<string> => {
+    if (GEO_TOOLS.has(name)) window.dispatchEvent(new CustomEvent("asher:open-map"));
     if (KERNEL_TOOLS.has(name)) {
       const { runKernelTool, KERNEL_OFFLINE_NOTICE } = await import("@/lib/asherinKernel");
       const res = await runKernelTool(name, args || {});

@@ -293,6 +293,14 @@ const AsherDashboard = () => {
     if (id === "vedic") { setVedicOpen(true); return; }
     setActive(id);
   };
+  /* A geography answer IS a map request. When any operator tool resolves a
+     place, the map surfaces itself — the operator never hunts for a tab. */
+  useEffect(() => {
+    const open = () => setActive("map");
+    window.addEventListener("asher:open-map", open);
+    return () => window.removeEventListener("asher:open-map", open);
+  }, []);
+
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, agentstore: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [agentStore, setAgentStore] = useState<AgentStoreEntry[]>([]);
