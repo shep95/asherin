@@ -111,9 +111,31 @@ const RE = {
     /\b(analy[sz]|data|dataset|statistic|regression|correlat|forecast|probabilit|bayes|distribution|metric|kpi|cohort|segment|model|trend|significan|sample|variance|benford)\w*/i,
 };
 
-/** Openers that are unambiguously conversational, not a task. */
-const GREETING =
-  /^(hi|hey|hello|yo|sup|howdy|good (morning|afternoon|evening|night)|thanks?|thank you|ty|ok(ay)?|cool|nice|got it|great|lol|haha|yes|no|yeah|nope|sure|please|continue|go on|more|again)\b[\s!.?,]*$/i;
+/**
+ * Openers that are unambiguously conversational, not a task.
+ *
+ * The old regex only matched a message that WAS a single opener token, so
+ * "hey, asherin. you there bud" fell through to the generic word-count rule
+ * and the model was handed a ping while wearing the analyst prompt. A ping is
+ * an opener plus, optionally: the product name, a presence check, and a term
+ * of address. Nothing in this pattern can absorb a task, because a task needs
+ * a verb or an object and every alternative below is a closed vocabulary.
+ */
+const ADDRESS = "(asherin|asher|bud|buddy|bro|man|dude|mate|friend|there)";
+const PRESENCE = "((are\\s+|r\\s+)?(you|u|ya)\\s*(there|around|up|awake|alive|online|here|listening)|still\\s+(there|around|here))";
+const OPENER =
+  "(hi|hey+|hello+|yo+|sup|wsup|whats\\s*up|what's\\s*up|howdy|good\\s+(morning|afternoon|evening|night)|" +
+  "thanks?|thank\\s+you|ty|ok(ay)?|cool|nice|got\\s+it|great|lol|haha+|yes|no|yeah|yep|nope|sure|please|" +
+  "continue|go\\s+on|more|again|morning|evening)";
+// One to four conversational atoms separated by nothing more than punctuation.
+// A greeting is an opener OR a bare presence check; either may carry addresses.
+const GREETING = new RegExp(
+  `^[\\s]*(${OPENER}|${PRESENCE})` +
+  `([\\s!.?,'-]+(${OPENER}|${PRESENCE}|${ADDRESS})){0,4}` +
+  `[\\s!.?,'-]*$`,
+  "i",
+);
+
 
 export function classifyTurnRelevance(sig: RelevanceSignals): TurnRelevance {
   const text = String(sig.text ?? "").slice(0, 4000);
