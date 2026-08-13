@@ -325,12 +325,73 @@ async function nominatimSearch(q: string): Promise<SearchHit[]> {
     } catch { /* keep the first pass */ }
   }
 
-  if (!state || !hits.length) return hits;
-  // Stable re-rank: hits whose resolved state matches the named state come
-  // first, original order preserved inside each group.
-  const matches = hits.filter(inState);
-  if (!matches.length) return hits;
-  return [...matches, ...hits.filter((h) => !matches.includes(h))];
+  if (state && hits.length) {
+    // Stable re-rank: hits whose resolved state matches the named state come
+    // first, original order preserved inside each group.
+    const matches = hits.filter(inState);
+    if (matches.length) hits = [...matches, ...hits.filter((h) => !matches.includes(h))];
+  }
+
+  /* PRECISION RANK. Nominatim orders by "importance", which is a popularity
+     score — a city centroid outranks the rooftop the operator typed. When the
+     query carries a street number we promote hits that actually resolved a
+     house_number + road, so a street address lands on the roof, not downtown. */
+  const wantsRooftop = /\b\d{1,6}\b/.test(q) && /[a-z]{3}/i.test(q);
+  if (wantsRooftop && hits.length > 1) {
+    const rank = (h: SearchHit) => {
+      const a = (h as any)?.address ?? {};
+      if (a.house_number && a.road) return 0;
+      if (a.road) return 1;
+      return 2;
+    };
+    hits = [...hits].sort((x, y) => rank(x) - rank(y));
+  }
+
+  /* Never a silent no-op: if Nominatim gave nothing, Photon answers. */
+  if (!hits.length) return await photonSearch(q);
+  return hits;
+}
+
+/** Photon (Komoot) fallback geocoder, shaped into the Nominatim hit form. */
+async function photonSearch(q: string): Promise<SearchHit[]> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
+  try {
+    const r = await fetch(
+      `https://photon.komoot.io/api/?limit=6&q=${encodeURIComponent(q)}`,
+      { headers: { Accept: "application/json" }, signal: controller.signal },
+    );
+    if (!r.ok) return [];
+    const j = await r.json();
+    const feats: any[] = Array.isArray(j?.features) ? j.features : [];
+    return feats
+      .filter((f) => Array.isArray(f?.geometry?.coordinates))
+      .map((f) => {
+        const p = f.properties ?? {};
+        const name = [p.name, p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street, p.city, p.state, p.country]
+          .filter(Boolean)
+          .join(", ");
+        return {
+          display_name: name || q,
+          lat: String(f.geometry.coordinates[1]),
+          lon: String(f.geometry.coordinates[0]),
+          type: p.osm_value ?? "place",
+          class: p.osm_key ?? "place",
+          address: {
+            house_number: p.housenumber,
+            road: p.street,
+            city: p.city,
+            state: p.state,
+            country: p.country,
+            country_code: String(p.countrycode ?? "").toLowerCase(),
+          },
+        } as unknown as SearchHit;
+      });
+  } catch {
+    return [];
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 
@@ -699,6 +760,7 @@ const IntelligenceMapModule = () => {
   const [activeBase, setActiveBase] = useState<string>("esri-sat");
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true, threats: true });
   const [layerFilter, setLayerFilter] = useState("");
+  const [showUnavailableLayers, setShowUnavailableLayers] = useState(false);
   const [sidebar, setSidebar] = useState(readSidebar);
   const [units, setUnits] = useState<Units>(readUnits);
   const [tool, setTool] = useState<null | "directions" | "places" | "jobs" | "cameras">(null);
@@ -790,6 +852,13 @@ const IntelligenceMapModule = () => {
     sources: Array<{ title: string; url: string; snippet: string }>;
     error: string | null;
   }>({ loading: false, intel: null, sources: [], error: null });
+  /* AI sketch lives in its own state so it can never be mistaken for, or
+     merged into, the public-index record. */
+  const [aiSketch, setAiSketch] = useState<{
+    loading: boolean;
+    intel: any | null;
+    error: string | null;
+  }>({ loading: false, intel: null, error: null });
   const [reconLayer, setReconLayer] = useState<{
     detections: Array<{ lat: number; lng: number; label: string; color?: string; confidence: number; reason?: string }>;
     bbox: [number, number, number, number] | null;
@@ -1373,80 +1442,109 @@ const IntelligenceMapModule = () => {
     });
   };
 
+  /* ── PUBLIC-INDEX DOSSIER (default on every fly / click) ────────────────
+     No model. No BYOK. No Gemini. Every field is a register string or the
+     literal phrase "not in public index". The cinematic AI dossier is a
+     separate, explicitly-labelled button below — never the truth layer. */
   const fetchPropertyIntel = async (
+    lat: number,
+    lng: number,
+    hit: SearchHit | null,
+    _features: OsmFeature[] | null,
+  ) => {
+    const address = hit?.display_name;
+    const resolvedAddress =
+      address || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    try {
+      const { data, error } = await supabase.functions.invoke("asherin-public-index", {
+        body: { lat, lon: lng, address: resolvedAddress },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Public index unavailable");
+
+      const NIL = "not in public index";
+      const keep = (v: unknown) => (typeof v === "string" && v && v !== NIL ? v : "");
+      setPropertyIntel({
+        loading: false,
+        intel: {
+          public_index: true,
+          summary:
+            `Public-index record for ${data.address || resolvedAddress}. ` +
+            `Fields with no published register entry read "${NIL}" — nothing here is inferred.`,
+          owner: keep(data.ownership),
+          property_type: keep(data.building_type),
+          year_built: keep(data.year_built),
+          tenants_or_occupants: [],
+          occupants_note: data.occupants_note || "",
+          criminal_at_address: keep(data.criminal),
+          census_block: keep(data.census_block),
+          flood_zone: keep(data.flood_zone),
+          roof_shape: keep(data.roof_shape),
+          weather_point: keep(data.weather),
+        } as any,
+        sources: (Array.isArray(data.citations) ? data.citations : []).map((c: any) => ({
+          title: c?.label ?? "source",
+          url: c?.url ?? "",
+        })) as any,
+        error: null,
+      });
+      logAsherEvent("module_open", { module: "public_index", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
+    } catch (e: any) {
+      setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Public index unavailable" });
+    }
+  };
+
+  /* ── AI SKETCH (opt-in only) ───────────────────────────────────────────
+     The old cinematic dossier. It runs ONLY when the operator presses the
+     button, and everything it returns is banner-labelled as a sketch. */
+  const fetchAiSketch = async (
     lat: number,
     lng: number,
     hit: SearchHit | null,
     features: OsmFeature[] | null,
   ) => {
-    const address = hit?.display_name;
     const primary = features ? classifyClick(features).primary : null;
     const entityName =
-      primary?.tags?.name ||
-      primary?.tags?.["name:en"] ||
-      primary?.tags?.operator ||
-      undefined;
-    // Coordinates alone are a valid target — fall back to a coord label so
-    // rural / unresolved parcels still trigger the dossier sweep instead of
-    // silently returning and leaving the panel blank.
+      primary?.tags?.name || primary?.tags?.["name:en"] || primary?.tags?.operator || undefined;
     const resolvedAddress =
-      address || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      hit?.display_name || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
-    // BYOK GATE — property intel requires the user's own AI key.
-    // Eliminates platform-key rate limits and the 4–15s queue wait.
     const byok = getActiveIntelMapByok();
     if (!byok) {
-      setPropertyIntel({
-        loading: false,
-        intel: null,
-        sources: [],
-        error: "BYOK_REQUIRED",
-      });
-      // Prompt at most once per session: every fly-to / map click reaches this
-      // path, and a dialog on each one would be an interruption storm. The
-      // inline BYOK_REQUIRED state in the panel remains the persistent signal.
+      setAiSketch({ loading: false, intel: null, error: "Add your own AI key (Settings → AI Keys) to run an AI sketch." });
       if (!byokPromptedRef.current) {
         byokPromptedRef.current = true;
         triggerByokRequired({
           source: "intelligence-property-map",
-          reason: "Property intel requires your own AI key (Settings → AI Keys).",
-          // The map owns the operator's workspace. Without this flag, paid
-          // subscribers were silently navigated to /dashboard?tab=settings,
-          // which remounts the dashboard on the default chat view and yanked
-          // the operator off the map mid-task (e.g. right after a fly-to).
+          reason: "The AI sketch (not public index) requires your own AI key.",
           noRedirect: true,
         });
       }
       return;
     }
 
-
-    setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    setAiSketch({ loading: true, intel: null, error: null });
     try {
-      // Extract jurisdiction from the reverse-geocode hit so the edge function
-      // scopes queries to the right registry (Florida parcels site for FL,
-      // ONLAND for Ontario, Land Registry for UK, etc.).
       const addr: any = hit?.address || {};
       const country = String(addr.country_code || "").toUpperCase();
       const state = String(addr["ISO3166-2-lvl4"] || "").split("-").pop() || "";
       const county = String(addr.county || "").replace(/\s+County$/i, "");
       const { data, error } = await supabase.functions.invoke("asher-property-intel", {
         body: {
-          lat, lng, address: resolvedAddress, entityName,
-          country, state, county,
-          byok: byok.apiKey,
-          byokProvider: byok.provider,
-          byokModel: byok.model,
+          lat, lng, address: resolvedAddress, entityName, country, state, county,
+          byok: byok.apiKey, byokProvider: byok.provider, byokModel: byok.model,
         },
       });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Property intel failed");
-      setPropertyIntel({ loading: false, intel: data.intel, sources: data.sources || [], error: null });
-      logAsherEvent("module_open", { module: "property_intel", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
+      if (!data?.success) throw new Error(data?.error || "AI sketch failed");
+      setAiSketch({ loading: false, intel: data.intel, error: null });
     } catch (e: any) {
-      setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Failed" });
+      setAiSketch({ loading: false, intel: null, error: e?.message || "AI sketch failed" });
     }
   };
+
 
 
   const saveCurrentTarget = async () => {
@@ -1565,6 +1663,35 @@ const IntelligenceMapModule = () => {
   }, [focusPin, entity]);
 
 
+
+  /* Chat-driven fly. Dashboard detects a geography turn, switches to this
+     module and emits asherin:geo-focus. We geocode with the precision rank
+     (Nominatim then Photon) and fly — rooftop zoom for a property question,
+     locality zoom otherwise. A miss is spoken, never a silent no-op. */
+  useEffect(() => {
+    let cancelled = false;
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as { place?: string; property?: boolean } | undefined;
+      const place = String(detail?.place ?? "").trim();
+      if (!place) return;
+      try {
+        const hits = await nominatimSearch(place);
+        if (cancelled) return;
+        if (!hits.length) { toast.error(`No public geocode for “${place}”.`); return; }
+        const h = hits.find(isRooftopHit) ?? hits[0];
+        const lat = parseFloat(h.lat);
+        const lng = parseFloat(h.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) { toast.error(`Bad geocode for “${place}”.`); return; }
+        await focusOn(lat, lng, h);
+      } catch {
+        if (!cancelled) toast.error("Geocoder unreachable — map could not fly.");
+      }
+    };
+    window.addEventListener("asherin:geo-focus", handler as EventListener);
+    return () => { cancelled = true; window.removeEventListener("asherin:geo-focus", handler as EventListener); };
+    // focusOn is a stable useCallback on the map ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Asher AI dispatcher — drives the map from the right-side panel
   const handleAIAction = async (a: MapAction): Promise<string | void> => {
@@ -2217,6 +2344,12 @@ const IntelligenceMapModule = () => {
             aria-label="Filter layers"
             className="w-full rounded-md border border-border/25 bg-background/50 px-2 py-1.5 text-[11px] font-light text-foreground outline-none focus:border-[#c98b3a]/50"
           />
+          <button
+            onClick={() => setShowUnavailableLayers((p) => !p)}
+            className="mt-2 w-full rounded-md border border-border/20 px-2 py-1 text-left text-[10px] font-light tracking-[0.12em] uppercase text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"
+          >
+            {showUnavailableLayers ? "Hide layers that are not live" : "Show layers that are not live"}
+          </button>
         </div>
         {/* One scroll owner for the complete layer tree. Previously only the
             category list scrolled while every operational panel below it was
@@ -2232,9 +2365,15 @@ const IntelligenceMapModule = () => {
             const needle = layerFilter.trim().toLowerCase();
             // A filter must not hide the answer behind a collapsed header, so a
             // matching category force-opens while the query is live.
+            /* A layer that is not fetched must not read as live product.
+               Unbuilt rows are hidden unless the operator explicitly asks to
+               see them, and then they are labelled NOT LIVE. */
+            const visible = showUnavailableLayers
+              ? cat.layers
+              : cat.layers.filter((l) => l.status === "live");
             const layers = needle
-              ? cat.layers.filter((l) => l.label.toLowerCase().includes(needle))
-              : cat.layers;
+              ? visible.filter((l) => l.label.toLowerCase().includes(needle))
+              : visible;
             if (!layers.length) return null;
             const open = needle ? true : !!openCats[cat.id];
             return (
@@ -2291,7 +2430,7 @@ const IntelligenceMapModule = () => {
                           }`} />
                           <span className="text-sm font-light flex-1 truncate">{l.label}</span>
                           {l.status === "soon" && (
-                            <span className="text-[10px] tracking-[0.15em] text-muted-foreground/40 uppercase">Soon</span>
+                            <span className="text-[10px] tracking-[0.15em] text-muted-foreground/40 uppercase">Not live</span>
                           )}
                           {isThreat && isActive && (
                             <span className="text-[10px] tracking-[0.15em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
@@ -2461,12 +2600,12 @@ const IntelligenceMapModule = () => {
               }`}
             >
               {cameraBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" /> : <CameraIcon className="h-3.5 w-3.5" strokeWidth={1.6} />}
-              <span className="hidden 2xl:inline">Cameras{cameras.length ? ` · ${cameras.length}` : ""}</span>
+              <span className="hidden 2xl:inline">Highway stills{cameras.length ? ` · ${cameras.length}` : ""}</span>
             </button>
 
           </div>
           <div className="ml-auto hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
-            Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · DOT CCTV
+            Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · agency highway stills
           </div>
         </div>
 
@@ -3359,16 +3498,28 @@ const IntelligenceMapModule = () => {
                     const crimeAtAddress = Array.isArray(intel?.criminal_at_address)
                       ? intel.criminal_at_address.filter(Boolean).join("; ")
                       : intel?.criminal_at_address || intel?.crime_at_address;
-                    const facts: Array<{ icon: any; label: string; value: string; missing: boolean }> = intel ? [
-                      { icon: User,        label: "Owner",      value: intel.owner },
-                      { icon: Building2,   label: "Operator",   value: intel.operator },
-                      { icon: Hash,        label: "Type",       value: intel.property_type },
-                      { icon: CalendarDays,label: "Year Built", value: intel.year_built },
-                      { icon: Ruler,       label: "Size",       value: intel.size },
-                      { icon: DollarSign,  label: "Est. Value", value: intel.value_estimate },
-                      { icon: UsersIcon,   label: "Who Lives Here", value: occupants.length ? occupants.slice(0, 4).join(", ") : "" },
-                      { icon: AlertTriangle, label: "Criminal At Address", value: crimeAtAddress },
-                    ].map(f => ({
+                    const isPublicIndex = !!intel?.public_index;
+                    const facts: Array<{ icon: any; label: string; value: string; missing: boolean }> = intel ? (
+                      isPublicIndex ? [
+                        { icon: User,        label: "Ownership",  value: intel.owner },
+                        { icon: Hash,        label: "Type",       value: intel.property_type },
+                        { icon: CalendarDays,label: "Year Built", value: intel.year_built },
+                        { icon: UsersIcon,   label: "Occupants",  value: "" },
+                        { icon: AlertTriangle, label: "Criminal At Address", value: crimeAtAddress },
+                        { icon: Hash,        label: "Census Block", value: intel.census_block },
+                        { icon: Ruler,       label: "Flood Zone", value: intel.flood_zone },
+                        { icon: Building2,   label: "Roof Shape", value: intel.roof_shape },
+                      ] : [
+                        { icon: User,        label: "Owner",      value: intel.owner },
+                        { icon: Building2,   label: "Operator",   value: intel.operator },
+                        { icon: Hash,        label: "Type",       value: intel.property_type },
+                        { icon: CalendarDays,label: "Year Built", value: intel.year_built },
+                        { icon: Ruler,       label: "Size",       value: intel.size },
+                        { icon: DollarSign,  label: "Est. Value", value: intel.value_estimate },
+                        { icon: UsersIcon,   label: "Who Lives Here", value: occupants.length ? occupants.slice(0, 4).join(", ") : "" },
+                        { icon: AlertTriangle, label: "Criminal At Address", value: crimeAtAddress },
+                      ]
+                    ).map(f => ({
                       icon: f.icon,
                       label: f.label,
                       value: f.value ? String(f.value) : NIL,
@@ -3377,11 +3528,11 @@ const IntelligenceMapModule = () => {
 
 
                     const status = propertyIntel.loading
-                      ? { dot: "bg-amber-400 animate-pulse", text: "SCRAPING", color: "text-amber-300/90" }
+                      ? { dot: "bg-amber-400 animate-pulse", text: "COLLECTING", color: "text-amber-300/90" }
                       : propertyIntel.error
                         ? { dot: "bg-red-500", text: "FAILED", color: "text-red-400/90" }
                         : intel
-                          ? { dot: "bg-emerald-400", text: "LIVE", color: "text-emerald-300/90" }
+                          ? { dot: "bg-emerald-400", text: "PUBLIC INDEX", color: "text-emerald-300/90" }
                           : { dot: "bg-muted-foreground/40", text: "STANDBY", color: "text-muted-foreground/60" };
 
                     return (
@@ -3390,17 +3541,18 @@ const IntelligenceMapModule = () => {
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase flex items-center gap-1.5">
                             <Globe2 className="h-3 w-3" strokeWidth={1.5} />
-                            Property Intel · Zophiel Web
+                            Public Index Dossier
                           </p>
                           <button
                             onClick={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
                             disabled={propertyIntel.loading}
                             className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
-                            title="Re-scrape property intelligence"
+                            title="Re-collect the public index record"
                           >
                             <RefreshCw className={`h-3 w-3 ${propertyIntel.loading ? "animate-spin" : ""}`} strokeWidth={1.5} />
                           </button>
                         </div>
+
 
                         {/* Intel card */}
                         <div className="rounded-xl border border-border/15 bg-gradient-to-b from-background/60 to-background/30 backdrop-blur-sm overflow-hidden">
@@ -3485,6 +3637,54 @@ const IntelligenceMapModule = () => {
 
                                   </div>
                                 )}
+
+                                {/* Occupancy honesty note — mailing/provider
+                                    registries are not a resident roll. */}
+                                {isPublicIndex && intel.occupants_note && (
+                                  <p className="text-[9.5px] font-light leading-relaxed text-muted-foreground/55 border-l border-border/20 pl-2">
+                                    {intel.occupants_note}
+                                  </p>
+                                )}
+
+                                {/* Sex-offender proximity is deliberately not
+                                    collected — no honest public feed exists. */}
+                                {isPublicIndex && (
+                                  <p className="text-[9.5px] font-light leading-relaxed text-muted-foreground/45 border-l border-border/20 pl-2">
+                                    Offender-proximity is not fetched. No open register publishes a reliable point-radius feed, so Asherin refuses the field rather than estimating it.
+                                  </p>
+                                )}
+
+                                {/* AI sketch — opt-in, never the truth layer */}
+                                {isPublicIndex && (
+                                  <div className="rounded-lg border border-border/15 bg-background/30 p-2.5 space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground/60 font-light">
+                                        AI sketch — not public index
+                                      </p>
+                                      <button
+                                        onClick={() => fetchAiSketch(entity.lat, entity.lng, entity.hit, entity.features)}
+                                        disabled={aiSketch.loading}
+                                        className="text-[10px] font-light px-2 py-1 rounded-md border border-border/20 text-muted-foreground hover:text-foreground hover:bg-foreground/5 disabled:opacity-40"
+                                      >
+                                        {aiSketch.loading ? "Sketching…" : "Run AI sketch"}
+                                      </button>
+                                    </div>
+                                    {aiSketch.error && (
+                                      <p className="text-[10px] font-light text-amber-300/80">{aiSketch.error}</p>
+                                    )}
+                                    {aiSketch.intel && (
+                                      <p className="text-[10.5px] font-light leading-relaxed text-foreground/75">
+                                        {String(aiSketch.intel.summary || "Sketch returned no summary.")}
+                                      </p>
+                                    )}
+                                    {!aiSketch.intel && !aiSketch.error && !aiSketch.loading && (
+                                      <p className="text-[9.5px] font-light text-muted-foreground/45 leading-relaxed">
+                                        Model-written narrative. It is a hypothesis, not a register entry, and it is never merged into the fields above.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
 
                                 {/* Tenants / occupants chips */}
                                 {Array.isArray(intel.tenants_or_occupants) && intel.tenants_or_occupants.length > 0 && (

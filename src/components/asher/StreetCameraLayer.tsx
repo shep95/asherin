@@ -169,6 +169,9 @@ const StreetCameraLayer = ({ cameras, refreshMs = 15_000 }: Props) => {
                   )}
                 </div>
                 <div className="text-[9px] opacity-50">Source: {cam.source}</div>
+                <div className="text-[9px] leading-snug opacity-50">
+                  Highway / corridor still published by a transport agency. This is not a camera on a house — Asherin has no access to doorbell or private CCTV.
+                </div>
               </div>
             </Popup>
           </CircleMarker>

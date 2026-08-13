@@ -1207,6 +1207,19 @@ const Dashboard = () => {
     const convId = activeConvIdRef.current;
     if (!user || !convId) return;
 
+    /* A geography turn IS a map request. The map surfaces itself on send —
+       the operator never hunts for the Maps tab. Detection only; the map
+       module owns the geocode and the fly. */
+    try {
+      const { detectGeoIntent, requestMapFocus } = await import("@/lib/geoIntent");
+      const geo = detectGeoIntent(content);
+      if (geo) {
+        setActiveView("geospatial");
+        requestMapFocus(geo);
+      }
+    } catch { /* never block a send on the map */ }
+
+
     // F-01 Auto-config: on the FIRST user message of a conversation, infer the
     // best Mode / Depth from intent keywords so users don't have to think about
     // controls. Manual changes after the first message always win.
