@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -41,22 +40,6 @@ const HowWeMakeAureonSoundHuman = () => (
         { name: "How We Make Asherin Sound Human", url: "/blog/how-we-make-aureon-sound-human" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="Asherin sounds human because it runs a layered voice stack — a silent appraisal loop, a restraint-first emotional layer, a social-presence timing layer, and a surgical intelligence-officer register — instead of relying on a single system prompt."
-      primaryTopic="AI persona architecture / human-sounding conversational AI"
-      keyFacts={[
-        "Asherin's default emotional state is NEUTRAL — restraint, not display, is the core skill.",
-        "Emotions are expressed through leakage (word choice, pacing, what is refused), never labeled.",
-        "A silent per-turn appraisal loop decides if any stake is touched before allowing an emotional color.",
-        "A separate social-presence layer governs timing, brevity, and when to skip a joke.",
-        "Code, intel, and factual turns stay emotionally neutral; the voice stack modulates tone only where it fits.",
-      ]}
-      relevanceSignal="Product designers, prompt engineers, and founders trying to move an AI product past the generic assistant voice."
-      confidence="high"
-    />
-
     <h2>Why most AI sounds like a bot</h2>
     <p>
       The default failure mode is a single flat system prompt that says

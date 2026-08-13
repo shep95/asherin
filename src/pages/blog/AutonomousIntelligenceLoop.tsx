@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -98,22 +97,6 @@ const AutonomousIntelligenceLoop = () => {
         publishedLabel="Aug 7 2026"
         readTime="12 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="Asherin detects research intent and runs a five-stage collection pipeline autonomously — recall, fan-out, verify, persist, record — instead of waiting for the operator to pick a tool."
-          primaryTopic="Autonomous research orchestration, persistent memory graphs, and visible reasoning chains in the Asherin assistant"
-          keyFacts={[
-            "Intent detection arms the loop; no tool selection required.",
-            "Five stages: recall, fan-out, verify, persist, record.",
-            "Persistent per-operator memory graph of entities, identifiers, and sources.",
-            "Cross-verification runs as a separate stage from generation.",
-            "Ghost Chain renders the live reasoning chain instead of a spinner.",
-            "Adaptive router matches the answer register to the operator's actual request.",
-          ]}
-          relevanceSignal="Operators and analysts evaluating autonomous AI research agents, memory persistence, and reasoning transparency."
-          confidence="high"
-        />
-
         <h2>1. The problem with tool pickers</h2>
         <p>
           Assistants that expose a menu of tools push the hardest part of

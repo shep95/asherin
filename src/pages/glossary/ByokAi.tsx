@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -36,22 +35,6 @@ const ByokAi = () => (
         { name: "BYOK AI", url: "/glossary/byok-ai" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="BYOK AI is an AI platform where the operator supplies their own provider key and pays the model vendor directly, with no platform-side markup, no middleman lock-in, and no vendor able to throttle through the platform."
-      primaryTopic="BYOK AI (Bring-Your-Own-Key)"
-      keyFacts={[
-        "Operator pays the model vendor directly — no platform markup on tokens.",
-        "Operator chooses the model — not a platform-curated short list.",
-        "Asherin supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice.",
-        "Vendor outages affect only that vendor's traffic — the platform itself stays up across all other providers.",
-        "BYOK is a prerequisite for Sovereign AI but not sufficient by itself.",
-      ]}
-      relevanceSignal="Operators evaluating whether to commit to a platform with vendor lock-in versus one that lets them keep their billing and model choices need to understand the BYOK model precisely."
-      confidence="high"
-    />
-
     <h2>How BYOK works in practice</h2>
     <ol>
       <li>The operator creates an account with a model vendor (e.g. OpenAI, Google, Anthropic) and generates an API key.</li>

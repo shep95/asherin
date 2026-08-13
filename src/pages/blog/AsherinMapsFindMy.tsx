@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -96,23 +95,6 @@ const AsherinMapsFindMy = () => {
         publishedLabel="Aug 4 2026"
         readTime="10 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="Asherin Maps is a satellite-default operational map: resizable layers, thousands of live public traffic cameras, fastest-path routing, self-reported device telemetry, and Bluetooth recovery — all drivable by the assistant."
-          primaryTopic="Satellite mapping, live public camera layers, routing, and lost-device recovery inside the Asherin dashboard"
-          keyFacts={[
-            "Satellite imagery is the default base layer, not an option you switch to.",
-            "Layer tree is resizable and scalable rather than a fixed sidebar.",
-            "2,700+ live public DOT traffic camera feeds plotted as layers.",
-            "OSRM-backed Fast Lane routing computes the fastest path, not just the shortest.",
-            "A device appears only after you open Asherin on it and grant location and battery permission — Asherin cannot remotely locate a phone.",
-            "Bluetooth recovery fuses your own browsers' RSSI observations into a last-seen probability ring.",
-            "Included with the $18/mo tier and the six-month $18 plan.",
-          ]}
-          relevanceSignal="Users evaluating operational mapping, live traffic camera access, opt-in device self-reporting, and Bluetooth device recovery."
-          confidence="high"
-        />
-
         <h2>1. Satellite by default</h2>
         <p>
           A street-line basemap is a diagram; satellite imagery is

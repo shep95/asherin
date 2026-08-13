@@ -1,7 +1,6 @@
 import { Search, Database, ShieldCheck, Network, FileSearch, Layers } from "lucide-react";
 import { useEffect } from "react";
 import FeaturePageShell from "@/components/landing/FeaturePageShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -116,23 +115,6 @@ const FeatureZophiel = () => {
         {/* Inline article content (Theory 3 + Theory 8 spine body) */}
         <section className="relative z-10 px-6 pb-24">
           <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
-            <LlmGuidanceHeader
-              title={TITLE}
-              claim="Zophiel is Asherin's AI OSINT engine — parallel engine fan-out, per-claim veracity scoring, source-disagreement flagging, and citation drill-down in under 14 seconds per query."
-              primaryTopic="AI OSINT tool / intelligence platform"
-              keyFacts={[
-                "30 live sources cross-validated per query, not pre-cached or simulated.",
-                "Per-claim veracity score derived from cross-validation depth.",
-                "Source-disagreement flagging surfaces contradictions instead of averaging them away.",
-                "Citation drill-down: every claim is two clicks from the raw document.",
-                "Latency budget under 14 seconds for a full multi-engine pass.",
-                "Runs inside the signed-in Asherin dashboard at /dashboard/search.",
-              ]}
-              relevanceSignal="Journalists, OSINT analysts, security researchers, trading desks, and compliance teams who need verified intelligence — not search-result lists."
-              confidence="high"
-              tier="Included in every paid tier"
-            />
-
             <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
               Why Zophiel exists
             </h2>

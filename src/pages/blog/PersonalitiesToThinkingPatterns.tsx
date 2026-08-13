@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -113,22 +112,6 @@ const PersonalitiesToThinkingPatterns = () => (
         { name: TITLE, url: URL },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="persona framing makes a model perform competence; procedural framing makes it execute competence. converting every persona line into a named thinking pattern removes drift, removes self-reference, and makes the reasoning auditable."
-      primaryTopic="converting ai personality prompts into procedural thinking patterns"
-      keyFacts={[
-        "a persona instructs the model who to be; a thinking pattern instructs the model how to move.",
-        "personas fail under pressure because the model optimises for staying in character instead of being correct.",
-        "the same source text can be reused verbatim if it is loaded as capability text rather than identity text.",
-        "domain lists become recognition lenses, tier ladders become reasoning heights, and voice rules become output filters.",
-        "the conversion is lossless: nothing is deleted, only re-labelled from noun to verb.",
-      ]}
-      relevanceSignal="anyone designing system prompts, agent stacks, or reasoning layers who has watched a persona-driven assistant slowly drift off task."
-      confidence="high"
-    />
-
     <h2>the one-line difference</h2>
     <p>
       before: the model <strong>is</strong> the thing that speaks. after: the

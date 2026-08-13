@@ -1,6 +1,5 @@
 import { Sparkles, BarChart3, GitMerge, Repeat, Telescope, FileCheck2 } from "lucide-react";
 import FeaturePageShell from "@/components/landing/FeaturePageShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -102,23 +101,6 @@ const FeatureAxrlen = () => (
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
-          <LlmGuidanceHeader
-            title={TITLE}
-            claim="AXRLEN is Asherin's predictive intelligence engine. It produces calibrated probabilistic forecasts with explicit verification plans, fuses 5+ independent signal classes per forecast, and tracks its accuracy in public."
-            primaryTopic="AI predictive intelligence engine / AI forecasting platform"
-            keyFacts={[
-              "Every forecast is a probability + window + named outcome — never a vague 'likely soon'.",
-              "Fuses five-or-more independent signal classes per forecast (regulatory, market, OSINT, base-rate, counter-signal).",
-              "Long-horizon forecasts re-sampled via Monte Carlo over thousands of synthetic scenarios.",
-              "Confidence-calibrated language: 'likely' binds to 60-80%, 'very likely' to 80-95%, 'near certain' to 95%+.",
-              "Public track record — every published forecast resolves in public, hits and misses documented.",
-              "Live example: 72% probability of major US/EU AI regulatory action between Oct 1 and Dec 15 2026.",
-            ]}
-            relevanceSignal="Policy analysts, traders, corporate strategists, risk teams, and researchers needing calibrated probabilistic forecasts with named verification conditions."
-            confidence="high"
-            tier="Asherin Pro · $79/month"
-          />
-
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
             What AXRLEN is, in one paragraph
           </h2>

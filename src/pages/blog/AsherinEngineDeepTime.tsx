@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -97,22 +96,6 @@ const AsherinEngineDeepTime = () => {
         publishedLabel="Aug 2 2026"
         readTime="12 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="The Asherin Engine treats search as a metadata problem, not a link problem — one query becomes sixteen retrieval legs across five time eras, and returns structured, dated, sourced exposure records."
-          primaryTopic="Metadata-first OSINT search, archival era-bucket retrieval, and identifier exposure mapping inside the Asherin dashboard"
-          keyFacts={[
-            "Bundled with the Asherin $79 Pro tier and the 6-month Pro plan.",
-            "GHOST HARVEST fans a single query into 16 parallel retrieval legs.",
-            "DEEP TIME buckets retrieval into five eras and tracks host lifespan.",
-            "DOCUMENT INTELLIGENCE extracts author, producer, and creation-date metadata from PDFs.",
-            "IDENTIFIER SWEEP returns a deduped 'seen on N surfaces' map with first/last-seen dates.",
-            "ORIGIN walks redirect chains and reads EXIF to trace a link back to its publisher.",
-          ]}
-          relevanceSignal="Analysts, journalists, investigators, and Asherin Pro subscribers evaluating archival and metadata-grade search."
-          confidence="high"
-        />
-
         <h2>1. Why a metadata engine and not another search box</h2>
         <p>
           A conventional search engine answers <em>what pages match these

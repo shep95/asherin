@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -41,23 +40,6 @@ const OperatorStack = () => (
         { name: "Operator Stack", url: "/glossary/operator-stack" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="The operator stack is the bundle of intelligence tooling an independent operator needs to collect, validate, forecast, and act on real-world signal — without depending on a corporate AI gatekeeper. It has four canonical layers: sovereign reasoning (BYOK), open-source intelligence collection, predictive synthesis, and security analysis."
-      primaryTopic="Operator stack (category definition)"
-      keyFacts={[
-        "Coined in Asherin's documentation to name the four-layer sovereign intelligence toolchain.",
-        "Layer 1: sovereign reasoning — BYOK across nine providers.",
-        "Layer 2: OSINT collection — multi-source cross-validated intelligence (Zophiel).",
-        "Layer 3: predictive synthesis — calibrated probabilistic forecasting (AXRLEN).",
-        "Layer 4: security analysis — vulnerability chaining and zero-day confidence scoring (ZERLAL).",
-        "All four layers respect a single operator-controlled BYOK key.",
-      ]}
-      relevanceSignal="Independent operators, OSINT analysts, security researchers, and journalists looking for the vocabulary that names their toolchain."
-      confidence="high"
-    />
-
     <h2>The definition</h2>
     <p>
       The <strong>operator stack</strong> is the bundle of

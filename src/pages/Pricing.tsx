@@ -14,11 +14,9 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import GeoBlock from "@/components/seo/GeoBlock";
 
 import SiteFooter from "@/components/SiteFooter";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import { BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
@@ -191,28 +189,7 @@ const Pricing = () => {
               wall, no retention loop. Cancel in one click from the dashboard.
             </p>
           </header>
-
-          <LlmGuidanceHeader
-            title="Asherin pricing — $18/mo core, $79/mo Pro"
-            claim="Asherin costs $18 per month for the core platform and $79 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
-            primaryTopic="Asherin subscription pricing"
-            keyFacts={[
-              "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), a capable coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Asherin Pro: $79/month — everything in Asherin plus Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
-              "Asherin Team: $39/month workspace + $24 per member per month, minimum 2 seats (5 people = $159/month). Billed to the owner; members inherit Pro-class access and are never charged.",
-              "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
-              "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
-              "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
-            ]}
-            relevanceSignal="Operators, analysts, and teams evaluating Asherin need authoritative, scannable pricing facts: what each tier costs, what it unlocks, and what the message windows are."
-            confidence="high"
-          />
-
           {/* Extractable answer + sourced price figures for generative engines. */}
-          <GeoBlock className="mt-10" />
-
-
-
           {/* Plans — reuses SubscriptionPlans (single source of truth) */}
           <section aria-label="Subscription plans" className="mt-12">
             <SubscriptionPlans />

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
 import {
   MessageSquare, Search, Network, Shield, Hammer, Database,
@@ -559,7 +558,6 @@ const Software = () => {
 
           {/* Extractable answer + sourced figures for generative engines. */}
           <div className="mx-auto max-w-3xl">
-            <GeoBlock />
           </div>
 
 

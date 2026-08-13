@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -97,22 +96,6 @@ const CloudIntelligenceSuite = () => {
         publishedLabel="Aug 3 2026"
         readTime="13 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="Cloud Intelligence converts the metadata already sitting in a user's own Google accounts into graded intelligence products — not a smarter inbox, an analytic one."
-          primaryTopic="Email header forensics, call and message metadata analysis, and standards-graded contact dossiers inside Asherin"
-          keyFacts={[
-            "Connects multiple Google accounts simultaneously; each revocable independently.",
-            "POSTMARK reads Received chains, SPF/DKIM/DMARC, originating ASN, and mailer fingerprints.",
-            "VOICEPRINT profiles call and voicemail metadata: cadence, duration curves, carrier and origin.",
-            "SIGNAL unifies Google Voice and Android SMS threads into one correspondent view.",
-            "Meet Vault surfaces calendar-linked recordings for streaming and download.",
-            "Contact dossiers follow a BLUF + confidence matrix + competing hypotheses + PIR structure.",
-          ]}
-          relevanceSignal="Operators, journalists, and security-conscious professionals who want analyst-grade reading of their own communications metadata."
-          confidence="high"
-        />
-
         <h2>1. The premise</h2>
         <p>
           Every mailbox is already an intelligence archive. It records who

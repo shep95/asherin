@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -41,23 +40,6 @@ const ZeroDayConfidenceScoring = () => (
         { name: "Zero-Day Confidence Scoring", url: "/glossary/zero-day-confidence-scoring" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="Zero-day confidence scoring is a calibrated 0-100 scale used to triage vulnerability findings that do not match any known CVE. The score reflects pattern novelty, exploitability, corroborating signal, and stability across re-scans."
-      primaryTopic="Zero-day confidence scoring (vulnerability triage term)"
-      keyFacts={[
-        "Calibrated 0-100 scale for findings that do not match a known CVE.",
-        "Four scoring inputs: pattern novelty, exploitability, corroborating signal, stability across re-scans.",
-        "Scores above 70 are surfaced as candidate zero-days for human review.",
-        "Scores between 40 and 70 are flagged for analyst triage.",
-        "Scores below 40 are documented but do not page the operator.",
-        "Used in production by Asherin's ZERLAL AI vulnerability scanner.",
-      ]}
-      relevanceSignal="Security engineers, AppSec leads, and bug-bounty operators evaluating AI vulnerability scanners that produce scored novel-pattern findings."
-      confidence="high"
-    />
-
     <h2>The definition</h2>
     <p>
       <strong>Zero-day confidence scoring</strong> is a calibrated

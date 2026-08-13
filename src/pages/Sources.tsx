@@ -14,7 +14,6 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import GeoBlock from "@/components/seo/GeoBlock";
 import {
   GEO_CONTENT,
   allCitations,
@@ -75,9 +74,6 @@ const Sources = () => {
             was last verified.
           </p>
         </header>
-
-        <GeoBlock path="/sources" className="mb-16" />
-
         <section className="mb-16" aria-labelledby="research-heading">
           <SectionHeading>
             <span id="research-heading">Peer-reviewed and editorial research</span>
