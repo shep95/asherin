@@ -13,7 +13,7 @@ import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
 import { COMEDY_BRAIN } from "../_shared/comedyBrain.ts";
 import { ASHER_LOGIC_BRAIN } from "../_shared/asherLogicBrain.ts";
 import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProtocol.ts";
-import { EMOTIONAL_PERSONA_BRAIN } from "../_shared/emotionalPersonaBrain.ts";
+import { ASHERIN_IDENTITY, buildAsherinProcedures } from "../_shared/asherinPatternIndex.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
 import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
@@ -940,7 +940,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
+    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -2076,9 +2076,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // Cognitive personality matrix — the roster is resident so the model knows
     // its own instrument panel; only the two-to-three logics this message
     // actually demands get their full dossier loaded (relevance gating).
-    const { THINKING_PATTERN_DATABASE, buildThinkingPatternDossiers } =
-      await import("../_shared/thinkingPatterns.ts");
-    const _logicEmphasis = buildThinkingPatternDossiers(_lastUserText);
+    // Retrieval replaces the "who reasons" dossier slot: 3–7 procedure cards
+    // scored against this turn's text. The index is never dumped wholesale.
+    const _asherinProcedures = buildAsherinProcedures(_lastUserText);
     // Pattern engine — the transferable reasoning architecture. The matrix
     // above answers WHO reasons; this answers HOW they move on data. The
     // kernel is small and rides every non-trivial turn because the universal
@@ -2172,7 +2172,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // FIRST anchor — doctrine dominates every downstream brain
       HYPOTHETICAL_REALISM_DOCTRINE,
       _temporalBlock,
-      AUREON_CORE_IDENTITY,
+      ASHERIN_IDENTITY,
+      _asherinProcedures,
+      ASHERIN_OPERATING_NOTES,
       // Form-level law. Ships on EVERY turn including trivial ones — casing and
       // the seven patterns govern a one-line greeting as much as a dossier.
       OUTPUT_CONDUCT_DOCTRINE,
@@ -2197,7 +2199,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.humor ? COMEDY_BRAIN : "",
       _R.trivial ? "" : ASHER_LOGIC_BRAIN,
       PROMPT_INTELLIGENCE_PROTOCOL,
-      _R.psychology || _R.creative || _R.trivial ? EMOTIONAL_PERSONA_BRAIN : "",
       _R.deep || _R.analytics || _R.intel ? SYNTHESIS_ENGINE_BRAIN : "",
       _R.visual ? VISUAL_INTELLIGENCE_BRAIN : "",
       _R.social ? SOCIAL_AWARENESS_BRAIN : "",
@@ -2217,7 +2218,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       CONTEXT_INTELLIGENCE_PROMPT,
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
-      personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),
       // ── USER-CONTROLLED OVERRIDES (highest recency priority) ──
       userContextStr,
       memoryContextStr,
@@ -2246,8 +2246,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // block in the prompt. The per-message emphasis (which names the two or
       // three logics this turn demands) always ships; the full roster only
       // when the turn is genuinely analytical.
-      _R.analytics ? THINKING_PATTERN_DATABASE : "",
-      _logicEmphasis,
       // Reasoning architecture. The kernel is cheap and universal — it ships
       // on anything that is not a greeting, because dropping it changes HOW
       // the model thinks rather than merely what it knows. The roster only
