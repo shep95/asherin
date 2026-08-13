@@ -777,10 +777,8 @@ const AureonIdeView = () => {
 
       lastAssistantRef.current = assistantContent;
 
-      // Chat mode never touches the file tree.
+      // Chat mode answers only — it never touches the file tree.
       if (ideMode !== "agent") return;
-
-      // Chat mode never touches the tree; agent output goes through the gate.
       const rawGenerated = extractZanoemCodeFiles(assistantContent);
       const generatedFiles: ZanoemCodeFile[] = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
         ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
@@ -791,11 +789,11 @@ const AureonIdeView = () => {
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
-        setChatMessages(prev => [...prev, { id: assistantId, role: "assistant", content: `Error: ${err.message}`, timestamp: new Date() }]);
+        toast({ title: "Workspace request failed", description: err.message, variant: "destructive" });
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, activeSessionId, rag, isMobile, ideMode, requestApproval]);
+  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, rag, ideMode, applyGeneratedFiles]);
 
   const stopStreaming = useCallback(() => { abortRef.current?.abort(); setIsStreaming(false); }, []);
 
@@ -804,8 +802,38 @@ const AureonIdeView = () => {
   const handleTerminalAiCommand = useCallback((query: string) => {
     sendChatMessage(query);
     if (!rightOpen && !isMobile) setRightOpen(true);
-    if (isMobile) setMobilePanel("chat");
+    if (isMobile) setMobilePanel("editor");
   }, [sendChatMessage, rightOpen, isMobile]);
+
+  // ── Chat handoff ──
+  // asherin chat is the mouth. When a turn actually writes files, the payload
+  // arrives here and opens as a diff the operator approves. The queue is
+  // drained on mount too, because the dashboard splits to this workspace in the
+  // same beat it queues the write and the editor may still be mounting.
+  useEffect(() => {
+    let busy = false;
+    const drain = async (handoff: IdeHandoff | null) => {
+      if (!handoff || busy) return;
+      busy = true;
+      try {
+        const files: ZanoemCodeFile[] = handoff.files.map(f => ({
+          filename: f.filename,
+          content: f.content,
+          language: f.language ?? getLanguage(f.filename),
+        }));
+        const outcome = await applyGeneratedFiles(files, handoff.trigger, "chat_apply");
+        if (outcome === "rejected") {
+          toast({ title: "Changes rejected", description: "Nothing was written to the project." });
+        }
+      } finally {
+        busy = false;
+      }
+    };
+    const onEvent = () => { void drain(takeIdeHandoff()); };
+    window.addEventListener(IDE_HANDOFF_EVENT, onEvent);
+    void drain(takeIdeHandoff());
+    return () => window.removeEventListener(IDE_HANDOFF_EVENT, onEvent);
+  }, [applyGeneratedFiles, toast]);
 
   // ── Crash hook wiring ─────────────────────────────────────
   // 1. Holds the IdeAgentsPanel "on_crash" trigger so we can fire it.
