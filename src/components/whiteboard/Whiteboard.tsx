@@ -560,6 +560,11 @@ const Whiteboard = () => {
     if (createTraceRef.current.timer !== null) window.clearTimeout(createTraceRef.current.timer);
   }, []);
 
+  const notify = useCallback((message: string) => {
+    setExportNotice(message);
+    window.setTimeout(() => setExportNotice((current) => (current === message ? null : current)), 3200);
+  }, []);
+
   const getCanvasPoint = useCallback((clientX: number, clientY: number, snap = false) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
@@ -711,6 +716,109 @@ const Whiteboard = () => {
     updateActiveBoardElements((elements) => elements.filter((element) => element.id !== selectedElementId));
     setSelectedElementId(null);
   }, [pushHistory, selectedElementId, updateActiveBoardElements]);
+
+  const handleExport = useCallback(
+    async (format: "png" | "svg" | "json") => {
+      setExportMenuOpen(false);
+      if (!activeBoard) return;
+      const base = safeFileName(activeBoard.name);
+      try {
+        if (format === "json") {
+          downloadBlob(new Blob([boardToJson(activeBoard)], { type: "application/json" }), `${base}.json`);
+        } else {
+          const svg = boardToSvg(activeBoard);
+          if (format === "svg") {
+            downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${base}.svg`);
+          } else {
+            downloadBlob(await svgToPngBlob(svg, 2), `${base}.png`);
+          }
+        }
+        notify(`Exported ${base}.${format}`);
+        void emitPull({
+          organ: "whiteboard",
+          capability: "export",
+          fromSurface: "whiteboard",
+          status: "ok",
+          quote: `${format} · ${activeBoard.elements.length} objects`,
+        });
+      } catch (error) {
+        notify("Export failed");
+        void emitPull({
+          organ: "whiteboard",
+          capability: "export",
+          fromSurface: "whiteboard",
+          status: "error",
+          quote: error instanceof Error ? error.message : "export failed",
+        });
+      }
+    },
+    [activeBoard, notify],
+  );
+
+  const handleImportBoard = useCallback(
+    async (file: File) => {
+      try {
+        const parsed = parseBoardJson(await file.text());
+        if (!parsed) {
+          notify("That file is not an Asherin board");
+          return;
+        }
+        pushHistory();
+        setBoards((previous) => [...previous, parsed]);
+        setActiveBoardId(parsed.id);
+        setActiveLayerId(parsed.layers[0]?.id || null);
+        notify(`Imported ${parsed.name}`);
+      } catch {
+        notify("Could not read that board file");
+      }
+    },
+    [notify, pushHistory],
+  );
+
+  /**
+   * Objects arriving from chat, Zophiel or Maps. Boards live inside the
+   * account-synced encrypted envelope, so drops travel in memory only — no
+   * plaintext round trip to a server.
+   */
+  const applyDrops = useCallback(
+    (drops: BoardDrop[]) => {
+      if (!drops.length) return;
+      const board = boardsRef.current.find((entry) => entry.id === activeBoardIdRef.current);
+      const layerId = activeLayerIdRef.current || board?.layers[0]?.id;
+      if (!board || !layerId) return;
+      const origin = contentBounds(board.elements);
+      let cursorY = origin ? origin.y + origin.h + 80 : 120;
+      const created: WhiteboardElement[] = [];
+      for (const drop of drops) {
+        const batch = dropToElements(drop, layerId, { x: origin ? origin.x : 120, y: cursorY });
+        if (!batch.length) continue;
+        created.push(...batch);
+        const bounds = contentBounds(batch);
+        cursorY = bounds ? bounds.y + bounds.h + 80 : cursorY + 240;
+      }
+      if (!created.length) return;
+      pushHistory();
+      updateActiveBoardElements((elements) => [...elements, ...created]);
+      notify(describeDrop(drops[drops.length - 1]));
+      void emitPull({
+        organ: "whiteboard",
+        capability: "ai-object",
+        fromSurface: drops[drops.length - 1].source,
+        status: "ok",
+        quote: describeDrop(drops[drops.length - 1]),
+        meta: { objects: created.length },
+      });
+    },
+    [notify, pushHistory, updateActiveBoardElements],
+  );
+
+  useEffect(() => {
+    if (!loaded) return;
+    applyDrops(consumeBoardDrops());
+    const onDrop = () => applyDrops(consumeBoardDrops());
+    window.addEventListener(BOARD_DROP_EVENT, onDrop);
+    return () => window.removeEventListener(BOARD_DROP_EVENT, onDrop);
+  }, [applyDrops, loaded]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const rawPoint = getCanvasPoint(event.clientX, event.clientY, false);
@@ -1711,7 +1819,44 @@ const Whiteboard = () => {
           )}
         </div>
 
-        <button onClick={() => createChartElement()} className={toolButton(false)} title="Insert live chart"><span className="text-xs">Chart</span></button>
+        <button onClick={() => setTool("frame")} className={toolButton(tool === "frame")} title="Frame"><FrameIcon className="h-4 w-4" /></button>
+        <button onClick={() => setTool("arrow")} className={toolButton(tool === "arrow")} title="Arrow (binds to objects)"><ArrowRight className="h-4 w-4" /></button>
+        <button onClick={() => createChartElement()} className={toolButton(false)} title="Insert sketch series"><span className="text-xs">Chart</span></button>
+        <div className="relative">
+          <button onClick={() => setExportMenuOpen((previous) => !previous)} className={toolButton(exportMenuOpen)} title="Export board">
+            <Download className="h-4 w-4" />
+          </button>
+          {exportMenuOpen && (
+            <div className="absolute right-0 top-11 z-30 w-40 rounded-2xl border border-border/20 bg-background/95 p-1.5 backdrop-blur-xl">
+              {(["png", "svg", "json"] as const).map((format) => (
+                <button
+                  key={format}
+                  onClick={() => void handleExport(format)}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs text-foreground/80 hover:bg-foreground/5"
+                >
+                  <span>Export {format.toUpperCase()}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => { setExportMenuOpen(false); importInputRef.current?.click(); }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-foreground/80 hover:bg-foreground/5"
+              >
+                <Upload className="h-3.5 w-3.5" /> Import JSON
+              </button>
+            </div>
+          )}
+        </div>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void handleImportBoard(file);
+          }}
+        />
         <button onClick={() => fileInputRef.current?.click()} className={toolButton(false)} title="Import PDF, image, spreadsheet"><ImageIcon className="h-4 w-4" /></button>
         <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.csv,.json,.txt,.xls,.xlsx" className="hidden" onChange={handleImportFiles} />
 
