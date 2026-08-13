@@ -2603,6 +2603,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // Casing + seven-pattern law is the LAST thing the model reads: it is a
       // form rule, and form rules only hold when they are the nearest tokens.
       OUTPUT_CONDUCT_ANCHOR,
+      // TRIVIAL TURN CONTRACT — dead last so proximity makes it the governing
+      // rule for a ping. A greeting is a person saying hello, not a subject
+      // arriving for analysis; everything that would turn it into a packet was
+      // already withheld above, and this closes the remaining gap.
+      _R.trivial ? TRIVIAL_TURN_CONTRACT : "",
+
 
     ].filter(Boolean).join("\n\n");
 
