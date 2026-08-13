@@ -33,8 +33,8 @@ interface Props {
 }
 
 const WELCOME: TerminalLine[] = [
-  { id: "w1", type: "system", text: "AUREON Terminal v2.0 — Full Development Console", timestamp: new Date() },
-  { id: "w2", type: "system", text: "Type 'help' for commands • '? <query>' to ask Aureon AI", timestamp: new Date() },
+  { id: "w1", type: "system", text: "asherin shell — in-browser sandbox over your project files", timestamp: new Date() },
+  { id: "w2", type: "system", text: "Type 'help' for the four-line guide • '? <query>' to ask asherin", timestamp: new Date() },
 ];
 
 function makeLine(type: TerminalLine["type"], text: string): TerminalLine {
@@ -145,62 +145,17 @@ const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUp
     // AI query
     if (cmd.startsWith("? ") || cmd.startsWith("ai ")) {
       const query = cmd.replace(/^\?\s*|^ai\s*/i, "");
-      addLine(tid, "system", `[AUREON] Processing: "${query}"`);
+      addLine(tid, "system", `[asherin] Processing: "${query}"`);
       onAiCommand?.(query);
       return;
     }
 
     // Help
     if (base === "help") {
-      addLine(tid, "output", `AUREON Terminal v2.0 — Command Reference
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FILE SYSTEM
-  ls [path]         List files and directories
-  cd <path>         Change directory
-  pwd               Print working directory
-  cat <file>        Display file contents
-  touch <name>      Create a new file
-  mkdir <name>      Create a new directory
-  rm <file>         Delete a file
-  cp <src> <dest>   Copy a file
-  mv <src> <dest>   Move/rename a file
-  tree              Show directory tree
-  find <pattern>    Find files matching pattern
-  wc <file>         Word/line/char count
-
-DEVELOPMENT
-  npm install       Simulate package install
-  npm run dev       Start dev server
-  npm run build     Build project
-  npm test          Run tests
-  npx <cmd>         Execute package command
-  node <file>       Run JavaScript file
-  git status        Show git status
-  git log           Show git log
-  git branch        List branches
-  git diff          Show changes
-
-UTILITIES
-  echo <text>       Print text
-  date              Show current date/time
-  whoami            Show current user
-  env               Show environment variables
-  export K=V        Set environment variable
-  history           Show command history
-  grep <pat> <file> Search in file
-  curl <url>        Simulate HTTP request
-  ping <host>       Simulate ping
-  uptime            Show session uptime
-
-AI
-  ? <query>         Ask Aureon AI
-  ai <query>        Ask Aureon AI
-  explain <file>    Ask AI to explain file
-  fix <file>        Ask AI to fix issues
-  test <file>       Ask AI to generate tests
-
-  clear             Clear terminal
-  exit              Close terminal instance`);
+      addLine(tid, "output", `files    ls · cd · pwd · cat · touch · mkdir · rm · cp · mv · tree · find · grep · wc
+run      npm install/run dev/run build/test · npx · node · git status/log/branch/diff (sandboxed, no network)
+ai       ? <query> · ai <query> · explain <file> · fix <file> · test <file>
+shell    echo · date · whoami · env · export K=V · history · uptime · clear · exit`);
       return;
     }
 
@@ -432,7 +387,7 @@ AI
       const node = resolved ? findAtPath(files, resolved.split("/")) : null;
       const context = node?.content ? `\n\`\`\`\n${node.content.slice(0, 3000)}\n\`\`\`` : "";
       const query = base === "explain" ? `Explain this code:${context}` : base === "fix" ? `Fix issues in this code:${context}` : `Generate unit tests for:${context}`;
-      addLine(tid, "system", `[AUREON] ${base} ${target || "current file"}...`);
+      addLine(tid, "system", `[asherin] ${base} ${target || "current file"}...`);
       onAiCommand?.(query);
       return;
     }

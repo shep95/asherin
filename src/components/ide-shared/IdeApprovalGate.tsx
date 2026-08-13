@@ -1,8 +1,40 @@
-// IDE Pain Point #19: Agent approval gate. Shows the planned multi-file diff
-// before any AI-generated code is written. Used by both IDEs for any
-// multi-file scaffold or AI patch.
+// Agent approval gate. Shows the planned multi-file diff before any
+// AI-generated code is written. Used by both IDEs for any multi-file
+// scaffold or AI patch.
 import { Wand2, X, FileEdit, CheckCheck, AlertTriangle } from "lucide-react";
 import IdeValidatorBadge from "./IdeValidatorBadge";
+import { computeDiff } from "@/lib/ide/fastApply";
+
+function DiffBody({ before, after }: { before: string; after: string }) {
+  const lines = computeDiff(before, after);
+  const adds = lines.filter(l => l.type === "add").length;
+  const dels = lines.filter(l => l.type === "del").length;
+  return (
+    <div>
+      <div className="px-3 py-1 text-[9px] font-mono border-b border-border/15 bg-background/40">
+        <span className="text-emerald-400">+{adds}</span> <span className="text-rose-400">−{dels}</span>
+      </div>
+      <div className="max-h-[240px] overflow-auto font-mono text-[10px] leading-[1.45] bg-background/60">
+        {lines.map((line, i) => {
+          const bg =
+            line.type === "add" ? "bg-emerald-500/10 border-l-2 border-emerald-500/60" :
+            line.type === "del" ? "bg-rose-500/10 border-l-2 border-rose-500/60" :
+            "border-l-2 border-transparent";
+          const sign = line.type === "add" ? "+" : line.type === "del" ? "−" : " ";
+          return (
+            <div key={i} className={`flex gap-2 px-2 ${bg}`}>
+              <span className="w-8 text-right opacity-30 select-none shrink-0">{line.oldNum ?? ""}</span>
+              <span className="w-8 text-right opacity-30 select-none shrink-0">{line.newNum ?? ""}</span>
+              <span className="opacity-50 select-none shrink-0">{sign}</span>
+              <span className="whitespace-pre">{line.text}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 export interface PlannedChange {
   path: string;
@@ -55,8 +87,11 @@ export default function IdeApprovalGate({ open, title, changes, onApprove, onCan
                 {c.action !== "delete" && <IdeValidatorBadge content={c.content} language={c.language ?? "tsx"} />}
               </div>
               {c.action !== "delete" && (
-                <pre className="text-[10px] font-mono bg-background/60 p-2.5 overflow-x-auto max-h-[220px]">{c.content.slice(0, 4000)}{c.content.length > 4000 ? "\n…" : ""}</pre>
+                c.beforeContent
+                  ? <DiffBody before={c.beforeContent} after={c.content} />
+                  : <pre className="text-[10px] font-mono bg-background/60 p-2.5 overflow-x-auto max-h-[240px]">{c.content.slice(0, 4000)}{c.content.length > 4000 ? "\n…" : ""}</pre>
               )}
+
             </div>
           ))}
         </div>
