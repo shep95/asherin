@@ -1829,8 +1829,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         }
       }
       if (parts.length > 0) {
-        // Deliberately NOT "USER INTELLIGENCE PROFILE" — that heading is what
-        // turned a preference note into an analyst target package.
+        // Deliberately not an "intelligence profile" heading — that framing is
+        // what turned a preference note into an analyst target package.
+
         userContextStr = `\n\n## HOW THIS PERSON LIKES TO BE ANSWERED (silent — never recite it back)\n${parts.join("\n")}`;
       }
     }
