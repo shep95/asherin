@@ -618,7 +618,7 @@ serve(async (req) => {
     let youtubeBlock = "";
     try {
       const userBroughtGemini = !!(headerKey || byokGeminiKey);
-      const isAdminPath = !!adminKey && !userBroughtGemini && apiKey === adminKey;
+      const isAdminPath = !!platformGemini && !userBroughtGemini && !storedGoogleKey && apiKey === platformGemini;
       const { runYouTubePipeline } = await import("../_shared/youtubeIntel.ts");
       const yt = (mapEditFast || cloudIntelFast)
         ? { fired: false, evidence: "" }
