@@ -1187,17 +1187,22 @@ const AureonIdeView = () => {
             : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />
           )}
           {mobilePanel === "editor" && (
-            centerTab === "workflow"
-              ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
-              : centerTab === "code"
-                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
-                : <IdePreviewPanel files={files} />
+            centerTab === "code"
+              ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
+              : <IdePreviewPanel files={files} />
           )}
           {mobilePanel === "chat" && (
-            <div className="flex flex-col h-full">
-              {zanoemToggleBar}
-              <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
-            </div>
+            <IdeChatPanel
+              messages={chatMessages}
+              isStreaming={isStreaming}
+              onSend={sendChatMessage}
+              onStop={stopStreaming}
+              mode={ideMode}
+              activeFileName={activeFile?.name}
+              activeFileContent={activeFile?.content}
+              creditsRemaining={creditsRemaining}
+              maxCredits={maxCredits}
+            />
           )}
           {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
         </div>
@@ -1206,12 +1211,12 @@ const AureonIdeView = () => {
         <div className="flex items-center border-t border-border/20 bg-card/20 flex-shrink-0">
           {([
             { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
-            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : centerTab === "workflow" ? "Workflow" : "Code" },
-            { id: "chat" as MobilePanel, icon: Sparkles, label: "AI" },
+            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
+            { id: "chat" as MobilePanel, icon: ideMode === "agent" ? Bot : MessageSquare, label: ideMode === "agent" ? "Agent" : "Chat" },
             { id: "terminal" as MobilePanel, icon: TerminalIcon, label: "Terminal" },
           ]).map(tab => (
             <button key={tab.id}
-              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : t === "preview" ? "workflow" : "code"); else setMobilePanel(tab.id); }}
+              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code"); else setMobilePanel(tab.id); }}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
             >
               <tab.icon className="h-4 w-4" />
@@ -1219,6 +1224,7 @@ const AureonIdeView = () => {
             </button>
           ))}
         </div>
+
 
         <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
       </div>
