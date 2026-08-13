@@ -19,6 +19,8 @@ import {
   type PushStatus, type RegisteredDevice,
 } from "@/lib/securityPush";
 import VaultItemsPanel from "@/components/dashboard/vault/VaultItemsPanel";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 type VaultTab = "overview" | "items" | "watchtower" | "sessions" | "activity" | "mfa" | "alerts" | "password";
 
@@ -101,6 +103,7 @@ const eventIcon = (type: string, outcome: string) => {
 };
 
 const GuardianVaultView = () => {
+  const v2 = useIsV2();
   const { user, signOut } = useAuth();
   const stepUp = useStepUp();
 
@@ -468,21 +471,29 @@ const GuardianVaultView = () => {
 
   return (
     <div className="flex flex-1 flex-col h-full overflow-hidden bg-background/30">
-      <div className="flex-shrink-0 px-6 py-5 border-b border-border/20 bg-card/10 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-5 w-5 text-foreground/70" />
-            <div>
-              <h1 className="text-base font-extralight tracking-[0.15em] text-foreground">GUARDIAN VAULT</h1>
-              <p className="text-[10px] font-extralight tracking-wider text-muted-foreground/50 mt-0.5">Account Security Command Center</p>
+      <div className={`flex-shrink-0 px-6 border-b border-border/20 bg-card/10 backdrop-blur-sm ${v2 ? "py-2.5" : "py-5"}`}>
+        {v2 ? (
+          <V2Action>
+            <button onClick={loadData} className={v2ActionClass} title="Refresh">
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> refresh
+            </button>
+          </V2Action>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-5 w-5 text-foreground/70" />
+              <div>
+                <h1 className="text-base font-extralight tracking-[0.15em] text-foreground">GUARDIAN VAULT</h1>
+                <p className="text-[10px] font-extralight tracking-wider text-muted-foreground/50 mt-0.5">Account Security Command Center</p>
+              </div>
             </div>
+            <button onClick={loadData} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Refresh">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </button>
           </div>
-          <button onClick={loadData} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Refresh">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
+        )}
 
-        <div className="flex gap-1 mt-4 overflow-x-auto scrollbar-hide">
+        <div className={`flex gap-1 overflow-x-auto scrollbar-hide ${v2 ? "" : "mt-4"}`}>
           {TABS.map(t => {
             const Icon = t.icon;
             return (

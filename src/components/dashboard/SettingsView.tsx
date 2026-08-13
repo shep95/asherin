@@ -22,6 +22,8 @@ import {
   type DashboardUi,
 } from "@/lib/dashboardUi";
 import {
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
   APPEARANCE_EVENT,
   readAppearance,
   writeAppearance,
@@ -109,6 +111,7 @@ const GitHubSettings = () => {
 };
 
 const SettingsView = () => {
+  const v2 = useIsV2();
   const { user } = useAuth();
   const stepUp = useStepUp();
 
@@ -428,10 +431,12 @@ const SettingsView = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-6 space-y-6">
-        <div>
-          <h2 className="text-xl font-extralight tracking-wide text-foreground">Settings</h2>
-          <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your asherin experience.</p>
-        </div>
+        {!v2 && (
+          <div>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground">Settings</h2>
+            <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your asherin experience.</p>
+          </div>
+        )}
 
         {/* Profile */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">

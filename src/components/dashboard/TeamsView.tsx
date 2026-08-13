@@ -18,6 +18,8 @@ import { usePppQuote, quoteCents } from "@/hooks/usePppQuote";
 import { formatUsd, TEAM_MIN_SEATS, type Term } from "@/lib/pricing/ppp";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
   Building2, Briefcase, Globe, Lock, Server, FileText, Cpu, Layers, Shield,
   Users, Crown, Eye, UserPlus, Mail, Clock, Trash2, Check, X, Plus, Loader2,
   ArrowRightLeft, Minus, CreditCard, LogOut, Copy,
@@ -117,6 +119,7 @@ function daysLeft(iso: string): number {
 /* ─────────────────────────── view ─────────────────────────── */
 
 const TeamsView = () => {
+  const v2 = useIsV2();
   const { user } = useAuth();
   const { toast } = useToast();
   const { checkSubscription } = useSubscription();
@@ -319,10 +322,14 @@ const TeamsView = () => {
       <ScrollArea className="h-full">
         <div className="mx-auto w-full max-w-3xl p-5 sm:p-8">
           {invitePanel}
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Asherin Team</p>
-          <h2 className="mt-3 text-3xl font-extralight tracking-tight text-foreground">
-            Your company workspace on asherin.
-          </h2>
+          {!v2 && (
+            <>
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Asherin Team</p>
+              <h2 className="mt-3 text-3xl font-extralight tracking-tight text-foreground">
+                Your company workspace on asherin.
+              </h2>
+            </>
+          )}
           <p className="mt-3 max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
             One workspace fee, one price per occupied seat. You are billed as the owner — the people
             you invite never enter a card, and they work at Pro-class limits for as long as the
@@ -450,6 +457,14 @@ const TeamsView = () => {
   return (
     <div className="flex h-full flex-col lg:flex-row">
       {/* roster of workspaces */}
+      {v2 && teams.length < 2 && (
+        <V2Action>
+          <button onClick={() => setCreating(true)} className={v2ActionClass}>
+            <Plus className="h-3.5 w-3.5" /> new workspace
+          </button>
+        </V2Action>
+      )}
+      {(!v2 || teams.length > 1) && (
       <aside className="shrink-0 border-b border-foreground/10 p-3 lg:w-64 lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between px-2 pb-2">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Workspaces</p>
@@ -480,6 +495,7 @@ const TeamsView = () => {
           })}
         </div>
       </aside>
+      )}
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto w-full max-w-4xl p-5 sm:p-8">

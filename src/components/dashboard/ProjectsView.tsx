@@ -7,6 +7,9 @@ import {
   listProjects, setProjectMode, loadScopeCounts, getActiveScope, setActiveScope, onScopeChange,
   type Project, type ProjectMode, type ProjectScope, type ScopeCounts,
 } from "@/lib/projects/scope";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
+
 
 const MODE_COPY: Record<ProjectMode, { label: string; detail: string; icon: typeof Lock }> = {
   isolated: {
@@ -22,6 +25,7 @@ const MODE_COPY: Record<ProjectMode, { label: string; detail: string; icon: type
 };
 
 const ProjectsView = () => {
+  const v2 = useIsV2();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [counts, setCounts] = useState<Record<string, ScopeCounts>>({});
@@ -117,17 +121,25 @@ const ProjectsView = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground">Projects</h2>
-            <p className="text-sm font-extralight text-muted-foreground mt-1">
-              One active scope at a time. Nothing from another project is ever read.
-            </p>
+        {v2 ? (
+          <V2Action>
+            <button onClick={() => setCreating(true)} className={v2ActionClass}>
+              <FolderPlus className="h-3.5 w-3.5" /> new project
+            </button>
+          </V2Action>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-extralight tracking-wide text-foreground">Projects</h2>
+              <p className="text-sm font-extralight text-muted-foreground mt-1">
+                One active scope at a time. Nothing from another project is ever read.
+              </p>
+            </div>
+            <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/5 transition-colors">
+              <FolderPlus className="h-4 w-4" /> New Project
+            </button>
           </div>
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/5 transition-colors">
-            <FolderPlus className="h-4 w-4" /> New Project
-          </button>
-        </div>
+        )}
 
         {creating && (
           <div className="rounded-xl border border-border/30 bg-card/20 p-4 space-y-3">

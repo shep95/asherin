@@ -2,6 +2,7 @@ import { Heart, Users } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSubscriptionCard";
+import { useIsV2 } from "@/lib/dashboardUiContext";
 
 /**
  * Dashboard "Subscription" page.
@@ -10,9 +11,11 @@ import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSu
  * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {
+  const v2 = useIsV2();
   const { team } = useSubscription();
   return (
-    <div data-humble-scope className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
+    <div data-humble-scope className={`mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 sm:px-8 ${v2 ? "py-6" : "py-10 sm:py-14"}`}>
+      {!v2 && (
       <div className="mb-10 flex items-center gap-3">
         <Heart className="h-5 w-5 text-foreground/80" />
         <div>
@@ -27,6 +30,7 @@ const SubscriptionView = () => {
           </p>
         </div>
       </div>
+      )}
 
       {team && (
         <div className="mb-6 rounded-2xl border border-foreground/15 bg-foreground/[0.04] p-5">
