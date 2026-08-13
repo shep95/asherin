@@ -2585,7 +2585,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // invariant, trap, subdomains) are gated to the two terrains this
       // message actually enters.
       _R.trivial ? "" : DOMAIN_ATLAS_INDEX,
-      _domainEmphasis,
+      _R.trivial ? "" : _domainEmphasis,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
       _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",
