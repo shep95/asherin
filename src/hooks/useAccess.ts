@@ -15,7 +15,7 @@ export const MAXIMUM_VIEWS: DashboardView[] = [];
 // Strict Pro surfaces — evaluated BEFORE the trial window so a free 24h trial
 // never opens them, keeping the client gate identical to the server gate
 // (supabase/functions/_shared/proTierGate.ts).
-const PRO_STRICT_VIEWS: DashboardView[] = ["ghost-engine"];
+const PRO_STRICT_VIEWS: DashboardView[] = [];
 // Enterprise / Pro-only views
 const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion"];
 const PRO_VIEWS: DashboardView[] = [
@@ -27,7 +27,7 @@ const PRO_VIEWS: DashboardView[] = [
 ];
 // Asherin ($18/mo, monthly + 6-month) and above. Asherin Maps (`geospatial`)
 // ships with this tier alongside the Cloud Intelligence mesh above.
-const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial"];
+const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial", "ghost-engine"];
 
 
 // Zophiel Search Intelligence tab and its sibling search surfaces. Included

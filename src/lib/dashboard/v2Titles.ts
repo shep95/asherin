@@ -24,8 +24,8 @@ const TITLES: Partial<Record<string, V2Title>> = {
   "api-keys": { title: "connect", subtitle: "what actually ran, and what it is bound to." },
   teams: { title: "team", subtitle: "people, seats and billing for one workspace." },
 
-  geospatial: { title: "maps", canvas: true },
-  "ghost-engine": { title: "ghost", subtitle: "metadata-only search." },
+  geospatial: { title: "asherin.maps", canvas: true },
+  "ghost-engine": { title: "asherinx.eng", subtitle: "public-index search. no tap." },
   ide: { title: "ide", canvas: true },
   google: { title: "google", subtitle: "your connected accounts, read on request." },
   search: { title: "search", subtitle: "sourced search with credibility tiers." },

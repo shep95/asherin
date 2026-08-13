@@ -44,6 +44,8 @@ export interface NavIntent {
 export const NAV_INTENTS: NavIntent[] = [
   // WORKSPACE
   { view: "chat", label: "Chat", codename: "Asherin", blurb: "Ask for anything — search, maps, code, data, cyber all run from here", keywords: ["chat", "ask", "talk", "conversation", "prompt", "assistant"], group: "Workspace" },
+  { view: "ghost-engine", label: "asherinx.eng", codename: "asherinx.eng", blurb: "Public-index search — eighteen open indexes asked in parallel, grouped by field site", keywords: ["asherinx", "eng", "engine", "osint", "public index", "wayback", "nvd", "search", "ghost"], group: "Workspace" },
+  { view: "geospatial", label: "asherin.maps", codename: "asherin.maps", blurb: "A map you can talk to — public cameras, coordinates, weather and open property records", keywords: ["maps", "map", "geospatial", "satellite", "camera", "location", "property", "parcel", "globe"], group: "Workspace" },
   { view: "library", label: "Library", codename: "Library", blurb: "Saved files and references", keywords: ["library", "files", "storage", "documents"], group: "Workspace" },
   { view: "projects", label: "Projects", codename: "Projects", blurb: "Organize conversations into projects", keywords: ["project", "folder", "organize"], group: "Workspace" },
   { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },

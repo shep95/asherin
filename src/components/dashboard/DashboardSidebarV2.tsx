@@ -47,12 +47,16 @@ interface Props {
 
 /** Quieter labels for the keep-stack. NAV_INTENTS stays the source of truth. */
 const V2_LABELS: Partial<Record<string, string>> = {
+  "ghost-engine": "asherinx.eng",
+  geospatial: "asherin.maps",
   memory: "Memory",
   subscription: "Subscription",
 };
 
 /** The keep list, in reading order. Anything absent has no v.2 row by design. */
 const V2_ORDER: DashboardView[] = [
+  "ghost-engine",
+  "geospatial",
   "library",
   "projects",
   "memory",
