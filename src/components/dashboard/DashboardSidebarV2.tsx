@@ -434,7 +434,7 @@ const DashboardSidebarV2 = ({
           </ScrollArea>
 
           {/* keep-stack — short, quiet, at the bottom */}
-          <div data-dashboard-sidebar-nav className="flex-shrink-0 border-t border-border/20 p-2 space-y-0.5">
+          <div data-dashboard-sidebar-nav className="flex-shrink-0 max-h-[45vh] overflow-y-auto border-t border-border/20 p-2 space-y-0.5">
             <button
               onClick={() => { onViewChange("chat"); onToggleSidebar(); }}
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
