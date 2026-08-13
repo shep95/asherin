@@ -462,7 +462,7 @@ const ZaxinView = () => {
           <div className="min-w-0">
             <h1 className="text-[11px] font-light tracking-[0.16em] text-foreground/90 uppercase truncate">Zaxin</h1>
             <p className="text-[8px] text-muted-foreground/40 tracking-[0.18em] uppercase truncate">
-              Five-brain BLE tactical scanner · #houseofasher
+              Browser-native BLE field scout · honest capability labels
             </p>
           </div>
         </div>
