@@ -173,7 +173,12 @@ const NotebooksView = () => {
   const addCell = async (type: string) => {
     if (!selectedId || !user) return;
     const pos = cells.length;
-    const defaultContent = type === "text" ? "Add notes here…" : type === "query" ? "-- Write your SQL query\nSELECT * FROM data LIMIT 10;" : type === "code" ? "# Python analysis\nimport pandas as pd\n\n# Your code here" : "";
+    const defaultContent =
+      type === "text" ? "# Notes\n\nWhat this notebook is answering."
+      : type === "query" || type === "code" ? "-- read-only SELECT over the bound source\nSELECT * FROM data LIMIT 25;"
+      : type === "visualization" ? '{\n  "type": "bar",\n  "x": "label",\n  "y": ["value"],\n  "query": "SELECT label, COUNT(*) AS value FROM data GROUP BY label ORDER BY value DESC LIMIT 12"\n}'
+      : "";
+
     await (supabase.from as any)("notebook_cells").insert({ notebook_id: selectedId, cell_type: type, content: defaultContent, position: pos });
     const nb = notebooks.find(n => n.id === selectedId);
     if (nb) {
