@@ -1227,9 +1227,38 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         );
       })();
 
+      // ── Leg 7: Folded software — the rest of the platform as chat tools ──
+      // Knowledge vault, zerlal recon, AXRLEN, briefings, notebooks, Zahten
+      // procedures, the operator's own Google account, the design lab, the
+      // coding-laws ledger, and text extraction over attached files. Every
+      // trigger inside planFoldedTools demands an imperative, so a turn that
+      // merely mentions a subsystem costs nothing; a turn that asks for one
+      // gets the real invoke or an explicit offline line — never a fabrication.
+      const foldedLeg = (async () => {
+        const { planFoldedTools, runFoldedTools } = await import("../_shared/foldedToolsBridge.ts");
+        const atts = Array.isArray((lastUserForBridges as any)?.attachments)
+          ? (lastUserForBridges as any).attachments
+              .filter((a: any) => a && typeof a.base64 === "string" && a.base64.length > 0)
+              .map((a: any) => ({
+                name: String(a.name || "attachment"),
+                type: String(a.type || ""),
+                base64: String(a.base64),
+                size: typeof a.size === "number" ? a.size : undefined,
+              }))
+          : [];
+        const plan = planFoldedTools(bridgeQ, atts);
+        if (!plan) return;
+        const out = await runFoldedTools(plan, authHeader);
+        foldedToolContext = out.context;
+        console.log(
+          `[chat] Folded tools: fired=[${out.fired.join(", ")}] offline=${out.offline.length}`,
+        );
+      })();
+
       const legs: Array<[string, Promise<void>]> = [
         ["mesh", meshLeg], ["vault", vaultLeg], ["resume", resumeLeg],
         ["substrate", substrateLeg], ["azplen", azplenLeg], ["social", socialLeg],
+        ["folded", foldedLeg],
       ];
       const settled = await Promise.allSettled(legs.map(([, p]) => p));
       settled.forEach((s, i) => {
@@ -1237,7 +1266,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           console.error(`[chat] ${legs[i][0]} bridge failed:`, (s.reason as Error)?.message ?? s.reason);
         }
       });
-      console.log(`[chat] Bridge wave: 6 legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
+      console.log(`[chat] Bridge wave: ${legs.length} legs in parallel, ${Date.now() - bridgeStarted}ms wall clock`);
     }
 
     // ── FUSED IDENTITY RETRIEVAL — launched here, awaited below ───────────
