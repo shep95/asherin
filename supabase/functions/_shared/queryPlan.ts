@@ -27,10 +27,27 @@ export type EntityKind =
 export type QueryShape =
   | "single-token"     // one bare word — the word IS the query, gating adds nothing
   | "operator-dork"    // site:/filetype: dominate; operators are the signal
+  | "form-path"        // the operator wants FILE FORM + PATH, not a title match
   | "relationship"     // [entity] <relation phrase> [entity] — both sides gate
   | "identifier"       // CVE / wallet / domain / email — exact selector
   | "natural-question" // filler-heavy sentence; strip noise, keep signal
   | "topic";           // no entity present — pure relevance ranking
+
+/**
+ * FORM/PATH intent. When the operator asks for "the html, python and
+ * typescript files" or "the non-indexed /agent/ directory", matching the exact
+ * TITLE is the wrong contract — the artefact almost never carries the words the
+ * operator used. What survives is the file EXTENSION and the PATH SEGMENT.
+ */
+export interface FormPathIntent {
+  /** Concrete extensions to hunt, deduped and lowercase (html, py, ts …). */
+  exts: string[];
+  /** Path segments seen in the query (`/agent/`, `dist/`, `src`). */
+  paths: string[];
+  /** Operator explicitly asked for material search engines do not index. */
+  nonIndexed: boolean;
+}
+
 
 /** A required term carries a CONFIDENCE, not a boolean. */
 export interface WeightedTerm {
@@ -71,7 +88,10 @@ export interface QueryPlan {
   operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
   wireQuery: string;
+  /** Present only when shape === "form-path". */
+  formPath?: FormPathIntent;
 }
+
 
 /**
  * Dork operators must survive the planner untouched. Before this guard the
@@ -81,6 +101,91 @@ export interface QueryPlan {
  */
 const OPERATOR_RE =
   /(^|\s)(-?)(site|filetype|ext|inurl|allinurl|intitle|allintitle|intext|allintext|related|cache|link|before|after|lang|loc|location|source|around|imagesize)\s*:\s*("[^"]{1,120}"|[^\s]{1,120})/gi;
+
+/**
+ * FORM words → concrete extensions. The operator says "typescript"; the SERP
+ * only understands `ext:ts`. Language names, not file names, are what people
+ * actually type, so the mapping has to live here rather than in the caller.
+ */
+const FORM_EXT: Record<string, string[]> = {
+  html: ["html", "htm"], htm: ["html", "htm"], webpage: ["html"],
+  python: ["py"], py: ["py"],
+  typescript: ["ts", "tsx"], ts: ["ts", "tsx"], tsx: ["ts", "tsx"],
+  javascript: ["js", "mjs"], js: ["js", "mjs"], jsx: ["jsx"],
+  markdown: ["md"], md: ["md"],
+  json: ["json"], yaml: ["yml", "yaml"], yml: ["yml", "yaml"],
+  sql: ["sql"], csv: ["csv"], xml: ["xml"], pdf: ["pdf"],
+  php: ["php"], rust: ["rs"], go: ["go"], java: ["java"],
+  shell: ["sh"], bash: ["sh"], sh: ["sh"],
+  env: ["env"], config: ["conf", "cfg", "ini"], ini: ["ini"],
+  zip: ["zip"], tar: ["tar", "gz"], sqlite: ["db", "sqlite"], log: ["log"],
+};
+
+/** Path segments: `/agent/`, `dist/`, `src/lib`. A bare word is NOT a path. */
+const PATH_RE = /(^|\s)(\/[A-Za-z0-9._-]{1,40}(?:\/[A-Za-z0-9._-]{1,40})*\/?|[A-Za-z0-9._-]{1,40}\/[A-Za-z0-9._-]{1,40}(?:\/[A-Za-z0-9._-]{1,40})*)/g;
+
+const NON_INDEXED_RE =
+  /\b(non[\s-]?indexed|unindexed|not\s+indexed|no[\s-]?index|deindexed|hidden\s+(?:files?|dir\w*)|open\s+director\w+|index\s+of|directory\s+listing)\b/i;
+
+/** A form/path ask has to be explicit — a stray "go" or "log" must not fire. */
+const FORM_CUE_RE =
+  /\b(files?|file\s?type|filetype|extensions?|source\s*code|scripts?|directory|directories|folder|path|paths|dump|artifacts?|assets?|listing|repo|repository)\b/i;
+
+export function detectFormPath(input: string): FormPathIntent | null {
+  const lower = input.toLowerCase();
+  const nonIndexed = NON_INDEXED_RE.test(lower);
+
+  const exts: string[] = [];
+  const seenExt = new Set<string>();
+  for (const word of lower.split(/[^a-z0-9]+/)) {
+    const mapped = FORM_EXT[word];
+    if (!mapped) continue;
+    for (const e of mapped) {
+      if (seenExt.has(e)) continue;
+      seenExt.add(e);
+      exts.push(e);
+    }
+  }
+  // Literal `.ext` mentions ("*.tsx", "the .py ones") are the hardest signal.
+  for (const m of input.matchAll(/(^|\s|\*)\.([a-z0-9]{1,5})\b/gi)) {
+    const e = m[2].toLowerCase();
+    if (!seenExt.has(e)) { seenExt.add(e); exts.push(e); }
+  }
+
+  const paths: string[] = [];
+  const seenPath = new Set<string>();
+  for (const m of input.matchAll(PATH_RE)) {
+    const seg = m[2].trim();
+    // A domain (`asherin.com/blog`) is an identifier, not a path ask.
+    if (/^[a-z0-9-]+\.[a-z]{2,}\//i.test(seg)) continue;
+    if (seenPath.has(seg)) continue;
+    seenPath.add(seg);
+    paths.push(seg);
+  }
+
+  // Silence is not evidence: fire only when the operator gave a real cue.
+  const cued = FORM_CUE_RE.test(lower) || nonIndexed;
+  const strong = exts.length >= 2 || (exts.length >= 1 && (cued || paths.length > 0)) ||
+    (paths.length > 0 && cued);
+  if (!strong) return null;
+
+  return { exts: exts.slice(0, 6), paths: paths.slice(0, 3), nonIndexed };
+}
+
+/** Turn a form/path intent into wire operators the SERP actually honours. */
+export function formPathOperators(fp: FormPathIntent): string[] {
+  const ops: string[] = [];
+  if (fp.exts.length) {
+    ops.push(fp.exts.length === 1 ? `ext:${fp.exts[0]}` : `(${fp.exts.map((e) => `ext:${e}`).join(" OR ")})`);
+  }
+  for (const p of fp.paths) {
+    const seg = p.replace(/^\/+|\/+$/g, "");
+    if (seg) ops.push(`inurl:${seg.includes(" ") ? `"${seg}"` : seg}`);
+  }
+  if (fp.nonIndexed) ops.push(`intitle:"index of"`);
+  return ops;
+}
+
 
 
 const STOPWORDS = new Set([
@@ -373,18 +478,33 @@ export function buildQueryPlan(raw: string): QueryPlan {
     .join(" ")
     .replace(/^(OR\s+)+|(\s+OR)+$/g, "")
     .trim();
-  const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
+  let wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
   // 9. SHAPE ROUTING — decided last, because it depends on everything above.
   const bareTokens = input.trim().split(/\s+/).filter(Boolean);
+  // FORM/PATH is checked before the generic shapes but AFTER explicit dorks:
+  // if the operator already wrote `ext:py`, they own the contract and we do not
+  // second-guess it. Otherwise "the html python and typescript files" must
+  // become extension+path matching, never a title match against those words.
+  const formPath = operators.length === 0 ? detectFormPath(input) : null;
   let shape: QueryShape;
   if (operators.length > 0) shape = "operator-dork";
+  else if (formPath) shape = "form-path";
   else if (bareTokens.length === 1) shape = "single-token";
   else if (relations.length > 0) shape = "relationship";
   else if (cve || wallet || email || (domainHit && bareTokens.length <= 3)) shape = "identifier";
   else if (requiredFinal.length === 0) shape = "topic";
   else if (/^(who|what|where|when|why|how|which|is|are|did|does|can)\b/i.test(input) || bareTokens.length >= 6) shape = "natural-question";
   else shape = "topic";
+
+  // The derived operators go ON THE WIRE — a form/path plan that never emits
+  // `ext:` is indistinguishable from the topic search it was meant to replace.
+  if (formPath) {
+    const derived = formPathOperators(formPath);
+    for (const op of derived) if (!operators.includes(op)) operators.push(op);
+    if (derived.length) wireQuery = `${wireQuery} ${derived.join(" ")}`.trim();
+  }
+
 
   // A single bare word IS the query — gating it against itself adds nothing and
   // only penalises pages that paraphrase. Drop the gate, keep the term as
@@ -399,6 +519,27 @@ export function buildQueryPlan(raw: string): QueryPlan {
   if (shape === "operator-dork") {
     requiredOut = requiredFinal.filter((t) => (confidence.get(t)?.confidence ?? 0) >= 0.9);
   }
+  // FORM/PATH: the extension and the path segment ARE the gate. The words that
+  // named the form ("html", "typescript", "files") describe the CONTAINER, not
+  // the content, and gating on them is exactly the title-matching failure this
+  // shape exists to kill. Demote them to context, keep every other selector.
+  if (shape === "form-path" && formPath) {
+    const formWords = new Set<string>([
+      ...Object.keys(FORM_EXT),
+      ...formPath.exts,
+      "file", "files", "filetype", "extension", "extensions", "source", "code",
+      "script", "scripts", "directory", "directories", "folder", "path", "paths",
+      "indexed", "unindexed", "listing", "repo", "repository",
+    ]);
+    const kept: string[] = [];
+    for (const t of requiredFinal) {
+      const words = normalizeTerm(t).split(" ").filter(Boolean);
+      if (words.length && words.every((w) => formWords.has(w))) { optional.add(t); continue; }
+      kept.push(t);
+    }
+    requiredOut = kept;
+  }
+
 
   // A span may have been captured with a leading/trailing function word — a
   // natural question such as "who is the CEO of Reuters" yielded the selector
@@ -447,6 +588,8 @@ export function buildQueryPlan(raw: string): QueryPlan {
       : undefined,
     operators,
     wireQuery,
+    formPath: formPath ?? undefined,
+
   };
 
 }

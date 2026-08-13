@@ -156,8 +156,26 @@ const TOOLS = [
   { type: "function", function: { name: "distance_from_me", description: "Straight-line range and bearing from the operator's live position to a point or named place.", parameters: { type: "object", properties: { to: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } }, label: { type: "string" } }, required: ["to"] } } },
   { type: "function", function: { name: "set_geofence", description: "Arm a proximity geofence that alerts when the operator enters or leaves it. Anchored on the operator's current position unless ref is given.", parameters: { type: "object", properties: { label: { type: "string" }, radiusM: { type: "number", description: "Radius in metres" }, ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, required: ["label", "radiusM"] } } },
 
+  /* ── KERNEL-OWNED OPERATOR TOOLS ─────────────────────────────────────
+     These do NOT run in the vessel. They are forwarded to the asherin kernel
+     through `asherin-kernel-proxy`. If the kernel is unreachable the caller
+     says "kernel offline" and performs nothing — never a local stand-in,
+     never fabricated output. */
+  { type: "function", function: { name: "zophiel_search", description: "Kernel search. Matches FORM and PATH (html, python, typescript, non-indexed directories) rather than exact titles. Use when the operator wants files, source, artefacts or unindexed material rather than articles about them.", parameters: { type: "object", properties: { query: { type: "string" }, depth: { type: "string", enum: ["fast", "deep"] } }, required: ["query"] } } },
+  { type: "function", function: { name: "elite_dorks", description: "Kernel dork pack: build and run a battery of advanced search operators against a target. Never targets large corporations with dedicated cyber-defence budgets.", parameters: { type: "object", properties: { target: { type: "string" }, intent: { type: "string", description: "What the operator is trying to surface, plain English" } }, required: ["target"] } } },
+  { type: "function", function: { name: "dork", description: "Kernel single-dork execution. Runs one crafted operator string verbatim.", parameters: { type: "object", properties: { query: { type: "string", description: "The full dork string, operators intact" } }, required: ["query"] } } },
+  { type: "function", function: { name: "path_map", description: "Kernel path mapper for a domain or repo: enumerates known and inferred paths, non-indexed directories and file extensions present.", parameters: { type: "object", properties: { target: { type: "string", description: "Domain, repo or root URL" }, depth: { type: "number" } }, required: ["target"] } } },
+  { type: "function", function: { name: "search_swarm", description: "Kernel swarm run: parallel multi-engine sweep over a question, deduped and ranked.", parameters: { type: "object", properties: { query: { type: "string" }, engines: { type: "array", items: { type: "string" } } }, required: ["query"] } } },
+  { type: "function", function: { name: "site_cyber_map", description: "Kernel site cyber-map: outbound domains, embedded scripts, third-party trackers and exposed surface for a given site.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+  { type: "function", function: { name: "intel_map", description: "Kernel intel-map. NOT geography — this maps ENTITIES, IDENTIFIERS and RELATIONSHIPS. Never use for map / cartography tasks; those go to map_search + place_marker.", parameters: { type: "object", properties: { seed: { type: "string" }, hops: { type: "number" } }, required: ["seed"] } } },
 ];
 
+/** Tools the vessel must hand to the kernel rather than run locally. */
+const KERNEL_TOOLS = new Set([
+  "zophiel_search", "elite_dorks", "dork", "path_map",
+  "search_swarm", "site_cyber_map", "intel_map",
+]);
+export { KERNEL_TOOLS };
 
 
 function sse(data: unknown): string {
