@@ -32,7 +32,7 @@ const generateFindingReport = (f: ZerlalFinding): string => {
   report += `${f.impact}\n\n`;
 
   if (f.exploitation_steps?.length > 0) {
-    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    report += `── DEFENSIVE VERIFICATION ────────────────\n`;
     f.exploitation_steps.forEach((step, i) => {
       report += `  ${i + 1}. ${step}\n`;
     });
@@ -370,10 +370,10 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
                         <p className="text-[11px] text-foreground/50 leading-relaxed">{f.impact}</p>
                       </div>
 
-                      {/* Exploitation Steps */}
+                      {/* Defensive verification, not reproduction */}
                       {f.exploitation_steps && f.exploitation_steps.length > 0 && (
                         <div>
-                          <h4 className="text-[9px] text-red-400/50 uppercase tracking-wider mb-1">Step-by-Step Exploitation</h4>
+                          <h4 className="text-[9px] text-foreground/50 uppercase tracking-wider mb-1">Defensive Verification</h4>
                           <ol className="space-y-1">
                             {f.exploitation_steps.map((step, i) => (
                               <li key={i} className="text-[10px] text-foreground/50 flex gap-2">
