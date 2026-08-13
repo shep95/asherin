@@ -15,6 +15,7 @@ import {
   listRegisteredDevices, removeDevice, sendTestPush, reportSecurityEvent,
   type PushStatus, type RegisteredDevice,
 } from "@/lib/securityPush";
+import VaultItemsPanel from "@/components/dashboard/vault/VaultItemsPanel";
 
 type VaultTab = "overview" | "items" | "watchtower" | "sessions" | "activity" | "mfa" | "alerts" | "password";
 
