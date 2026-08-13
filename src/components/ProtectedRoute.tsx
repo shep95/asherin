@@ -34,7 +34,14 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <Navigate to={`/auth?next=${next}`} replace />;
   }
 
+  // A session that COULD be aal2 but is only aal1 never renders the app: the
+  // second factor is a wall, not a banner.
+  if (mfaRequired) {
+    return <MfaChallenge />;
+  }
+
   return <>{children}</>;
+
 };
 
 export default ProtectedRoute;
