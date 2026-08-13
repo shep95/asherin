@@ -291,21 +291,86 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
     else plan.agentNeedsId = true;
   }
 
-  // Owned Google account — read only, and only the operator's own account.
-  if (/\b(my)\s+(gmail|inbox|email|calendar|drive|photos|contacts|tasks)\b/i.test(raw)) {
-    const svc = /gmail|inbox|email/i.test(raw)
-      ? "gmail"
-      : /calendar/i.test(raw)
-        ? "calendar"
+  // ── Owned Google account — the operator's own mailbox, nobody else's ────
+  //
+  // Two surfaces sit behind these triggers. `google-data` is the flat service
+  // pull (a page of the inbox, the next events, the contact list). `google-mesh`
+  // is the derived read: who is going quiet, what was promised, where the week
+  // went. A turn can legitimately fire both, and they are independent legs.
+
+  // Flat service pull. Only fires on an unambiguous possessive, so "email marketing
+  // is broken" never opens the mailbox.
+  if (/\bmy\s+(gmail|inbox|e-?mail|calendar|schedule|drive|contacts)\b/i.test(raw)) {
+    plan.googleService = /gmail|inbox|e-?mail/i.test(raw)
+      ? "gmail_inbox"
+      : /calendar|schedule/i.test(raw)
+        ? "calendar_events"
         : /drive/i.test(raw)
-          ? "drive"
-          : /photos/i.test(raw)
-            ? "photos"
-            : /contacts/i.test(raw)
-              ? "contacts"
-              : "tasks";
-    plan.googleService = svc;
+          ? "drive_files"
+          : "contacts";
   }
+
+  // Mail retrieval about a person or subject: "what did dana email me about",
+  // "who emailed me about the lease", "search my mail for the invoice".
+  const mailAbout =
+    raw.match(/\bwhat\s+did\s+(.+?)\s+(?:e-?mail|write|send|say\s+to)\s+me\s+about\s+(.+)$/i) ||
+    raw.match(/\bwhat\s+did\s+(.+?)\s+(?:e-?mail|write|send)\s+me\b(.*)$/i);
+  const mailSearch = raw.match(/\b(?:search|find|look\s+through|check)\s+(?:my\s+)?(?:mail|gmail|inbox|e-?mails?)\s+(?:for|about)\s+(.+)$/i);
+  const whoEmailed = /\bwho\s+(?:has\s+)?e-?mailed\s+me\b/i.test(raw);
+
+  if (mailSearch) {
+    plan.googleMesh = { action: "search_mail", query: mailSearch[1].trim().slice(0, 200) };
+  } else if (mailAbout) {
+    // Gmail's own query grammar does the narrowing: a name goes to `from:`,
+    // the remaining clause stays as free text. No result is ever synthesised
+    // from the name alone.
+    const who = mailAbout[1].trim().replace(/[^\w@.\-' ]/g, "").slice(0, 60);
+    const about = (mailAbout[2] || "").trim().replace(/[?.!]+$/, "").slice(0, 120);
+    plan.googleMesh = {
+      action: "search_mail",
+      query: [who ? `from:${who.includes(" ") ? `"${who}"` : who}` : "", about].filter(Boolean).join(" ").trim(),
+    };
+  } else if (whoEmailed) {
+    plan.googleMesh = { action: "search_mail", query: "in:inbox newer_than:7d" };
+  }
+
+  // Derived mesh reads. Each needs its own imperative; none of them is the
+  // default reading of a bare noun.
+  if (!plan.googleMesh) {
+    const meshAction: GoogleMeshAction | null =
+      /\b(daily\s+digest|digest\s+of\s+my\s+day|what'?s\s+on\s+my\s+plate|catch\s+me\s+up\s+on\s+(my\s+)?(mail|day))\b/i.test(raw)
+        ? "daily_digest"
+        : /\b(relationship\s+(graph|map)|who\s+(am\s+i|have\s+i)\s+(closest|lost\s+touch|gone\s+quiet)|who\s+is\s+going\s+quiet|going\s+dormant)\b/i.test(raw)
+          ? "relationship_graph"
+          : /\b(commitments?|what\s+did\s+i\s+promise|what\s+do\s+i\s+owe|open\s+obligations?)\b/i.test(raw)
+            ? "commitments"
+            : /\b(pattern\s+map|place\s+rhythm|where\s+do\s+i\s+(go|spend))\b/i.test(raw)
+              ? "pattern_map"
+              : /\b(attention\s+ledger|how\s+much\s+time\s+(did\s+i|do\s+i)\s+spend\s+in\s+meetings|meeting\s+load)\b/i.test(raw)
+                ? "attention_ledger"
+                : /\bbuild\s+(my\s+)?voice\s?print\b/i.test(raw)
+                  ? "build_voiceprint"
+                  : /\b(google\s+(audit|activity)\s+log|what\s+has\s+asherin\s+done\s+(to|with)\s+my\s+google)\b/i.test(raw)
+                    ? "audit_log"
+                    : /\b(google\s+(status|accounts?\s+connected)|which\s+google\s+accounts?\b)/i.test(raw)
+                      ? "status"
+                      : null;
+    if (meshAction) plan.googleMesh = { action: meshAction };
+  }
+
+  // Ghostwriting. Preview only — the planner never asks the function to persist
+  // a draft and has no path at all to a send.
+  const ghost = raw.match(
+    /\b(?:ghostwrite|draft|write)\s+(?:an?\s+)?(?:e-?mail|reply|message)\s+(?:to|for)\s+([^\s,]+@[^\s,]+)\s*(?:,|:|\s+)?\s*(?:saying|about|that|to)?\s*(.*)$/i,
+  );
+  if (ghost) {
+    plan.googleMesh = {
+      action: "ghostwrite",
+      to: ghost[1].replace(/[.,;]+$/, ""),
+      intent: (ghost[2] || raw).trim().slice(0, 1000),
+    };
+  }
+
 
   // Design lab.
   if (/\b(zali|dfm|design\s+for\s+manufactur|manufactur(ing|ability)\s+(review|check|assessment))\b/i.test(raw)) {
