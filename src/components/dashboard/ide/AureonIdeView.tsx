@@ -1228,12 +1228,12 @@ const AureonIdeView = () => {
   // ── Desktop Layout (Simplified) ──
   return (
     <div className="flex flex-col h-full w-full overflow-hidden pt-1">
-      {/* Clean top bar — only essentials */}
+      {/* Top bar: asherin | project | New | Code | Preview | Save | Chat | More */}
       <div className="flex items-center justify-between px-3 py-2 bg-card/20 border-b border-border/20 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <Code2 className="h-4 w-4 text-accent/70 shrink-0" />
-            <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">AUREON IDE</span>
+            <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">asherin IDE</span>
           </div>
           {activeSessionId ? (
             <span className="text-[10px] text-muted-foreground/50 bg-muted/10 rounded-full px-2.5 py-0.5 truncate max-w-[160px]">
@@ -1244,12 +1244,12 @@ const AureonIdeView = () => {
             onClick={createSession}
             className="flex items-center gap-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 px-3 py-1.5 text-[10px] font-light text-accent transition-colors"
           >
-            <Plus className="h-3 w-3" /> New Project
+            <Plus className="h-3 w-3" /> New
           </button>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {/* Code / Preview toggle */}
+          {/* Code / Preview */}
           <div className="flex items-center rounded-lg border border-border/20 overflow-hidden mr-1">
             <button onClick={() => setCenterTab("code")} className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "code" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}>
               <FileCode className="h-3 w-3" /> Code
@@ -1257,37 +1257,6 @@ const AureonIdeView = () => {
             <button onClick={() => setCenterTab("preview")} className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "preview" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}>
               <Globe className="h-3 w-3" /> Preview
             </button>
-            <button
-              onClick={() => setCenterTab("workflow")}
-              title="Workflow Map · agents, file tree, timeline"
-              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "workflow" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}
-            >
-              <Network className="h-3 w-3" /> Workflow
-              {swarmAgents.filter(a => a.status === "working").length > 0 && (
-                <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-accent/30 px-1 text-[8px] font-mono text-accent">
-                  {swarmAgents.filter(a => a.status === "working").length}
-                </span>
-              )}
-            </button>
-            {/* Pause / Resume — visible only while the swarm autofix is running */}
-            {swarmAgents.filter(a => a.status === "working").length > 0 && (
-              <button
-                onClick={() => {
-                  const next = !swarmPaused;
-                  setSwarmPaused(next);
-                  swarmPausedRef.current = next;
-                  toast({ title: next ? "⏸ Swarm paused" : "▶ Swarm resumed" });
-                }}
-                title={swarmPaused ? "Resume the swarm — picks up where it left off." : "Pause the swarm — in-flight agents finish, no new agents spawn."}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors border-l border-border/15 ${
-                  swarmPaused
-                    ? "bg-accent/30 text-accent"
-                    : "text-muted-foreground/50 hover:text-foreground"
-                }`}
-              >
-                {swarmPaused ? "▶ Resume" : "⏸ Pause"}
-              </button>
-            )}
           </div>
 
           {/* Save */}
@@ -1295,41 +1264,28 @@ const AureonIdeView = () => {
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           </button>
 
-          {/* Pro Tools — shared IDE upgrade pack */}
-          <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language (Ctrl+Shift+P)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
-            <Wand2 className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => setHistoryOpen(true)} disabled={!activeSessionId || !activeFileId} title="Version history (Ctrl+Shift+H)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
-            <History className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={() => setCheckpointsOpen(true)} disabled={!activeSessionId} title="Checkpoints — rollback the last agent edit" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
-            <GitCommit className="h-3.5 w-3.5" />
-          </button>
-          <IdeModeToggle scope="aureon" />
-          <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
-            <Stethoscope className="h-3.5 w-3.5" />
-          </button>
+          {/* Chat vs Agent */}
+          <IdeModeToggle scope="aureon" value={ideMode} onChange={setIdeMode} />
           <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
 
-          {/* AI Chat toggle */}
+          {/* Chat panel toggle */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-light transition-colors ${rightOpen ? "bg-accent/15 text-accent" : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5"}`}
-            title="Toggle AI Chat"
+            title="Toggle chat panel"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden lg:inline">AI Chat</span>
+            {ideMode === "agent" ? <Bot className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+            <span className="hidden lg:inline">Chat</span>
           </button>
 
-
-          {/* More menu — everything else tucked away */}
+          {/* More */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
+            <DropdownMenuContent align="end" className="min-w-[200px]">
               <DropdownMenuItem onClick={() => setQuickOpenOpen(true)}>
                 <Search className="h-3.5 w-3.5 mr-2" /> Go to File <span className="ml-auto text-[10px] text-muted-foreground">Ctrl+P</span>
               </DropdownMenuItem>
@@ -1337,16 +1293,28 @@ const AureonIdeView = () => {
                 <Search className="h-3.5 w-3.5 mr-2" /> Search in Files
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setTemplateOpen(true)}>
+                <Wand2 className="h-3.5 w-3.5 mr-2" /> Scaffold files <span className="ml-auto text-[10px] text-muted-foreground">Ctrl+Shift+P</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeSessionId || !activeFileId} onClick={() => setHistoryOpen(true)}>
+                <History className="h-3.5 w-3.5 mr-2" /> Version history
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeSessionId} onClick={() => setCheckpointsOpen(true)}>
+                <GitCommit className="h-3.5 w-3.5 mr-2" /> Checkpoints
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }}>
+                <Stethoscope className="h-3.5 w-3.5 mr-2" /> Explain last error
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={createSession}>
                 <Plus className="h-3.5 w-3.5 mr-2" /> New Project
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setLeftTab("sessions"); setLeftOpen(true); }}>
-                <FolderKanban className="h-3.5 w-3.5 mr-2" /> Sessions
+                <FolderKanban className="h-3.5 w-3.5 mr-2" /> Projects
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setLeftTab("git"); setLeftOpen(true); }}>
                 <Code2 className="h-3.5 w-3.5 mr-2" /> Git
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={exportProject}>
                 <Download className="h-3.5 w-3.5 mr-2" /> Export as ZIP
               </DropdownMenuItem>
@@ -1363,6 +1331,7 @@ const AureonIdeView = () => {
           </DropdownMenu>
         </div>
       </div>
+
 
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-hidden">
