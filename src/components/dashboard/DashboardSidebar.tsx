@@ -504,7 +504,7 @@ const DashboardSidebar = ({
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20 gap-2">
             {!collapsed && (
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-extralight tracking-[0.25em] text-foreground truncate">ASHERIN</span>
+                <span className="text-sm font-extralight tracking-[0.16em] text-foreground whitespace-nowrap shrink-0">ASHERIN</span>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70 shrink-0" />
               </div>
             )}
