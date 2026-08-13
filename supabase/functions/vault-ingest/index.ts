@@ -18,6 +18,104 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB per source per ingest
 
+
+/**
+ * SSRF guard — the vault fetches URLs an operator typed, so loopback, link-local
+ * and RFC1918 targets are refused before a socket is opened.
+ */
+function isPublicHttpUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const h = u.hostname.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".internal")) return false;
+  if (h === "metadata.google.internal") return false;
+  if (/^\[?::1\]?$/.test(h)) return false;
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 127 || a === 10 || a === 0) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+  }
+  return true;
+}
+
+async function fetchWithTimeout(url: string, ms = 20_000): Promise<Response> {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    return await fetch(url, {
+      signal: ctl.signal,
+      headers: { "User-Agent": "AsherinVault/1.0 (+https://asherin.com)" },
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Strip a web page down to readable prose. No JS execution, no assets. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<(br|\/p|\/div|\/li|\/h[1-6])>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function fetchReadableText(url: string): Promise<string> {
+  const r = await fetchWithTimeout(url);
+  if (!r.ok) throw new Error(`url_${r.status}`);
+  const ct = r.headers.get("content-type") ?? "";
+  const body = await r.text();
+  if (ct.includes("application/json")) {
+    try { return JSON.stringify(JSON.parse(body), null, 2); } catch { return body; }
+  }
+  if (ct.includes("text/html") || /^\s*<(!doctype|html)/i.test(body)) return htmlToText(body);
+  return body;
+}
+
+/**
+ * YouTube transcript: read the watch page, take the caption track YouTube
+ * itself advertises, and flatten the timed text. If no track is published the
+ * caller is told plainly rather than handed an empty document.
+ */
+async function fetchYoutubeTranscript(url: string): Promise<string> {
+  const r = await fetchWithTimeout(url);
+  if (!r.ok) throw new Error(`youtube_${r.status}`);
+  const page = await r.text();
+  const m = page.match(/"captionTracks":(\[.*?\])/);
+  if (!m) throw new Error("no_transcript_published");
+  let tracks: Array<{ baseUrl?: string; languageCode?: string; kind?: string }>;
+  try {
+    tracks = JSON.parse(m[1].replace(/\\u0026/g, "&"));
+  } catch {
+    throw new Error("no_transcript_published");
+  }
+  const track = tracks.find((t) => t.languageCode === "en") ?? tracks[0];
+  if (!track?.baseUrl) throw new Error("no_transcript_published");
+  const tr = await fetchWithTimeout(track.baseUrl.replace(/\\u0026/g, "&"));
+  if (!tr.ok) throw new Error(`transcript_${tr.status}`);
+  const xml = await tr.text();
+  const lines = Array.from(xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)).map((x) =>
+    htmlToText(x[1].replace(/&amp;#39;/g, "'").replace(/&amp;quot;/g, '"')),
+  );
+  const text = lines.join(" ").replace(/\s+/g, " ").trim();
+  if (!text) throw new Error("no_transcript_published");
+  return text;
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -132,7 +230,9 @@ serve(async (req) => {
         user_id: userId,
         name,
         source_type: sourceType,
-        api_url: sourceType === "api" ? String(body.apiUrl ?? "") : null,
+        api_url: sourceType === "api"
+          ? String(body.apiUrl ?? "")
+          : (sourceType === "url" || sourceType === "youtube") ? String(body.url ?? "") : null,
         api_headers: sourceType === "api" ? (body.apiHeaders ?? null) : null,
         refresh_minutes: sourceType === "api"
           ? Math.max(0, Math.min(10080, Number(body.refreshMinutes ?? 0))) || null
