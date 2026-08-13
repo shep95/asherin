@@ -134,6 +134,15 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
     });
     // Cursor / Claude-Code moves: ⌘K inline edit, ⌘L send-to-chat, Tab ghost completions.
     const detach = attachCursorFeatures(editor, monaco, {
+      canWrite: () => canWriteRef.current,
+      onWriteBlocked: (reason) => onWriteBlockedRef.current?.(reason),
+      onInlineEditApplied: ({ path }) => {
+        // Quote is the filename only — never the edited body, however large.
+        void emitPull({
+          organ: "ide", capability: "inline-edit", fromSurface: "ide",
+          status: "ok", quote: path.split("/").pop() ?? path,
+        });
+      },
       getFile: () => {
         const f = activeFileRef.current;
         return f ? { id: f.id, name: f.name, language: languageRef.current, content: f.content } : null;

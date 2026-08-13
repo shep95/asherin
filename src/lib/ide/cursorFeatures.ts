@@ -287,6 +287,8 @@ function installGhostCompletions(
 
   const provider = {
     async provideInlineCompletions(model: MonacoEditor.ITextModel, position: Position) {
+      // Chat mode is read-only: no model text may enter the buffer.
+      if (opts.canWrite && !opts.canWrite()) return { items: [] };
       const file = opts.getFile();
       if (!file) return { items: [] };
       // Only fire on active file
