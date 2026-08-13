@@ -187,5 +187,7 @@ export function highlightSegments(passage: string, query: string): Array<{ text:
   if (!terms.length) return [{ text: passage, hit: false }];
   const re = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
   const parts = passage.split(re);
-  return parts.filter((p) => p !== "").map((p) => ({ text: p, hit: re.test(p) && terms.includes(p.toLowerCase()) }));
+  // `re` carries the /g flag, so lastIndex-stateful re.test() is avoided here.
+  const termSet = new Set(terms);
+  return parts.filter((p) => p !== "").map((p) => ({ text: p, hit: termSet.has(p.toLowerCase()) }));
 }
