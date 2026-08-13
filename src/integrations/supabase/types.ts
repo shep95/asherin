@@ -11521,6 +11521,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_items: {
+        Row: {
+          breach_checked_at: string | null
+          breach_count: number
+          breach_status: string
+          created_at: string
+          domain: string | null
+          id: string
+          kind: string
+          label: string
+          payload_cipher: string
+          rotated_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          breach_checked_at?: string | null
+          breach_count?: number
+          breach_status?: string
+          created_at?: string
+          domain?: string | null
+          id?: string
+          kind: string
+          label: string
+          payload_cipher: string
+          rotated_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          breach_checked_at?: string | null
+          breach_count?: number
+          breach_status?: string
+          created_at?: string
+          domain?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          payload_cipher?: string
+          rotated_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vedic_charts: {
         Row: {
           birth_date: string
