@@ -1,14 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, ArrowUpRight } from "lucide-react";
+import { Menu, X, ArrowUpRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { isAdminEmail } from "@/lib/adminEmail";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import AuthOverlay from "@/components/AuthOverlay";
 import ForumsDropdown from "@/components/forums/ForumsDropdown";
 
@@ -17,7 +10,6 @@ const Header = () => {
   const location = useLocation();
   const isAsherRoute = location.pathname.startsWith("/asher");
   const [showAuth, setShowAuth] = useState(false);
-  const [pagesOpen, setPagesOpen] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -34,7 +26,6 @@ const Header = () => {
         {/* Left: Logo + Pages dropdown */}
         <div
           className="hidden lg:flex items-center relative group/nav"
-          onMouseLeave={() => setPagesOpen(false)}
         >
           {/* Aurora glow behind the cluster */}
           <div aria-hidden className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl transition-opacity duration-700 group-hover/nav:opacity-100"
@@ -154,13 +145,8 @@ const Header = () => {
                   </>
                 )}
                 <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Founder</Link>
                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Pricing</Link>
-                <Link to="/benchmark" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Benchmark</Link>
-                <Link to="/software" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Software</Link>
-                <Link to="/whiteboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Whiteboard</Link>
-                <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Blog</Link>
-                <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
+                <Link to="/forums" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Forums</Link>
               </div>
             </div>
           </>
