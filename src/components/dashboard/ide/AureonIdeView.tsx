@@ -1117,53 +1117,6 @@ const AureonIdeView = () => {
     };
   }, [handleCrashEvent]);
 
-  // ── ZANOEM toggle strip (rendered above the chat panel on both layouts) ──
-  const zanoemToggleBar = (
-    <div className="border-b border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
-      <label
-        title="ZANOEM Mode: design brand-new software from first principles. Uses Aureon's engine — no API key needed."
-        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
-      >
-        <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
-        <Brain className="h-2.5 w-2.5" /> ZANOEM
-      </label>
-      <label
-        title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds."
-        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autopilotZanoem ? "text-foreground" : "text-muted-foreground/70"} ${!zanoemMode ? "opacity-50" : ""}`}
-      >
-        <input type="checkbox" checked={autopilotZanoem} onChange={(e) => setAutopilotZanoem(e.target.checked)} disabled={!zanoemMode} className="accent-foreground h-2.5 w-2.5" />
-        <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
-      </label>
-      <label
-        title="Auto Debug: when autopilot is on, ZANOEM keeps re-running the validator + Bug Doctor in the background until the codebase has zero errors."
-        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
-      >
-        <input type="checkbox" checked={autoDebug} onChange={(e) => setAutoDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
-        <Bug className="h-2.5 w-2.5" /> Auto Debug
-      </label>
-      <label
-        title="Auto UI Debug: ZANOEM verifies the rendered preview matches what was just built and queues fixes when it doesn't."
-        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoUiDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
-      >
-        <input type="checkbox" checked={autoUiDebug} onChange={(e) => setAutoUiDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
-        <Eye className="h-2.5 w-2.5" /> Auto UI Debug
-      </label>
-      <label
-        title="Auto Approve: skip every approval prompt and auto-accept all planned changes instantly."
-        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoApprove ? "text-foreground" : "text-muted-foreground/70"}`}
-      >
-        <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
-        <Zap className="h-2.5 w-2.5" /> Auto Approve
-      </label>
-      <button
-        onClick={() => setDecisionLogOpen(true)}
-        title="ZANOEM Decision Log — review or override every choice the autopilot made."
-        className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase text-muted-foreground/70 hover:text-foreground transition-colors"
-      >
-        <ScrollText className="h-2.5 w-2.5" /> Decision Log
-      </button>
-    </div>
-  );
 
   // ── Mobile Layout ──
   if (isMobile) {
