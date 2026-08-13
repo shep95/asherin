@@ -53,6 +53,33 @@ export type Database = {
         }
         Relationships: []
       }
+      account_crypto: {
+        Row: {
+          created_at: string
+          kdf_iters: number
+          salt: string
+          updated_at: string
+          user_id: string
+          wrapped_dek: string
+        }
+        Insert: {
+          created_at?: string
+          kdf_iters?: number
+          salt: string
+          updated_at?: string
+          user_id: string
+          wrapped_dek: string
+        }
+        Update: {
+          created_at?: string
+          kdf_iters?: number
+          salt?: string
+          updated_at?: string
+          user_id?: string
+          wrapped_dek?: string
+        }
+        Relationships: []
+      }
       agent_executions: {
         Row: {
           agent_id: string
