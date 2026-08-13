@@ -1,4 +1,5 @@
-import { Heart } from "lucide-react";
+import { Heart, Users } from "lucide-react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
 import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSubscriptionCard";
 
@@ -9,6 +10,7 @@ import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSu
  * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {
+  const { team } = useSubscription();
   return (
     <div data-humble-scope className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-4 py-10 sm:px-8 sm:py-14">
       <div className="mb-10 flex items-center gap-3">
@@ -25,6 +27,23 @@ const SubscriptionView = () => {
           </p>
         </div>
       </div>
+
+      {team && (
+        <div className="mb-6 rounded-2xl border border-foreground/15 bg-foreground/[0.04] p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Covered by a team</p>
+          <div className="mt-2 flex items-start gap-3">
+            <Users className="mt-0.5 h-4 w-4 text-foreground/60" />
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
+              Asherin Team — <span className="text-foreground">{team.team_name}</span>. You hold the{" "}
+              {team.team_role} seat.{" "}
+              {team.is_owner
+                ? "You are billed for the workspace and every occupied seat."
+                : "Billed to the workspace owner — you are not charged for this seat, and Pro-class access lasts while the team stays active."}
+              {!team.is_owner && " Any personal plan below is optional on top of it."}
+            </p>
+          </div>
+        </div>
+      )}
 
       <ManageSubscriptionCard />
       <SubscriptionPlans />
