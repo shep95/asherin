@@ -34,6 +34,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeMo
 import { saveCheckpoint } from "@/lib/ide/checkpoints";
 import { History, Stethoscope, Wand2, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { emitPull } from "@/lib/connect/emitPull";
 import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -730,6 +731,12 @@ const AureonIdeView = () => {
       if (changes.length === 0) return;
 
       const ok = await requestApproval(`${changes.length} file change${changes.length === 1 ? "" : "s"}`, changes);
+      // Connect trace: an agent write is a real capability pull, approved or not.
+      void emitPull({
+        organ: "ide", capability: "agent_apply", fromSurface: "ide",
+        status: ok ? "ok" : "skip",
+        quote: `${changes.length} file change${changes.length === 1 ? "" : "s"}${ok ? " applied" : " rejected"}`,
+      });
       if (!ok) {
         setChatMessages(prev => [...prev, {
           id: crypto.randomUUID(),
