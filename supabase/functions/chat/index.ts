@@ -26,6 +26,10 @@ import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoc
 import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIRECTIVE } from "../_shared/cognitiveWorkflow.ts";
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
+import { isStaffEmail } from "../_shared/identityHash.ts";
+
+// Staff recognition is a digest match — no mailbox is written into this file.
+const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
 import {
   assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
 } from "../_shared/artifactLedger.ts";
@@ -1013,8 +1017,6 @@ serve(async (req) => {
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
-    import { isStaffEmail } from "../_shared/identityHash.ts";
-const isAuthorizedAdminEmail = (e?: string | null): boolean => isStaffEmail(e);
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const backendKeywords = [
       "supabase", "edge function", "backend", "database schema", "rls", "row level security",
