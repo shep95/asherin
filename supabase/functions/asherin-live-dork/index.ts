@@ -181,24 +181,28 @@ async function runDorks(host: string): Promise<{ hits: Hit[]; blocked: Array<{ e
   for (const q of queries) {
     let rows: Array<{ url: string; title: string }> = [];
     let engine = "duckduckgo";
+    // Three-engine cascade. Any one blocking is noted and we walk on — one
+    // captcha never kills the turn.
     try {
       rows = await ddg(q);
     } catch (_e) {
       blocked.push({ engine: "duckduckgo", status: "blocked" });
-      try {
-        rows = await bing(q);
-        engine = "bing";
-      } catch (_e2) {
-        blocked.push({ engine: "bing", status: "blocked" });
-        continue;
-      }
     }
     if (!rows.length) {
       try {
         rows = await bing(q);
         engine = "bing";
-      } catch (_e2) {
+      } catch (_e) {
         blocked.push({ engine: "bing", status: "blocked" });
+      }
+    }
+    if (!rows.length) {
+      try {
+        rows = await mojeek(q);
+        engine = "mojeek";
+      } catch (_e) {
+        blocked.push({ engine: "mojeek", status: "blocked" });
+        continue;
       }
     }
     let per = 0;
