@@ -479,7 +479,7 @@ const Dashboard = () => {
       const byok = data ? data.map(d => d.provider) : [];
       setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
     });
-  }, [user]);
+  }, [user?.id]);
 
   // Load conversations and user profile from DB
   useEffect(() => {
@@ -560,15 +560,25 @@ const Dashboard = () => {
       // FAST PATH: render dashboard immediately with conversation list (no messages yet),
       // then lazy-hydrate messages in the background. Cuts loading screen from 10s+ to <1s.
       const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("aureon_active_conv_id");
-      const shellConvs: Conversation[] = convRows.map((c) => ({
-        id: c.id,
-        title: c.title,
-        messages: [],
-        createdAt: new Date(c.created_at),
-        pinned: c.pinned,
-        mode: c.mode as ChatMode,
-        projectId: c.project_id ?? undefined,
-      }));
+      // MERGE, NEVER BLANK. If this effect re-runs while transcripts are already
+      // on screen (a re-auth, a project switch), replacing them with empty shells
+      // reads to the operator as a full page reload. The DB row is authoritative
+      // for metadata only; in-memory messages survive until the drift probe in
+      // the visibility handler proves the server is actually ahead.
+      const priorById = new Map(conversationsRef.current.map((c) => [c.id, c]));
+      const shellConvs: Conversation[] = convRows.map((c) => {
+        const prior = priorById.get(c.id);
+        return {
+          ...(prior ?? {}),
+          id: c.id,
+          title: c.title,
+          messages: prior?.messages ?? [],
+          createdAt: new Date(c.created_at),
+          pinned: c.pinned,
+          mode: c.mode as ChatMode,
+          projectId: c.project_id ?? undefined,
+        } as Conversation;
+      });
       setConversations(shellConvs);
       const initialActiveId = (preferredConvId && shellConvs.find(c => c.id === preferredConvId))
         ? preferredConvId
@@ -619,14 +629,20 @@ const Dashboard = () => {
         setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
       };
 
+      // Only conversations with nothing in memory need a fetch. Re-hydrating a
+      // populated thread is the second half of the "chat refreshed" complaint.
+      const needsHydration = (cid: string) =>
+        (priorById.get(cid)?.messages.length ?? 0) === 0;
+
       (async () => {
-        if (initialActiveId) {
+        if (initialActiveId && needsHydration(initialActiveId)) {
           try { await hydrateConv(initialActiveId); } catch {}
         }
         if (cancelled) return;
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
+          if (!needsHydration(c.id)) continue;
           try { await hydrateConv(c.id); } catch {}
         }
       })();
@@ -636,7 +652,10 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+    // Pinned to the user *id*, never the user object: browsers mint a fresh
+    // session (and therefore a fresh User instance) on TOKEN_REFRESHED when a
+    // backgrounded tab wakes, and that alone used to re-run this whole loader.
+  }, [user?.id]);
 
   // Persist active conversation id so tab-switching remembers it
   useEffect(() => {
@@ -762,7 +781,7 @@ const Dashboard = () => {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [user]);
+  }, [user?.id]);
 
 
   const activeConv = activeConvId
@@ -1505,7 +1524,7 @@ const Dashboard = () => {
 
   if (!loaded) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex h-dvh w-full items-center justify-center bg-background">
         <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ASHERIN</div>
       </div>
     );
@@ -1514,7 +1533,7 @@ const Dashboard = () => {
 
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-dvh w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
       <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
       {/* Previous wallpaper (fades out during transition) */}
@@ -1585,7 +1604,7 @@ const Dashboard = () => {
 
       {!focusMode && <IntelAlertCenter />}
 
-      <div className="relative z-10 flex h-screen">
+      <div className="relative z-10 flex h-dvh">
         {!focusMode && (
           <DashboardSidebar
             conversations={conversations}
