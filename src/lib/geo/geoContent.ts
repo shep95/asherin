@@ -231,7 +231,7 @@ const PRICE_PRO: GeoStat = {
   sourceUrl: "https://asherin.com/pricing",
   asOf: REVIEWED,
 };
-const NO_NO_TRIAL: GeoStat = {
+const NO_TRIAL: GeoStat = {
   label: "Free trial",
   value: "None — subscription starts on the first payment",
   source: "Asherin pricing page",
