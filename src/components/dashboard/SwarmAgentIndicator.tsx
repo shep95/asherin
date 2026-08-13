@@ -38,7 +38,7 @@ interface SwarmAgentIndicatorProps {
 
 const SwarmAgentIndicator = memo(({ messages }: SwarmAgentIndicatorProps) => {
   const { activeAgent, intents } = useMemo(() => {
-    if (messages.length === 0) return { activeAgent: { id: "general-assistant", name: "Aureon General Intelligence", module: "chat" }, intents: [] as ClassifiedIntent[] };
+    if (messages.length === 0) return { activeAgent: { id: "general-assistant", name: "asherin General Intelligence", module: "chat" }, intents: [] as ClassifiedIntent[] };
     return buildSwarmContext(messages);
   }, [messages]);
 

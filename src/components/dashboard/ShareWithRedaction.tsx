@@ -46,7 +46,7 @@ function detectPII(text: string): RedactionItem[] {
 }
 
 const ShareWithRedaction = ({ messages, open, onClose }: ShareWithRedactionProps) => {
-  const fullText = messages.map(m => `${m.role === "user" ? "You" : "Aureon"}: ${m.content}`).join("\n\n---\n\n");
+  const fullText = messages.map(m => `${m.role === "user" ? "You" : "asherin"}: ${m.content}`).join("\n\n---\n\n");
   const detectedItems = useMemo(() => detectPII(fullText), [fullText]);
   const [redactions, setRedactions] = useState<RedactionItem[]>(detectedItems);
   const [copied, setCopied] = useState(false);

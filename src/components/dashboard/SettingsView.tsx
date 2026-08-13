@@ -356,7 +356,7 @@ const SettingsView = () => {
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         <div>
           <h2 className="text-xl font-extralight tracking-wide text-foreground">Settings</h2>
-          <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your Aureon experience.</p>
+          <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your asherin experience.</p>
         </div>
 
         {/* Profile */}
@@ -416,7 +416,7 @@ const SettingsView = () => {
                   <Brain className="h-3.5 w-3.5" /> Admin · Cortical Brain Archive
                 </label>
                 <p className="text-[11px] text-muted-foreground/60 mt-1">
-                  Download all Aureon Chat cortical brain doctrines as a single zip.
+                  Download all asherin Chat cortical brain doctrines as a single zip.
                 </p>
                 <button
                   onClick={async () => {
