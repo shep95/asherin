@@ -126,7 +126,7 @@ async function courtListenerAddress(
 }
 
 serve(async (req) => {
-  const cors = getCorsHeaders(req.headers.get("origin"));
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
   try {
