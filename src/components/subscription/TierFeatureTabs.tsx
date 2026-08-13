@@ -7,7 +7,7 @@ const CHAT_FEATURE_GROUPS = [
   {
     category: "AI Chat",
     features: [
-      { name: "Uncensored AI chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
       { name: "Unlimited messages", desc: "Bring your own AI key — message as much as you want.", link: null },
       { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more — required to use Aureon.", link: "/feature/byok" },
     ],
@@ -43,7 +43,7 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "AI Engine",
     features: [
-      { name: "Uncensored AI responses", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
       { name: "Unlimited messages", desc: "Bring your own AI key — no throttling.", link: null },
       { name: "Persistent memory", desc: "Asherin remembers your context across every session.", link: null },
     ],
@@ -83,7 +83,7 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "Inherited from Chat",
     features: [
-      { name: "Uncensored AI Chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
       { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
       { name: "Bring Your Own AI Key", desc: "Connect Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", link: "/feature/byok" },
       { name: "End-to-end Encryption", desc: "Every message encrypted. Never used as training data.", link: null },
@@ -164,7 +164,7 @@ const PRO_FEATURE_GROUPS = [
   {
     category: "Inherited from Chat",
     features: [
-      { name: "Uncensored AI Chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
       { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
       { name: "Bring Your Own AI Key", desc: "Connect Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", link: "/feature/byok" },
       { name: "End-to-end Encryption", desc: "Every message encrypted. Never used as training data.", link: null },
