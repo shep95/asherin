@@ -1,11 +1,6 @@
 /**
  * /pricing — Subscription & SEO landing page.
  *
- * Implements Theory 3 (Structural Markup with LlmGuidanceHeader),
- * Theory 5 (Product + Offer + FAQ JSON-LD — high-citation schema types),
- * Theory 8 (Cluster spine — links into glossary, software, blog satellites),
- * Theory 11 (Compound chain — BreadcrumbList JSON-LD + RelatedLinks),
- * Theory 12 (Sovereign Niche Monopoly — owns the "Asherin pricing" query).
  *
  * The page reuses <SubscriptionPlans /> for the actual purchase cards
  * (single source of truth shared with the homepage) and adds an SEO
@@ -78,9 +73,9 @@ const Pricing = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Product",
-      name: "Asherin — Predictive Intelligence Platform",
+      name: "asherin",
       description:
-        "Asherin is a sovereign, uncensored predictive-intelligence platform for analysts, traders, and operators. Two monthly tiers and an enterprise plan.",
+        "asherin: chat with sources, files, maps, and a vault. $18/mo, or $79/mo for Pro. Team workspaces are billed to the owner.",
       brand: { "@type": "Brand", name: "Asherin" },
       url: URL,
       offers: {
@@ -179,14 +174,14 @@ const Pricing = () => {
           {/* Hero — single H1 for SEO */}
           <header className="text-center max-w-3xl mx-auto mb-16">
             <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-foreground/40 mb-4">
-              ◈ Subscription · Monthly · USD
+              monthly · usd
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Asherin pricing — $18/mo core, $79/mo Pro.
+              asherin pricing — $18/mo, $79/mo pro.
             </h1>
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
-              Two personal subscriptions, an admin-billed team workspace, and an Enterprise plan. No free trial countdown, no upsell
-              wall, no retention loop. Cancel in one click from the dashboard.
+              two personal plans, a team workspace billed to the owner, and enterprise. there is no free
+              trial. cancel in one click from the dashboard.
             </p>
           </header>
           {/* Extractable answer + sourced price figures for generative engines. */}
@@ -232,16 +227,15 @@ const Pricing = () => {
                 </thead>
                 <tbody className="divide-y divide-foreground/10">
                   {[
-                    ["Uncensored chat + 4 reasoning modes", "✓", "✓", "✓"],
+                    ["Chat — you pick the model; refusal is the model's", "✓", "✓", "✓"],
                     ["Capable coding engine", "✓", "✓", "✓"],
                     ["Zophiel Search", "Base", "Pro — deeper crawl, priority latency", "Pro + dedicated capacity"],
-                    ["Persistent memory + E2E encryption", "✓", "✓", "✓"],
+                    ["Persistent memory — account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],
                     ["BYOK (9 providers)", "✓", "✓", "✓"],
                     ["Messages / 3-hour window", "60", "200", "Custom"],
                     ["Azplen Data Intelligence Platform", "—", "✓", "✓"],
                     ["Asherin Engine reach-back harvest (OSINT)", "—", "✓", "✓"],
                     ["Advanced Intelligence Briefings", "—", "✓", "✓"],
-                    ["AXRLEN / ZEEION / ZERLAL / CROSS suite", "—", "✓", "✓"],
                     ["Team workspace", "Limited", "Full + admin controls", "Org-wide + SSO/SAML"],
                     ["Audit logs + retention controls", "—", "—", "✓"],
                     ["Dedicated capacity + custom SLA", "—", "—", "✓"],
@@ -297,12 +291,8 @@ const Pricing = () => {
             <RelatedLinks
               heading="Continue exploring Asherin"
               links={[
-                { to: "/software", label: "Every Asherin tool", description: "Full software catalog — every module across Core and Pro." },
-                { to: "/feature/zophiel", label: "Zophiel Search", description: "multi-engine OSINT engine with per-source veracity scoring." },
-                { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "What sovereign AI means and how to verify it." },
-                { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Asherin implements it." },
-                { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },
-                { to: "/blog/aureon-pricing-explained", label: "Blog: Asherin pricing explained", description: "Why $18 and $79 — full operator brief." },
+                { to: "/blog", label: "notes from asherin", description: "how the thing is built, and what it will not pretend to know." },
+                { to: "/founder", label: "who makes it", description: "a small project, made with care." },
               ]}
             />
 
