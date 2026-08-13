@@ -457,16 +457,30 @@ const NotebooksView = () => {
                 {cells.map(cell => {
                   const CellIcon = cellTypeIcons[cell.cell_type] ?? FileText;
                   const isEditing = editingCell === cell.id;
+                  const isRunning = runningCell === cell.id;
+                  const env = parseOutput(cell.output);
+                  const runnable = cell.cell_type !== "text";
+                  const label = cell.cell_type === "query" ? "sql" : cell.cell_type === "visualization" ? "chart" : cell.cell_type === "text" ? "markdown" : cell.cell_type.replace("_", " ");
                   return (
-                    <div key={cell.id} className="rounded-xl border border-border/10 bg-card/20 overflow-hidden group">
-                      <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-card/10">
+                    <div key={cell.id} className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm overflow-hidden group transition-colors hover:border-border/20">
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-foreground/[0.02]">
                         <div className="flex items-center gap-2">
-                          <CellIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-[10px] font-light text-muted-foreground capitalize">{cell.cell_type}</span>
+                          <CellIcon className="h-3.5 w-3.5 text-muted-foreground/70" />
+                          <span className="text-[10px] font-light tracking-widest text-muted-foreground uppercase">{label}</span>
+                          {env?.source && <span className="text-[9px] font-light text-muted-foreground/40">· {env.source}</span>}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                          {runnable && (
+                            <button
+                              onClick={() => runCell(cell)}
+                              disabled={isRunning || runningAll}
+                              title="Run cell"
+                              className="p-1 rounded hover:bg-foreground/10 disabled:opacity-40"
+                            >
+                              {isRunning ? <Loader2 className="h-3 w-3 text-accent animate-spin" /> : <Play className="h-3 w-3 text-accent" />}
+                            </button>
+                          )}
                           <button onClick={() => setEditingCell(isEditing ? null : cell.id)} className="p-1 rounded hover:bg-foreground/10"><Edit3 className="h-3 w-3 text-muted-foreground" /></button>
-                          {cell.cell_type === "query" && <button className="p-1 rounded hover:bg-emerald-500/10"><Play className="h-3 w-3 text-emerald-400" /></button>}
                           <button onClick={() => deleteCell(cell.id)} className="p-1 rounded hover:bg-red-500/10"><Trash2 className="h-3 w-3 text-red-400" /></button>
                         </div>
                       </div>
@@ -482,31 +496,40 @@ const NotebooksView = () => {
                         ) : (
                           <pre className="text-xs font-light text-foreground/80 whitespace-pre-wrap font-mono">{localContent[cell.id] ?? cell.content}</pre>
                         )}
-                        {cell.output && (
-                          <div className="mt-3 pt-3 border-t border-border/10">
-                            <p className="text-[10px] text-muted-foreground/50 mb-1">Output</p>
-                            <pre className="text-xs text-emerald-400/80 font-mono whitespace-pre-wrap">{cell.output}</pre>
-                          </div>
-                        )}
+                        {env && <CellOutput env={env} />}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Dataset selector + Add cell buttons */}
+              {/* Source binding + Add cell buttons */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground/50">Dataset:</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground/50">Source:</span>
                   <select
-                    value={selectedDatasetId ?? ""}
-                    onChange={e => setSelectedDatasetId(e.target.value || null)}
-                    className="rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] text-foreground outline-none"
+                    value={encodeSource(source)}
+                    onChange={e => setSource(decodeSource(e.target.value))}
+                    className="rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] text-foreground outline-none max-w-[280px]"
                   >
-                    <option value="">No dataset</option>
-                    {datasets.map(d => <option key={d.id} value={d.id}>{d.file_name}</option>)}
+                    <option value="">No source bound</option>
+                    {datasets.length > 0 && (
+                      <optgroup label="Azplen datasets">
+                        {datasets.map(d => <option key={d.id} value={`dataset:${d.id}`}>{d.file_name}</option>)}
+                      </optgroup>
+                    )}
+                    {libraryCsvs.length > 0 && (
+                      <optgroup label="Library CSVs">
+                        {libraryCsvs.map(d => <option key={d.id} value={`library:${d.id}`}>{d.file_name}</option>)}
+                      </optgroup>
+                    )}
+                    <optgroup label="Azplen tables">
+                      {AZPLEN_TABLES.map(t => <option key={t} value={`azplen:${t}`}>{t}</option>)}
+                    </optgroup>
                   </select>
+                  <span className="text-[9px] font-light text-muted-foreground/40">bound by id · read-only · 500-row cap · 20s timeout</span>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground/50">Add cell:</span>
                   {["text", "query", "code", "visualization", "data_source"].map(type => {
