@@ -2128,6 +2128,15 @@ const Whiteboard = () => {
           onPointerUp={handlePointerUp}
           onPointerLeave={() => handlePointerUp()}
         />
+        {exportNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none absolute bottom-6 left-1/2 z-[80] -translate-x-1/2 rounded-full border border-border/25 bg-background/90 px-4 py-2 text-xs text-foreground/80 backdrop-blur-xl"
+          >
+            {exportNotice}
+          </div>
+        )}
       </div>
 
       {draftEditor && boardScreenPoint && (
