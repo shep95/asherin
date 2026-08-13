@@ -30,6 +30,24 @@ import {
   assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
 } from "../_shared/artifactLedger.ts";
 
+/** Map a folded-tool id to the short verb the operator sees in the panel. */
+function toolRowLabel(id: string): string {
+  const k = id.toLowerCase();
+  if (k.includes("search_mail") || k.includes("gmail")) return "Searching mail";
+  if (k.includes("daily_digest")) return "Building digest";
+  if (k.includes("dossier")) return "Fusing dossier";
+  if (k.includes("commitments")) return "Checking commitments";
+  if (k.includes("meet_vault")) return "Listing meet records";
+  if (k.includes("sentinel")) return "Reading alerts";
+  if (k.includes("fit_location")) return "Reading fit location history";
+  if (k.includes("calendar")) return "Reading calendar";
+  if (k.includes("vault")) return "Reading vault";
+  if (k.includes("dork") || k.includes("zerlal")) return "Searching web";
+  if (k.includes("brief")) return "Writing briefing";
+  if (k.includes("file") || k.includes("scrape")) return "Reading files";
+  return "Running " + id;
+}
+
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1122,6 +1140,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let azplenContext = "";
     let socialContext = "";
     let foldedToolContext = "";
+    // Real tool rows for the operator's thinking panel — filled only by tools
+    // that actually ran this turn. Never synthesised from the answer text.
+    const firedToolRows: Array<{ label: string; detail?: string }> = [];
 
     {
       const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
@@ -1269,6 +1290,8 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         if (!plan) return;
         const out = await runFoldedTools(plan, authHeader);
         foldedToolContext = out.context;
+        for (const f of out.fired) firedToolRows.push({ label: toolRowLabel(f), detail: f });
+        for (const o of out.offline) firedToolRows.push({ label: "Offline", detail: o });
         console.log(
           `[chat] Folded tools: fired=[${out.fired.join(", ")}] offline=${out.offline.length}`,
         );
@@ -2786,6 +2809,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // the doctrine never appears inside the answer, and forwards the rest
     // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
     // make words flicker as frames arrive.
+    // One honest frame up front: which tools actually ran for this turn.
+    if (firedToolRows.length) {
+      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 12) })}\n\n`);
+    }
+
     const _scanner = createPostInferenceScanner();
     const emitText = async (text: string) => {
       const safe = _scanner.feed(text);

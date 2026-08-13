@@ -1055,6 +1055,8 @@ const Dashboard = () => {
         conversationId: convId,
         signal: controller.signal,
         // Ghost Chain phase 1 — reasoning streams into the transparency panel.
+        onTools: (rows) =>
+          rows.forEach((r) => thinkingStore.step(assistantId, r.label, r.detail, "done")),
         onThinkingStart: () => thinkingStore.begin(assistantId),
         onThinkingDelta: (chunk) => thinkingStore.append(assistantId, chunk),
         onThinkingDone: () => thinkingStore.answering(assistantId),

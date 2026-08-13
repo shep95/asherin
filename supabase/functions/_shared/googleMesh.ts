@@ -1139,3 +1139,470 @@ export async function harvestCalendarPeople(
   }
   return [...agg.values()].sort((a, b) => b.events - a.events);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SPEED LAYER — batch metadata, delta sync, and a derived-read cache
+// ---------------------------------------------------------------------------
+// The old ledger paid one HTTP round-trip per message: a list call, then
+// N metadata GETs through an 8-worker pool. Eighty inbound plus eighty
+// outbound headers meant 162 requests on every single chat turn, and a second
+// question ten minutes later paid the whole bill again.
+//
+// Three corrections, in order of how much they save:
+//   1. Gmail's batch endpoint folds up to 50 metadata GETs into one HTTP
+//      request. The worker pool survives as the fallback path, because a
+//      batch parse failure must degrade rather than void the harvest.
+//   2. users.history.list turns the second sweep into a delta: only what
+//      changed since the stored historyId. An invalid historyId (Gmail
+//      expires them after roughly a week) triggers exactly one full sync,
+//      which then stores the fresh marker.
+//   3. Derived reads that cost several harvests — graph, places, attention,
+//      digest — are cached per user with an explicit expiry, so a repeat ask
+//      inside the window is a single SELECT instead of 160 header GETs.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const BATCH_ENDPOINT = "https://www.googleapis.com/batch/gmail/v1";
+
+/**
+ * Fetch Gmail message metadata for many ids in one multipart/mixed request.
+ *
+ * Returns the parsed message objects that came back cleanly. Any part that
+ * failed (404 on a deleted message, a 429 on one sub-request) is dropped
+ * rather than thrown: a single bad id must not void a sweep of fifty.
+ * Throws only when the whole batch call fails, which is the caller's signal
+ * to fall back to the per-message pool.
+ */
+export async function batchMessagesMetadata(
+  token: string,
+  ids: string[],
+  headers: string[] = ["From", "To", "Subject", "Date"],
+  ms = 20_000,
+): Promise<any[]> {
+  if (!ids.length) return [];
+  const boundary = `asherin_${crypto.randomUUID()}`;
+  const qs = headers.map((h) => `metadataHeaders=${encodeURIComponent(h)}`).join("&");
+
+  const parts = ids.map((id, i) =>
+    [
+      `--${boundary}`,
+      "Content-Type: application/http",
+      `Content-ID: <item-${i}>`,
+      "",
+      `GET /gmail/v1/users/me/messages/${encodeURIComponent(id)}?format=metadata&${qs}`,
+      "",
+    ].join("\r\n")
+  );
+  const payload = `${parts.join("\r\n")}\r\n--${boundary}--\r\n`;
+
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), ms);
+  let raw: string;
+  try {
+    const res = await fetch(BATCH_ENDPOINT, {
+      method: "POST",
+      signal: ac.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": `multipart/mixed; boundary=${boundary}`,
+      },
+      body: payload,
+    });
+    raw = await res.text();
+    if (!res.ok) throw new Error(`[${res.status}] gmail batch ${raw.slice(0, 200)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  // Each sub-part carries its own HTTP status line and JSON body. Parse the
+  // JSON object out of every part and keep the ones that are messages.
+  const out: any[] = [];
+  for (const chunk of raw.split(/--batch[^\r\n]*/)) {
+    const start = chunk.indexOf("{");
+    if (start === -1) continue;
+    const jsonText = chunk.slice(start).trim();
+    try {
+      const obj = JSON.parse(jsonText);
+      if (obj && obj.id && !obj.error) out.push(obj);
+    } catch { /* a truncated or non-JSON part is simply not a message */ }
+  }
+  return out;
+}
+
+function headerOf(msg: any, name: string): string {
+  const want = name.toLowerCase();
+  return msg?.payload?.headers?.find((h: any) => String(h?.name ?? "").toLowerCase() === want)?.value ?? "";
+}
+
+function toMailHeader(d: any, outbound: boolean): MailHeader {
+  const at = Number(d.internalDate);
+  return {
+    id: d.id,
+    threadId: d.threadId,
+    at: Number.isFinite(at) && at > 0 ? at : Date.now(),
+    from: headerOf(d, "from"),
+    to: headerOf(d, "to"),
+    subject: headerOf(d, "subject"),
+    outbound,
+  };
+}
+
+/**
+ * Metadata harvest that prefers the batch endpoint.
+ *
+ * Same contract as harvestHeaders — a Gmail query in, MailHeaders out — but
+ * 50 messages per HTTP request instead of one. On any batch-level failure the
+ * chunk falls back to the original bounded pool, so the worst case is the old
+ * cost, never an empty ledger.
+ */
+export async function harvestHeadersFast(
+  token: string,
+  q: string,
+  limit = 120,
+  outbound = false,
+): Promise<MailHeader[]> {
+  const list = await gfetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${Math.min(limit, 200)}&q=${encodeURIComponent(q)}`,
+    token,
+  ).catch(() => ({ messages: [] }));
+
+  const ids: string[] = (list.messages ?? []).slice(0, limit).map((m: any) => m.id);
+  if (!ids.length) return [];
+
+  const out: MailHeader[] = [];
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
+
+  await Promise.allSettled(chunks.map(async (chunk) => {
+    try {
+      const msgs = await batchMessagesMetadata(token, chunk, ["From", "To", "Subject"]);
+      // A batch that comes back empty for a non-empty chunk is a parse
+      // failure, not an empty mailbox — fall through to the pool.
+      if (msgs.length) {
+        for (const d of msgs) out.push(toMailHeader(d, outbound));
+        return;
+      }
+      throw new Error("empty batch response");
+    } catch {
+      const fallback = await harvestHeadersByIds(token, chunk, outbound);
+      out.push(...fallback);
+    }
+  }));
+
+  return out.sort((a, b) => a.at - b.at);
+}
+
+/** The original per-message pool, kept as the batch fallback path. */
+async function harvestHeadersByIds(token: string, ids: string[], outbound: boolean): Promise<MailHeader[]> {
+  const out: MailHeader[] = [];
+  const queue = [...ids];
+  const workers = Array.from({ length: Math.min(8, queue.length) }, async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const d = await gfetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject`,
+          token,
+        );
+        out.push(toMailHeader(d, outbound));
+      } catch { /* one bad message must not kill the harvest */ }
+    }
+  });
+  await Promise.allSettled(workers);
+  return out;
+}
+
+// ── Delta sync ─────────────────────────────────────────────────────────────
+
+export interface GmailSyncRow {
+  history_id: string | null;
+  last_full_sync_at: string | null;
+}
+
+/**
+ * Ids changed since the stored historyId.
+ *
+ * Returns `null` when there is no usable marker or Gmail rejected it (404 —
+ * the marker aged out). Null means "caller must do a full sync"; an empty
+ * array means "nothing changed", which is the cheap happy path.
+ */
+export async function gmailDeltaIds(
+  token: string,
+  historyId: string | null,
+): Promise<{ ids: string[]; newHistoryId: string | null } | null> {
+  if (!historyId) return null;
+  try {
+    const data = await gfetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/history?startHistoryId=${encodeURIComponent(historyId)}&historyTypes=messageAdded&maxResults=200`,
+      token,
+      undefined,
+      15_000,
+    );
+    const ids = new Set<string>();
+    for (const h of data.history ?? []) {
+      for (const added of h.messagesAdded ?? []) {
+        if (added?.message?.id) ids.add(added.message.id);
+      }
+    }
+    return { ids: [...ids], newHistoryId: data.historyId ? String(data.historyId) : historyId };
+  } catch {
+    // 404 = expired marker. One full sync, then store the fresh one.
+    return null;
+  }
+}
+
+/** Current mailbox historyId, used to seed or re-seed the delta marker. */
+export async function gmailProfile(token: string): Promise<{ historyId: string | null; email: string | null; total: number }> {
+  try {
+    const p = await gfetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", token, undefined, 12_000);
+    return {
+      historyId: p.historyId ? String(p.historyId) : null,
+      email: p.emailAddress ?? null,
+      total: Number(p.messagesTotal ?? 0),
+    };
+  } catch {
+    return { historyId: null, email: null, total: 0 };
+  }
+}
+
+// ── Derived-read cache ─────────────────────────────────────────────────────
+
+export interface CacheHit<T> {
+  fresh: boolean;
+  payload: T | null;
+  builtAt: string | null;
+  ageMinutes: number | null;
+}
+
+/**
+ * Read a derived bundle back if it is still inside its window.
+ *
+ * `refresh` is the operator's override: saying "refresh" must always be able
+ * to force a live sweep, otherwise the cache becomes a lie the operator
+ * cannot correct.
+ */
+export async function readMeshCache<T>(
+  sb: SupabaseClient,
+  userId: string,
+  key: string,
+  refresh = false,
+): Promise<CacheHit<T>> {
+  if (refresh) return { fresh: false, payload: null, builtAt: null, ageMinutes: null };
+  try {
+    const { data } = await sb.from("google_mesh_cache")
+      .select("payload, built_at, expires_at")
+      .eq("user_id", userId).eq("cache_key", key).maybeSingle();
+    if (!data) return { fresh: false, payload: null, builtAt: null, ageMinutes: null };
+    const expired = Date.parse(data.expires_at) <= Date.now();
+    const ageMinutes = Math.round((Date.now() - Date.parse(data.built_at)) / 60000);
+    return {
+      fresh: !expired,
+      payload: expired ? null : (data.payload as T),
+      builtAt: data.built_at,
+      ageMinutes,
+    };
+  } catch {
+    return { fresh: false, payload: null, builtAt: null, ageMinutes: null };
+  }
+}
+
+export async function writeMeshCache(
+  sb: SupabaseClient,
+  userId: string,
+  key: string,
+  payload: unknown,
+  accounts: string[],
+  ttlMinutes = 360,
+): Promise<void> {
+  try {
+    await sb.from("google_mesh_cache").upsert({
+      user_id: userId,
+      cache_key: key,
+      payload,
+      accounts,
+      built_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + ttlMinutes * 60000).toISOString(),
+    }, { onConflict: "user_id,cache_key" });
+  } catch (e) {
+    console.error("[googleMesh] cache write failed:", (e as Error).message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MEET RECORDS — Drive-scoped, never a whole-Drive crawl
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface MeetFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  modifiedTime: string;
+  webViewLink: string | null;
+  sizeBytes: number | null;
+  kind: "recording" | "transcript" | "notes";
+}
+
+/**
+ * List Meet recordings and transcripts.
+ *
+ * The query is narrowed three ways — name prefix, the Meet Recordings folder
+ * convention, and video/transcript mime types — so this reads a slice of
+ * Drive, not the whole account. Zero files is a legitimate answer and is
+ * reported as such; it is never padded with an invented meeting.
+ */
+export async function listMeetFiles(token: string, max = 40): Promise<MeetFile[]> {
+  const q = [
+    "trashed = false",
+    "(name contains 'Meet' or name contains 'Meeting' or name contains 'transcript' or name contains 'Recording')",
+    "(mimeType contains 'video/' or mimeType = 'application/vnd.google-apps.document' or mimeType contains 'audio/')",
+  ].join(" and ");
+
+  try {
+    const data = await gfetch(
+      "https://www.googleapis.com/drive/v3/files" +
+        `?q=${encodeURIComponent(q)}&pageSize=${Math.min(max, 100)}` +
+        "&orderBy=modifiedTime desc" +
+        "&fields=files(id,name,mimeType,modifiedTime,webViewLink,size)",
+      token,
+      undefined,
+      20_000,
+    );
+    return (data.files ?? []).map((f: any): MeetFile => ({
+      id: f.id,
+      name: f.name,
+      mimeType: f.mimeType,
+      modifiedTime: f.modifiedTime,
+      webViewLink: f.webViewLink ?? null,
+      sizeBytes: f.size ? Number(f.size) : null,
+      kind: /transcript/i.test(f.name)
+        ? "transcript"
+        : String(f.mimeType).startsWith("video/") || String(f.mimeType).startsWith("audio/")
+          ? "recording"
+          : "notes",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIT LOCATION — the only location Google actually hands a third party
+// ---------------------------------------------------------------------------
+// This is Google Fit location history: points a fitness app wrote while
+// recording a workout. It is NOT Find Hub, NOT a device roster, NOT a live
+// phone position, and it exists only if some app on that account ever wrote a
+// location dataset. When the dataset is absent the honest answer is that it
+// is absent — there is no second place to look.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface FitLocationPoint {
+  at: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+}
+
+export async function fitLocationHistory(
+  token: string,
+  days = 14,
+): Promise<{ available: boolean; reason?: string; points: FitLocationPoint[] }> {
+  let sources: any;
+  try {
+    sources = await gfetch(
+      "https://www.googleapis.com/fitness/v1/users/me/dataSources?dataTypeName=com.google.location.sample",
+      token,
+      undefined,
+      15_000,
+    );
+  } catch (e) {
+    return { available: false, reason: `fitness dataSources unavailable: ${(e as Error).message}`, points: [] };
+  }
+
+  const source = (sources?.dataSource ?? [])[0];
+  if (!source?.dataStreamId) {
+    return { available: false, reason: "not in Fit location history — no location dataset exists on this account", points: [] };
+  }
+
+  const endNs = Date.now() * 1_000_000;
+  const startNs = (Date.now() - days * 86400000) * 1_000_000;
+  try {
+    const data = await gfetch(
+      `https://www.googleapis.com/fitness/v1/users/me/dataSources/${encodeURIComponent(source.dataStreamId)}` +
+        `/datasets/${startNs}-${endNs}`,
+      token,
+      undefined,
+      20_000,
+    );
+    const points: FitLocationPoint[] = (data?.point ?? []).map((p: any) => ({
+      at: new Date(Number(p.startTimeNanos) / 1_000_000).toISOString(),
+      latitude: Number(p.value?.[0]?.fpVal ?? 0),
+      longitude: Number(p.value?.[1]?.fpVal ?? 0),
+      accuracyMeters: p.value?.[2]?.fpVal != null ? Number(p.value[2].fpVal) : null,
+    })).filter((p: FitLocationPoint) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && (p.latitude !== 0 || p.longitude !== 0));
+
+    if (!points.length) {
+      return { available: false, reason: "not in Fit location history — the dataset exists but holds no points in this window", points: [] };
+    }
+    return { available: true, points: points.slice(-500) };
+  } catch (e) {
+    return { available: false, reason: `fit dataset read failed: ${(e as Error).message}`, points: [] };
+  }
+}
+
+/**
+ * Metadata for a known set of ids, direction inferred from Gmail's own
+ * labels rather than from which query found the message. Used by the delta
+ * path, where a changed message arrives as a bare id with no direction.
+ */
+export async function deltaHeaders(token: string, ids: string[]): Promise<MailHeader[]> {
+  const out: MailHeader[] = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    let msgs: any[] = [];
+    try {
+      msgs = await batchMessagesMetadata(token, chunk, ["From", "To", "Subject"]);
+    } catch { msgs = []; }
+    for (const d of msgs) {
+      const labels: string[] = d.labelIds ?? [];
+      if (labels.includes("CHAT") || labels.includes("SPAM") || labels.includes("TRASH")) continue;
+      out.push(toMailHeader(d, labels.includes("SENT")));
+    }
+  }
+  return out;
+}
+
+/** Stored delta markers, keyed by account id. */
+export async function readSyncState(
+  sb: SupabaseClient,
+  userId: string,
+): Promise<Record<string, { history_id: string | null; last_full_sync_at: string | null }>> {
+  const map: Record<string, { history_id: string | null; last_full_sync_at: string | null }> = {};
+  try {
+    const { data } = await sb.from("google_gmail_sync")
+      .select("account_id, history_id, last_full_sync_at").eq("user_id", userId);
+    for (const r of data ?? []) map[r.account_id] = { history_id: r.history_id, last_full_sync_at: r.last_full_sync_at };
+  } catch { /* absent state simply means "full sync" */ }
+  return map;
+}
+
+export async function saveSyncState(
+  sb: SupabaseClient,
+  userId: string,
+  accountId: string,
+  googleEmail: string,
+  historyId: string | null,
+  full: boolean,
+): Promise<void> {
+  try {
+    await sb.from("google_gmail_sync").upsert({
+      user_id: userId,
+      account_id: accountId,
+      google_email: googleEmail,
+      history_id: historyId,
+      ...(full ? { last_full_sync_at: new Date().toISOString() } : { last_delta_at: new Date().toISOString() }),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,account_id" });
+  } catch (e) {
+    console.error("[googleMesh] sync state write failed:", (e as Error).message);
+  }
+}

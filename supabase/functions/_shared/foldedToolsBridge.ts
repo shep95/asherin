@@ -52,6 +52,10 @@ export type GoogleMeshAction =
   | "attention_ledger"
   | "build_voiceprint"
   | "ghostwrite"
+  | "dossier"
+  | "meet_vault"
+  | "sentinel"
+  | "fit_location"
   | "audit_log";
 
 
@@ -97,6 +101,9 @@ export interface FoldedPlan {
   googleMesh?: {
     action: GoogleMeshAction;
     query?: string;
+    /** Dossier subject — an address when one was given, otherwise a name. */
+    email?: string;
+    name?: string;
     to?: string;
     subject?: string;
     intent?: string;
@@ -310,6 +317,21 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
           : "contacts";
   }
 
+  // Fused single-person read. Owned mailboxes only, and the trigger demands
+  // the word "dossier" or an explicit "everything on X" so a passing mention
+  // of a name never opens a profile.
+  const dossier =
+    raw.match(/\bdossier\s+(?:for|on|about)\s+(.+)$/i) ||
+    raw.match(/\b(?:everything|what\s+do\s+(?:we|i)\s+have)\s+on\s+([^\s].{1,60})$/i) ||
+    raw.match(/\bprofile\s+(?:for|on)\s+([^\s].{1,60})$/i);
+  if (dossier) {
+    const subject = dossier[1].trim().replace(/[?.!]+$/, "").slice(0, 120);
+    const asEmail = subject.match(/[^\s<>,]+@[^\s<>,]+\.[^\s<>,]{2,}/);
+    plan.googleMesh = asEmail
+      ? { action: "dossier", email: asEmail[0] }
+      : { action: "dossier", name: subject };
+  }
+
   // Mail retrieval about a person or subject: "what did dana email me about",
   // "who emailed me about the lease", "search my mail for the invoice".
   const mailAbout =
@@ -318,7 +340,9 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
   const mailSearch = raw.match(/\b(?:search|find|look\s+through|check)\s+(?:my\s+)?(?:mail|gmail|inbox|e-?mails?)\s+(?:for|about)\s+(.+)$/i);
   const whoEmailed = /\bwho\s+(?:has\s+)?e-?mailed\s+me\b/i.test(raw);
 
-  if (mailSearch) {
+  if (plan.googleMesh?.action === "dossier") {
+    // already planned — a dossier ask must not degrade into a raw mail search
+  } else if (mailSearch) {
     plan.googleMesh = { action: "search_mail", query: mailSearch[1].trim().slice(0, 200) };
   } else if (mailAbout) {
     // Gmail's own query grammar does the narrowing: a name goes to `from:`,
@@ -338,13 +362,19 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
   // default reading of a bare noun.
   if (!plan.googleMesh) {
     const meshAction: GoogleMeshAction | null =
-      /\b(daily\s+digest|digest\s+of\s+my\s+day|what'?s\s+on\s+my\s+plate|catch\s+me\s+up\s+on\s+(my\s+)?(mail|day))\b/i.test(raw)
+      /\b(daily\s+digest|\bdigest\b|what'?s\s+on\s+my\s+plate|catch\s+me\s+up\s+on\s+(my\s+)?(mail|day)|brief\s+me\s+on\s+my\s+day)\b/i.test(raw)
         ? "daily_digest"
         : /\b(relationship\s+(graph|map)|who\s+(am\s+i|have\s+i)\s+(closest|lost\s+touch|gone\s+quiet)|who\s+is\s+going\s+quiet|going\s+dormant)\b/i.test(raw)
           ? "relationship_graph"
-          : /\b(commitments?|what\s+did\s+i\s+promise|what\s+do\s+i\s+owe|open\s+obligations?)\b/i.test(raw)
+          : /\b(commitments?|what\s+did\s+i\s+promise|what\s+do\s+i\s+owe|open\s+obligations?|what'?s\s+overdue|anything\s+overdue|am\s+i\s+overdue)\b/i.test(raw)
             ? "commitments"
-            : /\b(pattern\s+map|place\s+rhythm|where\s+do\s+i\s+(go|spend))\b/i.test(raw)
+            : /\b(meet\s+(recordings?|transcripts?|vault)|recordings?\s+(of|from)\s+(my\s+)?meet(ings?)?)\b/i.test(raw)
+              ? "meet_vault"
+              : /\b(any\s+)?sentinel\b|\bany\s+alerts?\b|\bwhat\s+alerts?\b/i.test(raw)
+                ? "sentinel"
+                : /\b(fit\s+location|google\s+fit\s+location|location\s+history)\b/i.test(raw)
+                  ? "fit_location"
+                  : /\b(pattern\s+map|place\s+rhythm|where\s+do\s+i\s+(go|spend))\b/i.test(raw)
               ? "pattern_map"
               : /\b(attention\s+ledger|how\s+much\s+time\s+(did\s+i|do\s+i)\s+spend\s+in\s+meetings|meeting\s+load)\b/i.test(raw)
                 ? "attention_ledger"
@@ -612,6 +642,10 @@ export async function runFoldedTools(
     legs.push([`google-mesh:${m.action}`, (async () => {
       const payload: Record<string, unknown> = { action: m.action };
       if (m.query) payload.query = m.query;
+      if (m.action === "dossier") {
+        if (m.email) payload.email = m.email;
+        if (m.name) payload.name = m.name;
+      }
       if (m.action === "ghostwrite") {
         payload.to = m.to;
         payload.intent = m.intent;
@@ -664,10 +698,55 @@ export async function runFoldedTools(
         );
         return;
       }
+      if (m.action === "dossier") {
+        const b: any = out.body ?? {};
+        if (!b.found) {
+          parts.push(
+            `GOOGLE MESH dossier — \`${m.email ?? m.name}\` does not appear in the operator's connected mailboxes or contacts.`,
+            "- Say there is no record in the owned accounts. Do not search the open web for this person and do not infer anything.",
+          );
+          return;
+        }
+        parts.push(
+          `GOOGLE MESH dossier — fused from the operator's OWN mailboxes, contacts and calendar only:`,
+          maskPii(JSON.stringify(b).slice(0, 4000)),
+          b.uncertain ? `- Carry this caveat into the answer: ${b.uncertain}` : "",
+          "- Do not add employer, location or history that is not in this payload.",
+        );
+        return;
+      }
+      if (m.action === "meet_vault") {
+        const total = Number(out.body?.total ?? 0);
+        parts.push(
+          total
+            ? `GOOGLE MESH meet records — ${total} file(s) already stored in Drive:`
+            : "GOOGLE MESH meet records — none in Drive.",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          total ? "" : "- Say plainly: none in Drive. Do not describe meetings that were never recorded.",
+        );
+        return;
+      }
+      if (m.action === "sentinel") {
+        parts.push(
+          `GOOGLE MESH sentinel — cadence: ${String(out.body?.cadence ?? "unknown")}.`,
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- Quote the cadence exactly. Never call this always-on unless the cadence says push.",
+        );
+        return;
+      }
+      if (m.action === "fit_location") {
+        parts.push(
+          "GOOGLE MESH fit location — Google Fit location history, which is NOT device locating, NOT Find Hub, NOT a live position:",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- If unavailable, say it is not in Fit location history and stop there.",
+        );
+        return;
+      }
       parts.push(
         `GOOGLE MESH ${m.action} — derived from the operator's OWN connected account(s):`,
         maskPii(JSON.stringify(out.body).slice(0, 4000)),
       );
+
     })()]);
   }
 

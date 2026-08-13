@@ -39,6 +39,7 @@ export async function streamChat({
   onDelta,
   onReplace,
   onDone,
+  onTools,
   onThinkingStart,
   onThinkingDelta,
   onThinkingDone,
@@ -54,6 +55,7 @@ export async function streamChat({
   onReplace?: (text: string) => void;
   onDone: () => void;
   /** Ghost Chain phase 1 hooks — omit them and the reasoning pass is skipped entirely. */
+  onTools?: (rows: Array<{ label: string; detail?: string }>) => void;
   onThinkingStart?: () => void;
   onThinkingDelta?: (text: string) => void;
   onThinkingDone?: (fullThinking: string) => void;
@@ -239,6 +241,7 @@ export async function streamChat({
 
         try {
           const parsed = JSON.parse(jsonStr);
+          if (Array.isArray(parsed.asherin_tools)) onTools?.(parsed.asherin_tools);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) consumePassContent(content);
         } catch {

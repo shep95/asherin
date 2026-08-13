@@ -1,8 +1,17 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // google-mesh — the Google Mesh control surface
 // Actions: status | build_voiceprint | pattern_map | attention_ledger |
-//          ghostwrite | search_mail | audit_log
-// Every action is user-scoped by a verified JWT. No action sends mail.
+//          ghostwrite | search_mail | relationship_graph | commitments |
+//          daily_digest | dossier | meet_vault | sentinel | fit_location |
+//          send_draft | audit_log
+// Every action is user-scoped by a verified JWT. No action sends mail without
+// a two-phase human confirmation.
+//
+// Cost discipline: header harvests go through the Gmail batch endpoint, delta
+// markers replace repeat full sweeps, and every derived read that costs more
+// than one call is cached with an explicit expiry the operator can override
+// with refresh:true. A cached answer always reports its own age — a stale read
+// presented as live is the one failure this surface will not commit.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,8 +20,12 @@ import {
   adminClient, liveAccounts, harvestSentBodies, computeStylometry,
   harvestPlaces, foldPlaces, buildAttention, createDraft, audit,
   voiceInstruction, fenceUntrusted, gfetch, hasScope,
-  harvestHeaders, buildRelationships, harvestBodies, extractCommitments,
+  buildRelationships, harvestBodies, extractCommitments,
   getDraft, sendExistingDraft,
+  harvestHeadersFast, deltaHeaders, gmailDeltaIds, gmailProfile,
+  readSyncState, saveSyncState, readMeshCache, writeMeshCache,
+  listMeetFiles, fitLocationHistory, harvestContacts,
+  type MailHeader, type MeshAccount,
 } from "../_shared/googleMesh.ts";
 
 
@@ -21,6 +34,153 @@ const json = (body: unknown, status: number, cors: Record<string, string>) =>
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
+
+/** Freshness windows. Six hours for structural reads, tighter for the digest. */
+const TTL_LEDGER_MIN = 360;
+const TTL_PLACES_MIN = 360;
+const TTL_DIGEST_MIN = 360;
+
+interface LedgerResult {
+  headers: MailHeader[];
+  mode: "cache" | "delta" | "full";
+  ageMinutes: number | null;
+  builtAt: string | null;
+  accountsRead: string[];
+  note: string;
+}
+
+/**
+ * The mail ledger with a memory.
+ *
+ * Three paths, cheapest first:
+ *   cache — inside the window, zero Gmail calls.
+ *   delta — window expired but a valid historyId exists: fetch only the
+ *           messages Gmail says changed, fold them into the stored ledger.
+ *   full  — no marker, or Gmail rejected it (markers age out after about a
+ *           week): one batched sweep, then store the fresh marker.
+ *
+ * A per-account failure degrades that account only. The merge survives.
+ */
+async function mailLedger(
+  sb: ReturnType<typeof adminClient>,
+  userId: string,
+  readable: Array<MeshAccount & { token: string }>,
+  opts: { days: number; limit: number; refresh: boolean },
+): Promise<LedgerResult> {
+  const key = `ledger:${opts.days}:${opts.limit}`;
+  const cached = await readMeshCache<{ headers: MailHeader[] }>(sb, userId, key, opts.refresh);
+
+  if (cached.fresh && cached.payload?.headers?.length) {
+    return {
+      headers: cached.payload.headers,
+      mode: "cache",
+      ageMinutes: cached.ageMinutes,
+      builtAt: cached.builtAt,
+      accountsRead: readable.map((a) => a.google_email),
+      note: `served from the stored ledger, built ${cached.ageMinutes ?? 0} min ago — no mailbox re-read`,
+    };
+  }
+
+  const after = new Date(Date.now() - opts.days * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
+  const state = await readSyncState(sb, userId);
+  const priorHeaders: MailHeader[] = cached.payload?.headers ?? [];
+  const cutoff = Date.now() - opts.days * 86400000;
+
+  let anyFull = false;
+  const collected: MailHeader[][] = await Promise.all(readable.map(async (a) => {
+    const marker = state[a.id]?.history_id ?? null;
+    // Delta is only meaningful when there is a prior ledger to fold into.
+    if (marker && priorHeaders.length) {
+      const delta = await gmailDeltaIds(a.token, marker);
+      if (delta) {
+        const fresh = delta.ids.length ? await deltaHeaders(a.token, delta.ids) : [];
+        await saveSyncState(sb, userId, a.id, a.google_email, delta.newHistoryId, false);
+        return fresh;
+      }
+    }
+    anyFull = true;
+    const [inbound, outbound] = await Promise.all([
+      harvestHeadersFast(a.token, `in:inbox -in:chats after:${after}`, opts.limit, false).catch(() => []),
+      harvestHeadersFast(a.token, `in:sent -in:chats after:${after}`, opts.limit, true).catch(() => []),
+    ]);
+    const profile = await gmailProfile(a.token);
+    await saveSyncState(sb, userId, a.id, a.google_email, profile.historyId, true);
+    return [...inbound, ...outbound];
+  }));
+
+  const merged = new Map<string, MailHeader>();
+  for (const h of [...priorHeaders, ...collected.flat()]) {
+    if (h.at < cutoff) continue;
+    merged.set(h.id, h);
+  }
+  const headers = [...merged.values()].sort((a, b) => a.at - b.at);
+
+  await writeMeshCache(sb, userId, key, { headers }, readable.map((a) => a.google_email), TTL_LEDGER_MIN);
+
+  return {
+    headers,
+    mode: anyFull ? "full" : "delta",
+    ageMinutes: 0,
+    builtAt: new Date().toISOString(),
+    accountsRead: readable.map((a) => a.google_email),
+    note: anyFull
+      ? `full batched sweep of ${headers.length} headers`
+      : `delta sync — only messages changed since the stored marker were read`,
+  };
+}
+
+
+/**
+ * Turn a freshly built digest into durable alerts.
+ *
+ * Two triggers only: a promise that has gone past its own due date, and an
+ * inner-tier correspondent whose last message was inbound and has sat for two
+ * days. The dedupe key is derived from the fact itself, so re-running the
+ * digest never re-alarms on something the operator already saw.
+ */
+async function recordSentinelEvents(
+  sb: ReturnType<typeof adminClient>,
+  userId: string,
+  digest: {
+    obligations: { overdue: Array<{ text: string; toEmail: string; dueAt: string | null; subject: string }> };
+    relationships: { awaitingYourReply: Array<{ email: string; name: string; dormantDays: number }> };
+  },
+): Promise<void> {
+  const rows: Record<string, unknown>[] = [];
+
+  for (const c of digest.obligations.overdue.slice(0, 10)) {
+    rows.push({
+      user_id: userId,
+      kind: "commitment_overdue",
+      severity: "warn",
+      title: `Overdue promise to ${c.toEmail || "a contact"}`,
+      detail: c.text.slice(0, 300),
+      subject_email: c.toEmail || null,
+      payload: { subject: c.subject, dueAt: c.dueAt },
+      dedupe_key: `overdue:${c.toEmail}:${(c.dueAt ?? "").slice(0, 10)}:${c.text.slice(0, 40)}`,
+    });
+  }
+
+  for (const p of digest.relationships.awaitingYourReply.slice(0, 10)) {
+    rows.push({
+      user_id: userId,
+      kind: "awaiting_reply",
+      severity: "info",
+      title: `${p.name || p.email} is waiting on you`,
+      detail: `Last message was inbound ${p.dormantDays} days ago.`,
+      subject_email: p.email,
+      payload: { dormantDays: p.dormantDays },
+      dedupe_key: `awaiting:${p.email}:${new Date().toISOString().slice(0, 10)}`,
+    });
+  }
+
+  if (!rows.length) return;
+  try {
+    await sb.from("google_sentinel_events").upsert(rows, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+  } catch (e) {
+    console.error("[google-mesh] sentinel write failed:", (e as Error).message);
+  }
+}
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
@@ -97,8 +257,25 @@ Deno.serve(async (req) => {
       return json({ voiceprints: results }, 200, cors);
     }
 
+    // Operator override: "refresh" must always be able to force a live sweep,
+    // otherwise the cache becomes a claim the operator cannot correct.
+    const refresh = body.refresh === true || String(body.refresh ?? "") === "true";
+
     // ── PATTERN MAP ──────────────────────────────────────────────────────
     if (action === "pattern_map") {
+      const cached = await readMeshCache<{ nodes: unknown[]; observations: number; anomalies: string[] }>(
+        sb, userId, "places", refresh,
+      );
+      if (cached.fresh && cached.payload) {
+        return json({
+          ...cached.payload,
+          cached: true,
+          builtAt: cached.builtAt,
+          ageMinutes: cached.ageMinutes,
+          note: `stored place cartography, built ${cached.ageMinutes} min ago — pass refresh:true to re-harvest`,
+        }, 200, cors);
+      }
+
       const all = (await Promise.all(
         accounts.map((a) => harvestPlaces(a.token, Number(body.days) || 180).catch(() => [])),
       )).flat();
@@ -119,12 +296,15 @@ Deno.serve(async (req) => {
           { onConflict: "user_id,normalized_key" },
         );
       }
-      return json({
+      const payload = {
         nodes: nodes.slice(0, 100),
         observations: all.length,
         anomalies: nodes.filter((n) => n.anomaly).map((n) => n.label),
-      }, 200, cors);
+      };
+      await writeMeshCache(sb, userId, "places", payload, accounts.map((a) => a.google_email), TTL_PLACES_MIN);
+      return json({ ...payload, cached: false, builtAt: new Date().toISOString() }, 200, cors);
     }
+
 
     // ── ATTENTION LEDGER ─────────────────────────────────────────────────
     if (action === "attention_ledger") {
@@ -288,25 +468,23 @@ Deno.serve(async (req) => {
     // ── RELATIONSHIP LEDGER ──────────────────────────────────────────────
     // Metadata-only. Runs across every connected account and merges the
     // ledgers, so one human who mails two of your addresses is one node.
+    // Header cost is paid by mailLedger: cache, then delta, then full sweep.
     if (action === "relationship_graph") {
       const limit = Math.min(Number(body.limit) || 120, 200);
       const window = Math.min(Math.max(Number(body.days) || 180, 7), 730);
-      const after = new Date(Date.now() - window * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
       const selfEmails = accounts.map((a) => a.google_email);
       const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
       if (!readable.length) {
         return json({ error: "tier_required", message: "Grant Tier 2 (Read) to map your correspondence." }, 403, cors);
       }
-      const harvested = (await Promise.all(readable.flatMap((a) => [
-        harvestHeaders(a.token, `in:inbox -in:chats after:${after}`, limit, false).catch(() => []),
-        harvestHeaders(a.token, `in:sent -in:chats after:${after}`, limit, true).catch(() => []),
-      ]))).flat();
 
-      const people = buildRelationships(harvested, selfEmails);
+      const ledger = await mailLedger(sb, userId, readable, { days: window, limit, refresh });
+      const people = buildRelationships(ledger.headers, selfEmails);
       return json({
         windowDays: window,
-        messagesAnalyzed: harvested.length,
+        messagesAnalyzed: ledger.headers.length,
         accounts: selfEmails,
+        sync: { mode: ledger.mode, ageMinutes: ledger.ageMinutes, builtAt: ledger.builtAt, note: ledger.note },
         people: people.slice(0, 80),
         inner: people.filter((p) => p.tier === "inner").length,
         dormant: people.filter((p) => p.dormant).map((p) => ({
@@ -314,6 +492,7 @@ Deno.serve(async (req) => {
         })),
       }, 200, cors);
     }
+
 
     // ── COMMITMENTS ──────────────────────────────────────────────────────
     // Promises you made in your own sent mail, with the clock resolved
@@ -344,30 +523,40 @@ Deno.serve(async (req) => {
     // ── DAILY DIGEST ─────────────────────────────────────────────────────
     // The fusion surface: attention + place rhythm + obligations + decaying
     // relationships, computed together so the briefing is one coherent read.
+    // Cached whole: asking twice in ten minutes must not re-read the mailbox.
     if (action === "daily_digest") {
+      const cachedDigest = await readMeshCache<Record<string, unknown>>(sb, userId, "digest", refresh);
+      if (cachedDigest.fresh && cachedDigest.payload) {
+        return json({
+          ...cachedDigest.payload,
+          cached: true,
+          builtAt: cachedDigest.builtAt,
+          ageMinutes: cachedDigest.ageMinutes,
+          note: `stored briefing, built ${cachedDigest.ageMinutes} min ago — no mailbox re-read. pass refresh:true to rebuild`,
+        }, 200, cors);
+      }
+
       const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
       const after30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10).replace(/-/g, "/");
 
-      const [attn, placeRows, headerSets, bodySets] = await Promise.all([
+      const [attn, placeRows, ledger, bodySets] = await Promise.all([
         buildAttention(accounts[0].token, 14).catch(() => []),
         sb.from("google_place_nodes").select("label, visit_count, last_seen, sources")
           .eq("user_id", userId).order("visit_count", { ascending: false }).limit(12),
-        Promise.all(readable.flatMap((a) => [
-          harvestHeaders(a.token, `in:inbox -in:chats after:${after30}`, 80, false).catch(() => []),
-          harvestHeaders(a.token, `in:sent -in:chats after:${after30}`, 80, true).catch(() => []),
-        ])),
+        mailLedger(sb, userId, readable, { days: 30, limit: 80, refresh }),
         Promise.all(readable.map((a) => harvestBodies(a.token, `in:sent -in:chats after:${after30}`, 30).catch(() => []))),
       ]);
 
-      const people = buildRelationships(headerSets.flat(), accounts.map((a) => a.google_email));
+      const people = buildRelationships(ledger.headers, accounts.map((a) => a.google_email));
       const commitments = extractCommitments(bodySets.flat());
       const recent = attn.slice(-7);
       const meetMin = recent.reduce((s, d) => s + d.meetingMinutes, 0);
       const focusMin = recent.reduce((s, d) => s + d.focusMinutes, 0);
 
-      return json({
+      const digest = {
         generatedAt: new Date().toISOString(),
         accounts: accounts.map((a) => a.google_email),
+        sync: { mode: ledger.mode, note: ledger.note, headersUsed: ledger.headers.length },
         attention: {
           days: recent.length,
           meetingHours: Math.round(meetMin / 6) / 10,
@@ -389,8 +578,248 @@ Deno.serve(async (req) => {
         places: (placeRows.data ?? []).map((p) => ({
           label: p.label, visits: p.visit_count, lastSeen: p.last_seen, sources: p.sources,
         })),
+      };
+
+      await writeMeshCache(sb, userId, "digest", digest, accounts.map((a) => a.google_email), TTL_DIGEST_MIN);
+      // Overdue promises and inbound mail from inner-tier people that has sat
+      // unanswered are the two things worth waking someone for. Recorded as
+      // in-app events with a stable dedupe key so the same fact never alarms
+      // twice.
+      await recordSentinelEvents(sb, userId, digest);
+      return json({ ...digest, cached: false }, 200, cors);
+    }
+
+    // ── DOSSIER ──────────────────────────────────────────────────────────
+    // Fusion on one human, from mailboxes you own. Not OSINT on a stranger:
+    // if the person never touched a connected account, the answer says so
+    // rather than inventing a profile.
+    if (action === "dossier") {
+      const needle = String(body.email ?? body.name ?? body.query ?? "").trim().toLowerCase();
+      if (!needle) return json({ error: "email or name required" }, 400, cors);
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      if (!readable.length) {
+        return json({ error: "tier_required", message: "Grant Tier 2 (Read) to build a dossier." }, 403, cors);
+      }
+
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(needle);
+      const selfEmails = accounts.map((a) => a.google_email);
+
+      // 1. People card — names, phones, org. Thin cards are marked, not padded.
+      const contacts = (await Promise.all(
+        accounts.filter((a) => hasScope(a, "contacts.readonly"))
+          .map((a) => harvestContacts(a.token, 400).catch(() => [])),
+      )).flat();
+      const contact = contacts.find((c) =>
+        (c.emails ?? []).some((e: string) => e.toLowerCase() === needle) ||
+        String(c.name ?? "").toLowerCase().includes(needle)
+      ) ?? null;
+
+      const targetEmails = new Set<string>();
+      if (isEmail) targetEmails.add(needle);
+      for (const e of contact?.emails ?? []) targetEmails.add(String(e).toLowerCase());
+
+      // 2. Correspondence node — reuses the cached ledger, no new sweep.
+      const ledger = await mailLedger(sb, userId, readable, { days: 365, limit: 150, refresh });
+      const people = buildRelationships(ledger.headers, selfEmails);
+      const node = people.find((p) =>
+        targetEmails.has(String(p.email).toLowerCase()) ||
+        String(p.name ?? "").toLowerCase().includes(needle)
+      ) ?? null;
+      if (node?.email) targetEmails.add(String(node.email).toLowerCase());
+
+      // 3. Last five subjects, drawn from the same ledger.
+      const recentMail = ledger.headers
+        .filter((h) => {
+          const line = `${h.from} ${h.to}`.toLowerCase();
+          return [...targetEmails].some((e) => line.includes(e)) ||
+            (!targetEmails.size && line.includes(needle));
+        })
+        .sort((a, b) => b.at - a.at)
+        .slice(0, 5)
+        .map((h) => ({
+          subject: h.subject || "(no subject)",
+          at: new Date(h.at).toISOString(),
+          direction: h.outbound ? "out" : "in",
+        }));
+
+      // 4. Calendar co-attendance, when the calendar scope exists.
+      let coAttendance: Array<{ summary: string; start: string }> = [];
+      if (targetEmails.size) {
+        for (const a of accounts.filter((x) => hasScope(x, "calendar.readonly"))) {
+          try {
+            const timeMin = new Date(Date.now() - 180 * 86400000).toISOString();
+            const ev = await gfetch(
+              "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
+                `?timeMin=${encodeURIComponent(timeMin)}&maxResults=250&singleEvents=true&orderBy=startTime`,
+              a.token,
+              undefined,
+              15_000,
+            );
+            for (const e of ev.items ?? []) {
+              const attendees: string[] = (e.attendees ?? []).map((x: any) => String(x.email ?? "").toLowerCase());
+              if (attendees.some((x) => targetEmails.has(x))) {
+                coAttendance.push({ summary: e.summary ?? "(untitled)", start: e.start?.dateTime ?? e.start?.date ?? "" });
+              }
+            }
+          } catch { /* per-account degradation */ }
+        }
+        coAttendance = coAttendance.slice(-8).reverse();
+      }
+
+      const thin = !contact && !node;
+      return json({
+        query: needle,
+        found: !thin,
+        uncertain: thin || (!contact && !!node) ? "this is unsure — the People card is thin; fields below come from mail metadata only" : null,
+        identity: {
+          name: contact?.name ?? node?.name ?? null,
+          emails: [...targetEmails],
+          phones: contact?.phones ?? [],
+          org: contact?.org ?? null,
+        },
+        correspondence: node
+          ? {
+            tier: node.tier,
+            reciprocity: node.reciprocity ?? null,
+            lastDirection: node.lastDirection,
+            dormantDays: node.dormantDays,
+            received: node.received,
+            sent: node.sent,
+            medianReplyMinutes: node.medianReplyMinutes,
+          }
+          : null,
+        recentSubjects: recentMail,
+        coAttendance,
+        sync: { mode: ledger.mode, ageMinutes: ledger.ageMinutes, note: ledger.note },
+        scope: "owned mailboxes only — this is not an external record search",
       }, 200, cors);
     }
+
+    // ── MEET RECORDS ─────────────────────────────────────────────────────
+    // Drive-scoped listing of recordings and transcripts that already exist.
+    // Zero files is a real answer and is quoted as such.
+    if (action === "meet_vault") {
+      const withDrive = accounts.filter((a) => hasScope(a, "drive.readonly"));
+      if (!withDrive.length) {
+        return json({
+          error: "tier_required",
+          message: "Listing Meet recordings needs Tier 2 Drive read access. Reconnect and grant it.",
+        }, 403, cors);
+      }
+      const sets = await Promise.all(withDrive.map(async (a) => ({
+        account: a.google_email,
+        files: await listMeetFiles(a.token, Number(body.limit) || 40),
+      })));
+      const total = sets.reduce((s, x) => s + x.files.length, 0);
+      return json({
+        accounts: sets,
+        total,
+        note: total ? "recordings and transcripts already stored in Drive" : "none in Drive",
+      }, 200, cors);
+    }
+
+    // ── SENTINEL ─────────────────────────────────────────────────────────
+    // Real alerts, not a pulse icon. Gmail users.watch is attempted only when
+    // a Pub/Sub topic is configured; without one the honest posture is a
+    // five-minute server-side check, and the UI must say exactly that.
+    if (action === "sentinel") {
+      const sub = String(body.mode ?? "list");
+
+      if (sub === "register") {
+        const topic = Deno.env.get("GMAIL_PUBSUB_TOPIC");
+        const primary = accounts.find((a) => (a as any).is_primary) ?? accounts[0];
+        if (!topic) {
+          await saveSyncState(sb, userId, primary.id, primary.google_email, null, false);
+          return json({
+            watch: false,
+            cadence: "checked every 5 min",
+            reason: "gmail users.watch needs a Google Cloud Pub/Sub topic bound to this deployment; none is configured, so the mesh polls instead",
+          }, 200, cors);
+        }
+        try {
+          const res = await gfetch(
+            "https://gmail.googleapis.com/gmail/v1/users/me/watch",
+            primary.token,
+            { method: "POST", body: JSON.stringify({ topicName: topic, labelIds: ["INBOX"] }) },
+            15_000,
+          );
+          await sb.from("google_gmail_sync").upsert({
+            user_id: userId,
+            account_id: primary.id,
+            google_email: primary.google_email,
+            history_id: res.historyId ? String(res.historyId) : null,
+            watch_topic: topic,
+            watch_expiration: res.expiration ? new Date(Number(res.expiration)).toISOString() : null,
+            watch_error: null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id,account_id" });
+          return json({ watch: true, cadence: "push", expiration: res.expiration ?? null, account: primary.google_email }, 200, cors);
+        } catch (e) {
+          const detail = (e as Error).message;
+          await sb.from("google_gmail_sync").upsert({
+            user_id: userId, account_id: primary.id, google_email: primary.google_email,
+            watch_error: detail.slice(0, 300), updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id,account_id" });
+          return json({ watch: false, cadence: "checked every 5 min", reason: detail }, 200, cors);
+        }
+      }
+
+      if (sub === "ack") {
+        const id = String(body.event_id ?? "");
+        if (!id) return json({ error: "event_id required" }, 400, cors);
+        await sb.from("google_sentinel_events").update({ acknowledged: true })
+          .eq("user_id", userId).eq("id", id);
+        return json({ acknowledged: true, id }, 200, cors);
+      }
+
+      const { data: watchRow } = await sb.from("google_gmail_sync")
+        .select("watch_expiration, watch_error").eq("user_id", userId).limit(1).maybeSingle();
+      // Cadence is read from the background sweep's own row, never asserted.
+      const { data: sweep } = await sb.from("google_sync_state")
+        .select("enabled, interval_minutes, last_synced_at").eq("user_id", userId).maybeSingle();
+      const { data: events } = await sb.from("google_sentinel_events")
+        .select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(25);
+
+      const live = watchRow?.watch_expiration && Date.parse(watchRow.watch_expiration) > Date.now();
+      const pollMinutes = sweep?.enabled ? Math.max(5, Number(sweep.interval_minutes) || 5) : null;
+      return json({
+        cadence: live
+          ? "push (gmail watch)"
+          : pollMinutes
+            ? `checked every ${pollMinutes} min`
+            : "no background sweep enabled — alerts are computed when you ask for a digest",
+        lastSweep: sweep?.last_synced_at ?? null,
+        watchExpiration: watchRow?.watch_expiration ?? null,
+        watchError: watchRow?.watch_error ?? null,
+        events: events ?? [],
+        unread: (events ?? []).filter((e: any) => !e.acknowledged).length,
+      }, 200, cors);
+    }
+
+    // ── FIT LOCATION ─────────────────────────────────────────────────────
+    // Google Fit location history. Not Find Hub. Not a device roster. Not a
+    // live phone position. Absent dataset returns the absence, plainly.
+    if (action === "fit_location") {
+      const withFit = accounts.filter((a) => hasScope(a, "fitness.activity.read"));
+      if (!withFit.length) {
+        return json({
+          available: false,
+          label: "Google Fit location history",
+          reason: "no connected account granted Fitness read access",
+        }, 200, cors);
+      }
+      const results = await Promise.all(withFit.map(async (a) => ({
+        account: a.google_email,
+        ...(await fitLocationHistory(a.token, Math.min(Number(body.days) || 14, 60))),
+      })));
+      return json({
+        label: "Google Fit location history",
+        disclaimer: "points written by fitness apps during recorded activity — this is not device locating",
+        accounts: results,
+        available: results.some((r) => r.available),
+      }, 200, cors);
+    }
+
 
     // ── SEND DRAFT (Tier 5 — two-phase, human-confirmed) ─────────────────
     if (action === "send_draft") {
