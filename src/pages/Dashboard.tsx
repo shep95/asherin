@@ -160,6 +160,11 @@ const Dashboard = () => {
         : "chat"
       : "chat";
     if (next !== activeViewRaw) setActiveViewRaw(next);
+    // Retired module deep links (/dashboard/nomad, /dashboard/cipher …) must not
+    // leave a dead id sitting in the URL — collapse them onto chat.
+    if (viewParam && next === "chat" && viewParam !== "chat") {
+      navigate("/dashboard", { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewParam]);
   const setActiveView = (v: DashboardView) => {
