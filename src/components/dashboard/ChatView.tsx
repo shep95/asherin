@@ -510,7 +510,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const downloadConversation = () => {
     if (!branchMessages.length) return;
     const lines = branchMessages.map(m =>
-      `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
+      // Speaker label is the product name the operator sees: asherin.
+      `**${m.role === "user" ? "You" : "asherin"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });
