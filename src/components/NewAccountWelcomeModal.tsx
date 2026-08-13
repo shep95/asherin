@@ -17,7 +17,7 @@ const EXPIRED_PREFIX = "aureon_trial_expired_seen_";
  */
 
 const CAPABILITIES = [
-  { k: "01", t: "Asherin Chat", d: "Multi-model intelligence with consensus, BYOK, personas." },
+  { k: "01", t: "Asherin Chat", d: "Multi-model intelligence with consensus and BYOK." },
   { k: "02", t: "Zophiel Search", d: "30-source OSINT with veracity scoring and cross-validation." },
   { k: "03", t: "Axrlen Predictions", d: "Real-time global event forecasting + Monte Carlo modeling." },
   { k: "04", t: "Zaxin Tactical AR", d: "BLE radar, AR vision, forensic profiling, satellite overlay." },
