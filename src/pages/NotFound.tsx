@@ -493,7 +493,7 @@ const NotFound = () => {
       <main className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-16">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs uppercase tracking-[0.2em] text-zinc-400 backdrop-blur">
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
-          aureon · signal lost
+          asherin · signal lost
         </div>
 
         <h1 className="text-center font-semibold tracking-tight">
@@ -513,7 +513,7 @@ const NotFound = () => {
             href="/"
             className="group inline-flex items-center gap-2 rounded-md border border-white/15 bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
           >
-            click here to go back to aureon
+            click here to go back to asherin
             <span className="transition group-hover:translate-x-0.5">→</span>
           </a>
           <button

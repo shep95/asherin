@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
-import GeoBlock from "@/components/seo/GeoBlock";
 
 
 export interface Capability {
@@ -126,7 +125,6 @@ const FeaturePageShell = ({
       {/* Extractable answer + sourced pricing figures for generative engines. */}
       <section className="relative z-10 px-6">
         <div className="mx-auto max-w-3xl">
-          <GeoBlock />
         </div>
       </section>
 

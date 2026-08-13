@@ -1,536 +1,138 @@
+/**
+ * /software — a short, honest catalog.
+ *
+ * Three jobs, then the tools that actually exist behind sign-in.
+ * No competitor chart. No tile mall. If a capability is not real in HEAD,
+ * it does not get a card.
+ */
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
-import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  MessageSquare, Search, Network, Shield, Hammer, Database,
-  Layers, BookOpen, Sparkles, Eye, Code2, Globe, FlaskConical,
-  Brain, LineChart, DollarSign, Map, Video, Bluetooth, Bot,
-  FileText, Lock, Cpu, Zap, Users, Puzzle, Notebook, Rss,
-  Image as ImageIcon, Command, Fingerprint, Radio, Compass,
+  MessageSquare, Search, Map, Database, Layers, Lock, Shield,
+  Bluetooth, Hammer, Users, Network,
 } from "lucide-react";
 
-type Tier = "aureon" | "pro";
-
-type Product = {
+type Tool = {
   name: string;
-  codename?: string;
-  tagline: string;
-  description: string;
+  line: string;
+  detail: string;
   icon: React.ElementType;
-  features: string[];
-  route?: string;
-  tier: Tier;
-  badge?: string;
 };
 
-/* ─────────────────────────────────────────────────────────────
-   FULL SOFTWARE CATALOG — mirrors dashboard NAV_INTENTS
-   tier: "aureon" = $18/mo · "pro" = $79/mo
-   ───────────────────────────────────────────────────────────── */
-
-const PRODUCTS: Product[] = [
-  /* ═══════════════ CORE — ASHERIN $18 ═══════════════ */
+const JOBS: Tool[] = [
   {
-    name: "Asherin Chat",
-    codename: "Flagship",
-    tagline: "Conversational intelligence",
-    description:
-      "One chat surface with reasoning visualization, vision, voice, file attachments and persistent memory. Inference runs on Gemini by default, on Venice (mistral-31-24b) for accounts without a key, or on your own key if you bring one.",
+    name: "ask",
+    line: "asherin chat",
+    detail:
+      "one place to ask. it answers with sources next to the answer, reads files you attach, and says when it does not know. search, maps and the rest sit behind the chat rather than as separate apps. you pick the model — refusal behaviour is the model's, not a switch we sell.",
     icon: MessageSquare,
-    features: [
-      "Chat / Code / Research / Truth modes",
-      "Default routing: Gemini · platform fallback: Venice mistral-31-24b · BYOK: your provider",
-      "Vision + voice + file attachments",
-      "Persistent long-term memory",
-      "Reasoning chain-of-thought view",
-      "Response depth + determinism control",
-      "60 messages / 3-hour window",
-    ],
-    route: "/dashboard/chat",
-    tier: "aureon",
-    badge: "Flagship",
   },
   {
-    name: "Zophiel Search",
-    codename: "Full Engine",
-    tagline: "OSINT-grade web search",
-    description:
-      "The Zophiel Search Intelligence tab. It queries public search endpoints and open registries, ranks what comes back by source credibility, and cites every hit. Coverage is whatever those public endpoints return on the day — not a guaranteed source count. Included with the $18 Asherin subscription; Pro adds throughput and priority latency.",
-    icon: Search,
-    features: [
-      "Live search across public engines (DuckDuckGo, Bing RSS, Mojeek) with credibility ranking",
-      "Link extract, archive lookup (Wayback / public mirrors)",
-      "Public breach-index and paste lookups — no dark-web full take",
-      "Advanced search operators (dorking) with a live SERP fetch",
-      "Entity graph from returned results; URL and domain mapping",
-      "Citation-first answers — a claim with no fetched source is marked a gap",
-    ],
-    route: "/dashboard/search",
-    tier: "aureon",
+    name: "keep",
+    line: "library, projects, memory, guardian vault",
+    detail:
+      "what you save stays with your account: notes, files, project threads, and long-term memory. the vault holds credentials and documents. data is encrypted at rest with a key scoped to your account and TLS in transit — it is not zero-knowledge end-to-end, and we do not claim it is. export or delete at any time.",
+    icon: Database,
   },
   {
-    name: "File Scrapper",
-    tagline: "Universal document extractor",
-    description:
-      "Pull every character of text from PDFs, images, spreadsheets, and archives. OCR + structural parsing.",
-    icon: FileText,
-    features: ["OCR on scans & images", "PDF / DOCX / XLSX / CSV parsing", "Table structure preservation", "Multi-file batch mode"],
-    route: "/dashboard/file-scrapper",
-    tier: "aureon",
-  },
-  
-  {
-    name: "Code workspace",
-    tagline: "Monaco editor that opens when asherin writes code",
-    description:
-      "Not a separate app with its own chat. Ask asherin for code and the workspace opens with the write staged as a diff you approve, with a checkpoint taken before anything lands. Agent mode inside the workspace follows the same gate.",
-    icon: Code2,
-    features: [
-      "Monaco editor + Git integration",
-      "Writes arrive from asherin chat or Agent mode — both behind the same approval diff",
-      "BYOK: OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Mistral, Together, OpenRouter",
-      "Inline edit, ghost tabs, fast apply",
-      "Project index + semantic search",
-      "Checkpoint before every agent write + per-file version history",
-    ],
-    route: "/dashboard/ide",
-    tier: "aureon",
-  },
-  {
-    name: "Asherin Whiteboard",
-    tagline: "Infinite canvas + layers",
-    description: "Photoshop-style layer stack on an infinite canvas with snap grids, freeform sketching, and live AI collaboration.",
-    icon: Layers,
-    features: ["Infinite pan + zoom", "Layer stack with blend modes", "Snap grids + smart guides", "AI object generation"],
-    route: "/dashboard/whiteboard",
-    tier: "aureon",
-  },
-  {
-    name: "Document Studio",
-    tagline: "PDF / eBook / Slides generator",
-    description: "Multi-session authoring pipeline. 500-word chapter pacing, AI-generated covers, one-click PDF/EPUB export.",
-    icon: BookOpen,
-    features: ["Long-form eBook mode", "Slide deck generator", "PDF layout engine", "AI cover art"],
-    route: "/dashboard/pdf-generator",
-    tier: "aureon",
-  },
-  {
-    name: "Gematria Engine",
-    tagline: "Numerological corpus matcher",
-    description: "English Ordinal, Reduction, Reverse, and Chaldean value analysis with personal corpus matching and date fingerprints.",
-    icon: Fingerprint,
-    features: ["4 gematria systems", "Personal corpus matching", "Date fingerprint resonance", "World-event correlation"],
-    route: "/dashboard/gematria",
-    tier: "aureon",
-  },
-  {
-    name: "Vedic Astrology",
-    tagline: "Swiss-grade sidereal engine",
-    description: "Swiss Ephemeris precision, full Vimshottari Dasha, compatibility, 27-nakshatra mythology matching, and local transits.",
-    icon: Sparkles,
-    features: ["Swiss Ephemeris (arcsecond)", "Full Dasha reading", "Compatibility engine", "27 nakshatra decoder", "Moon-driven local transits"],
-    route: "/dashboard/vedic-astrology",
-    tier: "aureon",
-  },
-  {
-    name: "Zerlal Cyber",
-    tagline: "Domain recon + public CVE index",
-    description:
-      "Passive domain reconnaissance and a public CVE lookup. It reads DNS, TLS, headers and subdomains, then matches disclosed software versions against public advisory indexes. It does not authenticate, exploit, or scan hosts, and it is not a credentialed scanner.",
-    icon: Shield,
-    features: [
-      "DNS, TLS, header and subdomain recon (passive)",
-      "Public CVE / advisory index lookup by product and version",
-      "Kill-chain framing of what recon found",
-      "Not a credentialed or exploit scanner — findings are inference from public surface",
-    ],
-    route: "/dashboard/zerlal",
-    tier: "aureon",
-  },
-  
-  {
-    name: "Zaxin Tactical",
-    tagline: "BLE field scout (browser Web Bluetooth)",
-    description:
-      "A browser BLE scout. It sees the devices the browser device picker and requestLEScan expose, reads a handful of GATT characteristics on a device you pair with, and plots coarse RSSI proximity. RSSI proximity is a log-distance estimate with metres of error, not trilateration, and the tab graph is BroadcastChannel between your own tabs, not a phone mesh.",
-    icon: Bluetooth,
-    features: [
-      "Web Bluetooth picker + requestLEScan advertisement capture",
-      "Three GATT reads on a paired device (device info / battery where exposed)",
-      "Coarse RSSI proximity band — log-distance estimate, not trilateration",
-      "Tab-to-tab BroadcastChannel graph — your own tabs, not a device mesh",
-      "Esri satellite basemap for plotting what you observed",
-    ],
-    route: "/dashboard/zaxin",
-    tier: "aureon",
-  },
-  {
-    name: "ZANOEM Design Lab",
-    codename: "ZALI",
-    tagline: "Design lab workspace",
-    description:
-      "A generative design workspace for material choices, assembly layouts and parametric sketches, written up as an engineering brief. It reasons about physics in text and geometry; it does not run a solver. No FEA, thermal or CFD simulation ships here — take the brief to a real solver before you build.",
-    icon: Hammer,
-    features: [
-      "Parametric sketch and assembly layout",
-      "Material property library and selection rationale",
-      "Tolerance and fit reasoning written as a brief",
-      "No solver on board — not FEA, thermal or CFD",
-    ],
-    route: "/dashboard/zali",
-    tier: "aureon",
-  },
-  
-  {
-    name: "Zahten Agent Forge",
-    tagline: "Design + scaffold + harden agents",
-    description: "Compose task-scoped agents from templates, harden their prompts, and deploy them into your workspace.",
-    icon: Bot,
-    features: ["Template-driven scaffolding", "Prompt hardening lint", "Tool-permission scoping", "One-click deploy to sidebar"],
-    route: "/dashboard/zahten",
-    tier: "aureon",
-  },
-  {
-    name: "Briefings",
-    tagline: "Daily intel digests",
-    description: "Automated daily briefings across competitor, regulatory, and market signals — filtered to your industry.",
-    icon: Rss,
-    features: ["Industry-tuned feeds", "Competitor tracking", "Regulatory watch", "Signal-vs-noise summarization"],
-    route: "/dashboard/briefing",
-    tier: "aureon",
-  },
-  {
-    name: "Snippets & Blocks",
-    tagline: "Reusable code + prompt library",
-    description: "Save, tag, and recall code blocks and prompt templates across every workspace.",
-    icon: Puzzle,
-    features: ["Tagged library", "Cross-workspace search", "Prompt + code blocks", "Keyboard-first insert"],
-    route: "/dashboard/snippets",
-    tier: "aureon",
-  },
-  {
-    name: "Asherin Shield",
-    tagline: "Browser privacy extension",
-    description: "Tracker eviction, DoH audit, hardening, and storage forensics. Lives in your browser, not our servers.",
-    icon: Globe,
-    features: ["Tracker eviction", "DoH provider audit", "Storage forensics", "Extension hardening"],
-    tier: "aureon",
-  },
-  {
-    name: "Asherin Maps",
-    tagline: "Tactical satellite map + live parcel intel",
-    description:
-      "Satellite-first mapping. On every fly it pulls public feeds in parallel and paints only what actually answered — public agency corridor cameras, OSM civic points, weather alerts, air quality and gauges. Property dossiers are public-index only; gaps are printed as gaps, never inferred.",
+    name: "look at a place",
+    line: "asherin maps",
+    detail:
+      "satellite imagery and place context, opened from chat when you name a place. it plots what public map and place endpoints return. it does not locate anyone's phone.",
     icon: Map,
-    features: [
-      "Satellite imagery with a floating, resizable layer drawer",
-      "Public agency highway / corridor camera stills — never private or doorbell cameras",
-      "OSRM routing, explore nearby from OpenStreetMap",
-      "Public-index property dossier: any field with no public record prints \"not in public index\"",
-      "Public sensor sweep on fly (weather alerts, civic points, air quality, quake and gauge feeds)",
-    ],
-    route: "/dashboard/geospatial",
-    tier: "aureon",
   },
-  {
-    name: "Google Cloud Intelligence",
-    tagline: "Your linked accounts, read as intelligence",
-    description:
-      "Pair multiple Google accounts and read them as one ledger: Gmail, Calendar, Contacts and Drive metadata, plus Meet links carried on your calendar events. Asherin derives a relationship graph, open commitments and a daily digest from that mail and calendar history, and searches your own mail from chat. It reads accounts — it does not locate phones: Google publishes no Find Hub or device-location API to third parties, so there is no device roster here.",
-    icon: Globe,
-    features: [
-      "Multi-account Google pairing read as one ledger (Gmail, Calendar, Contacts, Drive metadata)",
-      "Relationship graph from mail headers — who is close, who has gone quiet, who is waiting on your reply",
-      "Commitment extraction — what you promised, what is overdue, pulled from your own sent mail",
-      "Daily digest fusing attention, obligations and relationships into one read",
-      "Search your own mail from Asherin chat, in the thread, with real subjects and dates",
-      "Drafts written in your voice — Asherin composes, you press send; it never sends for you",
-      "Meet links from your calendar events; a recording is listed only when Drive actually returns one",
-    ],
-    route: "/dashboard/google",
-    tier: "aureon",
-  },
-
-
-  /* ═══════════════ PRO — ASHERIN PRO $79 ═══════════════ */
-  {
-    name: "RAD — Research & Development",
-    codename: "New",
-    tagline: "Asherin Chat as an R&D partner",
-    description:
-      "A dedicated R&D workspace inside Asherin Chat. Frames every conversation as a research program: hypothesis → literature sweep → experiment design → simulation → report. Pulls Zophiel Pro sources, Azplen datasets, ZANOEM simulations, and Axrlen forecasts into one thread with citation-locked outputs.",
-    icon: FlaskConical,
-    features: [
-      "Hypothesis → experiment → report workflow",
-      "Live literature sweep via Zophiel Pro (deeper crawl, higher recall)",
-      "Dataset attach from Azplen (CSV / API / SQL)",
-      "Physics + material simulation call-outs to ZANOEM",
-      "Scenario simulation via Axrlen Monte Carlo",
-      "Citation-locked outputs (every claim traces to a source)",
-      "Persistent lab notebook per project",
-      "Export as whitepaper (PDF), slide deck, or executable notebook",
-    ],
-    route: "/dashboard/chat?mode=rad",
-    tier: "pro",
-    badge: "New",
-  },
-  {
-    name: "Zophiel Pro",
-    tagline: "Pro throughput on the same engine",
-    description:
-      "The same full Zophiel engine that ships with the $18 Asherin subscription, running at Pro limits — deeper crawl depth per query, higher throughput, and priority latency.",
-    icon: Search,
-    features: [
-      "Deeper crawl depth per query — source count is whatever answers live, not a fixed 30",
-      "Credibility + provenance scoring on what was fetched",
-      "Priority latency",
-      "Higher query limits",
-      "Sovereign Source Atlas access",
-    ],
-    route: "/dashboard/search",
-    tier: "pro",
-  },
-  {
-    name: "Asherin Engine",
-    tagline: "Metadata index with a short full-take buffer",
-    description:
-      "The card catalog and the shelf behind it. Ghost indexes the shell around information — transport headers, DNS/ASN posture, redirect topology, EXIF capture fields, document producers, embedded authorship and timestamps — then builds three indexes over it: inverted facets, a shared-dimension graph, and a phonetic identity fold. Arm retention and each session's body is held in a self-expiring buffer, searchable by dictionary and bounded regex, then destroyed. Metadata makes bulk traffic queryable; the buffer makes the matching payloads retrievable.",
-    icon: Fingerprint,
-    features: [
-      "Metadata index: EXIF device, software, authorship and GPS recovery",
-      "PDF producer / creation-date recovery via trailer range reads",
-      "DNS, ASN, TLS/HSTS/CSP posture and redirect topology",
-      "Shared-dimension graph with keystone-node detection",
-      "Timeline reconstruction + anomaly report (hardware-date paradoxes, GPS leakage, off-hours writes)",
-      "Short full-take buffer — session bodies retained on a bounded, self-enforcing TTL",
-      "Soft selection: dictionary, phrase and regex over buffered payloads with ReDoS refusal",
-      "Per-session forensics: entropy, language tag, harvested addresses, phones, IPs and filenames",
-      "Payload viewer with signed raw-byte download and one-click buffer purge",
-      "Wired into Asherin Chat as a provenance substrate",
-    ],
-    route: "/dashboard/ghost-engine",
-    tier: "pro",
-  },
-  {
-
-    name: "Axrlen",
-    tagline: "Predictive intelligence engine",
-    description:
-      "NEXUS-PRIME probabilistic scenario engine — live global event prediction, policy simulation, and market forecasting with Monte Carlo scenario trees.",
-    icon: Brain,
-    features: [
-      "Monte Carlo scenario trees",
-      "Policy + geopolitical simulation",
-      "Market forecast module (price-action-first)",
-      "Backtest harness",
-      "Confidence bands + invalidation triggers",
-    ],
-    route: "/dashboard/axrlen",
-    tier: "pro",
-  },
-  {
-    name: "Azplen Intelligence",
-    tagline: "Data intelligence platform",
-    description:
-      "20-tab analytical workspace with entity resolution, workforce optimization, financial forensics, workflow automation, and flow visualizations.",
-    icon: Database,
-    features: [
-      "Ingest CSV / API / SQL",
-      "Entity resolution + graph joins",
-      "Workflow automation engine",
-      "Scenario + threat modeling",
-      "Flow, Sankey, and geospatial visualization",
-    ],
-    route: "/dashboard/azplen",
-    tier: "pro",
-  },
-  {
-    name: "Zeeion Financial",
-    tagline: "Cost + waste forensics",
-    description: "Cost savings, efficiency scoring, and budget optimization with per-line forensic drill-down.",
-    icon: DollarSign,
-    features: ["Line-item cost forensics", "Efficiency scoring", "Budget optimization solver", "Vendor + contract analysis"],
-    route: "/dashboard/zeeion",
-    tier: "pro",
-  },
-  {
-    name: "Pattern Engine",
-    tagline: "Visual pattern recognition",
-    description: "Recurring-pattern detection, anomaly surfacing, and forward forecasting across arbitrary time series.",
-    icon: LineChart,
-    features: ["Motif discovery", "Anomaly detection", "Multi-horizon forecast", "Regime-change alerts"],
-    route: "/dashboard/pattern-analysis",
-    tier: "pro",
-  },
-  {
-    name: "Time-Series Forecasting",
-    tagline: "Temporal analysis suite",
-    description: "Full temporal analytics with ARIMA, Prophet, and neural ensembles plus anomaly detection.",
-    icon: LineChart,
-    features: ["Multi-model ensemble", "Anomaly detection", "Seasonality decomposition", "Confidence bands"],
-    route: "/dashboard/timeseries",
-    tier: "pro",
-  },
-  
-  {
-    name: "Zacoon Phantom Grid",
-    tagline: "Autonomous web operative",
-    description: "Multi-cortex autonomous browser agent with adversarial awareness — recon, extract, and operate at scale.",
-    icon: Compass,
-    features: ["Multi-cortex planner", "Adversarial-aware browsing", "Recon → extract → report pipeline", "Human-in-the-loop checkpoints"],
-    route: "/dashboard/zacoon",
-    tier: "pro",
-  },
-  
-  {
-    name: "Knowledge Vault (RAG)",
-    tagline: "BYO corpus retrieval",
-    description: "Upload files or connect APIs — Asherin retrieves them live during chat with citation-locked answers.",
-    icon: Database,
-    features: ["File + API ingest", "Vector + hybrid retrieval", "Citation-locked answers", "Per-project scoping"],
-    route: "/dashboard/knowledge-vault",
-    tier: "pro",
-  },
-  {
-    name: "Intelligence Notebooks",
-    tagline: "Shared analysis + SQL",
-    description: "Collaborative analysis sessions with in-notebook SQL execution and shareable results.",
-    icon: Notebook,
-    features: ["SQL cells", "Markdown + chart cells", "Real-time collaboration", "Version history"],
-    route: "/dashboard/notebooks",
-    tier: "pro",
-  },
-  
-  {
-    name: "Automated Agents",
-    tagline: "Set-and-forget workers",
-    description: "AI agents that run tasks on autopilot — scheduled, event-driven, or continuously.",
-    icon: Cpu,
-    features: ["Scheduled + event triggers", "Multi-step tool chains", "Failure retry + DLQ", "Per-agent audit log"],
-    route: "/dashboard/zahten",
-    tier: "pro",
-  },
-  {
-    name: "Team Workspace",
-    tagline: "Role-based collaboration",
-    description: "Shared threads, shared outputs, admin controls, and role-based access.",
-    icon: Users,
-    features: ["Shared threads + outputs", "Role-based access", "Admin controls", "Team audit trail"],
-    route: "/dashboard/teams",
-    tier: "pro",
-  },
-  {
-    name: "Guardian Vault",
-    tagline: "Security command center",
-    description: "Centralized MFA, secrets, and credential hygiene with rotation reminders.",
-    icon: Lock,
-    features: ["MFA + TOTP vault", "Secret storage (AES-256-GCM)", "Rotation reminders", "Breach monitoring"],
-    route: "/dashboard/guardian-vault",
-    tier: "pro",
-  },
-  
 ];
 
-/* No competitor chart lives on this page. Asherin describes what Asherin
-   does; what other vendors charge or score is their page to write. */
+const TOOLS: Tool[] = [
+  {
+    name: "zophiel — search",
+    line: "public engines, cited",
+    detail:
+      "queries public search endpoints and open registries, ranks what comes back by source credibility, and cites every hit. coverage is whatever those endpoints return that day, so we do not print a source count. lives at /dashboard/search once you are signed in.",
+    icon: Search,
+  },
+  {
+    name: "guardian vault",
+    line: "credentials and documents",
+    detail:
+      "encrypted storage scoped to your account, with breach lookups against public indexes.",
+    icon: Lock,
+  },
+  {
+    name: "whiteboard",
+    line: "infinite canvas, layers",
+    detail: "pan, zoom, layer stack, sketching — for when a thread needs a picture.",
+    icon: Layers,
+  },
+  {
+    name: "connect (google)",
+    line: "signed-in mesh",
+    detail:
+      "with your consent, asherin reads what google's apis actually give it — mail, calendar, drive — to summarise and draft. it does not locate phones or read anything google does not hand over.",
+    icon: Network,
+  },
+  {
+    name: "zerlal — recon",
+    line: "passive domain recon + public cve index",
+    detail:
+      "reads dns, tls, headers and subdomains, then matches disclosed versions against public advisory indexes. it does not authenticate, exploit, or scan hosts.",
+    icon: Shield,
+  },
+  {
+    name: "zanoem — design lab",
+    line: "engineering briefs, no solver",
+    detail:
+      "material choices, assembly layouts and parametric sketches written up as a brief. it reasons about physics in text and geometry; it does not run a solver. no fea, thermal or cfd here — take the brief to a real solver before you build.",
+    icon: Hammer,
+  },
+  {
+    name: "zaxin — ble scout",
+    line: "browser web bluetooth",
+    detail:
+      "sees the devices the browser picker and requestLEScan expose and plots coarse rssi proximity. rssi is a log-distance estimate with metres of error, not trilateration, and the tab graph is between your own tabs — not a phone mesh.",
+    icon: Bluetooth,
+  },
+  {
+    name: "team",
+    line: "shared workspace, when billed",
+    detail:
+      "$39/month for the workspace plus $24 per member per month, minimum 2 seats. the owner pays the single invoice; members get pro-class access while it stays active.",
+    icon: Users,
+  },
+];
 
-const ProductCard = ({ p }: { p: Product }) => {
-  const Icon = p.icon;
-  const tierBadge =
-    p.tier === "pro"
-      ? { label: "Pro · $79", cls: "text-foreground bg-foreground/[0.08] border-foreground/40" }
-      : { label: "Asherin · $18", cls: "text-muted-foreground bg-foreground/[0.03] border-border/40" };
-
-  const inner = (
-    <div className="group flex h-full flex-col rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5 hover:border-border/60 hover:bg-card/40 transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-xl bg-foreground/[0.04] border border-border/40 flex items-center justify-center group-hover:bg-foreground/[0.08] transition-colors">
-          <Icon className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className={`text-[9px] font-medium tracking-[0.2em] uppercase px-2 py-1 rounded-full border ${tierBadge.cls}`}>
-            {tierBadge.label}
-          </span>
-          {p.badge && (
-            <span className="text-[9px] font-medium tracking-[0.2em] uppercase text-foreground/70 px-2 py-0.5 rounded-full border border-foreground/30">
-              {p.badge}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <h3 className="text-lg font-light tracking-tight text-foreground mb-1">{p.name}</h3>
-      <p className="text-[10px] font-medium tracking-[0.2em] uppercase text-muted-foreground mb-3">
-        {p.tagline}
-        {p.codename && p.codename !== p.badge && <span className="text-foreground/40"> · {p.codename}</span>}
-      </p>
-      <p className="text-xs font-extralight text-muted-foreground/90 leading-relaxed mb-4">
-        {p.description}
-      </p>
-
-      <div className="pt-3 border-t border-border/20 mt-auto space-y-3">
-        <div>
-          <p className="text-[9px] font-medium tracking-[0.25em] uppercase text-muted-foreground/70 mb-2">
-            Capabilities
-          </p>
-          <ul className="space-y-1">
-            {p.features.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-[11px] font-extralight text-muted-foreground/90 leading-relaxed">
-                <span className="mt-1 h-1 w-1 rounded-full bg-foreground/40 shrink-0" />
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+const Card = ({ t }: { t: Tool }) => (
+  <div className="flex h-full flex-col gap-3 rounded-2xl border border-border/25 bg-card/20 p-6">
+    <t.icon className="h-4 w-4 text-foreground/60" strokeWidth={1.4} />
+    <div>
+      <h3 className="text-base font-light text-foreground">{t.name}</h3>
+      <p className="text-[11px] font-extralight tracking-wide text-muted-foreground/70">{t.line}</p>
     </div>
-  );
-  return p.route ? <Link to={p.route} className="block h-full">{inner}</Link> : <div className="h-full">{inner}</div>;
-};
+    <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{t.detail}</p>
+  </div>
+);
 
 const Software = () => {
-  const aureonProducts = PRODUCTS.filter((p) => p.tier === "aureon");
-  const proProducts = PRODUCTS.filter((p) => p.tier === "pro");
+  const { user } = useAuth();
 
   useEffect(() => {
     const id = "software-collection-jsonld";
-    let el = document.getElementById(id) as HTMLScriptElement | null;
-    if (!el) {
-      el = document.createElement("script");
-      el.id = id;
-      el.type = "application/ld+json";
-      document.head.appendChild(el);
-    }
+    document.getElementById(id)?.remove();
+    const el = document.createElement("script");
+    el.id = id;
+    el.type = "application/ld+json";
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "Asherin Software Catalog",
+      name: "asherin — software",
       description:
-        "Every Asherin tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($79/month).",
+        "what asherin actually does: ask (chat with sources), keep (library, projects, memory, vault), and look at a place (maps). $18/mo, $79/mo for Pro.",
       url: "https://asherin.com/software",
-      mainEntity: {
-        "@type": "ItemList",
-        numberOfItems: PRODUCTS.length,
-        itemListElement: PRODUCTS.map((p, i) => ({
-          "@type": "ListItem",
-          position: i + 1,
-          item: {
-            "@type": "SoftwareApplication",
-            name: p.name,
-            description: p.description,
-            applicationCategory: "BusinessApplication",
-            operatingSystem: "Web",
-            offers: {
-              "@type": "Offer",
-              price: p.tier === "pro" ? "79" : "18",
-              priceCurrency: "USD",
-            },
-          },
-        })),
-      },
     });
+    document.head.appendChild(el);
     return () => {
       document.getElementById(id)?.remove();
     };
@@ -539,159 +141,68 @@ const Software = () => {
   return (
     <div className="landing-perf min-h-screen bg-background text-foreground">
       <Header />
-      <main className="pt-28 pb-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto space-y-16">
-          {/* Hero */}
-          <section className="text-center space-y-4">
-            <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · Asherin $18 / Pro $79
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
-              Every Asherin tool. Grouped by tier.
+
+      <main className="px-6 pt-32 pb-20">
+        <div className="mx-auto max-w-5xl space-y-20">
+          <header className="max-w-2xl space-y-5">
+            <p className="text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground">
+              software
+            </p>
+            <h1 className="text-4xl font-extralight leading-[1.1] tracking-tight sm:text-5xl">
+              three things, honestly.
             </h1>
-            <p className="max-w-2xl mx-auto text-sm sm:text-base font-extralight text-muted-foreground leading-relaxed">
-              {aureonProducts.length} tools ship in <strong className="text-foreground">Asherin ($18/month)</strong>.
-              The full intelligence + R&amp;D suite — {proProducts.length} additional modules including
-              <strong className="text-foreground"> RAD (Research &amp; Development with Asherin Chat)</strong> —
-              ships in <strong className="text-foreground">Asherin Pro ($79/month)</strong>.
+            <p className="text-base font-extralight leading-relaxed text-muted-foreground">
+              asherin is one chat with a few rooms behind it. everything below runs after you sign
+              in. if something is not listed here, it is not something we sell you today.
             </p>
+          </header>
+
+          <section className="grid gap-4 sm:grid-cols-3" aria-label="What asherin is for">
+            {JOBS.map((t) => <Card key={t.name} t={t} />)}
           </section>
 
-          {/* Extractable answer + sourced figures for generative engines. */}
-          <div className="mx-auto max-w-3xl">
-            <GeoBlock />
-          </div>
-
-
-          {/* RAD spotlight */}
-          <section className="rounded-3xl border border-foreground/25 bg-foreground/[0.04] backdrop-blur-sm p-8 sm:p-10">
-            <div className="flex items-start gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-foreground/[0.08] border border-foreground/25 flex items-center justify-center shrink-0">
-                <FlaskConical className="h-6 w-6 text-foreground" strokeWidth={1.4} />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[9px] font-medium tracking-[0.25em] uppercase text-foreground/80 px-2 py-0.5 rounded-full border border-foreground/40">
-                    New · Asherin Pro
-                  </span>
-                  <Command className="h-3 w-3 text-foreground/40" />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight mb-3">
-                  RAD — Research &amp; Development with Asherin Chat
-                </h2>
-                <p className="text-sm font-extralight text-muted-foreground leading-relaxed mb-5 max-w-3xl">
-                  RAD turns Asherin Chat into a full research program manager. Every thread is scaffolded as a
-                  scientific workflow — hypothesis, literature sweep, experiment design, simulation, and
-                  citation-locked report — with the rest of the Asherin suite wired in as tools the chat can call.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 max-w-3xl">
-                  {[
-                    "Hypothesis → experiment → report workflow",
-                    "Zophiel Pro deep literature sweep",
-                    "Azplen dataset attach (CSV / API / SQL)",
-                    "ZANOEM material + physics simulation calls",
-                    "Axrlen Monte Carlo scenario runs",
-                    "Citation-locked outputs (every claim traces)",
-                    "Persistent lab notebook per project",
-                    "Export whitepaper / slides / notebook",
-                  ].map((f) => (
-                    <div key={f} className="flex items-start gap-2 text-xs font-extralight text-muted-foreground">
-                      <Zap className="mt-0.5 h-3 w-3 text-foreground/60 shrink-0" strokeWidth={1.5} />
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link
-                    to="/dashboard/chat?mode=rad"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-foreground text-background text-xs font-light tracking-[0.2em] uppercase hover:bg-foreground/90 transition-colors"
-                  >
-                    Open RAD in Asherin Chat
-                  </Link>
-                  <Link
-                    to="/dashboard"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/40 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Launch dashboard
-                  </Link>
-                </div>
-              </div>
+          <section className="space-y-6" aria-labelledby="rooms">
+            <h2 id="rooms" className="text-2xl font-extralight tracking-tight">
+              the rooms behind the chat
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {TOOLS.map((t) => <Card key={t.name} t={t} />)}
             </div>
           </section>
 
-          {/* ASHERIN $18 tier */}
-          <section className="space-y-6">
-            <div className="flex items-baseline justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                  ◉ Tier 1
-                </p>
-                <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Asherin — $18 / month <span className="text-muted-foreground/60 text-base">· {aureonProducts.length} tools</span>
-                </h2>
-                <p className="text-xs font-extralight text-muted-foreground mt-1">
-                  Core intelligence: chat, search, code, whiteboard, docs, OSINT, cyber, design, and privacy.
-                </p>
-              </div>
-              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                60 messages / 3-hour window
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {aureonProducts.map((p) => <ProductCard key={p.name} p={p} />)}
-            </div>
-          </section>
-
-          {/* ASHERIN PRO $79 tier */}
-          <section className="space-y-6">
-            <div className="flex items-baseline justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                  ◉ Tier 2 · Full suite
-                </p>
-                <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Asherin Pro — $79 / month <span className="text-muted-foreground/60 text-base">· everything in Asherin + {proProducts.length} more</span>
-                </h2>
-                <p className="text-xs font-extralight text-muted-foreground mt-1">
-                  Predictive intelligence, financial + data forensics, autonomous agents, R&amp;D workflows, and enterprise collaboration.
-                </p>
-              </div>
-              <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                200 messages / 3-hour window
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {proProducts.map((p) => <ProductCard key={p.name} p={p} />)}
-            </div>
-          </section>
-
-          {/* Closing CTA */}
-          <section className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-8 text-center space-y-4">
-            <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
-            <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
-              Asherin is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
-              Asherin Pro is <strong className="text-foreground">$79/month</strong> for the full intelligence suite —
-              including RAD, Axrlen, Azplen, Zeeion, Zacoon, and every Pro-tier module.
-              Enterprise (SSO, audit, dedicated capacity) is custom-priced.
+          <section className="space-y-5 rounded-2xl border border-border/25 bg-card/20 p-8">
+            <h2 className="text-2xl font-extralight tracking-tight">$18 a month. $79 for pro.</h2>
+            <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
+              pro raises message limits and opens the heavier research and forecasting work. there
+              is no free trial. cancel in one click.
             </p>
-
-            <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+            <div className="flex flex-wrap gap-3">
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="rounded-full bg-foreground px-5 py-2.5 text-xs font-light uppercase tracking-[0.2em] text-background transition-colors hover:bg-foreground/90"
+                >
+                  go to dashboard
+                </Link>
+              ) : (
+                <Link
+                  to="/pricing"
+                  className="rounded-full bg-foreground px-5 py-2.5 text-xs font-light uppercase tracking-[0.2em] text-background transition-colors hover:bg-foreground/90"
+                >
+                  create account
+                </Link>
+              )}
               <Link
-                to="/dashboard"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-foreground/30 bg-foreground/[0.04] text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/10 transition-colors"
+                to="/pricing"
+                className="rounded-full border border-border/40 px-5 py-2.5 text-xs font-light uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
               >
-                Launch dashboard
-              </Link>
-              <Link
-                to="/dashboard/subscription"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-border/40 text-xs font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Compare plans
+                pricing
               </Link>
             </div>
           </section>
         </div>
       </main>
+
       <SiteFooter />
     </div>
   );

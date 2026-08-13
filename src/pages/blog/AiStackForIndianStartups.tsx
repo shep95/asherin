@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -43,22 +42,6 @@ const AiStackForIndianStartups = () => (
         { name: TITLE, url: URL },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="The AI stack for Indian startups is not a budget problem. It is a workflow logic problem. The best AI systems win on prompt architecture, thinking patterns, and reasoning workflows, not on model spend."
-      primaryTopic="AI stack strategy for early-stage Indian startups"
-      keyFacts={[
-        "AI stripped down is an algorithm with micro algorithms connected to data that learns over time.",
-        "Prompt engineering is the structural way an AI is instructed to think inside each step.",
-        "Workflow logic is what happens when workflow and reasoning are engineered together.",
-        "Instruction overhead is the real bottleneck, not compute or GPU access.",
-        "Thinking patterns compress internalized logic so the model reasons without burning the context window on setup every time.",
-      ]}
-      relevanceSignal="Early-stage founders in India and non-Western markets building AI products without large training budgets."
-      confidence="high"
-    />
-
     <FaqJsonLd
       id="ai-stack-for-indian-startups-faq"
       items={[

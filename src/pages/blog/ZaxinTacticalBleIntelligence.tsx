@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -71,22 +70,6 @@ const ZaxinTacticalBleIntelligence = () => (
         },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="Zaxin turns any modern browser into a five-brain tactical BLE intelligence rig — pair, plot on satellite, fuse with camera, and brief from the operator's own AI key."
-      primaryTopic="Web-Bluetooth tactical HUD, satellite recon, and AI brief fusion inside the Asherin dashboard"
-      keyFacts={[
-        "Bundled with the Asherin $79 subscription tier.",
-        "Five-brain stack: Scanner, Naming, Intel, Tactical, Hop-mesh.",
-        "Real Esri satellite tiles — no Google Maps key required.",
-        "AR HUD: 33-point body skeleton, face mesh, finger tracking, dual-camera PiP scope.",
-        "AXRLEN tactical brief runs in-browser on the user's own Gemini or OpenAI key.",
-      ]}
-      relevanceSignal="Operators, red-teamers, EDC enthusiasts, and Asherin $79 subscribers evaluating tactical BLE intelligence features."
-      confidence="high"
-    />
-
     <h2>1. What Zaxin actually is</h2>
     <p>
       Zaxin is the tactical Bluetooth layer bundled with the Asherin{" "}

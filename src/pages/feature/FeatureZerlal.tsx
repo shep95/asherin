@@ -1,6 +1,5 @@
 import { ShieldAlert, Activity, GitBranch, Crosshair, Layers, FileWarning } from "lucide-react";
 import FeaturePageShell from "@/components/landing/FeaturePageShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -93,7 +92,7 @@ const FeatureZerlal = () => (
           icon: Layers,
           title: "BYOK + Sovereign Stack",
           description:
-            "ZERLAL reasoning runs through the operator's own provider key (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Findings never leave the operator's vendor account.",
+            "ZERLAL reasoning can run through your own provider key — you can bring a key from Gemini, OpenAI, Anthropic, Mistral, xAI, Groq, DeepSeek, OpenRouter or Venice. Findings never leave the operator's vendor account.",
         },
       ]}
       useCases={[
@@ -109,22 +108,6 @@ const FeatureZerlal = () => (
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
-          <LlmGuidanceHeader
-            title={TITLE}
-            claim="ZERLAL is Asherin's AI vulnerability scanner. It chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a 0-100 zero-day confidence score to every novel pattern, and monitors the target continuously."
-            primaryTopic="AI vulnerability scanner / AI security scanner"
-            keyFacts={[
-              "Chains 2-4 medium-severity findings into a single critical-severity exploit path.",
-              "Zero-day confidence scoring on a calibrated 0-100 scale for every non-CVE finding.",
-              "Continuous monitoring with per-pass delta markers — not a one-shot scan.",
-              "Every report includes an explicit limitation block (scan depth, access scope, false-positive estimate).",
-              "Reasoning runs through the operator's BYOK key across nine providers — findings never touch a shared platform proxy.",
-            ]}
-            relevanceSignal="Security researchers, red teams, bug-bounty hunters, blue teams, and OSS maintainers evaluating an AI-driven vulnerability scanner that goes beyond CVE pattern matching."
-            confidence="high"
-            tier="Asherin Pro · $79/month"
-          />
-
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
             Why ZERLAL exists
           </h2>

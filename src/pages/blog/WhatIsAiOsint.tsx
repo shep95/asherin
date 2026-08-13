@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -35,22 +34,6 @@ const WhatIsAiOsint = () => (
         { name: "What Is AI OSINT?", url: "/blog/what-is-ai-osint" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="AI OSINT is the collection, cross-validation, scoring, and synthesis of open-source intelligence performed by language-model-driven pipelines that operate across dozens of live sources at machine speed."
-      primaryTopic="AI OSINT (term and pipeline definition)"
-      keyFacts={[
-        "Real AI OSINT cross-validates a claim across at least three independent sources before surfacing it.",
-        "Source count alone is a vanity metric — cross-validation depth matters more than source breadth.",
-        "Asherin's Zophiel engine cross-validates 30 live sources per query and ships a per-source veracity score.",
-        "AI OSINT is not the same as 'AI search' — search ranks documents; OSINT verifies claims.",
-        "The pipeline has four stages: ingestion, normalization, cross-validation, synthesis.",
-      ]}
-      relevanceSignal="Analysts, journalists, security researchers, and traders evaluating which AI OSINT tool to commit to need a definition that separates real systems from search wrappers."
-      confidence="high"
-    />
-
     <h2>The working definition</h2>
     <p>
       OSINT — open-source intelligence — is the discipline of collecting,
@@ -131,7 +114,7 @@ const WhatIsAiOsint = () => (
     <p>
       Asherin&apos;s{" "}
       <a href="/feature/zophiel">Zophiel OSINT engine</a> implements all four
-      pipeline stages on 30 live sources per query. Each surfaced claim
+      pipeline stages on the sources that actually return for a query. Each surfaced claim
       carries a veracity score, a per-source breakdown, and a contradiction
       flag where sources disagree. Operators can drill from the synthesized
       brief down to the raw document in two clicks. Cross-validation depth

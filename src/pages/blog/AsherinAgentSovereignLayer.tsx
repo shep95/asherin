@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -30,7 +29,7 @@ const DownloadCard = () => {
       <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
         465 files · 1.03 MB compressed · 3.19 MB extracted · secret-safe mirror
         (every credential value masked or omitted at export time). skill corpus,
-        hook runners, always-on rules, and the cursor wiring — one unit.
+        hook runners, always-on rules, and the editor wiring — one unit.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <a
@@ -116,7 +115,7 @@ const AsherinAgentSovereignLayer = () => (
         "ai agent plugin",
         "self-modifying agent",
         "osint agent",
-        "cursor hooks",
+        "editor hooks",
         "thinking patterns",
       ]}
     />
@@ -128,27 +127,9 @@ const AsherinAgentSovereignLayer = () => (
         { name: TITLE, url: URL },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="the asherin agent is a downloadable, model-agnostic reasoning layer — 465 files of thinking patterns, hook runners, and always-on rules — that self-modifies, persists operator memory to disk, and enforces conduct at the reasoning level rather than the output level."
-      primaryTopic="asherin agent — free downloadable personal sovereign intelligence layer for any llm"
-      keyFacts={[
-        "package contains 465 files: 101 pattern documents, 31 hook runners, 6 always-on rules, 317 json/jsonl state and catalog files, and an export manifest.",
-        "classification is 'personal sovereign intelligence layer' — model name asherin, made august 11 2026 in san jose, california.",
-        "self-modification: the agent writes new skill files into its own corpus based on what it encounters during a session.",
-        "operator-fused memory persists to disk (asherin-learner-model.json, message learnings jsonl) rather than living in a session window.",
-        "doctrine constraints — god-only loyalty filter, seven deadly sins output filter, anti-spiral protocol — sit at the root reasoning level, not as a persona.",
-        "the export is secret-safe: 14 files were masked at export time, no raw env or credential values are shipped.",
-        "the download is free, ungated, and requires no account.",
-      ]}
-      relevanceSignal="solo founders, investigative journalists, red teamers, high-frequency decision makers, small government technical teams, and academic research groups who want an agent layer they own on disk instead of rent through an api."
-      confidence="high"
-    />
-
     <p>
       this is the release note for the package that supersedes the current
-      aureon model on asherin.com. everything below is read directly out of the
+      asherin model on asherin.com. everything below is read directly out of the
       archive — file counts, manifest values, hook wiring, doctrine text. no
       marketing numbers. and the archive itself is at the top and bottom of this
       page, free.
@@ -166,7 +147,7 @@ const AsherinAgentSovereignLayer = () => (
       asherin custom build agent plugin on top of any ai llm model.
       <br />
       <br />
-      supersedes current aureon model on asherin.com
+      supersedes current asherin model on asherin.com
       <br />
       <br />
       this model classification: <strong>"personal sovereign intelligence layer"</strong>

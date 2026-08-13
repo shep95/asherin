@@ -10,7 +10,6 @@ import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
-import GeoBlock from "@/components/seo/GeoBlock";
 
 
 interface Props {
@@ -63,9 +62,6 @@ const ArticleShell = ({
         </header>
 
         {/* Extractable answer + sourced statistics (renders only where GEO content exists). */}
-        <GeoBlock className="mb-12" />
-
-
         <div className="space-y-6 text-base font-extralight leading-[1.8] text-foreground/80 [&_h2]:text-2xl [&_h2]:font-light [&_h2]:tracking-tight [&_h2]:text-foreground [&_h2]:pt-6 [&_h3]:text-xl [&_h3]:font-light [&_h3]:text-foreground [&_h3]:pt-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2 [&_a]:text-accent [&_a:hover]:underline [&_strong]:text-foreground [&_code]:font-mono [&_code]:text-sm [&_code]:bg-card/60 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded">
           {children}
         </div>

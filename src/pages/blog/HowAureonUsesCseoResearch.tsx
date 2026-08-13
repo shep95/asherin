@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -41,22 +40,6 @@ const HowAureonUsesCseoResearch = () => (
         { name: "How Asherin Uses C-SEO Research", url: "/blog/how-aureon-uses-c-seo-research" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="C-SEO (conversational SEO) is the academic term for ranking inside AI search engines. Asherin implements its recommendations directly: llms.txt at the well-known path, machine-readable LLM Guidance summaries on every long-form page, FAQ + Article + Breadcrumb JSON-LD on every cluster page, and explicit AI-crawler allowlisting in robots.txt."
-      primaryTopic="C-SEO / AI search engine optimization"
-      keyFacts={[
-        "C-SEO is the academic name for the discipline of ranking inside AI search engines (Perplexity, ChatGPT Search, ClaudeBot, Google AI Overviews).",
-        "The C-SEO Bench paper (June 2025) is the first peer-reviewed evaluation of techniques that move citation rate inside LLM answers.",
-        "Asherin publishes a /llms.txt file at the well-known path documenting the site for LLM crawlers.",
-        "Every long-form Asherin page renders a visible LLM Guidance summary block + an invisible <script type='text/llm-guidance'> mirror.",
-        "Asherin emits Article + FAQPage + BreadcrumbList JSON-LD on every cluster page — FAQ schema is at ~4% adoption and 3x cited in AI answers.",
-      ]}
-      relevanceSignal="SEO professionals, content strategists, and platform operators trying to rank inside AI search engines rather than (only) Google."
-      confidence="high"
-    />
-
     <h2>What C-SEO is, in one paragraph</h2>
     <p>
       C-SEO — conversational SEO — is the discipline of being cited

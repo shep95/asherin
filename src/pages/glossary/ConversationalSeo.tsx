@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -42,22 +41,6 @@ const ConversationalSeo = () => (
         { name: "Conversational SEO", url: "/glossary/conversational-seo" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="Conversational SEO (C-SEO) is the discipline of being cited inside AI-generated answers from systems like Perplexity, ChatGPT Search, ClaudeBot, and Google AI Overviews. The term was formalized in the C-SEO Bench paper (June 2025), the first peer-reviewed benchmark of techniques that move citation rate inside LLM answers."
-      primaryTopic="Conversational SEO / C-SEO (definition)"
-      keyFacts={[
-        "Distinct from classical SEO, which optimizes for ranked links in a search results page.",
-        "Term formalized by the C-SEO Bench paper, June 2025 — the first peer-reviewed benchmark in the category.",
-        "Core techniques: llms.txt at the well-known path, structural summary blocks, FAQ schema, explicit confidence calibration, AI-crawler allowlist.",
-        "FAQ schema is at ~4% adoption and cited at roughly 3x the rate of plain pages inside AI answers.",
-        "Different from GEO (generative engine optimization) only in emphasis — the two terms are largely interchangeable in current usage.",
-      ]}
-      relevanceSignal="SEO professionals, content strategists, and platform operators moving budget from classical search optimization to AI-answer citation optimization."
-      confidence="high"
-    />
-
     <h2>The definition</h2>
     <p>
       <strong>Conversational SEO</strong> — abbreviated <strong>C-SEO</strong>

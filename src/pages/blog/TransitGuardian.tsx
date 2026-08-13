@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -96,22 +95,6 @@ const TransitGuardian = () => {
         publishedLabel="Aug 5 2026"
         readTime="11 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="Transit Guardian turns a journey into a verifiable record: identity anchored before departure, behaviour recorded during, and an auditable safety report after — across every mode of travel."
-          primaryTopic="Rideshare driver verification, in-trip telemetry, and multi-modal travel safety inside Asherin"
-          keyFacts={[
-            "Anchors on two hard identifiers: licence plate and driver name.",
-            "Pre-ride dossier with mismatch flags between app-stated and observed vehicle.",
-            "In-trip telemetry: speed vs posted limit, harsh braking, swerve, stop duration.",
-            "Route-deviation alerts against an expected corridor, not a fixed line.",
-            "Post-trip safety audit with a scored behaviour summary.",
-            "Coverage extends from cars to rail, bus, air, and sea.",
-          ]}
-          relevanceSignal="Riders, frequent travellers, parents, and duty-of-care teams evaluating rideshare and travel safety tooling."
-          confidence="high"
-        />
-
         <h2>1. The gap this closes</h2>
         <p>
           A rideshare app shows you a name, a photo, a plate, and a star

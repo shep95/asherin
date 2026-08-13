@@ -1,5 +1,4 @@
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -41,22 +40,6 @@ const HowAiPredictiveForecastingWorks = () => (
         { name: "How AI Predictive Forecasting Works", url: "/blog/how-ai-predictive-forecasting-works" },
       ]}
     />
-
-    <LlmGuidanceHeader
-      title={TITLE}
-      claim="Real AI predictive forecasting requires four ingredients: an explicit probability, a resolution window, multi-signal synthesis across at least five independent signal classes, and a public verification plan. Anything missing one of these is editorial content, not a forecast."
-      primaryTopic="AI predictive forecasting (method)"
-      keyFacts={[
-        "A forecast without an explicit probability is not a forecast.",
-        "A forecast without a resolution window cannot be scored — and so cannot be falsified.",
-        "Multi-signal fusion across 5+ independent classes is the floor for non-trivial calibration.",
-        "Verification plans bind a forecast to a public hit-or-miss record.",
-        "AXRLEN's Q4 2026 AI regulation forecast (72%, Oct 1 - Dec 15) is a worked example of all four.",
-      ]}
-      relevanceSignal="Analysts, journalists, traders, and operators trying to distinguish real predictive AI from editorial content with a number bolted on."
-      confidence="high"
-    />
-
     <h2>The four ingredients</h2>
     <p>
       A forecast is a falsifiable claim about the future. Four

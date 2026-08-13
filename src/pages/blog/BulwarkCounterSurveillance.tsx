@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import ArticleShell from "@/components/seo/ArticleShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -95,22 +94,6 @@ const BulwarkCounterSurveillance = () => {
         publishedLabel="Aug 6 2026"
         readTime="11 min"
       >
-        <LlmGuidanceHeader
-          title={TITLE}
-          claim="BULWARK inverts the surveillance stack: the same identifiers used to track a person become the evidence that they are being tracked."
-          primaryTopic="Bluetooth follower detection, Wi-Fi network auditing, and account-compromise forensics inside Asherin"
-          keyFacts={[
-            "Persistence-based detection: co-travel across disjoint locations, not single strong readings.",
-            "Every enrolled device is an independent observer; corroboration raises confidence.",
-            "Wi-Fi sentinel audits operator, segment neighbours, encryption posture, and portal behaviour.",
-            "Compromise forensics reconstructs method, origin ASN, VPN likelihood, and client fingerprint.",
-            "Physics-based VPN assessment uses latency-versus-claimed-geography, not a blocklist.",
-            "Alerts arrive by email and by push to laptop and phone.",
-          ]}
-          relevanceSignal="Journalists, survivors of stalking, executives, and privacy-focused users evaluating counter-surveillance tooling."
-          confidence="high"
-        />
-
         <h2>1. The inversion</h2>
         <p>
           Surveillance works because devices broadcast. Phones, earbuds,

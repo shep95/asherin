@@ -258,7 +258,7 @@ const UPDATES: Update[] = [
     date: "2026-07-01",
     title: "IDE Shortcuts — ⌘K, Tab Ghost, ⌘L",
     body:
-      "Asherin's IDE surfaces now match the muscle memory of Cursor and Claude Code. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Asherin Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
+      "Asherin's IDE surfaces now use familiar editor muscle memory. ⌘K performs inline edits on the current selection, Tab accepts ghost completions inline as you type, and ⌘L bridges the current file and selection into Asherin Chat for reasoning. Selection context is passed cleanly to the code AI so edits stay scoped.",
     icon: <Code className="h-5 w-5" strokeWidth={1.5} />,
     tag: "IDE",
   },

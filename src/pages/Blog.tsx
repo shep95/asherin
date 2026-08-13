@@ -58,7 +58,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/autonomous-intelligence-loop",
-    title: "The Autonomous Intelligence Loop — how Asherin researches without being told to",
+    title: "the research loop — how asherin decides to go look things up",
     dek: "Asherin no longer waits for a tool selection. The loop detects research intent, recalls the memory graph, fans out across collection surfaces, cross-verifies, persists what it proves, and shows the reasoning chain while it works.",
     tag: "Product",
     published: "2026-08-07T00:00:00.000Z",
@@ -67,26 +67,24 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/bulwark-counter-surveillance",
-    title: "BULWARK — Bluetooth stalker detection, Wi-Fi sentinel & account-compromise forensics",
-    dek: "The counter-surveillance layer: persistent-follower detection across disjoint locations, Wi-Fi network audits with segment neighbours and portal behaviour, and credential-change reconstruction with physics-based VPN assessment.",
+    title: "notes on counter-surveillance — what a browser can and cannot see",
+    dek: "an archived write-up. this is not a live dashboard tab — it is a note on what follower detection and network audits can honestly claim from inside a browser.",
     tag: "Security",
     published: "2026-08-06T00:00:00.000Z",
     readTime: "11 min",
-    featured: true,
   },
   {
     slug: "/blog/transit-guardian",
-    title: "Transit Guardian — rideshare driver checks, trip telemetry & multi-modal travel safety",
-    dek: "Plate-anchored driver dossiers before you get in, full-drive telemetry — speeding, swerve, harsh braking, corridor deviation — while you ride, and the same guarantees extended from cars to rail, bus, air, and sea.",
+    title: "notes on trip safety — driver checks and telemetry, and their limits",
+    dek: "an archived write-up on what plate-anchored checks and ride telemetry can show, and what public records do not give you. not a shipped dashboard tab.",
     tag: "Product",
     published: "2026-08-05T00:00:00.000Z",
     readTime: "11 min",
-    featured: true,
   },
   {
     slug: "/blog/asherin-maps-find-my",
-    title: "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Bluetooth recovery",
-    dek: "Satellite by default, a resizable layer tree, 2,700+ live public DOT camera feeds, OSRM fastest-path routing, device-mesh battery and position telemetry, and RSSI-fused recovery rings for lost Bluetooth hardware.",
+    title: "asherin maps — satellite by default, and what it does not locate",
+    dek: "satellite imagery by default, public dot camera feeds, osrm routing, and coarse bluetooth proximity rings. it does not locate a phone.",
     tag: "Product",
     published: "2026-08-04T00:00:00.000Z",
     readTime: "10 min",
@@ -94,8 +92,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/cloud-intelligence-suite",
-    title: "Cloud Intelligence — turning your inbox, messages and calls into graded intelligence",
-    dek: "POSTMARK email header forensics, VOICEPRINT call metadata, SIGNAL unified message comprehension, Meet Vault recordings, and contact dossiers written to professional analytic standards — BLUF, confidence matrix, competing hypotheses, ranked PIRs.",
+    title: "cloud intelligence — reading what google actually hands over",
+    dek: "mail headers, calendar, drive — summarised and drafted with your consent, inside signed-in connect. it does not locate phones.",
     tag: "Product",
     published: "2026-08-03T00:00:00.000Z",
     readTime: "13 min",
@@ -103,8 +101,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/asherin-engine-deep-time",
-    title: "Asherin Engine — metadata-first search, DEEP TIME retrieval & identifier sweeps",
-    dek: "One query becomes sixteen retrieval legs across five time eras. Host-lifespan tracking, PDF metadata extraction, redirect-chain origin forensics, and a deduped 'seen on N surfaces' exposure map for any email or phone number.",
+    title: "asherin engine — metadata-first search and deep-time retrieval",
+    dek: "how one query becomes several retrieval legs across time: host lifespan, pdf metadata, redirect-chain origins, and a deduped exposure map.",
     tag: "Product",
     published: "2026-08-02T00:00:00.000Z",
     readTime: "12 min",
@@ -113,7 +111,7 @@ export const BLOG_POSTS: Post[] = [
   
   {
     slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
-    title: "Asherin Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
+    title: "asherin legal mode — multi-jurisdictional legal research",
     dek: "The July 8, 2026 ship: a per-message LAW toggle in Asherin and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
     tag: "Product",
     published: "2026-07-08T00:00:00.000Z",
@@ -122,8 +120,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/code-narrative-quantum-collapse",
-    title: "Code-as-Narrative × Quantum Candidate Collapse — sub-60-second bug patches on the cheapest Gemini",
-    dek: "How two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let Asherin patch logical, workflow, and UI bugs in under a minute on gemini-flash-lite, a fix cycle that normally takes 30+ minutes. Three-year jump on the narrative axis, ten-generation jump on the collapse axis. Wired into every Asherin module.",
+    title: "code-as-narrative × candidate collapse — how we patch bugs",
+    dek: "two methods — reading code as narrative, and collapsing candidate fixes — and why they make small models patch logical and ui bugs faster than raw prompting.",
     tag: "Engineering",
     published: "2026-07-01T00:00:00.000Z",
     readTime: "12 min",
@@ -131,7 +129,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/the-truth-and-reality-of-wars",
-    title: "The Truth and Reality of Wars — Occult Scripture, Fiat Slavery, and the Elite Civil War",
+    title: "the truth and reality of wars — an essay",
     dek: "Wars are scripted. The Bible calls it scripture for a reason. The field manual on how the elite use occultism to direct conflict, why fiat currency is the slave-collar you're conscripted to defend, and why every world war is an elite civil war dressed in flags.",
     tag: "Geopolitics",
     published: "2026-06-24T00:00:00.000Z",
@@ -142,8 +140,8 @@ export const BLOG_POSTS: Post[] = [
   
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
-    title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin",
-    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Asherin $79 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
+    title: "zaxin — what web bluetooth actually gives you",
+    dek: "the browser ble scout: the device picker, requestLEScan advertisements, and coarse rssi proximity — a log-distance estimate with metres of error, not trilateration.",
     tag: "Product",
     published: "2026-06-26T00:00:00.000Z",
     readTime: "11 min",
@@ -152,8 +150,8 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
-    title: "Elite Corporations' Algorithms vs #HouseOfAsher Algorithm — AXRLEN",
-    dek: "Aladdin controls the present through markets and satellites. AXRLEN sees the future before it happens. A symbolic comparison of 45/9 versus 74/11.",
+    title: "notes on axrlen forecasting — symbolism and probability",
+    dek: "an archival note on how asherin frames forecasts as probability with a window, and where the symbolic reading sits alongside it. no rival scoreboard.",
     tag: "Analysis",
     published: "2026-06-24T14:00:00.000Z",
     readTime: "5 min",
@@ -344,7 +342,6 @@ const Blog = () => {
   }, [tagFilter, sort, dateFrom, dateTo, query]);
 
   const pinnedPosts = BLOG_POSTS.filter((p) => p.pinned);
-  const livePinned = pinnedPosts.filter((p) => p.tag === "Live Prediction");
   const heroPinned = pinnedPosts.filter((p) => p.tag !== "Live Prediction");
   // One lead story carries the page. The rest of the pinned set becomes a
   // quiet secondary row — three equal gold hero cards was three focal points
@@ -386,56 +383,22 @@ const Blog = () => {
         {/* MASTHEAD */}
         <header className="border-b border-border/25 pb-10">
           <p className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
-            Asherin Journal
+            asherin journal
           </p>
           <h1 className="mt-5 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.03em] leading-[0.95] max-w-3xl">
-            Field reports from the
-            <span className="block italic text-muted-foreground/60">operator stack.</span>
+            notes from
+            <span className="block italic text-muted-foreground/60">asherin.</span>
           </h1>
           <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
             <p className="max-w-xl text-sm sm:text-base font-extralight text-muted-foreground leading-[1.75]">
-              Long-form comparisons, benchmarks, and intelligence write-ups.
-              No fluff, no affiliate links.
+              how the thing is built, what it gets wrong, and sources next to answers.
+              no fake ranks.
             </p>
             <span className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/60 tabular-nums">
               {BLOG_POSTS.length} entries
             </span>
           </div>
         </header>
-
-        {/* LIVE TICKER — a slim strip, not a card grid. The accent is spent
-            here and on the pinned marker only, so it still means something. */}
-        {livePinned.length > 0 && (
-          <section aria-label="Automated daily predictions" className="mt-8">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-accent/25 bg-accent/[0.04] px-5 py-3.5">
-              <span className="inline-flex items-center gap-2 text-[10px] font-light tracking-[0.28em] uppercase text-accent">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                </span>
-                Live · 07:00 EST daily
-              </span>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                {livePinned.map((p) => {
-                  const short = p.title.replace(/^AXRLEN\s+/, "").split(" Daily")[0];
-                  return (
-                    <Link
-                      key={p.slug}
-                      to={p.slug}
-                      className="group inline-flex items-center gap-2 text-sm font-light text-foreground/85 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/60 rounded"
-                    >
-                      {short}
-                      <ArrowUpRight
-                        className="h-3.5 w-3.5 text-muted-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                        strokeWidth={1.5}
-                      />
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* LEAD STORY */}
         {lead && (

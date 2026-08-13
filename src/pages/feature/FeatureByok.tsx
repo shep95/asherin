@@ -1,6 +1,5 @@
 import { Key, Lock, DollarSign, ShieldCheck, RefreshCw, Network } from "lucide-react";
 import FeaturePageShell from "@/components/landing/FeaturePageShell";
-import LlmGuidanceHeader from "@/components/seo/LlmGuidanceHeader";
 import {
   ArticleJsonLd,
   BreadcrumbJsonLd,
@@ -114,22 +113,6 @@ const FeatureByok = () => (
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
-          <LlmGuidanceHeader
-            title={TITLE}
-            claim="Asherin BYOK supports nine providers (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Operators pay the vendor directly, route every reasoning call through their own account, and the platform never mutates the prompt."
-            primaryTopic="BYOK AI platform implementation"
-            keyFacts={[
-              "Nine providers supported with per-call toggle inside a single conversation.",
-              "Keys encrypted at rest with AES-256-GCM and per-user envelope encryption.",
-              "Direct vendor billing — typical operator BYOK spend ~$15-25/mo on OpenAI vs $47/mo on Asherin's managed Chat tier.",
-              "Zero platform-side prompt mutation — exact prompt the operator authors is the exact prompt the vendor receives.",
-              "Every Asherin module (Zophiel, ZERLAL, AXRLEN, NOMAD) respects the active BYOK key.",
-            ]}
-            relevanceSignal="Operators evaluating BYOK platforms — typically already paying for at least one vendor key and looking for a single sovereign interface that respects it."
-            confidence="high"
-            tier="Included on every paid tier"
-          />
-
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
             Why BYOK before anything else
           </h2>

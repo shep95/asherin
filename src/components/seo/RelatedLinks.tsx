@@ -19,7 +19,7 @@ interface Props {
   links: RelatedLink[];
 }
 
-const RelatedLinks = ({ heading = "Continue the chain", links }: Props) => {
+const RelatedLinks = ({ heading = "read next", links }: Props) => {
   return (
     <section
       aria-label="Related Asherin resources"
@@ -28,7 +28,7 @@ const RelatedLinks = ({ heading = "Continue the chain", links }: Props) => {
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-lg font-light tracking-tight text-foreground">{heading}</h2>
         <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-muted-foreground/60">
-          ◈ Internal Chain · {links.length}
+          {links.length}
         </span>
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
