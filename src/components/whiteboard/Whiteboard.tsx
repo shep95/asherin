@@ -726,11 +726,15 @@ const Whiteboard = () => {
         if (format === "json") {
           downloadBlob(new Blob([boardToJson(activeBoard)], { type: "application/json" }), `${base}.json`);
         } else {
-          const svg = boardToSvg(activeBoard);
+          const exported = boardToSvg(activeBoard);
+          if (!exported) {
+            notify("Nothing on this board to export yet");
+            return;
+          }
           if (format === "svg") {
-            downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${base}.svg`);
+            downloadBlob(new Blob([exported.svg], { type: "image/svg+xml" }), `${base}.svg`);
           } else {
-            downloadBlob(await svgToPngBlob(svg, 2), `${base}.png`);
+            downloadBlob(await svgToPngBlob(exported.svg, exported.bounds.w, exported.bounds.h, 2), `${base}.png`);
           }
         }
         notify(`Exported ${base}.${format}`);
@@ -747,7 +751,7 @@ const Whiteboard = () => {
           organ: "whiteboard",
           capability: "export",
           fromSurface: "whiteboard",
-          status: "error",
+          status: "fail",
           quote: error instanceof Error ? error.message : "export failed",
         });
       }
@@ -783,8 +787,8 @@ const Whiteboard = () => {
   const applyDrops = useCallback(
     (drops: BoardDrop[]) => {
       if (!drops.length) return;
-      const board = boardsRef.current.find((entry) => entry.id === activeBoardIdRef.current);
-      const layerId = activeLayerIdRef.current || board?.layers[0]?.id;
+      const board = boards.find((entry) => entry.id === activeBoardId);
+      const layerId = activeLayerId || board?.layers[0]?.id;
       if (!board || !layerId) return;
       const origin = contentBounds(board.elements);
       let cursorY = origin ? origin.y + origin.h + 80 : 120;
@@ -809,16 +813,17 @@ const Whiteboard = () => {
         meta: { objects: created.length },
       });
     },
-    [notify, pushHistory, updateActiveBoardElements],
+    [activeBoardId, activeLayerId, boards, notify, pushHistory, updateActiveBoardElements],
   );
 
+  // Drops queued before the board finished decrypting are flushed once, here.
   useEffect(() => {
-    if (!loaded) return;
+    if (!loadedRef.current) return;
     applyDrops(consumeBoardDrops());
     const onDrop = () => applyDrops(consumeBoardDrops());
     window.addEventListener(BOARD_DROP_EVENT, onDrop);
     return () => window.removeEventListener(BOARD_DROP_EVENT, onDrop);
-  }, [applyDrops, loaded]);
+  }, [applyDrops]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const rawPoint = getCanvasPoint(event.clientX, event.clientY, false);
