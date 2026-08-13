@@ -14,6 +14,8 @@ const logStep = (step: string, details?: any) => {
 // Tier price IDs
 const TIER_PRICES: Record<string, string> = {
   monthly_aureon: "price_1Tk7FyRxgCpmPfiF4vZebmnE",
+  // GRANDFATHER: customers already billed on the legacy $399/mo Pro price keep it
+  // until they change plan themselves; new upgrades attach the $79/mo price below.
   monthly_pro: "price_1U3vudRxgCpmPfiFCTcY3p1W",
   starter: "price_1T9wBfRxgCpmPfiFgegrNIkk",
   chat: "price_1T6PPmRxgCpmPfiFoTiBXBzq",

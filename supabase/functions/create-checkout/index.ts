@@ -14,7 +14,10 @@ import { BillingAuthError, BillingConfigError, billingError, requireBillingUser 
 // price not on this list, blocking $0.01-test-price attacks.
 const ALLOWED_PRICE_IDS = new Set<string>([
   "price_1Tk7FyRxgCpmPfiF4vZebmnE", // monthly_aureon ($18/mo)
-  "price_1U3vudRxgCpmPfiFCTcY3p1W", // monthly_pro ($79/mo)
+  "price_1U3vudRxgCpmPfiFCTcY3p1W", // monthly_pro ($79/mo — current)
+  // GRANDFATHER: existing subscriptions still billing on the legacy $399/mo
+  // Pro price stay on that price until the customer cancels or changes plan.
+  // It is intentionally NOT purchasable for new checkouts.
   "price_1TUtfDRxgCpmPfiFNYa092Zu", // lifetime
   "price_1T6PPmRxgCpmPfiFoTiBXBzq", // chat
   "price_1T3o9NRxgCpmPfiFaFDWC8u0", // aureon (legacy)

@@ -142,7 +142,7 @@ const PricingComparisonTable = () => {
               </div>
               {tier.id === "enterprise" ? (
                 <a
-                  href="mailto:asher@asherin.com?subject=Asherin%20Enterprise%20Inquiry"
+                  href="/founder"
                   className="block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all border border-foreground/30 text-foreground hover:bg-foreground/5"
                 >
                   Contact sales

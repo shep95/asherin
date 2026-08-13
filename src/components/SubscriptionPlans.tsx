@@ -339,7 +339,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
           <div className="flex-shrink-0">
             <a
-              href="mailto:asher@asherin.com?subject=Asherin%20Enterprise%20Inquiry"
+              href="/founder"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/5 transition-colors"
             >
               Contact sales
