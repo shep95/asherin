@@ -93,7 +93,7 @@ export async function emitPull(input: PullInput): Promise<void> {
         ? Math.max(0, Math.min(600000, Math.round(input.latencyMs)))
         : null;
 
-    await supabase.from("asherin_connect_pulls").insert({
+    await supabase.from("asherin_connect_pulls").insert([{
       user_id: uid,
       organ: String(input.organ).slice(0, 48),
       capability: String(input.capability).slice(0, 64),
