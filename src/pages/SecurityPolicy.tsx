@@ -63,11 +63,12 @@ const SecurityPolicy = () => {
                 are not triaged as security.
               </p>
               <p>
-                Honest limitation: delivery of that address depends on the MX records on the asherin.com zone, which are
-                operator DNS and not something this application can assert. If MX is absent or misconfigured at the time
-                you write, your mail may bounce or silently fail to arrive. If you receive no acknowledgement inside the
-                3 business days below, assume delivery failed rather than that the report was ignored, and reach the
-                operator through the contact route on the site.
+                Honest limitation, checked 13 August 2026: mail delivery to that address depends on MX records on the
+                asherin.com DNS zone, and that zone currently publishes no MX record. Until the operator adds one, mail
+                sent to any @asherin.com address may bounce or fail silently. The address is the intended channel, not a
+                verified inbox — this page will not claim otherwise. If you get no acknowledgement inside the 3 business
+                days below, assume delivery failed rather than that the report was dismissed, and reach the operator
+                through a public profile link in the site footer.
               </p>
             </Section>
 

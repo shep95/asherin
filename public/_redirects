@@ -1,0 +1,27 @@
+# Recon-path deny for hosts that honour a Netlify-style _redirects file.
+#
+# These paths must never reach the SPA catch-all: answering them with 200 HTML
+# is a soft-404 that reads to a scanner as "this path exists". A real 404 with
+# an empty body is the correct answer.
+#
+# This file is a second line only. The authoritative deny is
+# cloudflare/worker-edge-deny.js — see cloudflare/APPLY.md. A host that ignores
+# _redirects will keep serving the shell, so do not treat this file as proof.
+/.git/*        /404-not-found  404
+/.svn/*        /404-not-found  404
+/.hg/*         /404-not-found  404
+/.env          /404-not-found  404
+/.env.*        /404-not-found  404
+/.aws/*        /404-not-found  404
+/.ssh/*        /404-not-found  404
+/wp-admin/*    /404-not-found  404
+/wp-login.php  /404-not-found  404
+/wp-content/*  /404-not-found  404
+/wp-includes/* /404-not-found  404
+/phpmyadmin/*  /404-not-found  404
+/phpinfo.php   /404-not-found  404
+/cgi-bin/*     /404-not-found  404
+/actuator/*    /404-not-found  404
+/debug/*       /404-not-found  404
+/api/internal/* /404-not-found 404
+/*             /index.html     200
