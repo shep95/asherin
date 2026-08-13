@@ -1091,7 +1091,22 @@ const IntelligenceMapModule = () => {
     }
   }, []);
 
+  /* Auto-pull sweep. Same fetch as the manual tool, but silent: the operator
+     did not ask for cameras, so an empty corridor is not an error worth a
+     toast, and a catalogue outage must not interrupt navigation. Honest gap
+     handling stays — an empty result clears the layer instead of leaving the
+     previous corridor's pins floating over a new city. */
+  const loadCamerasQuiet = useCallback(async (opts: CameraQuery) => {
+    try {
+      const sweep = await fetchStreetCameras(opts);
+      setCameras(sweep.cameras);
+    } catch {
+      setCameras([]);
+    }
+  }, []);
+
   const loadCameras = useCallback(async (opts: CameraQuery) => {
+
     setCameraBusy(true);
     try {
       const sweep = await fetchStreetCameras(opts);
