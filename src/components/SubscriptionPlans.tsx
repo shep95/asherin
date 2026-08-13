@@ -47,9 +47,9 @@ const PLANS = [
           "Real-time web search with source-credibility + veracity scoring",
           "Deep Search, Link Extract, Archives Harvester and page preview",
           "Dark Web, Leaks, Onion and GhostChain sweeps",
-          "Google Dorking, XKeyscore operators and Data Engine",
+          "Advanced search operators (dorking) with a live SERP fetch",
           "Intel Map, URL/Domain mapping and Zophiel V2 pipeline",
-          "Imagine Intelligence, File Scrapper and Cipher",
+          "Imagine Intelligence and File Scrapper",
           "Standard query throughput and recency",
         ],
       },
@@ -150,13 +150,11 @@ const PLANS = [
       {
         title: "Plus the full advanced suite",
         items: [
-          "Asherin IDE, Whiteboard, File Scrapper, Cipher",
+          "Asherin IDE, Whiteboard, File Scrapper",
           "AXRLEN predictive intelligence",
           "ZEEION financial intelligence",
           "ZERLAL cyber security",
-          "CROSS live screen intelligence",
           "ZANOEM Design Lab, Vedic Strategy, Video Intelligence",
-          "Plugin Marketplace + Automated Agents",
         ],
       },
       {
@@ -390,7 +388,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
           <div className="flex-shrink-0">
             <a
-              href="mailto:asher@aureonai.app?subject=Asherin%20Enterprise%20Inquiry"
+              href="mailto:asher@asherin.com?subject=Asherin%20Enterprise%20Inquiry"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/5 transition-colors"
             >
               Contact sales

@@ -36,13 +36,11 @@ const ROWS: Row[] = [
 
   { group: "Intelligence", label: "Zophiel Search Intelligence (full engine)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "Dark web, leaks, dorking & intel mapping", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
-  { group: "Intelligence", label: "NOMAD Intelligence (14-pass)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "Intelligence Briefings", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Intelligence", label: "Predictive Intelligence (Monte Carlo)", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
   { group: "Intelligence", label: "Trading Intelligence", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
   { group: "Intelligence", label: "Pattern Analysis & Forecasting", tiers: { chat: false, aureon: false, pro: true, lifetime: false } },
 
-  { group: "Creation", label: "Vibe Imager & Vibe Video", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "E-book / PDF / Slideshow generators", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "Whiteboard (infinite canvas)", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },
   { group: "Creation", label: "Asherin IDE & Imagine-to-Code", tiers: { chat: false, aureon: true, pro: true, lifetime: true } },

@@ -62,7 +62,6 @@ const AUREON_FEATURE_GROUPS = [
       
       { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system — Asherin deconstructs the architecture.", link: "/feature/reverse-engineer" },
       { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
-      { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption, format conversion and recipe chaining — all client-side.", link: "/feature/cipher" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, dot/square snap grids and freeform sketching.", link: "/feature/whiteboard" },
       { name: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
     ],
@@ -70,7 +69,6 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "Intelligence & Briefings",
     features: [
-      { name: "NOMAD Public Intelligence", desc: "Public intelligence agent across 40+ data sources with persistent dossier output.", link: "/feature/nomad" },
       { name: "Daily Intelligence Briefings", desc: "Personalized morning reports covering competitors, industry, and markets.", link: "/feature/briefings" },
       { name: "Vedic Strategy", desc: "Astro-temporal forecasting, dasha cycles, lagna relationship and timing intelligence.", link: "/feature/vedic" },
     ],
@@ -114,7 +112,6 @@ const PRO_FEATURE_GROUPS = [
     category: "Live Intelligence & Investigation",
     features: [
       { name: "Cross — Live Screen Intelligence", desc: "Real-time screen analysis with 17 analytical modes.", link: "/feature/cross" },
-      { name: "Video Intelligence", desc: "Behavioral analysis, deception detection and personality profiling from video.", link: "/feature/video-intelligence" },
     ],
   },
   {
@@ -132,7 +129,6 @@ const PRO_FEATURE_GROUPS = [
       { name: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", link: "/feature/axrlen" },
       { name: "ZEEION FI", desc: "AI forensic financial intelligence and dispute resolution platform.", link: "/feature/zeeion" },
       { name: "ZERLAL", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence.", link: "/feature/zerlal" },
-      { name: "Vibe Video", desc: "Conversational AI video editing — upload, describe edits, and Asherin analyzes your footage.", link: "/feature/vibe-video" },
     ],
   },
   {
@@ -141,7 +137,6 @@ const PRO_FEATURE_GROUPS = [
       { name: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", link: "/feature/security" },
       { name: "Audit Trail", desc: "Full compliance-grade audit logging of all platform activity.", link: null },
       { name: "Team Workspace", desc: "RBAC, email invites, and collaborative workspaces.", link: null },
-      { name: "Plugin Marketplace", desc: "Extend Asherin's capabilities with 3rd-party integrations.", link: "/feature/plugins" },
       { name: "Automated Agents", desc: "Scheduled tasks with multi-channel webhook delivery.", link: "/feature/automated-agents" },
       { name: "Zahten Agent Forge", desc: "Autonomous agent foundry — design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
     ],
@@ -155,10 +150,8 @@ const PRO_FEATURE_GROUPS = [
       { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor that draws directly on canvas.", link: "/feature/imagine-to-code" },
       { name: "Reverse Engineering Intelligence", desc: "Deconstructs the architecture of any software/hardware screenshot.", link: "/feature/reverse-engineer" },
       { name: "File Scrapper", desc: "Extract clean text from PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
-      { name: "Cipher Toolkit", desc: "Encoding, hashing, encryption and recipe chaining — client-side.", link: "/feature/cipher" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers and snap grids.", link: "/feature/whiteboard" },
       { name: "ZANOEM Design Lab", desc: "First-principles design with FEA & thermal simulation.", link: "/feature/zali" },
-      { name: "NOMAD Public Intelligence", desc: "Public OSINT agent across 40+ sources with persistent dossiers.", link: "/feature/nomad" },
       { name: "Daily Intelligence Briefings", desc: "Personalized morning reports on competitors, industry, markets.", link: "/feature/briefings" },
       { name: "Vedic Strategy", desc: "Astro-temporal forecasting, dasha cycles and timing intelligence.", link: "/feature/vedic" },
       { name: "Code Snippets Vault", desc: "Save, tag and organize reusable code fragments.", link: null },
