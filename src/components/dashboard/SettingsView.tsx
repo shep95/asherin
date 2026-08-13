@@ -97,6 +97,8 @@ const GitHubSettings = () => {
 
 const SettingsView = () => {
   const { user } = useAuth();
+  const stepUp = useStepUp();
+
   const { toast } = useToast();
   const { subscribed, tierKey } = useSubscription();
   const [settings, setSettings] = useState<any>(null);
