@@ -49,6 +49,8 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },
   { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat", keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"], group: "Workspace" },
   { view: "whiteboard", label: "Whiteboard", codename: "Canvas", blurb: "Infinite canvas with layers, snap grids, and freeform sketching", keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"], group: "Workspace" },
+  { view: "teams", label: "Team", codename: "Team", blurb: "Your company workspace — members, roles, invites, shared projects", keywords: ["team", "teams", "workspace", "members", "invite", "roles", "company", "org", "seats", "colleagues"], group: "Workspace" },
+
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
