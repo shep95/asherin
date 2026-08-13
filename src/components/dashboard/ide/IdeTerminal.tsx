@@ -145,7 +145,7 @@ const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUp
     // AI query
     if (cmd.startsWith("? ") || cmd.startsWith("ai ")) {
       const query = cmd.replace(/^\?\s*|^ai\s*/i, "");
-      addLine(tid, "system", `[AUREON] Processing: "${query}"`);
+      addLine(tid, "system", `[asherin] Processing: "${query}"`);
       onAiCommand?.(query);
       return;
     }
@@ -387,7 +387,7 @@ shell    echo · date · whoami · env · export K=V · history · uptime · cle
       const node = resolved ? findAtPath(files, resolved.split("/")) : null;
       const context = node?.content ? `\n\`\`\`\n${node.content.slice(0, 3000)}\n\`\`\`` : "";
       const query = base === "explain" ? `Explain this code:${context}` : base === "fix" ? `Fix issues in this code:${context}` : `Generate unit tests for:${context}`;
-      addLine(tid, "system", `[AUREON] ${base} ${target || "current file"}...`);
+      addLine(tid, "system", `[asherin] ${base} ${target || "current file"}...`);
       onAiCommand?.(query);
       return;
     }

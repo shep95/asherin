@@ -95,17 +95,18 @@ const PRODUCTS: Product[] = [
   
   {
     name: "Asherin IDE",
-    codename: "Asher Code",
-    tagline: "In-dashboard Monaco IDE",
+    codename: "asherin IDE",
+    tagline: "Monaco editor + chat that edits behind a diff",
     description:
-      "BYOK across 9 providers, sandboxed publishing of custom tabs, project file management, ghost tabs, and inline edit.",
+      "Chat mode answers questions. Agent mode proposes file writes you approve as a visible diff, with a checkpoint taken before anything is written.",
     icon: Code2,
     features: [
       "Monaco editor + Git integration",
+      "Chat mode vs Agent mode — agent writes only after you approve the diff",
       "BYOK: OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Mistral, Together, OpenRouter",
-      "Inline Edit + Ghost Tabs + Fast Apply",
+      "Inline edit, ghost tabs, fast apply",
       "Project index + semantic search",
-      "Checkpoints + version history",
+      "Checkpoint before every agent write + per-file version history",
     ],
     route: "/dashboard/ide",
     tier: "aureon",
