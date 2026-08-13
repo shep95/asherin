@@ -8,6 +8,8 @@ import {
   type LibraryFile, type LibraryHit, type TextStatus,
 } from "@/lib/library/library";
 import { listProjects, getActiveScope, onScopeChange, type Project, type ProjectScope } from "@/lib/projects/scope";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 const fileIcon = (type: string) => {
   if (type.startsWith("image/")) return Image;
@@ -30,6 +32,7 @@ const STATUS_LABEL: Record<TextStatus, string> = {
 };
 
 const LibraryView = () => {
+  const v2 = useIsV2();
   const { user } = useAuth();
   const { toast } = useToast();
   const [files, setFiles] = useState<LibraryFile[]>([]);
