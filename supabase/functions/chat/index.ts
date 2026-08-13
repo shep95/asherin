@@ -2962,8 +2962,33 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
     // make words flicker as frames arrive.
     // One honest frame up front: which tools actually ran for this turn.
+    // Organ cards first: organ + latency + a masked quote of what came back.
+    // These are written from real invokes only, so a card the operator sees is
+    // a call that happened; a failed organ shows fail-red rather than vanishing.
+    for (const r of organRows.slice(0, 12)) {
+      const { organLabel } = await import("../_shared/organRouter.ts");
+      firedToolRows.push({
+        label: `${organLabel(r.organ)} · ${r.capability}`,
+        detail: [r.ok ? null : "failed", r.latencyMs ? `${r.latencyMs}ms` : null, r.quote]
+          .filter(Boolean)
+          .join(" · "),
+      });
+    }
     if (firedToolRows.length) {
-      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 12) })}\n\n`);
+      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 16) })}\n\n`);
+    }
+
+    // Hands: the workspaces that must open because their organ ran. The client
+    // splits to Maps / IDE / Ghost / Whiteboard so the operator is not left
+    // hunting a tab for work asherin already did.
+    try {
+      const { handsForOrgans } = await import("../_shared/organRouter.ts");
+      const hands = handsForOrgans([...organsFired], handFocus);
+      if (hands.length) {
+        await safeWrite(`data: ${JSON.stringify({ asherin_hands: hands })}\n\n`);
+      }
+    } catch (e) {
+      console.error("[chat] hand emit failed:", (e as Error).message);
     }
 
     const _scanner = createPostInferenceScanner();
