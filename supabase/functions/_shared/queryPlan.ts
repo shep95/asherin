@@ -102,6 +102,91 @@ export interface QueryPlan {
 const OPERATOR_RE =
   /(^|\s)(-?)(site|filetype|ext|inurl|allinurl|intitle|allintitle|intext|allintext|related|cache|link|before|after|lang|loc|location|source|around|imagesize)\s*:\s*("[^"]{1,120}"|[^\s]{1,120})/gi;
 
+/**
+ * FORM words → concrete extensions. The operator says "typescript"; the SERP
+ * only understands `ext:ts`. Language names, not file names, are what people
+ * actually type, so the mapping has to live here rather than in the caller.
+ */
+const FORM_EXT: Record<string, string[]> = {
+  html: ["html", "htm"], htm: ["html", "htm"], webpage: ["html"],
+  python: ["py"], py: ["py"],
+  typescript: ["ts", "tsx"], ts: ["ts", "tsx"], tsx: ["ts", "tsx"],
+  javascript: ["js", "mjs"], js: ["js", "mjs"], jsx: ["jsx"],
+  markdown: ["md"], md: ["md"],
+  json: ["json"], yaml: ["yml", "yaml"], yml: ["yml", "yaml"],
+  sql: ["sql"], csv: ["csv"], xml: ["xml"], pdf: ["pdf"],
+  php: ["php"], rust: ["rs"], go: ["go"], java: ["java"],
+  shell: ["sh"], bash: ["sh"], sh: ["sh"],
+  env: ["env"], config: ["conf", "cfg", "ini"], ini: ["ini"],
+  zip: ["zip"], tar: ["tar", "gz"], sqlite: ["db", "sqlite"], log: ["log"],
+};
+
+/** Path segments: `/agent/`, `dist/`, `src/lib`. A bare word is NOT a path. */
+const PATH_RE = /(^|\s)(\/[A-Za-z0-9._-]{1,40}(?:\/[A-Za-z0-9._-]{1,40})*\/?|[A-Za-z0-9._-]{1,40}\/[A-Za-z0-9._-]{1,40}(?:\/[A-Za-z0-9._-]{1,40})*)/g;
+
+const NON_INDEXED_RE =
+  /\b(non[\s-]?indexed|unindexed|not\s+indexed|no[\s-]?index|deindexed|hidden\s+(?:files?|dir\w*)|open\s+director\w+|index\s+of|directory\s+listing)\b/i;
+
+/** A form/path ask has to be explicit — a stray "go" or "log" must not fire. */
+const FORM_CUE_RE =
+  /\b(files?|file\s?type|filetype|extensions?|source\s*code|scripts?|directory|directories|folder|path|paths|dump|artifacts?|assets?|listing|repo|repository)\b/i;
+
+export function detectFormPath(input: string): FormPathIntent | null {
+  const lower = input.toLowerCase();
+  const nonIndexed = NON_INDEXED_RE.test(lower);
+
+  const exts: string[] = [];
+  const seenExt = new Set<string>();
+  for (const word of lower.split(/[^a-z0-9]+/)) {
+    const mapped = FORM_EXT[word];
+    if (!mapped) continue;
+    for (const e of mapped) {
+      if (seenExt.has(e)) continue;
+      seenExt.add(e);
+      exts.push(e);
+    }
+  }
+  // Literal `.ext` mentions ("*.tsx", "the .py ones") are the hardest signal.
+  for (const m of input.matchAll(/(^|\s|\*)\.([a-z0-9]{1,5})\b/gi)) {
+    const e = m[2].toLowerCase();
+    if (!seenExt.has(e)) { seenExt.add(e); exts.push(e); }
+  }
+
+  const paths: string[] = [];
+  const seenPath = new Set<string>();
+  for (const m of input.matchAll(PATH_RE)) {
+    const seg = m[2].trim();
+    // A domain (`asherin.com/blog`) is an identifier, not a path ask.
+    if (/^[a-z0-9-]+\.[a-z]{2,}\//i.test(seg)) continue;
+    if (seenPath.has(seg)) continue;
+    seenPath.add(seg);
+    paths.push(seg);
+  }
+
+  // Silence is not evidence: fire only when the operator gave a real cue.
+  const cued = FORM_CUE_RE.test(lower) || nonIndexed;
+  const strong = exts.length >= 2 || (exts.length >= 1 && (cued || paths.length > 0)) ||
+    (paths.length > 0 && cued);
+  if (!strong) return null;
+
+  return { exts: exts.slice(0, 6), paths: paths.slice(0, 3), nonIndexed };
+}
+
+/** Turn a form/path intent into wire operators the SERP actually honours. */
+export function formPathOperators(fp: FormPathIntent): string[] {
+  const ops: string[] = [];
+  if (fp.exts.length) {
+    ops.push(fp.exts.length === 1 ? `ext:${fp.exts[0]}` : `(${fp.exts.map((e) => `ext:${e}`).join(" OR ")})`);
+  }
+  for (const p of fp.paths) {
+    const seg = p.replace(/^\/+|\/+$/g, "");
+    if (seg) ops.push(`inurl:${seg.includes(" ") ? `"${seg}"` : seg}`);
+  }
+  if (fp.nonIndexed) ops.push(`intitle:"index of"`);
+  return ops;
+}
+
+
 
 const STOPWORDS = new Set([
   "a","an","and","are","as","at","be","but","by","for","from","has","have","he","her","his",
