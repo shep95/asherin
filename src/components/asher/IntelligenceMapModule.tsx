@@ -3344,14 +3344,36 @@ const IntelligenceMapModule = () => {
                   {/* ── Property Intelligence · Zophiel Live Web Scrape ── */}
                   {(() => {
                     const intel = propertyIntel.intel as any;
-                    const facts: Array<{ icon: any; label: string; value?: string }> = intel ? [
+                    /* PUBLIC-INDEX LAW (Queue 06 C): every dossier field is
+                       rendered, present or not. A missing field prints the
+                       literal string "not in public index" — the model is
+                       never allowed to fill an owner, occupant, or offence
+                       that no registry published. */
+                    const NIL = "not in public index";
+                    const occupants = Array.isArray(intel?.tenants_or_occupants)
+                      ? intel.tenants_or_occupants.filter(Boolean)
+                      : Array.isArray(intel?.residents?.occupants)
+                        ? intel.residents.occupants.map((o: any) => (typeof o === "string" ? o : o?.name)).filter(Boolean)
+                        : [];
+                    const crimeAtAddress = Array.isArray(intel?.criminal_at_address)
+                      ? intel.criminal_at_address.filter(Boolean).join("; ")
+                      : intel?.criminal_at_address || intel?.crime_at_address;
+                    const facts: Array<{ icon: any; label: string; value: string; missing: boolean }> = intel ? [
                       { icon: User,        label: "Owner",      value: intel.owner },
                       { icon: Building2,   label: "Operator",   value: intel.operator },
                       { icon: Hash,        label: "Type",       value: intel.property_type },
                       { icon: CalendarDays,label: "Year Built", value: intel.year_built },
                       { icon: Ruler,       label: "Size",       value: intel.size },
                       { icon: DollarSign,  label: "Est. Value", value: intel.value_estimate },
-                    ].filter(f => !!f.value) : [];
+                      { icon: UsersIcon,   label: "Who Lives Here", value: occupants.length ? occupants.slice(0, 4).join(", ") : "" },
+                      { icon: AlertTriangle, label: "Criminal At Address", value: crimeAtAddress },
+                    ].map(f => ({
+                      icon: f.icon,
+                      label: f.label,
+                      value: f.value ? String(f.value) : NIL,
+                      missing: !f.value,
+                    })) : [];
+
 
                     const status = propertyIntel.loading
                       ? { dot: "bg-amber-400 animate-pulse", text: "SCRAPING", color: "text-amber-300/90" }
