@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download, FileText, Bell, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { emitPull } from "@/lib/connect/emitPull";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -163,7 +164,13 @@ const BriefingView = () => {
     if (!user) return;
     setGenerating(true);
     try {
+      const started = performance.now();
       const { data, error } = await supabase.functions.invoke("generate-briefing");
+      void emitPull({
+        organ: "briefings", capability: "generate", fromSurface: "briefings",
+        status: error ? "fail" : "ok", latencyMs: performance.now() - started,
+        quote: error ? error.message : `${data?.sources_checked ?? 0} sources checked`,
+      });
       if (error) throw error;
       if (data?.briefing) {
         toast({ title: "Briefing generated", description: `${data.sources_checked} sources analyzed with cross-validation.` });

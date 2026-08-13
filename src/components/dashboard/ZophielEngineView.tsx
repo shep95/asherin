@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/auditLogger";
 import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
+import { emitPull } from "@/lib/connect/emitPull";
 import { toast } from "@/hooks/use-toast";
 import { triggerByokRequired } from "@/components/ByokRequiredDialog";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -211,8 +212,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     setDarkLoading(true); setDarkResults([]); setDarkSummary("");
     try {
       const byok = (await import("@/lib/intelMapByok")).getActiveIntelMapByok();
+      const started = performance.now();
       const { data, error } = await supabase.functions.invoke("zophiel-darkweb", {
         body: { query: q, ...(byok ? { byok } : {}) },
+      });
+      void emitPull({
+        organ: "zophiel", capability: "darkweb", fromSurface: "search",
+        status: error ? "fail" : "ok", latencyMs: performance.now() - started, quote: q,
       });
       if (error) throw error;
       if (data?.success) {
