@@ -4996,6 +4996,48 @@ export type Database = {
         }
         Relationships: []
       }
+      google_gmail_sync: {
+        Row: {
+          account_id: string
+          google_email: string
+          history_id: string | null
+          id: string
+          last_delta_at: string | null
+          last_full_sync_at: string | null
+          updated_at: string
+          user_id: string
+          watch_error: string | null
+          watch_expiration: string | null
+          watch_topic: string | null
+        }
+        Insert: {
+          account_id: string
+          google_email: string
+          history_id?: string | null
+          id?: string
+          last_delta_at?: string | null
+          last_full_sync_at?: string | null
+          updated_at?: string
+          user_id: string
+          watch_error?: string | null
+          watch_expiration?: string | null
+          watch_topic?: string | null
+        }
+        Update: {
+          account_id?: string
+          google_email?: string
+          history_id?: string | null
+          id?: string
+          last_delta_at?: string | null
+          last_full_sync_at?: string | null
+          updated_at?: string
+          user_id?: string
+          watch_error?: string | null
+          watch_expiration?: string | null
+          watch_topic?: string | null
+        }
+        Relationships: []
+      }
       google_insights: {
         Row: {
           code: string
@@ -5235,6 +5277,36 @@ export type Database = {
           },
         ]
       }
+      google_mesh_cache: {
+        Row: {
+          accounts: string[]
+          built_at: string
+          cache_key: string
+          expires_at: string
+          id: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          accounts?: string[]
+          built_at?: string
+          cache_key: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          user_id: string
+        }
+        Update: {
+          accounts?: string[]
+          built_at?: string
+          cache_key?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_place_nodes: {
         Row: {
           created_at: string
@@ -5277,6 +5349,51 @@ export type Database = {
           updated_at?: string
           user_id?: string
           visit_count?: number
+        }
+        Relationships: []
+      }
+      google_sentinel_events: {
+        Row: {
+          acknowledged: boolean
+          created_at: string
+          dedupe_key: string | null
+          detail: string | null
+          google_email: string | null
+          id: string
+          kind: string
+          payload: Json
+          severity: string
+          subject_email: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          created_at?: string
+          dedupe_key?: string | null
+          detail?: string | null
+          google_email?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          severity?: string
+          subject_email?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          created_at?: string
+          dedupe_key?: string | null
+          detail?: string | null
+          google_email?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          severity?: string
+          subject_email?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
