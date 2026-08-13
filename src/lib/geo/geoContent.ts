@@ -961,57 +961,13 @@ for (const page of Object.values(GEO_CONTENT)) {
 }
 
 /* ------------------------------------------------------------------------- *
- * Comparison rows — the strongest differentiator factor in the same trial.
+ * No comparison rows ship in this corpus.
  *
- * Every figure in `other` is the alternative's own published list price or
- * published policy, stated as such. Nothing here characterises a competitor's
- * quality; the rows exist so an engine answering "X vs Asherin" reads a table
- * instead of inventing one.
+ * Asherin pages describe what Asherin does. A table that scores Asherin
+ * against other vendors' products is not a capability claim we can source,
+ * so the `comparisons` slot stays empty unless a page defines its own
+ * non-competitive comparison (e.g. two Asherin tiers).
  * ------------------------------------------------------------------------- */
-
-const PRICE_ROW = (versus: string, other: string): GeoComparison => ({
-  versus,
-  dimension: "Published monthly list price",
-  asherin: "$18 core, $79 professional",
-  other,
-});
-
-const PLATFORM_COMPARISONS: GeoComparison[] = [
-  PRICE_ROW("ChatGPT Plus", "$20 per month, as published by OpenAI"),
-  {
-    versus: "ChatGPT Plus",
-    dimension: "Model routing",
-    asherin: "Platform-funded model or bring-your-own key across 8 providers",
-    other: "OpenAI models only",
-  },
-  PRICE_ROW("Claude Pro", "$20 per month, as published by Anthropic"),
-  {
-    versus: "Claude Pro",
-    dimension: "Built-in OSINT and forecasting modules",
-    asherin: "Included: entity resolution, jurisdictional records, scenario forecasting",
-    other: "General assistant; no bundled records or forecasting modules",
-  },
-  PRICE_ROW("Perplexity Pro", "$20 per month, as published by Perplexity"),
-  {
-    versus: "Perplexity Pro",
-    dimension: "Output artefact",
-    asherin: "Branded intelligence report file with per-claim sourcing",
-    other: "Cited chat answer",
-  },
-  PRICE_ROW("Venice Pro", "$18 per month, as published by Venice"),
-  {
-    versus: "Venice Pro",
-    dimension: "Scope",
-    asherin: "Private chat plus 40+ analysis modules on one subscription",
-    other: "Private chat and image generation",
-  },
-];
-
-for (const page of Object.values(GEO_CONTENT)) {
-  if (!page.comparisons || page.comparisons.length === 0) {
-    page.comparisons = PLATFORM_COMPARISONS;
-  }
-}
 
 /* ------------------------------------------------------------------------- *
  * Institutional anchors.
@@ -1262,7 +1218,7 @@ export function gatekeeperAudit(page: GeoPage): GatekeeperAudit {
     hasComparison,
     confident,
     institutional,
-    pass: hasPrice && hasTimestamp && hasComparison && confident && institutional,
+    pass: hasPrice && hasTimestamp && confident && institutional,
   };
 }
 
