@@ -971,7 +971,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale, turnId, projectScope } = _parsedBody;
+    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale, turnId, projectScope, vaultMode } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1891,7 +1891,20 @@ The user is asking about internal code, backend, or architecture. You are FORBID
                         const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
                         return `### [Vault ${i + 1} · ${nameById[m.source_id] || "source"} · sim=${sim}]\n${m.content}`;
                       }).join("\n\n");
-                      vaultContextStr = `\n\n## AUREON VAULT (operator's private knowledge — RAG)\nThe operator has a private knowledge vault. The following chunks were retrieved as most relevant to the current question. Use them as authoritative source material — they are the operator's own files / API data. Cite them inline as [Vault N] when you rely on them. Do not echo unrelated chunks, and if none of them actually answer the question, ignore this block entirely rather than forcing it in.\n\n${blocks}`;
+                      const isolated = String(vaultMode ?? "isolated") !== "hybrid";
+                      // Source-class discipline: a vault passage and a live web
+                      // result must never be presented as the same kind of claim.
+                      const sourceLaw = [
+                        "Label every claim by source class:",
+                        "- vault-passage — supported by one of the numbered chunks below; cite it inline as [Vault N].",
+                        "- live-web — came from a web/OSINT tool this turn; say so in the sentence, never dress it as [Vault N].",
+                        "- unsure — neither the corpus nor a tool supports it. Say unsure plainly instead of filling the gap.",
+                        isolated
+                          ? "ISOLATED MODE: the corpus is the only admissible source for this subject. If the chunks below do not cover the question, answer 'the vault does not cover this' and stop — do not substitute general knowledge or web results."
+                          : "HYBRID MODE: answer from the corpus first. Web reach is an explicit second tool and must be labelled live-web, never blended into a vault citation.",
+                        "If two chunks contradict each other, cite both and name the disagreement. Never silently pick one.",
+                      ].join("\n");
+                      vaultContextStr = `\n\n## KNOWLEDGE VAULT (operator's private documents — RAG)\nThe following passages were retrieved as most relevant to the current question. They are the operator's own documents.\n\n${sourceLaw}\n\n${blocks}`;
                     }
 
                   }
