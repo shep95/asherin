@@ -45,7 +45,7 @@ const FeatureZophiel = () => {
         id="feature-zophiel"
         items={[
           { name: "Asherin", url: "/" },
-          { name: "Features", url: "/features" },
+          { name: "Software", url: "/software" },
           { name: "Zophiel OSINT", url: "/feature/zophiel" },
         ]}
       />
@@ -63,7 +63,7 @@ const FeatureZophiel = () => {
           </>
         }
         subheadline="Zophiel is Asherin's AI OSINT engine. Every query fans out across 30 live sources in parallel, cross-validates claims across independent corroborators, attaches a per-source veracity score, and synthesizes a single intelligence brief with traceable citations. No search wrappers. No vanity source counts. Real cross-validation, in production."
-        tierLabel="Included in every tier · Free Zophiel at /zophiel"
+        tierLabel="Included in every tier · Runs in the signed-in dashboard at /dashboard/search"
         capabilities={[
           {
             icon: Search,
@@ -111,7 +111,7 @@ const FeatureZophiel = () => {
           "Due-diligence intelligence — verify counterparty claims against court records, regulatory filings, and news archives.",
         ]}
         ctaTitle="Run Zophiel on your next query"
-        ctaSubtitle="Free public Zophiel is live at /zophiel — no account, no key. Full Zophiel inside the Asherin dashboard."
+        ctaSubtitle="Zophiel runs inside the signed-in Asherin dashboard at /dashboard/search. Sign in to your account to open the engine."
       >
         {/* Inline article content (Theory 3 + Theory 8 spine body) */}
         <section className="relative z-10 px-6 pb-24">
@@ -126,11 +126,11 @@ const FeatureZophiel = () => {
                 "Source-disagreement flagging surfaces contradictions instead of averaging them away.",
                 "Citation drill-down: every claim is two clicks from the raw document.",
                 "Latency budget under 14 seconds for a full 30-source pass.",
-                "Free public version at aureonai.app/zophiel with no account required.",
+                "Runs inside the signed-in Asherin dashboard at /dashboard/search.",
               ]}
               relevanceSignal="Journalists, OSINT analysts, security researchers, trading desks, and compliance teams who need verified intelligence — not search-result lists."
               confidence="high"
-              tier="Free public + Included in every paid tier"
+              tier="Included in every paid tier"
             />
 
             <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">
@@ -190,8 +190,8 @@ const FeatureZophiel = () => {
                   a: "Zophiel is Asherin's AI OSINT engine. It cross-validates 30 live sources per query, scores per-claim veracity, flags source disagreements, and synthesizes a single intelligence brief with traceable citations — all within a 14-second latency budget.",
                 },
                 {
-                  q: "Is Zophiel free?",
-                  a: "Yes. A free public version is available at aureonai.app/zophiel with no account, no key, and no subscription. The full Zophiel — with persistent history, dossier integration, and BYOK routing — is included in every Asherin paid tier.",
+                  q: "Where do I run Zophiel?",
+                  a: "Inside the signed-in Asherin dashboard, under Search Intelligence at /dashboard/search. There is no separate public engine; an Asherin account is required. Zophiel — with persistent history, dossier integration, and BYOK routing — is included in every Asherin paid tier.",
                 },
                 {
                   q: "What sources does Zophiel use?",
