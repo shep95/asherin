@@ -1122,6 +1122,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     let azplenContext = "";
     let socialContext = "";
     let foldedToolContext = "";
+    // Real tool rows for the operator's thinking panel — filled only by tools
+    // that actually ran this turn. Never synthesised from the answer text.
+    const firedToolRows: Array<{ label: string; detail?: string }> = [];
 
     {
       const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
@@ -1269,6 +1272,8 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         if (!plan) return;
         const out = await runFoldedTools(plan, authHeader);
         foldedToolContext = out.context;
+        for (const f of out.fired) firedToolRows.push({ label: toolRowLabel(f), detail: f });
+        for (const o of out.offline) firedToolRows.push({ label: "Offline", detail: o });
         console.log(
           `[chat] Folded tools: fired=[${out.fired.join(", ")}] offline=${out.offline.length}`,
         );
