@@ -1111,6 +1111,14 @@ const Dashboard = () => {
         // Ghost Chain phase 1 — reasoning streams into the transparency panel.
         onTools: (rows) =>
           rows.forEach((r) => thinkingStore.step(assistantId, r.label, r.detail, "done")),
+        // A workspace opens because its organ ran — never because a keyword
+        // matched. The split happens after the tool cards land, so the
+        // operator sees what fired and where it went in the same beat.
+        onHands: (hands) => {
+          void import("@/lib/chat/hands").then(({ openHands }) => {
+            openHands(hands, (view) => setActiveView(view as DashboardView));
+          });
+        },
         onThinkingStart: () => thinkingStore.begin(assistantId),
         onThinkingDelta: (chunk) => thinkingStore.append(assistantId, chunk),
         onThinkingDone: () => thinkingStore.answering(assistantId),
