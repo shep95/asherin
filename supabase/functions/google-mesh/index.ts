@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // google-mesh — the Google Mesh control surface
 // Actions: status | build_voiceprint | pattern_map | attention_ledger |
-//          ghostwrite | search_mail | relationship_graph | commitments |
+//          ghostwrite | search_mail | relationship_graph | commitments | harvest |
+//          location_signals |
 //          daily_digest | dossier | meet_vault | sentinel | fit_location |
 //          send_draft | audit_log
 // Every action is user-scoped by a verified JWT. No action sends mail without
@@ -820,6 +821,107 @@ Deno.serve(async (req) => {
       }, 200, cors);
     }
 
+
+
+    // ── HARVEST ──────────────────────────────────────────────────────────
+    // The inward station's collection pass over accounts the operator owns:
+    // mail headers (batched, delta where Gmail gives a marker), calendar place
+    // strings, and the contact roster. Nothing external is touched, and the
+    // response reports which path each leg actually took so a cached read is
+    // never presented as a fresh sweep.
+    if (action === "harvest") {
+      const readable = accounts.filter((a) => hasScope(a, "gmail.readonly"));
+      const withCal = accounts.filter((a) => hasScope(a, "calendar.readonly"));
+      const withContacts = accounts.filter((a) => hasScope(a, "contacts.readonly"));
+      const days = Math.min(Math.max(Number(body.days) || 30, 1), 180);
+
+      const [ledger, placeSets, contactSets] = await Promise.all([
+        readable.length
+          ? mailLedger(sb, userId, readable, { days, limit: Math.min(Number(body.limit) || 120, 300), refresh: true })
+          : Promise.resolve<LedgerResult>({ headers: [], mode: "full", ageMinutes: null, builtAt: null, accountsRead: [], note: "no account granted gmail read" }),
+        Promise.all(withCal.map((a) => harvestPlaces(a.token, days).catch(() => []))),
+        Promise.all(withContacts.map((a) => harvestContacts(a.token, 400).catch(() => []))),
+      ]);
+
+      const places = foldPlaces(placeSets.flat());
+      if (places.length) {
+        await sb.from("google_place_nodes").upsert(
+          places.slice(0, 200).map((pl) => ({
+            user_id: userId,
+            label: pl.label,
+            normalized_key: pl.key,
+            visit_count: pl.visits,
+            first_seen: pl.firstSeen,
+            last_seen: pl.lastSeen,
+            sources: pl.sources,
+            updated_at: new Date().toISOString(),
+          })),
+          { onConflict: "user_id,normalized_key" },
+        ).then(undefined, () => undefined);
+      }
+
+      return json({
+        harvestedAt: new Date().toISOString(),
+        accounts: accounts.map((a) => a.google_email),
+        mail: {
+          headers: ledger.headers.length,
+          mode: ledger.mode,
+          note: ledger.note,
+          accountsRead: ledger.accountsRead,
+        },
+        places: { indexed: places.length, top: places.slice(0, 8).map((pl) => ({ label: pl.label, visits: pl.visits })) },
+        contacts: { count: contactSets.flat().length },
+        scope: "owned accounts only — no external record search, no third-party scrape",
+      }, 200, cors);
+    }
+
+    // ── LOCATION SIGNALS ─────────────────────────────────────────────────
+    // Where the operator is likely to be comes from strings they wrote into
+    // their own calendar, plus Fit points when that dataset exists. Google
+    // publishes no supported device-locating API for third parties: Find Hub
+    // is reachable only by scraping an unofficial endpoint, and that is a line
+    // this surface does not cross. The gap is returned as a gap.
+    if (action === "location_signals") {
+      const days = Math.min(Math.max(Number(body.days) || 90, 7), 365);
+      const withCal = accounts.filter((a) => hasScope(a, "calendar.readonly"));
+      const withFit = accounts.filter((a) => hasScope(a, "fitness.activity.read"));
+
+      const [placeSets, fitSets] = await Promise.all([
+        Promise.all(withCal.map((a) => harvestPlaces(a.token, days).catch(() => []))),
+        Promise.all(withFit.map(async (a) => ({
+          account: a.google_email,
+          ...(await fitLocationHistory(a.token, 14).catch(() => ({ available: false, points: [] as unknown[] }))),
+        }))),
+      ]);
+
+      const obs = placeSets.flat();
+      const folded = foldPlaces(obs);
+      // Rank by how often the string recurs — a rhythm, never a live position.
+      const ranked = folded.slice(0, 12).map((pl) => ({
+        label: pl.label,
+        visits: pl.visits,
+        lastSeen: pl.lastSeen,
+        source: "calendar LOCATION string",
+      }));
+
+      return json({
+        window: { days, events: obs.length },
+        calendarPlaces: ranked,
+        fit: {
+          available: fitSets.some((f: any) => f.available),
+          accounts: fitSets,
+          disclaimer: "points written by fitness apps during recorded activity — not device locating",
+        },
+        deviceLocating: {
+          available: false,
+          reason: "Find Hub exposes no supported third-party API; the only route is an unofficial scrape, which this surface refuses",
+          gap: true,
+        },
+        honesty: ranked.length
+          ? "these are recurring calendar strings, not a measured position, and carry no accuracy percentage"
+          : "no calendar LOCATION strings in the window — there is no location read to give",
+      }, 200, cors);
+    }
 
     // ── SEND DRAFT (Tier 5 — two-phase, human-confirmed) ─────────────────
     if (action === "send_draft") {

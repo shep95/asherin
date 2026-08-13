@@ -3,11 +3,22 @@ import { Send, Brain, Lock, X, Maximize2, Minimize2, Sparkles } from "lucide-rea
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "@/lib/ai";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/integrations/supabase/client";
+import { emitPull } from "@/lib/connect/emitPull";
+import { planStationCall } from "./stationTools";
+
+interface ToolRow {
+  label: string;
+  status: "running" | "ok" | "fail" | "skip";
+  latencyMs?: number;
+  detail?: string;
+}
 
 interface NexusMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  tool?: ToolRow;
 }
 
 interface NexusChatPanelProps {
@@ -15,24 +26,27 @@ interface NexusChatPanelProps {
   moduleLabel: string;
 }
 
+// What each tab is looking at, in one sentence. Descriptions state the read
+// the surface actually performs — no accuracy percentages, no claim that a
+// model can predict a decision it has never observed.
 const moduleContextMap: Record<string, string> = {
-  overview: "Cloud Intelligence Mesh station overview — all modules, multi-account management, and cross-platform correlation.",
-  twin: "AI Digital Twin — the user's complete digital replica that predicts decisions, automates life, and knows communication style, preferences, and routines.",
-  location: "Location Prophet — analyzes 5+ years of Google location history, predicts where the user will be next week with 95% accuracy, discovers movement patterns.",
-  email: "AI Email Assistant — learns the user's writing style from sent emails, auto-replies in their voice, prioritizes inbox, and drafts messages.",
-  gmail: "Gmail raw data feed — email patterns, sender analysis, thread intelligence.",
-  subscriptions: "Subscription Oracle — scans emails for subscription confirmations, tracks recurring payments, predicts charges, finds forgotten subscriptions, identifies savings.",
-  health: "Health Guardian — tracks steps, sleep, heart rate from Google Fit, detects health anomalies, predicts illness, tracks menstrual cycles.",
-  fit: "Google Fit biometric data — steps, heart rate, sleep patterns, workout tracking.",
-  calendar: "Calendar Wizard — auto-schedules meetings based on energy levels, commute patterns, and historical success rates, protects deep work hours.",
-  contacts: "Contact Intelligence — scores every relationship from emails, meetings, photos, maps social graph, predicts next contact, warns when relationships fade.",
-  career: "Career Predictor — predicts job changes, promotions, and career trajectory by analyzing recruiter emails, resume updates, calendar patterns, search history.",
-  drive: "Google Drive file storage intelligence — document analysis, sharing patterns.",
-  photos: "Google Photos visual intelligence — face recognition, location clustering, memory timeline.",
-  youtube: "YouTube watch patterns — interest profiling, content consumption analysis.",
-  search: "Google Search history — interest profiling, intent analysis, behavioral patterns.",
-  chrome: "Chrome browsing intelligence — site visit patterns, productivity analysis.",
-  connected: "Connected Apps — OAuth scope audit, permission analysis, risk scoring.",
+  overview: "station overview — which accounts the operator connected, at what scope, and when each was last read.",
+  twin: "voice and rhythm — writing style learned from the operator's own sent mail, plus the day's digest.",
+  location: "location signals — recurring LOCATION strings the operator typed into their own calendar, and google fit points when that dataset exists. device locating is a gap: find hub has no supported third-party api, and the unofficial scrape is refused.",
+  email: "mail search over the operator's own connected mailboxes.",
+  gmail: "mail headers from the operator's own mailboxes — senders, threads, cadence.",
+  subscriptions: "recurring-charge confirmations found in the operator's own mail.",
+  health: "google fit — steps, heart rate, sleep, workouts, when the operator granted fitness scope.",
+  fit: "google fit biometric series from the operator's own account.",
+  calendar: "attention ledger — meeting occupancy and open focus windows from the operator's calendar.",
+  contacts: "relationship graph — correspondence cadence across the operator's own mail and calendar.",
+  career: "recruiter and role-change signals present in the operator's own mail.",
+  drive: "drive metadata, including meet recordings when they exist in drive.",
+  photos: "google photos metadata the operator granted access to.",
+  youtube: "youtube activity from the operator's own account.",
+  search: "search activity from the operator's own account.",
+  chrome: "chrome activity from the operator's own account.",
+  connected: "oauth scope audit and the asherin audit log for this operator.",
 };
 
 const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
@@ -61,21 +75,80 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
     if (!trimmed || isStreaming) return;
 
     const userMsg: NexusMessage = { id: crypto.randomUUID(), role: "user", content: trimmed };
-    const assistantMsg: NexusMessage = { id: crypto.randomUUID(), role: "assistant", content: "" };
+    const assistantId = crypto.randomUUID();
+    const assistantMsg: NexusMessage = { id: assistantId, role: "assistant", content: "" };
 
     setMessages((prev) => [...prev, userMsg, assistantMsg]);
     setInput("");
     setIsStreaming(true);
 
-    const moduleContext = moduleContextMap[activeModule] || "Asherin Cloud Intelligence Mesh";
+    const patchAssistant = (patch: Partial<NexusMessage>) =>
+      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, ...patch } : m)));
 
-    const systemContext = `You are Aureon, an AI intelligence assistant embedded in the Asherin Cloud Intelligence Mesh. The user is currently viewing: "${moduleLabel}" tab. Context about this module: ${moduleContext}. Answer questions about their Google data intelligence, help them understand patterns, and provide actionable insights. Be concise, intelligent, and specific to the module context. If they ask about data from a different module, reference it naturally.`;
+    // ── organ first ──────────────────────────────────────────────────────
+    // The analyst does not describe what the mesh would say. It calls the
+    // mesh, and whatever comes back — including an empty read or a refusal —
+    // is the only ground the answer stands on.
+    const call = planStationCall(trimmed, activeModule);
+    let evidence = "";
+    if (call) {
+      patchAssistant({ tool: { label: call.label, status: "running" } });
+      const started = performance.now();
+      try {
+        const { data, error } = await supabase.functions.invoke("google-mesh", {
+          body: { action: call.action, ...call.payload },
+        });
+        const latencyMs = Math.round(performance.now() - started);
+        if (error) throw error;
+        const noAccount = (data as any)?.error === "no_account";
+        evidence = JSON.stringify(data).slice(0, 6000);
+        patchAssistant({
+          tool: {
+            label: call.label,
+            status: noAccount ? "skip" : "ok",
+            latencyMs,
+            detail: noAccount ? "no google account connected" : undefined,
+          },
+        });
+        void emitPull({
+          organ: "google",
+          capability: call.action,
+          fromSurface: "google-station",
+          status: noAccount ? "skip" : "ok",
+          latencyMs,
+          quote: noAccount ? "no google account connected" : `${evidence.length} chars returned`,
+        });
+      } catch (e: any) {
+        const latencyMs = Math.round(performance.now() - started);
+        patchAssistant({ tool: { label: call.label, status: "fail", latencyMs, detail: String(e?.message ?? "call failed").slice(0, 120) } });
+        void emitPull({
+          organ: "google",
+          capability: call.action,
+          fromSurface: "google-station",
+          status: "fail",
+          latencyMs,
+          quote: String(e?.message ?? "call failed").slice(0, 160),
+        });
+        evidence = `THE CALL FAILED: ${String(e?.message ?? "unknown").slice(0, 200)}`;
+      }
+    }
+
+    const moduleContext = moduleContextMap[activeModule] || "asherin cloud intelligence station";
+
+    const systemContext = [
+      `you are asherin, the station analyst on the "${moduleLabel}" surface.`,
+      `what this surface reads: ${moduleContext}`,
+      call
+        ? `the tool \`google-mesh:${call.action}\` was just run against the operator's own connected account(s). its raw payload follows between the fences. answer only from it.`
+        : "no mesh tool ran for this turn. answer from the conversation only, and say plainly that you did not read their account for this answer.",
+      call ? "```json\n" + evidence + "\n```" : "",
+      "rules: never invent a message, event, contact, file or position that is not in the payload. never attach an accuracy percentage to a location — calendar strings are a rhythm, not a measurement. if the operator asks you to find a phone, say device locating is a gap: find hub exposes no supported third-party api and asherin refuses the unofficial scrape. if the payload says no account is connected, tell them to connect google at read tier and stop.",
+      "keep the answer short and specific. all prose lowercase.",
+    ].filter(Boolean).join("\n\n");
 
     const apiMessages = [
-      { role: "user" as const, content: systemContext },
-      { role: "assistant" as const, content: "Understood. Station analyst online, reading your connected collection. What would you like to know?" },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user" as const, content: trimmed },
+      { role: "user" as const, content: `${systemContext}\n\noperator: ${trimmed}` },
     ];
 
     const controller = new AbortController();
@@ -88,37 +161,16 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
         depth: "standard",
         signal: controller.signal,
         onDelta: (text) => {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last.role === "assistant") {
-              updated[updated.length - 1] = { ...last, content: last.content + text };
-            }
-            return updated;
-          });
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + text } : m)));
         },
         onReplace: (fullText) => {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last.role === "assistant") {
-              updated[updated.length - 1] = { ...last, content: fullText };
-            }
-            return updated;
-          });
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: fullText } : m)));
         },
         onDone: () => setIsStreaming(false),
       });
     } catch (err: any) {
       if (err.name !== "AbortError") {
-        setMessages((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (last.role === "assistant") {
-            updated[updated.length - 1] = { ...last, content: "Unable to connect. Please try again." };
-          }
-          return updated;
-        });
+        patchAssistant({ content: "the station could not reach the model. the tool result above still stands." });
       }
       setIsStreaming(false);
     }
@@ -197,8 +249,27 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
           ) : (
             messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] space-y-1.5`}>
+                {msg.tool && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border/10 bg-foreground/[0.03] px-2.5 py-1.5 text-[10px] font-extralight text-muted-foreground/60">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        msg.tool.status === "ok"
+                          ? "bg-emerald-500/70"
+                          : msg.tool.status === "fail"
+                            ? "bg-red-500/70"
+                            : msg.tool.status === "skip"
+                              ? "bg-amber-500/70"
+                              : "bg-foreground/40 animate-pulse"
+                      }`}
+                    />
+                    <span>{msg.tool.label}</span>
+                    {msg.tool.latencyMs !== undefined && <span className="text-muted-foreground/35">{msg.tool.latencyMs}ms</span>}
+                    {msg.tool.detail && <span className="truncate text-muted-foreground/45">· {msg.tool.detail}</span>}
+                  </div>
+                )}
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs font-light leading-relaxed ${
+                  className={`rounded-2xl px-3.5 py-2.5 text-xs font-light leading-relaxed ${
                     msg.role === "user"
                       ? "bg-foreground/15 text-foreground border border-border/20"
                       : "bg-foreground/5 text-foreground border border-border/10"
@@ -222,6 +293,7 @@ const NexusChatPanel = ({ activeModule, moduleLabel }: NexusChatPanelProps) => {
                   ) : (
                     <span className="whitespace-pre-wrap">{msg.content}</span>
                   )}
+                </div>
                 </div>
               </div>
             ))

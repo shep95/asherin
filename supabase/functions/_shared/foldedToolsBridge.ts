@@ -56,6 +56,8 @@ export type GoogleMeshAction =
   | "meet_vault"
   | "sentinel"
   | "fit_location"
+  | "harvest"
+  | "location_signals"
   | "audit_log";
 
 
@@ -399,7 +401,11 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
               ? "meet_vault"
               : /\b(any\s+)?sentinel\b|\bany\s+alerts?\b|\bwhat\s+alerts?\b/i.test(raw)
                 ? "sentinel"
-                : /\b(fit\s+location|google\s+fit\s+location|location\s+history)\b/i.test(raw)
+                : /\b(harvest|collect|sweep|pull\s+in)\s+(my\s+)?(google|gmail|mail|inbox|calendar|contacts?|accounts?)\b|\bre-?sync\s+(my\s+)?(google|mail|inbox)\b/i.test(raw)
+                  ? "harvest"
+                  : /\b(where\s+(will|am|do)\s+i\b|where\s+(is|was)\s+my\s+(phone|device)\b|find\s+my\s+(phone|device)\b|location\s+(prophet|signals?|prediction)|track\s+my\s+(phone|device)\b)/i.test(raw)
+                  ? "location_signals"
+                  : /\b(fit\s+location|google\s+fit\s+location|location\s+history)\b/i.test(raw)
                   ? "fit_location"
                   : /\b(pattern\s+map|place\s+rhythm|where\s+do\s+i\s+(go|spend))\b/i.test(raw)
               ? "pattern_map"
@@ -869,6 +875,37 @@ export async function runFoldedTools(
           maskPii(JSON.stringify(out.body).slice(0, 3000)),
           "- Quote the cadence exactly. Never call this always-on unless the cadence says push.",
         );
+        return;
+      }
+      if (m.action === "harvest") {
+        const mail = out.body?.mail ?? {};
+        parts.push(
+          `GOOGLE MESH harvest — collection pass over the operator's OWN accounts (${mail.mode ?? "?"} path):`,
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- Report the counts that came back. A harvest that read zero headers is a real answer.",
+        );
+        quoteRow(m.action, `${mail.headers ?? 0} header(s) · ${out.body?.places?.indexed ?? 0} place(s) · ${out.body?.contacts?.count ?? 0} contact(s)`);
+        return;
+      }
+      if (m.action === "location_signals") {
+        const places: any[] = out.body?.calendarPlaces ?? [];
+        parts.push(
+          "GOOGLE MESH location signals — calendar LOCATION strings the operator wrote themselves, plus Fit points when that dataset exists:",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- These are recurring strings, not a measured position. Never attach an accuracy percentage to them.",
+          "- Device locating is a GAP: Find Hub has no supported third-party API and asherin refuses the unofficial scrape. Say that if they asked to find a phone.",
+        );
+        // The refusal is a real posture and belongs in the trace as its own
+        // row, so the gap is visible in Connect and not only in the prose.
+        void emitPull(trace?.userId, {
+          organ: "google",
+          capability: "device-locate",
+          fromSurface: "chat",
+          status: "skip",
+          quote: "Find Hub unofficial scrape refused",
+          meta: trace?.turnId ? { turn_id: trace.turnId } : undefined,
+        });
+        quoteRow(m.action, places.length ? `${places.length} calendar place string(s)` : "no calendar LOCATION strings in window");
         return;
       }
       if (m.action === "fit_location") {
