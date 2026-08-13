@@ -10,6 +10,14 @@ export { AI_PROVIDERS };
 export type { ProviderConfig };
 
 
+/** Presence flags from the key-status edge function. No key material. */
+interface KeyStatusRow {
+  provider: string;
+  byok: boolean;
+  platform: boolean;
+  effective: boolean;
+}
+
 interface StoredKey {
   id: string;
   provider: string;
