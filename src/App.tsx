@@ -137,8 +137,10 @@ const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <StepUpProvider>
       <SubscriptionProvider>
       <TooltipProvider>
+
         <Toaster />
         <Sonner />
         <BrowserRouter>
