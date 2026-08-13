@@ -101,7 +101,7 @@ export async function emitPull(input: PullInput): Promise<void> {
       status: input.status,
       latency_ms: latency,
       quote_masked: maskQuote(input.quote),
-      meta: safeMeta(input.meta),
+      meta: safeMeta(input.meta) as Record<string, string | number | boolean>,
     }]);
 
   } catch {
