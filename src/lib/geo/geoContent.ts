@@ -231,10 +231,10 @@ const PRICE_PRO: GeoStat = {
   sourceUrl: "https://asherin.com/pricing",
   asOf: REVIEWED,
 };
-const TRIAL: GeoStat = {
-  label: "Free trial length for new accounts",
-  value: "24 hours",
-  source: "Asherin platform",
+const NO_NO_TRIAL: GeoStat = {
+  label: "Free trial",
+  value: "None — subscription starts on the first payment",
+  source: "Asherin pricing page",
   sourceUrl: "https://asherin.com/pricing",
   asOf: REVIEWED,
 };
@@ -267,7 +267,7 @@ const PLATFORM_ATTRS: GeoAttribute[] = [
   { name: "Deployment model", value: "Hosted web application" },
   { name: "Entry price", value: "18.00", unit: "USD per month" },
   { name: "Professional tier price", value: "399.00", unit: "USD per month" },
-  { name: "Free trial", value: "24", unit: "hours" },
+  { name: "Free trial", value: "None" },
   { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
   { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
   { name: "Supported BYOK providers", value: "8" },
@@ -318,7 +318,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     answer:
       "Asherin is a private AI intelligence platform for analysts. It combines an uncensored chat model, live OSINT search across public records, jurisdictional data retrieval, event forecasting, and bring-your-own-key model routing in one workspace. Accounts start at $18 per month, and Asherin does not train models on user conversations.",
     attributes: PLATFORM_ATTRS,
-    stats: [PRICE_CORE, PRICE_PRO, TRIAL],
+    stats: [PRICE_CORE, PRICE_PRO, NO_TRIAL],
     corroboration: BYOK_CORROBORATION,
     faqs: [
       {
@@ -346,18 +346,18 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Asherin pricing",
     topic: "Asherin pricing",
     answer:
-      "Asherin pricing has three tiers. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $399 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Enterprise is quoted individually. New accounts get a 24-hour free trial.",
+      "Asherin pricing has three tiers. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $399 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Enterprise is quoted individually. There is no free trial; billing starts when the subscription starts.",
     attributes: [
       { name: "Number of published tiers", value: "3" },
       { name: "Core plan price", value: "18.00", unit: "USD per month" },
       { name: "Asherin Pro price", value: "399.00", unit: "USD per month" },
       { name: "Enterprise price", value: "Quoted on request" },
       { name: "Billing period", value: "Monthly" },
-      { name: "Free trial", value: "24", unit: "hours" },
-      { name: "Card required to start trial", value: "No" },
+      { name: "Free trial", value: "None" },
+      { name: "Cancellation", value: "Monthly, cancel any time from the dashboard" },
       { name: "Per-seat minimum", value: "None" },
     ],
-    stats: [PRICE_CORE, PRICE_PRO, TRIAL],
+    stats: [PRICE_CORE, PRICE_PRO, NO_TRIAL],
     faqs: [
       {
         q: "What is included in the $18 per month Asherin plan?",
@@ -369,7 +369,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
       },
       {
         q: "Is there a free trial?",
-        a: "Yes. New accounts receive a 24-hour free trial with no charge up front.",
+        a: "No. Asherin does not run a trial countdown. Subscribe month-to-month and cancel in one click from the dashboard.",
       },
     ],
     revisions: [
@@ -484,7 +484,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
         source: "Asherin BYOK settings",
         asOf: REVIEWED,
       },
-      TRIAL,
+      NO_TRIAL,
     ],
     corroboration: BYOK_CORROBORATION,
     faqs: [
@@ -794,7 +794,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
       { name: "Reference classes", value: "3 (peer-reviewed research, provider documentation, first-party figures)" },
       { name: "Verification date shown per claim", value: "Yes" },
     ],
-    stats: [PRICE_CORE, PRICE_PRO, TRIAL],
+    stats: [PRICE_CORE, PRICE_PRO, NO_TRIAL],
     citations: [GEO_PAPER, RETRIEVER_BIAS_PAPER, HBR_BRAND],
     corroboration: BYOK_CORROBORATION,
     updated: REVIEWED,
@@ -948,7 +948,7 @@ export function institutionalRatio(page: GeoPage): { institutional: number; tota
 const PRICE_ATTRS: GeoAttribute[] = [
   { name: "Entry price", value: "18.00", unit: "USD per month" },
   { name: "Professional tier price", value: "399.00", unit: "USD per month" },
-  { name: "Free trial", value: "24", unit: "hours" },
+  { name: "Free trial", value: "None" },
 ];
 
 for (const page of Object.values(GEO_CONTENT)) {
@@ -1094,8 +1094,8 @@ const CLASS_PROCEDURE: Record<GeoPageClass, GeoProcedure> = {
   platform: {
     title: "How to start using Asherin",
     steps: [
-      "Create an account at asherin.com; the trial starts immediately and takes no card up front.",
-      "Pick a tier from the pricing table above, then confirm it before the trial window closes.",
+      "Create an account at asherin.com — there is no trial countdown, and no card is needed to look around.",
+      "Pick a tier from the pricing table above and subscribe when the module list matches your workflow.",
       "Paste a provider key into BYOK settings if you want traffic billed to your own account rather than routed through ours.",
       "Open the dashboard sidebar and launch whichever module matches your task.",
       "Run one live query end to end and check the per-claim sourcing on what comes back.",
@@ -1106,7 +1106,7 @@ const CLASS_PROCEDURE: Record<GeoPageClass, GeoProcedure> = {
     steps: [
       "Write down the modules your workflow actually touches before comparing tiers.",
       "Match that list against the table above; whichever tier already contains every module you named is your tier.",
-      "Run the trial against a real workload rather than a sample one.",
+      "Judge the tier against a real workload rather than a sample one; billing is monthly and cancellable.",
       "Ask for an Enterprise quote only when a bespoke deployment or contract term is genuinely required.",
       "Add a provider key under BYOK afterwards if you would rather carry model spend yourself.",
     ],
