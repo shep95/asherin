@@ -119,7 +119,7 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
   const [severityFilter, setSeverityFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"findings" | "history" | "sbom">("findings");
-  const [tableMode, setTableMode] = useState<"palantir" | "classic">("palantir");
+  const [tableMode, setTableMode] = useState<"blueprint" | "classic">("blueprint");
 
   const { projects } = useZerlalProjects();
   const { findings, loading: fLoading, refetch } = useZerlalFindings(projectId);
@@ -305,9 +305,9 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
             <div className="flex items-center justify-end gap-1">
               <span className="text-[8px] text-muted-foreground/25 uppercase tracking-wider mr-1">View</span>
               <button
-                onClick={() => setTableMode("palantir")}
-                className={`p-1.5 rounded-md transition-colors ${tableMode === "palantir" ? "bg-foreground/[0.08] text-foreground/60" : "text-muted-foreground/25 hover:text-foreground/40"}`}
-                title="Palantir Blueprint Table (sortable, resizable)"
+                onClick={() => setTableMode("blueprint")}
+                className={`p-1.5 rounded-md transition-colors ${tableMode === "blueprint" ? "bg-foreground/[0.08] text-foreground/60" : "text-muted-foreground/25 hover:text-foreground/40"}`}
+                title="Blueprint table (sortable, resizable)"
               >
                 <LayoutGrid className="h-3 w-3" />
               </button>
@@ -320,8 +320,8 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
               </button>
             </div>
 
-            {/* Palantir Blueprint Table Mode */}
-            {tableMode === "palantir" && (
+            {/* Blueprint table mode */}
+            {tableMode === "blueprint" && (
               <BlueprintFindingsTable
                 findings={filtered}
                 onSelectFinding={onSelectFinding}
