@@ -10,15 +10,25 @@ import { useSyncExternalStore } from "react";
 
 export type ThinkingPhase = "idle" | "thinking" | "answering" | "done" | "error";
 
+export interface ThinkingStep {
+  /** short verb row: Searching / Reading / Editing / Done */
+  label: string;
+  detail?: string;
+  state: "running" | "done" | "error";
+  at: number;
+}
+
 export interface ThinkingState {
   text: string;
+  /** Real tool/kernel events only. Never synthesised from a finished answer. */
+  steps: ThinkingStep[];
   phase: ThinkingPhase;
   /** ms spent inside the reasoning pass, filled when it closes */
   durationMs?: number;
   error?: string;
 }
 
-const EMPTY: ThinkingState = { text: "", phase: "idle" };
+const EMPTY: ThinkingState = { text: "", steps: [], phase: "idle" };
 
 const states = new Map<string, ThinkingState>();
 const listeners = new Set<() => void>();
@@ -35,7 +45,7 @@ const set = (id: string, patch: Partial<ThinkingState>) => {
 export const thinkingStore = {
   begin(id: string) {
     startedAt.set(id, Date.now());
-    states.set(id, { text: "", phase: "thinking" });
+    states.set(id, { text: "", steps: states.get(id)?.steps ?? [], phase: "thinking" });
     emit();
   },
   append(id: string, chunk: string) {
@@ -44,6 +54,22 @@ export const thinkingStore = {
     // Bounded buffer: reasoning is scratch work, never a memory sink.
     const next = (prev.text + chunk).slice(-20000);
     states.set(id, { ...prev, text: next, phase: "thinking" });
+    emit();
+  },
+  /**
+   * Record a real tool/kernel event as a row. `label` is the verb the operator
+   * sees. Calling it again with the same label+detail closes the running row
+   * instead of stacking a duplicate.
+   */
+  step(id: string, label: string, detail?: string, state: ThinkingStep["state"] = "running") {
+    const prev = states.get(id) ?? EMPTY;
+    const steps = [...prev.steps];
+    const openIdx = steps.findIndex(
+      (s) => s.state === "running" && s.label === label && s.detail === detail,
+    );
+    if (openIdx >= 0) steps[openIdx] = { ...steps[openIdx], state };
+    else steps.push({ label, detail, state, at: Date.now() });
+    states.set(id, { ...prev, steps: steps.slice(-24) });
     emit();
   },
   /** Reasoning closed; the answer pass is now filling. */
@@ -57,6 +83,7 @@ export const thinkingStore = {
     const started = startedAt.get(id);
     states.set(id, {
       ...prev,
+      steps: prev.steps.map((s) => (s.state === "running" ? { ...s, state: "done" as const } : s)),
       phase: "done",
       durationMs: prev.durationMs ?? (started ? Date.now() - started : undefined),
     });
