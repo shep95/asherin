@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, Chec
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
-import BlueprintFindingsTable from "@/components/palantir/BlueprintFindingsTable";
+import BlueprintFindingsTable from "@/components/charts/BlueprintFindingsTable";
 import LiveScanNarrative from "./LiveScanNarrative";
 import { useActiveScan } from "./scanContext";
 

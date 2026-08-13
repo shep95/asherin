@@ -268,7 +268,7 @@ const PlottableChart = ({
   };
 
   return (
-    <div ref={containerRef} className={`palantir-plottable-chart ${className}`}>
+    <div ref={containerRef} className={`asherin-plottable-chart ${className}`}>
       <svg
         ref={svgRef}
         width={width}

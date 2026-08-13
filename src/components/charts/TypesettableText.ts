@@ -1,5 +1,5 @@
 /**
- * PALANTIR TYPESETTABLE INTEGRATION
+ * CANVAS TEXT LAYOUT
  * Canvas text rendering engine using palantir/typesettable.
  * Handles word wrapping, alignment, truncation, and multi-line text
  * for the ASHERIN Whiteboard's infinite canvas.
