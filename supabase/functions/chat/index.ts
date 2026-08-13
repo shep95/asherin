@@ -2576,7 +2576,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // loads when the turn is analytical enough to pick an operator from it.
       _R.trivial ? "" : PATTERN_RECOGNITION_KERNEL,
       _R.analytics || _R.intel || _R.deep || _R.strategic || _isIdentityTurn ? PATTERN_OPERATOR_ROSTER : "",
-      _patternEmphasis,
+      _R.trivial ? "" : _patternEmphasis,
       // Domain atlas — the terrain layer. The engine above knows HOW to think
       // and WHICH move to make; without this it will analyse whatever it was
       // handed, at whatever resolution the operator happened to choose. The
