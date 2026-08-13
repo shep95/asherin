@@ -39,7 +39,7 @@ type Product = {
 
 /* ─────────────────────────────────────────────────────────────
    FULL SOFTWARE CATALOG — mirrors dashboard NAV_INTENTS
-   tier: "aureon" = $18/mo · "pro" = $399/mo
+   tier: "aureon" = $18/mo · "pro" = $79/mo
    ───────────────────────────────────────────────────────────── */
 
 const PRODUCTS: Product[] = [
@@ -263,7 +263,7 @@ const PRODUCTS: Product[] = [
     tier: "aureon",
   },
 
-  /* ═══════════════ PRO — ASHERIN PRO $399 ═══════════════ */
+  /* ═══════════════ PRO — ASHERIN PRO $79 ═══════════════ */
   {
     name: "RAD — Research & Development",
     codename: "New",
@@ -460,7 +460,7 @@ const ProductCard = ({ p }: { p: Product }) => {
   const Icon = p.icon;
   const tierBadge =
     p.tier === "pro"
-      ? { label: "Pro · $399", cls: "text-foreground bg-foreground/[0.08] border-foreground/40" }
+      ? { label: "Pro · $79", cls: "text-foreground bg-foreground/[0.08] border-foreground/40" }
       : { label: "Asherin · $18", cls: "text-muted-foreground bg-foreground/[0.03] border-border/40" };
 
   const inner = (
@@ -528,7 +528,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "Asherin Software Catalog",
       description:
-        "Every Asherin tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($399/month).",
+        "Every Asherin tool grouped by subscription tier. Core software on Asherin ($18/month); full intelligence + R&D suite on Asherin Pro ($79/month).",
       url: "https://asherin.com/software",
       mainEntity: {
         "@type": "ItemList",
@@ -564,7 +564,7 @@ const Software = () => {
           {/* Hero */}
           <section className="text-center space-y-4">
             <div className="inline-block px-3 py-1 rounded-full border border-border/40 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
-              ◈ Software · {PRODUCTS.length} products · Asherin $18 / Pro $399
+              ◈ Software · {PRODUCTS.length} products · Asherin $18 / Pro $79
             </div>
             <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight">
               Every Asherin tool. Grouped by tier.
@@ -573,7 +573,7 @@ const Software = () => {
               {aureonProducts.length} tools ship in <strong className="text-foreground">Asherin ($18/month)</strong>.
               The full intelligence + R&amp;D suite — {proProducts.length} additional modules including
               <strong className="text-foreground"> RAD (Research &amp; Development with Asherin Chat)</strong> —
-              ships in <strong className="text-foreground">Asherin Pro ($399/month)</strong>.
+              ships in <strong className="text-foreground">Asherin Pro ($79/month)</strong>.
             </p>
           </section>
 
@@ -662,7 +662,7 @@ const Software = () => {
             </div>
           </section>
 
-          {/* ASHERIN PRO $399 tier */}
+          {/* ASHERIN PRO $79 tier */}
           <section className="space-y-6">
             <div className="flex items-baseline justify-between flex-wrap gap-3">
               <div>
@@ -670,7 +670,7 @@ const Software = () => {
                   ◉ Tier 2 · Full suite
                 </p>
                 <h2 className="text-2xl font-extralight tracking-tight mt-1">
-                  Asherin Pro — $399 / month <span className="text-muted-foreground/60 text-base">· everything in Asherin + {proProducts.length} more</span>
+                  Asherin Pro — $79 / month <span className="text-muted-foreground/60 text-base">· everything in Asherin + {proProducts.length} more</span>
                 </h2>
                 <p className="text-xs font-extralight text-muted-foreground mt-1">
                   Predictive intelligence, financial + data forensics, autonomous agents, R&amp;D workflows, and enterprise collaboration.
@@ -726,7 +726,7 @@ const Software = () => {
             <h2 className="text-2xl font-extralight tracking-tight">Two plans. Every tool above.</h2>
             <p className="max-w-xl mx-auto text-sm font-extralight text-muted-foreground">
               Asherin is <strong className="text-foreground">$18/month</strong> for {aureonProducts.length} core tools.
-              Asherin Pro is <strong className="text-foreground">$399/month</strong> for the full intelligence suite —
+              Asherin Pro is <strong className="text-foreground">$79/month</strong> for the full intelligence suite —
               including RAD, Axrlen, Azplen, Zeeion, Zacoon, and every Pro-tier module.
               Enterprise (SSO, audit, dedicated capacity) is custom-priced.
             </p>

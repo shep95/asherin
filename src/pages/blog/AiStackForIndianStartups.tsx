@@ -149,7 +149,7 @@ const AiStackForIndianStartups = () => (
         {
           to: "/software",
           label: "Asherin software",
-          description: "The full consumer AI stack: $18 and $399 tiers, with detailed capability breakdowns.",
+          description: "The full consumer AI stack: $18 and $79 tiers, with detailed capability breakdowns.",
         },
         {
           to: "/blog/asherin-engine-deep-time",

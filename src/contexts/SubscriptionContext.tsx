@@ -3,13 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping.
-// NOTE: monthly_aureon ($18/mo) and monthly_pro ($399/mo) are the active subscription
+// NOTE: monthly_aureon ($18/mo) and monthly_pro ($79/mo) are the active subscription
 // products. The legacy one-time tiers (chat / aureon / pro / lifetime / algorithm) are
 // retained so existing subscribers and grant records continue to resolve, but they are
 // no longer offered for new purchase.
 //
 // TODO(stripe): replace the monthly_aureon / monthly_pro price_id placeholders below
-// with real Stripe Price IDs ($18/mo + $399/mo recurring) before launching checkout.
+// with real Stripe Price IDs ($18/mo + $79/mo recurring) before launching checkout.
 export const TIERS = {
   monthly_aureon: {
     product_id: "prod_UjaQPixvFi3Qlr",
@@ -17,7 +17,7 @@ export const TIERS = {
   },
   monthly_pro: {
     product_id: "prod_UjaQFcAkQnTOm1",
-    price_id: "price_1Tk7FzRxgCpmPfiFlkJig5Bf",
+    price_id: "price_1U3vudRxgCpmPfiFCTcY3p1W",
   },
   lifetime: {
     product_id: "prod_UTrNsrxIQGTBQR",
@@ -119,7 +119,7 @@ function productToTier(productId: string | null): TierKey | null {
 //   chat < aureon/monthly_aureon < pro/monthly_pro/lifetime/algorithm
 const AUREON_TIERS: TierKey[] = ["monthly_aureon", "aureon", "monthly_pro", "pro", "lifetime", "algorithm"];
 const PRO_TIERS: TierKey[] = ["monthly_pro", "pro", "lifetime", "algorithm"];
-// Maximum Intelligence — the $399/mo Asherin Pro subscription (and its one-time
+// Maximum Intelligence — the $79/mo Asherin Pro subscription (and its one-time
 // equivalent) only. Deliberately excludes `lifetime` and `algorithm`: those are
 // lower-priced grandfathered entitlements whose published feature list stops at
 // the Aureon tier, so they must not inherit maximum-tier surfaces.

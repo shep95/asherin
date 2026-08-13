@@ -263,7 +263,7 @@ const CloudIntelligenceSuite = () => {
         <p>
           The $18/mo tier and the six-month $18 plan include Cloud
           Intelligence and Asherin Maps. Engine-backed deep sweeps inside
-          the dossier require the $399 Pro tier.
+          the dossier require the $79 Pro tier.
         </p>
       </ArticleShell>
     </>

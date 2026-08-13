@@ -74,7 +74,7 @@ const FAQ = [
   },
   {
     q: "How does Asherin compare to ChatGPT Plus on price?",
-    a: "Asherin is $18/month for the core platform — cheaper than ChatGPT Plus ($20/mo) and Claude Pro ($20/mo) and bundles search, code, memory, workspace and E2E encryption in one tier. Asherin Pro ($399/mo) adds the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro and team collaboration). Enterprise is custom-priced.",
+    a: "Asherin is $18/month for the core platform — cheaper than ChatGPT Plus ($20/mo) and Claude Pro ($20/mo) and bundles search, code, memory, workspace and E2E encryption in one tier. Asherin Pro ($79/mo) adds the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro and team collaboration). Enterprise is custom-priced.",
   },
   {
     q: "Can I keep using Claude or GPT inside Asherin?",
@@ -90,7 +90,7 @@ const FAQ = [
   },
   {
     q: "How are the Asherin plans structured?",
-    a: "Two plans. Asherin at $18/month: chat, code, base Zophiel Search, persistent memory, workspace, E2E encryption, 60 messages per 3-hour window. Asherin Pro at $399/month: everything in Asherin plus Azplen data intelligence, the Asherin Engine harvest, advanced Briefings, Zophiel Pro with higher query limits and priority latency, full team collaboration, and 200 messages per 3-hour window. Enterprise (SSO/SAML, audit, dedicated capacity) is custom-priced.",
+    a: "Two plans. Asherin at $18/month: chat, code, base Zophiel Search, persistent memory, workspace, E2E encryption, 60 messages per 3-hour window. Asherin Pro at $79/month: everything in Asherin plus Azplen data intelligence, the Asherin Engine harvest, advanced Briefings, Zophiel Pro with higher query limits and priority latency, full team collaboration, and 200 messages per 3-hour window. Enterprise (SSO/SAML, audit, dedicated capacity) is custom-priced.",
   },
 
 ];
@@ -339,7 +339,7 @@ const BlogComparison = () => {
           <section className="space-y-3">
             <h2 className="text-2xl font-light tracking-tight">Pricing, plainly</h2>
             <p className="text-sm font-extralight leading-relaxed text-foreground/85">
-              Asherin is $18/month for the core platform and $399/month for Asherin Pro,
+              Asherin is $18/month for the core platform and $79/month for Asherin Pro,
               which adds the full intelligence suite (Azplen, Asherin Engine, advanced Briefings,
               Zophiel Pro, team collaboration). ChatGPT Plus and Claude Pro are both
               $20/month recurring but cap you at a single chat product. Asherin bundles
@@ -388,7 +388,7 @@ const BlogComparison = () => {
               See the stack for yourself
             </h2>
             <p className="text-sm font-extralight text-muted-foreground max-w-xl mx-auto">
-              Asherin is $18/month, Asherin Pro is $399/month. Bring your own key on
+              Asherin is $18/month, Asherin Pro is $79/month. Bring your own key on
               either tier or use the included Venice routing. Cancel from the dashboard with one click.
             </p>
 

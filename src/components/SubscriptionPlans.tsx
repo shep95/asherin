@@ -97,12 +97,12 @@ const PLANS = [
   {
     id: "monthly_pro" as const,
     name: "Asherin Pro",
-    price: "$399",
+    price: "$79",
     period: "/month",
     tagline: "broader tool access",
     description:
       "the asherin plan features, plus additional data, research, briefing, search, and collaboration tools for teams with broader needs.",
-    cta: "choose asherin pro — $399 / month",
+    cta: "choose asherin pro — $79 / month",
     highlight: true,
     groups: [
       { title: "asherin plan features", items: ["core chat, modes, search, memory and workspace features", "google cloud intelligence and asherin maps with additional query capacity"] },
@@ -168,7 +168,7 @@ interface Props {
  * Public-facing subscription plans card.
  *
  * Replaces the previous "Asherin is free" donation manifesto. Renders the two
- * core monthly tiers (Asherin $18 / Asherin Pro $399) plus an Enterprise
+ * core monthly tiers (Asherin $18 / Asherin Pro $79) plus an Enterprise
  * contact card.
  */
 export default function SubscriptionPlans({ compact = false }: Props) {

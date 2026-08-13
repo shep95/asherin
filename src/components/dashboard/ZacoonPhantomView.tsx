@@ -1,5 +1,5 @@
 // ZACOON PHANTOM GRID — Aureon Dashboard Console (glass-morphic 3-zone)
-// $399/mo Pro tier only. Mass-banned on aureonai.app for non-admins.
+// $79/mo Pro tier only. Mass-banned on aureonai.app for non-admins.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -82,7 +82,7 @@ const ZacoonPhantomView = () => {
         toast({ title: "Mission Signal Package received", description: `${data.events?.length || 0} cortex events · ${Math.round((data.duration_ms || 0) / 1000)}s` });
       }
     } catch (e: any) {
-      const msg = e?.context?.status === 402 ? "This module requires the $399/mo Pro plan."
+      const msg = e?.context?.status === 402 ? "This module requires the $79/mo Pro plan."
         : e?.context?.status === 451 ? "Zacoon Phantom Grid is not available on this domain."
         : e?.message || "Dispatch failed";
       toast({ title: "Phantom Grid error", description: msg, variant: "destructive" });
@@ -208,7 +208,7 @@ const ZacoonPhantomView = () => {
             className="w-full rounded-md bg-foreground/90 text-background hover:bg-foreground disabled:opacity-40 py-2.5 text-xs font-medium tracking-wide transition flex items-center justify-center gap-2">
             {running ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Dispatching…</> : <>◈ Dispatch Mission</>}
           </button>
-          <div className="mt-2 text-[9px] font-mono text-foreground/40 text-center">$399/mo Pro tier required</div>
+          <div className="mt-2 text-[9px] font-mono text-foreground/40 text-center">$79/mo Pro tier required</div>
         </div>
 
         {/* ZONE B: Live Cortex Feed */}

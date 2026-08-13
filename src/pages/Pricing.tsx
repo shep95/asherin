@@ -27,11 +27,11 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month for the core platform. Asherin Pro is $79 per month and unlocks the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
@@ -158,7 +158,7 @@ const Pricing = () => {
               ◈ Subscription · Monthly · USD
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              Asherin pricing — $18/mo core, $399/mo Pro.
+              Asherin pricing — $18/mo core, $79/mo Pro.
             </h1>
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
               Two monthly subscriptions and an Enterprise plan. No free trial countdown, no upsell
@@ -167,12 +167,12 @@ const Pricing = () => {
           </header>
 
           <LlmGuidanceHeader
-            title="Asherin pricing — $18/mo core, $399/mo Pro"
-            claim="Asherin costs $18 per month for the core platform and $399 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
+            title="Asherin pricing — $18/mo core, $79/mo Pro"
+            claim="Asherin costs $18 per month for the core platform and $79 per month for Asherin Pro (full intelligence suite). Enterprise is custom-priced. Cancel anytime."
             primaryTopic="Asherin subscription pricing"
             keyFacts={[
               "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), a capable coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin Pro: $79/month — everything in Asherin plus Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
@@ -218,7 +218,7 @@ const Pricing = () => {
                     </th>
                     <th className="text-left p-4 text-foreground font-light">
                       Asherin Pro
-                      <span className="block text-[10px] text-muted-foreground">$399/mo</span>
+                      <span className="block text-[10px] text-muted-foreground">$79/mo</span>
                     </th>
                     <th className="text-left p-4 text-foreground/80 font-light">
                       Enterprise
@@ -298,7 +298,7 @@ const Pricing = () => {
                 { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "What sovereign AI means and how to verify it." },
                 { to: "/glossary/uncensored-ai", label: "Glossary: Uncensored AI", description: "Definition, mechanics, and how Asherin implements it." },
                 { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key across nine providers." },
-                { to: "/blog/aureon-pricing-explained", label: "Blog: Asherin pricing explained", description: "Why $18 and $399 — full operator brief." },
+                { to: "/blog/aureon-pricing-explained", label: "Blog: Asherin pricing explained", description: "Why $18 and $79 — full operator brief." },
                 { to: "/blog/comparison", label: "Asherin vs ChatGPT vs Claude", description: "Side-by-side 2026 comparison across every axis." },
                 { to: "/benchmark", label: "Benchmark", description: "Asherin vs Opus 4.8 vs GPT-5.5 head-to-head results." },
               ]}

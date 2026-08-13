@@ -128,7 +128,7 @@ const Index = () => {
       { q: "What makes Asherin different?", a: "Asherin is more than a chatbot. It combines uncensored AI, real-time search, intelligence tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." },
       { q: "How good is the coding engine?", a: "Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." },
       { q: 'What does "never trains our models" mean?', a: "Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours." },
-      { q: "Can I cancel anytime?", a: "Yes. One click from the dashboard. No retention flow. No \"are you sure?\" loop. Asherin is $18/month, Asherin Pro is $399/month, and you can cancel either at any time. Your data is exported or deleted on request." },
+      { q: "Can I cancel anytime?", a: "Yes. One click from the dashboard. No retention flow. No \"are you sure?\" loop. Asherin is $18/month, Asherin Pro is $79/month, and you can cancel either at any time. Your data is exported or deleted on request." },
       { q: "What is the live web search powered by?", a: "Privacy-first search infrastructure. Asherin pulls live data without tracking your search behavior or feeding it to ad networks." },
       { q: "Is Asherin available in multiple languages?", a: "Yes. Asherin processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language." },
     ];
@@ -714,7 +714,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, AXRLEN, ZEEION, Zerlal and more) ships in Asherin Pro at $399/month.
+              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, AXRLEN, ZEEION, Zerlal and more) ships in Asherin Pro at $79/month.
             </p>
           </div>
 
@@ -1342,7 +1342,7 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $79/month and adds the full intelligence suite: Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
             <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />

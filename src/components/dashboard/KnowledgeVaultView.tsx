@@ -133,7 +133,7 @@ export default function KnowledgeVaultView() {
               Private RAG — upload files, paste text, or connect APIs. asherin retrieves matching chunks during every chat automatically.
             </p>
           </div>
-          <Badge variant="secondary" className="ml-auto bg-background/60 backdrop-blur border-border/40">Pro · $399/mo</Badge>
+          <Badge variant="secondary" className="ml-auto bg-background/60 backdrop-blur border-border/40">Pro · $79/mo</Badge>
         </div>
 
         {/* ─── Natural-language agent (WRITE / FETCH+WRITE / QUERY) ─── */}

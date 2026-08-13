@@ -21,7 +21,7 @@
 //   payload  — open one buffered session (text + signed link to raw bytes)
 //   purge    — drop the operator's buffer immediately
 //
-// Access: Asherin Pro ($399/mo monthly + 6-month term) and admin.
+// Access: Asherin Pro ($79/mo monthly + 6-month term) and admin.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  // ── Gate: Pro ($399 monthly / 6-month) or admin ────────────────────────────
+  // ── Gate: Pro ($79 monthly / 6-month) or admin ────────────────────────────
   const access = await resolveAxrlenAccess(req);
   if (!access.granted) {
     return json(

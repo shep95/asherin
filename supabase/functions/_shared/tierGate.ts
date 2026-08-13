@@ -20,7 +20,7 @@ const PRODUCT_TIER_MAP: Record<string, Tier> = {
   prod_U1rtJ8HXSCtvqO: "aureon",
   prod_U1PuUztkmieRrE: "pro",
   prod_UjaQPixvFi3Qlr: "aureon",   // monthly_aureon ($18/mo)
-  prod_UjaQFcAkQnTOm1: "pro",      // monthly_pro ($399/mo) — Vault, Zahten, premium
+  prod_UjaQFcAkQnTOm1: "pro",      // monthly_pro ($79/mo) — Vault, Zahten, premium
   prod_V226j5fQ5fSoD9: "aureon",   // Asherin — 6 month term
   prod_V2267gYsf3sRRn: "pro",      // Asherin Pro — 6 month term
   prod_aureon_algorithm: "lifetime",

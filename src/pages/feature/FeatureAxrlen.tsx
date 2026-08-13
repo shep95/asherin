@@ -50,7 +50,7 @@ const FeatureAxrlen = () => (
         </>
       }
       subheadline="AXRLEN is Asherin's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains, calibrates every prediction against a verification plan, and tracks its accuracy in public — including the misses."
-      tierLabel="Asherin Pro — $399/mo · Forecast accountability published"
+      tierLabel="Asherin Pro — $79/mo · Forecast accountability published"
       capabilities={[
         {
           icon: Sparkles,
@@ -116,7 +116,7 @@ const FeatureAxrlen = () => (
             ]}
             relevanceSignal="Policy analysts, traders, corporate strategists, risk teams, and researchers needing calibrated probabilistic forecasts with named verification conditions."
             confidence="high"
-            tier="Asherin Pro · $399/month"
+            tier="Asherin Pro · $79/month"
           />
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">

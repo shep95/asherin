@@ -226,7 +226,7 @@ const PRICE_CORE: GeoStat = {
 };
 const PRICE_PRO: GeoStat = {
   label: "Asherin Pro plan price",
-  value: "$399 per month",
+  value: "$79 per month",
   source: "Asherin pricing page",
   sourceUrl: "https://asherin.com/pricing",
   asOf: REVIEWED,
@@ -266,7 +266,7 @@ const PLATFORM_ATTRS: GeoAttribute[] = [
   { name: "Product category", value: "AI intelligence platform" },
   { name: "Deployment model", value: "Hosted web application" },
   { name: "Entry price", value: "18.00", unit: "USD per month" },
-  { name: "Professional tier price", value: "399.00", unit: "USD per month" },
+  { name: "Professional tier price", value: "79.00", unit: "USD per month" },
   { name: "Free trial", value: "None" },
   { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
   { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
@@ -327,7 +327,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
       },
       {
         q: "How much does Asherin cost?",
-        a: "The core plan is $18 per month. Asherin Pro, which adds Azplen, Asherin Engine, Briefings, and Zophiel Pro, is $399 per month. Enterprise pricing is quoted on request.",
+        a: "The core plan is $18 per month. Asherin Pro, which adds Azplen, Asherin Engine, Briefings, and Zophiel Pro, is $79 per month. Enterprise pricing is quoted on request.",
       },
       {
         q: "Does Asherin train on my data?",
@@ -346,11 +346,11 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Asherin pricing",
     topic: "Asherin pricing",
     answer:
-      "Asherin pricing has three tiers. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $399 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Enterprise is quoted individually. There is no free trial; billing starts when the subscription starts.",
+      "Asherin pricing has three tiers. The core plan costs $18 per month and includes chat, Zophiel search, and the coding engine. Asherin Pro costs $79 per month and adds Azplen, NOMAD, Cloud Intelligence Mesh, and the predictive engines. Enterprise is quoted individually. There is no free trial; billing starts when the subscription starts.",
     attributes: [
       { name: "Number of published tiers", value: "3" },
       { name: "Core plan price", value: "18.00", unit: "USD per month" },
-      { name: "Asherin Pro price", value: "399.00", unit: "USD per month" },
+      { name: "Asherin Pro price", value: "79.00", unit: "USD per month" },
       { name: "Enterprise price", value: "Quoted on request" },
       { name: "Billing period", value: "Monthly" },
       { name: "Free trial", value: "None" },
@@ -364,7 +364,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
         a: "Uncensored chat, Zophiel search intelligence, the coding engine, Cipher data operations, and the file scrapper.",
       },
       {
-        q: "What does Asherin Pro at $399 per month add?",
+        q: "What does Asherin Pro at $79 per month add?",
         a: "Azplen data intelligence, the Asherin Engine harvest agent, intelligence briefings, Cloud Intelligence Mesh, AXRLEN forecasting, ZERLAL cyber recon, and geospatial property intelligence.",
       },
       {
@@ -383,7 +383,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Asherin software",
     topic: "Asherin software catalogue",
     answer:
-      "The Asherin software catalogue lists every tool on the platform. It covers Zophiel search intelligence, the NOMAD OSINT agent, Azplen data ingestion, AXRLEN forecasting, ZERLAL cyber reconnaissance, Cloud Intelligence Mesh, the coding IDE, whiteboard, and file scrapper. Tools are split across the $18 and $399 per month plans.",
+      "The Asherin software catalogue lists every tool on the platform. It covers Zophiel search intelligence, the NOMAD OSINT agent, Azplen data ingestion, AXRLEN forecasting, ZERLAL cyber reconnaissance, Cloud Intelligence Mesh, the coding IDE, whiteboard, and file scrapper. Tools are split across the $18 and $79 per month plans.",
     attributes: [
       { name: "Product category", value: "AI intelligence platform" },
       { name: "Named tools in the catalogue", value: "9" },
@@ -642,7 +642,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Zophiel",
     topic: "Zophiel search intelligence",
     answer:
-      "Zophiel is the Asherin search intelligence engine. It plans a query, runs it across public sources and official record domains, scores each source for credibility, and returns entity-resolved results instead of a link list. Zophiel is included on the $18 per month plan, with the Pro engine on the $399 per month plan.",
+      "Zophiel is the Asherin search intelligence engine. It plans a query, runs it across public sources and official record domains, scores each source for credibility, and returns entity-resolved results instead of a link list. Zophiel is included on the $18 per month plan, with the Pro engine on the $79 per month plan.",
     attributes: [
       { name: "Component type", value: "Search intelligence engine" },
       { name: "Included from", value: "18.00", unit: "USD per month" },
@@ -658,11 +658,11 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "AXRLEN",
     topic: "AXRLEN predictive engine",
     answer:
-      "AXRLEN is the Asherin forecasting engine. It produces dated event probabilities with explicit falsification conditions, grounded in live market and event data plus an astronomical truth layer computed locally rather than recalled by the model. AXRLEN is available on the $399 per month Asherin Pro plan.",
+      "AXRLEN is the Asherin forecasting engine. It produces dated event probabilities with explicit falsification conditions, grounded in live market and event data plus an astronomical truth layer computed locally rather than recalled by the model. AXRLEN is available on the $79 per month Asherin Pro plan.",
     attributes: [
       { name: "Component type", value: "Predictive forecasting engine" },
       { name: "Required tier", value: "Asherin Pro" },
-      { name: "Tier price", value: "399.00", unit: "USD per month" },
+      { name: "Tier price", value: "79.00", unit: "USD per month" },
       { name: "Grounding layer", value: "Locally computed astronomical ephemeris, not model recall" },
       { name: "Forecast components", value: "4 (event, resolution date, probability, falsification)" },
     ],
@@ -683,11 +683,11 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "NOMAD",
     topic: "NOMAD OSINT agent",
     answer:
-      "NOMAD is the Asherin open-source intelligence agent. It sweeps public data sources for a named entity, resolves candidate identities before enriching them, and assembles a forensic dossier with per-claim provenance. NOMAD is available on the $399 per month Asherin Pro plan.",
+      "NOMAD is the Asherin open-source intelligence agent. It sweeps public data sources for a named entity, resolves candidate identities before enriching them, and assembles a forensic dossier with per-claim provenance. NOMAD is available on the $79 per month Asherin Pro plan.",
     attributes: [
       { name: "Component type", value: "OSINT collection agent" },
       { name: "Required tier", value: "Asherin Pro" },
-      { name: "Tier price", value: "399.00", unit: "USD per month" },
+      { name: "Tier price", value: "79.00", unit: "USD per month" },
       { name: "Identity handling", value: "Candidate resolution before enrichment" },
       { name: "Provenance", value: "Per-claim source URL" },
     ],
@@ -700,11 +700,11 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     anchor: "Azplen",
     topic: "Azplen data intelligence",
     answer:
-      "Azplen is the Asherin data ingestion and analysis engine. It accepts unstructured files, maps them onto a domain ontology for health, finance, media, legal, and other sectors, then produces typed entities, anomalies, and branchable analyses. Azplen is available on the $399 per month Asherin Pro plan.",
+      "Azplen is the Asherin data ingestion and analysis engine. It accepts unstructured files, maps them onto a domain ontology for health, finance, media, legal, and other sectors, then produces typed entities, anomalies, and branchable analyses. Azplen is available on the $79 per month Asherin Pro plan.",
     attributes: [
       { name: "Component type", value: "Data ingestion and analysis engine" },
       { name: "Required tier", value: "Asherin Pro" },
-      { name: "Tier price", value: "399.00", unit: "USD per month" },
+      { name: "Tier price", value: "79.00", unit: "USD per month" },
       { name: "Industry ontologies", value: "10" },
       { name: "Input", value: "Unstructured documents and tabular files" },
     ],
@@ -754,7 +754,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
     attributes: [
       { name: "Component type", value: "Predictive intelligence suite" },
       { name: "Required tier", value: "Asherin Pro" },
-      { name: "Tier price", value: "399.00", unit: "USD per month" },
+      { name: "Tier price", value: "79.00", unit: "USD per month" },
       { name: "Auditability", value: "Every forecast is scoreable against its resolution date" },
     ],
     stats: [PRICE_PRO],
@@ -947,7 +947,7 @@ export function institutionalRatio(page: GeoPage): { institutional: number; tota
 
 const PRICE_ATTRS: GeoAttribute[] = [
   { name: "Entry price", value: "18.00", unit: "USD per month" },
-  { name: "Professional tier price", value: "399.00", unit: "USD per month" },
+  { name: "Professional tier price", value: "79.00", unit: "USD per month" },
   { name: "Free trial", value: "None" },
 ];
 
@@ -972,7 +972,7 @@ for (const page of Object.values(GEO_CONTENT)) {
 const PRICE_ROW = (versus: string, other: string): GeoComparison => ({
   versus,
   dimension: "Published monthly list price",
-  asherin: "$18 core, $399 professional",
+  asherin: "$18 core, $79 professional",
   other,
 });
 
@@ -1133,7 +1133,7 @@ const CLASS_PROCEDURE: Record<GeoPageClass, GeoProcedure> = {
   feature: {
     title: "How to run this capability",
     steps: [
-      "Sign in and confirm your plan includes the module; Pro modules require the $399 per month tier.",
+      "Sign in and confirm your plan includes the module; Pro modules require the $79 per month tier.",
       "Open the module from the dashboard sidebar.",
       "Enter the subject, query or dataset you want processed and run it against live sources.",
       "Review the per-claim sourcing on the returned result before acting on it.",

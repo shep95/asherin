@@ -184,9 +184,9 @@ const UPDATES: Update[] = [
   },
   {
     date: "2026-07-02",
-    title: "AXRLEN Access — Opened to Asherin Pro ($399/mo)",
+    title: "AXRLEN Access — Opened to Asherin Pro ($79/mo)",
     body:
-      "AXRLEN was previously admin-only. It is now available to every active Asherin Pro subscriber ($399/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Asherin and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Asherin flow.",
+      "AXRLEN was previously admin-only. It is now available to every active Asherin Pro subscriber ($79/mo — monthly_pro, pro, lifetime, and algorithm tiers) across the standalone /axrlen tab, the axrlen-chat API, and the new inline bridge in Asherin and Asher chat. A new server-side proTierGate reads the caller's user_subscriptions row (status='active' AND not expired) via the service role, so the gate is enforced identically on every entry point — no frontend-only checks. Anonymous callers get a sign-in nudge, authenticated non-Pro callers get a single-line upgrade prompt pointing to /pricing, admins retain their bypass. Verified end-to-end against the deployed link-extract-chat: anonymous forecast request returned {axrlen:{fired:true, denied:true, reason:'anonymous'}} + upgrade line, non-forecast requests continue to route through the normal Asherin flow.",
     icon: <Globe className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Access",
   },
@@ -315,7 +315,7 @@ const UPDATES: Update[] = [
     date: "2026-06-28",
     title: "Knowledge Vault (RAG) — Glassmorphic Rebuild",
     body:
-      "The Asherin Pro Knowledge Vault now matches the glassmorphic aesthetic of the rest of the app — ambient blur washes, translucent cards, and backdrop-blur tabs. Retrieval remains gated to the $399 tier and is injected into Asherin Chat for forensic-grade recall against your private corpus.",
+      "The Asherin Pro Knowledge Vault now matches the glassmorphic aesthetic of the rest of the app — ambient blur washes, translucent cards, and backdrop-blur tabs. Retrieval remains gated to the $79 tier and is injected into Asherin Chat for forensic-grade recall against your private corpus.",
     icon: <Zap className="h-5 w-5" strokeWidth={1.5} />,
     tag: "Asherin Pro",
   },

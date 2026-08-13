@@ -26,7 +26,7 @@ const CAPABILITIES = [
 
 const PLANS = [
   { tier: "Asherin",     price: "$18",     per: "/mo", desc: "Chat, code, research and Zophiel Search. No trial — billing starts when you subscribe." },
-  { tier: "Asherin Pro", price: "$399",    per: "/mo", desc: "Full intelligence suite — Azplen, Axrlen, Zaxin, Zerlal, Zeeion, Asherin Engine." },
+  { tier: "Asherin Pro", price: "$79",    per: "/mo", desc: "Full intelligence suite — Azplen, Axrlen, Zaxin, Zerlal, Zeeion, Asherin Engine." },
   { tier: "Enterprise", price: "Custom",  per: "",    desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];
 

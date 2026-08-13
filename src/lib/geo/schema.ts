@@ -121,7 +121,7 @@ export function buildSoftwareApplication(): Json {
       {
         "@type": "Offer",
         name: "Asherin Pro",
-        price: "399.00",
+        price: "79.00",
         priceCurrency: "USD",
         url: `${ORIGIN}/pricing`,
         category: "subscription",

@@ -13,7 +13,7 @@ export type Term = "monthly" | "semiannual";
 /** Base USD amounts, in cents, at multiplier 1.0. */
 export const BASE_CENTS: Record<"monthly_aureon" | "monthly_pro", Record<Term, number>> = {
   monthly_aureon: { monthly: 1800, semiannual: 10800 },
-  monthly_pro: { monthly: 39900, semiannual: 239400 },
+  monthly_pro: { monthly: 7900, semiannual: 47400 },
 };
 
 /**
