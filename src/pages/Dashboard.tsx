@@ -47,7 +47,6 @@ const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
-const SelfAccessLearningView = lazyWithRetry(() => import("@/components/dashboard/SelfAccessLearningView"));
 
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
@@ -144,7 +143,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","self-access","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -161,6 +160,11 @@ const Dashboard = () => {
         : "chat"
       : "chat";
     if (next !== activeViewRaw) setActiveViewRaw(next);
+    // Retired module deep links (/dashboard/nomad, /dashboard/cipher …) must not
+    // leave a dead id sitting in the URL — collapse them onto chat.
+    if (viewParam && next === "chat" && viewParam !== "chat") {
+      navigate("/dashboard", { replace: true });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewParam]);
   const setActiveView = (v: DashboardView) => {
@@ -1418,7 +1422,6 @@ const Dashboard = () => {
       case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
       case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
       
-      case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
         <div className="flex h-full w-full min-w-0">
           <div className="flex-1 min-w-0 flex flex-col">
