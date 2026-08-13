@@ -32,6 +32,7 @@ const pluginIconMap: Record<string, React.ReactNode> = {
   "🤖": <Bot className="h-5 w-5 text-muted-foreground" />,
   "🔄": <RefreshCw className="h-5 w-5 text-muted-foreground" />,
   "🔌": <Package className="h-5 w-5 text-muted-foreground" />,
+  "❤️": <Sparkles className="h-5 w-5 text-rose-400" />,
 };
 
 interface Plugin {

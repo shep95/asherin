@@ -190,6 +190,45 @@ async function executeConnector(plugin: any, config: Record<string, string>, sup
   const apiKey = config["API Key / Token"] || config["apiKey"] || "";
   const instanceUrl = config["Instance URL"] || config["instanceUrl"] || "";
 
+  // ── Lovable connector — platform bridge to the Lovable build environment ──
+  if (plugin.name === "Lovable") {
+    const projectId = config["Project ID"] || config["projectId"] || "";
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY") || "";
+    let gatewayStatus = "NOT CONFIGURED";
+    let gatewayDetails = "The platform LOVABLE_API_KEY is not set on this deployment.";
+
+    if (lovableKey) {
+      try {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/models", {
+          headers: { Authorization: `Bearer ${lovableKey}` },
+        });
+        gatewayStatus = res.ok ? "AI GATEWAY READY ✅" : `AI GATEWAY CHECK FAILED (${res.status})`;
+        gatewayDetails = res.ok
+          ? "Lovable AI Gateway is reachable. Chat can now route AI requests through the platform integration."
+          : "Gateway responded with an error. Verify the LOVABLE_API_KEY secret.";
+      } catch (e) {
+        gatewayStatus = "AI GATEWAY ERROR ❌";
+        gatewayDetails = e instanceof Error ? e.message : "Could not reach Lovable AI Gateway.";
+      }
+    }
+
+    const connectionStatus = lovableKey ? (gatewayStatus.includes("READY") ? "CONNECTED ✅" : "PARTIAL") : "PENDING";
+    const details = `Lovable Plugin v${plugin.version}\n\n` +
+      `Project ID: ${projectId || "(optional — not provided)"}\n` +
+      `Gateway Status: ${gatewayStatus}\n${gatewayDetails}\n\n` +
+      `Capabilities unlocked:\n` +
+      `• AI-assisted app edits from Asherin chat\n` +
+      `• Cloud function invocation through Lovable AI Gateway\n` +
+      `• Project intelligence sync between Lovable and Asherin\n\n` +
+      `To complete the bridge, add a Lovable Project ID above and ensure the platform key is configured.`;
+
+    await supabase.from("installed_plugins").update({
+      config: { ...config, _status: connectionStatus, _last_checked: new Date().toISOString() },
+    }).eq("user_id", userId).eq("plugin_id", plugin.id);
+
+    return `${plugin.name} — Connection Status: ${connectionStatus}\n\n${details}`;
+  }
+
   if (!apiKey) {
     return `⚠️ ${plugin.name} — Configuration Required\n\nProvide your API Key / Token and Instance URL to establish a live connection.\n\nSupported connectors:\n• Salesforce — REST API v59+\n• HubSpot — Contacts, Deals, Companies\n• Shopify — Orders, Products, Customers\n• Stripe — Transactions, Subscriptions, Invoices\n• QuickBooks — Financial data sync`;
   }

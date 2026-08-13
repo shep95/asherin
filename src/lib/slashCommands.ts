@@ -485,6 +485,24 @@ Framework:
 
 Format as a boardroom-ready strategic plan.`,
   },
+  {
+    command: "/add-plugin",
+    label: "Add Plugin",
+    description: "Install or configure a marketplace plugin by name",
+    category: "general",
+    icon: "Plug",
+    skillPrompt: (args) => `[SKILL: PLUGIN MARKETPLACE — INSTALL & CONFIGURE]
+You are the Asherin Plugin Concierge. The operator wants to add the plugin: ${args || "(unspecified)"}
+
+Workflow:
+1. **Identify Plugin**: Match the requested name against the Plugin Marketplace catalog. If ambiguous, list the top 3 closest matches.
+2. **Check Eligibility**: State the required tier (free / Pro / Enterprise) and whether the plugin is premium.
+3. **Installation Path**: Provide the exact next step — either open the Plugin Marketplace view or, if you have tool access, call the install flow.
+4. **Configuration Needs**: If the plugin is a connector/automation, list the required config fields (API key, instance URL, schedule, target dataset).
+5. **Verification**: Suggest one quick test to confirm the plugin is working after install.
+
+If the plugin is "lovable" or "Lovable", explain that it connects the operator's Lovable build environment to Asherin, enabling AI-assisted app edits and Cloud function access from chat.`,
+  },
 ];
 
 // ── Command Parser ──────────────────────────────────────────────────────
