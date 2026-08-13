@@ -27,6 +27,8 @@ import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIREC
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
 import {
+  assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
+} from "../_shared/artifactLedger.ts";
 
 /** Map a folded-tool id to the short verb the operator sees in the panel. */
 function toolRowLabel(id: string): string {
@@ -45,9 +47,6 @@ function toolRowLabel(id: string): string {
   if (k.includes("file") || k.includes("scrape")) return "Reading files";
   return "Running " + id;
 }
-
-  assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
-} from "../_shared/artifactLedger.ts";
 
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
