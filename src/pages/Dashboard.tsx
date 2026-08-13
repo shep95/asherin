@@ -144,7 +144,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","self-access","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
