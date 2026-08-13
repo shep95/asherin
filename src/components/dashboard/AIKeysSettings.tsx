@@ -78,6 +78,27 @@ const AIKeysSettings = () => {
     loadData();
   }, [user]);
 
+  // Presence check. Failure is reported as "offline", never as a fake yes.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("key-status", { body: {} });
+        if (cancelled) return;
+        if (error) throw error;
+        const rows = Array.isArray((data as any)?.providers) ? ((data as any).providers as KeyStatusRow[]) : [];
+        setKeyStatus(rows);
+        setKeyStatusError(null);
+      } catch (e: any) {
+        if (cancelled) return;
+        setKeyStatus([]);
+        setKeyStatusError(String(e?.message || e));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const loadData = async () => {
     if (!user) return;
     setLoading(true);
