@@ -269,3 +269,6 @@ verify_jwt = true
 
 [functions.session-context]
 verify_jwt = true
+
+[functions.asherinx-engine]
+verify_jwt = true
