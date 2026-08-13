@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 // DEV-ONLY harness for verifying the drawer gesture. Not routed in production.
 export default function GestureLab() {
