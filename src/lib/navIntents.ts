@@ -34,77 +34,37 @@ export interface NavIntent {
   adminOnly?: boolean;
 }
 
+// WAVE 1 — tight sidebar. Only nine surfaces are navigable chrome. Every other
+// capability is reached by asking for it in chat, which routes to the tool.
+// Folded tools (search, zerlal, azplen, geospatial, google, zali, ide, zahten,
+// briefing, notebooks, knowledge-vault, axrlen, ghost-engine, zeeion, gematria,
+// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper, teams,
+// community, snippets, stats, audit, bug-reports) still resolve as views so
+// deep links keep working — they simply have no nav row.
 export const NAV_INTENTS: NavIntent[] = [
-  // CREATE
-  { view: "zali", label: "Universal Design Lab", codename: "ZANOEM", blurb: "First-principles design from atoms to universes", keywords: ["design", "engineer", "cad", "fea", "thermal", "material", "physics", "simulation"], group: "Create" },
-  { view: "pdf-generator", label: "Create a Document", codename: "PDF / eBook / Slides", blurb: "Turn content into PDF, eBook, or slideshow", keywords: ["pdf", "ebook", "book", "slides", "slideshow", "presentation", "export", "document"], group: "Create" },
-
-  // ANALYZE
-  { view: "azplen", label: "Data Intelligence", codename: "Azplen", blurb: "Ingest, analyze, branch, and visualize datasets", keywords: ["data", "dataset", "csv", "analyze data", "spreadsheet", "intelligence", "foundry"], group: "Analyze", access: "pro" },
-  { view: "zeeion", label: "Financial Intelligence", codename: "Zeeion", blurb: "Cost savings, efficiency scoring, budget optimization", keywords: ["money", "finance", "financial", "budget", "cost", "expense", "revenue", "savings"], group: "Analyze", access: "pro" },
-  { view: "pattern-analysis", label: "Pattern Analysis", codename: "Pattern Engine", blurb: "Visual pattern recognition and forecasting", keywords: ["pattern", "forecast", "predict pattern", "trend", "anomaly"], group: "Analyze", access: "pro" },
-  { view: "timeseries", label: "Time-Series Forecasting", codename: "Time-Series", blurb: "Temporal analysis with anomaly detection", keywords: ["time series", "timeseries", "forecast", "anomaly", "temporal"], group: "Analyze", access: "pro" },
-  { view: "geospatial", label: "Asherin Maps", codename: "PropertyMap", blurb: "Click any property — Zophiel scrapes live ownership, valuation & risk intel", keywords: ["map", "geo", "location", "property", "land", "parcel", "real estate", "zophiel"], group: "Analyze", access: "pro" },
-  { view: "video-intelligence", label: "Video Behavior Analysis", codename: "Video Intelligence", blurb: "Deception detection, personality profiling", keywords: ["video analyze", "behavior", "deception", "face", "facs", "micro expression"], group: "Analyze", access: "pro" },
-
-  // INVESTIGATE
-  { view: "search", label: "Search Intelligence", codename: "Zophiel", blurb: "Privacy-first source-credibility search", keywords: ["search", "research", "look up", "google", "find", "investigate", "osint"], group: "Investigate", access: "search" },
-  { view: "ghost-engine", label: "Metadata Search", codename: "Asherin Engine", blurb: "Indexes the shell around information — headers, EXIF, producers, DNS/ASN — and never the content", keywords: ["ghost", "metadata", "meta data", "exif", "headers", "provenance", "forensics", "shell", "who made this", "when was this made", "forgery", "authenticity"], group: "Investigate", access: "pro" },
-  { view: "nomad", label: "OSINT Investigation", codename: "NOMAD", blurb: "30+ source OSINT with AI correlation", keywords: ["osint", "investigate", "intelligence", "background check", "person", "dossier"], group: "Investigate" },
-  { view: "zerlal", label: "Cyber Security", codename: "Zerlal", blurb: "Threat analysis, vulnerability detection, defense", keywords: ["security", "cyber", "vulnerability", "exploit", "hack", "threat", "scan", "pentest"], group: "Investigate" },
-  { view: "zaxin", label: "Tactical BLE Discovery", codename: "Zaxin", blurb: "Bluetooth Low Energy scanner, hop graph, GATT pull, tactical HUD", keywords: ["zaxin", "bluetooth", "ble", "bleak", "scan", "rssi", "gatt", "hop", "tactical", "houseofasher"], group: "Investigate" },
-  { view: "google", label: "Cloud Intelligence Mesh", codename: "Asherin Station", blurb: "Connected accounts run as a collection array — correspondent fusion, place cartography, attention ledger, commitments, exposure", keywords: ["google", "gmail", "email", "calendar", "voiceprint", "ghostwrite", "location history", "screentime", "attention", "commitments", "mesh"], group: "Investigate", access: "pro" },
-  { view: "bulwark", label: "Counter-Surveillance", codename: "Bulwark", blurb: "Detects monitoring pressure on your comms and measures how legible this device is to a passive observer", keywords: ["surveillance", "counter surveillance", "tracking", "spy", "monitored", "wiretap", "subpoena", "fbi", "nsa", "tracked", "bug", "fingerprint", "bulwark", "privacy"], group: "Investigate", access: "pro" },
-  { view: "geo-audit", label: "GEO Audit", codename: "Beacon", blurb: "Measures what generative engines receive from the published site and whether Asherin is retrieved for target prompts", keywords: ["seo", "geo", "generative engine optimization", "ranking", "search visibility", "citation", "crawler", "schema", "llm search"], group: "Investigate", access: "pro" },
-  { view: "zacoon", label: "Phantom Grid Operative", codename: "Zacoon", blurb: "Multi-cortex autonomous web operative with adversarial awareness", keywords: ["zacoon", "phantom", "browser agent", "scrape agent", "autonomous", "recon extract", "operative", "grid"], group: "Investigate", access: "pro" },
-  { view: "file-scrapper", label: "Extract Document Text", codename: "File Scrapper", blurb: "Pull all text from any document", keywords: ["scrape", "extract", "ocr", "pdf text", "document text"], group: "Investigate", access: "search" },
-  { view: "cipher", label: "Cipher & Crypto Toolkit", codename: "Cipher", blurb: "Encoding, hashing, encryption — client-side", keywords: ["cipher", "encode", "decode", "hash", "encrypt", "base64", "rot13"], group: "Investigate", access: "search" },
-  { view: "gematria", label: "Gematria Engine", codename: "Gematria", blurb: "English Ordinal, Reduction, Reverse & Chaldean value analysis with personal corpus matching", keywords: ["gematria", "numerology", "ordinal", "reduction", "chaldean", "value", "letter number", "cipher word"], group: "Investigate" },
-  { view: "briefing", label: "Daily Intel Briefings", codename: "Briefings", blurb: "Competitor, regulatory, market signals", keywords: ["briefing", "daily", "news", "feed", "digest"], group: "Investigate" },
-  { view: "cross", label: "Live Screen Intelligence", codename: "Cross", blurb: "Real-time screen analysis with alerts", keywords: ["screen", "live", "share screen", "monitor"], group: "Investigate", access: "pro", adminOnly: true },
-  
-
-  // BUILD
-  { view: "ide", label: "Code IDE", codename: "Aureon IDE", blurb: "Browser IDE with project files and BYOK AI", keywords: ["ide", "code", "editor", "develop", "monaco", "programming"], group: "Build" },
-  { view: "notebooks", label: "Intelligence Notebooks", codename: "Notebooks", blurb: "Shared analysis sessions with SQL execution", keywords: ["notebook", "sql", "jupyter", "analysis"], group: "Build", access: "pro" },
-  { view: "zahten", label: "Agent Forge", codename: "Zahten", blurb: "Design, scaffold, and harden agents", keywords: ["forge", "agent builder", "scaffold"], group: "Build" },
-  { view: "plugins", label: "Plugin Marketplace", codename: "Plugins", blurb: "Connectors and modules", keywords: ["plugin", "marketplace", "connector", "extension"], group: "Build", access: "pro" },
-  { view: "snippets", label: "Code Snippets", codename: "Snippets", blurb: "Save and reuse code blocks", keywords: ["snippet", "code library", "save code"], group: "Build" },
-  { view: "media2code", label: "Media to Code", codename: "Media → Code", blurb: "Turn images and video into clean HTML/CSS embeds", keywords: ["media", "image", "video", "embed", "html", "css", "visual", "convert"], group: "Build" },
-  { view: "whiteboard", label: "Whiteboard", codename: "Canvas", blurb: "Infinite canvas with layers, snap grids, and freeform sketching", keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"], group: "Build" },
-
   // WORKSPACE
+  { view: "chat", label: "Chat", codename: "Asherin", blurb: "Ask for anything — search, maps, code, data, cyber all run from here", keywords: ["chat", "ask", "talk", "conversation", "prompt", "assistant"], group: "Workspace" },
   { view: "library", label: "Library", codename: "Library", blurb: "Saved files and references", keywords: ["library", "files", "storage", "documents"], group: "Workspace" },
   { view: "projects", label: "Projects", codename: "Projects", blurb: "Organize conversations into projects", keywords: ["project", "folder", "organize"], group: "Workspace" },
   { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },
-  { view: "teams", label: "Team Workspace", codename: "Teams", blurb: "Collaborate with role-based access", keywords: ["team", "collaborate", "share", "workspace"], group: "Workspace", access: "pro" },
-  { view: "community", label: "Community", codename: "Community", blurb: "Ask, request, and vote on features", keywords: ["community", "forum", "vote"], group: "Workspace", access: "pro" },
-  { view: "vedic-astrology", label: "Vedic Astrology", codename: "Vedic", blurb: "Sidereal chart calculations", keywords: ["astrology", "vedic", "horoscope", "chart"], group: "Workspace" },
-  { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Centralized security command center", keywords: ["vault", "password", "secret", "mfa", "totp"], group: "Workspace" },
-  { view: "knowledge-vault", label: "Knowledge Vault (RAG)", codename: "Knowledge Vault", blurb: "Upload files or connect APIs — Aureon retrieves them live during chat", keywords: ["rag", "knowledge", "vault", "retrieval", "embeddings", "ingest", "upload", "api source"], group: "Workspace", access: "pro" },
+  { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat", keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"], group: "Workspace" },
+  { view: "whiteboard", label: "Whiteboard", codename: "Canvas", blurb: "Infinite canvas with layers, snap grids, and freeform sketching", keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"], group: "Workspace" },
 
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
-  { view: "api-keys", label: "API Keys", codename: "API", blurb: "Add and manage your AI provider API keys (BYOK)", keywords: ["api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
   { view: "subscription", label: "Subscribe or manage your plan", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"], group: "Account" },
-  { view: "stats", label: "My Usage Stats", codename: "Stats", keywords: ["stats", "usage", "analytics"], group: "Account" },
-  { view: "audit", label: "Audit Trail", codename: "Audit", keywords: ["audit", "log", "history", "trail"], group: "Account", access: "pro" },
-  { view: "bug-reports", label: "Bug Reports", codename: "Bugs", keywords: ["bug", "report", "issue", "feedback"], group: "Account" },
-  { view: "security", label: "Security Center", codename: "Security", keywords: ["security center"], group: "Account", access: "pro", adminOnly: true },
-  { view: "self-access", label: "Self-Access Learning", codename: "Self-Access", keywords: ["self access", "learning"], group: "Account", adminOnly: true },
+  { view: "api-keys", label: "API Keys", codename: "API", blurb: "Add and manage your AI provider API keys (BYOK)", keywords: ["api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
 ];
 
-export const INTENT_GROUPS: IntentGroup[] = [
-  "Create", "Analyze", "Investigate", "Build", "Workspace", "Account",
-];
+export const INTENT_GROUPS: IntentGroup[] = ["Workspace", "Account"];
 
 export const INTENT_GROUP_BLURB: Record<IntentGroup, string> = {
   Create: "Make images, video, code, documents",
   Analyze: "Data, financial, patterns, geospatial",
   Investigate: "Search, OSINT, prediction, cyber",
   Build: "IDE, notebooks, agents, plugins",
-  Workspace: "Library, projects, memory, teams",
-  Account: "Settings, billing, stats, audit",
+  Workspace: "Chat, library, projects, memory, vault",
+  Account: "Settings, billing, API keys",
 };
 
 /* ───────────────────────── Recents ───────────────────────── */
