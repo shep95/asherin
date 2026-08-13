@@ -1260,8 +1260,26 @@ const IntelligenceMapModule = () => {
     if (zoom >= 17 && activeBase === "carto-dark") setActiveBase("esri-sat");
 
     flyTo(lat, lng, zoom);
+
+    /* AUTO-PULL (Queue 06 B): arriving at a target IS the request for local
+       sensor context. The Cameras button is a manual refresh, never the
+       precondition for first paint. Cameras must never block the dossier, so
+       the sweep runs alongside loadEntity and swallows its own failure. */
+    const camSweep = (async () => {
+      if (zoom < 14) return; // metro scale — a sweep there is thousands of noise nodes
+      const b = mapRef.current?.getBounds();
+      const radiusM = b
+        ? Math.min(4000, Math.max(400, b.getNorthEast().distanceTo(b.getSouthWest()) / 2))
+        : zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1800;
+      try {
+        await loadCamerasQuiet({ center: { lat, lng }, radiusM });
+      } catch { /* cameras optional */ }
+    })();
+
     await loadEntity(lat, lng);
+    void camSweep;
   };
+
 
 
   const loadEntity = async (lat: number, lng: number) => {
