@@ -29,53 +29,51 @@ const PLANS = [
     highlight: false,
     groups: [
       {
-        title: "Asherin Chat",
-        items: ["Chat Mode", "Code Mode", "Research Mode", "Truth Mode"],
-      },
-      {
-        title: "Core Capabilities",
+        title: "asherin chat",
         items: [
-          "Analytical answers; refusal behaviour follows the provider you route to",
-          "Capable coding engine with multi-language output",
-          "Response depth control",
+          "every message kind — a greeting stays a greeting, a task runs the tool",
+          "capable coding output across languages",
           "BYOK — bring your own model key",
+          "60 messages per 3-hour window",
         ],
       },
       {
-        title: "Search",
+        title: "asherinx.eng",
         items: [
-          "Base web search with source-credibility scoring",
-          "Search operators (dorking) with a live fetch",
-          "Standard query throughput and recency",
+          "public-index search across eighteen open indexes",
+          "results grouped by the field site that answered",
         ],
       },
       {
-        title: "Asherin Maps",
+        title: "asherin.maps",
         items: [
-          "Satellite-first map with a scalable layer tree",
-          "Public street-camera feeds where the agency publishes them",
-          "Directions and explore nearby",
+          "satellite-first globe with the rectangle grid on the imagery",
+          "fly to any named place; imagery / streets / GIBS switch",
+          "public street cameras where the agency publishes them",
         ],
       },
       {
-        title: "Workspace",
+        title: "asherin.defender",
         items: [
-          "Guardian Vault",
-          "Whiteboard",
-          "Persistent memory (standard limits)",
-          "Can start an Asherin Team workspace (billed separately)",
+          "live camera, wifi, bluetooth and spy-class status on your own device",
+          "covert-camera law — capture with no visible preview reads BLOCKED",
         ],
       },
       {
-        title: "Privacy",
+        title: "asherin.arvision",
         items: [
-          "Account-synced encryption at rest",
-          "Delete anytime + export",
+          "live mirrored camera HUD with native frame intel",
+          "freeze, OCR and barcode read — frames stay in your tab",
+          "honest cannot-resolve instead of an invented answer",
         ],
       },
       {
-        title: "Usage",
-        items: ["60 messages per 3-hour window"],
+        title: "workspace",
+        items: [
+          "library, projects, memory, guardian vault, whiteboard, connect",
+          "google mesh on your own connected accounts",
+          "account-synced encryption, export and delete anytime",
+        ],
       },
     ],
   },
@@ -91,29 +89,36 @@ const PLANS = [
     highlight: true,
     groups: [
       {
-        title: "Everything in Asherin ($18)",
+        title: "everything in asherin ($18)",
+        items: ["chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, workspace, BYOK"],
+      },
+      {
+        title: "usage",
+        items: ["200 messages per 3-hour window", "higher search and map throughput"],
+      },
+      {
+        title: "asherinx.eng",
+        items: ["buffer, fold and identifier actions (capture stays off by default)"],
+      },
+      {
+        title: "asherin.maps",
+        items: ["property dossier organs from public indexes", "roof and area grid cells", "the 55-organ live digest"],
+      },
+      {
+        title: "asherin.defender",
         items: [
-          "Chat, modes, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK",
+          "bunker on/off apply and key-poison via the companion",
+          "full hardware and spy scan with recommendations",
+          "local counter dry-run before anything is applied",
         ],
       },
       {
-        title: "Usage",
-        items: ["200 messages per 3-hour window"],
+        title: "asherin.arvision",
+        items: ["saved A–E packets", "rf lattice", "plate and VIN public-index lookups", "local operator enroll on this device"],
       },
       {
-        title: "Throughput",
-        items: [
-          "Higher search / dork throughput, with priority when that engine is queued",
-          "Extra map and search query capacity",
-          "Higher limits on the tools that run inside asherin chat",
-        ],
-      },
-      {
-        title: "Team",
-        items: [
-          "Shared threads + outputs on any team you belong to",
-          "Multi-person workspaces are the separate Asherin Team plan below",
-        ],
+        title: "team",
+        items: ["multi-person workspaces are the separate asherin team plan below"],
       },
     ],
   },

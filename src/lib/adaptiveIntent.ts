@@ -157,11 +157,11 @@ const TOOL_TARGETS: Partial<Record<IntentDomain, string[]>> = {
   // (nomad, bulwark, cloud-intelligence, imagine, development-suite) routes the
   // operator into a silent ChatView fallback, which reads as a hallucinated tool.
   osint: ["search", "ghost-engine"],
-  maps: ["geospatial", "zaxin"],
+  maps: ["geospatial", "asherin-arvision"],
   astrology: ["vedic-astrology"],
   market: ["axrlen", "timeseries"],
   imagine: ["whiteboard"],
-  security: ["zerlal"],
+  security: ["zerlal", "asherin-defender"],
   code: ["ide"],
   research: ["search", "knowledge-vault"],
   quickintel: ["search", "geospatial"],

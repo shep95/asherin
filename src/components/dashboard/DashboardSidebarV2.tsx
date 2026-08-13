@@ -49,6 +49,8 @@ interface Props {
 const V2_LABELS: Partial<Record<string, string>> = {
   "ghost-engine": "asherinx.eng",
   geospatial: "asherin.maps",
+  "asherin-defender": "asherin.defender",
+  "asherin-arvision": "asherin.arvision",
   memory: "Memory",
   subscription: "Subscription",
 };
@@ -57,6 +59,8 @@ const V2_LABELS: Partial<Record<string, string>> = {
 const V2_ORDER: DashboardView[] = [
   "ghost-engine",
   "geospatial",
+  "asherin-defender",
+  "asherin-arvision",
   "library",
   "projects",
   "memory",

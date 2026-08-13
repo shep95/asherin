@@ -27,7 +27,11 @@ const PRO_VIEWS: DashboardView[] = [
 ];
 // Asherin ($18/mo, monthly + 6-month) and above. Asherin Maps (`geospatial`)
 // ships with this tier alongside the Cloud Intelligence mesh above.
-const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial", "ghost-engine"];
+// asherin.defender and asherin.arvision open at core height: a person on the
+// $18 plan sees live status, the covert-camera verdict and the live HUD. The
+// Pro-only pieces (bunker apply, key-poison, packet save, RF lattice) gate
+// INSIDE the room, so the tab is never a locked door.
+const AUREON_VIEWS: DashboardView[] = ["nomad", "briefing", "zali", "notebooks", "geospatial", "ghost-engine", "asherin-defender", "asherin-arvision"];
 
 
 // Zophiel Search Intelligence tab and its sibling search surfaces. Included

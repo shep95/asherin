@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, useMap, CircleMarker, Polyline, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import MapGraticule from "@/components/asher/MapGraticule";
 import {
   ChevronDown, ChevronRight, X, Search, Loader2, Pin,
   Layers as LayersIcon, Crosshair as CrosshairIcon, Save,
@@ -87,6 +88,7 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "osm-topo",      label: "Topographic — OpenTopo",  status: "live" },
     { id: "esri-sat",      label: "Satellite Imagery — ESRI", status: "live" },
     { id: "carto-dark",    label: "Dark Mode",                status: "live" },
+    { id: "grid-graticule", label: "Rectangle Grid — Lat/Lon Cells", status: "live" },
     { id: "sat-multispec", label: "Multi-Spectral (IR/Thermal/UV)", status: "soon" },
     { id: "sar",           label: "Synthetic Aperture Radar (SAR)", status: "soon" },
     { id: "nautical",      label: "Nautical Chart",           status: "soon" },
@@ -825,6 +827,8 @@ const IntelligenceMapModule = () => {
   const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const [showTacticalBorders, setShowTacticalBorders] = useState(true);
+  // The rectangle grid is the frame a person reads imagery against: on by default.
+  const [showGrid, setShowGrid] = useState(true);
   const [cloudLayer, setCloudLayer] = useState<CloudMapLayer>({ contacts: [], venues: [], security: [], relationships: [] });
   const [cloudLayerLoading, setCloudLayerLoading] = useState(false);
   const [activeCloud, setActiveCloud] = useState<Record<string, boolean>>({ "cloud-contacts": false, "cloud-venues": false, "cloud-security": false, "cloud-relationships": false });
@@ -2629,13 +2633,16 @@ const IntelligenceMapModule = () => {
                 {open && (
                   <div className="ml-6 mt-1 space-y-1">
                     {layers.map((l) => {
-                      const isBase = cat.id === "base";
+                      const isGrid = l.id === "grid-graticule";
+                      const isBase = cat.id === "base" && !isGrid;
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
                       const isBoundary = l.id === "borders-intl";
                       const isMyDevices = l.id === "my-devices";
                       const isMesh = l.id === "mesh-devices";
                       const isCloud = cat.id === "cloud-intel";
-                      const isActive = isBase
+                      const isActive = isGrid
+                        ? showGrid
+                        : isBase
                         ? l.id === activeBase
                         : isThreat ? !!activeThreats[l.id as ThreatId]
                         : isBoundary ? showTacticalBorders
@@ -2648,7 +2655,8 @@ const IntelligenceMapModule = () => {
                           key={l.id}
                           onClick={() => {
                             if (l.status !== "live") return;
-                            if (isBase) setActiveBase(l.id);
+                            if (isGrid) setShowGrid((p) => !p);
+                            else if (isBase) setActiveBase(l.id);
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                             else if (isBoundary) setShowTacticalBorders((p) => !p);
                             else if (isMyDevices) setShowMyDevices((p) => !p);
@@ -3047,6 +3055,8 @@ const IntelligenceMapModule = () => {
             attribution=""
             maxZoom={tile.max ?? 19}
           />
+          <MapGraticule enabled={showGrid} />
+
           {showSatelliteTacticalOverlay && (
             <TileLayer
               key="esri-tactical-borders"

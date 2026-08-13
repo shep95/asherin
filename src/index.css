@@ -750,3 +750,24 @@ html[data-scrolling] .zophiel-aurora-pulse {
 .asher-map-chrome .leaflet-container a.leaflet-popup-close-button {
   color: hsl(var(--muted-foreground));
 }
+
+/* asherin.maps — graticule edge labels. Never a block, never a shadow: a
+   measurement whisper at the cell edge so the grid stays readable at 320px. */
+.asherin-graticule-label {
+  pointer-events: none;
+  white-space: nowrap;
+}
+.asherin-graticule-label span {
+  position: absolute;
+  left: 4px;
+  top: -14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: hsl(var(--foreground) / 0.42);
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.85);
+}
+.asherin-graticule-label--x span {
+  left: 4px;
+  top: -16px;
+}
