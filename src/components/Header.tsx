@@ -103,24 +103,6 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/updates" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Updates</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/houseofasher/theories" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">House of Asher · Theories</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/hosrad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">HOSRAD · Research & Development</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/symbols-of-the-bible" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Symbols of the Bible</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/investors" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Investors</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/valuation" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Valuation</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/asherin.gov" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Asherin · Government</Link>
-                </DropdownMenuItem>
 
                 {isAdminEmail(user?.email) && (
                   <>
@@ -225,12 +207,6 @@ const Header = () => {
                 <Link to="/whiteboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Whiteboard</Link>
                 <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Blog</Link>
                 <Link to="/updates" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Updates</Link>
-                <Link to="/houseofasher/theories" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">House of Asher · Theories</Link>
-                <Link to="/hosrad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">HOSRAD · Research & Development</Link>
-                <Link to="/symbols-of-the-bible" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Symbols of the Bible</Link>
-                <Link to="/investors" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Investors</Link>
-                <Link to="/valuation" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Valuation</Link>
-                <Link to="/asherin.gov" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Asherin · Government</Link>
               </div>
             </div>
           </>

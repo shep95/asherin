@@ -62,11 +62,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "Asher Newton, founder of Asherin, and his book The Book of Asher Aureon Elion, readable in full.",
   },
 
-  "/hosrad": {
-    title: "HOSRAD | House Of Asher Research & Development",
-    description:
-      "HOSRAD is the House Of Asher R&D division, a private DARPA for the Asher Empire. Full-spectrum research across AI, quantum, military, and civilian safety technology.",
-  },
   "/prompt-engineering": {
     title: "Prompt Engineering Protocols | Zophiel Doctrine",
     description:
@@ -139,80 +134,10 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     ogType: "article",
     datePublished: "2026-06-19",
   },
-  "/blog/predictions/world-cup-2026-group-matches-0622": {
-    title: "AXRLEN Forecast | World Cup 2026 Groups (22 June)",
-    description:
-      "AXRLEN picks for the 22 June 2026 World Cup slate: Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan.",
-    ogType: "article",
-    datePublished: "2026-06-22",
-  },
-  "/blog/predictions/world-cup-2026-group-matches-0623": {
-    title: "AXRLEN Forecast | World Cup 2026 Groups (23 June)",
-    description:
-      "AXRLEN picks for the 23 June 2026 World Cup slate: Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo.",
-    ogType: "article",
-    datePublished: "2026-06-22",
-  },
-  "/blog/predictions/world-cup-2026-group-matches-0624": {
-    title: "AXRLEN Deep Dive | World Cup 2026 (23 June)",
-    description:
-      "Structural and historical AXRLEN analysis behind the 23 June 2026 picks: Portugal, England, Croatia, and Colombia.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
-  "/blog/predictions/world-cup-2026-group-matches-0625": {
-    title: "AXRLEN Forecast | World Cup 2026 Groups (24 June)",
-    description:
-      "AXRLEN picks for the 24 June 2026 World Cup slate: Switzerland, Bosnia, Morocco, Brazil, South Korea, Mexico, with modal scorelines and confidence weights.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
-  "/blog/predictions/peru-2026-keiko-fujimori": {
-    title: "AXRLEN | Keiko Fujimori, Peru 2026 President",
-    description:
-      "AXRLEN predicts Keiko Fujimori wins the 2026 Peru runoff under the Antivoto Paradox. Three scenarios, 94% polarized runoff probability.",
-    ogType: "article",
-    datePublished: "2026-06-22",
-  },
-  "/blog/predictions/russia-ukraine-war-2026-endgame": {
-    title: "AXRLEN | Russia–Ukraine 2026 Endgame Forecast",
-    description:
-      "AXRLEN forecasts a Korean-style armistice along the current line of contact within 24 months. Symmetric Exhaustion Cycle, 55% armistice probability, de facto Donbas/Crimea partition.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
-  "/blog/predictions/china-taiwan-2026-flashpoint": {
-    title: "AXRLEN | China–Taiwan 2026 Flashpoint Forecast",
-    description:
-      "AXRLEN forecasts a 72% Taiwan Strait kinetic-crisis probability in 2026 with a PLA blockade-first escalation path. Thucydides–Mahan Convergence and US deterrence dissonance.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
-  "/blog/predictions/israel-iran-2026-shadow-war": {
-    title: "AXRLEN | Israel–Iran 2026 Shadow War Forecast",
-    description:
-      "AXRLEN forecasts High-Intensity Intermittency and a singular Israeli 'Hard Test' strike on Iranian nuclear infrastructure. Hezbollah-first sequencing, three-month proxy spike, forced mediation.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
-  "/blog/the-crypto-dump-october-2026": {
-    title: "The Crypto Dump | BTC to $44,500 (Oct 2026)",
-    description:
-      "AXRLEN predicts a Bitcoin liquidity event Oct 12–19, 2026 with a $44,500 floor at 88% confidence. SBC Vedha collision and Mars–Rahu trigger.",
-    ogType: "article",
-    datePublished: "2026-06-23",
-  },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
     title: "Elite Algorithms vs #HouseOfAsher | AXRLEN",
     description:
       "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
-    ogType: "article",
-    datePublished: "2026-06-24",
-  },
-  "/blog/btc-daily-predictions": {
-    title: "AXRLEN BTC Daily | Live Long/Short Forecast | Asherin",
-    description:
-      "Daily 07:00 EST AXRLEN Bitcoin forecast. Live BTC price, long/short call with entry, stop loss, take profit, and a running win/loss tally.",
     ogType: "article",
     datePublished: "2026-06-24",
   },
@@ -506,13 +431,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     ogType: "article",
     datePublished: "2026-08-10",
   },
-  "/blog/how-to-break-any-encryption-theory": {
-    title: "How To Break Any Encryption | A Theory | Asherin",
-    description:
-      "An Asherin R&D theory on encryption: side-channel observability, symbolic key structure, and where implementations leak long before math does.",
-    ogType: "article",
-    datePublished: "2026-07-12",
-  },
   "/blog/code-narrative-quantum-collapse": {
     title: "Code-to-Narrative & Quantum Candidate Collapse",
     description:
@@ -533,13 +451,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "Zaxin turns Bluetooth Low Energy noise into tactical intelligence: device fingerprinting, proximity tracking, and optical/AI overlay fusion.",
     ogType: "article",
     datePublished: "2026-06-26",
-  },
-  "/blog/uncensored-ai-text-generator-guide": {
-    title: "Uncensored AI Text Generator | Operator Guide",
-    description:
-      "A practical guide to uncensored AI text generation: model selection, key routing, refusal detection, and keeping long sessions coherent.",
-    ogType: "article",
-    datePublished: "2026-06-17",
   },
 
   // --- Glossary entries that were missing metadata ---
@@ -573,37 +484,10 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   },
 
   // --- Standalone public pages ---
-  "/symbols-of-the-bible": {
-    title: "Symbols of the Bible | Decoded Meanings",
-    description:
-      "Forty-plus Biblical stories decoded into their symbolic meaning: archetypes, patterns, and the inner reading behind the literal narrative.",
-    ogType: "article",
-    datePublished: "2026-07-10",
-  },
-  "/houseofasher/theories": {
-    title: "House of Asher | Theories | Asherin",
-    description:
-      "The House of Asher theories: the philosophical framework behind Asherin's predictive doctrine, from narrative collapse to temporal decay.",
-  },
-  "/zaxin/theories": {
-    title: "Zaxin Theories | Tactical Sensing Doctrine",
-    description:
-      "The theories behind Zaxin: BLE signal geometry, optical fusion, and the sensing doctrine driving Asherin's AR intelligence overlay.",
-  },
   "/updates": {
     title: "Updates | Asherin Release Log",
     description:
       "Every meaningful Asherin release: new intelligence modules, engine upgrades, and platform changes, logged as they ship.",
-  },
-  "/investors": {
-    title: "Investors | Asherin",
-    description:
-      "Asherin investor brief: platform scope, intelligence engines, revenue tiers, and the asset base behind the House of Asher valuation.",
-  },
-  "/valuation": {
-    title: "Valuation | Asherin Asset Model",
-    description:
-      "The Asherin valuation model: asset-based accounting of the intelligence engines, IP, and platform surfaces that make up the company.",
   },
   "/ziaassets": {
     title: "ZIA Assets | Restricted",

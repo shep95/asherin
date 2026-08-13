@@ -110,16 +110,7 @@ export const BLOG_POSTS: Post[] = [
     readTime: "12 min",
     featured: true,
   },
-  {
-    slug: "/blog/how-to-break-any-encryption-theory",
-    title: "How To Break Any Encryption Theory — Asherin R&D × Asherin",
-    dek: "A research narrative on why post-quantum ciphers still fall: not by attacking the math, but by attacking the runtime that renders the ciphertext into the 3D realm. The Key of Solomon as the master-key metaphor for the code layer beneath the screen.",
-    tag: "Research",
-    published: "2026-07-12T00:00:00.000Z",
-    readTime: "11 min",
-    featured: true,
-    pinned: true,
-  },
+  
   {
     slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
     title: "Asherin Legal Advisor (LAW Mode) — multi-jurisdictional AI legal research",
@@ -148,16 +139,7 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
     pinned: true,
   },
-  {
-    slug: "/blog/btc-daily-predictions",
-    title: "AXRLEN BTC Daily — Live Long/Short Forecast (auto-updated 07:00 EST)",
-    dek: "Every morning at 07:00 EST the AXRLEN engine publishes a 24-hour Bitcoin long/short call with entry, stop loss, take profit, and a running win/loss tally. Live BTC price on page.",
-    tag: "Live Prediction",
-    published: new Date().toISOString(),
-    readTime: "Live",
-    featured: true,
-    pinned: true,
-  },
+  
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
     title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin",
@@ -177,15 +159,7 @@ export const BLOG_POSTS: Post[] = [
     readTime: "5 min",
     featured: true,
   },
-  {
-    slug: "/blog/the-crypto-dump-october-2026",
-    title: "The Crypto Dump — AXRLEN predicts Bitcoin to $44,500 (Oct 12–19, 2026)",
-    dek: "AXRLEN's 88%-confidence call on the October 2026 Bitcoin liquidity event: SBC Vedha collision, Mars–Rahu Mahadasha trigger, 92:8 loser-to-winner ratio, and the BlackRock/Vanguard trap-door mechanism. Live BTC at generation: $62,540.",
-    tag: "Prediction",
-    published: "2026-06-23T16:38:26.000Z",
-    readTime: "9 min",
-    featured: true,
-  },
+  
   {
     slug: "/blog/aureon-pricing-explained",
     title: "Asherin pricing explained — why $18/mo and $399/mo",
@@ -194,78 +168,14 @@ export const BLOG_POSTS: Post[] = [
     published: "2026-06-19",
     readTime: "11 min",
   },
-  {
-    slug: "/blog/predictions/russia-ukraine-war-2026-endgame",
-    title: "AXRLEN Prediction — Russia–Ukraine 2026 endgame (Korean-style armistice)",
-    dek: "AXRLEN forecasts a frozen front and Korean-style armistice within 24 months under the Symmetric Exhaustion Cycle. De facto Donbas/Crimea partition, security guarantees short of NATO, 55% armistice probability.",
-    tag: "Prediction",
-    published: "2026-06-23T23:30:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/china-taiwan-2026-flashpoint",
-    title: "AXRLEN Prediction — China–Taiwan 2026 flashpoint (blockade-first)",
-    dek: "AXRLEN forecasts a 72% Taiwan Strait kinetic-crisis probability in 2026 with a PLA blockade-first escalation path. Thucydides–Mahan Convergence, PLA Target 2027 milestone, US deterrence dissonance.",
-    tag: "Prediction",
-    published: "2026-06-23T23:31:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/israel-iran-2026-shadow-war",
-    title: "AXRLEN Prediction — Israel–Iran 2026 shadow war (nuclear 'Hard Test')",
-    dek: "AXRLEN forecasts High-Intensity Intermittency and a singular Israeli strike on Iranian nuclear infrastructure. Hezbollah-first sequencing, three-month proxy spike, forced international mediation.",
-    tag: "Prediction",
-    published: "2026-06-23T23:32:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/peru-2026-keiko-fujimori",
-    title: "AXRLEN Prediction — Keiko Fujimori, future president of Peru (2026)",
-    dek: "AXRLEN's Zero-Point Field call on the 2026 Peruvian election: Keiko Fujimori (Fuerza Popular) wins the runoff by exhaustion under the Antivoto Paradox. Weighted matrix, three scenarios, 94% polarized-runoff probability.",
-    tag: "Prediction",
-    published: "2026-06-22T17:00:00.000Z",
-    readTime: "7 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/world-cup-2026-group-matches-0625",
-    title: "AXRLEN Forecast — World Cup 2026 picks for the 24 June slate",
-    dek: "Six 24 June matches: Switzerland 2–1 Canada, Bosnia 3–1 Qatar, Morocco 3–0 Haiti, Brazil 3–1 Scotland, South Korea 2–1 South Africa, Mexico 2–1 Czechia.",
-    tag: "Prediction",
-    published: "2026-06-23T23:00:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/world-cup-2026-group-matches-0624",
-    title: "AXRLEN Deep Dive — World Cup 2026 structural & historical analysis (23 June slate)",
-    dek: "Extended breakdown of the four 23 June matches: squad-structure edges and historical-pattern validation behind the Portugal, England, Croatia, and Colombia picks.",
-    tag: "Prediction",
-    published: "2026-06-23T22:00:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/world-cup-2026-group-matches-0623",
-    title: "AXRLEN Forecast — World Cup 2026 picks for the 23 June slate",
-    dek: "Portugal over Uzbekistan, England over Ghana, Croatia over Panama, Colombia over DR Congo. Four AXRLEN picks generated 22 June 2026 for the next day's slate.",
-    tag: "Prediction",
-    published: "2026-06-22T21:00:00.000Z",
-    readTime: "7 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/predictions/world-cup-2026-group-matches-0622",
-    title: "AXRLEN Forecast — World Cup 2026 picks for the 22 June slate",
-    dek: "Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan. Four live AXRLEN picks generated at 12:25 PM EST on 22 June 2026.",
-    tag: "Prediction",
-    published: "2026-06-22T16:25:00.000Z",
-    readTime: "6 min",
-    featured: true,
-  },
+  
+  
+  
+  
+  
+  
+  
+  
   {
     slug: "/blog/ai-vulnerability-scanning-explained",
     title: "AI vulnerability scanning, explained — beyond legacy SAST/DAST",

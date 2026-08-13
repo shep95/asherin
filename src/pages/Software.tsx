@@ -93,16 +93,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/file-scrapper",
     tier: "aureon",
   },
-  {
-    name: "Cipher Toolkit",
-    tagline: "Client-side crypto workbench",
-    description:
-      "Encoding, hashing, symmetric + asymmetric encryption run entirely in your browser. Nothing leaves the tab.",
-    icon: Lock,
-    features: ["Base64 / hex / ROT / URL encoders", "SHA / BLAKE / Argon2 hashing", "AES-GCM & RSA-OAEP", "Key-pair generation"],
-    route: "/dashboard/cipher",
-    tier: "aureon",
-  },
+  
   {
     name: "Asherin IDE",
     codename: "Asher Code",
@@ -165,15 +156,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/zerlal",
     tier: "aureon",
   },
-  {
-    name: "NOMAD OSINT",
-    tagline: "30+ source dossier engine",
-    description: "14-pass deep analysis with persistent dossier trees. Built for investigators, journalists, and analysts.",
-    icon: Network,
-    features: ["30+ live OSINT sources", "14-pass correlation engine", "Persistent dossier tree", "Entity + relationship graph"],
-    route: "/dashboard/nomad",
-    tier: "aureon",
-  },
+  
   {
     name: "Zaxin Tactical",
     tagline: "BLE + optical AR overlay",
@@ -193,15 +176,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/zali",
     tier: "aureon",
   },
-  {
-    name: "Media → Code",
-    tagline: "Vision to production HTML",
-    description: "Turn images and video into clean, semantic HTML/CSS embeds ready to ship.",
-    icon: ImageIcon,
-    features: ["Image → responsive HTML", "Video → embedded player", "Semantic markup output", "Tailwind class extraction"],
-    route: "/dashboard/media2code",
-    tier: "aureon",
-  },
+  
   {
     name: "Zahten Agent Forge",
     tagline: "Design + scaffold + harden agents",
@@ -389,15 +364,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/timeseries",
     tier: "pro",
   },
-  {
-    name: "Video Intelligence",
-    tagline: "FACS + deception analysis",
-    description: "Image locus mapping and FACS-based behavioral video tracking with deception scoring and personality profiling.",
-    icon: Video,
-    features: ["FACS micro-expression tracking", "Deception scoring", "Personality profiling", "Frame-level annotation"],
-    route: "/dashboard/video-intelligence",
-    tier: "pro",
-  },
+  
   {
     name: "Zacoon Phantom Grid",
     tagline: "Autonomous web operative",
@@ -407,15 +374,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/zacoon",
     tier: "pro",
   },
-  {
-    name: "Cross Screen Intelligence",
-    tagline: "Live screen + facial tracking",
-    description: "Real-time on-screen intelligence with alerts, facial tracking, and event triggers.",
-    icon: Eye,
-    features: ["Live screen OCR + intel", "Facial tracking", "Trigger-based alerts", "Recording + replay"],
-    route: "/dashboard/cross",
-    tier: "pro",
-  },
+  
   {
     name: "Knowledge Vault (RAG)",
     tagline: "BYO corpus retrieval",
@@ -434,15 +393,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/notebooks",
     tier: "pro",
   },
-  {
-    name: "Plugin Marketplace",
-    tagline: "Connectors + agent modules",
-    description: "Extend Asherin with connectors, agent modules, and pre-built automations.",
-    icon: Puzzle,
-    features: ["Connector library", "Agent module store", "Sandboxed execution", "One-click install"],
-    route: "/dashboard/plugins",
-    tier: "pro",
-  },
+  
   {
     name: "Automated Agents",
     tagline: "Set-and-forget workers",
@@ -470,15 +421,7 @@ const PRODUCTS: Product[] = [
     route: "/dashboard/guardian-vault",
     tier: "pro",
   },
-  {
-    name: "Vibe Video",
-    tagline: "Generative video pipeline",
-    description: "Prompt-to-video with scene planning, shot list, and post-production hooks.",
-    icon: Radio,
-    features: ["Prompt → storyboard", "Shot list generator", "Scene + audio sync", "Export to editor"],
-    route: "/dashboard/vibe-video",
-    tier: "pro",
-  },
+  
 ];
 
 const BENCHMARK_DATA = [

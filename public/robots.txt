@@ -193,8 +193,6 @@ Disallow: /server-status
 Disallow: /server-info
 Disallow: /debug/
 Disallow: /debug
-Disallow: /asherin.gov/dashboard
-Disallow: /asherin-gov/dashboard
 Disallow: /ziaassets
 Disallow: /ZIAASSETS
 Disallow: /whiteboard

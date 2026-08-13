@@ -59,15 +59,9 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       links: [
         { to: "/blog", label: "All articles" },
         { to: "/blog/elite-corporations-algorithms-vs-axrlen", label: "Elite Corporations vs AXRLEN" },
-        { to: "/blog/the-crypto-dump-october-2026", label: "The Crypto Dump (Oct 2026)" },
         { to: "/blog/what-is-ai-osint", label: "What is AI OSINT?" },
         { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI landscape" },
         { to: "/blog/ai-without-restrictions", label: "AI without restrictions" },
-        { to: "/blog/predictions/world-cup-2026-group-matches-0625", label: "World Cup 24 Jun picks" },
-        { to: "/blog/predictions/world-cup-2026-group-matches-0624", label: "World Cup 23 Jun deep dive" },
-        { to: "/blog/predictions/world-cup-2026-group-matches-0623", label: "World Cup 23 Jun picks" },
-        { to: "/blog/predictions/world-cup-2026-group-matches-0622", label: "World Cup 22 Jun picks" },
-        { to: "/blog/predictions/peru-2026-keiko-fujimori", label: "Peru 2026 — Keiko Fujimori" },
       ],
     },
     {
@@ -75,7 +69,6 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
       links: [
         { to: "/feature/zophiel", label: "Zophiel OSINT" },
         { to: "/benchmark", label: "Benchmarks" },
-        { to: "/houseofasher/theories", label: "House of Asher theories" },
       ],
     },
     {

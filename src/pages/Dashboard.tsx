@@ -32,15 +32,12 @@ const GhostEngineView = lazyWithRetry(() => import("@/components/dashboard/Ghost
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
 const ZaliView = lazyWithRetry(() => import("@/components/dashboard/zali/ZaliView"));
 const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/CommunityView"));
-const NomadView = lazyWithRetry(() => import("@/components/dashboard/NomadView"));
 const BriefingView = lazyWithRetry(() => import("@/components/dashboard/BriefingView"));
 const TeamsView = lazyWithRetry(() => import("@/components/dashboard/TeamsView"));
 const NotebooksView = lazyWithRetry(() => import("@/components/dashboard/NotebooksView"));
 const GeospatialView = lazyWithRetry(() => import("@/components/dashboard/IntelligencePropertyMapView"));
-const PluginMarketplaceView = lazyWithRetry(() => import("@/components/dashboard/PluginMarketplaceView"));
 const TimeSeriesView = lazyWithRetry(() => import("@/components/dashboard/TimeSeriesView"));
 const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
-const PredictiveIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/PredictiveIntelligenceView"));
 
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
@@ -51,27 +48,19 @@ const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/P
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
 const SelfAccessLearningView = lazyWithRetry(() => import("@/components/dashboard/SelfAccessLearningView"));
-const ImagineIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/OracleLocusView"));
-const VideoIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/VideoIntelligenceView"));
 
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
-const CrossView = lazyWithRetry(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
-const BulwarkView = lazyWithRetry(() => import("@/components/dashboard/BulwarkView"));
-const GeoAuditView = lazyWithRetry(() => import("@/components/dashboard/GeoAuditView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
-const MediaToCodeView = lazyWithRetry(() => import("@/components/asher/AsherMediaToCodeModule"));
 
-const CipherView = lazyWithRetry(() => import("@/components/dashboard/cipher/CipherToolkit"));
 const GematriaView = lazyWithRetry(() => import("@/components/gematria/GematriaTab"));
-const VibeVideoView = lazyWithRetry(() => import("@/components/dashboard/VibeVideoView"));
 const AsherZahtenModule = lazyWithRetry(() => import("@/components/asher/AsherZahtenModule"));
 const AsherPublishedTabRenderer = lazyWithRetry(() => import("@/components/asher/AsherPublishedTabRenderer"));
 const CommandPalette = lazyWithRetry(() => import("@/components/dashboard/CommandPalette"));
@@ -155,7 +144,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","nomad","briefing","snippets","teams","notebooks","geospatial","plugins","timeseries","audit","zali","community","predictive","security","elion","tracker","google","ide","pdf-generator","pattern-analysis","slideshow","self-learning","self-access","imagine-intelligence","video-intelligence","bug-reports","ebook","lavba","cross","guardian-vault","zaplen","zeeion","zerlal","bulwark","zaxin","zacoon","file-scrapper","cipher","vedic-astrology","zahten","media2code","gematria","vibe-video","geo-audit","ghost-engine"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","stats","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","self-access","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1390,41 +1379,32 @@ const Dashboard = () => {
       case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");
       case "azplen": return gatedView("azplen", AzplenView, "Azplen Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.");
       // case "elion" removed
-      case "nomad": return gatedView("nomad", NomadView, "NOMAD Agent", "Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation. Available on Pro plans.");
       case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
       case "teams": return gatedView("teams", TeamsView, "Team Workspace", "Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro plans.");
       case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.");
       case "geospatial": return gatedView("geospatial", GeospatialView, "Asherin Maps", "Real-time tactical map — click any land parcel or property and the Zophiel engine scrapes live ownership, valuation, history, and risk intelligence from the open web. Available on the Maximum Intelligence (Pro) plan.");
-      case "plugins": return gatedView("plugins", PluginMarketplaceView, "Plugin Marketplace", "Extend Azplen with data connectors, analysis modules, and visualization plugins. Available on Pro plans.");
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.");
       
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
-      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Asherin for instant pattern detection, alerts, and recommendations. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
       case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $399/mo, Maximum Intelligence.");
-      case "geo-audit": return gatedView("geo-audit", GeoAuditView, "GEO Audit — Generative Engine Readiness", "Measures what generative crawlers receive from the published site and whether Asherin is retrieved for target prompts. Available on Pro plans.");
-      case "bulwark": return gatedView("bulwark", BulwarkView, "Bulwark — Counter-Surveillance", "Detects monitoring pressure across your connected accounts and measures how legible this device is to a passive observer. Available on Pro plans.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — Tactical BLE Intelligence", "AR vision, BLE radar, and tactical intelligence overlay. Available on Pro plans.");
       case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
       
       
       // case "imagine-intelligence" removed
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.");
-      case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
       
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
       case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $399/mo Pro plan.");
-      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Asherin and above.");
       case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
-      case "vibe-video": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VibeVideoView /></Suspense></ErrorBoundary>;
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
-      case "media2code": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MediaToCodeView /></Suspense></ErrorBoundary>;
       case "whiteboard": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full w-full min-h-0"><WhiteboardView /></div></Suspense></ErrorBoundary>;
       case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
       case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
