@@ -1866,14 +1866,45 @@ The user is asking about internal code, backend, or architecture. You are FORBID
               .eq("text_status", "ok")
               .order("created_at", { ascending: false })
               .limit(12);
-            const blocks = (docs || [])
+            // The library is NOT the prompt. A pinned project scopes which files
+            // are reachable; it does not license dumping every one of them into
+            // every turn. Files the operator named with @file are always carried
+            // whole; the rest are ranked against this turn's words and only the
+            // top few ride along, clipped. A turn that needs more can name it.
+            const turnText = String(
+              [...messages].reverse().find((m: any) => m.role === "user")?.content || "",
+            ).toLowerCase();
+            const mentioned = new Set(
+              (turnText.match(/@[\w.\-]+/g) || []).map((t) => t.slice(1).toLowerCase()),
+            );
+            const terms = [...new Set(turnText.split(/[^a-z0-9]+/).filter((w) => w.length > 3))].slice(0, 24);
+            const scored = (docs || [])
               .filter((d: any) => typeof d.extracted_text === "string" && d.extracted_text.trim())
-              .map((d: any, i: number) => `[S${i + 1}] ${d.file_name}\n${String(d.extracted_text).slice(0, 12000)}`);
+              .map((d: any) => {
+                const name = String(d.file_name || "").toLowerCase();
+                const pinned = [...mentioned].some((m) => name.includes(m));
+                const hay = `${name} ${String(d.extracted_text).slice(0, 4000).toLowerCase()}`;
+                const score = terms.reduce((n, t) => (hay.includes(t) ? n + 1 : n), 0);
+                return { doc: d, pinned, score };
+              })
+              .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.score - a.score);
+            const carried = scored.filter((x, i) => x.pinned || (x.score > 0 && i < 4)).slice(0, 5);
+            const blocks = carried.map(
+              (x, i) =>
+                `[S${i + 1}] ${x.doc.file_name}\n${String(x.doc.extracted_text).slice(0, x.pinned ? 12000 : 4000)}`,
+            );
+            const heldBack = scored.length - carried.length;
             const header = `\n\n## PROJECT CORPUS — ${proj.name} (${isolated ? "isolated sources" : "web + corpus"})`;
             if (blocks.length) {
-              projectCorpusStr = `${header}\nCite passages as [S1], [S2] … using the exact file name shown.\n\n${blocks.join("\n\n")}`;
+              projectCorpusStr = `${header}\nCite passages as [S1], [S2] … using the exact file name shown.${
+                heldBack > 0
+                  ? ` ${heldBack} other project file(s) were not loaded this turn — if the answer needs one, say which and ask the operator to name it with @file.`
+                  : ""
+              }\n\n${blocks.join("\n\n")}`;
             } else {
-              projectCorpusStr = `${header}\nThis project has no readable files yet.`;
+              projectCorpusStr = scored.length
+                ? `${header}\nNo file in this project matched the question. Say so plainly and ask the operator to name the file with @file rather than answering from general knowledge as if it were the corpus.`
+                : `${header}\nThis project has no readable files yet.`;
             }
             projectCorpusStr += isolated
               ? `\n\nISOLATED MODE — HARD RULE: answer only from the passages above. If the corpus does not support a claim, say plainly that this is unsure because it is not in the project files, and name what would settle it. Do not fill the gap from general knowledge or the open web, and never cite a source that is not listed above.`
