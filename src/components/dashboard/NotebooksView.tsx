@@ -201,40 +201,86 @@ const NotebooksView = () => {
     if (selectedId) loadCells(selectedId);
   };
 
-  // Run All - executes each cell sequentially and saves output
+  // A single bounded cell run. The runner enforces the timeout and the row cap;
+  // the client mirrors the timeout so a dead socket cannot hang the UI, and
+  // traces the outcome to Asherin Connect either way.
+  const CLIENT_TIMEOUT_MS = 25_000;
+
+  const cellTitle = useCallback((cell: NotebookCell) => {
+    const body = (localContent[cell.id] ?? cell.content ?? "").trim();
+    const firstLine = body.split("\n").find(l => l.trim()) ?? "";
+    return `${cell.cell_type} · ${firstLine.replace(/^[-#\s]+/, "").slice(0, 60) || "untitled cell"}`;
+  }, [localContent]);
+
+  const runCell = useCallback(async (cell: NotebookCell): Promise<void> => {
+    const started = performance.now();
+    const capability = cell.cell_type === "visualization" ? "chart" : cell.cell_type === "text" ? "markdown" : "sql";
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), CLIENT_TIMEOUT_MS);
+    setRunningCell(cell.id);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notebook-execute`, {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          cellId: cell.id,
+          cellType: cell.cell_type,
+          content: localContent[cell.id] ?? cell.content,
+          source,
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      const output: string = typeof payload.output === "string"
+        ? payload.output
+        : JSON.stringify(payload.result ?? { kind: "error", text: payload.error ?? `Runner returned ${res.status}`, columns: [], rows: [], rowCount: 0, scanned: 0, truncated: false, elapsedMs: 0, source: null });
+      setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+      const envelope = parseOutput(output);
+      void emitPull({
+        organ: "notebooks",
+        capability,
+        fromSurface: "notebooks",
+        status: envelope?.kind === "error" ? "fail" : (envelope?.rowCount ?? 0) === 0 && capability !== "markdown" ? "skip" : "ok",
+        latencyMs: performance.now() - started,
+        quote: cellTitle(cell),
+        meta: {
+          notebook_id: cell.notebook_id,
+          rows: envelope?.rowCount ?? 0,
+          scanned: envelope?.scanned ?? 0,
+          truncated: Boolean(envelope?.truncated),
+          bound_source: envelope?.source ?? encodeSource(source),
+        },
+      });
+    } catch (e: unknown) {
+      const aborted = e instanceof DOMException && e.name === "AbortError";
+      const text = aborted ? `Timed out after ${CLIENT_TIMEOUT_MS}ms — narrow the query or reduce the row count.` : (e instanceof Error ? e.message : "Run failed.");
+      const output = JSON.stringify({ kind: "error", text, columns: [], rows: [], rowCount: 0, scanned: 0, truncated: false, elapsedMs: Math.round(performance.now() - started), source: encodeSource(source) || null });
+      setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+      void emitPull({
+        organ: "notebooks", capability, fromSurface: "notebooks", status: "fail",
+        latencyMs: performance.now() - started, quote: cellTitle(cell),
+        meta: { notebook_id: cell.notebook_id, timeout: aborted },
+      });
+    } finally {
+      clearTimeout(timer);
+      setRunningCell(prev => (prev === cell.id ? null : prev));
+    }
+  }, [localContent, source, cellTitle]);
+
+  // Run All — sequential so a notebook cannot fan out unbounded work.
   const runAll = async () => {
     if (!selectedId || !user) return;
     setRunningAll(true);
     try {
-      // Save snapshot before running
       await saveSnapshot();
-      const { data: session } = await supabase.auth.getSession();
       for (const cell of cells) {
-        try {
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notebook-execute`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.session?.access_token}`,
-                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-              },
-              body: JSON.stringify({
-                cellId: cell.id,
-                cellType: cell.cell_type,
-                content: localContent[cell.id] || cell.content,
-                datasetId: selectedDatasetId,
-              }),
-            }
-          );
-          const result = await res.json();
-          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: result.output } : c));
-        } catch (e: any) {
-          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: `Error: ${e.message}` } : c));
-        }
+        await runCell(cell);
       }
-      // Update notebook last_run_at
       await (supabase.from as any)("notebooks").update({ last_run_at: new Date().toISOString(), status: "published" }).eq("id", selectedId);
       toast({ title: "All cells executed" });
       loadNotebooks();
@@ -242,6 +288,7 @@ const NotebooksView = () => {
       setRunningAll(false);
     }
   };
+
 
   // Share notebook
   const shareNotebook = async () => {
