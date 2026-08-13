@@ -290,7 +290,11 @@ const SettingsView = () => {
 
   const handleExportData = async () => {
     if (!user) return;
+    // The export bundle is the whole account in one file — prove identity now,
+    // not "at some point during this session".
+    if (!(await stepUp("export your data"))) return;
     setExporting(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
