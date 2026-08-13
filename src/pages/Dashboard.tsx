@@ -108,22 +108,31 @@ import {
   type MessageStatus,
 } from "@/lib/messageQueue";
 
-const FeatureGate = ({ title, description, onUpgrade }: { title: string; description: string; onUpgrade: () => void }) => (
+const FeatureGate = ({
+  title,
+  description,
+  onUpgrade,
+  compact = false,
+}: { title: string; description: string; onUpgrade: () => void; compact?: boolean }) => (
   <div className="flex flex-1 items-center justify-center p-6">
     <div className="max-w-md text-center space-y-6 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10">
       <Lock className="h-10 w-10 text-accent mx-auto" />
-      <h2 className="text-xl font-extralight tracking-wide text-foreground">{title}</h2>
+      {!compact && <h2 className="text-xl font-extralight tracking-wide text-foreground">{title}</h2>}
       <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{description}</p>
       <button
         onClick={onUpgrade}
         className="group inline-flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-6 py-3 text-sm font-light tracking-wide hover:bg-accent/90 transition-all"
       >
-        View Plans
+        View plans
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </button>
     </div>
   </div>
 );
+
+/** v.2 gate copy: one sentence, never the product essay. */
+const v2GateLine = (title: string) => `${title.toLowerCase()} is on paid plans.`;
+
 
 const serializeAttachments = (attachments?: FileAttachment[]): FileAttachment[] | undefined =>
   attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment);
