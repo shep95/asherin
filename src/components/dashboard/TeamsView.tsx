@@ -1,37 +1,61 @@
-import { useState, useEffect, useCallback } from "react";
+/**
+ * Asherin Team — your company workspace.
+ *
+ * Every action here is answered by the `team-manage` edge function, which
+ * re-derives the caller's role from the database. Nothing on this screen is a
+ * client-side permission: hidden buttons are a courtesy, the server is the law.
+ *
+ * Billing is the owner's alone. Members never see a card field, never receive
+ * a Team invoice, and inherit Pro-class access purely from an active workspace.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Plus, Users, Mail, Shield, Crown, Eye, BarChart3, UserPlus, X, Check, Clock, Trash2,
-  Building2, Briefcase, Globe, Lock, Server, FileText, Cpu, Layers, Pencil, Settings,
-} from "lucide-react";
+import { usePppQuote, quoteCents } from "@/hooks/usePppQuote";
+import { formatUsd, TEAM_MIN_SEATS, type Term } from "@/lib/pricing/ppp";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Building2, Briefcase, Globe, Lock, Server, FileText, Cpu, Layers, Shield,
+  Users, Crown, Eye, UserPlus, Mail, Clock, Trash2, Check, X, Plus, Loader2,
+  ArrowRightLeft, Minus, CreditCard, LogOut, Copy,
+} from "lucide-react";
+
+/* ─────────────────────────── shapes ─────────────────────────── */
 
 interface Team {
   id: string;
   name: string;
-  description: string;
-  icon: string;
+  description: string | null;
+  icon: string | null;
   owner_id: string;
+  seat_quantity: number;
+  billing_status: string;
+  billing_term: string | null;
   created_at: string;
 }
 
-interface TeamMember {
-  id: string;
+interface Member {
   team_id: string;
   user_id: string;
-  role: string;
+  role: "owner" | "admin" | "member" | "viewer";
   joined_at: string;
+  email: string | null;
+  display_name: string | null;
+  is_self: boolean;
 }
 
-interface TeamInvite {
+interface Invite {
   id: string;
   team_id: string;
   email: string;
   role: string;
   status: string;
+  expires_at: string;
   created_at: string;
+  team?: { id: string; name: string; description: string | null; icon: string | null } | null;
 }
 
 const TEAM_ICONS: { icon: React.ElementType; label: string }[] = [
@@ -47,398 +71,709 @@ const TEAM_ICONS: { icon: React.ElementType; label: string }[] = [
   { icon: Users, label: "users" },
 ];
 
-const getTeamIcon = (iconStr: string) => {
-  const found = TEAM_ICONS.find(i => i.label === iconStr);
-  return found?.icon ?? Building2;
+const iconFor = (s: string | null) =>
+  TEAM_ICONS.find((i) => i.label === s)?.icon ?? Building2;
+
+const ROLE_ICON: Record<string, React.ElementType> = {
+  owner: Crown, admin: Shield, member: Users, viewer: Eye,
 };
 
-const roleIcons: Record<string, React.ElementType> = { owner: Crown, admin: Shield, analyst: BarChart3, viewer: Eye };
-const roleColors: Record<string, string> = { owner: "text-foreground/80", admin: "text-foreground/60", analyst: "text-foreground/50", viewer: "text-muted-foreground" };
+/** What each role can actually do — mirrors the checks inside `team-manage`. */
+const ROLE_MATRIX: { role: string; can: string[]; cannot: string[] }[] = [
+  {
+    role: "Owner",
+    can: ["Billing, seats, and the card", "Delete the workspace", "Transfer ownership", "Everything an admin can do"],
+    cannot: ["Leave before transferring the workspace"],
+  },
+  {
+    role: "Admin",
+    can: ["Invite, resend, revoke", "Change member and viewer roles", "Rename the workspace", "Manage Team Projects"],
+    cannot: ["See the owner's card", "Cancel billing", "Delete the workspace", "Remove the owner"],
+  },
+  {
+    role: "Member",
+    can: ["Full Pro-class use while the team is active", "Create and edit in Team Projects"],
+    cannot: ["Invite", "Change roles", "Touch billing"],
+  },
+  {
+    role: "Viewer",
+    can: ["Read Team Projects and shared outputs", "Keep their own private chats"],
+    cannot: ["Create shared artefacts", "Invite", "Delete anything"],
+  },
+];
+
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return "—";
+  const [name, domain] = email.split("@");
+  if (!domain) return "—";
+  const head = name.slice(0, 2);
+  return `${head}${"•".repeat(Math.max(2, name.length - 2))}@${domain}`;
+}
+
+function daysLeft(iso: string): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 864e5));
+}
+
+/* ─────────────────────────── view ─────────────────────────── */
 
 const TeamsView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkSubscription } = useSubscription();
+  const ppp = usePppQuote();
+
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [members, setMembers] = useState<Record<string, TeamMember[]>>({});
-  const [invites, setInvites] = useState<Record<string, TeamInvite[]>>({});
-  const [pendingInvites, setPendingInvites] = useState<TeamInvite[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [myInvites, setMyInvites] = useState<Invite[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // create flow
+  const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newIcon, setNewIcon] = useState("building");
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-  const [editIcon, setEditIcon] = useState("building");
+  const [newSeats, setNewSeats] = useState(TEAM_MIN_SEATS);
+  const [term, setTerm] = useState<Term>("monthly");
+
+  // invite flow
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("analyst");
-  const [loading, setLoading] = useState(true);
+  const [inviteRole, setInviteRole] = useState("member");
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
 
-  const loadTeams = useCallback(async () => {
+  // destructive confirmations
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [seatDraft, setSeatDraft] = useState<number | null>(null);
+
+  const call = useCallback(async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke("team-manage", { body });
+    if (error) {
+      let detail = error.message;
+      try {
+        const ctx = (error as { context?: Response }).context;
+        if (ctx) {
+          const parsed = JSON.parse(await ctx.text());
+          if (parsed?.error) detail = parsed.error;
+        }
+      } catch { /* keep the transport message */ }
+      throw new Error(detail);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }, []);
+
+  const load = useCallback(async () => {
     if (!user) return;
-    const { data: teamData } = await (supabase.from as any)("teams").select("*").order("created_at", { ascending: false });
-    setTeams(teamData ?? []);
-
-    const { data: myInvites } = await (supabase.from as any)("team_invites").select("*").eq("status", "pending");
-    setPendingInvites(myInvites ?? []);
-
-    if (teamData) {
-      const memberMap: Record<string, TeamMember[]> = {};
-      const inviteMap: Record<string, TeamInvite[]> = {};
-      for (const team of teamData) {
-        const { data: mems } = await (supabase.from as any)("team_members").select("*").eq("team_id", team.id);
-        memberMap[team.id] = mems ?? [];
-        const { data: invs } = await (supabase.from as any)("team_invites").select("*").eq("team_id", team.id).eq("status", "pending");
-        inviteMap[team.id] = invs ?? [];
-      }
-      setMembers(memberMap);
-      setInvites(inviteMap);
+    try {
+      const data = await call({ action: "list" });
+      setTeams(data.teams ?? []);
+      setMembers(data.members ?? []);
+      setInvites(data.invites ?? []);
+      setMyInvites(data.my_invites ?? []);
+      setActiveId((prev) =>
+        prev && (data.teams ?? []).some((t: Team) => t.id === prev)
+          ? prev
+          : (data.teams ?? [])[0]?.id ?? null,
+      );
+    } catch (e) {
+      console.error("team list failed:", e);
+      toast({ title: "Could not load workspaces", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [user]);
+  }, [user, call, toast]);
 
-  useEffect(() => { loadTeams(); }, [loadTeams]);
+  useEffect(() => { load(); }, [load]);
 
-  const createTeam = async () => {
-    if (!user || !newName.trim()) return;
-    const { data: team, error } = await (supabase.from as any)("teams").insert({ name: newName.trim(), description: newDesc.trim(), icon: newIcon, owner_id: user.id }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    if (team) {
-      await (supabase.from as any)("team_members").insert({ team_id: team.id, user_id: user.id, role: "owner" });
-      await (supabase.from as any)("audit_log").insert({ user_id: user.id, team_id: team.id, action: "team_created", resource_type: "team", resource_id: team.id });
-      toast({ title: "Team created", description: `${team.name} is ready.` });
-      setNewName(""); setNewDesc(""); setNewIcon("building"); setShowCreate(false);
-      loadTeams();
+  // Returning from Stripe: confirm the container actually went active rather
+  // than trusting the redirect flag.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("team_checkout") === "success") {
+      toast({ title: "Payment received", description: "Confirming the workspace with billing…" });
+      const timer = window.setTimeout(() => { load(); checkSubscription(); }, 2500);
+      return () => window.clearTimeout(timer);
     }
-  };
+    if (params.get("team_checkout") === "canceled") {
+      toast({ title: "Checkout canceled", description: "No workspace was created." });
+    }
+  }, [toast, load, checkSubscription]);
 
-  const updateTeam = async () => {
-    if (!user || !selectedTeam || !editName.trim()) return;
-    const { error } = await (supabase.from as any)("teams").update({ name: editName.trim(), description: editDesc.trim(), icon: editIcon }).eq("id", selectedTeam);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    await (supabase.from as any)("audit_log").insert({ user_id: user.id, team_id: selectedTeam, action: "team_updated", resource_type: "team", resource_id: selectedTeam });
-    toast({ title: "Team updated" });
-    setShowEdit(false);
-    loadTeams();
-  };
+  const active = useMemo(() => teams.find((t) => t.id === activeId) ?? null, [teams, activeId]);
+  const roster = useMemo(
+    () => members.filter((m) => m.team_id === activeId)
+      .sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0)),
+    [members, activeId],
+  );
+  const pending = useMemo(() => invites.filter((i) => i.team_id === activeId), [invites, activeId]);
+  const myRole = roster.find((m) => m.is_self)?.role ?? null;
+  const isOwner = myRole === "owner";
+  const isAdmin = isOwner || myRole === "admin";
+  const occupied = roster.length + pending.length;
+  const seatsFull = !!active && occupied >= active.seat_quantity;
 
-  const deleteTeam = async () => {
-    if (!user || !selectedTeam) return;
-    // Delete members, invites, then team
-    await (supabase.from as any)("team_invites").delete().eq("team_id", selectedTeam);
-    await (supabase.from as any)("team_members").delete().eq("team_id", selectedTeam);
-    const { error } = await (supabase.from as any)("teams").delete().eq("id", selectedTeam);
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    await (supabase.from as any)("audit_log").insert({ user_id: user.id, action: "team_deleted", resource_type: "team", resource_id: selectedTeam });
-    toast({ title: "Team deleted" });
-    setSelectedTeam(null);
-    setShowDeleteConfirm(false);
-    loadTeams();
+  const workspaceCents = quoteCents(ppp, "team_workspace", term).cents;
+  const seatCents = quoteCents(ppp, "team_seat", term).cents;
+  const createTotal = workspaceCents + seatCents * newSeats;
+
+  const run = useCallback(async (key: string, body: Record<string, unknown>, done?: string) => {
+    setBusy(key);
+    try {
+      const data = await call(body);
+      if (done) toast({ title: done });
+      await load();
+      await checkSubscription();
+      return data;
+    } catch (e) {
+      toast({ title: "Rejected", description: (e as Error).message, variant: "destructive" });
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  }, [call, load, toast, checkSubscription]);
+
+  const startCheckout = async () => {
+    if (newName.trim().length < 2) {
+      toast({ title: "Name the workspace", description: "Two characters or more.", variant: "destructive" });
+      return;
+    }
+    setBusy("checkout");
+    try {
+      const { data, error } = await supabase.functions.invoke("team-checkout", {
+        body: { name: newName.trim(), description: newDesc.trim(), icon: newIcon, seats: newSeats, term },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error("No checkout session was returned.");
+      window.location.href = data.url;
+    } catch (e) {
+      toast({ title: "Checkout could not start", description: (e as Error).message, variant: "destructive" });
+      setBusy(null);
+    }
   };
 
   const sendInvite = async () => {
-    if (!user || !selectedTeam || !inviteEmail.trim()) return;
-    const { error } = await (supabase.from as any)("team_invites").insert({ team_id: selectedTeam, email: inviteEmail.trim().toLowerCase(), role: inviteRole, invited_by: user.id });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    await (supabase.from as any)("audit_log").insert({ user_id: user.id, team_id: selectedTeam, action: "invite_sent", resource_type: "invite", details: { email: inviteEmail.trim() } });
-    toast({ title: "Invite sent", description: `Invited ${inviteEmail} as ${inviteRole}.` });
-    setInviteEmail(""); setShowInvite(false);
-    loadTeams();
+    const data = await run("invite", {
+      action: "invite", team_id: activeId, email: inviteEmail.trim(), role: inviteRole,
+    });
+    if (!data) return;
+    setInviteEmail("");
+    setLastInviteLink(data.accept_url ?? null);
+    toast({
+      title: data.emailed ? "Invitation sent" : "Invitation created — email not delivered",
+      description: data.emailed
+        ? `Mail service accepted it (HTTP ${data.email_status}).`
+        : "Copy the accept link below and send it yourself.",
+      variant: data.emailed ? undefined : "destructive",
+    });
   };
 
-  const acceptInvite = async (invite: TeamInvite) => {
-    if (!user) return;
-    await (supabase.from as any)("team_invites").update({ status: "accepted" }).eq("id", invite.id);
-    await (supabase.from as any)("team_members").insert({ team_id: invite.team_id, user_id: user.id, role: invite.role });
-    await (supabase.from as any)("audit_log").insert({ user_id: user.id, team_id: invite.team_id, action: "invite_accepted", resource_type: "invite", resource_id: invite.id });
-    toast({ title: "Joined team" });
-    loadTeams();
-  };
+  /* ── render ── */
 
-  const declineInvite = async (invite: TeamInvite) => {
-    await (supabase.from as any)("team_invites").update({ status: "declined" }).eq("id", invite.id);
-    toast({ title: "Invite declined" });
-    loadTeams();
-  };
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-foreground/40" />
+      </div>
+    );
+  }
 
-  const removeMember = async (teamId: string, memberId: string) => {
-    if (!user) return;
-    await (supabase.from as any)("team_members").delete().eq("id", memberId);
-    await (supabase.from as any)("audit_log").insert({ user_id: user.id, team_id: teamId, action: "member_removed", resource_type: "member", resource_id: memberId });
-    toast({ title: "Member removed" });
-    loadTeams();
-  };
+  const invitePanel = myInvites.length > 0 && (
+    <div className="mb-5 rounded-2xl border border-foreground/20 bg-foreground/[0.04] p-5">
+      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/50">◈ Invitations</p>
+      <div className="mt-3 space-y-2">
+        {myInvites.map((inv) => (
+          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-foreground/10 bg-background/40 px-4 py-3">
+            <div>
+              <p className="text-sm font-light text-foreground">{inv.team?.name ?? "A workspace"}</p>
+              <p className="text-[11px] font-extralight text-muted-foreground">
+                Joining as {inv.role} · expires in {daysLeft(inv.expires_at)} days
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => run(`accept-${inv.id}`, { action: "accept", invite_id: inv.id }, "You are on the workspace")}
+                disabled={busy === `accept-${inv.id}`}
+                className="rounded-full bg-foreground px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-background disabled:opacity-50"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => run(`decline-${inv.id}`, { action: "decline", invite_id: inv.id }, "Invitation declined")}
+                disabled={busy === `decline-${inv.id}`}
+                className="rounded-full border border-foreground/20 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-foreground/70 disabled:opacity-50"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
-  const openEdit = () => {
-    if (!activeTeam) return;
-    setEditName(activeTeam.name);
-    setEditDesc(activeTeam.description);
-    setEditIcon(activeTeam.icon || "building");
-    setShowEdit(true);
-  };
+  if (creating || teams.length === 0) {
+    return (
+      <ScrollArea className="h-full">
+        <div className="mx-auto w-full max-w-3xl p-5 sm:p-8">
+          {invitePanel}
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Asherin Team</p>
+          <h2 className="mt-3 text-3xl font-extralight tracking-tight text-foreground">
+            Your company workspace on asherin.
+          </h2>
+          <p className="mt-3 max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
+            One workspace fee, one price per occupied seat. You are billed as the owner — the people
+            you invite never enter a card, and they work at Pro-class limits for as long as the
+            workspace stays active. Guardian Vault items, provider keys, and private chats stay
+            personal on every seat.
+          </p>
 
-  const activeTeam = teams.find(t => t.id === selectedTeam);
-  const activeMembers = selectedTeam ? (members[selectedTeam] ?? []) : [];
-  const activeInvites = selectedTeam ? (invites[selectedTeam] ?? []) : [];
-  const isOwner = activeTeam?.owner_id === user?.id;
+          <div className="mt-7 rounded-2xl border border-foreground/10 bg-background/40 p-6 backdrop-blur-2xl">
+            <label className="block text-[10px] uppercase tracking-[0.25em] text-foreground/50">Workspace name</label>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Northwind Research"
+              maxLength={60}
+              className="mt-2 w-full rounded-xl border border-foreground/15 bg-background/60 px-4 py-3 text-sm font-light text-foreground outline-none focus:border-foreground/40"
+            />
 
-  if (loading) return <div className="flex flex-1 items-center justify-center"><div className="text-sm font-extralight tracking-widest text-muted-foreground animate-pulse">Loading teams…</div></div>;
+            <label className="mt-5 block text-[10px] uppercase tracking-[0.25em] text-foreground/50">Description</label>
+            <input
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="What this team works on"
+              maxLength={240}
+              className="mt-2 w-full rounded-xl border border-foreground/15 bg-background/60 px-4 py-3 text-sm font-light text-foreground outline-none focus:border-foreground/40"
+            />
+
+            <label className="mt-5 block text-[10px] uppercase tracking-[0.25em] text-foreground/50">Mark</label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {TEAM_ICONS.map(({ icon: Icon, label }) => (
+                <button
+                  key={label}
+                  onClick={() => setNewIcon(label)}
+                  aria-pressed={newIcon === label}
+                  className={`rounded-xl border p-2.5 transition-colors ${
+                    newIcon === label ? "border-foreground/50 bg-foreground/10" : "border-foreground/10 hover:bg-foreground/5"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 text-foreground/70" />
+                </button>
+              ))}
+            </div>
+
+            <label className="mt-6 block text-[10px] uppercase tracking-[0.25em] text-foreground/50">Seats</label>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                onClick={() => setNewSeats((s) => Math.max(TEAM_MIN_SEATS, s - 1))}
+                className="rounded-full border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/5"
+                aria-label="Remove a seat"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="w-10 text-center text-xl font-extralight text-foreground">{newSeats}</span>
+              <button
+                onClick={() => setNewSeats((s) => Math.min(500, s + 1))}
+                className="rounded-full border border-foreground/20 p-2 text-foreground/70 hover:bg-foreground/5"
+                aria-label="Add a seat"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <span className="text-[11px] font-extralight text-muted-foreground">
+                Minimum {TEAM_MIN_SEATS} — you plus one invite slot.
+              </span>
+            </div>
+
+            <div role="radiogroup" aria-label="Billing term" className="mt-6 inline-flex rounded-full border border-foreground/15 bg-background/50 p-1">
+              {(["monthly", "semiannual"] as const).map((t) => (
+                <button
+                  key={t}
+                  role="radio"
+                  aria-checked={term === t}
+                  onClick={() => setTerm(t)}
+                  className={`rounded-full px-4 py-1.5 text-[10px] uppercase tracking-[0.2em] transition-colors ${
+                    term === t ? "bg-foreground text-background" : "text-foreground/60"
+                  }`}
+                >
+                  {t === "monthly" ? "Monthly" : "6 months"}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-foreground/10 bg-foreground/[0.03] p-4">
+              <div className="flex items-center justify-between text-sm font-extralight text-muted-foreground">
+                <span>Workspace</span><span>{formatUsd(workspaceCents)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-sm font-extralight text-muted-foreground">
+                <span>{newSeats} seats × {formatUsd(seatCents)}</span><span>{formatUsd(seatCents * newSeats)}</span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between border-t border-foreground/10 pt-3">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-foreground/50">
+                  {term === "monthly" ? "Per month" : "Charged once, covers 6 months"}
+                </span>
+                <span className="text-2xl font-extralight text-foreground">{formatUsd(createTotal)}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={startCheckout}
+                disabled={busy === "checkout"}
+                className="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-[11px] uppercase tracking-[0.2em] text-background disabled:opacity-60"
+              >
+                {busy === "checkout" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+                Start the team — {formatUsd(createTotal)}
+              </button>
+              {teams.length > 0 && (
+                <button
+                  onClick={() => setCreating(false)}
+                  className="rounded-full border border-foreground/20 px-6 py-3 text-[11px] uppercase tracking-[0.2em] text-foreground/70"
+                >
+                  Back
+                </button>
+              )}
+            </div>
+            <p className="mt-3 text-[11px] font-extralight text-muted-foreground/70">
+              Seat changes later land on the same invoice as prorated lines.
+            </p>
+          </div>
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  const ActiveIcon = iconFor(active?.icon ?? null);
 
   return (
-    <div className="flex flex-1 flex-col h-full">
-      <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-border/20">
-        <div>
-          <h1 className="text-lg font-extralight tracking-[0.2em] text-foreground">TEAM WORKSPACE</h1>
-          <p className="text-xs font-extralight text-muted-foreground mt-1">Collaborative intelligence operations</p>
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* roster of workspaces */}
+      <aside className="shrink-0 border-b border-foreground/10 p-3 lg:w-64 lg:border-b-0 lg:border-r">
+        <div className="flex items-center justify-between px-2 pb-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Workspaces</p>
+          <button onClick={() => setCreating(true)} aria-label="Start a team" className="rounded-full p-1.5 hover:bg-foreground/5">
+            <Plus className="h-3.5 w-3.5 text-foreground/60" />
+          </button>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 rounded-xl bg-accent/20 hover:bg-accent/30 text-accent px-4 py-2 text-xs font-light transition-colors">
-          <Plus className="h-4 w-4" /> Create Team
-        </button>
-      </div>
-
-      {/* Pending invites */}
-      {pendingInvites.length > 0 && (
-        <div className="px-6 pt-4 space-y-2">
-          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Pending Invitations</p>
-          {pendingInvites.map(inv => (
-            <div key={inv.id} className="flex items-center justify-between rounded-xl border border-border/20 bg-card/20 p-3">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs font-light text-foreground">Team invitation</p>
-                  <p className="text-[10px] text-muted-foreground">Role: {inv.role}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => acceptInvite(inv)} className="rounded-lg bg-foreground/10 p-1.5 text-foreground/70 hover:bg-foreground/20 transition-colors"><Check className="h-3.5 w-3.5" /></button>
-                <button onClick={() => declineInvite(inv)} className="rounded-lg bg-foreground/5 p-1.5 text-muted-foreground hover:bg-foreground/10 transition-colors"><X className="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
-          ))}
+        <div className="flex gap-2 overflow-x-auto lg:block lg:space-y-1 lg:overflow-visible">
+          {teams.map((t) => {
+            const Icon = iconFor(t.icon);
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveId(t.id)}
+                className={`flex w-full min-w-[180px] items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                  t.id === activeId ? "bg-foreground/10" : "hover:bg-foreground/5"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-foreground/60" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-light text-foreground">{t.name}</span>
+                  <span className="block text-[10px] font-extralight text-muted-foreground">
+                    {t.billing_status === "active" ? "active" : t.billing_status}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </aside>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Team list */}
-        <div className="w-64 border-r border-border/20 flex flex-col">
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-1">
-              {teams.length === 0 && (
-                <p className="text-xs text-muted-foreground/50 text-center py-8">No teams yet. Create one to get started.</p>
-              )}
-              {teams.map(team => {
-                const IconComp = getTeamIcon(team.icon);
-                return (
-                  <button key={team.id} onClick={() => setSelectedTeam(team.id)}
-                    className={`w-full text-left rounded-xl px-3 py-2.5 text-xs font-light transition-colors ${selectedTeam === team.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"}`}>
-                    <div className="flex items-center gap-2">
-                      <IconComp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="truncate">{team.name}</p>
-                        <p className="text-[10px] text-muted-foreground/50">{(members[team.id] ?? []).length} members</p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="mx-auto w-full max-w-4xl p-5 sm:p-8">
+          {invitePanel}
 
-        {/* Team detail */}
-        <ScrollArea className="flex-1">
-          {activeTeam ? (
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {(() => { const IC = getTeamIcon(activeTeam.icon); return <IC className="h-5 w-5 text-muted-foreground" />; })()}
+          {active && (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl border border-foreground/15 bg-foreground/[0.04] p-3">
+                    <ActiveIcon className="h-5 w-5 text-foreground/70" />
+                  </div>
                   <div>
-                    <h2 className="text-base font-extralight tracking-wide text-foreground">{activeTeam.name}</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">{activeTeam.description || "No description"}</p>
+                    <h2 className="text-2xl font-extralight tracking-tight text-foreground">{active.name}</h2>
+                    <p className="mt-1 text-sm font-extralight text-muted-foreground">
+                      {active.description || "No description."}
+                    </p>
+                    <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40">
+                      {occupied} of {active.seat_quantity} seats · you are {myRole}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {isOwner && (
-                    <>
-                      <button onClick={openEdit} className="flex items-center gap-1.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground px-3 py-2 text-xs font-light transition-colors">
-                        <Pencil className="h-3.5 w-3.5" /> Edit
-                      </button>
-                      <button onClick={() => setShowDeleteConfirm(true)} className="flex items-center gap-1.5 rounded-xl bg-foreground/5 hover:bg-red-500/20 text-muted-foreground hover:text-red-400 px-3 py-2 text-xs font-light transition-colors">
-                        <Trash2 className="h-3.5 w-3.5" /> Delete
-                      </button>
-                    </>
-                  )}
-                  <button onClick={() => setShowInvite(true)} className="flex items-center gap-2 rounded-xl bg-foreground/10 hover:bg-foreground/15 text-foreground/70 px-4 py-2 text-xs font-light transition-colors">
-                    <UserPlus className="h-4 w-4" /> Invite
-                  </button>
-                </div>
+                {active.billing_status !== "active" && (
+                  <span className="rounded-full border border-foreground/30 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground/70">
+                    billing {active.billing_status}
+                  </span>
+                )}
               </div>
 
-              {/* Members */}
-              <div className="space-y-3">
-                <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Members ({activeMembers.length})</p>
-                <div className="space-y-1">
-                  {activeMembers.map(mem => {
-                    const RoleIcon = roleIcons[mem.role] ?? Eye;
+              {/* invite */}
+              {isAdmin && (
+                <section className="mt-8 rounded-2xl border border-foreground/10 bg-background/40 p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Invite</p>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      className="min-w-0 flex-1 rounded-xl border border-foreground/15 bg-background/60 px-4 py-2.5 text-sm font-light text-foreground outline-none focus:border-foreground/40"
+                    />
+                    <select
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                      className="rounded-xl border border-foreground/15 bg-background/60 px-3 py-2.5 text-sm font-light text-foreground outline-none"
+                    >
+                      <option value="member">member</option>
+                      <option value="viewer">viewer</option>
+                      <option value="admin">admin</option>
+                    </select>
+                    <button
+                      onClick={sendInvite}
+                      disabled={busy === "invite" || seatsFull || !inviteEmail.trim()}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] text-background disabled:opacity-50"
+                    >
+                      {busy === "invite" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+                      Invite
+                    </button>
+                  </div>
+                  {seatsFull && (
+                    <p className="mt-2 text-[11px] font-extralight text-foreground/70">
+                      All {active.seat_quantity} seats are taken by members and pending invites.
+                      {isOwner ? " Add a seat below to invite more." : " Ask the owner to add a seat."}
+                    </p>
+                  )}
+                  {lastInviteLink && (
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(lastInviteLink); toast({ title: "Accept link copied" }); }}
+                      className="mt-3 inline-flex items-center gap-2 text-[11px] font-extralight text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="h-3 w-3" /> Copy the accept link
+                    </button>
+                  )}
+                </section>
+              )}
+
+              {/* roster */}
+              <section className="mt-6 rounded-2xl border border-foreground/10 bg-background/40 p-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ People</p>
+                <div className="mt-3 space-y-2">
+                  {roster.map((m) => {
+                    const RoleIcon = ROLE_ICON[m.role] ?? Users;
                     return (
-                      <div key={mem.id} className="flex items-center justify-between rounded-xl border border-border/10 bg-card/20 px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-foreground/10 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-light text-foreground">{mem.user_id === user?.id ? "You" : mem.user_id.slice(0, 8)}</p>
-                            <div className="flex items-center gap-1.5">
-                              <RoleIcon className={`h-3 w-3 ${roleColors[mem.role]}`} />
-                              <p className={`text-[10px] capitalize ${roleColors[mem.role]}`}>{mem.role}</p>
-                            </div>
-                          </div>
+                      <div key={m.user_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-foreground/10 bg-background/50 px-4 py-3">
+                        <RoleIcon className="h-4 w-4 shrink-0 text-foreground/60" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-light text-foreground">
+                            {m.display_name || m.email || "Member"}{m.is_self && " (you)"}
+                          </p>
+                          <p className="truncate text-[11px] font-extralight text-muted-foreground">
+                            {maskEmail(m.email)} · {m.role}
+                          </p>
                         </div>
-                        {mem.role !== "owner" && isOwner && (
-                          <button onClick={() => removeMember(activeTeam.id, mem.id)} className="rounded-lg p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors">
-                            <Trash2 className="h-3.5 w-3.5" />
+                        {isAdmin && m.role !== "owner" && (
+                          <select
+                            value={m.role}
+                            onChange={(e) => run(`role-${m.user_id}`, {
+                              action: "change_role", team_id: active.id, user_id: m.user_id, role: e.target.value,
+                            }, "Role updated")}
+                            disabled={busy === `role-${m.user_id}`}
+                            className="rounded-lg border border-foreground/15 bg-background/60 px-2 py-1.5 text-[11px] font-light text-foreground"
+                          >
+                            <option value="admin">admin</option>
+                            <option value="member">member</option>
+                            <option value="viewer">viewer</option>
+                          </select>
+                        )}
+                        {isOwner && m.role !== "owner" && (
+                          <button
+                            onClick={() => run(`transfer-${m.user_id}`, {
+                              action: "transfer_owner", team_id: active.id, user_id: m.user_id,
+                            }, "Ownership transferred")}
+                            title="Transfer ownership"
+                            className="rounded-lg border border-foreground/15 p-1.5 text-foreground/60 hover:bg-foreground/5"
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {isAdmin && m.role !== "owner" && !m.is_self && (
+                          <button
+                            onClick={() => run(`rm-${m.user_id}`, {
+                              action: "remove_member", team_id: active.id, user_id: m.user_id,
+                            }, "Removed from the workspace")}
+                            title="Remove"
+                            className="rounded-lg border border-foreground/15 p-1.5 text-foreground/60 hover:bg-foreground/5"
+                          >
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
                     );
                   })}
                 </div>
-              </div>
 
-              {/* Pending invites for this team */}
-              {activeInvites.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Pending Invites</p>
-                  {activeInvites.map(inv => (
-                    <div key={inv.id} className="flex items-center justify-between rounded-xl border border-border/10 bg-card/20 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs font-light text-foreground">{inv.email}</p>
-                          <p className="text-[10px] text-muted-foreground capitalize">{inv.role} · Pending</p>
+                {pending.length > 0 && (
+                  <>
+                    <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Pending</p>
+                    <div className="mt-3 space-y-2">
+                      {pending.map((inv) => (
+                        <div key={inv.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-foreground/15 px-4 py-3">
+                          <Mail className="h-4 w-4 text-foreground/50" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-light text-foreground">{inv.email}</p>
+                            <p className="text-[11px] font-extralight text-muted-foreground">
+                              <Clock className="mr-1 inline h-3 w-3" />
+                              {inv.role} · expires in {daysLeft(inv.expires_at)} days
+                            </p>
+                          </div>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => run(`resend-${inv.id}`, {
+                                  action: "resend", team_id: active.id, invite_id: inv.id,
+                                }, "Invitation refreshed")}
+                                className="rounded-lg border border-foreground/15 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-foreground/70"
+                              >
+                                Resend
+                              </button>
+                              <button
+                                onClick={() => run(`revoke-${inv.id}`, {
+                                  action: "revoke", team_id: active.id, invite_id: inv.id,
+                                }, "Invitation revoked")}
+                                className="rounded-lg border border-foreground/15 p-1.5 text-foreground/60"
+                                title="Revoke"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
+              </section>
+
+              {/* billing — owner only */}
+              {isOwner && (
+                <section className="mt-6 rounded-2xl border border-foreground/10 bg-background/40 p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Billing and seats</p>
+                  <p className="mt-2 text-sm font-extralight text-muted-foreground">
+                    {formatUsd(workspaceCents)} workspace + {formatUsd(seatCents)} per seat.
+                    Seat changes are prorated onto this invoice.
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => setSeatDraft((d) => Math.max(Math.max(TEAM_MIN_SEATS, occupied), (d ?? active.seat_quantity) - 1))}
+                      className="rounded-full border border-foreground/20 p-2 text-foreground/70"
+                      aria-label="Remove a seat"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-10 text-center text-xl font-extralight text-foreground">
+                      {seatDraft ?? active.seat_quantity}
+                    </span>
+                    <button
+                      onClick={() => setSeatDraft((d) => Math.min(500, (d ?? active.seat_quantity) + 1))}
+                      className="rounded-full border border-foreground/20 p-2 text-foreground/70"
+                      aria-label="Add a seat"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                    {seatDraft != null && seatDraft !== active.seat_quantity && (
+                      <button
+                        onClick={async () => {
+                          await run("seats", { action: "set_seats", team_id: active.id, seats: seatDraft }, "Seats updated");
+                          setSeatDraft(null);
+                        }}
+                        disabled={busy === "seats"}
+                        className="rounded-full bg-foreground px-5 py-2 text-[10px] uppercase tracking-[0.2em] text-background disabled:opacity-50"
+                      >
+                        {busy === "seats" ? "Updating…" : `Set ${seatDraft} seats`}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-6 border-t border-foreground/10 pt-5">
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-foreground/50">Delete this workspace</p>
+                    <p className="mt-1 text-[11px] font-extralight text-muted-foreground">
+                      Cancels the subscription and detaches every member. Their personal chats, vault,
+                      and keys stay with them.
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={deleteConfirm}
+                        onChange={(e) => setDeleteConfirm(e.target.value)}
+                        placeholder={`Type "${active.name}" to confirm`}
+                        className="min-w-0 flex-1 rounded-xl border border-foreground/15 bg-background/60 px-4 py-2.5 text-sm font-light text-foreground outline-none"
+                      />
+                      <button
+                        onClick={async () => {
+                          const done = await run("delete", {
+                            action: "delete_workspace", team_id: active.id, confirm_name: deleteConfirm,
+                          }, "Workspace deleted");
+                          if (done) { setDeleteConfirm(""); setActiveId(null); }
+                        }}
+                        disabled={busy === "delete" || deleteConfirm !== active.name}
+                        className="rounded-xl border border-foreground/30 px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] text-foreground disabled:opacity-40"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </section>
               )}
 
-              {/* Role permissions reference */}
-              <div className="rounded-xl border border-border/10 bg-card/10 p-4 space-y-3">
-                <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Role Permissions</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { role: "Owner", desc: "Full access, manage team, delete" },
-                    { role: "Admin", desc: "Add users, configure data sources" },
-                    { role: "Analyst", desc: "Query, analyze, create notebooks" },
-                    { role: "Viewer", desc: "Read-only access to reports" },
-                  ].map(r => (
-                    <div key={r.role} className="rounded-lg bg-card/20 p-2.5">
-                      <p className="text-[10px] font-medium text-foreground">{r.role}</p>
-                      <p className="text-[10px] text-muted-foreground/70">{r.desc}</p>
+              {!isOwner && (
+                <section className="mt-6 rounded-2xl border border-foreground/10 bg-background/40 p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ Billing</p>
+                  <p className="mt-2 text-sm font-extralight text-muted-foreground">
+                    Asherin Team — billed to the workspace owner. You are not charged for this seat, and
+                    your Pro-class access lasts as long as the workspace stays active.
+                  </p>
+                  <button
+                    onClick={() => run("leave", { action: "leave", team_id: active.id }, "You left the workspace")}
+                    disabled={busy === "leave"}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-foreground/20 px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] text-foreground/70"
+                  >
+                    <LogOut className="h-3.5 w-3.5" /> Leave workspace
+                  </button>
+                </section>
+              )}
+
+              {/* enforced role matrix */}
+              <section className="mt-6 rounded-2xl border border-foreground/10 bg-background/40 p-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ What each role can do</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {ROLE_MATRIX.map((r) => (
+                    <div key={r.role} className="rounded-xl border border-foreground/10 p-4">
+                      <p className="text-sm font-light text-foreground">{r.role}</p>
+                      <ul className="mt-2 space-y-1">
+                        {r.can.map((c) => (
+                          <li key={c} className="flex gap-2 text-[12px] font-extralight text-muted-foreground">
+                            <Check className="mt-0.5 h-3 w-3 shrink-0 text-foreground/60" />{c}
+                          </li>
+                        ))}
+                        {r.cannot.map((c) => (
+                          <li key={c} className="flex gap-2 text-[12px] font-extralight text-muted-foreground/60">
+                            <X className="mt-0.5 h-3 w-3 shrink-0 text-foreground/30" />{c}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-1 items-center justify-center h-full">
-              <div className="text-center space-y-3">
-                <Users className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm font-extralight text-muted-foreground">Select a team or create a new one</p>
-              </div>
-            </div>
+                <p className="mt-4 text-[11px] font-extralight text-muted-foreground/70">
+                  Guardian Vault items, provider keys, connected mailboxes, private chats, memory, and
+                  dashboard appearance stay account-scoped on every seat — a team never reads them.
+                </p>
+              </section>
+            </>
           )}
-        </ScrollArea>
-      </div>
-
-      {/* Create Team Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowCreate(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-extralight tracking-wide text-foreground">Create Team</h3>
-            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Team name" className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
-            <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Description (optional)" className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
-            <div>
-              <p className="text-[10px] text-muted-foreground mb-2">Icon</p>
-              <div className="flex flex-wrap gap-2">
-                {TEAM_ICONS.map(({ icon: IC, label }) => (
-                  <button key={label} onClick={() => setNewIcon(label)}
-                    className={`rounded-xl p-2.5 transition-colors ${newIcon === label ? "bg-foreground/15 text-foreground" : "bg-card/20 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"}`}>
-                    <IC className="h-4 w-4" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={createTeam} disabled={!newName.trim()} className="rounded-xl bg-accent/20 hover:bg-accent/30 text-accent px-4 py-2 text-xs font-light transition-colors disabled:opacity-40">Create</button>
-            </div>
-          </div>
         </div>
-      )}
-
-      {/* Edit Team Modal */}
-      {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowEdit(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-extralight tracking-wide text-foreground">Edit Team</h3>
-            <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Team name" className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
-            <input value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
-            <div>
-              <p className="text-[10px] text-muted-foreground mb-2">Icon</p>
-              <div className="flex flex-wrap gap-2">
-                {TEAM_ICONS.map(({ icon: IC, label }) => (
-                  <button key={label} onClick={() => setEditIcon(label)}
-                    className={`rounded-xl p-2.5 transition-colors ${editIcon === label ? "bg-foreground/15 text-foreground" : "bg-card/20 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"}`}>
-                    <IC className="h-4 w-4" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowEdit(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={updateTeam} disabled={!editName.trim()} className="rounded-xl bg-accent/20 hover:bg-accent/30 text-accent px-4 py-2 text-xs font-light transition-colors disabled:opacity-40">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirm Modal */}
-      {showDeleteConfirm && activeTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-extralight tracking-wide text-foreground">Delete Team</h3>
-            <p className="text-xs text-muted-foreground">Permanently delete <span className="text-foreground">{activeTeam.name}</span>? All members and invites will be removed. This cannot be undone.</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowDeleteConfirm(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={deleteTeam} className="rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 text-xs font-light transition-colors">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invite Modal */}
-      {showInvite && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowInvite(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-extralight tracking-wide text-foreground">Invite Team Member</h3>
-            <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="Email address" type="email" className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
-            <div className="flex gap-2">
-              {["admin", "analyst", "viewer"].map(r => (
-                <button key={r} onClick={() => setInviteRole(r)} className={`rounded-xl px-3 py-1.5 text-[10px] capitalize transition-colors ${inviteRole === r ? "bg-foreground/15 text-foreground" : "bg-card/20 text-muted-foreground hover:text-foreground"}`}>{r}</button>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowInvite(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button onClick={sendInvite} disabled={!inviteEmail.trim()} className="rounded-xl bg-foreground/10 hover:bg-foreground/15 text-foreground/70 px-4 py-2 text-xs font-light transition-colors disabled:opacity-40">Send Invite</button>
-            </div>
-          </div>
-        </div>
-      )}
+      </ScrollArea>
     </div>
   );
 };
