@@ -38,7 +38,7 @@ export interface NavIntent {
 // capability is reached by asking for it in chat, which routes to the tool.
 // Folded tools (search, zerlal, azplen, geospatial, google, zali, ide, zahten,
 // briefing, notebooks, knowledge-vault, axrlen, ghost-engine, zeeion, gematria,
-// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper, teams,
+// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper,
 // community, snippets, stats, audit, bug-reports) still resolve as views so
 // deep links keep working — they simply have no nav row.
 export const NAV_INTENTS: NavIntent[] = [
