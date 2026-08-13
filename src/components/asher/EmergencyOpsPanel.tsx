@@ -117,7 +117,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
     if (!def) return;
     setBusy(true); setError(null);
     const { data: u } = await supabase.auth.getUser();
-    if (!u?.user || u.!isOwnerEmail(user.email)) {
+    if (!u?.user || !isOwnerEmail(u.user.email)) {
       setError("Authorization revoked."); setBusy(false); return;
     }
 
