@@ -1,18 +1,18 @@
 // Zaxin — Radar Intel Pack
-// Consolidates competitor + sci-fi doctrines into ONE panel that sits under
-// the Live Radar / Satellite Overhead surface in the Scan tab.
+// Browser-native BLE readout panel. Inspired by common scanner ideas, not a
+// replacement for professional RF test gear or indoor location systems.
 //
-// Narrative (short form):
-//  1. WiGle → wardrive recorder + GeoJSON export.
-//  2. AirGuard → unwanted-tracker alarm (device seen at ≥3 distinct GPS fixes).
-//  3. nRF Connect → RSSI history sparkline + path-loss distance readout.
-//  4. Kismet → source correlation chip (local vs hop-mesh).
-//  5. Bluewalker → IRK / mfr fingerprint chip surfaced next to id.
-//  6. Aliens motion tracker → WebAudio ping whose cadence ∝ nearest RSSI.
-//  7. Star Trek tricorder → scan-cone sector filter (±deg around heading).
-//  8. Predator bio-mask → layer toggles that mute static IoT and named wearables.
-//  9. Watch Dogs ctOS → floating manufacturer tag on each row.
-// 10. Blade Runner Esper → per-contact RSSI time-strip = "path through the room".
+// What it shows:
+//  1. Wardrive recorder + GeoJSON export.
+//  2. Unwanted-tracker alarm (device seen at ≥3 distinct GPS fixes).
+//  3. RSSI history sparkline + path-loss distance readout.
+//  4. Source correlation chip (local vs hop-mesh).
+//  5. IRK / mfr fingerprint chip surfaced next to id.
+//  6. WebAudio ping whose cadence ∝ nearest RSSI.
+//  7. Scan-cone sector filter (±deg around heading).
+//  8. Layer toggles that mute static IoT and named wearables.
+//  9. Floating manufacturer tag on each row.
+// 10. Per-contact RSSI time-strip.
 //
 // All state is local, no server, no allocations per animation frame.
 
