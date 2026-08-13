@@ -573,6 +573,18 @@ export async function runFoldedTools(
   }
 
   // ── Owned Google account ───────────────────────────────────────────────
+  //
+  // Both Google legs share one failure doctrine: an unconnected account is a
+  // product state, not an error to paper over. The model is told to ask for a
+  // Tier-2 connect, and is told explicitly that inventing a ledger is not an
+  // option — that sentence is the whole reason this branch exists.
+  const googleNotConnected = (surface: string) =>
+    parts.push(
+      `${surface}: no Google account is connected to this operator (the function returned no_account).`,
+      "- Tell them to connect Google from the Google surface at read tier (T2 — Gmail, Calendar, Contacts, Drive metadata).",
+      "- Do NOT produce any mail, contact, event, file or relationship result. There is no ledger to read yet; a fabricated one is a lie.",
+    );
+
   if (plan.googleService) {
     legs.push(["google-data", (async () => {
       const out = await invoke(
@@ -582,13 +594,83 @@ export async function runFoldedTools(
         CEILING.medium,
       );
       note("google-data", out);
-      if (!out.ok) return;
+      if (!out.ok) {
+        const err = String(out.body?.error ?? "");
+        if (/no_account|no google account|not connected/i.test(err)) googleNotConnected(`GOOGLE (${plan.googleService})`);
+        return;
+      }
       parts.push(
         `GOOGLE (${plan.googleService}) — operator's OWN connected account(s) only:`,
         maskPii(JSON.stringify(out.body).slice(0, 4000)),
       );
     })()]);
   }
+
+  // ── Google Mesh (derived reads + draft preview) ────────────────────────
+  if (plan.googleMesh) {
+    const m = plan.googleMesh;
+    legs.push([`google-mesh:${m.action}`, (async () => {
+      const payload: Record<string, unknown> = { action: m.action };
+      if (m.query) payload.query = m.query;
+      if (m.action === "ghostwrite") {
+        payload.to = m.to;
+        payload.intent = m.intent;
+        if (m.subject) payload.subject = m.subject;
+        // Preview contract: chat asks for the text, never for a stored draft,
+        // and never for a send. Saving is an act the operator performs.
+        payload.preview = true;
+      }
+      const out = await invoke(
+        "google-mesh",
+        payload,
+        auth,
+        m.action === "daily_digest" || m.action === "build_voiceprint" ? CEILING.heavy : CEILING.medium,
+      );
+      note(`google-mesh:${m.action}`, out);
+      if (!out.ok) {
+        const err = String(out.body?.error ?? "");
+        if (err === "no_account") return void googleNotConnected(`GOOGLE MESH (${m.action})`);
+        if (err === "tier_required" || err === "no_voiceprint") {
+          parts.push(
+            `GOOGLE MESH (${m.action}) refused: ${err} — ${String(out.body?.message ?? "").slice(0, 200)}`,
+            "- Relay that requirement verbatim. Do not write the email as if the tier existed.",
+          );
+        }
+        return;
+      }
+      if (m.action === "search_mail") {
+        const hits: any[] = out.body?.hits ?? [];
+        if (!hits.length) {
+          parts.push(
+            `GOOGLE MESH search_mail — query \`${out.body?.query ?? m.query}\` ran against the operator's own mailbox(es) and matched nothing.`,
+            "- Say the search returned zero messages. Do not reconstruct what the message 'probably' said.",
+          );
+          return;
+        }
+        parts.push(`GOOGLE MESH search_mail — ${hits.length} real message(s) for \`${out.body?.query ?? m.query}\`:`);
+        hits.slice(0, 8).forEach((h, i) => {
+          parts.push(
+            `[Mail ${i + 1}] from: ${maskPii(String(h.from ?? ""))} | date: ${h.date ?? "?"} | subject: ${String(h.subject ?? "(none)").slice(0, 160)}`,
+            `    ${maskPii(String(h.snippet ?? "")).slice(0, 400)}`,
+          );
+        });
+        return;
+      }
+      if (m.action === "ghostwrite") {
+        parts.push(
+          "GOOGLE MESH ghostwrite — DRAFT PREVIEW ONLY. Nothing was saved and nothing was sent.",
+          maskPii(JSON.stringify(out.body).slice(0, 3000)),
+          "- Show the draft, then say the operator sends it themselves from the Google surface.",
+        );
+        return;
+      }
+      parts.push(
+        `GOOGLE MESH ${m.action} — derived from the operator's OWN connected account(s):`,
+        maskPii(JSON.stringify(out.body).slice(0, 4000)),
+      );
+    })()]);
+  }
+
 
   // ── Design lab ─────────────────────────────────────────────────────────
   if (plan.zali) {
