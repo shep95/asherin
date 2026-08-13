@@ -1636,7 +1636,7 @@ Always wire UI ↔ backend coherently (e.g. if UI exposes a new field, backend m
           )}
 
 
-          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (ashernewtonx@gmail.com only) ─────────── */}
+          {/* ─────────── ADMIN · ALL AGENTS REGISTRY (owner only) ─────────── */}
           {viewTab === "admin" && isAdmin && (
             <div className="mx-auto max-w-7xl px-6 py-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">

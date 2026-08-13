@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Crown, UserCheck, UserX, Shield } from "lucide-react";
+import { isOwnerEmail } from "@/lib/adminEmail";
 
 const RANKS = ["emperor", "hand", "admin", "officer", "researcher", "worker", "initiate"] as const;
 const STATUSES = ["active", "pending", "suspended", "revoked"] as const;
@@ -22,7 +23,7 @@ export default function MembersConsole() {
   const [rows, setRows] = useState<Row[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const isEmperor = (user?.email ?? "").toLowerCase() === "ashernewtonx@gmail.com";
+  const isEmperor = isOwnerEmail(user?.email);
 
   const load = async () => {
     const { data } = await supabase.from("ziaassets_members")

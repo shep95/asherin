@@ -1,5 +1,5 @@
 // EmergencyOpsPanel — Incident Response Control Panel.
-// ASHER-DASHBOARD ONLY · ADMIN ONLY (ashernewtonx@gmail.com).
+// ASHER-DASHBOARD ONLY · OWNER ONLY (sha256 digest match).
 // Authorized administrators perform multi-level emergency service interruption
 // against infrastructure they own. Every action is gated by a 3-step confirmation
 // (password → acknowledgments → typed phrase) and written to the audit log.
