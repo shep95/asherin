@@ -328,9 +328,13 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
     }
 
 
+    // Same collapse logic for cookies: one shell issuing one cookie across
+    // 20 paths is one flag gap, not twenty.
     for (const c of a.cookies) {
       const missing = [!c.secure && "Secure", !c.httpOnly && "HttpOnly", !c.sameSite && "SameSite"].filter(Boolean);
-      if (missing.length) {
+      const id = `${a.host}|cookie|${c.name}`;
+      if (missing.length && !seenCookie.has(id)) {
+        seenCookie.add(id);
         push({
           klass: "cookie-missing-flag",
           severity: !c.secure ? "medium" : "low",
@@ -370,20 +374,27 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
       });
     }
 
-    if (a.status < 400 && ARTIFACT_PATHS.includes(a.path) && a.path !== "/.well-known/security.txt") {
+    // A single-page app answers /.git/HEAD with its own shell. Calling that
+    // "artifact reachable" would be a payout costume, so the class only fires
+    // when the response is NOT the catch-all and is NOT html.
+    if (
+      a.status < 400 && ARTIFACT_PATHS.includes(a.path) &&
+      a.path !== "/.well-known/security.txt" &&
+      !a.softNotFound && !/text\/html/i.test(a.contentType || "")
+    ) {
       push({
         klass: "leftover-artifact-reachable",
         severity: "high",
-        title: `${a.path} answers ${a.status}`,
+        title: `${a.path} answers ${a.status} with non-shell content`,
         host: a.host, path: a.path,
-        evidence: `HTTP ${a.status} · content-type: ${a.contentType || "unknown"} · ${a.bytes ?? 0} bytes read`,
-        meaning: "A build or tooling artifact path is reachable from the public internet. Recorded as reachability only — contents are not retrieved or reproduced here.",
+        evidence: `HTTP ${a.status} · content-type: ${a.contentType || "unknown"} · ${a.bytes ?? 0} bytes read · differs from this host's catch-all response`,
+        meaning: "A build or tooling artifact path is reachable from the public internet and does not resolve to the app shell. Recorded as reachability only — contents are not retrieved or reproduced here.",
         remediation: "Return 404 for this path at the edge and confirm the artifact is excluded from the deployed bundle.",
         wstg: "WSTG-CONF-05",
       });
     }
 
-    if (a.piiCounts.email + a.piiCounts.phone > 0 && a.status < 400) {
+    if (a.piiCounts.email + a.piiCounts.phone > 0 && a.status < 400 && !a.softNotFound) {
       push({
         klass: "pii-visible-in-response",
         severity: a.piiCounts.email + a.piiCounts.phone > 8 ? "medium" : "info",
@@ -396,6 +407,36 @@ function classify(audits: PathAudit[], host: string, securityTxtOk: boolean): Cl
       });
     }
   }
+
+  for (const gap of headerGaps.values()) {
+    const shown = gap.paths.slice(0, 6).join(", ");
+    push({
+      klass: "missing-security-header",
+      severity: gap.key === "content-security-policy" ? "medium" : "low",
+      title: `${gap.key} absent on ${gap.host}${gap.paths.length > 1 ? ` (${gap.paths.length} paths)` : ` ${gap.paths[0]}`}`,
+      host: gap.host, path: gap.paths[0],
+      evidence: `HTTP ${gap.sample.status} · ${gap.key}: <not present> · present on the same response: ${Object.keys(gap.sample.headers).join(", ") || "none of the protective set"} · paths: ${shown}${gap.paths.length > 6 ? ` +${gap.paths.length - 6} more` : ""}`,
+      meaning: "Responses from this host ship without that protective header, so browsers fall back to defaults across the listed paths.",
+      remediation: `Emit ${gap.key} for this host at the edge so every path inherits the same policy.`,
+      wstg: "WSTG-CONF-12",
+    });
+  }
+
+  const shellHosts = [...new Set(audits.filter((a) => a.softNotFound).map((a) => a.host))];
+  for (const h of shellHosts) {
+    const n = audits.filter((a) => a.softNotFound && a.host === h).length;
+    push({
+      klass: "inventory-note",
+      severity: "info",
+      title: `${h} answers unknown paths with its app shell (${n} of the probed paths)`,
+      host: h, path: "/",
+      evidence: `a random control path returned the same status, title and body size as these paths — soft-200 behaviour`,
+      meaning: "Path existence cannot be inferred from status code on this host. Findings for those paths are suppressed rather than reported as real routes.",
+      remediation: "None required. If route-level 404s matter for inventory hygiene, return a real 404 status for unknown paths.",
+      wstg: null,
+    });
+  }
+
 
   if (!securityTxtOk) {
     push({
