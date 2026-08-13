@@ -488,7 +488,10 @@ const ChatView = ({
 
         {/* Top bar — search + one overflow menu. Nothing else. */}
         {!focusMode && (
-          <div className="flex items-center justify-end px-2 sm:px-4 pt-2 sm:pt-4 pb-1 gap-1.5 shrink-0">
+          <div
+            className="flex items-center justify-end px-2 sm:px-4 pb-1 gap-1.5 shrink-0 pl-16 lg:pl-2"
+            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)" }}
+          >
             <ChatSearchBar
               messages={branchMessages}
               onHighlightMessage={setHighlightedMsgId}
@@ -524,7 +527,11 @@ const ChatView = ({
         )}
 
         {/* Messages */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0"
+          style={{ touchAction: "pan-y", overscrollBehaviorY: "contain" }}
+        >
           {branchMessages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center max-w-md animate-fade-in motion-reduce:animate-none">

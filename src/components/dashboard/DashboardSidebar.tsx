@@ -282,11 +282,19 @@ const DashboardSidebar = ({
   }, [showArchived, loadArchived]);
 
   const unarchiveConversation = async (id: string) => {
-    await supabase.from("conversations").update({ archived: false }).eq("id", id);
+    const restored = archivedConvos.find((c) => c.id === id);
+    const { error } = await supabase.from("conversations").update({ archived: false }).eq("id", id);
+    if (error) {
+      toast({ title: "Restore failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setArchivedConvos((prev) => prev.filter((c) => c.id !== id));
+    // Hand the row back to the dashboard's state instead of reloading the page
+    // (a reload discarded every hydrated transcript in memory).
+    if (restored) {
+      window.dispatchEvent(new CustomEvent("asherin:conversation-restored", { detail: restored }));
+    }
     toast({ title: "Conversation restored" });
-    // Trigger reload by navigating
-    window.location.reload();
   };
 
   const permanentlyDeleteArchived = async (id: string) => {
@@ -362,6 +370,68 @@ const DashboardSidebar = ({
   );
   const groups = groupByDate(filtered);
 
+  // ── Drawer gestures (below lg only) ────────────────────────────────────
+  // dragPx = how much of the drawer is currently visible, in px. null = the
+  // drawer is resting (CSS class drives it) and no finger is on the glass.
+  const [dragPx, setDragPx] = useState<number | null>(null);
+  const gestureRef = useRef<{
+    startX: number; startY: number; startT: number; lastX: number;
+    axis: "pending" | "x" | "y"; from: "edge" | "drawer";
+  } | null>(null);
+
+  const drawerWidth = () => Math.min(collapsed ? 68 : sidebarWidth, window.innerWidth - 48);
+  const isMobileViewport = () => window.matchMedia("(max-width: 1023px)").matches;
+
+  const beginGesture = (from: "edge" | "drawer") => (e: React.TouchEvent) => {
+    if (!isMobileViewport()) return;
+    // The conversation row owns its own horizontal axis (swipe-to-archive).
+    if (from === "drawer" && (e.target as HTMLElement).closest("[data-convo-row]")) return;
+    const t = e.touches[0];
+    gestureRef.current = { startX: t.clientX, startY: t.clientY, startT: Date.now(), lastX: t.clientX, axis: "pending", from };
+  };
+
+  const moveGesture = (e: React.TouchEvent) => {
+    const g = gestureRef.current;
+    if (!g) return;
+    const t = e.touches[0];
+    const dx = t.clientX - g.startX;
+    const dy = t.clientY - g.startY;
+    g.lastX = t.clientX;
+
+    if (g.axis === "pending") {
+      // Vertical intent wins outright — scrolling must never drag the drawer.
+      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { gestureRef.current = null; return; }
+      if (Math.abs(dx) < 10) return;
+      const rightward = dx > 0;
+      if (g.from === "edge" && !rightward) { gestureRef.current = null; return; }
+      if (g.from === "drawer" && rightward) { gestureRef.current = null; return; }
+      g.axis = "x";
+    }
+
+    const w = drawerWidth();
+    const visible = g.from === "edge" ? dx : w + dx;
+    setDragPx(Math.max(0, Math.min(w, visible)));
+  };
+
+  const endGesture = () => {
+    const g = gestureRef.current;
+    gestureRef.current = null;
+    if (!g || g.axis !== "x") { setDragPx(null); return; }
+    const w = drawerWidth();
+    const dx = g.lastX - g.startX;
+    const velocity = dx / Math.max(1, Date.now() - g.startT); // px/ms
+    if (g.from === "edge") {
+      const shouldOpen = dx > 40 || velocity > 0.5;
+      if (shouldOpen !== sidebarOpen) onToggleSidebar();
+    } else {
+      const shouldClose = dx < -w * 0.4 || velocity < -0.5;
+      if (shouldClose && sidebarOpen) onToggleSidebar();
+    }
+    setDragPx(null);
+  };
+
+  const dragging = dragPx !== null;
+
   const contextValue: SidebarContextValue = {
     isOpen: sidebarOpen,
     toggle: onToggleSidebar,
@@ -371,22 +441,56 @@ const DashboardSidebar = ({
 
   return (
     <SidebarContext.Provider value={contextValue}>
+      {/* The menu control lives on the same edge as the drawer it opens. */}
       <button
         onClick={onToggleSidebar}
-        className={`fixed top-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden transition-all duration-300 ease-out ${
-          sidebarOpen ? "left-4 right-auto" : "left-auto right-4"
-        }`}
+        aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+        aria-expanded={sidebarOpen}
+        style={{
+          top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+          left: "calc(env(safe-area-inset-left, 0px) + 0.75rem)",
+        }}
+        className="fixed z-50 h-11 w-11 flex items-center justify-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md lg:hidden transition-colors"
       >
         {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
       </button>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-background/50 lg:hidden" onClick={onToggleSidebar} />
+      {/* Invisible edge strip: drag right from here and the drawer follows the
+          finger. Inset by 8px so the iOS system back-swipe keeps its own lane. */}
+      {!sidebarOpen && (
+        <div
+          onTouchStart={beginGesture("edge")}
+          onTouchMove={moveGesture}
+          onTouchEnd={endGesture}
+          onTouchCancel={endGesture}
+          style={{ left: "8px", touchAction: "pan-y" }}
+          className="fixed inset-y-0 z-30 w-6 lg:hidden"
+          aria-hidden="true"
+        />
+      )}
+
+      {(sidebarOpen || dragging) && (
+        <div
+          className="fixed inset-0 z-30 bg-background/50 lg:hidden"
+          style={dragging ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" } : undefined}
+          onClick={onToggleSidebar}
+        />
       )}
 
       <aside
-        style={{ width: collapsed ? "68px" : `${sidebarWidth}px` }}
-        className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
+        onTouchStart={sidebarOpen ? beginGesture("drawer") : undefined}
+        onTouchMove={sidebarOpen ? moveGesture : undefined}
+        onTouchEnd={sidebarOpen ? endGesture : undefined}
+        onTouchCancel={sidebarOpen ? endGesture : undefined}
+        style={{
+          width: collapsed ? "68px" : `${sidebarWidth}px`,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          ...(dragging
+            ? { transform: `translateX(${(dragPx ?? 0) - drawerWidth()}px)`, transition: "none" }
+            : {}),
+        }}
+        className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 lg:transform-none flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MessageSquare, Pin, Trash2, Archive, Pencil, CornerDownRight } from "lucide-react";
+import { MessageSquare, Pin, Trash2, Archive, Pencil, CornerDownRight, MoreHorizontal } from "lucide-react";
 import type { Conversation } from "./types";
 
 interface SwipeableConversationItemProps {
@@ -23,6 +23,12 @@ const SwipeableConversationItem = ({
   const currentX = useRef(0);
   const [offset, setOffset] = useState(0);
   const [swiping, setSwiping] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  // Hover is a desktop affordance. On a touch panel the row actions must be
+  // reachable by tap, so they hide behind an explicit ⋯ toggle instead.
+  const [touchDevice] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.("(hover: none)").matches
+  );
 
   const rowRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
@@ -112,8 +118,9 @@ const SwipeableConversationItem = ({
         <div
           ref={rowRef}
           draggable
+          data-convo-row
           onDragStart={handleDragStart}
-          className={`relative z-10 group flex items-center gap-2 rounded-xl px-3 py-2 cursor-grab active:cursor-grabbing transition-colors ${
+          className={`relative z-10 group flex items-center gap-2 rounded-xl px-3 py-2 min-h-[44px] cursor-grab active:cursor-grabbing transition-colors ${
             isActive
               ? "bg-foreground/10 text-foreground"
               : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -122,6 +129,10 @@ const SwipeableConversationItem = ({
             transform: `translateX(${offset}px)`,
             transition: swiping ? "none" : "transform 0.3s ease-out",
             backgroundColor: offset !== 0 && !isActive ? "hsl(var(--card))" : undefined,
+            // Vertical scrolling of the conversation list stays native; the
+            // horizontal axis is ours (archive), and the drawer-close gesture
+            // skips any element carrying data-convo-row.
+            touchAction: "pan-y",
           }}
           onClick={() => { if (offset !== 0) { setOffset(0); return; } onSelect(); }}
           onTouchStart={handleTouchStart}
@@ -130,18 +141,37 @@ const SwipeableConversationItem = ({
         >
           <MessageSquare className="h-3.5 w-3.5 shrink-0" />
           <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
-          <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-inherit pl-1">
-            <button onClick={(e) => { e.stopPropagation(); onRename(); }} className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors" title="Rename">
+          {/* Touch devices have no hover, so the row actions would be
+              unreachable. A ⋯ toggle exposes exactly the same three actions. */}
+          {touchDevice && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setActionsOpen((o) => !o); }}
+              className="shrink-0 h-11 w-11 -my-2 -mr-2 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground"
+              aria-label="Conversation actions"
+              aria-expanded={actionsOpen}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          )}
+          <div
+            className={`flex gap-0.5 shrink-0 transition-opacity bg-inherit pl-1 ${
+              touchDevice
+                ? actionsOpen ? "opacity-100" : "hidden"
+                : "opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            <button onClick={(e) => { e.stopPropagation(); setActionsOpen(false); onRename(); }} className="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors" title="Rename">
               <Pencil className="h-3 w-3" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onTogglePin(); }} className={`p-1 rounded text-muted-foreground hover:text-foreground transition-colors ${conv.pinned ? "opacity-100 text-foreground" : ""}`} title="Pin">
+            <button onClick={(e) => { e.stopPropagation(); setActionsOpen(false); onTogglePin(); }} className={`p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors ${conv.pinned ? "opacity-100 text-foreground" : ""}`} title="Pin">
               <Pin className="h-3 w-3" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors" title="Delete permanently">
+            <button onClick={(e) => { e.stopPropagation(); setActionsOpen(false); onDelete(); }} className="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-colors" title="Delete permanently">
               <Trash2 className="h-3 w-3" />
             </button>
           </div>
         </div>
+
       </div>
 
       {/* Hover preview flyout — list of user messages */}

@@ -399,7 +399,15 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   const actions = quickActions[intent];
 
   return (
-    <div className="px-2 sm:px-4 pb-3 sm:pb-4 lg:pb-6">
+    <div
+      className="px-2 sm:px-4 pt-1"
+      style={{
+        // Home-indicator safe area plus the live soft-keyboard inset published
+        // by the dashboard. The composer rides above the keyboard, never under.
+        paddingBottom:
+          "calc(env(safe-area-inset-bottom, 0px) + var(--kb-inset, 0px) + 0.75rem)",
+      }}
+    >
       <div className="mx-auto max-w-3xl min-w-0">
         {/* Quick action pills */}
         {actions.length > 0 && value.trim() && (
@@ -454,7 +462,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             <PopoverTrigger asChild>
               <button
                 disabled={disabled || isStreaming || isRecording}
-                className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
+                className="shrink-0 h-11 w-11 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
                 title="Attach files, images, videos, or documents"
               >
                 <Paperclip className="h-4 w-4" />
@@ -508,7 +516,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             <button
               onClick={startRecording}
               disabled={disabled || isStreaming}
-              className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
+              className="shrink-0 h-11 w-11 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
               title="Record voice message"
             >
               <Mic className="h-4 w-4" />
@@ -535,7 +543,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           {isStreaming ? (
             <button
               onClick={onStop}
-              className="shrink-0 rounded-xl bg-destructive p-2.5 text-destructive-foreground transition-all hover:bg-destructive/90 active:scale-95"
+              className="shrink-0 h-11 w-11 flex items-center justify-center rounded-xl bg-destructive text-destructive-foreground transition-all hover:bg-destructive/90 active:scale-95"
               title="Stop generating"
             >
               <Square className="h-4 w-4" />
@@ -544,7 +552,7 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             <button
               onClick={handleSend}
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className={`shrink-0 relative ${btnShape === "square" ? "rounded-xl" : "rounded-full"} w-10 h-10 flex items-center justify-center border border-accent/30 bg-background/60 text-accent/80 hover:text-accent hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all motion-reduce:transition-none`}
+              className={`shrink-0 relative ${btnShape === "square" ? "rounded-xl" : "rounded-full"} w-11 h-11 flex items-center justify-center border border-accent/30 bg-background/60 text-accent/80 hover:text-accent hover:border-accent/60 hover:bg-accent/10 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all motion-reduce:transition-none`}
               title="Send"
               data-no-ripple
             >
