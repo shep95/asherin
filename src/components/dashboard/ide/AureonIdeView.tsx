@@ -443,23 +443,16 @@ const AureonIdeView = () => {
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
-  const [rightOpen, setRightOpen] = useState(false); // AI chat hidden by default
+  const [rightOpen, setRightOpen] = useState(false); // chat panel hidden by default
   const [bottomOpen, setBottomOpen] = useState(false); // Terminal hidden by default
   const [centerTab, setCenterTab] = useState<CenterTab>("code");
 
-  // ── SWARM / WORKFLOW MAP STATE (ported from Asher IDE) ──────────────
-  // Live registry of per-issue debugger agents. One agent per file.
-  const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
-  const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
-  const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
-  const fileLocksRef = useRef<Set<string>>(new Set());
-  const agentFileRef = useRef<Map<string, string>>(new Map());
-  // Pause control for the swarm autofix loop.
-  const [swarmPaused, setSwarmPaused] = useState(false);
-  const swarmPausedRef = useRef(false);
-  useEffect(() => { swarmPausedRef.current = swarmPaused; }, [swarmPaused]);
+  // Chat vs Agent. Agent is the only mode allowed to write files.
+  const [ideMode, setIdeMode] = useState<IdeMode>(() => readIdeMode("aureon"));
+
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("files");
+
 
   // Mobile
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("editor");
