@@ -236,6 +236,12 @@ const IdeGitPanel = ({ files, onImportFiles }: Props) => {
         title: "Pulled from GitHub",
         description: `${blobs.files.length} files · ${blobs.errors.length} skipped (binary)`,
       });
+      // Connect trace: repo + count only. No file bodies leave the browser.
+      void emitPull({
+        organ: "ide", capability: "git-pull", fromSurface: "ide-git", status: "ok",
+        quote: `${connection?.repo_owner ?? "repo"}/${connection?.repo_name ?? "?"} · ${blobs.files.length} files`,
+        meta: { files: blobs.files.length, skipped: blobs.errors.length },
+      });
       await refreshDiff();
     } catch (err: any) { toast({ title: "Pull failed", description: err.message, variant: "destructive" }); }
     setLoadingAction(null);
@@ -246,9 +252,14 @@ const IdeGitPanel = ({ files, onImportFiles }: Props) => {
     if (toPush.length === 0) { toast({ title: "Nothing selected" }); return; }
     setLoadingAction("push");
     try {
-      const msg = commitMsg.trim() || `Commit ${toPush.length} file(s) from Aureon IDE`;
+      const msg = commitMsg.trim() || `Commit ${toPush.length} file(s) from asherin IDE`;
       const r = await pushFiles(toPush, msg);
       toast({ title: "Committed & pushed", description: `${r.file_count} files · ${String(r.commit_sha).slice(0, 7)}` });
+      void emitPull({
+        organ: "ide", capability: "git-commit", fromSurface: "ide-git", status: "ok",
+        quote: `${r.file_count} files → ${connection?.branch ?? "branch"} · ${String(r.commit_sha).slice(0, 7)}`,
+        meta: { files: r.file_count },
+      });
       setCommitMsg("");
       await refreshDiff();
     } catch (err: any) { toast({ title: "Push failed", description: err.message, variant: "destructive" }); }
