@@ -29,6 +29,9 @@ import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
 import { useAccess } from "@/hooks/useAccess";
+import { DashboardUiProvider } from "@/lib/dashboardUiContext";
+import V2PageShell from "@/components/dashboard/v2/V2PageShell";
+import { v2TitleFor } from "@/lib/dashboard/v2Titles";
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
