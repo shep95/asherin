@@ -501,6 +501,11 @@ const ZaxinView = () => {
         </div>
       </div>
 
+      {/* honesty panel — visible without scrolling past the radar */}
+      <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-5">
+        <ZaxinHonestyPanel />
+      </div>
+
       {/* body */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 sm:py-7">
         {tab === "scan" && (
