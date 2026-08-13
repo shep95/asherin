@@ -46,21 +46,16 @@ const features: Feature[] = [
 
   // Memory + Privacy
   { name: "Persistent memory", desc: "Long-term recall across sessions. Standard limits on Asherin, expanded on Pro and Enterprise.", aureon: "Standard", pro: "Expanded", enterprise: "Unlimited" },
-  { name: "End-to-end encryption", desc: "AES-256-GCM in transit and at rest. Only you can read your conversations.", aureon: true, pro: true, enterprise: true },
+  { name: "Account-synced encryption", desc: "AES-256-GCM in transit and at rest, keyed to your account so your own devices can read your history.", aureon: true, pro: true, enterprise: true },
   { name: "Delete + export anytime", desc: "Export your entire workspace or wipe it permanently in one click.", aureon: true, pro: true, enterprise: true },
 
   // Usage
   { name: "Messages per 3-hour window", desc: "How many messages you can send in a rolling 3-hour window.", aureon: "60", pro: "200", enterprise: "Custom" },
 
-  // Pro modules
-  { name: "Azplen Data Intelligence Platform", desc: "Ingestion + analysis workflows, entity resolution, workflow automation, scenario simulation, threat modeling.", aureon: false, pro: true, enterprise: true },
-  { name: "Intelligence Briefings (Advanced)", desc: "Daily briefings with industry customization.", aureon: false, pro: true, enterprise: true },
-  { name: "AXRLEN — Predictive Intelligence", desc: "Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", aureon: false, pro: true, enterprise: true },
-  { name: "ZEEION FI — Financial Intelligence", desc: "Live-source financial tracking, dispute resolution and workforce optimization analytics.", aureon: false, pro: true, enterprise: true },
-  { name: "ZERLAL — Cyber Security", desc: "Vulnerability scanning, infrastructure recon, exploit intelligence and Cyber Kill Chain analysis.", aureon: false, pro: true, enterprise: true },
-  { name: "ZANOEM Design Lab", desc: "Generative material and assembly design written as an engineering brief. No solver on board — not FEA, thermal or CFD.", aureon: false, pro: true, enterprise: true },
-  { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", aureon: false, pro: true, enterprise: true },
-  { name: "Asherin IDE", desc: "Full in-browser Monaco IDE with AI pair-programming and sandboxed execution.", aureon: false, pro: true, enterprise: true },
+  // Pro throughput (the paid difference — not a separate module catalogue)
+  { name: "Search / dork throughput", desc: "Pro gets higher throughput and priority when the search queue is busy.", aureon: "Standard", pro: "Higher + priority", enterprise: "Custom" },
+  { name: "Map + search query capacity", desc: "Extra capacity for map layers, camera sweeps and search calls.", aureon: "Standard", pro: "Expanded", enterprise: "Custom" },
+  { name: "Limits on asherin chat tools", desc: "The tools that run inside asherin chat share one budget. Pro raises that budget.", aureon: "Standard", pro: "Higher", enterprise: "Custom" },
 
   // Enterprise-only
   { name: "SSO / SAML", desc: "Single sign-on via your corporate identity provider.", aureon: false, pro: false, enterprise: true },

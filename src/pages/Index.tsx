@@ -714,7 +714,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, AXRLEN, ZEEION, Zerlal and more) ships in Asherin Pro at $79/month.
+              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin seat; Asherin Pro at $79/month raises the limits on the same tools and opens the full team workspace.
             </p>
           </div>
 
@@ -1342,7 +1342,7 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $79/month and adds the full intelligence suite: Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace, Guardian Vault, Whiteboard, Maps, BYOK and account-synced encryption. Asherin Pro is $79/month and adds 200 messages per 3-hour window, higher search and map throughput, higher limits on the tools inside asherin chat, and the full team workspace with admin controls. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
             <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />
