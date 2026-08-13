@@ -19,7 +19,8 @@ export type Organ =
   | "knowledge-vault" | "library" | "memory" | "whiteboard" | "ghost"
   | "file-scrapper" | "zeeion" | "zaxin" | "zacoon" | "zali" | "gematria"
   | "vedic" | "document-studio" | "pattern" | "timeseries" | "teams"
-  | "snippets" | "rad" | "shield" | "connect";
+  | "snippets" | "rad" | "shield" | "connect"
+  | "defender" | "arvision";
 
 export interface PullInput {
   organ: Organ | string;
