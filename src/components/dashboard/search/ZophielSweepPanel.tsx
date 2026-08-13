@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 import { buildIntelGraph, type IntelNode, type IntelEdge } from "./intel/buildIntelGraph";
 import type { SearchResult, SearchResponse } from "./types";
+import { queueBoardDrop } from "@/lib/whiteboard/boardInbox";
 
 type StageId = "search" | "dork" | "deep" | "3hop" | "graph";
 type StageStatus = "idle" | "running" | "ok" | "skip" | "fail";
