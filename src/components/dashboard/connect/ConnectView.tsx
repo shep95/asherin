@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { emitPull } from "@/lib/connect/emitPull";
 import AIKeysSettings from "@/components/dashboard/AIKeysSettings";
 import { Loader2, RefreshCw, Github, Globe, KeyRound, ChevronRight } from "lucide-react";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 interface PullRow {
   id: string;
@@ -134,6 +136,10 @@ function relTime(ts: string): string {
 }
 
 const ConnectView = () => {
+  const v2 = useIsV2();
+  // v.2 hides the 31-node constellation on first paint: bindings and the
+  // live log answer "did it run", the map is an optional zoom-out.
+  const [showMap, setShowMap] = useState(false);
   const { user } = useAuth();
   const [pulls, setPulls] = useState<PullRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -258,20 +264,31 @@ const ConnectView = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-extralight tracking-tight text-foreground">Connect</h2>
-            <p className="mt-1 text-sm text-muted-foreground font-light">
-              Live pull-graph. Nodes light up only when a capability actually ran — no simulated health.
-            </p>
-          </div>
-          <button
-            onClick={() => { setLoading(true); void loadPulls(); void loadBindings(); }}
-            className="flex items-center gap-2 rounded-full border border-border/40 bg-card/30 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground hover:border-border transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
-          </button>
-        </header>
+        {v2 ? (
+          <V2Action>
+            <button
+              onClick={() => { setLoading(true); void loadPulls(); void loadBindings(); }}
+              className={v2ActionClass}
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> refresh
+            </button>
+          </V2Action>
+        ) : (
+          <header className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-extralight tracking-tight text-foreground">Connect</h2>
+              <p className="mt-1 text-sm text-muted-foreground font-light">
+                Live pull-graph. Nodes light up only when a capability actually ran — no simulated health.
+              </p>
+            </div>
+            <button
+              onClick={() => { setLoading(true); void loadPulls(); void loadBindings(); }}
+              className="flex items-center gap-2 rounded-full border border-border/40 bg-card/30 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </button>
+          </header>
+        )}
 
         {/* Bindings — edges into the graph, not a plugin store */}
         <section className="grid gap-3 sm:grid-cols-3">
