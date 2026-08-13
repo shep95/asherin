@@ -95,7 +95,6 @@ const PRODUCTS: Product[] = [
   
   {
     name: "Asherin IDE",
-    codename: "asherin IDE",
     tagline: "Monaco editor + chat that edits behind a diff",
     description:
       "Chat mode answers questions. Agent mode proposes file writes you approve as a visible diff, with a checkpoint taken before anything is written.",
