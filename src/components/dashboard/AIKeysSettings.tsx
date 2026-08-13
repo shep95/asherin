@@ -40,6 +40,9 @@ const AIKeysSettings = () => {
   const [savingPref, setSavingPref] = useState(false);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  // Booleans only — the key-status function returns presence flags, never values.
+  const [keyStatus, setKeyStatus] = useState<KeyStatusRow[] | null>(null);
+  const [keyStatusError, setKeyStatusError] = useState<string | null>(null);
 
   // Country count is a constant of the static provider catalog — compute once.
   const countryCount = useMemo(() => new Set(AI_PROVIDERS.map(p => p.country)).size, []);
