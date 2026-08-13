@@ -22,69 +22,54 @@ const PLANS = [
     name: "Asherin",
     price: "$18",
     period: "/month",
-    tagline: "core tools",
+    tagline: "core seat",
     description:
-      "a practical set of tools for chat, code, search, memory, and individual work.",
+      "a practical single-operator seat: chat, code, search, memory, maps and workspace.",
     cta: "choose asherin — $18 / month",
     highlight: false,
     groups: [
       {
-        title: "Core Chat + Modes",
+        title: "Asherin Chat",
         items: ["Chat Mode", "Code Mode", "Research Mode", "Truth Mode"],
       },
       {
         title: "Core Capabilities",
         items: [
-          "user-directed ai responses with stated limits",
-          "Capable coding engine",
-          "Multi-language output",
+          "Analytical answers; refusal behaviour follows the provider you route to",
+          "Capable coding engine with multi-language output",
           "Response depth control",
+          "BYOK — bring your own model key",
         ],
       },
       {
-        title: "Zophiel Search Intelligence (Full Engine)",
+        title: "Search",
         items: [
-          "Real-time web search with source-credibility + veracity scoring",
-          "Deep Search, Link Extract, Archives Harvester and page preview",
-          "Dark Web, Leaks, Onion and GhostChain sweeps",
-          "Advanced search operators (dorking) with a live SERP fetch",
-          "Intel Map, URL/Domain mapping and Zophiel V2 pipeline",
-          "Imagine Intelligence and File Scrapper",
+          "Base web search with source-credibility scoring",
+          "Search operators (dorking) with a live fetch",
           "Standard query throughput and recency",
-        ],
-      },
-      {
-        title: "Google Cloud Intelligence",
-        items: [
-          "Connect multiple Google accounts (Gmail, Calendar, Drive, Meet)",
-          "Automated contact intelligence reports",
-          "Signed-in device mesh — battery, link and live location",
-          "Always-on Sentinel alerts by email and push",
         ],
       },
       {
         title: "Asherin Maps",
         items: [
-          "Satellite-first tactical map with scalable layer tree",
-          "Live street-camera intelligence sweeps",
-          "Directions, explore nearby and hiring nearby",
-          "Find-My device locating across your signed-in fleet",
+          "Satellite-first map with a scalable layer tree",
+          "Public street-camera feeds where the agency publishes them",
+          "Directions and explore nearby",
         ],
       },
       {
-        title: "Productivity",
-        items: ["Code snippets library", "Keyboard shortcuts / command palette"],
-      },
-      {
         title: "Workspace",
-        items: ["Team workspace (limited)", "Basic sharing / collaboration"],
-      },
-
-      {
-        title: "Memory + Privacy",
         items: [
+          "Guardian Vault",
+          "Whiteboard",
           "Persistent memory (standard limits)",
-          "End-to-end encryption",
+          "Team workspace (limited) + basic sharing",
+        ],
+      },
+      {
+        title: "Privacy",
+        items: [
+          "Account-synced encryption at rest",
           "Delete anytime + export",
         ],
       },
@@ -97,64 +82,35 @@ const PLANS = [
   {
     id: "monthly_pro" as const,
     name: "Asherin Pro",
-    price: "$399",
+    price: "$79",
     period: "/month",
-    tagline: "broader tool access",
+    tagline: "higher limits + team",
     description:
-      "the asherin plan features, plus additional data, research, briefing, search, and collaboration tools for teams with broader needs.",
-    cta: "choose asherin pro — $399 / month",
+      "everything in the $18 seat, with higher limits on asherin chat tools and a full team workspace.",
+    cta: "choose asherin pro — $79 / month",
     highlight: true,
     groups: [
-      { title: "asherin plan features", items: ["core chat, modes, search, memory and workspace features", "google cloud intelligence and asherin maps with additional query capacity"] },
       {
-        title: "Azplen Data Intelligence Platform",
+        title: "Everything in Asherin ($18)",
         items: [
-          "Ingestion + analysis workflows",
-          "Entity resolution",
-          "Workflow automation",
-          "Scenario simulation",
-          "Threat modeling",
-        ],
-      },
-      {
-        title: "Asherin Engine (included with Pro)",
-        items: [
-          "Metadata index over the shell — headers, DNS/ASN, redirects, containers",
-          "Short full-take buffer: session bodies retained on a self-expiring TTL",
-          "Soft selection — dictionary, phrase and bounded regex across buffered payloads",
-
-          "EXIF capture fields, document producers, embedded authorship",
-          "DNS / ASN / TLS posture, redirect topology, origin geolocation",
-          "Shared-dimension graph with keystone detection",
-          "Timeline reconstruction + contradiction reports (hardware-date paradoxes, GPS leakage)",
-          "Wired into Asherin Chat as a provenance substrate",
-        ],
-      },
-      {
-        title: "Intelligence Briefings (Advanced)",
-        items: ["Daily briefings", "Industry customization"],
-      },
-      {
-        title: "Zophiel Search (Pro throughput)",
-        items: ["Same full engine as Asherin, with Pro limits", "Higher query limits", "Deeper crawl depth per query", "Priority latency"],
-      },
-      {
-        title: "Collaboration (Pro)",
-        items: ["Team workspace (full)", "Shared threads + outputs", "Admin controls"],
-      },
-      {
-        title: "Plus the full advanced suite",
-        items: [
-          "Asherin IDE, Whiteboard, File Scrapper",
-          "AXRLEN predictive intelligence",
-          "ZEEION financial intelligence",
-          "ZERLAL cyber security",
-          "ZANOEM Design Lab and Vedic Strategy",
+          "Chat, modes, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK",
         ],
       },
       {
         title: "Usage",
         items: ["200 messages per 3-hour window"],
+      },
+      {
+        title: "Throughput",
+        items: [
+          "Higher search / dork throughput, with priority when that engine is queued",
+          "Extra map and search query capacity",
+          "Higher limits on the tools that run inside asherin chat",
+        ],
+      },
+      {
+        title: "Team",
+        items: ["Full team workspace", "Shared threads + outputs", "Admin controls"],
       },
     ],
   },
@@ -168,7 +124,7 @@ interface Props {
  * Public-facing subscription plans card.
  *
  * Replaces the previous "Asherin is free" donation manifesto. Renders the two
- * core monthly tiers (Asherin $18 / Asherin Pro $399) plus an Enterprise
+ * core monthly tiers (Asherin $18 / Asherin Pro $79) plus an Enterprise
  * contact card.
  */
 export default function SubscriptionPlans({ compact = false }: Props) {
@@ -383,7 +339,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           </div>
           <div className="flex-shrink-0">
             <a
-              href="mailto:asher@asherin.com?subject=Asherin%20Enterprise%20Inquiry"
+              href="/founder"
               className="inline-flex items-center gap-2 rounded-full border border-foreground/30 px-5 py-3 text-xs font-light tracking-[0.2em] uppercase text-foreground hover:bg-foreground/5 transition-colors"
             >
               Contact sales

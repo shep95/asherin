@@ -1407,9 +1407,9 @@ const Dashboard = () => {
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
-      case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $399/mo, Maximum Intelligence.");
+      case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $79/mo, Maximum Intelligence.");
       case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — BLE Field Scout", "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.");
-      case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
+      case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $79/mo Pro plan.");
       
       
       // case "imagine-intelligence" removed
@@ -1417,7 +1417,7 @@ const Dashboard = () => {
       
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
-      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $399/mo Pro plan.");
+      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $79/mo Pro plan.");
       case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;

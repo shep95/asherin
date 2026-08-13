@@ -301,7 +301,7 @@ const GhostEngineView = () => {
         toast({
           title: denied ? "Asherin Engine is an Asherin Pro surface" : "Search failed",
           description: denied
-            ? "Metadata indexing and the payload buffer are included with the $399 plan and its 6-month term."
+            ? "Metadata indexing and the payload buffer are included with the $79 plan and its 6-month term."
             : detail.slice(0, 240) || error.message,
           variant: "destructive",
         });

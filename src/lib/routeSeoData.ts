@@ -25,7 +25,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing | Asherin, Pro & Enterprise Plans",
     description:
-      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, Asherin Engine, Briefings, Zophiel Pro). Enterprise on request.",
+      "Asherin is $18/mo for the core platform and $79/mo for Asherin Pro (Azplen, Asherin Engine, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service | Asherin",
@@ -39,7 +39,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/software": {
     title: "Software | Every Asherin Tool | Asherin",
     description:
-      "Every Asherin tool, OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper, on the $18/mo and $399/mo plans.",
+      "Every Asherin tool, OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper, on the $18/mo and $79/mo plans.",
   },
 
   "/benchmark": {
@@ -137,9 +137,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-06-24",
   },
   "/blog/aureon-pricing-explained": {
-    title: "Asherin Pricing Explained | Why $18/mo and $399/mo (2026)",
+    title: "Asherin Pricing Explained | Why $18/mo and $79/mo (2026)",
     description:
-      "The full breakdown of Asherin's $18/mo and $399/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+      "The full breakdown of Asherin's $18/mo and $79/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     ogType: "article",
     datePublished: "2026-06-19",
   },

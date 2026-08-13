@@ -1,7 +1,7 @@
 // AXRLEN BRIDGE — activates the AXRLEN prediction engine inline inside
 // Aureon Chat (link-extract-chat) and Asher Chat (asher-ai) when the user
 // asks a forecast-shaped question. Verified admin or Aureon Pro
-// ($399/mo, monthly_pro / pro / lifetime / algorithm) callers only —
+// ($79/mo, monthly_pro / pro / lifetime / algorithm) callers only —
 // everyone else gets a single clean upgrade line, never a fake forecast.
 //
 // The bridge:
@@ -79,7 +79,7 @@ export interface AxrlenBridgeArgs {
   fallbackModel?: string;
   /**
    * Access policy for this surface.
-   *   - 'pro' (default)         → admin OR $399 Aureon Pro subscribers only.
+   *   - 'pro' (default)         → admin OR $79 Aureon Pro subscribers only.
    *   - 'authenticated'         → any signed-in user, regardless of tier.
    * Aureon chat uses 'authenticated' so every subscription tier can invoke
    * inline AXRLEN forecasting. Asher chat and the standalone AXRLEN endpoint
@@ -332,7 +332,7 @@ export async function runAxrlenBridge(args: AxrlenBridgeArgs): Promise<AxrlenBri
   if (!allowed) {
     const msg = access.reason === "anonymous"
       ? "AXRLEN forecasting requires sign-in. Sign in and try again."
-      : "AXRLEN forecasting is an Aureon Pro ($399/mo) capability. Upgrade at /pricing to unlock inline predictions in "
+      : "AXRLEN forecasting is an Aureon Pro ($79/mo) capability. Upgrade at /pricing to unlock inline predictions in "
         + (args.surface === "asher" ? "Asher" : "Aureon")
         + " chat.";
     return { kind: "denied", access, intent, message: msg };

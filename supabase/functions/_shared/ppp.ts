@@ -19,7 +19,7 @@ export type PppTier = "monthly_aureon" | "monthly_pro";
 
 export const BASE_CENTS: Record<PppTier, Record<Term, number>> = {
   monthly_aureon: { monthly: 1800, semiannual: 10800 },
-  monthly_pro: { monthly: 39900, semiannual: 239400 },
+  monthly_pro: { monthly: 7900, semiannual: 47400 },
 };
 
 /** Stripe product each dynamic price attaches to, so revenue stays trackable. */
@@ -31,7 +31,7 @@ export const STRIPE_PRODUCTS: Record<PppTier, Record<Term, string>> = {
 /** Canonical full-price Stripe Price IDs (used when multiplier === 1). */
 export const FULL_PRICE_IDS: Record<PppTier, Record<Term, string | null>> = {
   monthly_aureon: { monthly: "price_1Tk7FyRxgCpmPfiF4vZebmnE", semiannual: null },
-  monthly_pro: { monthly: "price_1Tk7FzRxgCpmPfiFlkJig5Bf", semiannual: null },
+  monthly_pro: { monthly: "price_1U3vudRxgCpmPfiFCTcY3p1W", semiannual: null },
 };
 
 export const PPP_MULTIPLIERS: Record<string, number> = {

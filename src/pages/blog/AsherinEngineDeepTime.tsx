@@ -12,7 +12,7 @@ import { applySeoHead } from "@/lib/seoHead";
  * /blog/asherin-engine-deep-time
  *
  * Product briefing for the Asherin Engine — the metadata-first search
- * surface gated to the $399 Pro tier. Covers GHOST HARVEST fan-out,
+ * surface gated to the $79 Pro tier. Covers GHOST HARVEST fan-out,
  * DEEP TIME era-bucket retrieval, DOCUMENT INTELLIGENCE, ORIGIN link
  * forensics, and the IDENTIFIER SWEEP mode.
  */
@@ -57,7 +57,7 @@ const AsherinEngineDeepTime = () => {
           "OSINT dorking",
           "PDF metadata extraction",
           "link origin forensics",
-          "Asherin $399 tier",
+          "Asherin $79 tier",
         ]}
       />
       <BreadcrumbJsonLd
@@ -73,7 +73,7 @@ const AsherinEngineDeepTime = () => {
         items={[
           {
             q: "What is the Asherin Engine?",
-            a: "A metadata-first search surface inside the Asherin dashboard, gated to the $399 Pro tier. Instead of returning ten blue links, it fans one query into sixteen retrieval legs and returns structured exposure records — surface, first-seen, last-seen, snippet, and source link.",
+            a: "A metadata-first search surface inside the Asherin dashboard, gated to the $79 Pro tier. Instead of returning ten blue links, it fans one query into sixteen retrieval legs and returns structured exposure records — surface, first-seen, last-seen, snippet, and source link.",
           },
           {
             q: "What does DEEP TIME do?",
@@ -91,7 +91,7 @@ const AsherinEngineDeepTime = () => {
       />
 
       <ArticleShell
-        eyebrow="Product Briefing · Asherin Engine · $399 Pro Tier"
+        eyebrow="Product Briefing · Asherin Engine · $79 Pro Tier"
         title="Asherin Engine — metadata-first search and DEEP TIME retrieval"
         dek={DEK}
         publishedLabel="Aug 2 2026"
@@ -102,7 +102,7 @@ const AsherinEngineDeepTime = () => {
           claim="The Asherin Engine treats search as a metadata problem, not a link problem — one query becomes sixteen retrieval legs across five time eras, and returns structured, dated, sourced exposure records."
           primaryTopic="Metadata-first OSINT search, archival era-bucket retrieval, and identifier exposure mapping inside the Asherin dashboard"
           keyFacts={[
-            "Bundled with the Asherin $399 Pro tier and the 6-month Pro plan.",
+            "Bundled with the Asherin $79 Pro tier and the 6-month Pro plan.",
             "GHOST HARVEST fans a single query into 16 parallel retrieval legs.",
             "DEEP TIME buckets retrieval into five eras and tracks host lifespan.",
             "DOCUMENT INTELLIGENCE extracts author, producer, and creation-date metadata from PDFs.",
@@ -258,7 +258,7 @@ const AsherinEngineDeepTime = () => {
   ├── Asherin Chat        ── conversational operator surface
   ├── Cloud Intelligence  ── email / message / contact dossiers
   ├── Asherin Maps        ── geospatial + camera + routing
-  └── ASHERIN ENGINE ($399 Pro)
+  └── ASHERIN ENGINE ($79 Pro)
         ├── GHOST HARVEST        16-leg fan-out
         ├── DEEP TIME            era buckets + host lifespan
         ├── DOCUMENT INTEL       PDF / office metadata
@@ -270,7 +270,7 @@ const AsherinEngineDeepTime = () => {
         <h2>9. FAQ</h2>
         <h3>Which tier includes the Asherin Engine?</h3>
         <p>
-          The $399/mo Pro tier and the six-month Pro plan. Lower tiers see
+          The $79/mo Pro tier and the six-month Pro plan. Lower tiers see
           the tab but cannot launch a harvest.
         </p>
         <h3>Does it index anything itself?</h3>

@@ -1,6 +1,6 @@
 // PRO / ADMIN gate — grants access when the caller is either:
 //   - An admin email (ADMIN_EMAILS in constants.ts), OR
-//   - Holds an active $399 Aureon Pro-class subscription in
+//   - Holds an active $79 Aureon Pro-class subscription in
 //     public.user_subscriptions (subscription_type in the pro ladder,
 //     status='active', not expired).
 //

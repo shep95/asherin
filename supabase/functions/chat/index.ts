@@ -82,7 +82,7 @@ Aureon is an uncensored AI intelligence platform built for builders, researchers
 - **Response Depth Control**: Shallow, Standard, Deep, or Expert level responses.
 - **Keyboard Shortcuts**: CMD/Ctrl+K command palette, CMD+1-4 mode switching.
 
-### Pro-Only Features ($399/mo)
+### Pro-Only Features ($79/mo)
 - **Azplen Data Intelligence Platform**: Full data analysis, ingestion, entity resolution, workflow automation, threat modeling, scenario simulation.
 - **NOMAD Public Intelligence Agent**: OSINT investigation tool for public intelligence gathering.
 - **Daily Intelligence Briefings**: AI-generated morning briefs customized to your industry.
@@ -98,7 +98,7 @@ Aureon is an uncensored AI intelligence platform built for builders, researchers
 
 ### Pricing
 - **Aureon**: $18/month — 60 messages per 3-hour window.
-- **Aureon Pro**: $399/month — 200 messages per 3-hour window + all advanced tools.
+- **Aureon Pro**: $79/month — 200 messages per 3-hour window + all advanced tools.
 - No free tier. "Because free tiers turn users into products."
 
 ### Data Privacy
@@ -1725,7 +1725,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
-    // For $399 monthly_pro / lifetime users, embed the latest user message and
+    // For $79 monthly_pro / lifetime users, embed the latest user message and
     // pull the top relevant chunks from their private knowledge vault.
     // Suppressed on intel turns, and gated behind a similarity floor otherwise,
     // so unrelated vault documents cannot bleed into an unrelated answer.

@@ -2,7 +2,7 @@
 // ZACOON PHANTOM GRID v3.0 — Operative Intelligence Console
 // ----------------------------------------------------------------------------
 // Multi-cortex autonomous web operative with:
-//   • $399/mo Pro tier gate (admins bypass)
+//   • $79/mo Pro tier gate (admins bypass)
 //   • Mass-ban on aureonai.app / www.aureonai.app for non-admins
 //   • 5-Phase Cortex Loop (Recon → Navigate → Adversarial → Self-Correct → Synthesis)
 //   • Unified Mission Memory (cross-mode intelligence via zacoon_missions)
@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
         }, 451, corsHeaders);
       }
     }
-    // ── Tier gate: $399 Pro tier or higher required ────────────────────────
+    // ── Tier gate: $79 Pro tier or higher required ────────────────────────
     const gate = await requireTier(req, ["pro", "lifetime"], corsHeaders);
     if (!gate.ok) return gate.response!;
   }

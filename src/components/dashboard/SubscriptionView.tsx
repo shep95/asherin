@@ -5,7 +5,7 @@ import ManageSubscriptionCard from "@/components/dashboard/subscription/ManageSu
 /**
  * Dashboard "Subscription" page.
  *
- * Renders the active monthly subscription model ($18 Aureon / $399 Aureon Pro)
+ * Renders the active monthly subscription model ($18 Aureon / $79 Aureon Pro)
  * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {

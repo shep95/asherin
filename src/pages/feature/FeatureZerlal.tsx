@@ -57,7 +57,7 @@ const FeatureZerlal = () => (
         </>
       }
       subheadline="ZERLAL is Asherin's AI vulnerability scanner. It does what legacy SAST/DAST tools refuse to do: it chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a zero-day confidence score to every novel pattern, and monitors the target continuously instead of running a one-shot scan."
-      tierLabel="Asherin Pro — $399/mo · Enterprise on request"
+      tierLabel="Asherin Pro — $79/mo · Enterprise on request"
       capabilities={[
         {
           icon: ShieldAlert,
@@ -122,7 +122,7 @@ const FeatureZerlal = () => (
             ]}
             relevanceSignal="Security researchers, red teams, bug-bounty hunters, blue teams, and OSS maintainers evaluating an AI-driven vulnerability scanner that goes beyond CVE pattern matching."
             confidence="high"
-            tier="Asherin Pro · $399/month"
+            tier="Asherin Pro · $79/month"
           />
 
           <h2 className="text-2xl font-light tracking-tight text-foreground pt-4">

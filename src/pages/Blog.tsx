@@ -143,7 +143,7 @@ export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
     title: "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin",
-    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Asherin $399 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
+    dek: "The product briefing for Zaxin — the Web-Bluetooth tactical layer bundled with the Asherin $79 tier. Five-brain stack, Ghost-Recon HUD, Esri satellite recon, AXRLEN BYOK briefs. Includes diagrams and the seven AI fusion theories.",
     tag: "Product",
     published: "2026-06-26T00:00:00.000Z",
     readTime: "11 min",
@@ -162,7 +162,7 @@ export const BLOG_POSTS: Post[] = [
   
   {
     slug: "/blog/aureon-pricing-explained",
-    title: "Asherin pricing explained — why $18/mo and $399/mo",
+    title: "Asherin pricing explained — why $18/mo and $79/mo",
     dek: "A field-level breakdown of how Asherin's subscription is built, how it compares to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
     tag: "Pricing",
     published: "2026-06-19",
