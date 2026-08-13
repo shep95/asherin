@@ -157,10 +157,9 @@ const TOOLS = [
   { type: "function", function: { name: "set_geofence", description: "Arm a proximity geofence that alerts when the operator enters or leaves it. Anchored on the operator's current position unless ref is given.", parameters: { type: "object", properties: { label: { type: "string" }, radiusM: { type: "number", description: "Radius in metres" }, ref: { type: "object", properties: { lat: { type: "number" }, lng: { type: "number" }, place: { type: "string" } } } }, required: ["label", "radiusM"] } } },
 
   /* ── KERNEL-OWNED OPERATOR TOOLS ─────────────────────────────────────
-     These do NOT run in the vessel. They are forwarded to the asherin
-     kernel through `asherin-kernel-proxy`. If the kernel is unreachable the
-     caller says "kernel offline" and performs nothing — never a local
-     stand-in,
+     These do NOT run in the vessel. They are forwarded to the asherin kernel
+     through `asherin-kernel-proxy`. If the kernel is unreachable the caller
+     says "kernel offline" and performs nothing
 
 
 
