@@ -46,7 +46,7 @@ const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboar
 const ConnectView = lazyWithRetry(() => import("@/components/dashboard/connect/ConnectView"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
-const GhostEngineView = lazyWithRetry(() => import("@/components/dashboard/GhostEngineView"));
+const AsherinxEngView = lazyWithRetry(() => import("@/components/dashboard/asherinx/AsherinxEngView"));
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
 const ZaliView = lazyWithRetry(() => import("@/components/dashboard/zali/ZaliView"));
 const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/CommunityView"));
@@ -1554,7 +1554,7 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
-      case "ghost-engine": return gatedView("ghost-engine", GhostEngineView, "Asherin Engine", "The metadata-only search engine — transport headers, DNS/ASN posture, EXIF capture fields, document producers, and the contradictions between them. Available on the Asherin Pro plan.");
+      case "ghost-engine": return gatedView("ghost-engine", AsherinxEngView, "asherinx.eng", "public-index search over eighteen open indexes. included with the $18 asherin plan; pro widens the fan-out and opens origin, identifier and the buffer.");
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
       case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");
@@ -1567,7 +1567,7 @@ const Dashboard = () => {
       case "teams": return <TeamsView />;
 
       case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.");
-      case "geospatial": return gatedView("geospatial", GeospatialView, "Asherin Maps", "Real-time tactical map — click any land parcel or property and the Zophiel engine scrapes live ownership, valuation, history, and risk intelligence from the open web. Available on the Maximum Intelligence (Pro) plan.");
+      case "geospatial": return gatedView("geospatial", GeospatialView, "asherin.maps", "a dark glass map you can talk to — public cameras, coordinates and weather on every move. included with the $18 asherin plan; pro adds the property dossier and the plane and ship layers.");
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.");
