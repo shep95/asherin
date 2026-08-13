@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "issued_at": "2026-05-12T00:00:00Z",
-  "valid_through": "2026-06-12T00:00:00Z",
-  "issuer": "Aureon · House of Asher",
-  "domain": "aureonai.app",
+  "issued_at": "2026-08-13T00:00:00Z",
+  "valid_through": "2026-11-13T00:00:00Z",
+  "issuer": "Asherin · House of Asher",
+  "domain": "asherin.com",
   "statements": [
-    "Aureon has never received a National Security Letter, FISA court order, or any classified gag order.",
-    "Aureon has never installed, been asked to install, or had any logging, telemetry, or backdoor of any kind in the OpenVPN / Aureon Shield browser-side code.",
-    "Aureon has never handed over user identifiers, search queries, audit telemetry, or session data to any law-enforcement, intelligence, or third-party data broker.",
-    "Aureon does not store the IP address, fingerprint hash, or geolocation of any visitor on its servers. All audits run client-side in the user's browser.",
+    "Asherin has never received a National Security Letter, FISA court order, or any classified gag order.",
+    "Asherin has never installed, been asked to install, or had any logging, telemetry, or backdoor of any kind in the OpenVPN / Asherin Shield browser-side code.",
+    "Asherin has never handed over user identifiers, search queries, audit telemetry, or session data to any law-enforcement, intelligence, or third-party data broker.",
+    "Asherin does not store the IP address, fingerprint hash, or geolocation of any visitor on its servers. All audits run client-side in the user's browser.",
     "If this canary is removed, replaced with a non-signed copy, or stops being updated within 30 days of valid_through, you should assume the platform is compromised and stop using it."
   ],
   "live_anchors": {
@@ -19,10 +19,10 @@
   "signed_by": "ashernewtonx@gmail.com",
   "signature_method": "ed25519-detached",
   "verification": {
-    "public_key_url": "https://aureonai.app/.well-known/aureon-canary-pubkey.txt",
-    "signature_url": "https://aureonai.app/aureon-canary.sig",
-    "procedure": "Download the canary JSON, the .sig file, and the public key. Run: openssl pkeyutl -verify -pubin -inkey aureon-canary-pubkey.txt -rawin -in aureon-canary.json -sigfile aureon-canary.sig",
-    "timestamping": "Issuance hash is also anchored to the Bitcoin chain via OpenTimestamps. See https://aureonai.app/.well-known/aureon-canary.ots"
+    "public_key_url": "https://asherin.com/.well-known/asherin-canary-pubkey.txt",
+    "signature_url": "https://asherin.com/asherin-canary.sig",
+    "procedure": "Download the canary JSON, the .sig file, and the public key. Run: openssl pkeyutl -verify -pubin -inkey asherin-canary-pubkey.txt -rawin -in aureon-canary.json -sigfile asherin-canary.sig",
+    "timestamping": "Issuance hash is also anchored to the Bitcoin chain via OpenTimestamps. See https://asherin.com/.well-known/asherin-canary.ots"
   },
-  "warning": "Until verification.public_key_url and signature_url resolve to real artifacts, treat this canary as informational only — it is not yet cryptographically verifiable."
+  "warning": "Not yet cryptographically verifiable: verification.public_key_url, signature_url, and the OpenTimestamps anchor do not resolve to published artifacts. Treat this canary as an operator statement of record, not as a signed proof, until those three files exist."
 }

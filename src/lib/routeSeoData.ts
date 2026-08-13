@@ -308,15 +308,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "Asherin Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
   },
-  "/zophiel": {
-    title: "Zophiel Search | OSINT & Veracity Engine | Asherin",
-    description:
-      "Zophiel: 30-source OSINT search with veracity scoring, inside the signed-in Asherin dashboard at /dashboard/search.",
-  },
-  "/search": {
-    title: "Zophiel Search | Verified OSINT Intelligence | Asherin",
-    description: "Search 30+ live OSINT sources with cross-validation and citation-grade veracity scoring.",
-  },
   "/axrlen": {
     title: "AXRLEN | Free Predictive AI Engine (BYOK) | Asherin",
     description:
@@ -333,10 +324,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/proj-aureon": {
     title: "Project Asherin | Origin Brief",
     description: "Project Asherin: the origin brief, doctrine, and roadmap of the Asherin intelligence platform.",
-  },
-  "/whiteboard": {
-    title: "Whiteboard | Infinite Intelligence Canvas | Asherin",
-    description: "Asherin Whiteboard: infinite canvas with intelligence-aware drawing and snap-grid precision.",
   },
   "/forums": {
     title: "Forums | Asherin Operator Community",

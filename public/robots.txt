@@ -196,6 +196,8 @@ Disallow: /debug
 Disallow: /ziaassets
 Disallow: /ZIAASSETS
 Disallow: /whiteboard
+# Scanned book plates are product assets, not an index surface.
+Disallow: /books/
 Disallow: /functions/v1/
 Disallow: /rest/v1/
 Disallow: /.well-known/
