@@ -1461,6 +1461,14 @@ const IntelligenceMapModule = () => {
 
     flyTo(lat, lng, zoom);
 
+    /* Connect trace: this is the "take me to X" arrival itself, distinct from
+       the raw camera move above. The quote is the place name the operator will
+       see on the pin — never the raw query, which can carry personal detail. */
+    void emitPull({
+      organ: "maps", capability: "take", fromSurface: "maps", status: "ok",
+      quote: label, meta: { zoom },
+    });
+
     /* AUTO-PULL (Queue 06 B): arriving at a target IS the request for local
        sensor context. The Cameras button is a manual refresh, never the
        precondition for first paint. Cameras must never block the dossier, so
@@ -1490,12 +1498,32 @@ const IntelligenceMapModule = () => {
       const run = ++organRunRef.current;
       setOrganBusy(true);
       setSelectedCameraId(null);
+      const sweepStarted = performance.now();
       try {
         const radius = zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1600;
         const [pull, roof] = await Promise.all([
           pullNearbyOrgans(lat, lng, { radiusM: radius }),
           zoom >= 17 ? sampleRoofColor(lat, lng) : Promise.resolve(null),
         ]);
+        // Two organs ran, so two rows. The roof sample is traced as a skip when
+        // the zoom never authorised it and fail when the tile could not be read
+        // — a gap in the index is never dressed up as a successful pull.
+        void emitPull({
+          organ: "maps", capability: "nearby", fromSurface: "maps",
+          status: pull.points.length ? "ok" : "skip",
+          latencyMs: performance.now() - sweepStarted,
+          quote: `${pull.points.length} public features within ${radius} m`,
+        });
+        void emitPull({
+          organ: "maps", capability: "roofs", fromSurface: "maps",
+          status: roof ? "ok" : zoom >= 17 ? "fail" : "skip",
+          latencyMs: performance.now() - sweepStarted,
+          quote: roof
+            ? `${roof.klass} · ${Math.round(roof.confidence * 100)}% of sampled pixels`
+            : zoom >= 17
+              ? "imagery tile unavailable or canvas read blocked"
+              : "only sampled at rooftop zoom",
+        });
         if (run !== organRunRef.current) return; // a newer arrival owns the paint
         const rows = [...pull.results];
         rows.push(
@@ -1506,7 +1534,12 @@ const IntelligenceMapModule = () => {
         setRoofVote(roof);
         setOrganPoints(pull.points);
         setOrganDigest(buildOrganDigest(rows));
-      } catch {
+      } catch (e: any) {
+        void emitPull({
+          organ: "maps", capability: "nearby", fromSurface: "maps", status: "fail",
+          latencyMs: performance.now() - sweepStarted,
+          quote: e?.message || "nearby sweep unavailable",
+        });
         if (run === organRunRef.current) { setOrganPoints([]); setOrganDigest(null); }
       } finally {
         if (run === organRunRef.current) setOrganBusy(false);
