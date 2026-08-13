@@ -6,6 +6,7 @@ import {
 import { useGitHub, type GitHubCommit, type GitHubBranch } from "@/hooks/useGitHub";
 import { useToast } from "@/hooks/use-toast";
 import type { IdeFile } from "./IdeFileTree";
+import { emitPull } from "@/lib/connect/emitPull";
 
 interface Props {
   files: IdeFile[];
