@@ -3,7 +3,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
+  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye, Info,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
   Activity, Radio, ChevronRight, Cpu,
 } from "lucide-react";
