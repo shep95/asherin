@@ -74,6 +74,8 @@ const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/Zee
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
+const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
+const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
@@ -171,7 +173,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","axrlen","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","axrlen","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault","asherin-defender","asherin-arvision"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1554,6 +1556,8 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
+      case "asherin-defender": return gatedView("asherin-defender", AsherinDefenderView, "asherin.defender", "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.");
+      case "asherin-arvision": return gatedView("asherin-arvision", AsherinArVisionView, "asherin.arvision", "live camera hud with native frame intel and freeze. included with the $18 asherin plan; saved packets, the rf lattice and plate or vin public-index lookups open on pro.");
       case "ghost-engine": return gatedView("ghost-engine", AsherinxEngView, "asherinx.eng", "public-index search over eighteen open indexes. included with the $18 asherin plan; pro widens the fan-out and opens origin, identifier and the buffer.");
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
       case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
