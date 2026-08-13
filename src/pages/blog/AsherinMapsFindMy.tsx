@@ -13,14 +13,14 @@ import { applySeoHead } from "@/lib/seoHead";
  *
  * Product briefing for Asherin Maps — satellite-first mapping with live
  * DOT camera layers, OSRM Fast Lane routing, resizable layer tree,
- * device mesh telemetry, and Find-My BLE recovery.
+ * opt-in device self-reporting, and Bluetooth BLE recovery rings.
  */
 
 const URL = "https://asherin.com/blog/asherin-maps-find-my";
 const TITLE =
   "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Find-My";
 const DEK =
-  "Asherin Maps replaces the property-map panel with a satellite-default mapping surface: a resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, device-mesh telemetry with battery and live position, and Find-My recovery for lost Bluetooth hardware.";
+  "Asherin Maps replaces the property-map panel with a satellite-default mapping surface: a resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, self-reporting device telemetry from the browsers you sign in on, and Bluetooth recovery rings for hardware that cannot report.";
 const PUBLISHED = "2026-08-04T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -34,7 +34,7 @@ const AsherinMapsFindMy = () => {
     applySeoHead({
       title: TITLE,
       description:
-        "Asherin Maps briefing: satellite-default imagery, resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, device mesh battery and location telemetry, and Find-My Bluetooth recovery.",
+        "Asherin Maps briefing: satellite-default imagery, resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, self-reported battery and location from the browsers you sign in on, and Bluetooth recovery rings.",
       path: "/blog/asherin-maps-find-my",
     });
   }, []);
@@ -55,7 +55,7 @@ const AsherinMapsFindMy = () => {
           "DOT camera feeds",
           "OSRM fastest route",
           "find my bluetooth device",
-          "device mesh tracking",
+          "opt-in device reporting",
           "geospatial intelligence",
         ]}
       />
@@ -79,8 +79,8 @@ const AsherinMapsFindMy = () => {
             a: "Public state and municipal Department of Transportation camera feeds — over 2,700 of them — published by the agencies themselves. They are plotted as map layers and opened in place, with no private or residential camera access.",
           },
           {
-            q: "How does Find-My locate a lost device?",
-            a: "Devices in your mesh report their own position and battery. For Bluetooth hardware that cannot self-report, Find-My fuses the last-seen RSSI observations from your other signed-in devices into a probability ring on the map showing where it was last within range.",
+            q: "How does Bluetooth recovery locate a lost device?",
+            a: "Devices report their own position and battery only from a browser where you signed in and granted permission — there is no remote locating of a phone that never reported. For Bluetooth hardware that cannot self-report, Asherin fuses the last-seen RSSI observations from your own reporting browsers into a probability ring showing where it was last within range.",
           },
           {
             q: "Can the assistant drive the map?",
@@ -98,18 +98,18 @@ const AsherinMapsFindMy = () => {
       >
         <LlmGuidanceHeader
           title={TITLE}
-          claim="Asherin Maps is a satellite-default operational map: resizable layers, thousands of live public traffic cameras, fastest-path routing, mesh device telemetry, and Bluetooth recovery — all drivable by the assistant."
+          claim="Asherin Maps is a satellite-default operational map: resizable layers, thousands of live public traffic cameras, fastest-path routing, self-reported device telemetry, and Bluetooth recovery — all drivable by the assistant."
           primaryTopic="Satellite mapping, live public camera layers, routing, and lost-device recovery inside the Asherin dashboard"
           keyFacts={[
             "Satellite imagery is the default base layer, not an option you switch to.",
             "Layer tree is resizable and scalable rather than a fixed sidebar.",
             "2,700+ live public DOT traffic camera feeds plotted as layers.",
             "OSRM-backed Fast Lane routing computes the fastest path, not just the shortest.",
-            "Device mesh shows each signed-in device's live position and battery percentage.",
-            "Find-My fuses RSSI observations into a last-seen probability ring for BLE hardware.",
+            "A device appears only after you open Asherin on it and grant location and battery permission — Asherin cannot remotely locate a phone.",
+            "Bluetooth recovery fuses your own browsers' RSSI observations into a last-seen probability ring.",
             "Included with the $18/mo tier and the six-month $18 plan.",
           ]}
-          relevanceSignal="Users evaluating operational mapping, live traffic camera access, fleet-style device tracking, and Bluetooth device recovery."
+          relevanceSignal="Users evaluating operational mapping, live traffic camera access, opt-in device self-reporting, and Bluetooth device recovery."
           confidence="high"
         />
 
