@@ -73,6 +73,10 @@ const AgentsView = () => {
   const [newOutputDiscordWebhook, setNewOutputDiscordWebhook] = useState("");
   const [newOutputTelegramChatId, setNewOutputTelegramChatId] = useState("");
   const [creating, setCreating] = useState(false);
+  const [newRetryOnFailure, setNewRetryOnFailure] = useState(true);
+  const [newMaxRetries, setNewMaxRetries] = useState(3);
+  const [newRequireApproval, setNewRequireApproval] = useState(false);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const loadAgents = useCallback(async () => {
     if (!user) return;
@@ -126,15 +130,51 @@ const AgentsView = () => {
         body: { agentId: agent.id },
       });
       if (error) throw error;
-      const deliveryInfo = data?.delivery?.success
-        ? ` — delivered via ${data?.delivery?.to || data?.delivery?.channel || agent.output_type}`
-        : "";
-      toast({ title: "Agent executed", description: `${agent.name} ran successfully${deliveryInfo}` });
+      const status = String(data?.status ?? "success");
+      if (status === "awaiting_approval") {
+        toast({ title: "Held for approval", description: `${agent.name} produced its output and is waiting on your decision before delivery.` });
+      } else if (status === "failed") {
+        const firstError = (data?.steps ?? []).find((st: any) => st.status === "failed")?.error;
+        toast({ title: "Run failed", description: firstError || `${agent.name} did not complete.`, variant: "destructive" });
+      } else if (status === "partial") {
+        const skipped = (data?.steps ?? []).filter((st: any) => st.status !== "success").map((st: any) => st.type);
+        toast({ title: "Ran with gaps", description: `${agent.name} finished, but these steps did not run: ${skipped.join(", ") || "unknown"}.` });
+      } else {
+        const deliveryInfo = data?.delivery?.success
+          ? ` — delivered via ${data?.delivery?.to || data?.delivery?.channel || agent.output_type}`
+          : "";
+        toast({ title: "Agent executed", description: `${agent.name} ran clean${deliveryInfo}` });
+      }
       loadAgents();
+      if (logsAgent?.id === agent.id) loadExecutions(agent.id);
     } catch (err) {
       toast({ title: "Execution failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     }
     setRunningAgentId(null);
+  };
+
+  // Human-in-the-loop decision. Approve resumes the paused run from its
+  // checkpoint and delivers; hold marks the run failed and sends nothing.
+  const decideRun = async (exec: AgentExecution, approve: boolean) => {
+    setDecidingId(exec.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("agent-execute", {
+        body: { agentId: exec.agent_id, executionId: exec.id, approve },
+      });
+      if (error) throw error;
+      toast({
+        title: approve ? "Delivery approved" : "Run held",
+        description: approve
+          ? `Run resumed and finished ${String(data?.status ?? "")}.`
+          : "Nothing was sent. The run is recorded as failed.",
+        variant: approve ? undefined : "destructive",
+      });
+      await loadExecutions(exec.agent_id);
+      loadAgents();
+    } catch (err) {
+      toast({ title: "Decision failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    }
+    setDecidingId(null);
   };
 
   const createAgent = async () => {
@@ -183,6 +223,13 @@ const AgentsView = () => {
         output_type: newOutputType,
         output_config: outputConfig,
         status: "active",
+        settings: {
+          retryOnFailure: newRetryOnFailure,
+          maxRetries: newMaxRetries,
+          notifyOnFailure: true,
+          timeout: 30,
+          requireApproval: newRequireApproval,
+        },
       }).select().single();
 
       if (error) throw error;
@@ -626,6 +673,31 @@ const AgentsView = () => {
               )}
             </div>
 
+            <div className="space-y-2 rounded-lg border border-border/20 bg-card/10 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Run policy</p>
+              <label className="flex items-center gap-2 text-xs font-light text-foreground/80">
+                <input type="checkbox" checked={newRetryOnFailure} onChange={e => setNewRetryOnFailure(e.target.checked)} className="accent-accent" />
+                Retry a failed step with exponential backoff
+              </label>
+              {newRetryOnFailure && (
+                <label className="flex items-center gap-2 text-xs font-light text-muted-foreground/80">
+                  Max retries
+                  <input
+                    type="number" min={0} max={5} value={newMaxRetries}
+                    onChange={e => setNewMaxRetries(Math.max(0, Math.min(5, Number(e.target.value) || 0)))}
+                    className="w-14 rounded-md border border-border/20 bg-card/20 px-2 py-1 text-xs outline-none"
+                  />
+                </label>
+              )}
+              <label className="flex items-center gap-2 text-xs font-light text-foreground/80">
+                <input type="checkbox" checked={newRequireApproval} onChange={e => setNewRequireApproval(e.target.checked)} className="accent-accent" />
+                Hold for my approval before delivery
+              </label>
+              <p className="text-[9px] text-muted-foreground/40">
+                Permanent errors (bad credentials, missing recipient) are not retried. A step with no runner bound is reported as skipped, never as success.
+              </p>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowCreate(false)}
@@ -676,10 +748,16 @@ const AgentsView = () => {
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                             ) : exec.status === "failed" ? (
                               <XCircle className="h-3.5 w-3.5 text-red-400" />
+                            ) : exec.status === "partial" ? (
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                            ) : exec.status === "awaiting_approval" ? (
+                              <Pause className="h-3.5 w-3.5 text-sky-400" />
                             ) : (
                               <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
                             )}
-                            <span className="text-xs font-light text-foreground capitalize">{exec.status}</span>
+                            <span className={`text-xs font-light capitalize ${exec.status === "failed" ? "text-red-400" : exec.status === "partial" ? "text-amber-400" : "text-foreground"}`}>
+                              {exec.status.replace(/_/g, " ")}
+                            </span>
                           </div>
                           <span className="text-[10px] text-muted-foreground/50">{new Date(exec.created_at).toLocaleString()}</span>
                         </div>
@@ -689,9 +767,52 @@ const AgentsView = () => {
                         {exec.error && (
                           <p className="text-[10px] text-red-400/80 mt-1">{exec.error}</p>
                         )}
+                        {Array.isArray(results?.actions) && results.actions.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {results.actions.map((st: any, i: number) => (
+                              <div key={i} className="flex items-center gap-2 text-[10px]">
+                                <span className={
+                                  st.status === "success" ? "text-emerald-400"
+                                    : st.status === "failed" ? "text-red-400" : "text-amber-400"
+                                }>
+                                  {st.status === "success" ? "✓" : st.status === "failed" ? "✕" : "–"}
+                                </span>
+                                <span className="text-foreground/80">{st.type}</span>
+                                {st.organ && <span className="text-muted-foreground/50">via {st.organ}</span>}
+                                {st.attempts > 1 && <span className="text-amber-400/80">{st.attempts} attempts</span>}
+                                {typeof st.durationMs === "number" && st.durationMs > 0 && (
+                                  <span className="text-muted-foreground/40">{(st.durationMs / 1000).toFixed(1)}s</span>
+                                )}
+                                {st.error && <span className="truncate text-red-400/70">{st.error}</span>}
+                                {st.status === "skipped" && !st.error && (
+                                  <span className="truncate text-muted-foreground/50">{st.output}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {outputPreview && (
                           <div className="mt-2 rounded-md border border-border/10 bg-background/30 p-2 max-h-40 overflow-y-auto">
                             <p className="text-[10px] text-muted-foreground/70 whitespace-pre-wrap leading-relaxed">{outputPreview}</p>
+                          </div>
+                        )}
+                        {exec.status === "awaiting_approval" && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[10px] text-sky-400/80">Nothing has been sent yet.</span>
+                            <button
+                              onClick={() => decideRun(exec, true)}
+                              disabled={decidingId === exec.id}
+                              className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-400/20 disabled:opacity-50"
+                            >
+                              {decidingId === exec.id ? "Working…" : "Approve & deliver"}
+                            </button>
+                            <button
+                              onClick={() => decideRun(exec, false)}
+                              disabled={decidingId === exec.id}
+                              className="rounded-md border border-red-400/30 bg-red-400/10 px-2 py-1 text-[10px] text-red-300 hover:bg-red-400/20 disabled:opacity-50"
+                            >
+                              Hold
+                            </button>
                           </div>
                         )}
                       </div>

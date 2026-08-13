@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { emitPull } from "../_shared/connectPull.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const logStep = (step: string, details?: any) => {
@@ -76,6 +77,19 @@ serve(async (req) => {
         });
 
         const result = await resp.json();
+
+        // The schedule tick is itself an event in the execution log: the
+        // Connect graph must be able to show that a run was due, fired, and
+        // how it landed — not just that a run happened at some point.
+        void emitPull(agent.user_id, {
+          organ: "zahten",
+          capability: "schedule",
+          fromSurface: "scheduler",
+          status: resp.ok && result?.status !== "failed" ? "ok" : "fail",
+          quote: agent.name,
+          meta: { agent_id: agent.id, run_status: String(result?.status ?? (resp.ok ? "unknown" : "failed")) },
+        });
+
         executionResults.push({
           agentId: agent.id,
           name: agent.name,
@@ -87,6 +101,10 @@ serve(async (req) => {
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         logStep(`Agent ${agent.name} execution error: ${errMsg}`);
+        void emitPull(agent.user_id, {
+          organ: "zahten", capability: "schedule", fromSurface: "scheduler",
+          status: "fail", quote: agent.name, meta: { agent_id: agent.id, error: errMsg.slice(0, 120) },
+        });
         executionResults.push({
           agentId: agent.id,
           name: agent.name,

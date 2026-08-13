@@ -34,7 +34,24 @@ export interface AgentSettings {
   maxRetries: number;
   notifyOnFailure: boolean;
   timeout: number;
+  /** Pause the run before delivery and wait for an operator decision. */
+  requireApproval?: boolean;
 }
+
+/** One executed step of a run, as written by the Zahten runtime. */
+export interface AgentStepRecord {
+  type: string;
+  order: number;
+  status: "success" | "failed" | "skipped";
+  output: string;
+  attempts: number;
+  durationMs: number;
+  error?: string;
+  organ?: string;
+}
+
+export type AgentRunStatus =
+  | "started" | "running" | "awaiting_approval" | "success" | "partial" | "failed";
 
 export interface AutomatedAgent {
   id: string;
@@ -61,7 +78,7 @@ export interface AgentExecution {
   id: string;
   agent_id: string;
   user_id: string;
-  status: "started" | "success" | "failed";
+  status: AgentRunStatus;
   duration: number | null;
   results: Record<string, unknown> | null;
   error: string | null;
