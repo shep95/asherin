@@ -332,7 +332,9 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>
+      </StepUpProvider>
     </AuthProvider>
+
   </QueryClientProvider>
 );
 
