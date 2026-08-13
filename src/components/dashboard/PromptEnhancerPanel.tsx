@@ -158,7 +158,10 @@ const PromptEnhancerPanel = ({ conversation }: Props) => {
       return;
     }
     seenIdsRef.current.add(lastUser.id);
+    // a ping is not a task. never rewrite a greeting into an intelligence brief.
+    if (isTrivialTurn(lastUser.content)) return;
     launchEnhancement(lastUser.id, lastUser.content, msgs);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id, conversation?.messages.length]);
 
