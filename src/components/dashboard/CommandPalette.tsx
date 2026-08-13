@@ -72,7 +72,7 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     { id: "teams", label: "Team Workspace", category: "Navigation", icon: Users, action: wrap("teams", () => onViewChange("teams")), keywords: ["team", "collaborate"] },
     { id: "timeseries", label: "Time-Series", category: "Navigation", icon: Activity, action: wrap("timeseries", () => onViewChange("timeseries")), keywords: ["forecast", "temporal"] },
     { id: "geospatial", label: "Asherin Maps", category: "Navigation", icon: Globe, action: wrap("geospatial", () => onViewChange("geospatial")), keywords: ["map", "location", "property", "land", "parcel", "real estate"] },
-    { id: "plugins", label: "Plugins", category: "Navigation", icon: Puzzle, action: wrap("plugins", () => onViewChange("plugins")), keywords: ["marketplace", "extension"] },
+    
     { id: "audit", label: "Audit Trail", category: "Navigation", icon: ClipboardList, action: wrap("audit", () => onViewChange("audit")), keywords: ["log", "compliance"] },
     { id: "library", label: "Library", category: "Navigation", icon: FolderOpen, action: wrap("library", () => onViewChange("library")), keywords: ["files", "uploads"] },
     { id: "snippets", label: "Code Snippets", category: "Navigation", icon: Code2, action: wrap("snippets", () => onViewChange("snippets")), keywords: ["code", "snippet"] },
