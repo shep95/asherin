@@ -126,8 +126,6 @@ function rewriteTree(root: ParentNode): void {
 const WORKING_SURFACES = [
   "/dashboard",
   "/asher-dashboard",
-  "/asherin.gov/dashboard",
-  "/asherin-gov/dashboard",
   "/report/",
   "/whiteboard",
   "/ziaassets",
