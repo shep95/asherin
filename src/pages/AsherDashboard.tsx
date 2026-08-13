@@ -1,4 +1,4 @@
-import { isOwnerEmail } from "@/lib/adminEmail";
+import { isOwnerEmail, isContributorEmail } from "@/lib/adminEmail";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import {
