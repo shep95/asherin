@@ -344,7 +344,7 @@ Rules:
                 tab === "chat" ? "bg-amber-500/15 text-amber-500" : "text-muted-foreground/50 hover:text-foreground"
               }`}
             >
-              <MessageSquare className="h-3 w-3" /> Ask Aureon
+              <MessageSquare className="h-3 w-3" /> Ask asherin
             </button>
           </div>
 

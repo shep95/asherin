@@ -286,7 +286,7 @@ const VoiceCallOverlay = ({
   const statusText = isConnecting
     ? "Connecting…"
     : isSpeaking
-      ? "Aureon is speaking"
+      ? "asherin is speaking"
       : userSpeechIndicator
         ? "Hearing you…"
         : "Listening…";

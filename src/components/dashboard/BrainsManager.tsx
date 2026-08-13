@@ -196,7 +196,7 @@ const BrainsManager = ({ activeBrainId, onBrainChange }: BrainsManagerProps) => 
                 </button>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground/50 mt-1">Add prompts & files for Aureon to reference.</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-1">Add prompts & files for asherin to reference.</p>
           </div>
 
           {/* Form (create/edit) */}
@@ -217,7 +217,7 @@ const BrainsManager = ({ activeBrainId, onBrainChange }: BrainsManagerProps) => 
               <Textarea
                 value={formPrompt}
                 onChange={e => setFormPrompt(e.target.value)}
-                placeholder="System prompt / instructions for Aureon…"
+                placeholder="System prompt / instructions for asherin…"
                 className="min-h-[100px] bg-transparent border-border/20 text-xs font-light resize-none focus:border-violet-500/50"
               />
 
@@ -299,7 +299,7 @@ const BrainsManager = ({ activeBrainId, onBrainChange }: BrainsManagerProps) => 
               <div className="text-center py-6">
                 <Brain className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
                 <p className="text-xs font-extralight text-muted-foreground/50">No brains yet</p>
-                <p className="text-[10px] text-muted-foreground/30 mt-1">Create one to give Aureon custom context.</p>
+                <p className="text-[10px] text-muted-foreground/30 mt-1">Create one to give asherin custom context.</p>
               </div>
             ) : (
               <div className="space-y-1">
