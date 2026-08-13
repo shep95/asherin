@@ -1517,12 +1517,24 @@ const Dashboard = () => {
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, pinned: newPinned } : c));
   };
 
+  const isV2 = dashboardUi === "v2";
+
   const renderView = () => {
     // Gate map: view -> { component, title, description }
     const gatedView = (view: DashboardView, Component: React.ComponentType, title: string, description: string) => {
       if (canAccess(view)) return <ErrorBoundary><Suspense fallback={<LazyFallback />}><Component /></Suspense></ErrorBoundary>;
-      return <FeatureGate title={title} description={description} onUpgrade={() => setActiveView("subscription")} />;
+      // v.2 refuses the sales essay: the shell already names the room, so the
+      // gate says the one thing the operator needs and points at plans.
+      return (
+        <FeatureGate
+          title={title}
+          description={isV2 ? v2GateLine(v2TitleFor(view, title).title) : description}
+          compact={isV2}
+          onUpgrade={() => setActiveView("subscription")}
+        />
+      );
     };
+
 
     // Dynamic Zahten-published agent tabs (id format: "agent:<uuid>")
     if (typeof activeView === "string" && (activeView as string).startsWith("agent:")) {
