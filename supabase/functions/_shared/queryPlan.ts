@@ -27,10 +27,27 @@ export type EntityKind =
 export type QueryShape =
   | "single-token"     // one bare word — the word IS the query, gating adds nothing
   | "operator-dork"    // site:/filetype: dominate; operators are the signal
+  | "form-path"        // the operator wants FILE FORM + PATH, not a title match
   | "relationship"     // [entity] <relation phrase> [entity] — both sides gate
   | "identifier"       // CVE / wallet / domain / email — exact selector
   | "natural-question" // filler-heavy sentence; strip noise, keep signal
   | "topic";           // no entity present — pure relevance ranking
+
+/**
+ * FORM/PATH intent. When the operator asks for "the html, python and
+ * typescript files" or "the non-indexed /agent/ directory", matching the exact
+ * TITLE is the wrong contract — the artefact almost never carries the words the
+ * operator used. What survives is the file EXTENSION and the PATH SEGMENT.
+ */
+export interface FormPathIntent {
+  /** Concrete extensions to hunt, deduped and lowercase (html, py, ts …). */
+  exts: string[];
+  /** Path segments seen in the query (`/agent/`, `dist/`, `src`). */
+  paths: string[];
+  /** Operator explicitly asked for material search engines do not index. */
+  nonIndexed: boolean;
+}
+
 
 /** A required term carries a CONFIDENCE, not a boolean. */
 export interface WeightedTerm {
