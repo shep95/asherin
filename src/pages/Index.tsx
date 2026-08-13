@@ -192,11 +192,13 @@ const Index = () => {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("next")) {
+    // /auth is the sign-in surface; ?next= carries the gated path a
+    // signed-out visitor tried to reach.
+    if (location.pathname === "/auth" || new URLSearchParams(location.search).get("next")) {
       setAuthIsLogin(true);
       setShowAuth(true);
     }
-  }, [location.search]);
+  }, [location.search, location.pathname]);
 
   const handleDemo = async (e: React.FormEvent) => {
     e.preventDefault();
