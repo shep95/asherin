@@ -26,8 +26,10 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   }
 
   if (!user) {
+    // Signed-out users land on the dedicated /auth surface, carrying the
+    // requested path so sign-in returns them where they were headed.
     const next = encodeURIComponent(`${location.pathname}${location.search}`);
-    return <Navigate to={`/?next=${next}`} replace />;
+    return <Navigate to={`/auth?next=${next}`} replace />;
   }
 
   return <>{children}</>;
