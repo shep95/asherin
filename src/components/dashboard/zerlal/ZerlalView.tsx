@@ -16,6 +16,7 @@ const IntegrationsScreen     = lazy(() => import("./IntegrationsScreen"));
 const IntelligenceModule     = lazy(() => import("./IntelligenceModule"));
 const DeviceSecurityScanner  = lazy(() => import("./DeviceSecurityScanner"));
 const DomainReconScreen      = lazy(() => import("./DomainReconScreen"));
+const PathMapScreen          = lazy(() => import("./PathMapScreen"));
 const ScanModal              = lazy(() => import("./ScanModal"));
 const SigmaRuleEngine        = lazy(() => import("./SigmaRuleEngine"));
 const StixTaxiiFeed          = lazy(() => import("./StixTaxiiFeed"));
@@ -109,6 +110,7 @@ const ZerlalView = () => {
       return <Component />;
     }
 
+    if (activeScreen === "path-map")        return <PathMapScreen />;
     if (activeScreen === "domain-recon")    return <DomainReconScreen onSelectFinding={handleSelectFinding} />;
     if (activeScreen === "device-security") return <DeviceSecurityScanner />;
     if (intelligenceScreens.includes(activeScreen)) return <IntelligenceModule screen={activeScreen} />;
