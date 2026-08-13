@@ -2450,6 +2450,30 @@ export type Database = {
           },
         ]
       }
+      asherin_dork_packs: {
+        Row: {
+          created_at: string
+          host: string
+          id: string
+          pack: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          host: string
+          id?: string
+          pack: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          host?: string
+          id?: string
+          pack?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
