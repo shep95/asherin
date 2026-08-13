@@ -273,6 +273,20 @@ async function runDorks(host: string): Promise<{ hits: Hit[]; blocked: Array<{ e
       per++;
     }
   }
+  // github.com code hits for the host — keyed leg, skipped silently when
+  // GITHUB_TOKEN is unset (the search API refuses anonymous callers).
+  if (githubToken) {
+    try {
+      for (const r of await githubCode(host, githubToken)) {
+        const clean = maskUrl(r.url);
+        if (seen.has(`github|${clean}`)) continue;
+        seen.add(`github|${clean}`);
+        hits.push({ url: clean, title: r.title, engine: "github", why: "code host" });
+      }
+    } catch (_e) {
+      blocked.push({ engine: "github", status: "blocked" });
+    }
+  }
   return { hits, blocked };
 }
 
