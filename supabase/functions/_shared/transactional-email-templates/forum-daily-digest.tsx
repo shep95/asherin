@@ -80,7 +80,7 @@ export const template = {
   component: Digest,
   subject: (d: Record<string, any>) => `Asherin Forums Digest — ${d?.date ?? new Date().toISOString().slice(0, 10)}`,
   displayName: 'Forum Daily Digest',
-  to: 'shepherdnewtonx@gmail.com',
+  to: 'ASHERIN_DIGEST_RECIPIENT', // resolved from the secret at send time — never a literal mailbox
   previewData: {
     date: '2026-07-02',
     bugs: [{ title: 'Login loop on Safari', body: 'Users bounce back to /auth after login.', author: 'kai', created_at: new Date().toISOString() }],

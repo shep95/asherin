@@ -1,5 +1,5 @@
 // asher-incident-response — Authorized incident response audit/control stub.
-// Strictly admin-only (ashernewtonx@gmail.com). This function intentionally does
+// Strictly staff-only (sha256 digest match). This function intentionally does
 // not simulate provider control and does not perform destructive operations. It
 // records the verified admin request and returns the real control-state:
 // "provider_control_not_connected" until explicit provider integrations exist.

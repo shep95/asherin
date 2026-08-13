@@ -214,12 +214,11 @@ serve(async (req) => {
     }
 
     // Resolve Gemini API key:
-    //  1. Admin (ashernewtonx / shepherdnewtonx / 28numberofmoney) → platform GEMINI_API_KEY.
+    //  1. Staff digest match (identityHash.ts) → platform GEMINI_API_KEY.
     //  2. BYOK string (frontend sends byok as raw string) → use as Gemini key when provider is gemini or unspecified.
     //  3. BYOK object (shared shape) → pull .apiKey when provider === "gemini".
     //  4. Otherwise 402 BYOK_REQUIRED (this engine is Gemini-only by design).
-    const isAdmin = ASHERIN_STAFF
-      .includes(String(user.email || "").toLowerCase());
+    const isAdmin = isStaffEmail(user.email);
 
     let apiKey: string | null = null;
     if (typeof byok === "string" && byok.trim()) {
