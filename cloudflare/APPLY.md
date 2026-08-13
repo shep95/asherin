@@ -1,3 +1,11 @@
+<!--
+OPERATOR ACTION REQUIRED — nothing in the app bundle can close this.
+Lovable cloud cannot run `wrangler login`, so cloudflare/worker-edge-deny.js is
+written but NOT attached. Until you either (a) deploy that worker on the
+asherin.com route, or (b) add the Cloudflare WAF custom rule in Option B below,
+GET /.git/* keeps answering 200 text/html instead of 404 text/plain.
+-->
+
 # Asherin edge hardpass — apply guide
 
 Closes internal REPORT 1 (CWE-755: SPA catch-all soft-404 on `/.git/*` + `x-deployment-id`
