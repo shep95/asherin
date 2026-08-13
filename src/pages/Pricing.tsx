@@ -177,7 +177,7 @@ const Pricing = () => {
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
             ]}
-            relevanceSignal="Operators, analysts, and teams evaluating Asherin need authoritative, scannable pricing facts to compare against ChatGPT, Claude, Gemini, and sovereign AI alternatives."
+            relevanceSignal="Operators, analysts, and teams evaluating Asherin need authoritative, scannable pricing facts: what each tier costs, what it unlocks, and what the message windows are."
             confidence="high"
           />
 
