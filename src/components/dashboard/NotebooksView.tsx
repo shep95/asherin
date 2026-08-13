@@ -79,8 +79,11 @@ const NotebooksView = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [source, setSource] = useState<SourceRef | null>(null);
   const [datasets, setDatasets] = useState<{ id: string; file_name: string }[]>([]);
+  const [libraryCsvs, setLibraryCsvs] = useState<{ id: string; file_name: string }[]>([]);
+  const [runningCell, setRunningCell] = useState<string | null>(null);
+
   const [showVersions, setShowVersions] = useState(false);
   const [versions, setVersions] = useState<NotebookVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
