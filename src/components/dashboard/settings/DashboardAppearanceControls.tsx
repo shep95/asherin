@@ -143,8 +143,11 @@ const DashboardAppearanceControls = ({ appearance, onChange, wallpaperLabel }: P
                   onChange={(e) => {
                     const v = e.target.value;
                     setHexDraft(v);
-                    // Real time: a complete hex applies while they type.
-                    if (isValidHex(v)) {
+                    // Real time: only a complete 6-digit hex applies mid-typing.
+                    // Applying a 3-digit prefix would rewrite the draft to its
+                    // expanded form under the operator's cursor ("#121214"
+                    // collapsing into "#112211"). Short form commits on blur.
+                    if (v.length === 7 && isValidHex(v)) {
                       setHexError(null);
                       onChange({ mode: "color", color: v });
                     }

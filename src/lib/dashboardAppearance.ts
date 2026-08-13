@@ -90,6 +90,8 @@ export function isLightBackground(hex: string): boolean {
 }
 
 function readNumber(raw: string | null, fallback: number): number {
+  // Number(null) is 0, which would silently erase the default veil.
+  if (raw === null || raw.trim() === "") return fallback;
   const n = Number(raw);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(MAX_DIM, Math.max(0, Math.round(n)));
