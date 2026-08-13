@@ -2335,7 +2335,7 @@ const IntelligenceMapModule = () => {
               </button>
             ))}
             <button
-              onClick={() => { if (tool === "cameras") { setTool(null); setCameras([]); } else setTool("cameras"); }}
+              onClick={() => setTool(tool === "cameras" ? null : "cameras")}
               aria-pressed={tool === "cameras"}
               title="Camera intelligence"
               className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] transition-colors ${
@@ -2402,7 +2402,7 @@ const IntelligenceMapModule = () => {
                 made this tool look dead off the eastern seaboard. */}
             <CameraIntelligencePanel
               open={tool === "cameras"}
-              onClose={() => { setTool(null); setCameras([]); }}
+              onClose={() => setTool(null)}
               anchor={track.fix ? { lat: track.fix.lat, lng: track.fix.lng } : { lat: coord.lat, lng: coord.lng }}
               anchorIsOperator={!!track.fix}
               units={units}
