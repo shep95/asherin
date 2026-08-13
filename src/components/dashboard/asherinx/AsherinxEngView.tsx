@@ -17,7 +17,7 @@ import { ArrowRight, ChevronDown, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsV2 } from "@/lib/dashboardUiContext";
-import { emitPull } from "@/lib/emitPull";
+import { emitPull } from "@/lib/connect/emitPull";
 
 type Action = "query" | "classify" | "extract" | "origin" | "identifier" | "fold" | "buffer";
 
@@ -134,17 +134,25 @@ const AsherinxEngView = () => {
       // Connect trace: the room reports what it actually ran, masked to the
       // verb and the shape of the ask — never the operator's full query body.
       void emitPull({
-        organ: "asherinx-eng",
-        capability: action,
-        quote_masked: text ? `${text.slice(0, 48)}${text.length > 48 ? "…" : ""}` : action,
-        latency_ms: Date.now() - started,
-        ok: true,
+        organ: "ghost",
+        capability: `asherinx.${action}`,
+        fromSurface: "asherinx-eng",
+        status: "ok",
+        latencyMs: Date.now() - started,
+        quote: text || action,
       });
     } catch (e) {
       if (ctrl.signal.aborted) return;
       const msg = e instanceof Error ? e.message : "the engine did not answer.";
       setError(msg);
-      void emitPull({ organ: "asherinx-eng", capability: action, ok: false, quote_masked: msg.slice(0, 64) });
+      void emitPull({
+        organ: "ghost",
+        capability: `asherinx.${action}`,
+        fromSurface: "asherinx-eng",
+        status: "fail",
+        latencyMs: Date.now() - started,
+        quote: msg,
+      });
       toast({ title: "asherinx.eng", description: msg, variant: "destructive" });
     } finally {
       if (!ctrl.signal.aborted) setBusy(false);
