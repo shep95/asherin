@@ -2090,7 +2090,7 @@ const Whiteboard = () => {
       )}
 
       {layerPanelOpen && activeBoard && (
-        <aside style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute left-3 right-3 lg:left-auto lg:bottom-auto lg:right-4 lg:top-28 z-40 max-h-[46%] overflow-y-auto w-auto lg:w-72 rounded-[1.4rem] border border-border/30 bg-card/78 p-4 shadow-2xl backdrop-blur-2xl">
+        <aside style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute left-3 right-3 lg:left-auto lg:bottom-auto lg:right-4 lg:top-[15rem] z-40 max-h-[46%] overflow-y-auto w-auto lg:w-72 rounded-[1.4rem] border border-border/30 bg-card/78 p-4 shadow-2xl backdrop-blur-2xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">Layers</p>
@@ -2147,7 +2147,7 @@ const Whiteboard = () => {
       )}
 
       {!layerPanelOpen && (
-        <button onClick={() => setLayerPanelOpen(true)} style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute right-4 lg:bottom-auto lg:top-28 z-40 min-h-11 rounded-xl border border-border/30 bg-card/78 px-3 py-2 text-xs text-foreground backdrop-blur-xl">
+        <button onClick={() => setLayerPanelOpen(true)} style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute right-4 lg:bottom-auto lg:top-[15rem] z-40 min-h-11 rounded-xl border border-border/30 bg-card/78 px-3 py-2 text-xs text-foreground backdrop-blur-xl">
           Show layers
         </button>
       )}
