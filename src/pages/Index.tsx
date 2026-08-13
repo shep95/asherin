@@ -141,7 +141,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Asherin",
           url: "https://asherin.com",
-          description: "AI intelligence platform with a capable coding engine, live web search, and end-to-end encryption.",
+          description: "AI intelligence platform with a capable coding engine, live web search, and account-scoped encryption at rest.",
         },
       },
       {
@@ -723,7 +723,7 @@ const Index = () => {
               group: "Core",
               blurb: "The intelligence engine",
               items: [
-                { icon: Brain, name: "Asherin Chat", codename: "Intelligence Engine", desc: "Persistent memory, live tool calls and end-to-end encryption. Routes to Gemini, Venice mistral-31-24b, or your own key." },
+                { icon: Brain, name: "Asherin Chat", codename: "Intelligence Engine", desc: "Persistent memory, live tool calls and account-scoped encryption at rest. Routes to Gemini, Venice mistral-31-24b, or your own key." },
               ]
             },
             {
@@ -917,7 +917,7 @@ const Index = () => {
                 { n: "S-03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
                 { n: "S-04", label: "Public Intelligence & Forensics", desc: "Public-source intelligence: Asherin Engine reach-back, entity resolution and cited dossier output." },
                 { n: "S-05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
-                { n: "S-06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
+                { n: "S-06", label: "Data Privacy", desc: "Account-scoped encryption at rest. Your data is never sold or used for training." },
               ].map(({ n, label, desc }) => (
                 <div key={n} className="group relative rounded-2xl border border-border/15 bg-card/30 backdrop-blur-md p-6 hover:border-emerald-400/30 hover:bg-card/50 transition-all duration-500">
                   <div className="flex items-start gap-5">
@@ -1178,7 +1178,7 @@ const Index = () => {
               <span aria-hidden className="absolute right-0 bottom-0 h-6 w-6 border-r border-b border-foreground/20 rounded-br-3xl" />
               <p className="font-mono text-[10px] tracking-[0.3em] text-foreground/40 uppercase mb-4">◈ Encryption Statement</p>
               <p className="text-base font-extralight leading-relaxed text-foreground/90">
-                Every prompt you send to Asherin is encrypted end-to-end.
+                Every prompt you send to Asherin is encrypted in transit and stored encrypted at rest under a key scoped to your account.
               </p>
               <p className="mt-6 text-xs font-mono tracking-[0.25em] text-foreground/40 uppercase">Never:</p>
               <ul className="mt-3 space-y-2.5">

@@ -175,7 +175,7 @@ const Asher = () => {
             <ul className="space-y-3 text-sm font-extralight text-muted-foreground/85">
               {[
                 "Air-gapped deployment — no public network egress",
-                "End-to-end encryption with hardware-bound keys",
+                "End-to-end encrypted operator comms with per-device identity keys",
                 "Append-only audit logging of every inference",
                 "Role-based access controls with multi-party authorization",
                 "Tamper-evident model weights and config bundles",
