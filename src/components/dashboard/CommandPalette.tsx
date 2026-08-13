@@ -65,7 +65,8 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     // Navigation
     { id: "search", label: "Zophiel Engine", category: "Navigation", icon: Search, action: wrap("search", () => onViewChange("search")), keywords: ["zophiel", "search", "intelligence"] },
     { id: "azplen", label: "Azplen Intelligence", category: "Navigation", icon: Database, action: wrap("azplen", () => onViewChange("azplen")), keywords: ["data", "analysis", "dataset"] },
-    { id: "nomad", label: "NOMAD Agent", category: "Navigation", icon: Crosshair, action: wrap("nomad", () => onViewChange("nomad")), keywords: ["osint", "investigate"] },
+    { id: "knowledge-vault", label: "Knowledge Vault", category: "Navigation", icon: Database, action: wrap("knowledge-vault", () => onViewChange("knowledge-vault")), keywords: ["vault", "files", "documents", "rag"] },
+    { id: "whiteboard", label: "Whiteboard", category: "Navigation", icon: Layers, action: wrap("whiteboard", () => onViewChange("whiteboard")), keywords: ["canvas", "draw", "board"] },
     { id: "briefing", label: "Intel Briefings", category: "Navigation", icon: Newspaper, action: wrap("briefing", () => onViewChange("briefing")), keywords: ["news", "morning"] },
     { id: "notebooks", label: "Notebooks", category: "Navigation", icon: FileText, action: wrap("notebooks", () => onViewChange("notebooks")), keywords: ["notebook", "note"] },
     { id: "teams", label: "Team Workspace", category: "Navigation", icon: Users, action: wrap("teams", () => onViewChange("teams")), keywords: ["team", "collaborate"] },
