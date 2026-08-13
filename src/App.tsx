@@ -13,6 +13,7 @@ import RootErrorBoundary from "@/components/RootErrorBoundary";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 
 const Index = lazy(() => import("./pages/Index"));
+import AppearanceHarness from "./pages/AppearanceHarness";
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -326,6 +327,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/__appearance-harness" element={<AppearanceHarness />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </main>

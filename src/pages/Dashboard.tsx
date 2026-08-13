@@ -6,7 +6,6 @@ import DashboardSurface from "@/components/dashboard/DashboardSurface";
 import {
   APPEARANCE_EVENT,
   hydrateAppearanceFromDb,
-  isLightBackground,
   readAppearance,
   type DashboardAppearance,
 } from "@/lib/dashboardAppearance";
@@ -247,8 +246,6 @@ const Dashboard = () => {
     } catch { return "aureon"; }
   });
   const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
-  const solidMode = appearance.mode === "color";
-  const lightSurface = solidMode && isLightBackground(appearance.color);
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
   const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
