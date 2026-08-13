@@ -137,6 +137,50 @@ async function bing(q: string): Promise<Array<{ url: string; title: string }>> {
   return parseBing(body);
 }
 
+// Keyed legs. Both are strictly optional: the keyless cascade above runs
+// first and the engine never demands a key. See _shared/keyResolution.ts —
+// BRAVE_SEARCH_API_KEY / GITHUB_TOKEN are step 2; unset means "skip this
+// engine", never "ask the user for a key".
+async function brave(q: string, key: string): Promise<Array<{ url: string; title: string }>> {
+  const r = await fetchWithTimeout(
+    `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&count=20`,
+    { headers: { Accept: "application/json", "X-Subscription-Token": key } },
+    9000,
+  );
+  if (!r.ok) throw new Error(`brave_${r.status}`);
+  const j = await r.json().catch(() => ({}));
+  const results = Array.isArray(j?.web?.results) ? j.web.results : [];
+  return results
+    .filter((x: any) => typeof x?.url === "string")
+    .slice(0, 20)
+    .map((x: any) => ({ url: String(x.url), title: String(x.title || "").trim() }));
+}
+
+/** Public-code hits for the host. Only runs when GITHUB_TOKEN is bound. */
+async function githubCode(host: string, token: string): Promise<Array<{ url: string; title: string }>> {
+  const r = await fetchWithTimeout(
+    `https://api.github.com/search/code?q=${encodeURIComponent(`"${host}"`)}&per_page=10`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": UA,
+      },
+    },
+    9000,
+  );
+  if (!r.ok) throw new Error(`github_${r.status}`);
+  const j = await r.json().catch(() => ({}));
+  const items = Array.isArray(j?.items) ? j.items : [];
+  return items
+    .filter((x: any) => typeof x?.html_url === "string")
+    .map((x: any) => ({
+      url: String(x.html_url),
+      title: `${x?.repository?.full_name || "repo"} — ${x?.path || ""}`.trim(),
+    }));
+}
+
 const FORM_WHY: Array<{ re: RegExp; why: string }> = [
   { re: /login|sign[-_]?in|auth/i, why: "auth form" },
   { re: /contact/i, why: "contact form" },
