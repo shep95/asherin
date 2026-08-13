@@ -7,6 +7,7 @@ import { Crosshair, Loader2, Search, Sparkles, Copy, ExternalLink, ShieldAlert }
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { emitPull } from "@/lib/connect/emitPull";
 
 interface DorkHit { title: string; url: string; snippet: string }
 interface DorkBucket { query: string; rationale: string; hits: DorkHit[] }
@@ -45,6 +46,7 @@ const DorkPanel = () => {
     if (!t) return;
     setLoading(true);
     setData(null);
+    const started = performance.now();
     try {
       const byok = getActiveIntelMapByok();
       const { data: res, error } = await supabase.functions.invoke("zophiel-dork", {
@@ -53,8 +55,26 @@ const DorkPanel = () => {
       if (error) throw error;
       if (!res?.success) throw new Error(res?.error || "dork failed");
       setData(res as DorkResponse);
+      const hits = (res as DorkResponse).totalHits ?? 0;
+      void emitPull({
+        organ: "zophiel",
+        capability: "dork",
+        fromSurface: "zophiel-dork",
+        status: hits ? "ok" : "skip",
+        latencyMs: Math.round(performance.now() - started),
+        quote: t,
+        meta: { hits, buckets: (res as DorkResponse).buckets?.length ?? 0 },
+      });
     } catch (e) {
       console.error("[dork]", e);
+      void emitPull({
+        organ: "zophiel",
+        capability: "dork",
+        fromSurface: "zophiel-dork",
+        status: "fail",
+        latencyMs: Math.round(performance.now() - started),
+        quote: e instanceof Error ? e.message : "dork failed",
+      });
       toast({
         title: "Dork sweep failed",
         description: e instanceof Error ? e.message : "Unknown error",

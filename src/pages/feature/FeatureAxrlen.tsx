@@ -147,7 +147,7 @@ const FeatureAxrlen = () => (
             <a href="/feature/zophiel" className="text-accent hover:underline">
               Zophiel
             </a>
-            's 30-source pipeline, (4) base-rate priors derived from
+            's multi-engine pipeline, (4) base-rate priors derived from
             historical frequency of analogous events, and (5) adversarial
             counter-signals — what would have to be true for the forecast
             to fail. The counter-signal step is the single most under-used
@@ -255,7 +255,7 @@ const FeatureAxrlen = () => (
               {
                 to: "/feature/zophiel",
                 label: "Zophiel — the OSINT engine feeding AXRLEN",
-                description: "30-source OSINT collection is one of AXRLEN's five required signal classes.",
+                description: "multi-engine OSINT collection is one of AXRLEN's five required signal classes.",
               },
             ]}
           />

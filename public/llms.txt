@@ -8,7 +8,7 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 
 **Primary Topic:** Sovereign AI intelligence platform
 **Key Facts:**
-- 30-source AI OSINT engine (Zophiel) with per-claim veracity scoring and cross-validation under 14 seconds.
+- multi-engine AI OSINT engine (Zophiel) with per-claim veracity scoring and cross-validation under 14 seconds.
 - AI vulnerability scanner (ZERLAL) with 2-4 finding exploit chaining and zero-day confidence scoring.
 - Predictive intelligence engine (AXRLEN) with calibrated probabilistic forecasts and public verification plans.
 - BYOK across nine providers — operator pays the vendor directly with no platform markup.
@@ -31,7 +31,7 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 
 ## Cluster spine pages (live feature pages with full structural markup)
 
-- [Zophiel OSINT](/feature/zophiel): 30-source AI OSINT engine, per-claim veracity scoring, cross-validation under 14s.
+- [Zophiel OSINT](/feature/zophiel): multi-engine AI OSINT engine, per-claim veracity scoring, cross-validation under 14s.
 - [ZERLAL Vulnerability Scanner](/feature/zerlal): exploit chaining (2-4 findings → 1 critical) and zero-day confidence scoring.
 - [AXRLEN Predictive Engine](/feature/axrlen): calibrated probabilistic forecasts with public verification plans.
 - [BYOK on Aureon](/feature/byok): bring-your-own-key implementation across nine providers, zero markup.

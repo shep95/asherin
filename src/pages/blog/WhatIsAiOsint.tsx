@@ -164,7 +164,7 @@ const WhatIsAiOsint = () => (
       links={[
         {
           to: "/feature/zophiel",
-          label: "Zophiel OSINT — 30-source intelligence engine",
+          label: "Zophiel OSINT — multi-engine intelligence engine",
           description: "The Asherin implementation of the four-stage AI OSINT pipeline.",
         },
         {

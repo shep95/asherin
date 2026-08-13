@@ -109,6 +109,8 @@ export interface FoldedPlan {
     intent?: string;
   };
 
+  /** Zophiel open-web sweep the operator explicitly asked for. */
+  zophielQuery?: string;
   /** Design-lab analysis over text the operator supplied. */
   zali?: { analysisType: string; projectData: string };
   /** Coding-laws engine: read the ledger, or run a discovery pass. */
@@ -430,6 +432,20 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
     plan.zali = { analysisType, projectData: raw.slice(0, 4000) };
   }
 
+  // ── Zophiel open-web sweep ──────────────────────────────────────────────
+  //
+  // Explicit imperatives only. A passing mention of a topic must never open a
+  // live sweep, so the trigger demands either the organ's name or an unmistakable
+  // "search the open web for …" / "osint on …" phrasing.
+  const zoph =
+    raw.match(/\bzophiel\s*(?:search|sweep|on|for|:)?\s+(.{2,200})$/i) ||
+    raw.match(/\bosint\s+(?:on|for|about)\s+(.{2,200})$/i) ||
+    raw.match(/\b(?:search|sweep|scour)\s+(?:the\s+)?(?:open\s+web|web|internet)\s+(?:for|about|on)\s+(.{2,200})$/i);
+  if (zoph) {
+    const subject = zoph[1].trim().replace(/[?.!]+$/, "").slice(0, 200);
+    if (subject) plan.zophielQuery = subject;
+  }
+
   // Coding laws (IDE substrate).
   if (/\b(coding\s+laws?)\b/i.test(raw)) {
     plan.codingLaws = /\b(run|refresh|update|discover|regenerate)\b/i.test(raw) ? "run" : "read";
@@ -457,6 +473,7 @@ const ORGAN_OF: Record<string, string> = {
   "vault-agent": "knowledge-vault",
   "zerlal-domain-recon": "zerlal",
   "asherin-live-dork": "zophiel",
+  "zophiel-search": "zophiel",
   "axrlen-analyze": "axrlen",
   "generate-briefing": "briefings",
   "notebook-execute": "notebooks",
@@ -580,6 +597,33 @@ export async function runFoldedTools(
         `- declared paths (${inv.length}): ${inv.slice(0, 40).join(", ") || "none"}`,
         `- probes: ${probes.length} tried, ${probes.filter((p) => p.status && p.status < 400).length} responded < 400`,
         ...probes.slice(0, 25).map((p) => `  · ${p.path} → ${p.status ?? "no-response"}`),
+      );
+    })()]);
+  }
+
+  // ── Zophiel open-web sweep ─────────────────────────────────────────────
+  //
+  // The engine roster in the context line is the set of engines that actually
+  // tagged a returned hit. No fixed source count is ever asserted: if two
+  // engines answered, the model is told two engines answered.
+  if (plan.zophielQuery) {
+    legs.push(["zophiel-search", (async () => {
+      const out = await invoke("zophiel-search", { query: plan.zophielQuery, max_pages: 15, max_depth: 1 }, auth, CEILING.heavy);
+      note("zophiel-search", out);
+      if (!out.ok) return;
+      const rows: Array<{ title?: string; url?: string; snippet?: string; engine?: string; engines?: string[] }> =
+        out.body?.results ?? [];
+      if (!rows.length) {
+        parts.push(`ZOPHIEL SWEEP — "${plan.zophielQuery}": engines ran and returned zero hits. Say the open web returned nothing for this; do not substitute recalled knowledge and present it as a live hit.`);
+        return;
+      }
+      const engines = [...new Set(rows.flatMap((r) => r.engines ?? (r.engine ? [r.engine] : [])))];
+      parts.push(
+        `ZOPHIEL SWEEP — "${plan.zophielQuery}" (${rows.length} live hits${engines.length ? `, engines that returned: ${engines.join(", ")}` : ""})`,
+        "- cite these by number; anything not listed here is not a live hit.",
+        ...rows.slice(0, 12).map((r, i) =>
+          `[Z${i + 1}] ${r.title ?? "(untitled)"} — ${r.url ?? "no url"}\n    ${maskPii(String(r.snippet ?? "")).slice(0, 400)}`,
+        ),
       );
     })()]);
   }

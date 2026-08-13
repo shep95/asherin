@@ -209,7 +209,7 @@ const FeatureZerlal = () => (
             <a href="/feature/zophiel" className="text-accent hover:underline">
               Zophiel
             </a>{" "}
-            (30-source OSINT) and{" "}
+            (multi-engine OSINT) and{" "}
             <a href="/feature/axrlen" className="text-accent hover:underline">
               AXRLEN
             </a>{" "}

@@ -1,5 +1,5 @@
 export type SourceTier = 1 | 2 | 3 | 4 | 5;
-export type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs' | 'deep' | 'imagine' | 'extract' | 'audit' | 'face' | 'darkweb' | 'leaks' | 'archive' | 'vpn' | 'dataengine' | 'harvest' | 'scribd' | 'dork' | 'ghostchain' | 'zophielv2' | 'shadow';
+export type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs' | 'deep' | 'imagine' | 'extract' | 'audit' | 'face' | 'darkweb' | 'leaks' | 'archive' | 'vpn' | 'dataengine' | 'harvest' | 'scribd' | 'dork' | 'ghostchain' | 'zophielv2' | 'shadow' | 'sweep';
 
 export interface SearchResult {
   title: string;
@@ -13,6 +13,10 @@ export interface SearchResult {
   category: 'primary' | 'breaking' | 'analysis' | 'background' | 'community' | 'multimedia' | 'general';
   /** Tier-5 onion result. URL is a .onion address — UI must NOT render a clickable anchor. */
   onion?: boolean;
+  /** Engine that produced this hit, as tagged server-side. */
+  engine?: string;
+  /** Every engine that independently returned this URL. */
+  engines?: string[];
 
 
 }

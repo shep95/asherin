@@ -22,7 +22,7 @@ export interface SuiteDef {
 
 export const SUITES: SuiteDef[] = [
   { id: "aureon-chat", label: "Asherin Chat",       code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain }, // CUI+
-  { id: "zophiel",     label: "Zophiel Search",    code: "ZOP", blurb: "30-source OSINT + Ghost Chain live scrape.",                    minClearanceRank: 1, icon: Search }, // CUI+
+  { id: "zophiel",     label: "Zophiel Search",    code: "ZOP", blurb: "multi-engine OSINT + Ghost Chain live scrape.",                    minClearanceRank: 1, icon: Search }, // CUI+
   { id: "axrlen",      label: "AXRLEN Forecast",   code: "AXR", blurb: "Probabilistic scenario engine (Nexus Prime).",                  minClearanceRank: 2, icon: Sparkles }, // CONF+
   { id: "zerlal",      label: "ZERLAL Cyber",      code: "ZRL", blurb: "Vulnerability & kill-chain analysis of sovereign code.",       minClearanceRank: 3, icon: ShieldAlert }, // SECRET+
   { id: "ide",         label: "Sovereign IDE",     code: "IDE", blurb: "Asherin IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 }, // SECRET+

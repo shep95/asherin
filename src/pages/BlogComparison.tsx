@@ -51,7 +51,7 @@ const MATRIX: Row[] = [
   { feature: "Uncensored responses",               aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Asherin refuses nothing legal; the others refuse a substantial share of legitimate queries." },
   { feature: "Bring-your-own-key (9 providers)",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Use Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, or Venice on your own bill." },
   { feature: "Multi-model consensus",              aureon: "yes",      chatgpt: "no",      claude: "no",       note: "Five-phase cross-validation across models, 45% confidence threshold." },
-  { feature: "Live 30-source OSINT search",        aureon: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
+  { feature: "Live multi-engine OSINT search",        aureon: "yes",      chatgpt: "partial", claude: "no",       note: "ChatGPT browsing is limited to a handful of curated sources; Claude has no native web." },
   { feature: "Predictive intelligence engine",     aureon: "yes",      chatgpt: "no",      claude: "no",       note: "AXRLEN NEXUS-PRIME runs probabilistic scenarios with Monte Carlo modelling." },
   { feature: "Vulnerability & exploit analysis",   aureon: "yes",      chatgpt: "no",      claude: "no",       note: "ZERLAL fault-tolerant scanning with Cyber Kill Chain mapping." },
   { feature: "Full Monaco IDE inside chat",        aureon: "yes",      chatgpt: "partial", claude: "partial",  note: "Asherin ships a sandboxed-iframe IDE with BYOK across 9 providers." },
@@ -213,7 +213,7 @@ const BlogComparison = () => {
               ChatGPT and Claude are excellent general-purpose chat products with
               mandatory monthly subscriptions. Asherin is a different category: an
               operator stack that bundles uncensored chat, multi-model consensus,
-              30-source OSINT, predictive intelligence, a Monaco IDE, FEA
+              multi-engine OSINT, predictive intelligence, a Monaco IDE, FEA
               simulation, an encrypted vault, and an infinite whiteboard — with
               <strong> no mandatory monthly fee</strong>. If you only need
               conversation, ChatGPT Plus at $20/month is a simpler pick. If you

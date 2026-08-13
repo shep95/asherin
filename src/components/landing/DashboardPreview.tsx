@@ -22,7 +22,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Intelligence",
     items: [
-      { id: "search", icon: Zap, label: "Zophiel Engine", desc: "30-source OSINT search engine with Veracity Scores and cross-validation across the open and dark web." },
+      { id: "search", icon: Zap, label: "Zophiel Engine", desc: "multi-engine OSINT search engine with Veracity Scores and cross-validation across the open and dark web." },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", desc: "Daily truth-extracted intelligence briefings synthesized from live sources, with triple-fallback parsing." },
       { id: "reverse", icon: Search, label: "Reverse Engineer", desc: "Architecture deconstruction from images, video, and binaries — see the blueprint behind any system." },
       { id: "zahten", icon: Workflow, label: "Zahten Agent Forge", desc: "Build hardened autonomous agents with a Mission Console, Scope Assessor, and multi-channel delivery." },
