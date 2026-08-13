@@ -1,9 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
+import MfaChallenge from "@/components/auth/MfaChallenge";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, mfaRequired } = useAuth();
+
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
 
