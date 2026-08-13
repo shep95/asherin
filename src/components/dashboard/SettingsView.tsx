@@ -22,13 +22,13 @@ import {
   type DashboardUi,
 } from "@/lib/dashboardUi";
 import {
-import { useIsV2 } from "@/lib/dashboardUiContext";
-import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
   APPEARANCE_EVENT,
   readAppearance,
   writeAppearance,
   type DashboardAppearance,
 } from "@/lib/dashboardAppearance";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 const WALLPAPERS = ALL_WALLPAPERS;
 

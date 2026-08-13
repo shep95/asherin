@@ -18,12 +18,12 @@ import { usePppQuote, quoteCents } from "@/hooks/usePppQuote";
 import { formatUsd, TEAM_MIN_SEATS, type Term } from "@/lib/pricing/ppp";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-import { useIsV2 } from "@/lib/dashboardUiContext";
-import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
   Building2, Briefcase, Globe, Lock, Server, FileText, Cpu, Layers, Shield,
   Users, Crown, Eye, UserPlus, Mail, Clock, Trash2, Check, X, Plus, Loader2,
   ArrowRightLeft, Minus, CreditCard, LogOut, Copy,
 } from "lucide-react";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 /* ─────────────────────────── shapes ─────────────────────────── */
 
