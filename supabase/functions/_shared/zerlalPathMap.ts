@@ -450,7 +450,7 @@ export async function runPathMap(target: string, opts: PathMapOptions = {}): Pro
       .filter((s) => s && s !== hostname && s.endsWith(hostname) && hostAllowed(s))
       .sort();
   } catch {
-    notes.push("certificate transparency lookup returned nothing parseable — subdomain列 inventory is from DNS-visible names only.");
+    notes.push("certificate transparency lookup returned nothing parseable — subdomain inventory is from DNS-visible names only.");
   }
 
   const candidates = new Map<string, PathAudit["source"]>();
