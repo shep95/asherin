@@ -58,7 +58,16 @@
 /asherin-gov/*     /index.html  200
 /houseofasher/*    /index.html  200
 /zaxin/*           /index.html  200
-/blog/*            /index.html  200
+/blog/comparison   /index.html  200
+/blog/predictions/* /index.html 200
+/blog/uncensored-ai-text-generator-guide /index.html 200
+/blog/the-crypto-dump-october-2026 /index.html 200
+/blog/btc-daily-predictions /index.html 200
+/blog/how-to-break-any-encryption-theory /index.html 200
+/blog/asherin-legal-advisor-multi-jurisdictional /index.html 200
+/blog/asherin-pricing-explained /index.html 200
+/blog/how-asherin-uses-c-seo-research /index.html 200
+/blog/how-we-make-asherin-sound-human /index.html 200
 
 # Everything else: the SPA shell, served with a real 404 status.
-/*                 /index.html  404
+/*                 /404.html    404

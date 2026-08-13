@@ -156,6 +156,23 @@ export function seoPrerenderPlugin(): Plugin {
         written += 1;
       }
 
+      // A dedicated 404 document. The host serves it with a real 404 status
+      // (see public/_redirects), so unknown URLs never answer as a 200 clone
+      // of the homepage. noindex, and no canonical pointing at "/".
+      const notFound = renderRouteHtml(
+        template,
+        "/404",
+        {
+          title: "Not found | asherin",
+          description: "this is not a page on asherin.",
+          noindex: true,
+        },
+      ).replace(
+        /<link[^>]*rel=["']canonical["'][^>]*>/i,
+        "",
+      );
+      writeFileSync(join(outDir, "404.html"), notFound);
+
       const skipped = Object.keys(ROUTE_SEO).length - routes.length;
       console.log(
         `seo-prerender: wrote ${written} route head(s)` +
