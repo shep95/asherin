@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStepUp } from "@/components/auth/StepUpProvider";
+import { reauthenticateWithPassword } from "@/lib/accountAssurance";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   Shield, ShieldCheck, ShieldAlert, Smartphone, Monitor, Tablet,
