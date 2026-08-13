@@ -6039,6 +6039,7 @@ export type Database = {
           id: string
           rejection_reason: string | null
           status: string
+          submitted_by: string | null
           success_probability: number | null
           updated_at: string
           website: string | null
@@ -6055,6 +6056,7 @@ export type Database = {
           id?: string
           rejection_reason?: string | null
           status?: string
+          submitted_by?: string | null
           success_probability?: number | null
           updated_at?: string
           website?: string | null
@@ -6071,6 +6073,7 @@ export type Database = {
           id?: string
           rejection_reason?: string | null
           status?: string
+          submitted_by?: string | null
           success_probability?: number | null
           updated_at?: string
           website?: string | null

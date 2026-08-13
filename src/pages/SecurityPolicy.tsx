@@ -46,7 +46,7 @@ const SecurityPolicy = () => {
               Security &amp; Vulnerability Disclosure Policy
             </h1>
             <p className="mb-10 text-xs font-extralight uppercase tracking-[0.2em] text-muted-foreground">
-              Last reviewed 11 August 2026
+              Last reviewed 13 August 2026
             </p>
 
             <Section title="Reporting channel">
@@ -61,6 +61,14 @@ const SecurityPolicy = () => {
               <p>
                 This channel is monitored for security reports only. Account, billing, and product questions sent here
                 are not triaged as security.
+              </p>
+              <p>
+                Honest limitation, checked 13 August 2026: mail delivery to that address depends on MX records on the
+                asherin.com DNS zone, and that zone currently publishes no MX record. Until the operator adds one, mail
+                sent to any @asherin.com address may bounce or fail silently. The address is the intended channel, not a
+                verified inbox — this page will not claim otherwise. If you get no acknowledgement inside the 3 business
+                days below, assume delivery failed rather than that the report was dismissed, and reach the operator
+                through a public profile link in the site footer.
               </p>
             </Section>
 
