@@ -109,12 +109,18 @@ const NotebooksView = () => {
     };
   }, []);
 
-  // Load datasets for notebook execution
+  // Bindable sources: azplen datasets + tabular library files. Bound by id.
   useEffect(() => {
     if (!user) return;
     (supabase.from as any)("asha_datasets").select("id, file_name").eq("user_id", user.id).order("created_at", { ascending: false })
       .then(({ data }: any) => setDatasets((data ?? []) as { id: string; file_name: string }[]));
+    (supabase.from as any)("library_files").select("id, file_name, file_type").eq("user_id", user.id).order("created_at", { ascending: false })
+      .then(({ data }: any) => {
+        const rows = (data ?? []) as { id: string; file_name: string; file_type: string }[];
+        setLibraryCsvs(rows.filter(r => /\.csv$/i.test(r.file_name) || (r.file_type ?? "").includes("csv")).map(r => ({ id: r.id, file_name: r.file_name })));
+      });
   }, [user]);
+
 
   const loadCells = useCallback(async (notebookId: string) => {
     const { data } = await (supabase.from as any)("notebook_cells").select("*").eq("notebook_id", notebookId).order("position", { ascending: true });
