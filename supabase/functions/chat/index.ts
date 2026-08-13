@@ -1779,6 +1779,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── Build user context from profile ────────────────────────────────────
+    // This is a preference note, not a dossier: the person on the other side of
+    // the chat is never a subject to be profiled back at them. Anything that
+    // looks like network or location telemetry is dropped before it can reach
+    // the model, because once it is in the prompt it can be recited in a bubble.
+    const TELEMETRY_KEY = /(^|_)(ip|ipv4|ipv6|ip_address|addr|address|geo|geoip|location|lat|latitude|lon|lng|longitude|coords?|city|region|country|timezone|tz|isp|asn|vpn|proxy|user_agent|ua|device_id|mac)($|_)/i;
+    const TELEMETRY_VALUE =
+      /(\b\d{1,3}(\.\d{1,3}){3}\b)|([0-9a-f]{1,4}:){2,}[0-9a-f]{0,4}/i;
     let userContextStr = "";
     if (userProfile && !isIntelTurn) {
 
@@ -1790,12 +1797,23 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         parts.push(`User's areas of interest: ${userProfile.topics_of_interest.join(", ")}.`);
       }
       if (userProfile.inferred_traits && Object.keys(userProfile.inferred_traits).length > 0) {
-        parts.push(`Known about user: ${JSON.stringify(userProfile.inferred_traits)}`);
+        const safeTraits: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(userProfile.inferred_traits as Record<string, unknown>)) {
+          if (TELEMETRY_KEY.test(k)) continue;
+          if (typeof v === "string" && TELEMETRY_VALUE.test(v)) continue;
+          safeTraits[k] = v;
+        }
+        if (Object.keys(safeTraits).length > 0) {
+          parts.push(`Preferences remembered from earlier conversations: ${JSON.stringify(safeTraits)}`);
+        }
       }
       if (parts.length > 0) {
-        userContextStr = `\n\n## USER INTELLIGENCE PROFILE\n${parts.join("\n")}`;
+        // Deliberately NOT "USER INTELLIGENCE PROFILE" — that heading is what
+        // turned a preference note into an analyst target package.
+        userContextStr = `\n\n## HOW THIS PERSON LIKES TO BE ANSWERED (silent — never recite it back)\n${parts.join("\n")}`;
       }
     }
+
 
     // ── Persistent user memory (cross-chat rules) ────────────
     // Suppressed entirely on intel turns: saved memories are the operator's own
