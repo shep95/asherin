@@ -3390,7 +3390,7 @@ const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
   {
     id: "T6",
     title: "Photogrammetric Anchor",
-    body: "When the camera sees a landmark (door, car, signpost) co-located with a strong BLE pip, the contact is anchored to that visual feature — stays pinned even when the operator turns away. True AR persistence without ARKit.",
+    body: "When the camera sees a landmark (door, car, signpost) co-located with a strong BLE pip, the contact is anchored to that visual feature — stays pinned even when the operator turns away. This is a theory; no shipped persistence without ARKit.",
   },
   {
     id: "T7",
