@@ -865,7 +865,7 @@ const AureonIdeView = () => {
     const prompt = buildCrashPrompt(evt, snippet);
     sendChatMessage(prompt);
     if (!rightOpen && !isMobile) setRightOpen(true);
-    if (isMobile) setMobilePanel("chat");
+    if (isMobile) setMobilePanel("editor");
     toast({ title: "◈ Crash detected", description: `${evt.type ?? "Error"}${evt.file ? " in " + (evt.file.split("/").pop() || evt.file) : ""} — AI dispatched` });
 
     // Fire on_crash agents
