@@ -20,12 +20,47 @@ import {
   Wallpaper,
   ChevronDown,
   Lock,
+  Frame as FrameIcon,
+  ArrowRight,
+  Download,
+  Upload,
 } from "lucide-react";
 
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { decryptText, encryptText } from "@/lib/encryption";
 import { ALL_WALLPAPERS, getWallpaperSrc } from "@/lib/wallpapers";
+import { emitPull } from "@/lib/connect/emitPull";
+import {
+  FONT_STACKS as FONT_FAMILIES,
+  contentBounds,
+  getElementBounds,
+  normalizeRect,
+  resolveArrow,
+  type ElementType,
+  type FontFamilyKey,
+  type FontWeightKey,
+  type GridMode,
+  type Point,
+  type WallpaperMode,
+  type WhiteboardBoard,
+  type WhiteboardElement,
+  type WhiteboardLayer,
+} from "@/lib/whiteboard/types";
+import {
+  boardToJson,
+  boardToSvg,
+  downloadBlob,
+  parseBoardJson,
+  safeFileName,
+  svgToPngBlob,
+} from "@/lib/whiteboard/exportBoard";
+import {
+  BOARD_DROP_EVENT,
+  consumeBoardDrops,
+  type BoardDrop,
+} from "@/lib/whiteboard/boardInbox";
+import { describeDrop, dropToElements } from "@/lib/whiteboard/dropToElements";
 const heroBgDefault = getWallpaperSrc("default");
 
 type Tool =
@@ -43,81 +78,9 @@ type Tool =
   | "triangle"
   | "diamond"
   | "star"
-  | "line";
-
-type GridMode = "freeform" | "dots" | "square";
-type FontFamilyKey = "Sans" | "Serif" | "Mono";
-type FontWeightKey = "300" | "400" | "500" | "700";
-type WallpaperMode = "dark" | "current" | "wallpaper";
-
-type ElementType =
-  | "path"
-  | "text"
-  | "sticky"
-  | "image"
-  | "document"
-  | "chart"
-  | "rect"
-  | "circle"
-  | "triangle"
-  | "diamond"
-  | "star"
-  | "line";
-
-interface Point {
-  x: number;
-  y: number;
-  p?: number;
-}
-
-interface WhiteboardLayer {
-  id: string;
-  name: string;
-  visible: boolean;
-}
-
-interface WhiteboardElement {
-  id: string;
-  layerId: string;
-  type: ElementType;
-  x?: number;
-  y?: number;
-  w?: number;
-  h?: number;
-  points?: Point[];
-  color?: string;
-  fillColor?: string;
-  width?: number;
-  opacity?: number;
-  text?: string;
-  fontSize?: number;
-  fontFamily?: FontFamilyKey;
-  fontWeight?: FontWeightKey;
-  src?: string;
-  imgWidth?: number;
-  imgHeight?: number;
-  borderRadius?: number;
-  noteColor?: string;
-  fileName?: string;
-  fileType?: string;
-  preview?: string;
-  chartType?: "line" | "bar";
-  series?: number[];
-  live?: boolean;
-}
-
-interface WhiteboardBoard {
-  id: string;
-  name: string;
-  wallpaperMode: WallpaperMode;
-  wallpaperKey: string;
-  wallpaperBlur: number;
-  gridMode: GridMode;
-  snapMode: GridMode;
-  smartShapes: boolean;
-  layers: WhiteboardLayer[];
-  elements: WhiteboardElement[];
-}
+  | "line"
+  | "frame"
+  | "arrow";
 
 interface DraftEditorState {
   x: number;
@@ -155,11 +118,6 @@ const COLORS = [
 ];
 
 const NOTE_COLORS = ["#fde68a", "#bfdbfe", "#fbcfe8", "#bbf7d0", "#fecaca", "#ddd6fe"];
-const FONT_FAMILIES: Record<FontFamilyKey, string> = {
-  Sans: "ui-sans-serif, system-ui, sans-serif",
-  Serif: "ui-serif, Georgia, serif",
-  Mono: "ui-monospace, SFMono-Regular, monospace",
-};
 
 const SHAPE_TOOLS: { tool: Tool; icon: typeof Square; label: string }[] = [
   { tool: "rect", icon: Square, label: "Rectangle" },
@@ -174,13 +132,6 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const deepClone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
-
-const normalizeRect = (x: number, y: number, w: number, h: number) => ({
-  x: Math.min(x, x + w),
-  y: Math.min(y, y + h),
-  w: Math.abs(w),
-  h: Math.abs(h),
-});
 
 const createLayer = (name = "Topic 1"): WhiteboardLayer => ({
   id: uid(),
@@ -220,57 +171,6 @@ const getWallpaperSource = (board: WhiteboardBoard) => {
   if (board.wallpaperMode === "dark") return "";
   if (board.wallpaperMode === "current") return heroBgDefault;
   return WALLPAPERS.find((wallpaper) => wallpaper.key === board.wallpaperKey)?.src || heroBgDefault;
-};
-
-const getElementBounds = (element: WhiteboardElement) => {
-  if (element.type === "path" && element.points?.length) {
-    const xs = element.points.map((point) => point.x);
-    const ys = element.points.map((point) => point.y);
-    const stroke = (element.width || 2) * 2;
-    return {
-      x: Math.min(...xs) - stroke,
-      y: Math.min(...ys) - stroke,
-      w: Math.max(...xs) - Math.min(...xs) + stroke * 2,
-      h: Math.max(...ys) - Math.min(...ys) + stroke * 2,
-    };
-  }
-
-  if (element.type === "text") {
-    const lines = (element.text || "").split("\n");
-    const fontSize = element.fontSize || 18;
-    const longest = lines.reduce((max, line) => Math.max(max, line.length), 0);
-    return {
-      x: element.x || 0,
-      y: (element.y || 0) - fontSize,
-      w: Math.max(80, longest * fontSize * 0.62),
-      h: Math.max(fontSize * 1.4, lines.length * fontSize * 1.3),
-    };
-  }
-
-  if (element.type === "sticky") {
-    return {
-      x: element.x || 0,
-      y: element.y || 0,
-      w: element.w || 220,
-      h: element.h || 160,
-    };
-  }
-
-  if (element.type === "image") {
-    return {
-      x: element.x || 0,
-      y: element.y || 0,
-      w: element.imgWidth || 260,
-      h: element.imgHeight || 180,
-    };
-  }
-
-  return {
-    x: element.x || 0,
-    y: element.y || 0,
-    w: element.w || 220,
-    h: element.h || 140,
-  };
 };
 
 const moveElement = (element: WhiteboardElement, dx: number, dy: number): WhiteboardElement => {
@@ -418,6 +318,12 @@ const Whiteboard = () => {
   const backgroundCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const loadedRef = useRef(false);
   const dragSnapshotRef = useRef<WhiteboardElement | null>(null);
+  // Wheel zoom must anchor on the cursor, which needs the CURRENT view in a
+  // listener registered once. State read through refs, never a stale closure.
+  const viewRef = useRef({ zoom: 1, panX: 0, panY: 0 });
+  const createTraceRef = useRef<{ counts: Record<string, number>; timer: number | null }>({ counts: {}, timer: null });
+  const arrowDraftRef = useRef<{ id: string; fromId?: string } | null>(null);
+  const frameChildrenRef = useRef<Map<string, WhiteboardElement>>(new Map());
 
   const [storageUserKey, setStorageUserKey] = useState("guest-device");
   const [boards, setBoards] = useState<WhiteboardBoard[]>([createBoard()]);
@@ -445,6 +351,9 @@ const Whiteboard = () => {
   const [laserTrail, setLaserTrail] = useState<Point[]>([]);
   const [layerPanelOpen, setLayerPanelOpen] = useState(true);
   const [backgroundPanelOpen, setBackgroundPanelOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setStorageUserKey(user?.id || getDeviceKey());
@@ -520,6 +429,10 @@ const Whiteboard = () => {
     }, 600);
     return () => window.clearTimeout(handle);
   }, [boards, activeBoardId, activeLayerId, storageUserKey]);
+
+  useEffect(() => {
+    viewRef.current = { zoom, panX: panOffset.x, panY: panOffset.y };
+  }, [zoom, panOffset.x, panOffset.y]);
 
   const activeBoard = useMemo(() => {
     return boards.find((board) => board.id === activeBoardId) || boards[0];
@@ -614,6 +527,39 @@ const Whiteboard = () => {
     );
   }, [selectedElementId, updateActiveBoardElements]);
 
+  /**
+   * One Connect row per burst of authoring, not one per pen stroke. A trace
+   * that fires 200 times while somebody sketches is noise, and it would make
+   * the whiteboard organ look busier than the work it actually did.
+   */
+  const traceCreate = useCallback((kind: string, count = 1) => {
+    const state = createTraceRef.current;
+    state.counts[kind] = (state.counts[kind] || 0) + count;
+    if (state.timer !== null) return;
+    state.timer = window.setTimeout(() => {
+      const counts = state.counts;
+      state.counts = {};
+      state.timer = null;
+      const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+      if (!total) return;
+      const summary = Object.entries(counts)
+        .map(([key, value]) => (value > 1 ? `${value}× ${key}` : key))
+        .join(", ");
+      void emitPull({
+        organ: "whiteboard",
+        capability: "create",
+        fromSurface: "whiteboard",
+        status: "ok",
+        quote: summary,
+        meta: { objects: total },
+      });
+    }, 2500);
+  }, []);
+
+  useEffect(() => () => {
+    if (createTraceRef.current.timer !== null) window.clearTimeout(createTraceRef.current.timer);
+  }, []);
+
   const getCanvasPoint = useCallback((clientX: number, clientY: number, snap = false) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
@@ -651,13 +597,15 @@ const Whiteboard = () => {
       color,
       fillColor,
       chartType: "line",
-      series: [22, 35, 30, 52, 45, 66, 58, 74],
-      live: true,
-      text: "Live Signal",
+      // A blank sketch series. The board never fabricates a data feed — the
+      // operator types the numbers, or drops a real series onto the canvas.
+      series: [],
+      text: "Sketch series",
     };
     updateActiveBoardElements((elements) => [...elements, chart]);
     setSelectedElementId(chart.id);
-  }, [activeLayerId, color, fillColor, getCanvasPoint, pushHistory, updateActiveBoardElements]);
+    traceCreate("chart");
+  }, [activeLayerId, color, fillColor, getCanvasPoint, pushHistory, traceCreate, updateActiveBoardElements]);
 
   const createDocumentElement = useCallback((fileName: string, fileType: string, preview = "", position?: Point) => {
     if (!activeLayerId) return;
@@ -778,7 +726,12 @@ const Whiteboard = () => {
     const visibleElements = activeBoard.elements.filter((element) => activeBoard.layers.find((layer) => layer.id === element.layerId)?.visible);
 
     if (tool === "select") {
-      const hit = [...visibleElements].reverse().find((element) => pointHitsElement(rawPoint, element));
+      // A frame is a container, so it only wins the click when nothing inside
+      // it was hit — otherwise a big frame would swallow every child.
+      const candidates = [...visibleElements].reverse();
+      const hit =
+        candidates.find((element) => element.type !== "frame" && pointHitsElement(rawPoint, element)) ||
+        candidates.find((element) => element.type === "frame" && pointHitsElement(rawPoint, element));
 
       if (!hit) {
         clearSelection();
@@ -793,6 +746,23 @@ const Whiteboard = () => {
       }
 
       dragSnapshotRef.current = deepClone(hit);
+      if (hit.type === "frame") {
+        const frameBounds = getElementBounds(hit);
+        const captured = new Map<string, WhiteboardElement>();
+        for (const element of visibleElements) {
+          if (element.id === hit.id) continue;
+          const bounds = getElementBounds(element);
+          const inside =
+            bounds.x >= frameBounds.x &&
+            bounds.y >= frameBounds.y &&
+            bounds.x + bounds.w <= frameBounds.x + frameBounds.w &&
+            bounds.y + bounds.h <= frameBounds.y + frameBounds.h;
+          if (inside) captured.set(element.id, deepClone(element));
+        }
+        frameChildrenRef.current = captured;
+      } else {
+        frameChildrenRef.current = new Map();
+      }
       return;
     }
 
@@ -803,6 +773,54 @@ const Whiteboard = () => {
 
     if (tool === "sticky") {
       startDraftEditor(snappedPoint, "sticky");
+      return;
+    }
+
+    if (tool === "arrow") {
+      pushHistory();
+      // Bind the tail to whatever sits under the start point; an arrow drawn
+      // in empty space simply stays unbound.
+      const anchor = [...visibleElements].reverse().find(
+        (element) => element.type !== "arrow" && pointHitsElement(rawPoint, element),
+      );
+      const arrow: WhiteboardElement = {
+        id: uid(),
+        layerId: activeLayerId,
+        type: "arrow",
+        x: snappedPoint.x,
+        y: snappedPoint.y,
+        w: 0,
+        h: 0,
+        color,
+        width: Math.max(1.4, brushSize * 0.6),
+        fromId: anchor?.id,
+      };
+      arrowDraftRef.current = { id: arrow.id, fromId: anchor?.id };
+      setShapeStart(snappedPoint);
+      updateActiveBoardElements((elements) => [...elements, arrow]);
+      setIsDrawing(true);
+      return;
+    }
+
+    if (tool === "frame") {
+      pushHistory();
+      setShapeStart(snappedPoint);
+      updateActiveBoardElements((elements) => [
+        ...elements,
+        {
+          id: uid(),
+          layerId: activeLayerId,
+          type: "frame",
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          w: 0,
+          h: 0,
+          color: "rgba(255,255,255,0.3)",
+          width: 1.5,
+          title: `Frame ${activeBoard.elements.filter((element) => element.type === "frame").length + 1}`,
+        },
+      ]);
+      setIsDrawing(true);
       return;
     }
 
@@ -868,9 +886,25 @@ const Whiteboard = () => {
     if (tool === "select" && selectedElementId && dragSnapshotRef.current) {
       const snapshot = dragSnapshotRef.current;
       const origin = getElementBounds(snapshot);
-      const dx = rawPoint.x - origin.x - (snapshot.type === "path" ? 0 : 0);
-      const dy = rawPoint.y - origin.y - (snapshot.type === "path" ? 0 : 0);
+      const dx = rawPoint.x - origin.x;
+      const dy = rawPoint.y - origin.y;
       const moved = moveElement(snapshot, dx, dy);
+
+      // Dragging a frame drags what it contains — that is the whole point of
+      // a frame. Children are measured against the frame's ORIGINAL bounds so
+      // membership cannot drift mid-drag.
+      if (snapshot.type === "frame") {
+        const captured = frameChildrenRef.current;
+        updateActiveBoardElements((elements) =>
+          elements.map((element) => {
+            if (element.id === selectedElementId) return moved;
+            const child = captured.get(element.id);
+            return child ? moveElement(child, dx, dy) : element;
+          }),
+        );
+        return;
+      }
+
       updateActiveBoardElements((elements) => elements.map((element) => (element.id === selectedElementId ? moved : element)));
       return;
     }
@@ -882,7 +916,7 @@ const Whiteboard = () => {
       return;
     }
 
-    if (shapeStart && ["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool)) {
+    if (shapeStart && ["rect", "circle", "triangle", "diamond", "star", "line", "frame", "arrow"].includes(tool)) {
       updateActiveBoardElements((elements) => {
         const next = [...elements];
         const last = next[next.length - 1];
@@ -910,10 +944,39 @@ const Whiteboard = () => {
     });
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool === "laser") {
       window.setTimeout(() => setLaserTrail([]), 500);
     }
+
+    if (tool === "arrow" && arrowDraftRef.current) {
+      const draft = arrowDraftRef.current;
+      arrowDraftRef.current = null;
+      const endPoint = event ? getCanvasPoint(event.clientX, event.clientY, false) : null;
+      updateActiveBoardElements((elements) => {
+        const arrow = elements.find((element) => element.id === draft.id);
+        if (!arrow) return elements;
+        // A tap that never became a drag leaves nothing behind rather than a
+        // zero-length arrow the operator cannot see or select.
+        if (Math.hypot(arrow.w || 0, arrow.h || 0) < 6 && !arrow.toId) {
+          return elements.filter((element) => element.id !== draft.id);
+        }
+        const target = endPoint
+          ? [...elements].reverse().find(
+              (element) =>
+                element.type !== "arrow" && element.id !== draft.fromId && pointHitsElement(endPoint, element),
+            )
+          : undefined;
+        return elements.map((element) =>
+          element.id === draft.id ? { ...element, toId: target?.id } : element,
+        );
+      });
+      traceCreate("arrow");
+    }
+
+    if (tool === "frame" && shapeStart) traceCreate("frame");
+    if (["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool)) traceCreate("shape");
+    if (["pen", "marker", "highlighter"].includes(tool)) traceCreate("ink");
 
     if (activeBoard?.smartShapes && ["pen", "marker", "highlighter"].includes(tool)) {
       updateActiveBoardElements((elements) => {
@@ -1118,13 +1181,30 @@ const Whiteboard = () => {
     if (!container) return;
 
     const handleWheel = (event: WheelEvent) => {
+      // deltaMode 1 = lines (Firefox), 2 = pages. Normalise to pixels first or
+      // the same flick zooms at wildly different speeds per browser.
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1;
+      // ctrlKey also arrives from a trackpad pinch — preventDefault or the
+      // browser zooms the whole page instead of the board.
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
-        setZoom((previous) => clamp(previous * (event.deltaY > 0 ? 0.92 : 1.08), 0.2, 4));
+        const rect = container.getBoundingClientRect();
+        const px = event.clientX - rect.left;
+        const py = event.clientY - rect.top;
+        const { zoom: currentZoom, panX, panY } = viewRef.current;
+        // Exponential in the delta magnitude: a long flick is one smooth
+        // gesture instead of 1.08^N slamming into the zoom ceiling.
+        const nextZoom = clamp(currentZoom * Math.exp(-event.deltaY * unit * 0.0015), 0.2, 4);
+        const ratio = nextZoom / currentZoom;
+        if (ratio === 1) return;
+        setZoom(nextZoom);
+        // Hold the point under the cursor still while the scale changes.
+        setPanOffset({ x: px - (px - panX) * ratio, y: py - (py - panY) * ratio });
       } else {
+        event.preventDefault();
         setPanOffset((previous) => ({
-          x: previous.x - event.deltaX,
-          y: previous.y - event.deltaY,
+          x: previous.x - event.deltaX * unit,
+          y: previous.y - event.deltaY * unit,
         }));
       }
     };
@@ -1133,25 +1213,6 @@ const Whiteboard = () => {
     return () => container.removeEventListener("wheel", handleWheel);
   }, []);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setBoards((previous) =>
-        previous.map((board) => ({
-          ...board,
-          elements: board.elements.map((element) => {
-            if (element.type !== "chart" || !element.live || !element.series?.length) return element;
-            const nextValue = clamp((element.series[element.series.length - 1] || 40) + (Math.random() * 24 - 12), 8, 96);
-            return {
-              ...element,
-              series: [...element.series.slice(-9), Number(nextValue.toFixed(1))],
-            };
-          }),
-        })),
-      );
-    }, 2400);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1835,7 +1896,7 @@ const Whiteboard = () => {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
+          onPointerLeave={() => handlePointerUp()}
         />
       </div>
 
