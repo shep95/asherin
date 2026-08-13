@@ -440,6 +440,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   // beneath that bubble. For assistant messages we wait until streaming has
   // finished for that message so we don't fire geocodes on partial tokens.
   const [propertyMaps, setPropertyMaps] = useState<Record<string, PropertyMapCardData>>({});
+  // Geocode attempts are tracked separately from results. Without this, a
+  // message whose address fails to resolve is never written into propertyMaps,
+  // so the effect re-fires on every render and hammers the geocoder forever.
+  const geocodeAttempted = useRef<Set<string>>(new Set());
   const lastMsgId = branchMessages[branchMessages.length - 1]?.id;
   useEffect(() => {
     let cancelled = false;
@@ -447,10 +451,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       for (const m of branchMessages) {
         if (!m.content) continue;
         if (propertyMaps[m.id]) continue;
+        if (geocodeAttempted.current.has(m.id)) continue;
         // Skip the currently-streaming assistant message to avoid partial-text geocodes.
         if (m.role === "assistant" && isStreaming && m.id === lastMsgId) continue;
         const [hit] = detectAddresses(m.content);
         if (!hit) continue;
+        geocodeAttempted.current.add(m.id);
         const g = await geocodeAddress(hit.raw);
         if (cancelled || !g) continue;
         setPropertyMaps((prev) =>
@@ -462,6 +468,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     })();
     return () => { cancelled = true; };
   }, [branchMessages, propertyMaps, isStreaming, lastMsgId]);
+
 
 
   // Listen for cross-component jump signals (e.g. from the sidebar hover preview)
