@@ -1,7 +1,7 @@
 /**
  * AUREON SWARM AGENT INDICATOR
  * Shows which specialist agent is currently active in the conversation.
- * Inspired by OpenAI's Swarm handoff visualization.
+ * Visualises agent handoffs as they occur in a swarm run.
  */
 
 import { memo, useMemo } from "react";

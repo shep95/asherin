@@ -11,7 +11,7 @@ import { toast } from "sonner";
 /**
  * ZACOON — Browser-Use Operations Console (Asher Dashboard)
  *
- * Inspired by the open-source `browser-use` agent (ZorakCorp/zia-project-Zacoon-).
+ * Browser-driving agent surface for the Zacoon phantom grid.
  * UI surface: monochrome glass theme matching the rest of Asher Dashboard.
  *
  * Two halves:

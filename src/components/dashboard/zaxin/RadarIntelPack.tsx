@@ -1,5 +1,5 @@
 // Zaxin — Radar Intel Pack
-// Browser-native BLE readout panel. Inspired by common scanner ideas, not a
+// Browser-native BLE readout panel. Reads what the Web Bluetooth API exposes, not a
 // replacement for professional RF test gear or indoor location systems.
 //
 // What it shows:
