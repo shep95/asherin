@@ -4,7 +4,7 @@
 // HTML so non-JS crawlers (social previews, plain fetchers) see them too.
 
 export const ORIGIN = "https://asherin.com";
-export const DEFAULT_OG_IMAGE = "https://asherin.com/og-image.png";
+export const DEFAULT_OG_IMAGE = "https://asherin.com/og-image.png?v=20260813-stars";
 
 export type SeoEntry = {
   title: string;
@@ -18,9 +18,8 @@ export type SeoEntry = {
 
 export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
-    title: "Asherin | Private AI Intelligence Platform for Analysts",
-    description:
-      "Private AI platform for analysts, traders and researchers. Uncensored chat, live OSINT search, jurisdictional records, event forecasting, BYOK keys, no training on your data.",
+    title: "asherin",
+    description: "look a little closer.",
   },
   "/pricing": {
     title: "Pricing | Asherin, Pro & Enterprise Plans",

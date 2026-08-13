@@ -92,12 +92,17 @@ function applySeo(entry: SeoEntry, path: string) {
     m.setAttribute("property", "og:image");
     return m;
   });
-  upsertMeta('meta[property="og:image:width"]', "content", "1920", () => {
+  upsertMeta('meta[property="og:image:type"]', "content", "image/png", () => {
+    const m = document.createElement("meta");
+    m.setAttribute("property", "og:image:type");
+    return m;
+  });
+  upsertMeta('meta[property="og:image:width"]', "content", "1200", () => {
     const m = document.createElement("meta");
     m.setAttribute("property", "og:image:width");
     return m;
   });
-  upsertMeta('meta[property="og:image:height"]', "content", "1080", () => {
+  upsertMeta('meta[property="og:image:height"]', "content", "630", () => {
     const m = document.createElement("meta");
     m.setAttribute("property", "og:image:height");
     return m;
