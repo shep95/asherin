@@ -233,13 +233,78 @@ const PIN_PLACEHOLDER = "Selected point";
 
 
 
+/* US state tokens. "Dallas Texas" must not land on Dallas, Scotland just
+   because the geocoder's importance score liked it better. When the operator
+   names a US state we constrain the country AND re-rank on the state match —
+   constraint alone is not enough, since Nominatim still returns Dallas, Oregon
+   ahead of Dallas, Texas for some phrasings. */
+const US_STATES: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+  hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA",
+  kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD",
+  massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
+  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
+  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
+  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
+  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
+  wyoming: "WY", "district of columbia": "DC",
+};
+
+function detectUsState(q: string): string | null {
+  const lower = ` ${q.toLowerCase().replace(/[.,]/g, " ").replace(/\s+/g, " ")} `;
+  for (const [name, abbr] of Object.entries(US_STATES)) {
+    if (lower.includes(` ${name} `)) return abbr;
+  }
+  // Two-letter postal abbreviation as a trailing token ("Dallas TX").
+  const m = q.trim().match(/\b([A-Z]{2})\b\s*$/);
+  if (m && Object.values(US_STATES).includes(m[1])) return m[1];
+  return null;
+}
+
+const GEOCODE_TIMEOUT_MS = 9000;
+
 async function nominatimSearch(q: string): Promise<SearchHit[]> {
   if (!q.trim()) return [];
-  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(q)}`;
-  const r = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!r.ok) throw new Error("search_failed");
-  return r.json();
+  const state = detectUsState(q);
+  const params = new URLSearchParams({
+    format: "json",
+    addressdetails: "1",
+    limit: "8",
+    q,
+  });
+  if (state) params.set("countrycodes", "us");
+
+  // A geocode with no deadline hangs the whole navigation path when Nominatim
+  // is rate-limiting. Bounded, and the abort surfaces as a normal failure.
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), GEOCODE_TIMEOUT_MS);
+  let hits: SearchHit[];
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!r.ok) throw new Error("search_failed");
+    hits = await r.json();
+  } finally {
+    window.clearTimeout(timer);
+  }
+
+  if (!state || !Array.isArray(hits)) return hits;
+  // Stable re-rank: hits whose resolved state matches the named state come
+  // first, original order preserved inside each group.
+  const matches = hits.filter((h) => {
+    const addr = (h as any)?.address ?? {};
+    const st = String(addr.state ?? "").toLowerCase();
+    return US_STATES[st] === state || String(addr["ISO3166-2-lvl4"] ?? "").endsWith(`-${state}`);
+  });
+  if (!matches.length) return hits;
+  return [...matches, ...hits.filter((h) => !matches.includes(h))];
 }
+
 
 async function reverseGeocode(lat: number, lon: number): Promise<SearchHit | null> {
   try {
