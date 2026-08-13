@@ -230,40 +230,108 @@ export function classifyMessage(raw: string): IntentReading {
   };
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * LEGAL SPEECH-ACT DETECTION
+ *
+ * Keywords were the wrong instrument. A person locked out of their apartment
+ * writes "my landlord changed the locks" — no "legal", no "lawyer", no
+ * "statute" — and the old keyword gate missed exactly the operator who needed
+ * it most, while a TypeScript file header saying "license" armed a sixty-line
+ * comparative-law directive over a refactor question.
+ *
+ * What actually distinguishes a legal turn is the SPEECH-ACT: the operator is
+ * asking what a polity's rules permit, require, forbid, owe, punish, or how to
+ * move through its process. That is detectable without the vocabulary of law.
+ *
+ * Three signal classes, all bounded and quantifier-flat (no nested quantifiers,
+ * no unbounded alternation over .*, single pass each — a 4 KB clamp upstream
+ * caps the work regardless):
+ *   STRONG   — self-sufficient: the turn is unambiguously about rules/remedy.
+ *   ACT      — an interrogative of permission / obligation / consequence.
+ *   SUBJECT  — a party or process that holds power over the operator.
+ *   ADVERSE  — something was done TO the operator by such a party.
+ *
+ * Arm when STRONG, or ACT+SUBJECT, or SUBJECT+ADVERSE. A subject alone never
+ * arms ("my landlord is nice"), and an interrogative alone never arms ("can i
+ * center this div").
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** Text the classifier must not read as legal signal. */
+function stripLegalDecoys(text: string): string {
+  return text
+    // Fenced code and SPDX/licence headers: "license" there is packaging, not law.
+    .replace(/```[\s\S]{0,4000}?```/g, " ")
+    .replace(/^[ \t]*(?:\/\/|#|\*|--)?[ \t]*SPDX-License-Identifier:.*$/gim, " ")
+    .replace(/\b(?:MIT|Apache-2\.0|GPL-3\.0|BSD-3-Clause|ISC)\s+licen[cs]e\b/gi, " ")
+    // Paper sizes and stationery are not jurisprudence.
+    .replace(/\blegal[ -](?:size|pad|paper)\b/gi, " ")
+    // Sport borrows the vocabulary of the bench wholesale.
+    .replace(/\b(?:tennis|basketball|squash|padel|volleyball|pickleball)\s+court\b/gi, " ")
+    .replace(/\bcourt\s*(?:side|s)\b/gi, " ");
+}
+
+/** Self-sufficient: one hit is the whole question. */
+const LEGAL_STRONG =
+  /\b(?:is it (?:legal|illegal|lawful|against the law)|am i allowed|are they allowed|is (?:that|this) even legal|do i have (?:a|the|any) right|what are my rights|can they legally|breach of contract|wrongful (?:termination|dismissal|eviction)|restraining order|statute of limitations|without a (?:warrant|court order)|file (?:a|an) (?:claim|lawsuit|police report|appeal|complaint)|sue|suing|lawsuit|subpoena|indicted|felony|misdemeanor|small claims|child (?:custody|support)|deport(?:ed|ation)|asylum|green card|garnish(?:ed|ment)?|foreclos(?:e|ure)|repossess(?:ed|ion)?|habeas|due process|statute|ordinance|case law|precedent|jurisdiction|liab(?:le|ility)|plaintiff|defendant)\b/i;
+
+/** An interrogative about permission, obligation, or consequence. */
+const LEGAL_ACT =
+  /\b(?:can (?:i|they|he|she|we|my|the) |am i (?:required|obligated|entitled|liable)|are they (?:required|obligated|liable)|do i have to|does he have to|does she have to|do they have to|do i need to|must i|what happens if|what can i do (?:about|if)|how do i (?:fight|appeal|dispute|contest|report|file|challenge)|who is (?:liable|responsible|at fault)|is (?:my|their|this) .{0,24}(?:allowed|permitted|required|enforceable|valid))/i;
+
+/** A party or process that holds power over the operator. */
+const LEGAL_SUBJECT =
+  /\b(?:landlord|tenant|lease|evict(?:ed|ion)?|hoa|employer|boss|hr|fired|laid off|overtime|unpaid wages|severance|non-?compete|nda|police|cop|officer|sheriff|arrest(?:ed)?|detained|pulled over|search(?:ed)? (?:my|the) (?:car|home|house|phone|apartment)|warrant|insurer|insurance (?:claim|company)|adjuster|school|principal|expelled|suspended|custody|divorce|alimony|contract|agreement|debt collector|collections|creditor|immigration|visa|ice agents?|dmv|ticket|citation|dui|court date|probation|parole|contractor|hospital bill|attorney|lawyer)\b/i;
+
+/** Something was done TO the operator by such a party. */
+const LEGAL_ADVERSE =
+  /\b(?:changed the locks|locked me out|shut off (?:my|the) (?:water|power|heat|electricity)|entered (?:my|the) (?:apartment|home|unit|house) without|came in without|kept my (?:deposit|security deposit)|refus(?:ed|ing) to (?:pay|return|fix|repair|leave)|denied my (?:claim|request|application)|withheld|towed my car|seized|threaten(?:ed|ing) to (?:evict|sue|fire|report)|fired me|cut my (?:hours|pay)|raised (?:my|the) rent|won'?t give (?:me|us) back|took my)\b/i;
+
+/** The operator explicitly waving the organ off. */
+const LEGAL_STAND_DOWN =
+  /\b(?:not a legal question|don'?t (?:do|give me|need|want) (?:a |the |any )?legal|no legal (?:analysis|advice|stuff|mode)|skip the legal|without the legal (?:lecture|analysis|disclaimer))\b/i;
+
+export interface LegalArming {
+  /** Wrap this send with the legal directive. */
+  arm: boolean;
+  /** Short reason, used for the Connect trace — never shown as chrome. */
+  reason: string;
+}
+
 /**
- * AUTO-LAW gate. The legal directive is heavy; it only earns its place when the
- * message is clearly a legal question AND legal is the dominant read. A code
- * paste that happens to say "license" must not trigger it.
+ * Decides arming for THIS message only. Nothing is sticky: the next unrelated
+ * turn simply does not match, so the organ stands down on its own with no
+ * switch to remember and no state to get stuck in.
  */
-export const AUTO_LEGAL_THRESHOLD = 0.5;
+export function detectLegalSpeechAct(raw: string): LegalArming {
+  const text = stripLegalDecoys((raw || "").slice(0, MAX_SCAN)).trim();
+  if (!text || text.length < 8) return { arm: false, reason: "" };
+  if (SMALLTALK.test(text)) return { arm: false, reason: "" };
+  if (LEGAL_STAND_DOWN.test(text)) return { arm: false, reason: "operator declined" };
 
-export function shouldAutoArmLegal(reading: IntentReading): boolean {
+  const strong = LEGAL_STRONG.exec(text);
+  if (strong) return { arm: true, reason: `strong:${strong[0].toLowerCase().slice(0, 32)}` };
+
+  const subject = LEGAL_SUBJECT.exec(text);
+  if (!subject) return { arm: false, reason: "" };
+
+  const act = LEGAL_ACT.exec(text);
+  if (act) return { arm: true, reason: `act:${act[0].toLowerCase().trim().slice(0, 24)}` };
+
+  const adverse = LEGAL_ADVERSE.exec(text);
+  if (adverse) return { arm: true, reason: `adverse:${adverse[0].toLowerCase().slice(0, 32)}` };
+
+  return { arm: false, reason: "" };
+}
+
+/**
+ * Arming gate used by the composer. The reading is advisory only — a legal
+ * speech-act arms even when another domain scores higher, because "can police
+ * enter my apartment at 2am" is a maps-shaped sentence with a rights-shaped
+ * question, and the question is what the operator needs answered.
+ */
+export function shouldAutoArmLegal(reading: IntentReading, raw: string): boolean {
   if (reading.smalltalk) return false;
-  if (reading.primary !== "legal") return false;
-  return reading.legalScore >= AUTO_LEGAL_THRESHOLD;
-}
-
-export type LawSwitch = "auto" | "on" | "off";
-
-const LAW_SWITCH_KEY = "asherin_law_switch";
-
-export function loadLawSwitch(): LawSwitch {
-  try {
-    const v = localStorage.getItem(LAW_SWITCH_KEY);
-    if (v === "on" || v === "off" || v === "auto") return v;
-    // Migrate the legacy boolean toggle: previously-on users keep an explicit ON.
-    const legacy = localStorage.getItem("aureon_legal_mode");
-    if (legacy === "true") return "on";
-  } catch { /* storage unavailable — fall through to auto */ }
-  return "auto";
-}
-
-export function saveLawSwitch(v: LawSwitch) {
-  try { localStorage.setItem(LAW_SWITCH_KEY, v); } catch { /* non-fatal */ }
-}
-
-export function cycleLawSwitch(v: LawSwitch): LawSwitch {
-  return v === "auto" ? "on" : v === "on" ? "off" : "auto";
+  return detectLegalSpeechAct(raw).arm;
 }
 
 /**
