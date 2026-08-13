@@ -28,7 +28,7 @@ const PATTERNS: { re: RegExp; property: boolean }[] = [
   },
   { re: /\b(?:pull\s+up|open\s+the\s+map\s+(?:on|for)|map)\s+(.+)$/i, property: false },
   /* Bare US-style street address typed straight into chat. */
-  { re: /^(\d{1,6}\s+[A-Za-z0-9'.\- ]{3,}\s+(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pkwy|parkway|hwy|highway)\b.*)$/i, property: true },
+  { re: /^(\d{1,6}\s+[A-Za-z0-9'.\- ]{3,}\s+(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pkwy|parkway|hwy|highway|ter|terrace|pl|place|cir|circle|trl|trail|loop|sq|square)\b.*)$/i, property: true },
 ];
 
 export function detectGeoIntent(text: string): GeoIntent | null {
