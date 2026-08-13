@@ -26,21 +26,16 @@ import {
   IdeCheckpointPanel,
   IdeModeToggle,
   IdeChangedFilesPanel,
-  IdeBuildStatusPanel,
   type PlannedChange,
 } from "@/components/ide-shared";
+import { readIdeMode, type IdeMode } from "@/components/ide-shared/IdeModeToggle";
 import { changedFiles } from "@/lib/ide";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
-import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
-import { routeGoal } from "@/lib/asherCode/goalRouter";
-import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText, GitCommit } from "lucide-react";
+import { saveCheckpoint } from "@/lib/ide/checkpoints";
+import { History, Stethoscope, Wand2, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
-import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
-import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
-import { IDE_BUILD_CONTRACT, parseIdeBuildStatus, buildCritiqueContinuationReply } from "@/lib/ide/completionLoop";
-import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
 import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
