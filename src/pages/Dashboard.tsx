@@ -1053,6 +1053,7 @@ const Dashboard = () => {
         userProfile,
         brainContext,
         conversationId: convId,
+        turnId: assistantId,
         signal: controller.signal,
         // Ghost Chain phase 1 — reasoning streams into the transparency panel.
         onTools: (rows) =>

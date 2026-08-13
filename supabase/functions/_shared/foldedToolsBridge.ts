@@ -123,6 +123,8 @@ export interface FoldedResult {
   offline: string[];
 }
 
+import { emitPull } from "./connectPull.ts";
+
 // ── PII masking ──────────────────────────────────────────────────────────────
 
 const EMAIL_RE = /\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*(@[A-Za-z0-9.-]+\.[A-Za-z]{2,})\b/g;
@@ -145,6 +147,8 @@ interface InvokeOutcome {
   ok: boolean;
   status: number;
   body: any;
+  /** Wall time of the invoke, so a trace row reports what actually elapsed. */
+  latencyMs?: number;
   /** Populated when the call could not produce a result at all. */
   failure?: string;
 }
@@ -170,6 +174,7 @@ async function invoke(
 
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), ceilingMs);
+  const startedAt = Date.now();
   try {
     const r = await fetch(`${url}/functions/v1/${fn}`, {
       method: "POST",
@@ -189,13 +194,13 @@ async function invoke(
       body = { raw: text.slice(0, 500) };
     }
     if (r.status === 404) {
-      return { ok: false, status: 404, body, failure: `${fn} offline (404 — function not deployed)` };
+      return { ok: false, status: 404, body, latencyMs: Date.now() - startedAt, failure: `${fn} offline (404 — function not deployed)` };
     }
     if (!r.ok) {
       const msg = body?.error ? String(body.error).slice(0, 200) : `http ${r.status}`;
-      return { ok: false, status: r.status, body, failure: `${fn} failed (${r.status}: ${msg})` };
+      return { ok: false, status: r.status, body, latencyMs: Date.now() - startedAt, failure: `${fn} failed (${r.status}: ${msg})` };
     }
-    return { ok: true, status: r.status, body };
+    return { ok: true, status: r.status, body, latencyMs: Date.now() - startedAt };
   } catch (e) {
     const err = e as Error;
     if (err?.name === "AbortError") {
@@ -203,10 +208,11 @@ async function invoke(
         ok: false,
         status: 0,
         body: null,
+        latencyMs: Date.now() - startedAt,
         failure: `${fn} still running past ${Math.round(ceilingMs / 1000)}s — the run continues server-side; results land in its own module, not in this reply`,
       };
     }
-    return { ok: false, status: 0, body: null, failure: `${fn} offline (${err?.message || "network error"})` };
+    return { ok: false, status: 0, body: null, latencyMs: Date.now() - startedAt, failure: `${fn} offline (${err?.message || "network error"})` };
   } finally {
     clearTimeout(timer);
   }
@@ -441,6 +447,34 @@ const CEILING = {
 } as const;
 
 /**
+ * Which organ in Asherin Connect each edge function belongs to. A trace row
+ * whose organ is guessed is worse than no row: the Connect graph would light a
+ * node nothing ran on. Anything unmapped is traced under "chat" rather than
+ * being invented into a subsystem.
+ */
+const ORGAN_OF: Record<string, string> = {
+  "vault-retrieve": "knowledge-vault",
+  "vault-agent": "knowledge-vault",
+  "zerlal-domain-recon": "zerlal",
+  "asherin-live-dork": "zophiel",
+  "axrlen-analyze": "axrlen",
+  "generate-briefing": "briefings",
+  "notebook-execute": "notebooks",
+  "agent-execute": "zahten",
+  "google-data": "google",
+  "google-mesh": "google",
+  "zali-analyze": "zali",
+  "coding-laws-engine": "ide",
+  "scrapper-extract": "file-scrapper",
+};
+
+/** Trace context: who ran the turn, and which assistant message it belongs to. */
+export interface FoldedTraceCtx {
+  userId?: string | null;
+  turnId?: string | null;
+}
+
+/**
  * Runs every planned tool concurrently. Legs are independent — none reads
  * another's output — so a slow engine delays only itself, and each leg owns
  * its own failure text.
@@ -448,6 +482,7 @@ const CEILING = {
 export async function runFoldedTools(
   plan: FoldedPlan,
   auth: string | null,
+  trace?: FoldedTraceCtx,
 ): Promise<FoldedResult> {
   const fired: string[] = [];
   const offline: string[] = [];
@@ -459,6 +494,19 @@ export async function runFoldedTools(
   const note = (fn: string, out: InvokeOutcome) => {
     fired.push(`${fn}(${out.status})`);
     if (out.failure) offline.push(out.failure);
+    // One Connect row per real invoke, keyed to the assistant turn so the
+    // transcript and the Connect log can never disagree about what ran. A
+    // failed tool is written fail-red, never dropped or dressed as success.
+    const key = fn.split(":")[0];
+    void emitPull(trace?.userId, {
+      organ: ORGAN_OF[key] ?? "chat",
+      capability: fn.includes(":") ? fn.split(":").slice(1).join(":") : key,
+      fromSurface: "chat",
+      status: out.ok ? "ok" : "fail",
+      latencyMs: out.latencyMs,
+      quote: out.failure ?? null,
+      meta: trace?.turnId ? { turn_id: trace.turnId } : undefined,
+    });
   };
 
   // ── Knowledge Vault read ───────────────────────────────────────────────

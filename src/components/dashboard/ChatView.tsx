@@ -19,6 +19,7 @@ import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
 import ScrollIntelligence from "./ScrollIntelligence";
 import ThinkingPanel, { ThinkingPanelOrDots } from "./ThinkingPanel";
+import TurnTraces from "./TurnTraces";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
 import { emitPull } from "@/lib/connect/emitPull";
@@ -710,7 +711,8 @@ const ChatView = ({
                         />
                       )}
 
-                    {/* Sources — the links the answer actually carried. No scores. */}
+                    {/* Sources — numbered so the answer's [n] markers resolve to a
+                        real link. The links the answer actually carried; no scores. */}
                     {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 px-1">
                         {msg.sources.map((s, i) => (
@@ -721,11 +723,21 @@ const ChatView = ({
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-accent transition-colors max-w-[280px]"
                           >
+                            <span className="shrink-0 font-mono text-muted-foreground/40">[{i + 1}]</span>
                             <ExternalLink className="h-2.5 w-2.5 shrink-0" />
                             <span className="truncate">{s.title || s.url}</span>
                           </a>
                         ))}
                       </div>
+                    )}
+
+                    {/* Tool traces — read back from the Connect pulls table, so a row
+                        exists only if a real invoke wrote it, and survives refresh. */}
+                    {msg.role === "assistant" && (
+                      <TurnTraces
+                        messageId={msg.id}
+                        onOpenOrgan={(organ) => navigate(`/dashboard/connect?organ=${encodeURIComponent(organ)}`)}
+                      />
                     )}
                   </div>
                 </div>

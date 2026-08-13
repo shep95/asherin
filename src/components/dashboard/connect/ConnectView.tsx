@@ -8,6 +8,7 @@
 // hands off to the flow that already owns it, we never rebuild OAuth here.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { emitPull } from "@/lib/connect/emitPull";
@@ -133,10 +134,20 @@ const ConnectView = () => {
   const { user } = useAuth();
   const [pulls, setPulls] = useState<PullRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
+  // A trace row in the chat transcript deep-links here with ?organ=<id>; the
+  // graph opens already filtered to the organ the operator clicked.
+  const [searchParams] = useSearchParams();
+  const [selected, setSelected] = useState<string | null>(searchParams.get("organ"));
   const [google, setGoogle] = useState<{ connected: boolean; count: number }>({ connected: false, count: 0 });
   const [github, setGithub] = useState<{ connected: boolean; login: string | null }>({ connected: false, login: null });
   const [byok, setByok] = useState<string[]>([]);
+
+  // Follow later deep-links too — a second click from chat must re-scope the
+  // graph rather than leave the first organ selected.
+  const organParam = searchParams.get("organ");
+  useEffect(() => {
+    if (organParam) setSelected(organParam);
+  }, [organParam]);
   const mountEmitted = useRef(false);
 
   const loadPulls = useCallback(async () => {

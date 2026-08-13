@@ -35,6 +35,7 @@ export async function streamChat({
   userProfile,
   brainContext,
   conversationId,
+  turnId,
   signal,
   onDelta,
   onReplace,
@@ -50,6 +51,8 @@ export async function streamChat({
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
   conversationId?: string | null;
+  /** Assistant message id for this turn — stamped on every Connect trace row. */
+  turnId?: string | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
   onReplace?: (text: string) => void;
@@ -178,7 +181,7 @@ export async function streamChat({
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat }),
+        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, turnId }),
         signal,
       });
 
