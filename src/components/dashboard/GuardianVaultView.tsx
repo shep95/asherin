@@ -69,6 +69,8 @@ const DEFAULT_PREFS: NotifPrefs = {
 
 const TABS: { id: VaultTab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Shield },
+  { id: "items", label: "Items", icon: Lock },
+  { id: "watchtower", label: "Watchtower", icon: ShieldAlert },
   { id: "sessions", label: "Active Sessions", icon: Monitor },
   { id: "activity", label: "Audit Trail", icon: History },
   { id: "mfa", label: "MFA", icon: Fingerprint },
