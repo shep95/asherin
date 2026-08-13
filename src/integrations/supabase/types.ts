@@ -11517,6 +11517,7 @@ export type Database = {
           created_at: string
           dashboard_bg_color: string | null
           dashboard_bg_mode: string
+          dashboard_ui: string
           id: string
           memory_enabled: boolean
           response_depth: string
@@ -11531,6 +11532,7 @@ export type Database = {
           created_at?: string
           dashboard_bg_color?: string | null
           dashboard_bg_mode?: string
+          dashboard_ui?: string
           id?: string
           memory_enabled?: boolean
           response_depth?: string
@@ -11545,6 +11547,7 @@ export type Database = {
           created_at?: string
           dashboard_bg_color?: string | null
           dashboard_bg_mode?: string
+          dashboard_ui?: string
           id?: string
           memory_enabled?: boolean
           response_depth?: string
