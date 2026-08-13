@@ -59,59 +59,13 @@ const Header = () => {
 
             <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
-            <DropdownMenu open={pagesOpen} onOpenChange={setPagesOpen}>
-              <DropdownMenuTrigger
-                onMouseEnter={() => setPagesOpen(true)}
-                className="group/btn relative px-4 py-2.5 flex items-center gap-1.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-all hover:text-foreground outline-none"
-              >
-                <span className="font-mono text-[8px] tracking-[0.15em] text-foreground/40">01</span>
-                Pages
-                <ChevronDown className="h-3 w-3 transition-transform" strokeWidth={1.5} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                sideOffset={12}
-                onMouseEnter={() => setPagesOpen(true)}
-                onMouseLeave={() => setPagesOpen(false)}
-                style={{
-                  backgroundImage:
-                    "url('/wallpapers/menu-abyss.webp'), url('/wallpapers/menu-abyss.thumb.webp')",
-                  backgroundSize: "cover, cover",
-                  backgroundPosition: "center, center",
-                }}
-                className="w-72 max-h-[70vh] overflow-y-auto border border-foreground/15 p-3 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] animate-fade-in relative before:content-[''] before:absolute before:inset-0 before:rounded-2xl before:bg-black/85 before:pointer-events-none [&>*]:relative"
-              >
-                <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Company</p>
-                <DropdownMenuItem asChild>
-                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/benchmark" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmark</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/software" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Software</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/blog" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Blog</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/updates" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Updates</Link>
-                </DropdownMenuItem>
+            <Link
+              to="/pricing"
+              className="px-4 py-2.5 text-[11px] font-light tracking-[0.22em] uppercase text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Pricing
+            </Link>
 
-                {isAdminEmail(user?.email) && (
-                  <>
-                    <div className="my-2 border-t border-foreground/10" />
-                    <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-foreground/50 uppercase">◈ Admin</p>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
 
             <span aria-hidden className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
 
