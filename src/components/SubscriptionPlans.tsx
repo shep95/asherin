@@ -131,11 +131,6 @@ const PLANS = [
         ],
       },
       {
-        title: "NOMAD Public Intelligence Agent",
-        items: ["OSINT investigation tooling", "Public web intelligence + entity matching"],
-      },
-
-      {
         title: "Intelligence Briefings (Advanced)",
         items: ["Daily briefings", "Industry customization"],
       },
@@ -154,7 +149,7 @@ const PLANS = [
           "AXRLEN predictive intelligence",
           "ZEEION financial intelligence",
           "ZERLAL cyber security",
-          "ZANOEM Design Lab, Vedic Strategy, Video Intelligence",
+          "ZANOEM Design Lab and Vedic Strategy",
         ],
       },
       {
