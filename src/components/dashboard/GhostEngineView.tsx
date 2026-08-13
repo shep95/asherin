@@ -99,7 +99,7 @@ const GhostEngineView = () => {
   const [selected, setSelected] = useState<GhostRecord | null>(null);
   // Retention defaults ON. A metadata hit the operator cannot reopen and read
   // is a card catalog with no library behind it — the shelf is the point.
-  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) !== "0");
+  const [capture, setCapture] = useState<boolean>(() => localStorage.getItem(CAPTURE_KEY) === "1");
   // Zophiel web filter — suppress reference corpora, content farms, commerce
   // listings, search containers and mirrored duplicates before ranking.
   const [noiseFilter, setNoiseFilter] = useState<boolean>(() => localStorage.getItem(FILTER_KEY) !== "0");
