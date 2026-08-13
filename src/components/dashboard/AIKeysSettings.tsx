@@ -33,7 +33,9 @@ interface ModelPreference {
 
 const AIKeysSettings = () => {
   const { user } = useAuth();
+  const stepUp = useStepUp();
   const { toast } = useToast();
+
   const [storedKeys, setStoredKeys] = useState<StoredKey[]>([]);
   const [preferences, setPreferences] = useState<ModelPreference>({
     active_provider: "default",
