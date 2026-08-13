@@ -1513,7 +1513,11 @@ const Dashboard = () => {
       case "azplen": return gatedView("azplen", AzplenView, "Azplen Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.");
       // case "elion" removed
       case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
-      case "teams": return gatedView("teams", TeamsView, "Team Workspace", "Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro plans.");
+      // Team is deliberately ungated: an $18 seat is allowed to start a Team
+      // checkout, and an invited member must reach the accept screen before
+      // they hold any Pro-class entitlement at all.
+      case "teams": return <TeamsView />;
+
       case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.");
       case "geospatial": return gatedView("geospatial", GeospatialView, "Asherin Maps", "Real-time tactical map — click any land parcel or property and the Zophiel engine scrapes live ownership, valuation, history, and risk intelligence from the open web. Available on the Maximum Intelligence (Pro) plan.");
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
