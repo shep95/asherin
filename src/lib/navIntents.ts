@@ -53,7 +53,7 @@ export const NAV_INTENTS: NavIntent[] = [
   // ACCOUNT
   { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
   { view: "subscription", label: "Subscribe or manage your plan", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"], group: "Account" },
-  { view: "api-keys", label: "API Keys", codename: "API", blurb: "Add and manage your AI provider API keys (BYOK)", keywords: ["api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
+  { view: "api-keys", label: "Connect", codename: "Connect", blurb: "Live capability pull-graph, bindings, and your encrypted provider keys (BYOK)", keywords: ["connect", "graph", "pulls", "bindings", "api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
 ];
 
 export const INTENT_GROUPS: IntentGroup[] = ["Workspace", "Account"];

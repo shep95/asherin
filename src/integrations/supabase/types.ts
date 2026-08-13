@@ -2450,6 +2450,45 @@ export type Database = {
           },
         ]
       }
+      asherin_connect_pulls: {
+        Row: {
+          capability: string
+          from_surface: string
+          id: string
+          latency_ms: number | null
+          meta: Json
+          organ: string
+          quote_masked: string | null
+          status: string
+          ts: string
+          user_id: string
+        }
+        Insert: {
+          capability: string
+          from_surface?: string
+          id?: string
+          latency_ms?: number | null
+          meta?: Json
+          organ: string
+          quote_masked?: string | null
+          status: string
+          ts?: string
+          user_id: string
+        }
+        Update: {
+          capability?: string
+          from_surface?: string
+          id?: string
+          latency_ms?: number | null
+          meta?: Json
+          organ?: string
+          quote_masked?: string | null
+          status?: string
+          ts?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asherin_dork_packs: {
         Row: {
           created_at: string

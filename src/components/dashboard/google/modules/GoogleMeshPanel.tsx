@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import ContactVaultPane from "./ContactVaultPane";
 import { supabase } from "@/integrations/supabase/client";
+import { emitPull } from "@/lib/connect/emitPull";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,7 +70,15 @@ async function authorizeTier(tier: number) {
 async function callMesh<T = any>(action: string, extra: Record<string, unknown> = {}): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Sign in first.");
+  const started = performance.now();
   const { data, error } = await supabase.functions.invoke("google-mesh", { body: { action, ...extra } });
+  // Connect trace: one row per real mesh action, success or failure.
+  void emitPull({
+    organ: "google", capability: action, fromSurface: "google-mesh",
+    status: error || (data as any)?.error ? "fail" : "ok",
+    latencyMs: performance.now() - started,
+    quote: error ? error.message : null,
+  });
   if (error) {
     // supabase.functions.invoke flattens every failure into "non-2xx"; read the real body.
     let detail = error.message;

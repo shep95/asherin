@@ -37,7 +37,7 @@ const SEARCH_VIEWS: DashboardView[] = ZOPHIEL_VIEWS;
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow", "zahten", "ebook", "ide", "whiteboard", "media2code"];
 const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
-  "settings", "api-keys", "subscription",
+  "settings", "api-keys", "connect", "subscription",
   "self-learning", "self-access",
   "bug-reports", "vedic-astrology",
 ];

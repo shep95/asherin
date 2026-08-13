@@ -25,7 +25,7 @@ const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView")
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
 const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
-const AIKeysSettings = lazyWithRetry(() => import("@/components/dashboard/AIKeysSettings"));
+const ConnectView = lazyWithRetry(() => import("@/components/dashboard/connect/ConnectView"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
 const GhostEngineView = lazyWithRetry(() => import("@/components/dashboard/GhostEngineView"));
@@ -143,7 +143,7 @@ const Dashboard = () => {
   const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
+  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault"];
   const initialView: DashboardView = (() => {
     if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
     if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
@@ -1430,7 +1430,8 @@ const Dashboard = () => {
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
       case "vedic-astrology": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VedicAstrologyView /></Suspense></ErrorBoundary>;
       case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
-      case "api-keys": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full overflow-y-auto"><div className="max-w-5xl mx-auto px-6 py-8"><div className="mb-6"><h2 className="text-2xl font-light text-foreground tracking-tight">API Keys</h2><p className="mt-1 text-sm text-muted-foreground">Add and manage your AI provider API keys. Your keys are encrypted and used for BYOK (Bring Your Own Key) requests.</p></div><AIKeysSettings /></div></div></Suspense></ErrorBoundary>;
+      case "api-keys":
+      case "connect": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ConnectView /></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
       case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><DocumentExportLanding /></Suspense></ErrorBoundary>;
