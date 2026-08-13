@@ -213,7 +213,7 @@ const Forums = () => {
         {tab === "bug" && isAdmin && (
           <div className="mb-4 rounded-xl border border-foreground/20 bg-foreground/[0.05] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
             <span className="tracking-[0.15em] uppercase text-foreground/70">Admin Queue —</span>{" "}
-            Bug reports are hidden from users. Daily digest is emailed to shepherdnewtonx@gmail.com at 12:00 UTC.
+            Bug reports are hidden from users. Daily digest is emailed to the admin mailbox on file at 12:00 UTC.
           </div>
         )}
 

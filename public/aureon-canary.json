@@ -16,7 +16,7 @@
     "nyt_front_page_url": "https://www.nytimes.com",
     "rationale": "These are public, time-bound signals embedded by the operator at issuance time so the canary cannot be pre-signed."
   },
-  "signed_by": "ashernewtonx@gmail.com",
+  "signed_by": "asherin",
   "signature_method": "ed25519-detached",
   "verification": {
     "public_key_url": "https://asherin.com/.well-known/asherin-canary-pubkey.txt",
