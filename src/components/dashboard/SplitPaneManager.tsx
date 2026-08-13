@@ -52,7 +52,6 @@ interface SplitPaneManagerProps {
   onProcessQueueNow?: () => void;
   queuePaused?: boolean;
   onToggleQueuePause?: () => void;
-  personaSystemPrompt?: string | null;
   consensusEnabled?: boolean;
   onConsensusToggle?: (enabled: boolean) => void;
   consensusModels?: SelectedModel[];
@@ -85,7 +84,6 @@ const SplitPaneManager = ({
   onProcessQueueNow,
   queuePaused,
   onToggleQueuePause,
-  personaSystemPrompt,
   consensusEnabled,
   onConsensusToggle,
   consensusModels,
@@ -249,7 +247,6 @@ const SplitPaneManager = ({
             focusMode={focusMode}
             messageStatuses={messageStatuses}
             queueItems={[]}
-            personaSystemPrompt={personaSystemPrompt}
             storedProviders={storedProviders}
             activeBrainId={activeBrainId}
             onBrainChange={onBrainChange}
@@ -371,8 +368,7 @@ const SplitPaneManager = ({
                       focusMode={focusMode}
                       messageStatuses={messageStatuses}
                       queueItems={[]}
-                      personaSystemPrompt={personaSystemPrompt}
-                      storedProviders={storedProviders}
+                                storedProviders={storedProviders}
                       activeBrainId={activeBrainId}
                       onBrainChange={onBrainChange}
                     />

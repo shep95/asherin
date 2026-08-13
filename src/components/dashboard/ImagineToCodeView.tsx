@@ -1132,7 +1132,7 @@ const ImagineToCodeView = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages, mode: "code", personaSystemPrompt: systemPrompt, byokProvider, byokModel }),
+      body: JSON.stringify({ messages, mode: "code", taskDirective: systemPrompt, byokProvider, byokModel }),
     });
 
     if (!resp.ok) {

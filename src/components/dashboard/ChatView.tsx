@@ -89,7 +89,6 @@ interface ChatViewProps {
   onProcessQueueNow?: () => void;
   queuePaused?: boolean;
   onToggleQueuePause?: () => void;
-  personaSystemPrompt?: string | null;
   consensusEnabled?: boolean;
   onConsensusToggle?: (enabled: boolean) => void;
   consensusModels?: SelectedModel[];
@@ -343,7 +342,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
 });
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [], activeBrainId, onBrainChange }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [], activeBrainId, onBrainChange }: ChatViewProps) => {
   const navigate = useNavigate();
   const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);

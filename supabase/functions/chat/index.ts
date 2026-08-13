@@ -940,7 +940,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
+    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -2168,12 +2168,18 @@ The operator is requesting a defensive security audit / flaw check of their own 
     //      static brains, otherwise their custom Brain silently gets ignored.
     const { getTemporalContext: _getTemporalContext } = await import("../_shared/systemContext.ts");
     const _temporalBlock = _getTemporalContext({ timezone, locale });
+    // Caller-supplied task directive (a task shape, never an identity). Bounded
+    // so a client cannot flood the prompt window.
+    const _taskDirective = typeof taskDirective === "string" && taskDirective.trim()
+      ? `## TASK DIRECTIVE (from the calling surface — a task shape, not a character)\n${taskDirective.trim().slice(0, 12000)}`
+      : "";
     const systemParts = [
       // FIRST anchor — doctrine dominates every downstream brain
       HYPOTHETICAL_REALISM_DOCTRINE,
       _temporalBlock,
       ASHERIN_IDENTITY,
       _asherinProcedures,
+      _taskDirective,
       ASHERIN_OPERATING_NOTES,
       // Form-level law. Ships on EVERY turn including trivial ones — casing and
       // the seven patterns govern a one-line greeting as much as a dossier.

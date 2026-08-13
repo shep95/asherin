@@ -79,7 +79,6 @@ export const NAV_INTENTS: NavIntent[] = [
   { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },
   { view: "teams", label: "Team Workspace", codename: "Teams", blurb: "Collaborate with role-based access", keywords: ["team", "collaborate", "share", "workspace"], group: "Workspace", access: "pro" },
   { view: "community", label: "Community", codename: "Community", blurb: "Ask, request, and vote on features", keywords: ["community", "forum", "vote"], group: "Workspace", access: "pro" },
-  { view: "persona-store", label: "Persona Store", codename: "Personas", blurb: "Browse and configure AI personas", keywords: ["persona", "character", "personality"], group: "Workspace" },
   { view: "vedic-astrology", label: "Vedic Astrology", codename: "Vedic", blurb: "Sidereal chart calculations", keywords: ["astrology", "vedic", "horoscope", "chart"], group: "Workspace" },
   { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Centralized security command center", keywords: ["vault", "password", "secret", "mfa", "totp"], group: "Workspace" },
   { view: "knowledge-vault", label: "Knowledge Vault (RAG)", codename: "Knowledge Vault", blurb: "Upload files or connect APIs — Aureon retrieves them live during chat", keywords: ["rag", "knowledge", "vault", "retrieval", "embeddings", "ingest", "upload", "api source"], group: "Workspace", access: "pro" },
@@ -141,7 +140,6 @@ export function getRecentIntents(): NavIntent[] {
 export interface ChatConfigHint {
   mode?: "chat" | "code" | "research" | "truth";
   depth?: "concise" | "standard" | "detailed";
-  personaId?: string;
 }
 
 /** Infer chat mode/depth/persona from the user's first sentence. */
@@ -164,20 +162,6 @@ export function inferChatConfig(text: string): ChatConfigHint {
   } else if (/\b(detailed|comprehensive|exhaustive|deep|long|full|thorough|step by step|walk me through)\b/.test(lower)) {
     out.depth = "detailed";
   }
-
-  // PERSONA (mirror existing TASK_PERSONA_MAP)
-  const personaMap: { keywords: string[]; personaId: string }[] = [
-    { keywords: ["review code", "debug", "refactor", "fix bug", "code audit", "codebase", "architecture"], personaId: "codeforge" },
-    { keywords: ["ui", "design", "layout", "css", "responsive", "component", "animation", "pixel"], personaId: "uiforge" },
-    { keywords: ["research", "sources", "study", "paper", "academic", "citation", "literature"], personaId: "researcher" },
-    { keywords: ["strategy", "plan", "roadmap", "decision", "pros and cons", "trade-off", "long-term"], personaId: "strategist" },
-    { keywords: ["analyze", "data", "metrics", "numbers", "statistics", "trend", "forecast"], personaId: "analyst" },
-    { keywords: ["write", "blog", "article", "copy", "email", "story", "tone", "voice"], personaId: "writer" },
-    { keywords: ["truth", "uncensored", "honest", "direct", "raw", "no filter"], personaId: "truth" },
-    { keywords: ["code", "function", "api", "implement", "build", "develop", "script", "python", "typescript", "react"], personaId: "engineer" },
-  ];
-  const m = personaMap.find((p) => p.keywords.some((k) => lower.includes(k)));
-  if (m) out.personaId = m.personaId;
 
   return out;
 }

@@ -26,7 +26,6 @@ export interface CallAsherCodeArgs {
   // orchestrate
   subMode?: AiMode;
   // Aureon brain + persona inheritance (mirrors zali-chat / Aureon Chat)
-  personaSystemPrompt?: string | null;
   brainContext?: { prompt: string; fileContents: Array<{ name: string; content: string }> } | null;
 }
 
