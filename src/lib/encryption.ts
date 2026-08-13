@@ -1,21 +1,18 @@
 /**
- * AUREON Client-Side Encryption Module — Hardened (audit C-05)
+ * ASHERIN Client-Side Encryption Module — account-scoped DEK.
  *
  * AES-256-GCM via Web Crypto API.
- * Key material = PBKDF2(userId + browser-stored random secret, per-user random salt).
  *
- * Why this is materially better than the previous version:
- * - Previous: PBKDF2(userId, hardcoded global salt). Anyone with DB access
- *   could recompute every user's key.
- * - Now: salt is randomly generated per user and stored in IndexedDB on the
- *   user's device. A second random "device secret" is also stored in IndexedDB
- *   and mixed into the key material. The server NEVER sees either value, so a
- *   full database breach reveals only ciphertexts.
- * - Failures NEVER silently fall back to plaintext (audit C-09). They throw.
+ * Key material = one account-scoped data encryption key (DEK) issued by the
+ * `message-crypto` edge function. The DEK is wrapped at rest with a server-held
+ * secret (HKDF over MESSAGE_CRYPTO_SECRET), so the database alone never yields
+ * a usable key, but every device the user signs into derives the SAME plaintext.
  *
- * Limitation (documented honestly): this is device-local E2E. A user who logs
- * in from a new device will not see old messages until they re-derive a key
- * (future work: passphrase-derived recovery key).
+ * Previous behaviour (device-local PBKDF2 over an IndexedDB device secret) is
+ * retained ONLY as a read-path fallback so ciphertext written before this
+ * change still opens on the device that wrote it. It is never used to encrypt.
+ *
+ * Failures NEVER silently fall back to plaintext. They throw.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +20,68 @@ import { supabase } from "@/integrations/supabase/client";
 const DB_NAME = "aureon_e2e_db";
 const DB_VERSION = 1;
 const STORE = "keystore";
-const ITERATIONS = 250_000; // bumped from 100k
+const LEGACY_ITERATIONS = 250_000;
+
+export class EncryptionError extends Error {
+  constructor(message: string, public cause?: unknown) {
+    super(message);
+    this.name = "EncryptionError";
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Account DEK                                                         */
+/* ------------------------------------------------------------------ */
+
+// Session-scoped memory cache. Never the sole source of truth, never persisted.
+const dekCache = new Map<string, CryptoKey>();
+const dekInflight = new Map<string, Promise<CryptoKey>>();
+
+function b64ToBytes(s: string): Uint8Array {
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+}
+
+async function fetchDek(userId: string): Promise<CryptoKey> {
+  const { data, error } = await supabase.functions.invoke("message-crypto", {
+    body: { action: "get_or_create" },
+  });
+  if (error) throw new EncryptionError("Encryption service unavailable", error);
+  const dekB64 = (data as { dek_b64?: string; error?: string } | null)?.dek_b64;
+  if (!dekB64) {
+    throw new EncryptionError(
+      (data as { error?: string } | null)?.error ?? "crypto unavailable",
+    );
+  }
+  const raw = b64ToBytes(dekB64);
+  if (raw.length !== 32) throw new EncryptionError("Malformed account key");
+  return crypto.subtle.importKey("raw", raw as BufferSource, { name: "AES-GCM" }, false, [
+    "encrypt",
+    "decrypt",
+  ]);
+}
+
+/** Account-scoped AES-GCM key. Same user + any device => same key. */
+export async function getDek(userId: string): Promise<CryptoKey> {
+  const cached = dekCache.get(userId);
+  if (cached) return cached;
+
+  const inflight = dekInflight.get(userId);
+  if (inflight) return inflight;
+
+  const p = fetchDek(userId)
+    .then((key) => {
+      dekCache.set(userId, key);
+      return key;
+    })
+    .finally(() => dekInflight.delete(userId));
+
+  dekInflight.set(userId, p);
+  return p;
+}
+
+/* ------------------------------------------------------------------ */
+/* Legacy device key (read path only)                                  */
+/* ------------------------------------------------------------------ */
 
 interface DeviceKeyMaterial {
   salt: Uint8Array;
@@ -42,81 +100,40 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function readKeyMaterial(userId: string): Promise<DeviceKeyMaterial | null> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, "readonly");
-    const store = tx.objectStore(STORE);
-    const req = store.get(userId);
-    req.onsuccess = () => {
-      const v = req.result as DeviceKeyMaterial | undefined;
-      resolve(v ?? null);
-    };
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function writeKeyMaterial(userId: string, material: DeviceKeyMaterial): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(material, userId);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-function bytesToB64(b: Uint8Array): string {
-  let bin = "";
-  const CHUNK = 0x8000;
-  for (let i = 0; i < b.length; i += CHUNK) {
-    bin += String.fromCharCode.apply(null, Array.from(b.subarray(i, i + CHUNK)));
+async function readLegacyMaterial(userId: string): Promise<DeviceKeyMaterial | null> {
+  try {
+    const db = await openDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).get(userId);
+      req.onsuccess = () => resolve((req.result as DeviceKeyMaterial | undefined) ?? null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
   }
-  return btoa(bin);
-}
-function b64ToBytes(s: string): Uint8Array {
-  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
 }
 
-// P0: Key material is NEVER synced to the server. Previously the device
-// secret + salt were pushed to user_key_material, which meant anyone with
-// service-role / DB access could recompute every user's AES key and
-// decrypt all messages — fully defeating the stated E2E model.
-//
-// Trade-off: a user who logs in from a new device cannot decrypt old
-// messages until a future passphrase-derived recovery key feature is added.
-// This is the correct security posture for E2E.
+async function deriveLegacyKey(userId: string): Promise<CryptoKey | null> {
+  const material = await readLegacyMaterial(userId);
+  if (!material?.salt || !material?.deviceSecret) return null;
 
-async function getOrCreateKeyMaterial(userId: string): Promise<DeviceKeyMaterial> {
-  // Device-local only. No remote fetch, no remote push.
-  const local = await readKeyMaterial(userId);
-  if (local) return local;
+  const secret = new Uint8Array(material.deviceSecret);
+  const idBytes = new TextEncoder().encode(userId);
+  const inputBytes = new Uint8Array(secret.length + idBytes.length);
+  inputBytes.set(secret, 0);
+  inputBytes.set(idBytes, secret.length);
 
-  const material: DeviceKeyMaterial = {
-    salt: crypto.getRandomValues(new Uint8Array(32)),
-    deviceSecret: crypto.getRandomValues(new Uint8Array(32)),
-  };
-  await writeKeyMaterial(userId, material);
-  return material;
-}
-
-async function deriveKey(userId: string): Promise<CryptoKey> {
-  const { salt, deviceSecret } = await getOrCreateKeyMaterial(userId);
-  // Mix userId + device secret as input material — neither alone is enough.
-  const inputBytes = new Uint8Array(deviceSecret.length + userId.length);
-  inputBytes.set(deviceSecret, 0);
-  inputBytes.set(new TextEncoder().encode(userId), deviceSecret.length);
-
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    inputBytes,
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-
+  const keyMaterial = await crypto.subtle.importKey("raw", inputBytes as BufferSource, "PBKDF2", false, [
+    "deriveKey",
+  ]);
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt as BufferSource, iterations: ITERATIONS, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt: new Uint8Array(material.salt) as BufferSource,
+      iterations: LEGACY_ITERATIONS,
+      hash: "SHA-256",
+    },
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
@@ -124,29 +141,26 @@ async function deriveKey(userId: string): Promise<CryptoKey> {
   );
 }
 
-export class EncryptionError extends Error {
-  constructor(message: string, public cause?: unknown) {
-    super(message);
-    this.name = "EncryptionError";
-  }
-}
+/* ------------------------------------------------------------------ */
+/* Public API                                                          */
+/* ------------------------------------------------------------------ */
 
 export async function encryptText(plaintext: string, userId: string): Promise<string> {
-  // SECURITY (C-09): never silently fall back to plaintext. Caller MUST decide.
   if (!userId) throw new EncryptionError("encryptText requires a userId");
   if (!crypto?.subtle) throw new EncryptionError("Web Crypto API unavailable in this context");
 
+  const key = await getDek(userId);
   try {
-    const key = await deriveKey(userId);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(plaintext);
-    const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+    const ciphertext = new Uint8Array(
+      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded),
+    );
 
-    const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
+    const combined = new Uint8Array(iv.length + ciphertext.length);
     combined.set(iv);
-    combined.set(new Uint8Array(ciphertext), iv.length);
+    combined.set(ciphertext, iv.length);
 
-    // btoa across a chunked array (avoid call-stack overflow on big payloads)
     let bin = "";
     const CHUNK = 0x8000;
     for (let i = 0; i < combined.length; i += CHUNK) {
@@ -164,18 +178,31 @@ export async function decryptText(data: string, userId: string): Promise<string>
   if (!userId) throw new EncryptionError("decryptText requires a userId");
   if (!crypto?.subtle) throw new EncryptionError("Web Crypto API unavailable in this context");
 
+  let raw: Uint8Array;
   try {
-    const key = await deriveKey(userId);
-    const raw = Uint8Array.from(atob(data.slice(4)), (c) => c.charCodeAt(0));
-    const iv = raw.slice(0, 12);
-    const ciphertext = raw.slice(12);
+    raw = Uint8Array.from(atob(data.slice(4)), (c) => c.charCodeAt(0));
+  } catch (e) {
+    throw new EncryptionError("Failed to decrypt payload (malformed ciphertext)", e);
+  }
+  const iv = raw.slice(0, 12);
+  const ciphertext = raw.slice(12);
 
+  const key = await getDek(userId);
+  try {
     const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
     return new TextDecoder().decode(decrypted);
-  } catch (e) {
-    // Surface decryption failures honestly — different device, wrong key, or
-    // tampered ciphertext. Do NOT silently return the ciphertext.
-    throw new EncryptionError("Failed to decrypt payload (wrong device or tampered data)", e);
+  } catch {
+    // Pre-migration ciphertext written with the old device key on THIS device.
+    const legacy = await deriveLegacyKey(userId);
+    if (legacy) {
+      try {
+        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, legacy, ciphertext);
+        return new TextDecoder().decode(decrypted);
+      } catch {
+        /* fall through */
+      }
+    }
+    throw new EncryptionError("Failed to decrypt payload (legacy device ciphertext)");
   }
 }
 
@@ -184,11 +211,12 @@ export function isEncrypted(data: string): boolean {
 }
 
 /**
- * Best-effort wipe of per-user key material (e.g. on logout from a shared
- * device). Subsequent encrypt/decrypt for this userId will fail until the
- * user re-derives material on a fresh login.
+ * Drop the in-memory DEK and any legacy device material (e.g. logout from a
+ * shared device). The account DEK is re-fetched from the server on next use.
  */
 export async function wipeKeyMaterial(userId: string): Promise<void> {
+  dekCache.delete(userId);
+  dekInflight.delete(userId);
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
