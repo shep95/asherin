@@ -32,7 +32,7 @@ const FeatureAxrlen = () => (
       id="feature-axrlen"
       items={[
         { name: "Asherin", url: "/" },
-        { name: "Features", url: "/features" },
+        { name: "Software", url: "/software" },
         { name: "AXRLEN", url: "/feature/axrlen" },
       ]}
     />
