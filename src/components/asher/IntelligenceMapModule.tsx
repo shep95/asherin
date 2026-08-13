@@ -744,11 +744,32 @@ function readSidebar(): { width: number; collapsed: boolean } {
     const width = Number(raw?.width);
     return {
       width: Number.isFinite(width) ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, width)) : SIDEBAR_DEFAULT,
-      collapsed: !!raw?.collapsed,
+      /* Palantir rails are opt-in here: with nothing stored the operator gets a
+         full-bleed globe and glass chips, never a wall of layer rows. */
+      collapsed: raw && typeof raw.collapsed === "boolean" ? raw.collapsed : true,
     };
   } catch {
-    return { width: SIDEBAR_DEFAULT, collapsed: false };
+    return { width: SIDEBAR_DEFAULT, collapsed: true };
   }
+}
+
+/** Chat target or URL hash → the scale the map mounts at. */
+function readInitialCoord(): { lat: number; lng: number; zoom: number } {
+  const fallback = { lat: 38.9072, lng: -77.0369, zoom: 4 };
+  try {
+    const m = window.location.hash.match(/#map=(\d{1,2})\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)/);
+    if (m) return { zoom: Number(m[1]), lat: Number(m[2]), lng: Number(m[3]) };
+  } catch { /* hash unreadable — fall through */ }
+  try {
+    const raw = JSON.parse(sessionStorage.getItem("asherin.map.target") || "null");
+    /* Coordinates only: a place phrase still has to geocode, but the zoom is
+       known immediately, so the world-tile pass is skipped either way. */
+    if (raw && Number.isFinite(raw.lat) && Number.isFinite(raw.lng)) {
+      return { lat: Number(raw.lat), lng: Number(raw.lng), zoom: Number(raw.zoom) || 17 };
+    }
+    if (raw && Number.isFinite(raw.zoom)) return { ...fallback, zoom: Math.min(12, Number(raw.zoom)) };
+  } catch { /* no parked target */ }
+  return fallback;
 }
 
 function readUnits(): Units {
@@ -772,6 +793,9 @@ const IntelligenceMapModule = () => {
   /* Camera the operator picked from the glass list — drives the highlight,
      the schematic facing cone and the dashed sight-line to the property pin. */
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  /* Two-address compare. Empty unless the operator actually asked for it and
+     BOTH addresses geocoded. */
+  const [comparePins, setComparePins] = useState<Array<{ lat: number; lng: number; label: string }>>([]);
   /* Public-organ sweep for the current fly. Never inferred: a dead endpoint is
      a gap row, never a green chip. */
   const [organPoints, setOrganPoints] = useState<OrganPoint[]>([]);
@@ -790,7 +814,10 @@ const IntelligenceMapModule = () => {
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
-  const [coord, setCoord] = useState({ lat: 38.9072, lng: -77.0369, zoom: 4 });
+  /* FAST PAINT: if the operator arrived from a chat geography turn or a
+     #map=z/lat/lng hash, mount AT that scale. Loading world tiles and then
+     animating in wastes the first second and looks like a lag. */
+  const [coord, setCoord] = useState(readInitialCoord);
   const [entity, setEntity] = useState<SelectedEntity | null>(null);
   const [pinned, setPinned] = useState(false);
   const [savingTarget, setSavingTarget] = useState(false);
@@ -1063,14 +1090,35 @@ const IntelligenceMapModule = () => {
 
   const toggleCat = (id: string) => setOpenCats((p) => ({ ...p, [id]: !p[id] }));
 
+  /* GO BOX: any unknown place or property text geocodes and FLIES. The old
+     behaviour only painted a result list, so an address that matched no
+     existing pin label read as a dead box. Bare coordinates are honoured
+     first, then Nominatim (rooftop-ranked), then Photon inside
+     nominatimSearch. A total miss is spoken, never swallowed. */
   const runSearch = async () => {
-    if (!searchQ.trim()) return;
+    const q = searchQ.trim();
+    if (!q) return;
     setSearching(true);
     try {
-      const r = await nominatimSearch(searchQ);
+      const pair = q.match(/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/);
+      if (pair) {
+        const lat = Number(pair[1]);
+        const lng = Number(pair[2]);
+        setSearchResults([]);
+        await focusOn(lat, lng, null, { title: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, minZoom: 17 });
+        return;
+      }
+      const r = await nominatimSearch(q);
       setSearchResults(r);
+      if (!r.length) { toast.error(`No public geocode for “${q}”.`); return; }
+      const best = r.find(isRooftopHit) ?? r[0];
+      const lat = parseFloat(best.lat);
+      const lng = parseFloat(best.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) { toast.error(`Bad geocode for “${q}”.`); return; }
+      await focusOn(lat, lng, best);
     } catch {
       setSearchResults([]);
+      toast.error("Geocoder unreachable — nothing flown.");
     } finally { setSearching(false); }
   };
 
@@ -1716,19 +1764,54 @@ const IntelligenceMapModule = () => {
      locality zoom otherwise. A miss is spoken, never a silent no-op. */
   useEffect(() => {
     let cancelled = false;
+    const resolve = async (q: string) => {
+      const hits = await nominatimSearch(q);
+      const h = hits.find(isRooftopHit) ?? hits[0];
+      if (!h) return null;
+      const lat = parseFloat(h.lat);
+      const lng = parseFloat(h.lon);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng, hit: h } : null;
+    };
+
     const handler = async (e: Event) => {
-      const detail = (e as CustomEvent).detail as { place?: string; property?: boolean } | undefined;
+      const detail = (e as CustomEvent).detail as
+        | { place?: string; property?: boolean; zoom?: number; places?: string[] }
+        | undefined;
       const place = String(detail?.place ?? "").trim();
       if (!place) return;
+      /* The ask carries its own scale (rooftop for a property question,
+         locality for a city) so the map does not have to guess it back. */
+      const minZoom = Number.isFinite(detail?.zoom) ? Number(detail?.zoom) : detail?.property ? 19 : 0;
       try {
-        const hits = await nominatimSearch(place);
+        /* COMPARE: two addresses in one ask. Both must geocode — a missing
+           second pin is stated, never invented. */
+        const pair = Array.isArray(detail?.places) && detail!.places!.length === 2 ? detail!.places! : null;
+        if (pair) {
+          const [a, b] = await Promise.all([resolve(pair[0]), resolve(pair[1])]);
+          if (cancelled) return;
+          if (!a) { toast.error(`No public geocode for “${pair[0]}”.`); return; }
+          if (!b) {
+            toast.warning(`Only “${pair[0]}” geocoded — “${pair[1]}” is not in the public geocoder, so there is no second pin to compare.`);
+            await focusOn(a.lat, a.lng, a.hit, { minZoom });
+            return;
+          }
+          setComparePins([
+            { lat: a.lat, lng: a.lng, label: pair[0] },
+            { lat: b.lat, lng: b.lng, label: pair[1] },
+          ]);
+          await focusOn(a.lat, a.lng, a.hit, { minZoom });
+          mapRef.current?.fitBounds(
+            L.latLngBounds([[a.lat, a.lng], [b.lat, b.lng]]),
+            { padding: [80, 80], maxZoom: 18 },
+          );
+          return;
+        }
+
+        setComparePins([]);
+        const hit = await resolve(place);
         if (cancelled) return;
-        if (!hits.length) { toast.error(`No public geocode for “${place}”.`); return; }
-        const h = hits.find(isRooftopHit) ?? hits[0];
-        const lat = parseFloat(h.lat);
-        const lng = parseFloat(h.lon);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) { toast.error(`Bad geocode for “${place}”.`); return; }
-        await focusOn(lat, lng, h);
+        if (!hit) { toast.error(`No public geocode for “${place}”.`); return; }
+        await focusOn(hit.lat, hit.lng, hit.hit, { minZoom });
       } catch {
         if (!cancelled) toast.error("Geocoder unreachable — map could not fly.");
       }
@@ -2364,11 +2447,15 @@ const IntelligenceMapModule = () => {
     entity && showDossier ? 432 : aiDocked ? 392 : 12;
 
   return (
-    <div className="relative flex h-full w-full bg-background">
-      {/* LEFT LAYER PANEL — resizable, collapsible, searchable */}
+    <div className="asher-map-chrome relative flex h-full w-full bg-background">
+      {/* LAYER DRAWER — an OVERLAY, not a rail. The default surface is a
+          full-bleed globe with glass chips; the tree is opened on demand and
+          floats over the map instead of squeezing it into a Palantir column. */}
       <div
-        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border/15 bg-card/30 backdrop-blur-md"
-        style={{ width: sidebar.collapsed ? 0 : sidebar.width, minWidth: sidebar.collapsed ? 0 : undefined }}
+        className={`asher-map-glass absolute left-3 top-3 bottom-3 z-[1002] flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/25 bg-card/70 shadow-2xl backdrop-blur-xl transition-opacity duration-150 motion-reduce:transition-none ${
+          sidebar.collapsed ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+        style={{ width: sidebar.width }}
         aria-hidden={sidebar.collapsed}
       >
         <div className="shrink-0 border-b border-border/15 px-5 py-4 flex items-center gap-3">
@@ -2401,7 +2488,7 @@ const IntelligenceMapModule = () => {
             category list scrolled while every operational panel below it was
             clipped by the sidebar's overflow-hidden boundary. */}
         <div
-          className="min-h-0 flex-1 overflow-y-scroll overscroll-contain [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]"
+          className="asher-thin-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
           style={{ touchAction: "pan-y" }}
           tabIndex={0}
           aria-label="Scrollable layer tree and map controls"
@@ -2560,9 +2647,10 @@ const IntelligenceMapModule = () => {
         </div>
       </div>
 
-      {/* RESIZE RAIL — pointer drag, arrow-key nudge, double-click reset */}
+      {/* RESIZE HANDLE — floats on the drawer's edge, so nothing is docked */}
       {!sidebar.collapsed && (
         <div
+          style={{ left: sidebar.width + 12 }}
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize layer tree"
@@ -2576,7 +2664,7 @@ const IntelligenceMapModule = () => {
             if (e.key === "ArrowLeft") { e.preventDefault(); nudgeWidth(-24); }
             if (e.key === "ArrowRight") { e.preventDefault(); nudgeWidth(24); }
           }}
-          className="z-[1001] w-1.5 shrink-0 cursor-col-resize bg-border/20 transition-colors hover:bg-[#c98b3a]/60 focus-visible:bg-[#c98b3a]/80 focus-visible:outline-none"
+          className="absolute top-1/2 z-[1003] h-16 w-1.5 -translate-y-1/2 cursor-col-resize rounded-full bg-border/40 transition-colors hover:bg-[#c98b3a]/70 focus-visible:bg-[#c98b3a]/80 focus-visible:outline-none"
         />
       )}
 
@@ -2593,7 +2681,7 @@ const IntelligenceMapModule = () => {
           className="absolute top-3 left-3 z-[1000] flex items-center gap-2 transition-[right] duration-200 motion-reduce:transition-none"
           style={{ right: rightDockPx }}
         >
-          <div className="flex min-w-0 flex-1 max-w-md items-center gap-2 rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
+          <div className="flex min-w-0 flex-1 max-w-md items-center gap-2 rounded-2xl border border-border/25 bg-card/70 backdrop-blur-xl px-3.5 py-2.5 shadow-lg">
             <Search className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
             <input
               value={searchQ}
@@ -2613,12 +2701,12 @@ const IntelligenceMapModule = () => {
             <button
               onClick={toggleSidebar}
               aria-label="Open layer tree"
-              className="rounded-xl border border-border/30 bg-card/85 px-2.5 py-2 text-muted-foreground backdrop-blur-md hover:text-foreground"
+              className="rounded-2xl border border-border/25 bg-card/70 px-3 py-2.5 text-muted-foreground shadow-lg backdrop-blur-xl hover:text-foreground"
             >
               <PanelLeftOpen className="h-4 w-4" />
             </button>
           )}
-          <div className="flex shrink-0 flex-nowrap items-center gap-1 rounded-xl border border-border/30 bg-card/85 px-1.5 py-1.5 backdrop-blur-md">
+          <div className="flex shrink-0 flex-nowrap items-center gap-1 rounded-2xl border border-border/25 bg-card/70 px-1.5 py-1.5 shadow-lg backdrop-blur-xl">
             {([
               { id: "directions" as const, label: "Directions", Icon: Navigation2 },
               { id: "places" as const, label: "Explore nearby", Icon: Utensils },
@@ -2650,7 +2738,7 @@ const IntelligenceMapModule = () => {
             </button>
 
           </div>
-          <div className="ml-auto hidden rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
+          <div className="ml-auto hidden rounded-2xl border border-border/25 bg-card/70 backdrop-blur-xl px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase xl:block">
             Live · OSM · Esri · Nominatim · OSRM · Overpass · Open-Meteo · agency highway stills
           </div>
         </div>
@@ -2661,7 +2749,7 @@ const IntelligenceMapModule = () => {
         {(organDigest || cameras.length > 0) && (
           <div className="pointer-events-auto absolute bottom-3 left-3 z-[1000] w-[300px] max-w-[calc(100%-24px)] space-y-2">
             {organDigest && (
-              <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
+              <div className="rounded-2xl border border-border/25 bg-card/70 shadow-lg backdrop-blur-xl px-3 py-2.5">
                 <button
                   onClick={() => setOrgansOpen((o) => !o)}
                   aria-expanded={organsOpen}
@@ -2676,7 +2764,7 @@ const IntelligenceMapModule = () => {
                   </span>
                 </button>
                 {organsOpen && (
-                  <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1">
+                  <ul className="asher-thin-scroll mt-2 max-h-56 space-y-1 overflow-y-auto pr-1">
                     {organDigest.rows.map((r) => (
                       <li key={r.id} className="flex items-start gap-2 text-[10px] leading-snug">
                         <span
@@ -2705,12 +2793,12 @@ const IntelligenceMapModule = () => {
             )}
 
             {cameras.length > 0 && (
-              <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2">
+              <div className="rounded-2xl border border-border/25 bg-card/70 shadow-lg backdrop-blur-xl px-3 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Corridor stills</span>
                   <span className="ml-auto text-[10px] text-[#e0a955]">{cameras.length}</span>
                 </div>
-                <ul className="mt-1.5 max-h-40 space-y-0.5 overflow-y-auto pr-1">
+                <ul className="asher-thin-scroll mt-1.5 max-h-40 space-y-0.5 overflow-y-auto pr-1">
                   {cameras.slice(0, 60).map((cam) => (
                     <li key={cam.id}>
                       <button
@@ -2907,6 +2995,18 @@ const IntelligenceMapModule = () => {
             anchor={focusPin ? { lat: focusPin.lat, lng: focusPin.lng } : null}
             onSelect={(cam) => setSelectedCameraId(cam.id)}
           />
+
+          {/* COMPARE — two geocoded addresses, never a fabricated second pin */}
+          {comparePins.map((p, i) => (
+            <CircleMarker
+              key={`cmp-${i}-${p.lat.toFixed(5)}`}
+              center={[p.lat, p.lng]}
+              radius={9}
+              pathOptions={{ color: "#e0a955", weight: 2.5, fillColor: "#0b1220", fillOpacity: 0.9 }}
+            >
+              <Tooltip direction="top" opacity={0.95}>{`${String.fromCharCode(65 + i)} · ${p.label}`}</Tooltip>
+            </CircleMarker>
+          ))}
 
           {/* AUTO-PULLED PUBLIC ORGANS — position only, no inference */}
           {organPoints.map((p, i) => (
