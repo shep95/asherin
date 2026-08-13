@@ -478,18 +478,33 @@ export function buildQueryPlan(raw: string): QueryPlan {
     .join(" ")
     .replace(/^(OR\s+)+|(\s+OR)+$/g, "")
     .trim();
-  const wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
+  let wireQuery = [...quoted, rest, ...operators].filter(Boolean).join(" ").trim() || input;
 
   // 9. SHAPE ROUTING — decided last, because it depends on everything above.
   const bareTokens = input.trim().split(/\s+/).filter(Boolean);
+  // FORM/PATH is checked before the generic shapes but AFTER explicit dorks:
+  // if the operator already wrote `ext:py`, they own the contract and we do not
+  // second-guess it. Otherwise "the html python and typescript files" must
+  // become extension+path matching, never a title match against those words.
+  const formPath = operators.length === 0 ? detectFormPath(input) : null;
   let shape: QueryShape;
   if (operators.length > 0) shape = "operator-dork";
+  else if (formPath) shape = "form-path";
   else if (bareTokens.length === 1) shape = "single-token";
   else if (relations.length > 0) shape = "relationship";
   else if (cve || wallet || email || (domainHit && bareTokens.length <= 3)) shape = "identifier";
   else if (requiredFinal.length === 0) shape = "topic";
   else if (/^(who|what|where|when|why|how|which|is|are|did|does|can)\b/i.test(input) || bareTokens.length >= 6) shape = "natural-question";
   else shape = "topic";
+
+  // The derived operators go ON THE WIRE — a form/path plan that never emits
+  // `ext:` is indistinguishable from the topic search it was meant to replace.
+  if (formPath) {
+    const derived = formPathOperators(formPath);
+    for (const op of derived) if (!operators.includes(op)) operators.push(op);
+    if (derived.length) wireQuery = `${wireQuery} ${derived.join(" ")}`.trim();
+  }
+
 
   // A single bare word IS the query — gating it against itself adds nothing and
   // only penalises pages that paraphrase. Drop the gate, keep the term as
