@@ -1,5 +1,9 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 
--- Allow ekk447@gmail.com to upload (and view/update) Asher Brains, but never delete.
+-- Allow operator-four@redacted.invalid to upload (and view/update) Asher Brains, but never delete.
 CREATE OR REPLACE FUNCTION public.is_asher_brain_contributor(_uid uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -9,7 +13,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM auth.users
     WHERE id = _uid
-      AND lower(email) IN ('ashernewtonx@gmail.com', 'ekk447@gmail.com')
+      AND lower(email) IN ('operator-owner@redacted.invalid', 'operator-four@redacted.invalid')
   );
 $$;
 

@@ -1,3 +1,7 @@
+-- HISTORY REDACTION: operator mailboxes that once appeared in this file have been
+-- replaced with role labels. These statements already ran; identity is now decided
+-- by public.is_internal_staff/is_internal_operator (sha256 digests). Do not
+-- re-add an address here — a committed mailbox is a disclosure.
 DO $$ BEGIN CREATE TYPE public.asher_role AS ENUM ('super_owner','primary_admin','secondary_admin','dept_admin','officer','analyst');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE public.asher_classification AS ENUM ('UNCLASSIFIED','CUI','CONFIDENTIAL','SECRET','TOP_SECRET','TS_SCI');
@@ -135,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.asher_channel_members (
 
 CREATE OR REPLACE FUNCTION public.is_asher_super_owner(_uid uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS (SELECT 1 FROM auth.users WHERE id = _uid AND email = 'ashernewtonx@gmail.com');
+  SELECT EXISTS (SELECT 1 FROM auth.users WHERE id = _uid AND email = 'operator-owner@redacted.invalid');
 $$;
 
 CREATE OR REPLACE FUNCTION public.asher_has_role_in_org(_uid uuid, _org uuid, _roles public.asher_role[]) RETURNS boolean
