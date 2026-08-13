@@ -358,9 +358,13 @@ export async function runFoldedTools(
         `ZERLAL RECON — ${reconHost}`,
         `- risk grade: ${b.risk_grade ?? "n/a"}`,
         `- findings: ${b.findings_count ?? 0}`,
-        `- subdomains found: ${b.subdomains_found ?? 0}`,
+        `- subdomains found: ${Array.isArray(b.subdomains_found) ? b.subdomains_found.length : (b.subdomains_found ?? 0)}${
+          Array.isArray(b.subdomains_found) && b.subdomains_found.length
+            ? ` → ${b.subdomains_found.slice(0, 30).join(", ")}`
+            : ""
+        }`,
         `- attack surface score: ${b.total_attack_surface_score ?? "n/a"} | zero-trust: ${b.zero_trust_score ?? "n/a"}`,
-        `- summary: ${maskPii(String(b.summary ?? "")).slice(0, 1200)}`,
+        `- summary: ${maskPii(Array.isArray(b.summary) ? b.summary.join(" · ") : String(b.summary ?? "")).slice(0, 1200)}`,
         `- scan id: ${b.scan_id ?? "n/a"} (full findings live in the Zerlal module)`,
       );
     })()]);
