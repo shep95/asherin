@@ -1,7 +1,16 @@
 // Shared per-route SEO source of truth.
+//
 // Consumed at runtime by src/components/RouteSeo.tsx and at build time by
 // scripts/seoPrerenderPlugin.ts, which bakes these tags into static per-route
-// HTML so non-JS crawlers (social previews, plain fetchers) see them too.
+// HTML so non-JS crawlers (social previews, plain HTTP fetchers) see them too.
+//
+// Rules for this file:
+//  - only paths that render a real public page live here. A path in this map
+//    becomes a physical prerendered index.html, so listing a retired or
+//    redirect-only path would manufacture a soft-404 with a marketing title.
+//  - titles are short and match the visible page. No category sentences, no
+//    keyword stacks, no "operator stack" costume, no Aureon.
+//  - descriptions state what the page is, in one plain line.
 
 export const ORIGIN = "https://asherin.com";
 export const DEFAULT_OG_IMAGE = "https://asherin.com/og-image.png?v=20260813-stars";
@@ -14,440 +23,297 @@ export type SeoEntry = {
   datePublished?: string;
   dateModified?: string;
   noindex?: boolean;
+  /** Public page, but deliberately kept out of sitemap.xml. */
+  excludeFromSitemap?: boolean;
 };
 
 export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
     title: "asherin",
-    description: "look a little closer.",
+    description: "look a little closer. sourced, and honest about what it does not know.",
   },
+
+  // --- Product / company ---
   "/pricing": {
-    title: "Pricing | Asherin, Pro & Enterprise Plans",
+    title: "Pricing | asherin",
     description:
-      "Asherin is $18/mo for the core platform and $79/mo for Asherin Pro (Azplen, Asherin Engine, Briefings, Zophiel Pro). Enterprise on request.",
-  },
-  "/terms": {
-    title: "Terms of Service | Asherin",
-    description: "Asherin's Terms of Service. Read the rules of engagement for using the platform.",
-  },
-  "/sources": {
-    title: "Sources & References | Asherin",
-    description:
-      "Every research paper, third-party document and first-party figure Asherin cites, each with the date it was last verified.",
+      "asherin is $18/mo. asherin pro is $79/mo. monthly, in USD, cancel in one click. enterprise on request.",
   },
   "/software": {
-    title: "Software | Every Asherin Tool | Asherin",
+    title: "Software | asherin",
     description:
-      "Every Asherin tool, OSINT search, predictive engines, IDE, whiteboard, e-book, file scrapper, on the $18/mo and $79/mo plans.",
-  },
-
-  "/asher": {
-    title: "Asher | Operator Workspace | Asherin",
-    description:
-      "Asher: the operator workspace inside Asherin. Encrypted channels, intelligence modules, and live collaboration.",
-  },
-  "/privacy": {
-    title: "Privacy Policy | Asherin",
-    description: "How Asherin handles your data: storage, encryption, retention, and your rights.",
+      "the tools inside asherin: chat, library, projects, memory, guardian vault, whiteboard, maps, connect, team.",
   },
   "/founder": {
-    title: "Founder | Asher Newton of Asherin",
-    description:
-      "Asher Newton, founder of Asherin, and his book The Book of Asher Aureon Elion, readable in full.",
+    title: "Founder | asherin",
+    description: "asher newton, who built asherin, and the book he wrote alongside it.",
+  },
+  "/asher": {
+    title: "Asher | asherin",
+    description: "asher: the shared workspace inside asherin, with encrypted channels and project rooms.",
+  },
+  "/updates": {
+    title: "Updates | asherin",
+    description: "what shipped, when it shipped, and what changed with it.",
+  },
+  "/sources": {
+    title: "Sources | asherin",
+    description: "the papers, documents and first-party figures asherin cites, each with the date it was checked.",
+  },
+  "/forums": {
+    title: "Forums | asherin",
+    description: "open discussion between people using asherin.",
   },
 
-  "/prompt-engineering": {
-    title: "Prompt Engineering Protocols | Zophiel Doctrine",
-    description:
-      "The Zophiel prompt-engineering protocols: 45 sections of elite techniques for turning LLMs into surgical intelligence operators.",
+  // --- Legal ---
+  "/privacy": {
+    title: "Privacy | asherin",
+    description: "how asherin stores, encrypts and retains your data, and what you can ask us to delete.",
   },
-  "/benchmarks": {
-    title: "Benchmarks | Asherin Model & Engine Performance",
-    description: "Live benchmarks across Asherin's intelligence engines, model consensus, and predictive performance.",
+  "/terms": {
+    title: "Terms | asherin",
+    description: "the terms of service for using asherin.",
   },
-  "/nda": {
-    title: "NDA | Asherin Confidentiality Agreement",
-    description: "Asherin's standard non-disclosure agreement for partners, testers, and contractors.",
+  "/security-policy": {
+    title: "Security Policy | asherin",
+    description: "how to report a vulnerability in asherin, and what we do when you do.",
   },
-  "/llm-models": {
-    title: "Supported LLM Models | BYOK Catalog | Asherin",
-    description:
-      "Every model Asherin supports via BYOK: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and more.",
-  },
+
+  // --- Blog index ---
   "/blog": {
-    title: "Asherin Blog | Field Reports from the Operator Stack",
-    description:
-      "Long-form comparisons, benchmarks, and intelligence write-ups from the Asherin team. No fluff, no affiliate links.",
+    title: "Blog | asherin",
+    description: "long-form write-ups on how the parts of asherin work, and what they cannot do yet.",
   },
+
+  // --- Blog posts ---
   "/blog/venice-integration": {
-    title: "Venice AI in Asherin | Unfiltered, Zero Setup",
-    description:
-      "How Asherin routes free and BYOK traffic through Venice AI for uncensored, vision-capable answers with no key, no account, no subscription.",
+    title: "Venice AI in asherin",
+    description: "how asherin routes traffic through venice ai when you have not brought your own key.",
     ogType: "article",
     datePublished: "2026-06-17",
   },
-  "/blog/aureon-legal-advisor-multi-jurisdictional": {
-    title: "Asherin LAW Mode | Multi-Jurisdictional Legal Research",
-    description:
-      "How Asherin and Asher's LAW mode runs deep legal research across any country, state, or province, surfacing older statutes that supersede newer law without fabricating citations.",
-    ogType: "article",
-    datePublished: "2026-07-08",
-  },
-
-  // Blog satellites (Theory 8 — Nested Fractal Content Architecture)
   "/blog/what-is-ai-osint": {
-    title: "What is AI OSINT? The Analyst's Complete Guide | Asherin",
-    description:
-      "AI OSINT defined: the four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be intelligence.",
+    title: "What is AI OSINT?",
+    description: "the four stages of an osint pipeline, and how to tell one apart from a search wrapper.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/sovereign-ai-platforms": {
-    title: "The 2026 Sovereign AI Platform Landscape | Asherin",
-    description:
-      "Eight serious sovereign AI platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
+    title: "The 2026 sovereign AI landscape",
+    description: "four architecture patterns, and the four-layer test for whether a sovereignty claim holds.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/ai-without-restrictions": {
-    title: "AI Without Restrictions | Operator Workflow Guide | Asherin",
-    description:
-      "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions on uncensored AI.",
+    title: "Working without vendor refusal defaults",
+    description: "model choice, prompt discipline, and refusal detection over long sessions.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
-    title: "Elite Algorithms vs #HouseOfAsher | AXRLEN",
-    description:
-      "Aladdin controls the present. AXRLEN sees the future. A direct comparison between BlackRock's engine and #HouseOfAsher's predictive algorithm.",
+    title: "Institutional algorithms and AXRLEN",
+    description: "how large allocation engines model the present, and where a forecasting engine differs.",
     ogType: "article",
     datePublished: "2026-06-24",
   },
   "/blog/aureon-pricing-explained": {
-    title: "Asherin Pricing Explained | Why $18/mo and $79/mo (2026)",
-    description:
-      "The full breakdown of Asherin's $18/mo and $79/mo subscription tiers, how they compare to ChatGPT/Claude/Gemini, and where AI pricing is headed through 2027.",
+    title: "Why asherin costs $18 and $79",
+    description: "the reasoning behind the two subscription tiers, and what each one actually pays for.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
-
-  // Glossary cluster (Theory 12 — Sovereign Niche Monopoly)
-  "/glossary": {
-    title: "Asherin Glossary | Sovereign AI Vocabulary | Asherin",
-    description:
-      "Definitive, citable explanations of the terms operators actually use, sovereign AI, BYOK AI, uncensored AI, digital gnostic.",
-  },
-  "/glossary/sovereign-ai": {
-    title: "Sovereign AI | Definition and Why It Matters",
-    description:
-      "Sovereign AI: a four-layer definition (key, model, refusal, data), how it differs from BYOK and uncensored, and how to verify it in 60 seconds.",
-    ogType: "article",
-    datePublished: "2026-06-19",
-  },
-  "/glossary/uncensored-ai": {
-    title: "Uncensored AI | The Precise Definition | Asherin",
-    description:
-      "Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. Three failure modes of fake claims and a 60-second test.",
-    ogType: "article",
-    datePublished: "2026-06-19",
-  },
-  "/glossary/byok-ai": {
-    title: "BYOK AI | Bring Your Own Key, Defined | Asherin",
-    description:
-      "BYOK AI: how it works, the economics, the nine providers Asherin supports natively, and why BYOK is necessary but not sufficient for sovereignty.",
-    ogType: "article",
-    datePublished: "2026-06-19",
-  },
-  "/glossary/digital-gnostic": {
-    title: "Digital Gnostic | Operator Demographic Defined | Asherin",
-    description:
-      "The Digital Gnostic operator: 2-4M in 2026, high willingness to pay, search vocabulary, and why their tooling differs from consumer AI users.",
-    ogType: "article",
-    datePublished: "2026-06-19",
-  },
-
-  // Feature pages
-  "/feature/zophiel": {
-    title: "Zophiel | Multi-Engine OSINT & Truth Engine | Asherin",
-    description:
-      "Zophiel cross-validates 30+ live OSINT sources, scores veracity, and surfaces verified intelligence with citations.",
-  },
-  "/feature/azplen": {
-    title: "Azplen Intelligence | 20-Tab Data Suite | Asherin",
-    description: "Azplen Intelligence: a 20-tab data suite for live analysis, transformation, and intelligence operations.",
-  },
-  "/feature/briefings": {
-    title: "Intelligence Briefings | Truth Extraction | Asherin",
-    description:
-      "Generate publication-ready intelligence briefings with triple-fallback parsing and verified source citations.",
-  },
-  "/feature/personas": {
-    title: "Personas | Custom AI Operators | Asherin",
-    description: "Create, store, and deploy custom AI personas with metadata, voice, and persistent context.",
-  },
-  "/feature/zali": {
-    title: "ZALI Design Suite | FEA, Thermal & Materials",
-    description:
-      "ZALI Design Suite: AI-driven FEA simulation, thermal analysis, material selection, and assembly generation.",
-  },
-  "/feature/zahten": {
-    title: "Zahten | Adversarial Intelligence Module | Asherin",
-    description: "Zahten: adversarial simulation and counter-intelligence modeling for hostile environment analysis.",
-  },
-  "/feature/predictive": {
-    title: "Predictive Intelligence | Event Forecasting",
-    description: "Forecast corporate events, market dislocations, and policy moves with Monte Carlo modeling.",
-  },
-  "/feature/ide": {
-    title: "Asherin IDE | In-Dashboard Monaco Development | Asherin",
-    description:
-      "A full Monaco-based IDE inside Asherin: BYOK across 9 providers, sandboxed iframe preview, and custom tabs.",
-  },
-  "/feature/imagine-intelligence": {
-    title: "Imagine Intelligence | Generative Reasoning Engine | Asherin",
-    description: "Imagine Intelligence: generative reasoning with multi-modal input and cross-domain synthesis.",
-  },
-  "/feature/notebooks": {
-    title: "Intelligence Notebooks | SQL + AI Analysis | Asherin",
-    description:
-      "Intelligence Notebooks: live SQL execution, AI reasoning, and 800ms-debounced query analysis with SECURITY DEFINER.",
-  },
-  "/feature/byok": {
-    title: "BYOK | Bring Your Own Model & Key | Asherin",
-    description:
-      "Bring your own API key for Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Asherin supports them all.",
-  },
-  "/feature/zerlal": {
-    title: "ZERLAL | Vulnerability & Exploit Intelligence | Asherin",
-    description:
-      "ZERLAL: fault-tolerant vulnerability scanning, Cyber Kill Chain mapping, and exploit-feasibility analysis.",
-  },
-  "/feature/zeeion": {
-    title: "Zeeion | Trustless AI Arbitration & Forensics | Asherin",
-    description:
-      "Zeeion: trustless AI arbitration, evidence validation, platform forensics, and workforce optimization.",
-  },
-  "/feature/aziion": {
-    title: "Aziion | Autonomous Trading Intelligence | Asherin",
-    description: "Aziion: live trading intelligence on Hyperliquid with 60%-confidence signal gating.",
-  },
-  "/feature/axrlen": {
-    title: "AXRLEN | NEXUS-PRIME Predictive Engine | Asherin",
-    description:
-      "AXRLEN NEXUS-PRIME: multi-side predictive engine with probabilistic scenarios, timeline divergences, and brain-backed corpora.",
-  },
-  "/feature/zaplen": {
-    title: "Zaplen | Dual-AI War Scenario Engine | Asherin",
-    description: "Zaplen: dual-AI chess-style war scenario engine for adversarial modeling. Admin-only.",
-  },
-  "/feature/pattern-analysis": {
-    title: "Pattern Analysis | Pro Forecasting & Recharts | Asherin",
-    description:
-      "Pattern Analysis: pro-tier forecasting with Recharts visualizations and pattern-recognition on live data.",
-  },
-  "/feature/file-scrapper": {
-    title: "File Scrapper | Unstructured Document Extraction | Asherin",
-    description: "File Scrapper: extract structured intelligence from PDFs, images, and unstructured documents.",
-  },
-  "/feature/ebook": {
-    title: "E-book Generator | Long-Form Content | Asherin",
-    description:
-      "Generate full e-books from multi-session text uploads with 500-word chapters and AI-generated cover art.",
-  },
-  "/feature/coding-laws": {
-    title: "Coding Laws | Asherin's Engineering Doctrine | Asherin",
-    description:
-      "The Asherin coding laws: production-hardened patterns, session persistence, race-condition discipline, and security defaults.",
-  },
-  "/feature/memory-center": {
-    title: "Memory Center | Persistent AI Context | Asherin",
-    description: "Memory Center: persistent context, semantic recall, and cross-session intelligence continuity.",
-  },
-  "/feature/brains": {
-    title: "Brains | Global Knowledge Corpora | Asherin",
-    description:
-      "Brains: globally addressable knowledge corpora, admin-controlled axrlen_brains and user-scoped brain stacks.",
-  },
-  "/feature/library": {
-    title: "Library | Project Knowledge Management | Asherin",
-    description:
-      "Library: project folders, intelligence graph, and structured knowledge management for live operations.",
-  },
-  "/feature/whiteboard-info": {
-    title: "Whiteboard | Infinite Canvas Intelligence | Asherin",
-    description:
-      "Asherin Whiteboard: infinite canvas, Photoshop-style layer stack, snap grids, and intelligence-aware drawing.",
-  },
-  "/feature/vedic": {
-    title: "Vedic Intelligence | Jyotish-Driven Analysis | Asherin",
-    description:
-      "Vedic Intelligence: Jyotish-driven analytical layer fused with live astronomical and biographical data.",
-  },
-
-  // Standalone tools / experiences
-  "/vedic-astrology": {
-    title: "Vedic Astrology | Live Jyotish Chart Engine | Asherin",
-    description:
-      "Generate live Vedic astrology charts, dashas, and yogas with precise astronomical computation.",
-  },
-  "/vedic": {
-    title: "Vedic Jyotish | Moon-Driven Transit Forecasts | Asherin",
-    description:
-      "Asherin Vedic: sidereal Moon transits, house ingresses, and dasha-aware forecasts computed to the minute in your local time.",
-  },
-  "/axrlen": {
-    title: "AXRLEN | Free Predictive AI Engine (BYOK) | Asherin",
-    description:
-      "AXRLEN is a free predictive intelligence engine. Bring any model key (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI). 7/7 launch hits.",
-  },
-  "/ww3": {
-    title: "WW3 Tracker | Live Conflict Intelligence | Asherin",
-    description: "Live tracker for global conflict signals, sovereign posture changes, and escalation vectors.",
-  },
-  "/houseofasher-ventures": {
-    title: "House of Asher Ventures | Operator-Grade Intelligence",
-    description: "House of Asher Ventures: the operator collective behind Asherin and the Zophiel doctrine.",
-  },
-  "/proj-aureon": {
-    title: "Project Asherin | Origin Brief",
-    description: "Project Asherin: the origin brief, doctrine, and roadmap of the Asherin intelligence platform.",
-  },
-  "/forums": {
-    title: "Forums | Asherin Operator Community",
-    description: "Asherin Forums: live discussion among operators, analysts, and predictive intelligence builders.",
-  },
-  "/avapicks": {
-    title: "AvaPicks | Curated Intelligence Picks | Asherin",
-    description: "AvaPicks: curated daily intelligence picks across markets, geopolitics, and policy.",
-  },
-  "/openvpn": {
-    title: "OpenVPN | Asherin Secure Access",
-    description: "OpenVPN setup and configuration for Asherin secure access.",
-  },
-  "/elite": {
-    title: "Elite Suite | Operator-Tier Access | Asherin",
-    description: "Asherin Elite Suite: operator-tier tools, restricted modules, and pro intelligence surfaces.",
-    noindex: true,
-  },
-  "/analytics": {
-    title: "Analytics | Asherin Internal Telemetry",
-    description: "Internal analytics surface for Asherin operators.",
-    noindex: true,
-  },
-  // --- Editorial satellites (previously falling back to the homepage head) ---
   "/blog/ai-vulnerability-scanning-explained": {
-    title: "AI Vulnerability Scanning, Explained | Asherin",
-    description:
-      "How AI-assisted vulnerability scanning actually works: signal collection, exploit-path reasoning, false-positive suppression, and confidence scoring.",
+    title: "AI vulnerability scanning, explained",
+    description: "signal collection, exploit-path reasoning, false-positive suppression, confidence scoring.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/vulnerability-chaining-explained": {
-    title: "Vulnerability Chaining, Explained | Asherin",
-    description:
-      "Single findings rarely matter. Vulnerability chaining shows how low-severity issues combine into a full compromise path, with worked examples.",
+    title: "Vulnerability chaining, explained",
+    description: "how low-severity findings combine into one compromise path, with worked examples.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/how-ai-predictive-forecasting-works": {
-    title: "How AI Predictive Forecasting Works | Asherin",
-    description:
-      "Inside AXRLEN-style forecasting: signal fusion, scenario branching, probability weighting, and why calibration matters more than confidence.",
+    title: "How AI forecasting actually works",
+    description: "signal fusion, scenario branching, probability weighting, and why calibration beats confidence.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/how-aureon-uses-c-seo-research": {
-    title: "How Asherin Uses Conversational SEO Research",
-    description:
-      "The C-SEO research loop behind Asherin's content: entity clustering, answer-shaped pages, and measuring citations inside AI search engines.",
+    title: "How asherin uses conversational SEO research",
+    description: "entity clustering, answer-shaped pages, and measuring citations inside AI answers.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/blog/how-we-make-aureon-sound-human": {
-    title: "How We Make Asherin Sound Human",
-    description:
-      "The editing doctrine behind Asherin's voice: cadence, specificity, refusal of filler, and the review passes every published page survives.",
+    title: "How we make asherin sound human",
+    description: "cadence, specificity, refusal of filler, and the review passes every page survives.",
     ogType: "article",
     datePublished: "2026-07-01",
   },
   "/blog/ai-stack-for-indian-startups": {
-    title: "The AI Stack for Indian Startups That Can't Afford to Fail | Asherin",
-    description:
-      "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is workflow logic.",
+    title: "An AI stack for early-stage Indian startups",
+    description: "the bottleneck is workflow logic, not compute or budget.",
     ogType: "article",
     datePublished: "2026-08-10",
   },
   "/blog/code-narrative-quantum-collapse": {
-    title: "Code-to-Narrative & Quantum Candidate Collapse",
-    description:
-      "The Asherin build doctrine: convert prompts into narrative, hunt flaws across nine dimensions, then collapse candidates into one shipped answer.",
+    title: "Code-to-narrative and candidate collapse",
+    description: "turn a prompt into a narrative, hunt the flaws, then collapse the candidates into one answer.",
     ogType: "article",
     datePublished: "2026-07-01",
   },
   "/blog/the-truth-and-reality-of-wars": {
-    title: "The Truth and Reality of Wars | Asherin",
-    description:
-      "A structural read of modern conflict: incentive maps, resource clocks, and the exhaustion cycles that decide wars long before treaties do.",
+    title: "The truth and reality of wars",
+    description: "incentive maps, resource clocks, and the exhaustion cycles that decide conflicts.",
     ogType: "article",
     datePublished: "2026-06-24",
   },
   "/blog/zaxin-tactical-ble-intelligence": {
-    title: "Zaxin | Tactical BLE Intelligence | Asherin",
-    description:
-      "Zaxin turns Bluetooth Low Energy noise into tactical intelligence: device fingerprinting, proximity tracking, and optical/AI overlay fusion.",
+    title: "Zaxin and bluetooth signal intelligence",
+    description: "what bluetooth low energy noise can and cannot tell you about what is nearby.",
     ogType: "article",
     datePublished: "2026-06-26",
   },
+  "/blog/asherin-engine-deep-time": {
+    title: "The asherin engine and deep time",
+    description: "reading long cycles instead of headlines, and where that reading breaks.",
+    ogType: "article",
+    datePublished: "2026-08-02",
+  },
+  "/blog/cloud-intelligence-suite": {
+    title: "Cloud intelligence in asherin",
+    description: "connecting a google account, and what asherin does with the mail, files and calendar it reads.",
+    ogType: "article",
+    datePublished: "2026-08-03",
+  },
+  "/blog/asherin-maps-find-my": {
+    title: "asherin maps and finding your own devices",
+    description: "how the map layer handles your locations, and who can see them.",
+    ogType: "article",
+    datePublished: "2026-08-04",
+  },
+  "/blog/transit-guardian": {
+    title: "Transit guardian",
+    description: "watching a route while it is being travelled, and what happens when it deviates.",
+    ogType: "article",
+    datePublished: "2026-08-05",
+  },
+  "/blog/bulwark-counter-surveillance": {
+    title: "Counter-surveillance notes",
+    description: "what a browser can legitimately observe about the devices and trackers around it.",
+    ogType: "article",
+    datePublished: "2026-08-06",
+    // Research notes, not a sold product surface — kept out of the sitemap.
+    excludeFromSitemap: true,
+  },
+  "/blog/autonomous-intelligence-loop": {
+    title: "The autonomous intelligence loop",
+    description: "a loop that collects, checks and revises itself, and where a human still has to sit.",
+    ogType: "article",
+    datePublished: "2026-08-07",
+  },
+  "/blog/aureon-legal-advisor-multi-jurisdictional": {
+    title: "Multi-jurisdictional legal research in asherin",
+    description: "researching statute across jurisdictions without inventing citations.",
+    ogType: "article",
+    datePublished: "2026-07-08",
+  },
+  "/blog/asherin-agent-sovereign-intelligence-layer": {
+    title: "The asherin agent layer",
+    description: "how the agent decides which tool to reach for, and what it refuses to do unattended.",
+    ogType: "article",
+    datePublished: "2026-08-11",
+  },
+  "/blog/personalities-are-not-thinking-patterns": {
+    title: "Personalities are not thinking patterns",
+    description: "why a persona is not a reasoning procedure, and what we replaced ours with.",
+    ogType: "article",
+    datePublished: "2026-08-12",
+  },
 
-  // --- Glossary entries that were missing metadata ---
+  // --- Glossary ---
+  "/glossary": {
+    title: "Glossary | asherin",
+    description: "plain definitions of the terms used across asherin.",
+  },
+  "/glossary/sovereign-ai": {
+    title: "Sovereign AI | asherin glossary",
+    description: "a four-layer definition: key, model, refusal, data.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/uncensored-ai": {
+    title: "Uncensored AI | asherin glossary",
+    description: "a model whose refusal behaviour is set at the operator layer, not the vendor layer.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/byok-ai": {
+    title: "BYOK AI | asherin glossary",
+    description: "bring your own key: how it works, and why it is necessary but not sufficient.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
+  "/glossary/digital-gnostic": {
+    title: "Digital gnostic | asherin glossary",
+    description: "the operator demographic the term describes, and how their tooling differs.",
+    ogType: "article",
+    datePublished: "2026-06-19",
+  },
   "/glossary/operator-stack": {
-    title: "Operator Stack | Definition | Asherin Glossary",
-    description:
-      "The operator stack: the tool chain an intelligence operator runs end-to-end, collection, validation, prediction, and delivery, defined precisely.",
+    title: "Operator stack | asherin glossary",
+    description: "the chain an analyst runs end to end: collection, validation, prediction, delivery.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/glossary/zero-day-confidence-scoring": {
-    title: "Zero-Day Confidence Scoring | Definition",
-    description:
-      "Zero-day confidence scoring: how unverified vulnerability signals are weighted, ranked, and reported without overstating certainty.",
+    title: "Zero-day confidence scoring | asherin glossary",
+    description: "how unverified vulnerability signals are weighted and reported without overstating certainty.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/glossary/predictive-intelligence-ai": {
-    title: "Predictive Intelligence AI | Definition",
-    description:
-      "Predictive intelligence AI: forecasting events from live signals rather than summarizing the past, and the calibration test that separates the two.",
+    title: "Predictive intelligence AI | asherin glossary",
+    description: "forecasting from live signals rather than summarising the past, and the calibration test.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
   "/glossary/conversational-seo": {
-    title: "Conversational SEO (C-SEO) | Definition",
-    description:
-      "Conversational SEO: optimizing for citation inside AI answers instead of blue links, entity clarity, answer shape, and verifiable sourcing.",
+    title: "Conversational SEO | asherin glossary",
+    description: "being cited inside AI answers instead of ranking for blue links.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
 
-  // --- Standalone public pages ---
-  "/updates": {
-    title: "Updates | Asherin Release Log",
-    description:
-      "Every meaningful Asherin release: new intelligence modules, engine upgrades, and platform changes, logged as they ship.",
+  // --- Feature pages ---
+  "/feature/zophiel": {
+    title: "Zophiel | asherin",
+    description: "zophiel cross-checks live sources, scores what it finds, and shows the citations.",
   },
-  "/ziaassets": {
-    title: "ZIA Assets | Restricted",
-    description: "Restricted internal asset vault for Asherin operators.",
-    noindex: true,
+  "/feature/zerlal": {
+    title: "ZERLAL | asherin",
+    description: "zerlal reads a target for weaknesses and reports the exploit path, with its confidence.",
   },
-  "/unsubscribe": {
-    title: "Unsubscribe | Asherin",
-    description: "Unsubscribe from Asherin notifications.",
-    noindex: true,
+  "/feature/axrlen": {
+    title: "AXRLEN | asherin",
+    description: "axrlen writes probabilistic forecasts with a stated verification plan.",
+  },
+  "/feature/byok": {
+    title: "BYOK | asherin",
+    description: "bring your own key for gemini, openai, claude, groq, deepseek, mistral, xai or openrouter.",
   },
 };
 
-// NOTE: /asher is intentionally NOT skipped — it has a SEO entry and is in the sitemap;
-// skipping it caused the static index.html canonical (pointing to "/") to leak through,
-// making crawlers treat /asher as a duplicate of the homepage and drop it.
+// /asher is intentionally NOT skipped — it has an SEO entry and is in the
+// sitemap; skipping it let the static homepage canonical leak through and made
+// crawlers read /asher as a duplicate of "/".
 export const SKIP_PREFIXES = ["/dashboard", "/asher-dashboard"];
+
+/** Public routes that belong in sitemap.xml. */
+export function sitemapPaths(): string[] {
+  return Object.entries(ROUTE_SEO)
+    .filter(([, e]) => !e.noindex && !e.excludeFromSitemap)
+    .map(([path]) => path);
+}
