@@ -3401,7 +3401,7 @@ const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
 
 function VisionTheoriesPanel() {
   return (
-    <Panel icon={Eye} title="Zaxin Vision — AI Integration Theories" subtitle="Seven blueprints for fusing camera, BLE, audio, and AXRLEN into one tactical picture">
+    <Panel icon={Eye} title="Zaxin Vision — AI Integration Theories" subtitle="Seven blueprints. Not a shipped fusion system.">
       <div className="mt-3 grid sm:grid-cols-2 gap-2">
         {VISION_THEORIES.map((t) => (
           <div key={t.id} className="rounded-md border border-[#c69a4a]/15 bg-black/30 p-3">
