@@ -1,9 +1,9 @@
-// Zaxin — five-brain BLE tactical scanner UI.
-// Theory by Asher · #houseofasher. Built browser-native (Web Bluetooth + DeviceOrientation).
+// Zaxin — BLE field scout UI with honest capability labels.
+// Built browser-native (Web Bluetooth + DeviceOrientation).
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye,
+  Bluetooth, Radar, ShieldAlert, Network, AlertTriangle, Eye, Info,
   Smartphone, Play, Square, Trash2, RefreshCw, Star, Compass, Camera, Download, Upload,
   Activity, Radio, ChevronRight, Cpu,
 } from "lucide-react";
@@ -462,7 +462,7 @@ const ZaxinView = () => {
           <div className="min-w-0">
             <h1 className="text-[11px] font-light tracking-[0.16em] text-foreground/90 uppercase truncate">Zaxin</h1>
             <p className="text-[8px] text-muted-foreground/40 tracking-[0.18em] uppercase truncate">
-              Five-brain BLE tactical scanner · #houseofasher
+              Browser-native BLE field scout · honest capability labels
             </p>
           </div>
         </div>
@@ -499,6 +499,11 @@ const ZaxinView = () => {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* honesty panel — visible without scrolling past the radar */}
+      <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-5">
+        <ZaxinHonestyPanel />
       </div>
 
       {/* body */}
@@ -2852,7 +2857,7 @@ function MiniMap({ heading, compassOn, geo, contacts }: {
   geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
-  // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
+  // Live GPS for a satellite mini-map fallback when the abstract radar is not enough.
   const { fix: pos, quality } = geo;
   const [zoom] = useState(19); // tight overhead — operator-scale
 
@@ -3310,6 +3315,50 @@ function SatelliteMap({
   );
 }
 
+/* ============================ ZAXIN HONESTY PANEL ============================ */
+
+function ZaxinHonestyPanel() {
+  return (
+    <div className="rounded-2xl border border-[#c69a4a]/15 bg-background/40 backdrop-blur-md p-4 sm:p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-8 h-8 rounded-xl bg-[#c69a4a]/10 border border-[#c69a4a]/20 flex items-center justify-center">
+          <Info className="h-4 w-4 text-[#c69a4a]/80" />
+        </div>
+        <div className="min-w-0 space-y-3">
+          <div>
+            <h2 className="text-[12px] font-medium tracking-[0.12em] text-foreground/90 uppercase">What Zaxin is trying to be</h2>
+            <p className="mt-1 text-[11px] leading-relaxed text-foreground/70">
+              Three products in one UI: (1) a phone BLE field scout, (2) a protocol lab, (3) a building location system (RTLS).
+            </p>
+          </div>
+          <div>
+            <h2 className="text-[12px] font-medium tracking-[0.12em] text-foreground/90 uppercase">What it actually is</h2>
+            <ul className="mt-1 space-y-1 text-[11px] leading-relaxed text-foreground/70 list-disc pl-4">
+              <li>Web: OS "pick a device" chooser on most browsers. Continuous advert scan only if <code className="text-[10px] text-foreground/80">requestLEScan</code> exists (Chrome Android + experimental flag). Safari/iOS web: no Web Bluetooth.</li>
+              <li>Native Capacitor path exists only if the companion app is installed. Phone off = radio off.</li>
+              <li>GATT today: connect then read GAP name, Device Information, Battery. No notify, no write, no full characteristic tree.</li>
+              <li>Hop "mesh": BroadcastChannel between tabs on the same origin, plus paste JSON. Not a network of phones.</li>
+              <li>RSSI distance: log-distance with tx=-59 dBm and n=2. Indoor error is room-scale. Not meters you can trust. RSSI is not angle-of-arrival.</li>
+              <li>Clone-suspect: same displayName, different id. iOS ids rotate so this false-positives.</li>
+              <li>AR / SONAR / optical fusion: HUD exists. Seven vision theories T1–T7 on the AR tab are blueprints, not shipped fusion.</li>
+              <li>Background stalker-detect: native-only. Web tab must stay focused.</li>
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-[12px] font-medium tracking-[0.12em] text-foreground/90 uppercase">What it is not</h2>
+            <ul className="mt-1 space-y-1 text-[11px] leading-relaxed text-foreground/70 list-disc pl-4">
+              <li>Not nRF Connect (full GATT browser, notify, write, graphs).</li>
+              <li>Not Ellisys Explorer (all channels, HCI, spectrum, packet-level evidence).</li>
+              <li>Not Cisco Spaces / Juniper Mist / Quuppa (AP arrays, 1–3 m indoor, 5000-tag fleets).</li>
+              <li>A browser tab cannot be those. Do not claim it.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ============================ ZAXIN VISION THEORIES ============================ */
 
 const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
@@ -3341,7 +3390,7 @@ const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
   {
     id: "T6",
     title: "Photogrammetric Anchor",
-    body: "When the camera sees a landmark (door, car, signpost) co-located with a strong BLE pip, the contact is anchored to that visual feature — stays pinned even when the operator turns away. True AR persistence without ARKit.",
+    body: "When the camera sees a landmark (door, car, signpost) co-located with a strong BLE pip, the contact is anchored to that visual feature — stays pinned even when the operator turns away. This is a theory; no shipped persistence without ARKit.",
   },
   {
     id: "T7",
@@ -3352,7 +3401,7 @@ const VISION_THEORIES: Array<{ id: string; title: string; body: string }> = [
 
 function VisionTheoriesPanel() {
   return (
-    <Panel icon={Eye} title="Zaxin Vision — AI Integration Theories" subtitle="Seven blueprints for fusing camera, BLE, audio, and AXRLEN into one tactical picture">
+    <Panel icon={Eye} title="Zaxin Vision — AI Integration Theories" subtitle="Seven blueprints. Not a shipped fusion system.">
       <div className="mt-3 grid sm:grid-cols-2 gap-2">
         {VISION_THEORIES.map((t) => (
           <div key={t.id} className="rounded-md border border-[#c69a4a]/15 bg-black/30 p-3">

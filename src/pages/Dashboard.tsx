@@ -1395,7 +1395,7 @@ const Dashboard = () => {
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
       case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $399/mo, Maximum Intelligence.");
-      case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — Tactical BLE Intelligence", "AR vision, BLE radar, and tactical intelligence overlay. Available on Pro plans.");
+      case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — BLE Field Scout", "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.");
       case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $399/mo Pro plan.");
       
       
