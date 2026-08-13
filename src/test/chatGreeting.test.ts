@@ -56,26 +56,30 @@ describe("greeting classifier", () => {
 });
 
 describe("trivial-turn prompt assembly", () => {
-  const gated = [
-    "PROMPT_INTELLIGENCE_PROTOCOL",
-    "CONTEXT_INTELLIGENCE_PROMPT",
-    "ASHERIN_OPERATING_NOTES",
-    "QUICK_INTELLIGENCE_BRAIN",
-    "ADAPTIVE_OPERATOR_ROUTER",
-    "userContextStr",
-    "_asherinProcedures",
+  // Each analytic block and the exact gate expression that must guard it in
+  // chat/index.ts. The gates now read from blocksForTurn(), so a drift between
+  // the router and the assembly fails here.
+  const gated: [string, string][] = [
+    ["PROMPT_INTELLIGENCE_PROTOCOL", "_B.promptIntelligence ? PROMPT_INTELLIGENCE_PROTOCOL"],
+    ["CONTEXT_INTELLIGENCE_PROMPT", "_B.contextIntelligence ? CONTEXT_INTELLIGENCE_PROMPT"],
+    ["ASHERIN_OPERATING_NOTES", "_B.operatingNotes ? ASHERIN_OPERATING_NOTES"],
+    ["QUICK_INTELLIGENCE_BRAIN", "_B.quickIntelligence ? QUICK_INTELLIGENCE_BRAIN"],
+    ["ADAPTIVE_OPERATOR_ROUTER", "_B.adaptiveRouter ? ADAPTIVE_OPERATOR_ROUTER"],
+    ["userContextStr", "_B.operatorProfile ? userContextStr"],
+    ["_asherinProcedures", '_R.trivial ? "" : _asherinProcedures'],
   ];
-  for (const block of gated) {
+  for (const [block, gate] of gated) {
     it(`withholds ${block} on a trivial turn`, () => {
-      expect(CHAT_SRC).toContain(`_R.trivial ? "" : ${block},`);
+      expect(CHAT_SRC).toContain(gate);
       // and never ships it unconditionally from the systemParts array
       expect(CHAT_SRC).not.toMatch(new RegExp(`^\\s{6}${block},$`, "m"));
     });
   }
 
-  it("gates GEOLOCATION_BRAIN behind an explicitly geo/intel turn", () => {
-    expect(CHAT_SRC).toContain("_R.geo || _R.intel ? GEOLOCATION_BRAIN");
+  it("gates GEOLOCATION_BRAIN behind a named place, photo, or address", () => {
+    expect(CHAT_SRC).toContain("_B.geolocation ? GEOLOCATION_BRAIN");
   });
+
 
   it("no longer titles the preference note as an intelligence profile", () => {
     expect(CHAT_SRC).not.toContain("USER INTELLIGENCE PROFILE");

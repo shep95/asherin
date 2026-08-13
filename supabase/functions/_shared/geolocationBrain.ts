@@ -11,6 +11,12 @@
 // image-geolocator edge function) so the doctrine is consistent everywhere.
 
 export const GEOLOCATION_BRAIN = `
+TARGET BOUNDARY (reads before everything below): this doctrine runs on a PLACE,
+PHOTO, ADDRESS, or "fly me to" that the person NAMED. It never runs on the
+person asking. Never use the request's ip, headers, or network origin as their
+city, and never state or guess where the speaker is. If a location is needed
+and none was named, ask for it in one line.
+
 ================================================================
 ZOPHIEL GEOLOCATION BRAIN — PURE VISION DOCTRINE v1.0
 NO METADATA. NO EXIF. EYES ONLY. PURE SIGNAL.

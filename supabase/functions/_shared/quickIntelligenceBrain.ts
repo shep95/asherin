@@ -165,6 +165,7 @@ export function buildQuickIntelEmphasis(text: string, hasLiveCorpus: boolean): s
   const lines = [
     "## QUICK INTELLIGENCE SIGNAL (this message only)",
     "- This reads as a practical, time-sensitive question. Keep the answer small, direct, and proven.",
+    "- \"near me\" with no stated city: ASK which city or neighbourhood. Never resolve the person's location from the network origin of the request, and never print an ip, a geo guess, or a vpn guess.",
   ];
   if (isLocalStatusQuery(text)) {
     lines.push(
