@@ -4,24 +4,12 @@ import Header from "@/components/Header";
 import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
-import {
   MessageSquare, Search, Network, Shield, Hammer, Database,
   Layers, BookOpen, Sparkles, Eye, Code2, Globe, FlaskConical,
   Brain, LineChart, DollarSign, Map, Video, Bluetooth, Bot,
   FileText, Lock, Cpu, Zap, Users, Puzzle, Notebook, Rss,
   Image as ImageIcon, Command, Fingerprint, Radio, Compass,
 } from "lucide-react";
-
-const TOOLTIP_STYLE = {
-  background: "hsl(var(--card) / 0.95)",
-  border: "1px solid hsl(var(--border) / 0.4)",
-  borderRadius: 12,
-  fontSize: 12,
-  fontWeight: 300,
-  backdropFilter: "blur(12px)",
-};
 
 type Tier = "aureon" | "pro";
 
@@ -445,19 +433,8 @@ const PRODUCTS: Product[] = [
   
 ];
 
-/* The scored "capability" and radar charts are gone. They were invented
-   numbers — no test produced a 98 for "censorship-free", and a peer price for
-   an enterprise platform sold by quote was not a real list price. What is
-   left is published list pricing only, which anyone can check. */
-const PRICE_DATA = [
-  { plan: "Asherin", cost: 18 },
-  { plan: "Asherin Pro (full suite)", cost: 79 },
-  { plan: "ChatGPT Plus", cost: 20 },
-  { plan: "Claude Pro", cost: 20 },
-  { plan: "Gemini Advanced", cost: 20 },
-  { plan: "Perplexity Pro", cost: 20 },
-  { plan: "Cursor Pro", cost: 20 },
-];
+/* No competitor chart lives on this page. Asherin describes what Asherin
+   does; what other vendors charge or score is their page to write. */
 
 const ProductCard = ({ p }: { p: Product }) => {
   const Icon = p.icon;
@@ -685,42 +662,6 @@ const Software = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {proProducts.map((p) => <ProductCard key={p.name} p={p} />)}
-            </div>
-          </section>
-
-          {/* PRICING COMPARISON — published list prices only. The scored
-              capability bar and the model radar were removed: nobody ran that
-              test, so the numbers were decoration pretending to be evidence. */}
-          <section className="space-y-6">
-            <div className="text-center space-y-2">
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◈ Published list pricing
-              </p>
-              <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight">
-                What each plan costs per month
-              </h2>
-              <p className="mx-auto max-w-2xl text-xs font-extralight text-muted-foreground">
-                Vendor list prices as published by each vendor. This is a price comparison, not a
-                capability benchmark — Asherin publishes no head-to-head capability scores because
-                it has not run a measured head-to-head test.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-              <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                ◉ Monthly cost · list price
-              </p>
-              <div className="h-[360px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={PRICE_DATA} layout="vertical" margin={{ left: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                    <XAxis type="number" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis type="category" dataKey="plan" width={170} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
-                    <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
             </div>
           </section>
 
