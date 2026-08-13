@@ -508,6 +508,11 @@ const GuardianVaultView = () => {
             </>
           )}
 
+          {tab === "items" && <VaultItemsPanel mode="items" />}
+
+          {tab === "watchtower" && <VaultItemsPanel mode="watchtower" />}
+
+
           {tab === "sessions" && (
             <>
               <div className="flex items-center justify-between">
