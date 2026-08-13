@@ -1,0 +1,2 @@
+ALTER TABLE public.aureon_vault_sources DROP CONSTRAINT IF EXISTS aureon_vault_sources_source_type_check;
+ALTER TABLE public.aureon_vault_sources ADD CONSTRAINT aureon_vault_sources_source_type_check CHECK (source_type = ANY (ARRAY['file'::text, 'text'::text, 'api'::text, 'url'::text, 'youtube'::text]));
