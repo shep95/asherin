@@ -2810,6 +2810,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // the doctrine never appears inside the answer, and forwards the rest
     // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
     // make words flicker as frames arrive.
+    // One honest frame up front: which tools actually ran for this turn.
+    if (firedToolRows.length) {
+      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 12) })}\n\n`);
+    }
+
     const _scanner = createPostInferenceScanner();
     const emitText = async (text: string) => {
       const safe = _scanner.feed(text);
