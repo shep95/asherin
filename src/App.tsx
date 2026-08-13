@@ -29,7 +29,6 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Updates = lazy(() => import("./pages/Updates"));
 const Sources = lazy(() => import("./pages/Sources"));
 const Ziaassets = lazy(() => import("./pages/Ziaassets"));
-const AsherinGovDashboard = lazy(() => import("./pages/AsherinGovDashboard"));
 const IntelligenceReport = lazy(() => import("./pages/IntelligenceReport"));
 
 
