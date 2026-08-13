@@ -49,9 +49,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // The session object is replaced on every TOKEN_REFRESHED (browsers mint a
+      // fresh JWT when a background tab wakes). `user` must stay referentially
+      // stable across those events, otherwise every consumer keyed on the user
+      // object — notably the dashboard conversation loader — reloads and blanks
+      // the transcript each time the operator returns to the tab.
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      const nextUser = nextSession?.user ?? null;
+      setUser((prev) => {
+        const sameIdentity = !!prev && !!nextUser && prev.id === nextUser.id;
+        const refreshEvent = event === "TOKEN_REFRESHED" || event === "USER_UPDATED";
+        if (sameIdentity && refreshEvent) {
+          if (import.meta.env.DEV) {
+            console.debug(`[auth] ${event} kept the existing user reference — no downstream reload`);
+          }
+          return prev; // identical reference → dependent effects do not re-run
+        }
+        return nextUser;
+      });
       setLoading(false);
+
 
       if (nextSession?.user && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
         // OAuth returns to the bare origin (the only URI Google accepts), so
