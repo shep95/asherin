@@ -235,7 +235,7 @@ const ConnectView = () => {
     // GitHub is a binding: green only while a real connection row exists.
     m.set("github", github.connected ? "ok" : "never");
     return m;
-  }, [byOrgan]);
+  }, [byOrgan, github.connected]);
 
   const filtered = useMemo(() => {
     if (!selected) return pulls.slice(0, 60);
