@@ -2514,7 +2514,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the brain when the turn is actually asking to be funny.
       _R.humor ? COMEDY_BRAIN : "",
       _R.trivial ? "" : ASHER_LOGIC_BRAIN,
-      PROMPT_INTELLIGENCE_PROTOCOL,
+      _R.trivial ? "" : PROMPT_INTELLIGENCE_PROTOCOL,
       _R.deep || _R.analytics || _R.intel ? SYNTHESIS_ENGINE_BRAIN : "",
       _R.visual ? VISUAL_INTELLIGENCE_BRAIN : "",
       _R.social ? SOCIAL_AWARENESS_BRAIN : "",
