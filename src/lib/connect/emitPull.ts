@@ -102,7 +102,8 @@ export async function emitPull(input: PullInput): Promise<void> {
       latency_ms: latency,
       quote_masked: maskQuote(input.quote),
       meta: safeMeta(input.meta),
-    });
+    }]);
+
   } catch {
     // tracing is best-effort by design
   }
