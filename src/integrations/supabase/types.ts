@@ -11480,6 +11480,8 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string
+          dashboard_bg_color: string | null
+          dashboard_bg_mode: string
           id: string
           memory_enabled: boolean
           response_depth: string
@@ -11492,6 +11494,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          dashboard_bg_color?: string | null
+          dashboard_bg_mode?: string
           id?: string
           memory_enabled?: boolean
           response_depth?: string
@@ -11504,6 +11508,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          dashboard_bg_color?: string | null
+          dashboard_bg_mode?: string
           id?: string
           memory_enabled?: boolean
           response_depth?: string

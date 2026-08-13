@@ -2,6 +2,13 @@ import { IDE_RETURN_TO_CHAT_EVENT } from "@/lib/ide/chatHandoff";
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { getWallpaperSrc } from "@/lib/wallpapers";
+import DashboardSurface from "@/components/dashboard/DashboardSurface";
+import {
+  APPEARANCE_EVENT,
+  hydrateAppearanceFromDb,
+  readAppearance,
+  type DashboardAppearance,
+} from "@/lib/dashboardAppearance";
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
@@ -238,6 +245,7 @@ const Dashboard = () => {
       return existing;
     } catch { return "aureon"; }
   });
+  const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
   const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
   const [isDashTransitioning, setIsDashTransitioning] = useState(false);
   const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
@@ -269,11 +277,18 @@ const Dashboard = () => {
       }
       setWallpaperKey(newKey);
     };
+    // Appearance (photo vs flat colour) applies in the same session — the
+    // operator is editing swatches and must see the surface move, not reload.
+    const appearanceHandler = () => setAppearance(readAppearance());
     window.addEventListener("storage", handler);
+    window.addEventListener("storage", appearanceHandler);
     window.addEventListener("aureon-wallpaper-change", handler);
+    window.addEventListener(APPEARANCE_EVENT, appearanceHandler);
     return () => {
       window.removeEventListener("storage", handler);
+      window.removeEventListener("storage", appearanceHandler);
       window.removeEventListener("aureon-wallpaper-change", handler);
+      window.removeEventListener(APPEARANCE_EVENT, appearanceHandler);
       if (dashTransRef.current) clearTimeout(dashTransRef.current);
     };
   }, [wallpaperKey]);
@@ -527,6 +542,19 @@ const Dashboard = () => {
         const dbWallpaper = settingsResult.data.wallpaper as string;
         setWallpaperKey(dbWallpaper);
         localStorage.setItem("aureon_wallpaper", dbWallpaper);
+      }
+
+      // Restore the appearance mode / colour the same way: the account row wins
+      // on a new device, and hydrate broadcasts so the surface repaints once.
+      {
+        const row = settingsResult.data as
+          | { dashboard_bg_mode?: string | null; dashboard_bg_color?: string | null }
+          | null;
+        if (row && (row.dashboard_bg_mode || row.dashboard_bg_color)) {
+          setAppearance(
+            hydrateAppearanceFromDb(row.dashboard_bg_mode, row.dashboard_bg_color),
+          );
+        }
       }
 
       const convRows = convResult.data ?? [];
@@ -1602,28 +1630,11 @@ const Dashboard = () => {
     <div className="relative min-h-dvh w-full overflow-hidden">
       <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
       <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
-      {/* Previous wallpaper (fades out during transition) */}
-      {prevDashWallpaper && isDashTransitioning && (
-        <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />
-      )}
-      {/* Current wallpaper (fades in) */}
-      <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-        style={{
-          backgroundImage: `url(${activeWallpaper})`,
-          zIndex: 1,
-          opacity: isDashTransitioning ? 0 : 1,
-          animation: isDashTransitioning ? "wpFadeIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s forwards" : undefined,
-        }}
-      />
-      {/* Dark overlay — dims during transition to reveal the light streak */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-opacity duration-500"
-        style={{
-          zIndex: 3,
-          backgroundColor: 'hsl(0 0% 0% / 0.8)',
-          opacity: isDashTransitioning ? 0.5 : 1,
-        }}
+      <DashboardSurface
+        appearance={appearance}
+        activeWallpaper={activeWallpaper}
+        prevWallpaper={prevDashWallpaper}
+        transitioning={isDashTransitioning}
       />
       {/* Light streak wipe — ABOVE overlay */}
       {isDashTransitioning && (
