@@ -56,6 +56,8 @@ export type GoogleMeshAction =
   | "meet_vault"
   | "sentinel"
   | "fit_location"
+  | "harvest"
+  | "location_signals"
   | "audit_log";
 
 
@@ -399,7 +401,11 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
               ? "meet_vault"
               : /\b(any\s+)?sentinel\b|\bany\s+alerts?\b|\bwhat\s+alerts?\b/i.test(raw)
                 ? "sentinel"
-                : /\b(fit\s+location|google\s+fit\s+location|location\s+history)\b/i.test(raw)
+                : /\b(harvest|collect|sweep|pull\s+in)\s+(my\s+)?(google|gmail|mail|inbox|calendar|contacts?|accounts?)\b|\bre-?sync\s+(my\s+)?(google|mail|inbox)\b/i.test(raw)
+                  ? "harvest"
+                  : /\b(where\s+(will|am|do)\s+i\b|where\s+(is|was)\s+my\s+(phone|device)\b|find\s+my\s+(phone|device)\b|location\s+(prophet|signals?|prediction)|track\s+my\s+(phone|device)\b)/i.test(raw)
+                  ? "location_signals"
+                  : /\b(fit\s+location|google\s+fit\s+location|location\s+history)\b/i.test(raw)
                   ? "fit_location"
                   : /\b(pattern\s+map|place\s+rhythm|where\s+do\s+i\s+(go|spend))\b/i.test(raw)
               ? "pattern_map"
