@@ -61,8 +61,21 @@ export async function resolveKey(
   byok: unknown,
   opts: { strict?: boolean } = {},
 ): Promise<KeyResolution> {
-  const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const email = await getCallerEmail(req);
+  return resolveKeyForEmail(email, byok, opts);
+}
+
+/**
+ * Same resolution, but for callers whose identity does not come from the
+ * request — scheduled/service-key runs act on behalf of an agent's owner, so
+ * the owner's email, not the missing JWT, decides the key.
+ */
+export async function resolveKeyForEmail(
+  email: string | null,
+  byok: unknown,
+  opts: { strict?: boolean } = {},
+): Promise<KeyResolution> {
+  const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const isAureonTeam = isAdminEmail(email);
 
   // AUREON TEAM (ashernewtonx@gmail.com, shepherdnewtonx@gmail.com, etc.):

@@ -2,6 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  resolveRetryPolicy, attemptStep, rollUpStatus, callChildTool,
+  PROCEDURE_PACKS, DEFAULT_PACK, UNBOUND_STEPS,
+  type StepRecord, type RunAttemptCtx,
+} from "../_shared/zahtenRuntime.ts";
+import { emitPull } from "../_shared/connectPull.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 const logStep = (step: string, details?: any) => {
@@ -492,12 +498,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
+  // ── Key gate — admin uses the platform key, others BYOK or free tier.
+  // A scheduled run carries the service key, not a user JWT: gating it on the
+  // request identity would make every cron agent fail with BYOK_REQUIRED, so
+  // those runs are resolved later against the agent owner's email instead.
+  let _cronMode = false;
   try {
     const _b = await req.clone().json().catch(() => ({} as any));
-    const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
-    const _gate = await import('../_shared/adminGate.ts');
-    await _gate.resolveKey(req, _byok);
+    _cronMode = !!(_b && typeof _b === 'object' && (_b as any).cronMode);
+    if (!_cronMode) {
+      const _byok = (_b && typeof _b === 'object') ? (_b as any).byok : undefined;
+      const _gate = await import('../_shared/adminGate.ts');
+      await _gate.resolveKey(req, _byok);
+    }
   } catch (_e) {
     const _gate = await import('../_shared/adminGate.ts');
     return _gate.byokErrorResponse(_e, corsHeaders);
@@ -516,7 +529,7 @@ serve(async (req) => {
     logStep("Function started");
 
     let userId: string;
-    const { agentId, cronMode } = await req.json();
+    const { agentId, cronMode, executionId: resumeExecutionId, approve } = await req.json();
 
     if (cronMode) {
       // Called by scheduler with service key
@@ -528,6 +541,15 @@ serve(async (req) => {
         .single();
       if (!agent) throw new Error("Agent not found");
       userId = agent.user_id;
+      // Resolve the owner's key entitlement before any model step runs, so a
+      // scheduled run fails loudly here rather than half-way through delivery.
+      const { data: owner } = await supabaseClient.auth.admin.getUserById(userId);
+      const gate = await import("../_shared/adminGate.ts");
+      try {
+        await gate.resolveKeyForEmail(owner?.user?.email?.toLowerCase() ?? null, undefined);
+      } catch (e) {
+        return gate.byokErrorResponse(e, corsHeaders);
+      }
     } else {
       // Called by user — verify JWT via getClaims
       const authHeader = req.headers.get("Authorization");
@@ -567,190 +589,255 @@ serve(async (req) => {
     if (agentError || !agent) throw new Error("Agent not found or access denied");
     logStep("Agent loaded", { name: agent.name, trigger: agent.trigger_type, output: agent.output_type });
 
-    const executionId = crypto.randomUUID();
     const startTime = Date.now();
+    const settings = (agent.settings ?? {}) as Record<string, any>;
+    const policy = resolveRetryPolicy(settings);
+    // Human-in-the-loop: the run pauses *before* the irreversible half — the
+    // send — never after it. An approval that arrives once the email is gone
+    // is theatre.
+    const requireApproval = settings.requireApproval === true;
 
-    await supabaseClient.from("agent_executions").insert({
-      id: executionId,
-      agent_id: agentId,
-      user_id: userId,
-      status: "started",
+    const rawOutputConfig = agent.output_config as any;
+    const outputConfig = rawOutputConfig?.config || rawOutputConfig || {};
+    const outputType = agent.output_type || rawOutputConfig?.type || "email";
+
+    // ── Resolve the run: fresh start, or resume a paused one ──────────────
+    let executionId: string;
+    let steps: StepRecord[] = [];
+    let carriedContent = "";
+    let resuming = false;
+
+    if (resumeExecutionId) {
+      const { data: prior } = await supabaseClient
+        .from("agent_executions")
+        .select("id,user_id,agent_id,status,results")
+        .eq("id", resumeExecutionId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!prior || prior.agent_id !== agentId) throw new Error("Run not found or access denied");
+      if (prior.status !== "awaiting_approval") {
+        throw new Error(`Run is ${prior.status}; only a run awaiting approval can be resumed`);
+      }
+      const checkpoint = (prior.results as any)?.checkpoint ?? {};
+      steps = Array.isArray(checkpoint.steps) ? checkpoint.steps : [];
+      carriedContent = String(checkpoint.content ?? "");
+      executionId = prior.id;
+      resuming = true;
+
+      if (approve === false) {
+        await supabaseClient.from("agent_executions").update({
+          status: "failed",
+          error: "held by operator — delivery was not sent",
+          duration: Date.now() - startTime,
+          results: { checkpoint: { steps, content: carriedContent }, actions: steps, hitl: "rejected" },
+        }).eq("id", executionId);
+        await supabaseClient.from("automated_agents").update({
+          total_runs: (agent.total_runs || 0) + 1,
+          failed_runs: (agent.failed_runs || 0) + 1,
+          last_run: new Date().toISOString(),
+        }).eq("id", agentId);
+        void emitPull(userId, {
+          organ: "zahten", capability: "hitl", fromSurface: "zahten", status: "fail",
+          quote: agent.name, meta: { execution_id: executionId, decision: "rejected" },
+        });
+        return new Response(JSON.stringify({ success: false, executionId, status: "failed", held: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
+      }
+    } else {
+      executionId = crypto.randomUUID();
+      await supabaseClient.from("agent_executions").insert({
+        id: executionId,
+        agent_id: agentId,
+        user_id: userId,
+        status: "started",
+      });
+    }
+
+    const ctx: RunAttemptCtx = { userId, agentName: agent.name, executionId };
+
+    void emitPull(userId, {
+      organ: "zahten",
+      capability: resuming ? "hitl" : "run",
+      fromSurface: cronMode ? "scheduler" : "zahten",
+      status: "ok",
+      quote: agent.name,
+      meta: { execution_id: executionId, resumed: resuming, trigger: agent.trigger_type },
     });
+
+    /** Commit progress so a crash resumes here instead of replaying side effects. */
+    const commit = async (status: string, content: string) => {
+      await supabaseClient.from("agent_executions").update({
+        status,
+        results: { checkpoint: { steps, content }, actions: steps },
+      }).eq("id", executionId);
+    };
 
     try {
       const actions = Array.isArray(agent.actions) ? agent.actions : [];
-      const results: any[] = [];
-      let aiOutput = "";
+      let aiOutput = carriedContent;
 
-      // ── Execute Actions ──
-      for (const action of actions.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))) {
-        logStep("Executing action", { type: action.type, order: action.order });
+      if (!resuming) {
+        const ordered = [...actions].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
 
-        switch (action.type) {
-          case "ai_generate": {
-            const prompt = action.config?.prompt || agent.description || agent.name;
-            const systemPrompt = `You are an Aureon AI Agent named "${agent.name}". Execute the user's task precisely. Provide actionable, detailed, and well-formatted output. Today's date is ${new Date().toISOString().split('T')[0]}.`;
-            aiOutput = await callGemini(prompt, systemPrompt);
-            results.push({ type: "ai_generate", output: aiOutput, status: "success" });
+        for (let i = 0; i < ordered.length; i++) {
+          const action = ordered[i];
+          const type = String(action?.type ?? "unknown");
+          const order = Number(action?.order ?? i + 1);
+          logStep("Step", { type, order });
+
+          // A step with no runner behind it says so. It never reports green.
+          const unbound = UNBOUND_STEPS[type];
+          if (unbound) {
+            steps.push({ type, order, status: "skipped", output: unbound, attempts: 0, durationMs: 0 });
+            await commit("running", aiOutput);
+            continue;
+          }
+
+          const attempt = await attemptStep(ctx, type, policy, async () => {
+            switch (type) {
+              // ── Model steps: procedure text, never an identity ──────────
+              case "ai_generate":
+              case "generate_report":
+              case "generate_content":
+              case "generate_analytics":
+              case "send_email":
+              case "send_reminder": {
+                const cfg = action.config ?? {};
+                const task =
+                  cfg.prompt ??
+                  (type === "generate_report"
+                    ? `Write a ${String(cfg.reportType ?? "daily summary").replace(/_/g, " ")} for ${new Date().toISOString().slice(0, 10)}.`
+                    : type === "generate_content"
+                      ? `Produce ${Number(cfg.count ?? 1)} pieces of ${String(cfg.contentType ?? "general").replace(/_/g, " ")} content.`
+                      : type === "generate_analytics"
+                        ? "Summarise the analytics for the current period."
+                        : type === "send_email"
+                          ? `Draft a ${String(cfg.template ?? "general")} email.`
+                          : type === "send_reminder"
+                            ? `Write the reminder for: ${agent.description || agent.name}.`
+                            : agent.description || agent.name);
+                const procedure = `${PROCEDURE_PACKS[type] ?? DEFAULT_PACK}\nToday is ${new Date().toISOString().slice(0, 10)}.`;
+                const out = await callGemini(String(task), procedure);
+                return { output: out, organ: undefined as string | undefined };
+              }
+
+              // ── Real tool steps: a live organ runs, or the step fails ───
+              case "scrape_web":
+              case "check_stock_price": {
+                const cfg = action.config ?? {};
+                const query = String(
+                  cfg.query ?? cfg.url ??
+                  (type === "check_stock_price"
+                    ? `${cfg.symbol ?? "market"} price today`
+                    : agent.description || agent.name),
+                ).slice(0, 300);
+                const raw = await callChildTool(ctx, "zophiel-search", "zophiel", { query, mode: "web", fast: true });
+                const parsed = JSON.parse(raw);
+                const hits = Array.isArray(parsed?.results) ? parsed.results : [];
+                if (!hits.length) throw new Error(`no live result for "${query}"`);
+                const lines = hits.slice(0, 8).map((h: any, n: number) =>
+                  `${n + 1}. ${h.title ?? h.url ?? "untitled"} — ${String(h.snippet ?? h.description ?? "").slice(0, 220)}\n   ${h.url ?? ""}`,
+                );
+                return { output: `Live results for "${query}":\n${lines.join("\n")}`, organ: "zophiel" };
+              }
+
+              default: {
+                // Unknown step types are not quietly handed to a model and
+                // called done — the definition is wrong and should say so.
+                throw new Error(`step type "${type}" has no runner in this deployment`);
+              }
+            }
+          });
+
+          if (attempt.error) {
+            steps.push({
+              type, order, status: "failed", output: "", attempts: attempt.attempts,
+              durationMs: attempt.durationMs, error: attempt.error,
+            });
+            await commit("running", aiOutput);
+            // A hard failure stops the chain: later steps assume this one ran.
             break;
           }
-          case "generate_report": {
-            const reportType = action.config?.reportType || "daily_summary";
-            aiOutput = await callGemini(
-              `Generate a comprehensive ${reportType.replace(/_/g, ' ')} report for today (${new Date().toISOString().split('T')[0]}). Include key insights, trends, and actionable recommendations.`,
-              `You are an intelligence report generator for Aureon.`
-            );
-            results.push({ type: "generate_report", output: aiOutput, status: "success" });
-            break;
-          }
-          case "generate_content": {
-            const contentType = action.config?.contentType || "general";
-            const count = action.config?.count || 1;
-            aiOutput = await callGemini(
-              `Generate ${count} pieces of ${contentType.replace(/_/g, ' ')} content. Make it engaging and original. Today: ${new Date().toISOString().split('T')[0]}.`,
-              `You are a professional content creator for Aureon.`
-            );
-            results.push({ type: "generate_content", output: aiOutput, status: "success" });
-            break;
-          }
-          case "generate_analytics": {
-            aiOutput = await callGemini(
-              `Generate a comprehensive analytics summary report with key metrics, trends, anomalies, and actionable insights.`,
-              `You are a data analytics specialist for Aureon.`
-            );
-            results.push({ type: "generate_analytics", output: aiOutput, status: "success" });
-            break;
-          }
-          case "format_report": {
-            results.push({ type: "format_report", output: `Report formatted as ${action.config?.format || "text"}`, status: "success" });
-            break;
-          }
-          case "scrape_web": {
-            aiOutput = await callGemini(
-              `Provide a summary of the latest developments, news, and important changes for today (${new Date().toISOString().split('T')[0]}). Technology, AI, business.`,
-              `You are a web intelligence monitor.`
-            );
-            results.push({ type: "scrape_web", output: aiOutput, status: "success" });
-            break;
-          }
-          case "compare_changes": {
-            results.push({ type: "compare_changes", output: "Changes compared with previous snapshot", status: "success" });
-            break;
-          }
-          case "check_stock_price": {
-            aiOutput = await callGemini(
-              `Provide a brief market overview including major indices, notable stock movements, and key economic indicators.`,
-              `You are a financial market analyst.`
-            );
-            results.push({ type: "check_stock_price", output: aiOutput, status: "success" });
-            break;
-          }
-          case "format_alert": {
-            results.push({ type: "format_alert", output: "Alert formatted and ready", status: "success" });
-            break;
-          }
-          case "send_reminder": {
-            aiOutput = await callGemini(
-              `Create a motivating daily reminder message. Be concise, uplifting, and actionable.`,
-              `You are a personal productivity coach.`
-            );
-            results.push({ type: "send_reminder", output: aiOutput, status: "success" });
-            break;
-          }
-          case "send_email": {
-            const template = action.config?.template || "general";
-            aiOutput = await callGemini(
-              `Write a professional ${template} email. Keep it concise and engaging.`,
-              `You are an email copywriter.`
-            );
-            results.push({ type: "send_email", output: aiOutput, status: "success" });
-            break;
-          }
-          case "run_tests": {
-            results.push({ type: "run_tests", output: "Test suite executed — all checks passed", status: "success" });
-            break;
-          }
-          case "deploy": {
-            results.push({ type: "deploy", output: "Deployment pipeline triggered", status: "success" });
-            break;
-          }
-          case "analyze_video": {
-            results.push({ type: "analyze_video", output: "Video analysis queued", status: "success" });
-            break;
-          }
-          case "process_image": {
-            results.push({ type: "process_image", output: `Image processing: ${(action.config?.operations || []).join(', ')}`, status: "success" });
-            break;
-          }
-          default: {
-            aiOutput = await callGemini(
-              `Execute the following task: "${action.type}". Provide detailed results.`,
-              `You are an Aureon AI Agent executing automated tasks.`
-            );
-            results.push({ type: action.type, output: aiOutput, status: "success" });
-          }
+
+          const value = attempt.value as { output: string; organ?: string };
+          aiOutput = value.output || aiOutput;
+          steps.push({
+            type, order, status: "success", output: value.output.slice(0, 4000),
+            attempts: attempt.attempts, durationMs: attempt.durationMs, organ: value.organ,
+          });
+          await commit("running", aiOutput);
         }
       }
 
-      // ── Deliver Output ──
-      const rawOutputConfig = agent.output_config as any;
-      const outputConfig = rawOutputConfig?.config || rawOutputConfig || {};
-      const outputType = agent.output_type || rawOutputConfig?.type || "email";
-      const finalContent = aiOutput || results.map(r => `[${r.type}]\n${r.output}`).join("\n\n---\n\n");
+      const finalContent = aiOutput ||
+        steps.filter((s) => s.output).map((s) => `[${s.type}]\n${s.output}`).join("\n\n---\n\n");
+      const producedSomething = steps.some((s) => s.status === "success");
 
-      logStep("Delivering output", { type: outputType });
+      // ── HITL gate ────────────────────────────────────────────────────────
+      if (requireApproval && !resuming && producedSomething) {
+        await supabaseClient.from("agent_executions").update({
+          status: "awaiting_approval",
+          duration: Date.now() - startTime,
+          results: { checkpoint: { steps, content: finalContent }, actions: steps, delivery_type: outputType },
+        }).eq("id", executionId);
+        void emitPull(userId, {
+          organ: "zahten", capability: "hitl", fromSurface: "zahten", status: "skip",
+          quote: agent.name, meta: { execution_id: executionId, decision: "pending", output: outputType },
+        });
+        logStep("Paused for approval", { executionId });
+        return new Response(JSON.stringify({
+          success: true, executionId, status: "awaiting_approval",
+          awaitingApproval: true, steps, output: finalContent.slice(0, 2000),
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+      }
 
-      let deliveryResult: any;
-      try {
-        switch (outputType) {
-          case "email":
-            deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "sms":
-            deliveryResult = await deliverSMS(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "slack":
-            deliveryResult = await deliverSlack(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "webhook":
-            deliveryResult = await deliverWebhook(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "discord":
-            deliveryResult = await deliverDiscord(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "telegram":
-            deliveryResult = await deliverTelegram(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "whatsapp":
-            deliveryResult = await deliverWhatsApp(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          case "database":
-            deliveryResult = await deliverDatabase(supabaseClient, userId, outputConfig, finalContent, agent.name);
-            break;
-          default:
-            // Fallback to email
-            deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
+      // ── Delivery ─────────────────────────────────────────────────────────
+      let deliveryResult: any = null;
+      let deliveryOk: boolean | null = null;
+
+      if (producedSomething) {
+        logStep("Delivering output", { type: outputType });
+        const delivery = await attemptStep(ctx, `deliver:${outputType}`, policy, async () => {
+          switch (outputType) {
+            case "sms": return await deliverSMS(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "slack": return await deliverSlack(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "webhook": return await deliverWebhook(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "discord": return await deliverDiscord(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "telegram": return await deliverTelegram(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "whatsapp": return await deliverWhatsApp(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            case "database": return await deliverDatabase(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            default: return await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
+          }
+        });
+        if (delivery.error) {
+          deliveryOk = false;
+          deliveryResult = { success: false, error: delivery.error };
+          steps.push({
+            type: `deliver:${outputType}`, order: 999, status: "failed", output: "",
+            attempts: delivery.attempts, durationMs: delivery.durationMs, error: delivery.error,
+          });
+        } else {
+          deliveryOk = true;
+          deliveryResult = delivery.value;
+          steps.push({
+            type: `deliver:${outputType}`, order: 999, status: "success",
+            output: `${outputType} delivered`, attempts: delivery.attempts, durationMs: delivery.durationMs,
+          });
         }
-      } catch (deliveryError) {
-        const deliveryErrMsg = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
-        logStep("Delivery failed", { type: outputType, error: deliveryErrMsg });
-        deliveryResult = { success: false, error: deliveryErrMsg };
-        results.push({ type: "output_delivery", output: `FAILED: ${deliveryErrMsg}`, status: "failed" });
       }
 
-      if (deliveryResult?.success) {
-        results.push({ type: "output_delivery", output: `${outputType} delivered successfully`, status: "success" });
-      }
-
+      const runStatus = rollUpStatus(steps, deliveryOk);
       const duration = Date.now() - startTime;
+      const firstError = steps.find((s) => s.status === "failed")?.error ?? null;
 
-      // Mark overall execution as success even if delivery partially failed
-      // (the AI work completed; delivery is logged separately)
       await supabaseClient.from("agent_executions").update({
-        status: deliveryResult?.success !== false ? "success" : "success",
+        status: runStatus,
         duration,
+        error: firstError,
         results: {
-          actions: results,
+          checkpoint: { steps, content: finalContent },
+          actions: steps,
           output: finalContent.substring(0, 5000),
           delivery: deliveryResult,
           delivery_type: outputType,
@@ -759,9 +846,12 @@ serve(async (req) => {
 
       const updatePayload: any = {
         total_runs: (agent.total_runs || 0) + 1,
-        successful_runs: (agent.successful_runs || 0) + 1,
         last_run: new Date().toISOString(),
       };
+      // Only a clean run counts as a success. Partial and failed never do —
+      // an inflated success rate is how automation loses money quietly.
+      if (runStatus === "success") updatePayload.successful_runs = (agent.successful_runs || 0) + 1;
+      if (runStatus === "failed") updatePayload.failed_runs = (agent.failed_runs || 0) + 1;
 
       if (agent.trigger_type === "schedule") {
         const schedule = (agent.trigger_config as any)?.schedule;
@@ -770,16 +860,27 @@ serve(async (req) => {
           if (nextRun) updatePayload.next_run = nextRun;
         }
       }
-
       await supabaseClient.from("automated_agents").update(updatePayload).eq("id", agentId);
 
-      logStep("Agent executed successfully", { duration, actionsCount: results.length, delivery: outputType });
+      void emitPull(userId, {
+        organ: "zahten",
+        capability: "run",
+        fromSurface: cronMode ? "scheduler" : "zahten",
+        status: runStatus === "success" ? "ok" : runStatus === "partial" ? "skip" : "fail",
+        latencyMs: duration,
+        quote: agent.name,
+        meta: { execution_id: executionId, run_status: runStatus, steps: steps.length },
+      });
+
+      logStep("Run finished", { runStatus, duration, steps: steps.length });
 
       return new Response(JSON.stringify({
-        success: true,
+        success: runStatus !== "failed",
+        status: runStatus,
         executionId,
         duration,
-        results,
+        steps,
+        results: steps,
         delivery: deliveryResult,
         output: finalContent.substring(0, 2000),
       }), {
@@ -795,6 +896,7 @@ serve(async (req) => {
         status: "failed",
         duration,
         error: errorMessage,
+        results: { checkpoint: { steps, content: carriedContent }, actions: steps },
       }).eq("id", executionId);
 
       await supabaseClient.from("automated_agents").update({
@@ -802,6 +904,12 @@ serve(async (req) => {
         failed_runs: (agent.failed_runs || 0) + 1,
         last_run: new Date().toISOString(),
       }).eq("id", agentId);
+
+      void emitPull(userId, {
+        organ: "zahten", capability: "run", fromSurface: cronMode ? "scheduler" : "zahten",
+        status: "fail", latencyMs: duration, quote: agent.name,
+        meta: { execution_id: executionId, error: errorMessage.slice(0, 120) },
+      });
 
       throw actionError;
     }
