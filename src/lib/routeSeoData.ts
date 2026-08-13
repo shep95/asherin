@@ -25,7 +25,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing | Asherin, Pro & Enterprise Plans",
     description:
-      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
+      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, Asherin Engine, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service | Asherin",
@@ -70,7 +70,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/features": {
     title: "Features | Every Asherin Intelligence Module",
     description:
-      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, NOMAD dossiers, ZALI design, ZERLAL security, and the full operator stack.",
+      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, Asherin Engine dossiers, ZALI design, ZERLAL security, and the full operator stack.",
   },
   "/benchmarks": {
     title: "Benchmarks | Asherin Model & Engine Performance",

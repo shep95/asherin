@@ -712,7 +712,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, NOMAD, AXRLEN, ZEEION, CROSS and more) ships in Asherin Pro at $399/month.
+              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, AXRLEN, ZEEION, Zerlal and more) ships in Asherin Pro at $399/month.
             </p>
           </div>
 
@@ -917,7 +917,7 @@ const Index = () => {
                 { n: "S-01", label: "Operator-set model", desc: "You choose the provider. Venice mistral-31-24b is the permissive default; your own key overrides it." },
                 { n: "S-02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
                 { n: "S-03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-                { n: "S-04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence: NOMAD, entity resolution, and dossier output." },
+                { n: "S-04", label: "Public Intelligence & Forensics", desc: "Public-source intelligence: Asherin Engine reach-back, entity resolution and cited dossier output." },
                 { n: "S-05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
                 { n: "S-06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
               ].map(({ n, label, desc }) => (
@@ -1344,7 +1344,7 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
             <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />

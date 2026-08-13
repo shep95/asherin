@@ -327,7 +327,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
       },
       {
         q: "How much does Asherin cost?",
-        a: "The core plan is $18 per month. Asherin Pro, which adds Azplen, NOMAD, Briefings, and Zophiel Pro, is $399 per month. Enterprise pricing is quoted on request.",
+        a: "The core plan is $18 per month. Asherin Pro, which adds Azplen, Asherin Engine, Briefings, and Zophiel Pro, is $399 per month. Enterprise pricing is quoted on request.",
       },
       {
         q: "Does Asherin train on my data?",
@@ -365,7 +365,7 @@ export const GEO_CONTENT: Record<string, GeoPage> = {
       },
       {
         q: "What does Asherin Pro at $399 per month add?",
-        a: "Azplen data intelligence, NOMAD OSINT agent, intelligence briefings, Cloud Intelligence Mesh, AXRLEN forecasting, ZERLAL cyber recon, and geospatial property intelligence.",
+        a: "Azplen data intelligence, the Asherin Engine harvest agent, intelligence briefings, Cloud Intelligence Mesh, AXRLEN forecasting, ZERLAL cyber recon, and geospatial property intelligence.",
       },
       {
         q: "Is there a free trial?",
