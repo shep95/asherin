@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Key, Plus, Trash2, Check, Loader2, Eye, EyeOff, ChevronDown, Zap, AlertTriangle, Brain, Search, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStepUp } from "@/components/auth/StepUpProvider";
+
 import { useToast } from "@/hooks/use-toast";
 import { AI_PROVIDERS, type ProviderConfig } from "@/lib/aiProviders";
 
@@ -33,7 +35,9 @@ interface ModelPreference {
 
 const AIKeysSettings = () => {
   const { user } = useAuth();
+  const stepUp = useStepUp();
   const { toast } = useToast();
+
   const [storedKeys, setStoredKeys] = useState<StoredKey[]>([]);
   const [preferences, setPreferences] = useState<ModelPreference>({
     active_provider: "default",
@@ -123,7 +127,11 @@ const AIKeysSettings = () => {
 
   const saveKey = async (providerId: string) => {
     if (!user || !newKeyValue.trim()) return;
+    // Writing a provider credential is a dangerous act: a hijacked tab could
+    // otherwise silently swap the key every request routes through.
+    if (!(await stepUp("save this provider key"))) return;
     setSaving(true);
+
     const { error } = await supabase.from("user_api_keys").upsert({
       user_id: user.id,
       provider: providerId,

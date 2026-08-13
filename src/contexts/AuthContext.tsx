@@ -1,12 +1,20 @@
-import { createContext, useContext, useEffect, useState, useRef, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useMemo, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { registerSession, updateSessionActivity } from "@/utils/sessionTracker";
+import { registerSession, updateSessionActivity, isSessionRevoked } from "@/utils/sessionTracker";
+import { readAssurance, sessionKeyFromToken, UNKNOWN_ASSURANCE, type Assurance } from "@/lib/accountAssurance";
+import { wipeKeyMaterial } from "@/lib/encryption";
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** How strongly the live session is authenticated, and whether it can go higher. */
+  assurance: Assurance;
+  /** True while a verified factor exists but this session is still aal1. */
+  mfaRequired: boolean;
+  /** Re-read the assurance level (call after enrolling or passing a challenge). */
+  refreshAssurance: () => Promise<Assurance>;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +22,9 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   loading: true,
+  assurance: UNKNOWN_ASSURANCE,
+  mfaRequired: false,
+  refreshAssurance: async () => UNKNOWN_ASSURANCE,
   signOut: async () => {},
 });
 
@@ -23,8 +34,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [assurance, setAssurance] = useState<Assurance>(UNKNOWN_ASSURANCE);
   const sessionRegisteredRef = useRef<string | null>(null);
   const activityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
 
   useEffect(() => {
     let mounted = true;
@@ -96,16 +109,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      if (nextSession?.user && event === "SIGNED_IN") {
-        const sid = nextSession.user.id + "_" + (nextSession.access_token?.substring(0, 8) || "x");
-        if (sessionRegisteredRef.current !== sid) {
-          sessionRegisteredRef.current = sid;
-          registerSession(nextSession.user.id, sid);
+      if (nextSession?.user && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        // Stable per-session key (GoTrue session_id claim) — survives every
+        // token refresh, so the tracked row and the revocation target agree.
+        const key = sessionKeyFromToken(nextSession.access_token);
+        if (key && sessionRegisteredRef.current !== key) {
+          sessionRegisteredRef.current = key;
+          registerSession(nextSession.user.id, key);
+        }
+      }
+
+      // Assurance is re-read on every identity-changing event. It must never be
+      // cached across sign-in boundaries: a fresh aal1 session on an account
+      // with a verified factor is exactly the case the gate exists for.
+      if (
+        event === "SIGNED_IN" ||
+        event === "INITIAL_SESSION" ||
+        event === "MFA_CHALLENGE_VERIFIED" ||
+        event === "USER_UPDATED"
+      ) {
+        if (nextSession?.user) {
+          readAssurance().then((a) => { if (mounted) setAssurance(a); });
+        } else {
+          setAssurance(UNKNOWN_ASSURANCE);
         }
       }
 
       if (event === "SIGNED_OUT") {
         sessionRegisteredRef.current = null;
+        setAssurance(UNKNOWN_ASSURANCE);
       }
     });
 
@@ -125,13 +157,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       activityIntervalRef.current = null;
     }
     if (!userId) return;
-    activityIntervalRef.current = setInterval(() => {
+    const tick = async () => {
       // Read the latest token at tick time, not closure time.
-      supabase.auth.getSession().then(({ data }) => {
-        const tok = data.session?.access_token?.substring(0, 8) || "x";
-        updateSessionActivity(userId, `${userId}_${tok}`);
-      });
-    }, 5 * 60 * 1000);
+      const { data } = await supabase.auth.getSession();
+      const key = sessionKeyFromToken(data.session?.access_token);
+      if (!key) return;
+      // If this device was signed out from another device, honour it here:
+      // GoTrue keeps the access token valid until it expires, so the local
+      // heartbeat is what makes "sign out other devices" feel immediate.
+      if (await isSessionRevoked(userId, key)) {
+        await wipeKeyMaterial(userId).catch(() => void 0);
+        await supabase.auth.signOut({ scope: "local" }).catch(() => void 0);
+        window.location.href = "/auth?revoked=1";
+        return;
+      }
+      updateSessionActivity(userId, key);
+    };
+    activityIntervalRef.current = setInterval(tick, 60 * 1000);
     return () => {
       if (activityIntervalRef.current) {
         clearInterval(activityIntervalRef.current);
@@ -140,16 +182,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [userId]);
 
+  const refreshAssurance = useCallback(async () => {
+    const a = await readAssurance();
+    setAssurance(a);
+    return a;
+  }, []);
+
   const signOut = useMemo(() => async () => {
+    // Drop the account DEK from memory and the legacy device keystore BEFORE
+    // clearing the session — a shared machine must not keep openable material.
+    const uid = user?.id;
+    if (uid) await wipeKeyMaterial(uid).catch(() => void 0);
+    try { sessionStorage.removeItem("aureon_session_registered"); } catch { /* no-op */ }
     await supabase.auth.signOut().catch(() => void 0);
     sessionRegisteredRef.current = null;
     window.location.href = "/";
-  }, []);
+  }, [user?.id]);
 
   const value = useMemo(
-    () => ({ user, session, loading, signOut }),
-    [user, session, loading, signOut]
+    () => ({
+      user,
+      session,
+      loading,
+      assurance,
+      mfaRequired: assurance.challengeRequired,
+      refreshAssurance,
+      signOut,
+    }),
+    [user, session, loading, assurance, refreshAssurance, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+
 };

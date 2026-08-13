@@ -51,7 +51,7 @@ const FAQ = [
   },
   {
     q: "Is my data private?",
-    a: "Yes. End-to-end encryption is on by default. You can delete or export your data at any time from the dashboard. Asherin does not sell or share user data.",
+    a: "Yes. Conversations are encrypted at rest with a key scoped to your account, and TLS protects them in transit. You can delete or export your data at any time from the dashboard. Asherin does not sell or share user data.",
   },
   {
     q: "What payment methods are accepted?",

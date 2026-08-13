@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { StepUpProvider } from "@/components/auth/StepUpProvider";
+
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import React, { Suspense } from "react";
 import RootErrorBoundary from "@/components/RootErrorBoundary";
@@ -137,8 +139,10 @@ const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <StepUpProvider>
       <SubscriptionProvider>
       <TooltipProvider>
+
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -330,7 +334,9 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>
+      </StepUpProvider>
     </AuthProvider>
+
   </QueryClientProvider>
 );
 

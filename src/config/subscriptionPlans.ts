@@ -151,7 +151,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Vedic Strategy",
       "Memory Center & Code Snippets Vault",
       "Projects, Library, My Stats, Self-Access Learning & Bug Reports",
-      "End-to-end encryption",
+      "Account-scoped encryption at rest",
     ],
   },
   {
@@ -170,7 +170,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Unlimited messages (BYOK required)",
       "Uncensored AI chat",
       "Bring Your Own AI Key (required)",
-      "End-to-end encryption",
+      "Account-scoped encryption at rest",
       "Zophiel Search Engine",
       "Intelligence Notebooks",
       "PDF, Slideshow & E-Book generators",
@@ -327,7 +327,7 @@ export interface TierFeatureCard {
 export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
   { label: "Aureon AI", desc: "Uncensored intelligence engine with persistent memory and calibration.", tier: "All tiers" },
   { label: "Bring Your Own AI Key", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", tier: "All tiers" },
-  { label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
+  { label: "Account-Scoped Encryption", desc: "Messages are encrypted at rest with a key bound to your account, and are never used as training data.", tier: "All tiers" },
   { label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
   { label: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", tier: "All tiers" },
   { label: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", tier: "All tiers" },

@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStepUp } from "@/components/auth/StepUpProvider";
+import { reauthenticateWithPassword } from "@/lib/accountAssurance";
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   Shield, ShieldCheck, ShieldAlert, Smartphone, Monitor, Tablet,
@@ -98,7 +101,9 @@ const eventIcon = (type: string, outcome: string) => {
 };
 
 const GuardianVaultView = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const stepUp = useStepUp();
+
   const { toast } = useToast();
   const [tab, setTab] = useState<VaultTab>("overview");
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -201,34 +206,82 @@ const GuardianVaultView = () => {
     logVisit();
   }, [user]);
 
+  /**
+   * Revocation is only real if the refresh token dies with the row.
+   *
+   * GoTrue exposes exactly one revocation verb to a normal user:
+   * signOut({ scope: "others" }) — it invalidates every OTHER session's
+   * refresh token and keeps this one. There is no per-row API, so revoking a
+   * single device also ends the rest, and the UI says that instead of
+   * pretending a row-level kill happened. The local heartbeat on each other
+   * device also sees revoked_at and clears its key material within a minute,
+   * which closes the window while their access token is still inside its TTL.
+   */
+  const killOtherSessions = async (): Promise<boolean> => {
+    const { error } = await supabase.auth.signOut({ scope: "others" });
+    if (error) {
+      toast({
+        title: "Could not end other sessions",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const revokeSession = async (sessionId: string) => {
     if (!user) return;
-    await supabase.from("user_sessions").update({ revoked_at: new Date().toISOString() }).eq("id", sessionId);
+    const target = sessions.find((s) => s.id === sessionId);
+    if (target?.is_current) {
+      if (!(await stepUp("sign out this device"))) return;
+      await supabase.from("user_sessions").update({ revoked_at: new Date().toISOString() }).eq("id", sessionId);
+      await signOut();
+      return;
+    }
+    if (!(await stepUp("sign out other devices"))) return;
+    if (!(await killOtherSessions())) return;
+    const now = new Date().toISOString();
+    await supabase
+      .from("user_sessions")
+      .update({ revoked_at: now })
+      .eq("user_id", user.id)
+      .is("revoked_at", null)
+      .eq("is_current", false);
     await supabase.from("account_activity_log").insert({
       user_id: user.id,
       event_type: "session_revoke",
-      description: "Revoked active session",
+      description: "Signed out every other device (refresh tokens invalidated)",
       outcome: "success",
     });
-    reportSecurityEvent({ type: "session_revoke", description: "An active session was revoked from Guardian Vault." });
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
-    toast({ title: "Session revoked" });
+    reportSecurityEvent({ type: "session_revoke", description: "Every other session was signed out from Guardian Vault." });
+    setSessions(prev => prev.filter(s => s.is_current));
+    toast({
+      title: "Other devices signed out",
+      description: "Sign-out applies to every other device — the platform has no single-device revoke.",
+    });
   };
 
   const revokeAllOther = async () => {
     if (!user) return;
+    if (!(await stepUp("sign out other devices"))) return;
+    if (!(await killOtherSessions())) return;
     const otherSessions = sessions.filter(s => !s.is_current);
-    for (const s of otherSessions) {
-      await supabase.from("user_sessions").update({ revoked_at: new Date().toISOString() }).eq("id", s.id);
-    }
+    await supabase
+      .from("user_sessions")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("revoked_at", null)
+      .eq("is_current", false);
     await supabase.from("account_activity_log").insert({
       user_id: user.id,
       event_type: "session_revoke",
-      description: `Revoked ${otherSessions.length} other sessions`,
+      description: `Signed out ${otherSessions.length} other session(s) — refresh tokens invalidated`,
       outcome: "success",
     });
+    reportSecurityEvent({ type: "session_revoke", description: "Every other session was signed out from Guardian Vault." });
     setSessions(prev => prev.filter(s => s.is_current));
-    toast({ title: `${otherSessions.length} sessions revoked` });
+    toast({ title: `${otherSessions.length} other session(s) signed out` });
   };
 
   const calcStrength = (pw: string) => {
@@ -259,6 +312,17 @@ const GuardianVaultView = () => {
       toast({ title: "Password too weak — use uppercase, lowercase, numbers, and special characters", variant: "destructive" });
       return;
     }
+    // updateUser({ password }) accepts whoever holds the session. A borrowed
+    // tab is exactly that, so the current password is verified first.
+    if (user?.email && passwordForm.current) {
+      const reason = await reauthenticateWithPassword(user.email, passwordForm.current);
+      if (reason) {
+        toast({ title: reason, variant: "destructive" });
+        return;
+      }
+    } else if (!(await stepUp("change your password"))) {
+      return;
+    }
     setPasswordLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: passwordForm.new_ });
@@ -270,13 +334,23 @@ const GuardianVaultView = () => {
         outcome: "success",
       });
       reportSecurityEvent({ type: "password_change", description: "Your account password was changed." });
+      // A password change that leaves old devices signed in is theatre.
+      await killOtherSessions();
+      await supabase
+        .from("user_sessions")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("user_id", user!.id)
+        .is("revoked_at", null)
+        .eq("is_current", false);
+      setSessions(prev => prev.filter(s => s.is_current));
       setPasswordForm({ current: "", new_: "", confirm: "" });
-      toast({ title: "Password updated" });
+      toast({ title: "Password updated", description: "Every other device was signed out." });
     } catch (e: any) {
       toast({ title: "Failed to update password", description: e.message, variant: "destructive" });
     }
     setPasswordLoading(false);
   };
+
 
   const saveNotifPrefs = async (updated: NotifPrefs) => {
     if (!user) return;
@@ -647,8 +721,17 @@ const GuardianVaultView = () => {
             <>
               <div>
                 <h2 className="text-sm font-extralight tracking-wide text-foreground">Multi-Factor Authentication</h2>
-                <p className="text-[10px] text-muted-foreground/50 mt-0.5">Add an extra verification step to protect your account</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                  Once a factor is verified, sign-in stops at the challenge screen — the dashboard does not open until the code is accepted, and password change, data export, account deletion and provider-key writes ask again.
+                </p>
               </div>
+
+              <div className="rounded-xl border border-border/20 bg-card/10 px-4 py-3">
+                <p className="text-[10px] font-light text-muted-foreground/70">
+                  Authenticator app (TOTP) is the second factor this account supports today. Passkeys and hardware security keys are not enabled on this platform — nothing here pretends otherwise.
+                </p>
+              </div>
+
 
               {mfaFactors.filter((f: any) => f.status === "verified").length > 0 && (
                 <div className="space-y-2">
@@ -879,7 +962,9 @@ const GuardianVaultView = () => {
                   {([
                     { key: "notify_email", label: "Email Notifications", icon: Globe },
                     { key: "notify_push", label: "Device Notifications (laptop & phone)", icon: Monitor },
-                    { key: "notify_sms", label: "SMS Notifications", icon: Smartphone },
+                    // No SMS sender is wired to this account, so the toggle is
+                    // not offered — a switch that changes nothing is a lie.
+
                   ] as { key: keyof NotifPrefs; label: string; icon: React.ElementType }[]).map(ch => (
                     <div key={ch.key} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/10 px-4 py-3">
                       <button

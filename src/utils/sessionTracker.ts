@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 function parseUserAgent(): { browser: string; os: string; deviceType: string } {
   const ua = navigator.userAgent;
-  
+
   // Browser detection
   let browser = "Unknown";
   if (ua.includes("Firefox/")) browser = "Firefox";
@@ -29,47 +29,51 @@ function parseUserAgent(): { browser: string; os: string; deviceType: string } {
   return { browser, os, deviceType };
 }
 
-async function fetchPublicIP(): Promise<string | null> {
-  try {
-    const res = await fetch("https://api.ipify.org?format=json", { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.ip || null;
-  } catch {
-    return null;
-  }
+interface NetContext {
+  ip: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
 }
 
-async function fetchGeoFromIP(ip: string): Promise<{ city: string | null; region: string | null; country: string | null; latitude: number | null; longitude: number | null }> {
+const EMPTY_CONTEXT: NetContext = { ip: null, city: null, region: null, country: null };
+
+/**
+ * Network context comes from our own edge (which already terminates the
+ * request) instead of ipify + ipapi. No third party learns the operator's
+ * address, and unknown fields stay null rather than being invented.
+ */
+async function fetchNetContext(): Promise<NetContext> {
   try {
-    const res = await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return { city: null, region: null, country: null, latitude: null, longitude: null };
-    const data = await res.json();
+    const { data, error } = await supabase.functions.invoke("session-context");
+    if (error || !data) return EMPTY_CONTEXT;
     return {
-      city: data.city || null,
-      region: data.region || null,
-      country: data.country_name || null,
-      latitude: typeof data.latitude === "number" ? data.latitude : null,
-      longitude: typeof data.longitude === "number" ? data.longitude : null,
+      ip: typeof data.ip === "string" ? data.ip : null,
+      city: typeof data.city === "string" ? data.city : null,
+      region: typeof data.region === "string" ? data.region : null,
+      country: typeof data.country === "string" ? data.country : null,
     };
   } catch {
-    return { city: null, region: null, country: null, latitude: null, longitude: null };
+    return EMPTY_CONTEXT;
   }
 }
 
 const SESSION_REGISTERED_KEY = "aureon_session_registered";
 
-export async function registerSession(userId: string, sessionId: string) {
-  // Prevent duplicate registration within the same browser session
+/**
+ * `sessionKey` MUST be the stable per-session key (GoTrue `session_id` claim),
+ * not a slice of the access token: the token rotates hourly, which used to
+ * orphan the row the heartbeat was supposed to keep alive and made revocation
+ * point at a device that no longer matched.
+ */
+export async function registerSession(userId: string, sessionKey: string) {
   const registeredId = sessionStorage.getItem(SESSION_REGISTERED_KEY);
-  if (registeredId === sessionId) return;
+  if (registeredId === sessionKey) return;
 
   const { browser, os, deviceType } = parseUserAgent();
-  const ip = await fetchPublicIP();
-  const geo = ip ? await fetchGeoFromIP(ip) : { city: null, region: null, country: null, latitude: null, longitude: null };
+  const net = await fetchNetContext();
 
-  // Create a hash-like identifier from session ID (not actual crypto hash, just a fingerprint)
-  const tokenHash = sessionId.replace(/-/g, "").substring(0, 32);
+  const tokenHash = sessionKey.replace(/-/g, "").substring(0, 32);
 
   // Mark all other sessions for this user as not current
   await supabase
@@ -86,7 +90,9 @@ export async function registerSession(userId: string, sessionId: string) {
   const utm_campaign = params.get("utm_campaign") || null;
   const landing_path = typeof window !== "undefined" ? window.location.pathname : null;
 
-  // Upsert current session
+  // Upsert current session. A row that was previously revoked and is being
+  // re-registered (same device signed back in) must clear revoked_at, or the
+  // heartbeat would immediately sign the operator out again.
   const { error } = await supabase.from("user_sessions").upsert(
     {
       user_id: userId,
@@ -94,12 +100,10 @@ export async function registerSession(userId: string, sessionId: string) {
       browser,
       os,
       device_type: deviceType,
-      ip_address: ip,
-      city: geo.city,
-      region: geo.region,
-      country: geo.country,
-      latitude: geo.latitude,
-      longitude: geo.longitude,
+      ip_address: net.ip,
+      city: net.city,
+      region: net.region,
+      country: net.country,
       current_path: landing_path,
       landing_path,
       referrer,
@@ -107,13 +111,14 @@ export async function registerSession(userId: string, sessionId: string) {
       utm_medium,
       utm_campaign,
       is_current: true,
+      revoked_at: null,
       last_active_at: new Date().toISOString(),
     },
     { onConflict: "session_token_hash" }
   );
 
   if (!error) {
-    sessionStorage.setItem(SESSION_REGISTERED_KEY, sessionId);
+    sessionStorage.setItem(SESSION_REGISTERED_KEY, sessionKey);
   }
 
   // Log the login event to the activity log
@@ -121,15 +126,15 @@ export async function registerSession(userId: string, sessionId: string) {
     user_id: userId,
     event_type: "login",
     description: `Signed in from ${browser} on ${os}`,
-    ip_address: ip,
+    ip_address: net.ip,
     device_info: `${deviceType} — ${browser} / ${os}`,
-    location: [geo.city, geo.region, geo.country].filter(Boolean).join(", ") || null,
+    location: [net.city, net.region, net.country].filter(Boolean).join(", ") || null,
     outcome: "success",
   });
 }
 
-export async function updateSessionActivity(userId: string, sessionId: string, path?: string) {
-  const tokenHash = sessionId.replace(/-/g, "").substring(0, 32);
+export async function updateSessionActivity(userId: string, sessionKey: string, path?: string) {
+  const tokenHash = sessionKey.replace(/-/g, "").substring(0, 32);
   await supabase
     .from("user_sessions")
     .update({
@@ -138,4 +143,21 @@ export async function updateSessionActivity(userId: string, sessionId: string, p
     })
     .eq("user_id", userId)
     .eq("session_token_hash", tokenHash);
+}
+
+/**
+ * Has this device's row been revoked from another device? Returns true only on
+ * a definite revocation — a network failure returns false so a flaky link can
+ * never boot an operator mid-session.
+ */
+export async function isSessionRevoked(userId: string, sessionKey: string): Promise<boolean> {
+  const tokenHash = sessionKey.replace(/-/g, "").substring(0, 32);
+  const { data, error } = await supabase
+    .from("user_sessions")
+    .select("revoked_at")
+    .eq("user_id", userId)
+    .eq("session_token_hash", tokenHash)
+    .maybeSingle();
+  if (error || !data) return false;
+  return !!data.revoked_at;
 }

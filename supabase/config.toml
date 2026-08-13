@@ -14,7 +14,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.aureon-free-chat]
 verify_jwt = false
@@ -26,19 +26,19 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-checkout]
-verify_jwt = false
+verify_jwt = true
 
 [functions.check-subscription]
-verify_jwt = false
+verify_jwt = true
 
 [functions.customer-portal]
-verify_jwt = false
+verify_jwt = true
 
 [functions.export-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.delete-account]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ddg-search]
 verify_jwt = false
@@ -107,13 +107,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.google-oauth]
-verify_jwt = false
+verify_jwt = true
 
 [functions.google-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.github-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.tracker-pair]
 verify_jwt = false
@@ -256,4 +256,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.asherin-kernel-proxy]
+verify_jwt = true
+
+[functions.message-crypto]
+verify_jwt = true
+
+[functions.session-context]
 verify_jwt = true

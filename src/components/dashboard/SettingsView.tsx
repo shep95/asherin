@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus, Send, Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStepUp } from "@/components/auth/StepUpProvider";
+
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
@@ -95,6 +97,8 @@ const GitHubSettings = () => {
 
 const SettingsView = () => {
   const { user } = useAuth();
+  const stepUp = useStepUp();
+
   const { toast } = useToast();
   const { subscribed, tierKey } = useSubscription();
   const [settings, setSettings] = useState<any>(null);
@@ -290,7 +294,11 @@ const SettingsView = () => {
 
   const handleExportData = async () => {
     if (!user) return;
+    // The export bundle is the whole account in one file — prove identity now,
+    // not "at some point during this session".
+    if (!(await stepUp("export your data"))) return;
     setExporting(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
@@ -322,7 +330,10 @@ const SettingsView = () => {
 
   const handleDeleteAccount = async () => {
     if (!user || deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    // Irreversible. The typed phrase proves intent; step-up proves identity.
+    if (!(await stepUp("delete this account"))) return;
     setDeleting(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");

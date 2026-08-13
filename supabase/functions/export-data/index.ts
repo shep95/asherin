@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireAssuredUser } from "../_shared/assuranceGate.ts";
+
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // [Finding #2 & #10] — Stream data in batches instead of buffering entire dataset in memory
@@ -29,22 +31,24 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // The export is the entire account in one download — aal2 required when
+    // the account has a verified factor.
+    const gate = await requireAssuredUser(req);
+    if (!gate.ok) {
+      return new Response(JSON.stringify(gate.body), {
+        status: gate.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
+      global: { headers: { Authorization: authHeader! } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const userId = gate.caller.userId;
 
-    const userId = user.id;
 
     const tables = [
       "profiles", "conversations", "messages", "memory_entries",
