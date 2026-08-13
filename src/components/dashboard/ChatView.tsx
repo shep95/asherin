@@ -21,6 +21,7 @@ import ScrollIntelligence from "./ScrollIntelligence";
 import ThinkingPanel, { ThinkingPanelOrDots } from "./ThinkingPanel";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
+import { emitPull } from "@/lib/connect/emitPull";
 import { renderLinkPreviews } from "./LinkPreview";
 import type { QueueItem } from "./MessageQueuePanel";
 import type { SelectedModel } from "./MultiModelSelector";
