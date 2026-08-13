@@ -26,7 +26,7 @@ import { liveAccounts, harvestBodies, hasScope } from "../_shared/googleMesh.ts"
 import { gmailQuery, parseRideEmail, foldRides, type ParsedRideEmail } from "../_shared/rideshareIngest.ts";
 import { runDeepSweep, loadSettings, type GuardianSettings } from "../_shared/rideshareSweep.ts";
 import { fastPass, type RideInput } from "../_shared/rideshareGuardian.ts";
-import { ADMIN_EMAILS } from "../_shared/constants.ts";
+import { isStaffEmail } from "../_shared/identityHash.ts";
 import { assessAreaByLabel, alertAreaRisk, ALERTING_LEVELS, type AreaAssessment } from "../_shared/areaRisk.ts";
 import { notifyIntel } from "../_shared/intelNotify.ts";
 import type { ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
@@ -57,7 +57,7 @@ const admin = (): SupabaseClient =>
  *  own account tier rather than a request header. */
 function cfgForEmail(email: string | null): ZophielByokConfig | null {
   const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
-  if (email && ADMIN_EMAILS.has(email.toLowerCase()) && gemini) {
+  if (isStaffEmail(email) && gemini) {
     return { provider: "google", model: "gemini-flash-latest", apiKey: gemini };
   }
   const venice = Deno.env.get("VENICE_API_KEY") || "";

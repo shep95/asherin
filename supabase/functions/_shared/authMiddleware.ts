@@ -3,10 +3,10 @@
 // requireAdmin instead of re-implementing the JWT dance.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { ADMIN_EMAILS } from "./constants.ts";
+import { isStaffEmail } from "./identityHash.ts";
 
-// Re-export for backwards compatibility with existing imports.
-export { ADMIN_EMAILS };
+// Re-export so callers gate on the digest check, never on a list of inboxes.
+export { isStaffEmail };
 
 export interface AuthedUser {
   id: string;
@@ -44,7 +44,7 @@ export async function requireUser(req: Request): Promise<AuthedUser> {
   if (error || !data?.user?.email) throw new AuthError("Invalid token", 401);
 
   const email = data.user.email.toLowerCase();
-  return { id: data.user.id, email, isAdmin: ADMIN_EMAILS.has(email) };
+  return { id: data.user.id, email, isAdmin: isStaffEmail(email) };
 }
 
 /**
