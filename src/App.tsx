@@ -162,21 +162,21 @@ const App = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/comparison" element={<BlogComparison />} />
             <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
-            <Route path="/blog/uncensored-ai-text-generator-guide" element={<Navigate to="/blog" replace />} />} />
+            <Route path="/blog/uncensored-ai-text-generator-guide" element={<Navigate to="/blog" replace />} />
             <Route path="/blog/what-is-ai-osint" element={<BlogWhatIsAiOsint />} />
             <Route path="/blog/sovereign-ai-platforms" element={<BlogSovereignAiPlatforms />} />
             <Route path="/blog/ai-without-restrictions" element={<BlogAiWithoutRestrictions />} />
-            <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/world-cup-2026-group-matches-0623" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/world-cup-2026-group-matches-0625" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/russia-ukraine-war-2026-endgame" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/china-taiwan-2026-flashpoint" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/predictions/israel-iran-2026-shadow-war" element={<Navigate to="/blog" replace />} />} />
-            <Route path="/blog/the-crypto-dump-october-2026" element={<Navigate to="/blog" replace />} />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0622" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0623" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0624" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/world-cup-2026-group-matches-0625" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/peru-2026-keiko-fujimori" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/russia-ukraine-war-2026-endgame" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/china-taiwan-2026-flashpoint" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/predictions/israel-iran-2026-shadow-war" element={<Navigate to="/blog" replace />} />
+            <Route path="/blog/the-crypto-dump-october-2026" element={<Navigate to="/blog" replace />} />
             <Route path="/blog/elite-corporations-algorithms-vs-axrlen" element={<BlogEliteCorporationsAlgorithmsVsAxrlen />} />
-            <Route path="/blog/btc-daily-predictions" element={<Navigate to="/blog" replace />} />} />
+            <Route path="/blog/btc-daily-predictions" element={<Navigate to="/blog" replace />} />
             <Route path="/blog/the-truth-and-reality-of-wars" element={<BlogTheTruthAndRealityOfWars />} />
             <Route path="/blog/zaxin-tactical-ble-intelligence" element={<BlogZaxinTacticalBleIntelligence />} />
             <Route path="/blog/code-narrative-quantum-collapse" element={<BlogCodeNarrativeQuantumCollapse />} />
@@ -199,19 +199,19 @@ const App = () => (
                 dashboard, so /zophiel points at the real surface. */}
             <Route path="/features" element={<Navigate to="/software" replace />} />
             <Route path="/zophiel" element={<Navigate to="/dashboard/search" replace />} />
-            <Route path="/zaxin/theories" element={<Navigate to="/" replace />} />} />
+            <Route path="/zaxin/theories" element={<Navigate to="/" replace />} />
             <Route path="/updates" element={<Updates />} />
-            <Route path="/investors" element={<Navigate to="/" replace />} />} />
-            <Route path="/valuation" element={<Navigate to="/" replace />} />} />
+            <Route path="/investors" element={<Navigate to="/" replace />} />
+            <Route path="/valuation" element={<Navigate to="/" replace />} />
             <Route path="/sources" element={<Sources />} />
-            <Route path="/asherin.gov" element={<Navigate to="/" replace />} />} />
-            <Route path="/asherin-gov" element={<Navigate to="/" replace />} />} />
-            <Route path="/asherin.gov/dashboard" element={<Navigate to="/" replace />} />} />
-            <Route path="/asherin-gov/dashboard" element={<Navigate to="/" replace />} />} />
-            <Route path="/houseofasher/theories" element={<Navigate to="/" replace />} />} />
-            <Route path="/hosrad" element={<Navigate to="/" replace />} />} />
-            <Route path="/symbols-of-the-bible" element={<Navigate to="/" replace />} />} />
-            <Route path="/HOSRAD" element={<Navigate to="/" replace />} />} />
+            <Route path="/asherin.gov" element={<Navigate to="/" replace />} />
+            <Route path="/asherin-gov" element={<Navigate to="/" replace />} />
+            <Route path="/asherin.gov/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/asherin-gov/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/houseofasher/theories" element={<Navigate to="/" replace />} />
+            <Route path="/hosrad" element={<Navigate to="/" replace />} />
+            <Route path="/symbols-of-the-bible" element={<Navigate to="/" replace />} />
+            <Route path="/HOSRAD" element={<Navigate to="/" replace />} />
             <Route path="/glossary" element={<GlossaryIndex />} />
             <Route path="/glossary/sovereign-ai" element={<GlossarySovereignAi />} />
             <Route path="/glossary/uncensored-ai" element={<GlossaryUncensoredAi />} />
@@ -265,8 +265,7 @@ const App = () => (
               path="/blog/personalities-are-not-thinking-patterns"
               element={<BlogPersonalitiesToThinkingPatterns />}
             />
-            <Route path="/blog/how-to-break-any-encryption-theory" element={<Navigate to="/blog" replace />} />}
-            />
+            <Route path="/blog/how-to-break-any-encryption-theory" element={<Navigate to="/blog" replace />} />
             <Route
               path="/report/:id"
               element={
