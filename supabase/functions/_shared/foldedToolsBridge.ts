@@ -366,7 +366,7 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
         ? "daily_digest"
         : /\b(relationship\s+(graph|map)|who\s+(am\s+i|have\s+i)\s+(closest|lost\s+touch|gone\s+quiet)|who\s+is\s+going\s+quiet|going\s+dormant)\b/i.test(raw)
           ? "relationship_graph"
-          : /\b(commitments?|what\s+did\s+i\s+promise|what\s+do\s+i\s+owe|open\s+obligations?)\b/i.test(raw)
+          : /\b(commitments?|what\s+did\s+i\s+promise|what\s+do\s+i\s+owe|open\s+obligations?|what'?s\s+overdue|anything\s+overdue|am\s+i\s+overdue)\b/i.test(raw)
             ? "commitments"
             : /\b(meet\s+(recordings?|transcripts?|vault)|recordings?\s+(of|from)\s+(my\s+)?meet(ings?)?)\b/i.test(raw)
               ? "meet_vault"
@@ -642,6 +642,10 @@ export async function runFoldedTools(
     legs.push([`google-mesh:${m.action}`, (async () => {
       const payload: Record<string, unknown> = { action: m.action };
       if (m.query) payload.query = m.query;
+      if (m.action === "dossier") {
+        if (m.email) payload.email = m.email;
+        if (m.name) payload.name = m.name;
+      }
       if (m.action === "ghostwrite") {
         payload.to = m.to;
         payload.intent = m.intent;
