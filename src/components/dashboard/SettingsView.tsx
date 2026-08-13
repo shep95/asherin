@@ -14,6 +14,13 @@ import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
+import DashboardAppearanceControls from "./settings/DashboardAppearanceControls";
+import {
+  APPEARANCE_EVENT,
+  readAppearance,
+  writeAppearance,
+  type DashboardAppearance,
+} from "@/lib/dashboardAppearance";
 
 const WALLPAPERS = ALL_WALLPAPERS;
 
@@ -117,6 +124,34 @@ const SettingsView = () => {
   const [customWallpapers, setCustomWallpapers] = useState<{ name: string; url: string }[]>([]);
   const [uploadingWallpaper, setUploadingWallpaper] = useState(false);
   const [hasWallpaperAddon, setHasWallpaperAddon] = useState(false);
+  const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
+
+  // Another surface (or another tab) may change appearance; stay in step.
+  useEffect(() => {
+    const sync = () => setAppearance(readAppearance());
+    window.addEventListener(APPEARANCE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(APPEARANCE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  // One writer: local storage + live broadcast, then the account row so the
+  // next device opens on the same surface. Colour mode is free.
+  const applyAppearance = (patch: Partial<DashboardAppearance>) => {
+    const next = writeAppearance(patch);
+    setAppearance(next);
+    if (user) {
+      supabase
+        .from("user_settings")
+        .update({ dashboard_bg_mode: next.mode, dashboard_bg_color: next.color })
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.warn("appearance persist failed", error.message);
+        });
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -464,9 +499,18 @@ const SettingsView = () => {
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
           <div className="flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-sm font-light text-foreground">Dashboard Wallpaper</h3>
+            <h3 className="text-sm font-light text-foreground">Dashboard appearance</h3>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+
+          <DashboardAppearanceControls
+            appearance={appearance}
+            onChange={applyAppearance}
+            wallpaperLabel={
+              WALLPAPERS.find((w) => w.key === (localStorage.getItem("aureon_wallpaper") || "aureon"))?.label ?? "photo"
+            }
+          />
+
+          <div className={`grid grid-cols-3 gap-3 ${appearance.mode === "color" ? "hidden" : ""}`}>
             {WALLPAPERS.map((wp) => {
               const active = (localStorage.getItem("aureon_wallpaper") || "default") === wp.key;
               return (
@@ -475,6 +519,8 @@ const SettingsView = () => {
                   onClick={() => {
                     localStorage.setItem("aureon_wallpaper", wp.key);
                     window.dispatchEvent(new Event("aureon-wallpaper-change"));
+                    // Picking a photo is itself the exit from colour mode.
+                    applyAppearance({ mode: "wallpaper" });
                     // Persist to DB
                     if (user) {
                       supabase.from("user_settings").update({ wallpaper: wp.key }).eq("user_id", user.id).then();
@@ -497,7 +543,7 @@ const SettingsView = () => {
           </div>
 
           {/* Custom Wallpapers */}
-          <div className="mt-4 pt-4 border-t border-border/15 space-y-3">
+          <div className={`mt-4 pt-4 border-t border-border/15 space-y-3 ${appearance.mode === "color" ? "hidden" : ""}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground/60" />
