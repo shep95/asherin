@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import {
   Pencil,
   Type,
@@ -23,7 +22,7 @@ import {
   Frame as FrameIcon,
   ArrowRight,
   Download,
-  Upload,
+  Upload, MoreHorizontal,
 } from "lucide-react";
 
 import { Textarea } from "@/components/ui/textarea";
@@ -313,6 +312,8 @@ const Whiteboard = () => {
   const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [paneSize, setPaneSize] = useState({ w: 0, h: 0 });
+  const [moreToolsOpen, setMoreToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const backgroundCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -582,6 +583,14 @@ const Whiteboard = () => {
     };
   }, [activeBoard, panOffset.x, panOffset.y, zoom]);
 
+  // The board is a pane inside the dashboard. Its centre is the centre of the
+  // container box — window.innerWidth/2 lands under the nav on desktop.
+  const getViewCenter = useCallback((snap = true) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return getCanvasPoint(0, 0, snap);
+    return getCanvasPoint(rect.left + rect.width / 2, rect.top + rect.height / 2, snap);
+  }, [getCanvasPoint]);
+
   const toScreenPoint = useCallback((point: Point) => ({
     x: point.x * zoom + panOffset.x,
     y: point.y * zoom + panOffset.y,
@@ -590,7 +599,7 @@ const Whiteboard = () => {
   const createChartElement = useCallback((position?: Point) => {
     if (!activeLayerId) return;
     pushHistory();
-    const point = position || getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+    const point = position || getViewCenter(true);
     const chart: WhiteboardElement = {
       id: uid(),
       layerId: activeLayerId,
@@ -614,7 +623,7 @@ const Whiteboard = () => {
 
   const createDocumentElement = useCallback((fileName: string, fileType: string, preview = "", position?: Point) => {
     if (!activeLayerId) return;
-    const point = position || getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+    const point = position || getViewCenter(true);
     const doc: WhiteboardElement = {
       id: uid(),
       layerId: activeLayerId,
@@ -1143,7 +1152,7 @@ const Whiteboard = () => {
           image.src = imageUrl;
         });
 
-        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        const point = getViewCenter(true);
         updateActiveBoardElements((elements) => [
           ...elements,
           {
@@ -1174,7 +1183,7 @@ const Whiteboard = () => {
 
       const numbers = parseNumbersFromText(text);
       if ((file.name.endsWith(".csv") || file.name.endsWith(".json") || file.name.endsWith(".txt")) && numbers.length >= 6) {
-        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        const point = getViewCenter(true);
         updateActiveBoardElements((elements) => [
           ...elements,
           {
@@ -1221,7 +1230,7 @@ const Whiteboard = () => {
       const pastedText = event.clipboardData?.getData("text");
       if (pastedText?.trim() && activeLayerId) {
         event.preventDefault();
-        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        const point = getViewCenter(true);
         pushHistory();
         updateActiveBoardElements((elements) => [
           ...elements,
@@ -1326,6 +1335,25 @@ const Whiteboard = () => {
     return () => container.removeEventListener("wheel", handleWheel);
   }, []);
 
+
+  // The pane resizes whenever the sidebar drag-handle moves, the drawer opens,
+  // or the window changes. Without this the canvas keeps its old backing store
+  // and leaves a dead strip where the nav used to be.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (!box) return;
+      setPaneSize((prev) =>
+        Math.round(prev.w) === Math.round(box.width) && Math.round(prev.h) === Math.round(box.height)
+          ? prev
+          : { w: box.width, h: box.height },
+      );
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1726,13 +1754,13 @@ const Whiteboard = () => {
     }
 
     context.restore();
-  }, [activeBoard, fillColor, laserTrail, panOffset.x, panOffset.y, selectedElementId, zoom]);
+  }, [activeBoard, fillColor, laserTrail, panOffset.x, panOffset.y, paneSize.h, paneSize.w, selectedElementId, zoom]);
 
   const boardScreenPoint = draftEditor ? toScreenPoint({ x: draftEditor.x, y: draftEditor.y }) : null;
   const activeLayer = activeBoard?.layers.find((layer) => layer.id === activeLayerId) || null;
   const isShapeTool = ["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool);
   const toolButton = (active: boolean) =>
-    `rounded-xl border px-2.5 py-2 transition-colors ${
+    `inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center rounded-xl border px-2.5 py-2 transition-colors ${
       active
         ? "border-foreground/25 bg-foreground/10 text-foreground"
         : "border-transparent text-muted-foreground hover:border-border/30 hover:bg-foreground/5 hover:text-foreground"
@@ -1742,12 +1770,12 @@ const Whiteboard = () => {
     <div className="relative flex h-full w-full min-h-0 overflow-hidden bg-background">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/20" />
 
-      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 pointer-events-none">
+      <div
+        className="absolute top-0 left-0 right-0 z-40 flex items-center justify-between gap-2 pr-4 py-3 pointer-events-none pl-16 lg:pl-4"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      >
         <div className="pointer-events-auto flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2 rounded-xl border border-border/30 bg-card/60 backdrop-blur-xl px-5 py-2.5 hover:bg-card/80 transition-colors">
-            <span className="text-base font-extralight tracking-[0.25em] text-foreground">ASHERIN</span>
-          </Link>
-          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/30 bg-card/55 px-3 py-2 backdrop-blur-xl">
+          <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-card/55 px-3 py-2 backdrop-blur-xl">
             <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">Board</span>
             <select
               value={activeBoard?.id || ""}
@@ -1787,19 +1815,21 @@ const Whiteboard = () => {
         </div>
       </div>
 
-      <div className="absolute top-16 left-1/2 z-40 flex w-[min(96vw,1320px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-[1.6rem] border border-border/30 bg-card/75 px-3 py-2 shadow-2xl backdrop-blur-2xl">
+      {/* Toolbar is a child of the whiteboard pane: inset left/right off the
+          pane box, never a vw fraction of the window, so it can never reach
+          under the dashboard nav. Secondary controls collapse behind More
+          below lg and wrap onto a second in-pane row above it. */}
+      <div
+        className="absolute left-3 right-3 z-40 mx-auto flex max-w-[1320px] flex-col gap-1.5"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 4rem)" }}
+      >
+        <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-[1.6rem] border border-border/30 bg-card/75 px-3 py-2 shadow-2xl backdrop-blur-2xl">
         <button onClick={() => setTool("select")} className={toolButton(tool === "select")} title="Select"><MousePointer className="h-4 w-4" /></button>
         <button onClick={() => setTool("pen")} className={toolButton(tool === "pen")} title="Pen"><Pencil className="h-4 w-4" /></button>
-        <button onClick={() => setTool("marker")} className={toolButton(tool === "marker")} title="Marker"><span className="text-xs">Marker</span></button>
-        <button onClick={() => setTool("highlighter")} className={toolButton(tool === "highlighter")} title="Highlighter"><span className="text-xs">Highlight</span></button>
         <button onClick={() => setTool("text")} className={toolButton(tool === "text")} title="Text"><Type className="h-4 w-4" /></button>
         <button onClick={() => setTool("sticky")} className={toolButton(tool === "sticky")} title="Sticky"><span className="text-xs">Note</span></button>
         <button onClick={() => setTool("eraser")} className={toolButton(tool === "eraser")} title="Eraser"><Eraser className="h-4 w-4" /></button>
-        <button onClick={() => setTool("laser")} className={toolButton(tool === "laser")} title="Laser"><span className="text-xs">Laser</span></button>
         <button onClick={() => setTool("pan")} className={toolButton(tool === "pan")} title="Pan"><Move className="h-4 w-4" /></button>
-
-        <div className="mx-1 h-6 w-px bg-border/25" />
-
         <div className="relative">
           <button onClick={() => setSelectedShapeMenu((previous) => !previous)} className={toolButton(isShapeTool)} title="Shapes">
             <Square className="h-4 w-4" />
@@ -1823,9 +1853,25 @@ const Whiteboard = () => {
             </div>
           )}
         </div>
-
         <button onClick={() => setTool("frame")} className={toolButton(tool === "frame")} title="Frame"><FrameIcon className="h-4 w-4" /></button>
         <button onClick={() => setTool("arrow")} className={toolButton(tool === "arrow")} title="Arrow (binds to objects)"><ArrowRight className="h-4 w-4" /></button>
+        <button onClick={undo} className={toolButton(false)} title="Undo"><Undo2 className="h-4 w-4" /></button>
+        <button onClick={redo} className={toolButton(false)} title="Redo"><Redo2 className="h-4 w-4" /></button>
+          <button
+            onClick={() => setMoreToolsOpen((previous) => !previous)}
+            className={`${toolButton(moreToolsOpen)} lg:hidden`}
+            aria-expanded={moreToolsOpen}
+            title="More tools"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+        <div
+          className={`${moreToolsOpen ? "flex" : "hidden"} lg:flex flex-wrap items-center justify-center gap-1.5 rounded-[1.6rem] border border-border/30 bg-card/75 px-3 py-2 shadow-2xl backdrop-blur-2xl`}
+        >
+        <button onClick={() => setTool("marker")} className={toolButton(tool === "marker")} title="Marker"><span className="text-xs">Marker</span></button>
+        <button onClick={() => setTool("highlighter")} className={toolButton(tool === "highlighter")} title="Highlighter"><span className="text-xs">Highlight</span></button>
+        <button onClick={() => setTool("laser")} className={toolButton(tool === "laser")} title="Laser"><span className="text-xs">Laser</span></button>
         <button onClick={() => createChartElement()} className={toolButton(false)} title="Insert sketch series"><span className="text-xs">Chart</span></button>
         <div className="relative">
           <button onClick={() => setExportMenuOpen((previous) => !previous)} className={toolButton(exportMenuOpen)} title="Export board">
@@ -1864,7 +1910,6 @@ const Whiteboard = () => {
         />
         <button onClick={() => fileInputRef.current?.click()} className={toolButton(false)} title="Import PDF, image, spreadsheet"><ImageIcon className="h-4 w-4" /></button>
         <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.csv,.json,.txt,.xls,.xlsx" className="hidden" onChange={handleImportFiles} />
-
         <div className="mx-1 h-6 w-px bg-border/25" />
 
         <div className="flex items-center gap-1 rounded-xl border border-border/20 bg-background/40 px-2 py-1">
@@ -1925,8 +1970,6 @@ const Whiteboard = () => {
           <Wallpaper className="h-4 w-4" />
         </button>
 
-        <button onClick={undo} className={toolButton(false)} title="Undo"><Undo2 className="h-4 w-4" /></button>
-        <button onClick={redo} className={toolButton(false)} title="Redo"><Redo2 className="h-4 w-4" /></button>
         <button
           onClick={() => {
             pushHistory();
@@ -1938,15 +1981,16 @@ const Whiteboard = () => {
         >
           <Trash2 className="h-4 w-4" />
         </button>
+        </div>
       </div>
 
       {backgroundPanelOpen && activeBoard && (
         <>
           <div
-            className="fixed inset-0 z-30"
+            className="absolute inset-0 z-30"
             onClick={() => setBackgroundPanelOpen(false)}
           />
-          <div className="absolute top-[7.4rem] left-1/2 z-40 w-[min(92vw,720px)] -translate-x-1/2 rounded-[1.4rem] border border-border/30 bg-card/82 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="absolute top-[10.5rem] lg:top-[7.4rem] left-3 right-3 z-40 mx-auto max-h-[70%] overflow-y-auto w-auto max-w-[720px] rounded-[1.4rem] border border-border/30 bg-card/82 p-4 shadow-2xl backdrop-blur-2xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "dark" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "dark" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Dark board</button>
               <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "current" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "current" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Current wallpaper</button>
@@ -1979,7 +2023,7 @@ const Whiteboard = () => {
       )}
 
       {selectedElement && (
-        <div className="absolute top-[7.4rem] left-4 z-40 flex flex-wrap items-center gap-2 rounded-[1.25rem] border border-border/30 bg-card/78 px-4 py-3 shadow-2xl backdrop-blur-2xl">
+        <div className="absolute top-[10.5rem] lg:top-[7.4rem] left-3 right-3 lg:right-auto z-40 flex flex-wrap items-center gap-2 rounded-[1.25rem] border border-border/30 bg-card/78 px-4 py-3 shadow-2xl backdrop-blur-2xl">
           <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60">Selected</span>
           {selectedImage && (
             <>
@@ -2046,7 +2090,7 @@ const Whiteboard = () => {
       )}
 
       {layerPanelOpen && activeBoard && (
-        <aside className="absolute right-4 top-28 z-40 w-72 rounded-[1.4rem] border border-border/30 bg-card/78 p-4 shadow-2xl backdrop-blur-2xl">
+        <aside style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute left-3 right-3 lg:left-auto lg:bottom-auto lg:right-4 lg:top-[15rem] z-40 max-h-[46%] overflow-y-auto w-auto lg:w-72 rounded-[1.4rem] border border-border/30 bg-card/78 p-4 shadow-2xl backdrop-blur-2xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">Layers</p>
@@ -2103,16 +2147,16 @@ const Whiteboard = () => {
       )}
 
       {!layerPanelOpen && (
-        <button onClick={() => setLayerPanelOpen(true)} className="absolute right-4 top-28 z-40 rounded-xl border border-border/30 bg-card/78 px-3 py-2 text-xs text-foreground backdrop-blur-xl">
+        <button onClick={() => setLayerPanelOpen(true)} style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.5rem)" }} className="absolute right-4 lg:bottom-auto lg:top-[15rem] z-40 min-h-11 rounded-xl border border-border/30 bg-card/78 px-3 py-2 text-xs text-foreground backdrop-blur-xl">
           Show layers
         </button>
       )}
 
-      <div className="absolute bottom-4 left-4 z-40 rounded-2xl border border-border/25 bg-card/48 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/55 backdrop-blur-xl">
+      <div style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }} className="absolute left-4 z-40 hidden lg:block rounded-2xl border border-border/25 bg-card/48 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/55 backdrop-blur-xl">
         Scroll to pan · Ctrl/⌘ + wheel to zoom · Backspace = undo · Paste text/images onto the board
       </div>
 
-      <div className="absolute bottom-4 right-4 z-40 flex items-center gap-2 rounded-2xl border border-border/25 bg-card/48 px-3 py-2 backdrop-blur-xl">
+      <div style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }} className="absolute right-4 z-40 flex items-center gap-2 rounded-2xl border border-border/25 bg-card/48 px-3 py-2 backdrop-blur-xl">
         <button onClick={() => setZoom((previous) => clamp(previous * 0.85, 0.2, 4))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
         <span className="w-12 text-center text-[10px] uppercase tracking-[0.18em] text-foreground">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((previous) => clamp(previous * 1.15, 0.2, 4))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
