@@ -27,6 +27,25 @@ import { buildCognitiveWorkflow, formatWorkflowDirective, WORKFLOW_SECRECY_DIREC
 import { loadBrain, clampBrain } from "../_shared/brainCache.ts";
 import { resolveCallerCached } from "../_shared/authCache.ts";
 import {
+
+/** Map a folded-tool id to the short verb the operator sees in the panel. */
+function toolRowLabel(id: string): string {
+  const k = id.toLowerCase();
+  if (k.includes("search_mail") || k.includes("gmail")) return "Searching mail";
+  if (k.includes("daily_digest")) return "Building digest";
+  if (k.includes("dossier")) return "Fusing dossier";
+  if (k.includes("commitments")) return "Checking commitments";
+  if (k.includes("meet_vault")) return "Listing meet records";
+  if (k.includes("sentinel")) return "Reading alerts";
+  if (k.includes("fit_location")) return "Reading fit location history";
+  if (k.includes("calendar")) return "Reading calendar";
+  if (k.includes("vault")) return "Reading vault";
+  if (k.includes("dork") || k.includes("zerlal")) return "Searching web";
+  if (k.includes("brief")) return "Writing briefing";
+  if (k.includes("file") || k.includes("scrape")) return "Reading files";
+  return "Running " + id;
+}
+
   assessArtifact, recordArtifact, renderArtifactBrief, decodeBase64, MAX_ARTIFACT_BYTES,
 } from "../_shared/artifactLedger.ts";
 
