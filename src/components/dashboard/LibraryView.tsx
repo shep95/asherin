@@ -124,30 +124,46 @@ const LibraryView = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div
-        className={`max-w-3xl mx-auto p-6 space-y-6 ${dragOver ? "ring-2 ring-accent/50 ring-inset rounded-2xl" : ""}`}
+        className={`${v2 ? "max-w-4xl" : "max-w-3xl"} mx-auto p-6 space-y-6 ${dragOver ? "ring-2 ring-accent/50 ring-inset rounded-2xl" : ""}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files); }}
       >
         <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) uploadFiles(e.target.files); e.target.value = ""; }} />
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground">Your Library</h2>
-            <p className="text-sm font-extralight text-muted-foreground mt-1">
-              Files persist across conversations and are searched by content, not just by name.
-            </p>
-            <p className="text-[10px] text-muted-foreground/40 mt-0.5">Max {MAX_FILE_SIZE_DISPLAY} per file · Credential-shaped text is masked before it is indexed</p>
+        {v2 ? (
+          // v.2: the shell names the room and holds the one primary action.
+          // Vanity counters (documents / images / searchable) are dropped —
+          // the file list is the count.
+          <V2Action>
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className={v2ActionClass}
+            >
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              upload
+            </button>
+          </V2Action>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-extralight tracking-wide text-foreground">Your Library</h2>
+              <p className="text-sm font-extralight text-muted-foreground mt-1">
+                Files persist across conversations and are searched by content, not just by name.
+              </p>
+              <p className="text-[10px] text-muted-foreground/40 mt-0.5">Max {MAX_FILE_SIZE_DISPLAY} per file · Credential-shaped text is masked before it is indexed</p>
+            </div>
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Upload
+            </button>
           </div>
-          <button
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-50"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload
-          </button>
-        </div>
+        )}
 
         {scope && (
           <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2 text-[11px] font-light text-muted-foreground">
@@ -156,6 +172,7 @@ const LibraryView = () => {
           </div>
         )}
 
+        {!v2 && (
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: FileText, label: "Documents", value: `${docCount} files` },
@@ -169,6 +186,8 @@ const LibraryView = () => {
             </div>
           ))}
         </div>
+        )}
+
 
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-3 flex items-center gap-2">
           {searching ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <Search className="h-4 w-4 text-muted-foreground" />}
