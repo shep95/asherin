@@ -88,7 +88,10 @@ export interface QueryPlan {
   operators: string[];
   /** The string that should go on the wire — the operator's words, unpolluted. */
   wireQuery: string;
+  /** Present only when shape === "form-path". */
+  formPath?: FormPathIntent;
 }
+
 
 /**
  * Dork operators must survive the planner untouched. Before this guard the
