@@ -59,7 +59,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser((prev) => {
         const sameIdentity = !!prev && !!nextUser && prev.id === nextUser.id;
         const refreshEvent = event === "TOKEN_REFRESHED" || event === "USER_UPDATED";
-        if (sameIdentity && refreshEvent) {
+        // USER_UPDATED can carry a real profile change — only collapse it when
+        // the identity fields are byte-identical.
+        const identical =
+          sameIdentity &&
+          prev.email === nextUser.email &&
+          prev.updated_at === nextUser.updated_at &&
+          JSON.stringify(prev.user_metadata ?? {}) === JSON.stringify(nextUser.user_metadata ?? {});
+        if (identical && refreshEvent) {
+
           if (import.meta.env.DEV) {
             console.debug(`[auth] ${event} kept the existing user reference — no downstream reload`);
           }
