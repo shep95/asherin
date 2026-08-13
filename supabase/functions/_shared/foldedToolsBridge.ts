@@ -1,5 +1,4 @@
 // foldedToolsBridge — the rest of the software fold for Asherin chat.
-import { emitPull } from "./connectPull.ts";
 //
 // Earlier waves wired three sensors into the chat turn (geo, live dork,
 // identity). Everything else in the platform was named in the prompt text but
@@ -123,6 +122,8 @@ export interface FoldedResult {
   fired: string[];
   offline: string[];
 }
+
+import { emitPull } from "./connectPull.ts";
 
 // ── PII masking ──────────────────────────────────────────────────────────────
 
