@@ -108,6 +108,75 @@ serve(async (req) => {
       return ok({ team_id: invite.team_id, role: invite.role, team_name: team.name });
     }
 
+    // ── Roster read ─────────────────────────────────────────────────────────
+    // The browser cannot resolve a member's email (auth.users is not exposed
+    // and profiles carries no address), so the roster is assembled here from
+    // memberships the caller actually holds. No team the caller is not on can
+    // ever appear in this payload.
+    if (action === "list") {
+      const { data: myTeams } = await admin
+        .from("team_members").select("team_id, role, joined_at").eq("user_id", user.id);
+      const ids = (myTeams ?? []).map((r) => r.team_id);
+
+      const { data: teamRows } = ids.length
+        ? await admin.from("teams").select("*").in("id", ids)
+        : { data: [] as any[] };
+      const { data: memberRows } = ids.length
+        ? await admin.from("team_members").select("team_id, user_id, role, joined_at").in("team_id", ids)
+        : { data: [] as any[] };
+
+      // Pending invites: those the caller can administer, plus any addressed to
+      // the caller's own mailbox on a workspace they have not joined yet.
+      const adminTeamIds = (myTeams ?? [])
+        .filter((r) => r.role === "owner" || r.role === "admin")
+        .map((r) => r.team_id);
+      const { data: adminInvites } = adminTeamIds.length
+        ? await admin.from("team_invites").select("*").in("team_id", adminTeamIds).eq("status", "pending")
+        : { data: [] as any[] };
+      const { data: myInvites } = await admin
+        .from("team_invites").select("*").ilike("email", user.email).eq("status", "pending");
+
+      const inviteTeamIds = [...new Set((myInvites ?? []).map((i) => i.team_id))];
+      const { data: inviteTeams } = inviteTeamIds.length
+        ? await admin.from("teams").select("id,name,description,icon").in("id", inviteTeamIds)
+        : { data: [] as any[] };
+
+      // Resolve display identity for every roster row in one pass.
+      const memberIds = [...new Set((memberRows ?? []).map((m) => m.user_id))];
+      const { data: profs } = memberIds.length
+        ? await admin.from("profiles").select("user_id, display_name, avatar_url").in("user_id", memberIds)
+        : { data: [] as any[] };
+      const emailById = new Map<string, string>();
+      for (const id of memberIds) {
+        try {
+          const { data } = await admin.auth.admin.getUserById(id);
+          if (data?.user?.email) emailById.set(id, data.user.email);
+        } catch { /* identity stays masked */ }
+      }
+
+      const roster = (memberRows ?? []).map((m) => {
+        const p = (profs ?? []).find((x: any) => x.user_id === m.user_id);
+        return {
+          ...m,
+          email: emailById.get(m.user_id) ?? null,
+          display_name: p?.display_name ?? null,
+          avatar_url: p?.avatar_url ?? null,
+          is_self: m.user_id === user.id,
+        };
+      });
+
+      return ok({
+        teams: teamRows ?? [],
+        members: roster,
+        invites: adminInvites ?? [],
+        my_invites: (myInvites ?? []).map((i) => ({
+          ...i,
+          team: (inviteTeams ?? []).find((t: any) => t.id === i.team_id) ?? null,
+        })),
+        my_email: user.email,
+      });
+    }
+
     if (!teamId) return fail("Missing team.", corsHeaders);
 
     const { data: team } = await admin.from("teams").select("*").eq("id", teamId).maybeSingle();
