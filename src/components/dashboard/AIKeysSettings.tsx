@@ -123,7 +123,11 @@ const AIKeysSettings = () => {
 
   const saveKey = async (providerId: string) => {
     if (!user || !newKeyValue.trim()) return;
+    // Writing a provider credential is a dangerous act: a hijacked tab could
+    // otherwise silently swap the key every request routes through.
+    if (!(await stepUp("save this provider key"))) return;
     setSaving(true);
+
     const { error } = await supabase.from("user_api_keys").upsert({
       user_id: user.id,
       provider: providerId,
