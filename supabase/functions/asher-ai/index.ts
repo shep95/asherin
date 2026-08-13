@@ -635,7 +635,26 @@ serve(async (req) => {
       await import("../_shared/domainAtlas.ts");
     const _dEmph = _bDE(lastUserText);
     const atlasBlock = "\n\n" + _DAI + (_dEmph ? "\n\n" + _dEmph : "");
-    const fullSystem = ASHERIN_IDENTITY + "\n\n" + buildAsherinProcedures(lastUserText) + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + OUTPUT_CONDUCT_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_DOCTRINE + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_ANCHOR + "\n\n" + OUTPUT_CONDUCT_ANCHOR;
+
+    // ── QUEUE 10: LIVE DORK. Fire before the model writes. Honest offline banner
+    // on failure — no fabricated SERP. ──
+    let liveDorkBlock = "";
+    let liveDorkOfflineBlock = "";
+    try {
+      const { planDork, runLiveDork } = await import("../_shared/liveDorkBridge.ts");
+      const _plan = planDork(lastUserText);
+      if (_plan) {
+        const _out = await runLiveDork(_plan, req.headers.get("Authorization"));
+        liveDorkBlock = _out.context;
+        if (_out.offline) liveDorkOfflineBlock = `\n[LIVE DORK OFFLINE] ${_out.offline}. Say the live dork tool is offline this turn with this exact status. Do NOT invent SERP results.\n`;
+        console.log(`[asher-ai] live dork fired: ${_out.fired.join(",")}${_out.offline ? ` | ${_out.offline}` : ""}`);
+      }
+    } catch (e) {
+      console.error("[asher-ai] live dork failed:", (e as Error).message);
+      liveDorkOfflineBlock = `\n[LIVE DORK OFFLINE] live dork offline (${(e as Error).message}).\n`;
+    }
+
+    const fullSystem = ASHERIN_IDENTITY + "\n\n" + buildAsherinProcedures(lastUserText) + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + OUTPUT_CONDUCT_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_DOCTRINE + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + liveDorkBlock + liveDorkOfflineBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_ANCHOR + "\n\n" + OUTPUT_CONDUCT_ANCHOR;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
