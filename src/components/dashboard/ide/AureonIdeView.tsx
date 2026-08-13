@@ -54,7 +54,7 @@ interface ChatMsg {
   timestamp: Date;
 }
 
-type CenterTab = "code" | "preview" | "workflow";
+type CenterTab = "code" | "preview";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
 type LeftTab = "files" | "search" | "sessions" | "git" | "agents";
 
@@ -66,9 +66,9 @@ const STARTER_FILES: IdeFile[] = [
       { id: "css", name: "index.css", type: "file", content: `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\nbody {\n  margin: 0;\n  font-family: Inter, sans-serif;\n}` },
     ],
   },
-  { id: "pkg", name: "package.json", type: "file", content: `{\n  "name": "aureon-project",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  },\n  "dependencies": {\n    "react": "^18.3.1",\n    "react-dom": "^18.3.1"\n  },\n  "devDependencies": {\n    "vite": "^5.4.0",\n    "@vitejs/plugin-react": "^4.3.0",\n    "tailwindcss": "^3.4.0",\n    "typescript": "^5.5.0"\n  }\n}` },
+  { id: "pkg", name: "package.json", type: "file", content: `{\n  "name": "asherin-project",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  },\n  "dependencies": {\n    "react": "^18.3.1",\n    "react-dom": "^18.3.1"\n  },\n  "devDependencies": {\n    "vite": "^5.4.0",\n    "@vitejs/plugin-react": "^4.3.0",\n    "tailwindcss": "^3.4.0",\n    "typescript": "^5.5.0"\n  }\n}` },
   { id: "tsconfig", name: "tsconfig.json", type: "file", content: `{\n  "compilerOptions": {\n    "target": "ES2020",\n    "jsx": "react-jsx",\n    "strict": true\n  }\n}` },
-  { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Aureon Project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
+  { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>asherin project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
 ];
 
 const EMPTY_PROJECT_FILES: IdeFile[] = [];
@@ -272,7 +272,6 @@ const AureonIdeView = () => {
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   // ── Pro tools state (shared IDE upgrade pack) ──
@@ -606,7 +605,7 @@ const AureonIdeView = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${sessions.find(s => s.id === activeSessionId)?.name ?? "aureon-project"}.zip`;
+    a.download = `${sessions.find(s => s.id === activeSessionId)?.name ?? "asherin-project"}.zip`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Exported", description: "Project downloaded as ZIP." });
