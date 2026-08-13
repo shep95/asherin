@@ -174,11 +174,26 @@ const Dashboard = () => {
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
   const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","axrlen","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault","asherin-defender","asherin-arvision"];
-  const initialView: DashboardView = (() => {
-    if (viewParam && (VALID_VIEWS as string[]).includes(viewParam)) return viewParam as DashboardView;
-    if (viewParam && viewParam.startsWith("agent:")) return viewParam as DashboardView;
-    return "chat";
-  })();
+  // Deep-link aliases. A person types the product name they were told, not the
+  // internal id, and a URL a human guessed correctly must never collapse to
+  // chat as if the room did not exist.
+  const VIEW_ALIASES: Record<string, DashboardView> = {
+    defender: "asherin-defender",
+    arvision: "asherin-arvision",
+    "ar-vision": "asherin-arvision",
+    maps: "geospatial",
+    "asherin-maps": "geospatial",
+    asherinx: "ghost-engine",
+    "asherinx-eng": "ghost-engine",
+  };
+  const resolveView = (raw?: string): DashboardView | null => {
+    if (!raw) return null;
+    if ((VALID_VIEWS as string[]).includes(raw)) return raw as DashboardView;
+    if (VIEW_ALIASES[raw]) return VIEW_ALIASES[raw];
+    if (raw.startsWith("agent:")) return raw as DashboardView;
+    return null;
+  };
+  const initialView: DashboardView = resolveView(viewParam) ?? "chat";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
   // The code workspace can hand the operator back to the mouth. One chat only —
@@ -192,11 +207,7 @@ const Dashboard = () => {
   // Sync URL -> state (back/forward navigation, deep links)
   useEffect(() => {
     if (asherEmbed) return;
-    const next: DashboardView = viewParam
-      ? ((VALID_VIEWS as string[]).includes(viewParam) || viewParam.startsWith("agent:"))
-        ? (viewParam as DashboardView)
-        : "chat"
-      : "chat";
+    const next: DashboardView = resolveView(viewParam) ?? "chat";
     if (next !== activeViewRaw) setActiveViewRaw(next);
     // Retired module deep links (/dashboard/nomad, /dashboard/cipher …) must not
     // leave a dead id sitting in the URL — collapse them onto chat.
