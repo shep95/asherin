@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   resolveRetryPolicy, attemptStep, rollUpStatus, callChildTool,
-  PROCEDURE_PACKS, DEFAULT_PACK, UNBOUND_STEPS,
+  PROCEDURE_PACKS, DEFAULT_PACK, UNBOUND_STEPS, ANALYSIS_STEPS,
   type StepRecord, type RunAttemptCtx,
 } from "../_shared/zahtenRuntime.ts";
 import { emitPull } from "../_shared/connectPull.ts";
@@ -702,10 +702,20 @@ serve(async (req) => {
               case "generate_content":
               case "generate_analytics":
               case "send_email":
-              case "send_reminder": {
+              case "send_reminder":
+              case "analyze":
+              case "analyse":
+              case "summarize":
+              case "summarise":
+              case "extract_data":
+              case "classify":
+              case "compare": {
                 const cfg = action.config ?? {};
                 const task =
                   cfg.prompt ??
+                  (ANALYSIS_STEPS.has(type)
+                    ? `Analyse the material below and report what it shows.\n\n${aiOutput || agent.description || agent.name}`
+                    : null) ??
                   (type === "generate_report"
                     ? `Write a ${String(cfg.reportType ?? "daily summary").replace(/_/g, " ")} for ${new Date().toISOString().slice(0, 10)}.`
                     : type === "generate_content"
@@ -717,7 +727,7 @@ serve(async (req) => {
                           : type === "send_reminder"
                             ? `Write the reminder for: ${agent.description || agent.name}.`
                             : agent.description || agent.name);
-                const procedure = `${PROCEDURE_PACKS[type] ?? DEFAULT_PACK}\nToday is ${new Date().toISOString().slice(0, 10)}.`;
+                const procedure = `${PROCEDURE_PACKS[type] ?? (ANALYSIS_STEPS.has(type) ? PROCEDURE_PACKS.analyze : DEFAULT_PACK)}\nToday is ${new Date().toISOString().slice(0, 10)}.`;
                 const out = await callGemini(String(task), procedure);
                 return { output: out, organ: undefined as string | undefined };
               }
@@ -745,17 +755,24 @@ serve(async (req) => {
               default: {
                 // Unknown step types are not quietly handed to a model and
                 // called done — the definition is wrong and should say so.
+                // The message matches isPermanent(), so it is reported once
+                // rather than retried into a backoff storm.
                 throw new Error(`step type "${type}" has no runner in this deployment`);
               }
             }
           });
 
           if (attempt.error) {
+            // A step with no runner did not break — it was never wired. That
+            // is a skip the operator must see, not a red failure, and it does
+            // not poison the steps that can still run.
+            const unwired = /has no runner in this deployment/.test(attempt.error);
             steps.push({
-              type, order, status: "failed", output: "", attempts: attempt.attempts,
-              durationMs: attempt.durationMs, error: attempt.error,
+              type, order, status: unwired ? "skipped" : "failed", output: "",
+              attempts: attempt.attempts, durationMs: attempt.durationMs, error: attempt.error,
             });
             await commit("running", aiOutput);
+            if (unwired) continue;
             // A hard failure stops the chain: later steps assume this one ran.
             break;
           }

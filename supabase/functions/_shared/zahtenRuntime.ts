@@ -63,7 +63,7 @@ export function backoffDelay(attempt: number, p: RetryPolicy): number {
 
 /** Errors that will fail again no matter how many times we ask. */
 export function isPermanent(message: string): boolean {
-  return /\b(400|401|403|404|not configured|no email address|no phone number|no channel|invalid|unsupported|forbidden)\b/i
+  return /(\b(400|401|403|404|invalid|unsupported|forbidden)\b|not configured|no email address|no phone number|no channel|has no runner)/i
     .test(message);
 }
 
@@ -146,6 +146,12 @@ export const PROCEDURE_PACKS: Record<string, string> = {
   ].join("\n"),
 };
 
+PROCEDURE_PACKS.analyze = [
+  "Work only from the material already gathered in this run. Do not add outside facts.",
+  "Lead with what the material actually shows, then what follows from it, then what it does not settle.",
+  "If the material is too thin to support a conclusion, say that instead of producing one.",
+].join("\n");
+
 export const DEFAULT_PACK = PROCEDURE_PACKS.ai_generate;
 
 /** Steps that have no runner bound in this deployment. Honest skip, never a green tick. */
@@ -158,6 +164,14 @@ export const UNBOUND_STEPS: Record<string, string> = {
   format_report: "formatting is applied at delivery; this step is a no-op",
   format_alert: "formatting is applied at delivery; this step is a no-op",
 };
+
+/**
+ * Step types whose work is "read this material and say something true about
+ * it". They all run through the model branch with the analysis procedure.
+ */
+export const ANALYSIS_STEPS = new Set([
+  "analyze", "analyse", "summarize", "summarise", "extract_data", "classify", "compare",
+]);
 
 /**
  * Calls another Asherin edge function as a child of this run and traces it
