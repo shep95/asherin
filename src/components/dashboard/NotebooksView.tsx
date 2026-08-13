@@ -1,9 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check, History, RotateCcw } from "lucide-react";
+import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check, History, RotateCcw, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { emitPull } from "@/lib/connect/emitPull";
+import CellOutput, { parseOutput } from "@/components/dashboard/notebooks/CellOutput";
+
+/** Azplen tables the runner exposes. Bound by id, never by pasted credentials. */
+const AZPLEN_TABLES = [
+  "asha_datasets", "asha_documents", "asha_document_entities", "asha_insights",
+  "asha_alerts", "asha_reports", "asha_queries", "asha_workflows",
+  "asha_sessions", "asha_entity_matches", "asha_monitor_rules",
+];
+
+type SourceRef = { kind: "dataset" | "library" | "azplen"; id: string };
+
+function encodeSource(s: SourceRef | null): string { return s ? `${s.kind}:${s.id}` : ""; }
+function decodeSource(v: string): SourceRef | null {
+  const i = v.indexOf(":");
+  if (i < 0) return null;
+  const kind = v.slice(0, i);
+  if (kind !== "dataset" && kind !== "library" && kind !== "azplen") return null;
+  return { kind, id: v.slice(i + 1) };
+}
+
 
 interface NotebookVersion {
   id: string;
