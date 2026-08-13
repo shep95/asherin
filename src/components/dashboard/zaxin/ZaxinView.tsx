@@ -2857,7 +2857,7 @@ function MiniMap({ heading, compassOn, geo, contacts }: {
   geo: ReturnType<typeof usePrecisionGeo>;
   contacts: Array<{ id: string; displayName: string; bearing?: number | null; bearingConfidence: number; rssi?: number; distanceMeters?: number | null }>;
 }) {
-  // Live GPS for a true satellite mini-map (replaces the prior abstract radar).
+  // Live GPS for a satellite mini-map fallback when the abstract radar is not enough.
   const { fix: pos, quality } = geo;
   const [zoom] = useState(19); // tight overhead — operator-scale
 
