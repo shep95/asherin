@@ -36,12 +36,27 @@ type Tab = "scan" | "tactical" | "ar" | "hops" | "diag";
 const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
   { id: "scan",     label: "Scan",        icon: Radar },
   { id: "tactical", label: "Tactical",    icon: ShieldAlert },
-  { id: "ar",       label: "AR Vision",   icon: Camera },
   { id: "hops",     label: "Hop Mesh",    icon: Network },
   { id: "diag",     label: "Diagnostics", icon: Cpu },
 ];
 
 const AR_CAMERA_FOV = 60;
+
+/** The ble scout's old AR tab now points at the real camera room. */
+const ArRedirectNotice = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const t = window.setTimeout(() => navigate("/dashboard/asherin-arvision"), 400);
+    return () => window.clearTimeout(t);
+  }, [navigate]);
+  return (
+    <div className="flex h-full items-center justify-center p-8 text-center">
+      <p className="text-sm font-extralight text-muted-foreground">
+        ar moved to its own room — opening asherin.arvision.
+      </p>
+    </div>
+  );
+};
 
 function randomNodeId() {
   return "node-" + Math.random().toString(36).slice(2, 8);
@@ -527,18 +542,10 @@ const ZaxinView = () => {
           <TacticalTab snap={snap} engine={engine} />
         )}
         {tab === "ar" && (
-          <ArTab
-            videoRef={videoRef} scopeVideoRef={scopeVideoRef}
-            arOn={arOn} arErr={arErr} heading={liveMapHeading}
-            mainFacing={mainFacing} scopeOn={scopeOn} scopeAvail={scopeAvail}
-            onToggleScope={() => setScopeOn((v) => !v)} onFlip={flipMain}
-            contacts={locals}
-            onStart={startAr} onStop={stopAr}
-            onPick={pickDevice}
-            compassOn={compassOn} onEnableCompass={enableCompass} compassErr={compassErr}
-            onManualHeading={setManualHeading}
-            geo={liveGeo}
-          />
+          // AR is no longer trapped inside the ble scout. The camera room is
+          // asherin.arvision — send the operator there instead of keeping a
+          // second, weaker HUD alive here.
+          <ArRedirectNotice />
         )}
         {tab === "hops" && (
           <HopsTab snap={snap} hop={hop} />
