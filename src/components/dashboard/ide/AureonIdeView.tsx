@@ -4,7 +4,6 @@ import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Sa
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
-import IdeChatPanel from "./IdeChatPanel";
 import IdeTerminal from "./IdeTerminal";
 import IdePreviewPanel from "./IdePreviewPanel";
 import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
@@ -36,6 +35,7 @@ import { History, Stethoscope, Wand2, GitCommit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 import { extractZanoemCodeFiles, type ZanoemCodeFile } from "@/components/dashboard/zali/zanoemOutput";
+import { IDE_HANDOFF_EVENT, takeIdeHandoff, requestReturnToChat, type IdeHandoff } from "@/lib/ide/chatHandoff";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +56,7 @@ interface ChatMsg {
 }
 
 type CenterTab = "code" | "preview";
-type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
+type MobilePanel = "explorer" | "editor" | "terminal";
 type LeftTab = "files" | "search" | "sessions" | "git" | "agents";
 
 const STARTER_FILES: IdeFile[] = [
@@ -622,6 +622,80 @@ const AureonIdeView = () => {
     toast({ title: "Exported", description: "Project downloaded as ZIP." });
   }, [files, sessions, activeSessionId, toast]);
 
+  // ── Write pipeline ──
+  // Every write into the tree — whether it came from IDE agent mode or from a
+  // turn in asherin chat — passes the same three gates: a visible diff, an
+  // explicit approval, and a checkpoint of the whole working set taken BEFORE
+  // the first byte lands, so any apply is one restore away from undone.
+  const applyGeneratedFiles = useCallback(async (
+    generatedFiles: ZanoemCodeFile[],
+    trigger: string,
+    capability: "agent_apply" | "chat_apply",
+  ): Promise<"none" | "rejected" | "applied"> => {
+    if (!generatedFiles || generatedFiles.length === 0) return "none";
+
+    const flatNow = flattenFiles(filesRefAureon.current);
+    const changes: PlannedChange[] = generatedFiles
+      .map((g) => {
+        const path = normalizeGeneratedFilePath(g.filename);
+        if (!path || !g.content?.trim()) return null;
+        const base = path.split("/").pop() ?? path;
+        const existing = flatNow.find(f => f.name === path || f.name === base);
+        return {
+          path,
+          action: existing ? "update" : "create",
+          content: g.content,
+          language: getLanguage(base),
+          beforeContent: existing?.content ?? "",
+        } as PlannedChange;
+      })
+      .filter(Boolean) as PlannedChange[];
+    if (changes.length === 0) return "none";
+
+    const label = `${changes.length} file change${changes.length === 1 ? "" : "s"}`;
+    const ok = await requestApproval(label, changes);
+    // Connect trace: a proposed write is a real capability pull, approved or not.
+    void emitPull({
+      organ: "ide", capability, fromSurface: "ide",
+      status: ok ? "ok" : "skip",
+      quote: `${label}${ok ? " applied" : " rejected"}`,
+    });
+    if (!ok) return "rejected";
+
+    if (activeSessionId) {
+      try {
+        await saveCheckpoint({
+          scope: "aureon",
+          projectId: activeSessionId,
+          label: `Before ${capability === "chat_apply" ? "chat" : "agent"} edit · ${new Date().toLocaleTimeString()}`,
+          trigger: trigger.slice(0, 200),
+          files: flatNow.map(f => ({ fileId: f.id, filePath: f.name, content: f.content ?? "" })),
+        });
+        void emitPull({ organ: "ide", capability: "checkpoint", fromSurface: "ide", status: "ok", quote: label });
+      } catch (e) {
+        console.warn("[ide] checkpoint failed", e);
+        void emitPull({ organ: "ide", capability: "checkpoint", fromSurface: "ide", status: "fail", quote: "checkpoint failed" });
+      }
+    }
+
+    const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
+    if (result.applied === 0) return "none";
+
+    setFiles(result.next);
+    filesRefAureon.current = result.next;
+    const flatNext = flattenFiles(result.next);
+    const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
+    if (primary) {
+      setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
+      setActiveFileId(primary.id);
+      setCenterTab("code");
+      if (isMobile) setMobilePanel("editor");
+    }
+    setRightOpen(true);
+    toast({ title: "Applied", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written. Restore from Checkpoints to undo.` });
+    return "applied";
+  }, [requestApproval, activeSessionId, isMobile, toast]);
+
   // ── Chat ──
   // Chat mode answers only. Agent mode proposes writes, which always pass
   // through: checkpoint snapshot → visible diff → explicit approval → apply.
@@ -703,86 +777,23 @@ const AureonIdeView = () => {
 
       lastAssistantRef.current = assistantContent;
 
-      // Chat mode never touches the file tree.
+      // Chat mode answers only — it never touches the file tree.
       if (ideMode !== "agent") return;
-
       const rawGenerated = extractZanoemCodeFiles(assistantContent);
       const generatedFiles: ZanoemCodeFile[] = rawGenerated.length === 1 && /^snippet-\d+\./i.test(rawGenerated[0].filename) && activeFile
         ? [{ ...rawGenerated[0], filename: activeFile.name, language: getLanguage(activeFile.name) }]
         : rawGenerated;
-      if (generatedFiles.length === 0) return;
-
-      const flatNow = flattenFiles(filesRefAureon.current);
-      const changes: PlannedChange[] = generatedFiles
-        .map((g) => {
-          const path = normalizeGeneratedFilePath(g.filename);
-          if (!path || !g.content?.trim()) return null;
-          const base = path.split("/").pop() ?? path;
-          const existing = flatNow.find(f => f.name === path || f.name === base);
-          return {
-            path,
-            action: existing ? "update" : "create",
-            content: g.content,
-            language: getLanguage(base),
-            beforeContent: existing?.content ?? "",
-          } as PlannedChange;
-        })
-        .filter(Boolean) as PlannedChange[];
-      if (changes.length === 0) return;
-
-      const ok = await requestApproval(`${changes.length} file change${changes.length === 1 ? "" : "s"}`, changes);
-      // Connect trace: an agent write is a real capability pull, approved or not.
-      void emitPull({
-        organ: "ide", capability: "agent_apply", fromSurface: "ide",
-        status: ok ? "ok" : "skip",
-        quote: `${changes.length} file change${changes.length === 1 ? "" : "s"}${ok ? " applied" : " rejected"}`,
-      });
-      if (!ok) {
-        setChatMessages(prev => [...prev, {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "Changes rejected. Nothing was written to the project.",
-          timestamp: new Date(),
-        }]);
-        return;
-      }
-
-      // Checkpoint the whole working set before the first byte is written.
-      if (activeSessionId) {
-        try {
-          await saveCheckpoint({
-            scope: "aureon",
-            projectId: activeSessionId,
-            label: `Before agent edit · ${new Date().toLocaleTimeString()}`,
-            trigger: content.slice(0, 200),
-            files: flatNow.map(f => ({ fileId: f.id, filePath: f.name, content: f.content ?? "" })),
-          });
-        } catch (e) {
-          console.warn("[ide] checkpoint failed", e);
-        }
-      }
-
-      const result = applyGeneratedFilesToTree(filesRefAureon.current, generatedFiles);
-      if (result.applied > 0) {
-        setFiles(result.next);
-        filesRefAureon.current = result.next;
-        const flatNext = flattenFiles(result.next);
-        const primary = result.primaryId ? flatNext.find((f) => f.id === result.primaryId) : flatNext[0];
-        if (primary) {
-          setOpenFileIds((prev) => Array.from(new Set([...prev, primary.id])));
-          setActiveFileId(primary.id);
-          setCenterTab("code");
-          if (isMobile) setMobilePanel("editor");
-        }
-        toast({ title: "Applied", description: `${result.applied} file${result.applied === 1 ? "" : "s"} written. Restore from Checkpoints to undo.` });
+      const outcome = await applyGeneratedFiles(generatedFiles, content, "agent_apply");
+      if (outcome === "rejected") {
+        toast({ title: "Changes rejected", description: "Nothing was written to the project." });
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
-        setChatMessages(prev => [...prev, { id: assistantId, role: "assistant", content: `Error: ${err.message}`, timestamp: new Date() }]);
+        toast({ title: "Workspace request failed", description: err.message, variant: "destructive" });
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, activeSessionId, rag, isMobile, ideMode, requestApproval]);
+  }, [chatMessages, activeFile, allFiles, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, rag, ideMode, applyGeneratedFiles]);
 
   const stopStreaming = useCallback(() => { abortRef.current?.abort(); setIsStreaming(false); }, []);
 
@@ -791,8 +802,38 @@ const AureonIdeView = () => {
   const handleTerminalAiCommand = useCallback((query: string) => {
     sendChatMessage(query);
     if (!rightOpen && !isMobile) setRightOpen(true);
-    if (isMobile) setMobilePanel("chat");
+    if (isMobile) setMobilePanel("editor");
   }, [sendChatMessage, rightOpen, isMobile]);
+
+  // ── Chat handoff ──
+  // asherin chat is the mouth. When a turn actually writes files, the payload
+  // arrives here and opens as a diff the operator approves. The queue is
+  // drained on mount too, because the dashboard splits to this workspace in the
+  // same beat it queues the write and the editor may still be mounting.
+  useEffect(() => {
+    let busy = false;
+    const drain = async (handoff: IdeHandoff | null) => {
+      if (!handoff || busy) return;
+      busy = true;
+      try {
+        const files: ZanoemCodeFile[] = handoff.files.map(f => ({
+          filename: f.filename,
+          content: f.content,
+          language: f.language ?? getLanguage(f.filename),
+        }));
+        const outcome = await applyGeneratedFiles(files, handoff.trigger, "chat_apply");
+        if (outcome === "rejected") {
+          toast({ title: "Changes rejected", description: "Nothing was written to the project." });
+        }
+      } finally {
+        busy = false;
+      }
+    };
+    const onEvent = () => { void drain(takeIdeHandoff()); };
+    window.addEventListener(IDE_HANDOFF_EVENT, onEvent);
+    void drain(takeIdeHandoff());
+    return () => window.removeEventListener(IDE_HANDOFF_EVENT, onEvent);
+  }, [applyGeneratedFiles, toast]);
 
   // ── Crash hook wiring ─────────────────────────────────────
   // 1. Holds the IdeAgentsPanel "on_crash" trigger so we can fire it.
@@ -824,7 +865,7 @@ const AureonIdeView = () => {
     const prompt = buildCrashPrompt(evt, snippet);
     sendChatMessage(prompt);
     if (!rightOpen && !isMobile) setRightOpen(true);
-    if (isMobile) setMobilePanel("chat");
+    if (isMobile) setMobilePanel("editor");
     toast({ title: "◈ Crash detected", description: `${evt.type ?? "Error"}${evt.file ? " in " + (evt.file.split("/").pop() || evt.file) : ""} — AI dispatched` });
 
     // Fire on_crash agents
@@ -879,19 +920,6 @@ const AureonIdeView = () => {
               ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
               : <IdePreviewPanel files={files} />
           )}
-          {mobilePanel === "chat" && (
-            <IdeChatPanel
-              messages={chatMessages}
-              isStreaming={isStreaming}
-              onSend={sendChatMessage}
-              onStop={stopStreaming}
-              mode={ideMode}
-              activeFileName={activeFile?.name}
-              activeFileContent={activeFile?.content}
-              creditsRemaining={creditsRemaining}
-              maxCredits={maxCredits}
-            />
-          )}
           {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
         </div>
 
@@ -900,12 +928,18 @@ const AureonIdeView = () => {
           {([
             { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
             { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
-            { id: "chat" as MobilePanel, icon: ideMode === "agent" ? Bot : MessageSquare, label: ideMode === "agent" ? "Agent" : "Chat" },
+            { id: "ask" as const, icon: MessageSquare, label: "Ask" },
             { id: "terminal" as MobilePanel, icon: TerminalIcon, label: "Terminal" },
           ]).map(tab => (
             <button key={tab.id}
-              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code"); else setMobilePanel(tab.id); }}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
+              onClick={() => {
+                // "Ask" is not a second chat — it hands the operator back to the
+                // one asherin ChatView, which is where every conversation lives.
+                if (tab.id === "ask") { requestReturnToChat(); return; }
+                if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code");
+                else setMobilePanel(tab.id as MobilePanel);
+              }}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${tab.id !== "ask" && mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
@@ -962,13 +996,23 @@ const AureonIdeView = () => {
           <IdeModeToggle scope="aureon" value={ideMode} onChange={setIdeMode} />
           <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
 
-          {/* Chat panel toggle */}
+          {/* Pending changes panel */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-light transition-colors ${rightOpen ? "bg-accent/15 text-accent" : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5"}`}
-            title="Toggle chat panel"
+            title="Toggle changed files"
           >
-            {ideMode === "agent" ? <Bot className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+            <GitCommit className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Changes</span>
+          </button>
+
+          {/* Back to the one asherin chat — the workspace never hosts a second one. */}
+          <button
+            onClick={requestReturnToChat}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+            title="Back to asherin chat"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
             <span className="hidden lg:inline">Chat</span>
           </button>
 
@@ -1123,18 +1167,12 @@ const AureonIdeView = () => {
                       onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
                     />
                   </div>
-                  <div className="flex-1 min-h-0">
-                    <IdeChatPanel
-                      messages={chatMessages}
-                      isStreaming={isStreaming}
-                      onSend={sendChatMessage}
-                      onStop={stopStreaming}
-                      mode={ideMode}
-                      activeFileName={activeFile?.name}
-                      activeFileContent={activeFile?.content}
-                      creditsRemaining={creditsRemaining}
-                      maxCredits={maxCredits}
-                    />
+                  <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-1">
+                    <p className="text-[10px] font-light leading-relaxed text-muted-foreground/45">
+                      Writes arrive from asherin chat and from Agent mode. Each one lands
+                      here as a diff you approve, with a checkpoint taken first — restore
+                      from Checkpoints to undo any apply.
+                    </p>
                   </div>
                 </div>
 

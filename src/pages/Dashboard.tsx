@@ -1,3 +1,4 @@
+import { IDE_RETURN_TO_CHAT_EVENT } from "@/lib/ide/chatHandoff";
 import { applySeoHead } from "@/lib/seoHead";
 import { isAdminEmail } from "@/lib/adminEmail";
 import { getWallpaperSrc } from "@/lib/wallpapers";
@@ -151,6 +152,14 @@ const Dashboard = () => {
   })();
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
+  // The code workspace can hand the operator back to the mouth. One chat only —
+  // the workspace never hosts a transcript of its own.
+  useEffect(() => {
+    const back = () => setActiveViewRaw("chat");
+    window.addEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+    return () => window.removeEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+  }, []);
+
   // Sync URL -> state (back/forward navigation, deep links)
   useEffect(() => {
     if (asherEmbed) return;
@@ -1167,6 +1176,21 @@ const Dashboard = () => {
             try { await persistOnce(); } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
             }
+          }
+          // A code write is the only thing that opens the workspace hand: real
+          // files with real paths, extracted from what the model actually
+          // returned. Chat stays the mouth — the diff and the approval gate
+          // live in the workspace, so nothing is written from here.
+          try {
+            const { extractZanoemCodeFiles } = await import("@/components/dashboard/zali/zanoemOutput");
+            const written = extractZanoemCodeFiles(assistantContent)
+              .filter((f) => f.filename && !/^snippet-\d+\./i.test(f.filename) && f.content?.trim());
+            if (written.length > 0) {
+              const { queueIdeHandoff } = await import("@/lib/ide/chatHandoff");
+              if (queueIdeHandoff(written, content)) setActiveView("ide" as DashboardView);
+            }
+          } catch (handoffErr) {
+            console.warn("[chat] ide handoff skipped", handoffErr);
           }
           try {
             const sug = await fetchSuggestions(assistantContent);

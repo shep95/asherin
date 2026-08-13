@@ -82,14 +82,14 @@ const PRODUCTS: Product[] = [
   },
   
   {
-    name: "Asherin IDE",
-    tagline: "Monaco editor + chat that edits behind a diff",
+    name: "Code workspace",
+    tagline: "Monaco editor that opens when asherin writes code",
     description:
-      "Chat mode answers questions. Agent mode proposes file writes you approve as a visible diff, with a checkpoint taken before anything is written.",
+      "Not a separate app with its own chat. Ask asherin for code and the workspace opens with the write staged as a diff you approve, with a checkpoint taken before anything lands. Agent mode inside the workspace follows the same gate.",
     icon: Code2,
     features: [
       "Monaco editor + Git integration",
-      "Chat mode vs Agent mode — agent writes only after you approve the diff",
+      "Writes arrive from asherin chat or Agent mode — both behind the same approval diff",
       "BYOK: OpenAI, Anthropic, Gemini, Groq, xAI, DeepSeek, Mistral, Together, OpenRouter",
       "Inline edit, ghost tabs, fast apply",
       "Project index + semantic search",
