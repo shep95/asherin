@@ -783,6 +783,40 @@ const Dashboard = () => {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [user?.id]);
 
+  // Soft-keyboard inset. On iOS the layout viewport does not shrink when the
+  // keyboard opens, so a bottom-anchored composer ends up underneath it. The
+  // visual viewport does shrink — publish the delta as --kb-inset and let the
+  // composer sit on top of it (plus the home-indicator safe area).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const sync = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty("--kb-inset", `${Math.round(inset)}px`);
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+      root.style.removeProperty("--kb-inset");
+    };
+  }, []);
+
+  // Restoring an archived thread puts it back in state. It used to call
+  // window.location.reload(), which threw away every in-memory transcript.
+  useEffect(() => {
+    const onRestored = (e: Event) => {
+      const conv = (e as CustomEvent).detail as Conversation | undefined;
+      if (!conv?.id) return;
+      setConversations((prev) => (prev.some((c) => c.id === conv.id) ? prev : [conv, ...prev]));
+    };
+    window.addEventListener("asherin:conversation-restored", onRestored);
+    return () => window.removeEventListener("asherin:conversation-restored", onRestored);
+  }, []);
+
 
   const activeConv = activeConvId
     ? conversations.find((c) => c.id === activeConvId) ?? null
