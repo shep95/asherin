@@ -848,13 +848,15 @@ Deno.serve(async (req) => {
         await sb.from("google_place_nodes").upsert(
           places.slice(0, 200).map((pl) => ({
             user_id: userId,
-            place_key: pl.key,
             label: pl.label,
-            visit_count: pl.visitCount,
+            normalized_key: pl.key,
+            visit_count: pl.visits,
+            first_seen: pl.firstSeen,
             last_seen: pl.lastSeen,
             sources: pl.sources,
+            updated_at: new Date().toISOString(),
           })),
-          { onConflict: "user_id,place_key" },
+          { onConflict: "user_id,normalized_key" },
         ).then(undefined, () => undefined);
       }
 
@@ -867,7 +869,7 @@ Deno.serve(async (req) => {
           note: ledger.note,
           accountsRead: ledger.accountsRead,
         },
-        places: { indexed: places.length, top: places.slice(0, 8).map((pl) => ({ label: pl.label, visits: pl.visitCount })) },
+        places: { indexed: places.length, top: places.slice(0, 8).map((pl) => ({ label: pl.label, visits: pl.visits })) },
         contacts: { count: contactSets.flat().length },
         scope: "owned accounts only — no external record search, no third-party scrape",
       }, 200, cors);
@@ -897,7 +899,7 @@ Deno.serve(async (req) => {
       // Rank by how often the string recurs — a rhythm, never a live position.
       const ranked = folded.slice(0, 12).map((pl) => ({
         label: pl.label,
-        visits: pl.visitCount,
+        visits: pl.visits,
         lastSeen: pl.lastSeen,
         source: "calendar LOCATION string",
       }));
