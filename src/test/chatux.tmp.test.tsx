@@ -20,7 +20,7 @@ describe("chat ux", () => {
     render(<MemoryRouter><ChatView conversation={convo} onSendMessage={() => {}} mode={"chat" as any} onModeChange={() => {}} depth={"balanced" as any} onDepthChange={() => {}} /></MemoryRouter>);
     const ta = screen.getByPlaceholderText(/Message/);
     console.log("PLACEHOLDER:", JSON.stringify(ta.getAttribute("placeholder")));
-    const header = screen.getByRole("button", { expanded: false });
+    const header = screen.getAllByRole("button", { expanded: false })[0];
     console.log("THINKING HEADER:", JSON.stringify(header.textContent));
     console.log("STEP ROW PRESENT:", !!screen.queryByText("Searching"));
     const body = document.body.innerText || document.body.textContent || "";
