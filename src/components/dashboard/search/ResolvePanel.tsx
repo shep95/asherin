@@ -1,7 +1,7 @@
 /**
- * XKEYSCORE PANEL — the intelligence surface over a Zophiel result corpus.
+ * RESOLVE PANEL — the intelligence surface over a Zophiel result corpus.
  * ---------------------------------------------------------------------------
- * Renders the deterministic output of the `zophiel-xkeyscore` edge function:
+ * Renders the deterministic output of the `zophiel-resolve` edge function:
  * hop rings 0-3, typed selectors, resolved identities, a timeline and exposure
  * classification. Every element is source-linked; nothing here is narrated by a
  * model, so a click always lands on the document that produced the claim.
@@ -51,7 +51,7 @@ interface SerpIntel {
   };
 }
 
-interface XKeyscorePanelProps {
+interface ResolvePanelProps {
   query: string;
   results: SearchResult[];
   onClose: () => void;
@@ -88,7 +88,7 @@ const EXPOSURE_TONE: Record<ExposureSignal["kind"], string> = {
 
 const RING_RADIUS = [0, 118, 212, 292];
 
-const XKeyscorePanel = ({ query, results, onClose }: XKeyscorePanelProps) => {
+const ResolvePanel = ({ query, results, onClose }: ResolvePanelProps) => {
   const [intel, setIntel] = useState<SerpIntel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +109,7 @@ const XKeyscorePanel = ({ query, results, onClose }: XKeyscorePanelProps) => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("zophiel-xkeyscore", {
+      const { data, error: fnError } = await supabase.functions.invoke("zophiel-resolve", {
         body: { query, results: corpus, harvest: true },
       });
       if (token.cancelled) return;
@@ -186,7 +186,7 @@ const XKeyscorePanel = ({ query, results, onClose }: XKeyscorePanelProps) => {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Fingerprint className="h-4 w-4 text-accent shrink-0" strokeWidth={1.5} />
-            <h2 className="text-sm font-light tracking-wide truncate">XKEYSCORE</h2>
+            <h2 className="text-sm font-light tracking-wide truncate">RESOLVE</h2>
           </div>
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/50 truncate mt-0.5">
             {query}
@@ -478,4 +478,4 @@ const XKeyscorePanel = ({ query, results, onClose }: XKeyscorePanelProps) => {
   );
 };
 
-export default XKeyscorePanel;
+export default ResolvePanel;

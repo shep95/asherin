@@ -1,5 +1,5 @@
 /**
- * ZOPHIEL XKEYSCORE — intelligence layer over the web engine's result corpus.
+ * ZOPHIEL RESOLVE — intelligence layer over the web engine's result corpus.
  * ---------------------------------------------------------------------------
  * Input:  { query, results: [{title, url, snippet}], harvest?: boolean }
  * Output: SerpIntel — typed entities, resolved identities, hop rings 0-3,
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const elapsed = Date.now() - started;
 
     console.log(JSON.stringify({
-      fn: "zophiel-xkeyscore", query: query.slice(0, 80),
+      fn: "zophiel-resolve", query: query.slice(0, 80),
       docs: docs.length, bodies: bodies.size,
       entities: intel.entities.length, edges: intel.edges.length,
       rings: [intel.coverage.ring1, intel.coverage.ring2, intel.coverage.ring3],
@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("zophiel-xkeyscore failed", err instanceof Error ? err.message : String(err));
+    console.error("zophiel-resolve failed", err instanceof Error ? err.message : String(err));
     return new Response(
       JSON.stringify({ success: false, error: "intelligence layer failed" }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } },

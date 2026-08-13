@@ -1059,7 +1059,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
     // ── Web search integration — Zophiel engine first, DuckDuckGo fallback ──
     // Chat now shares the dashboard's retrieval substrate: multi-engine, tiered
-    // and veracity-scored, with the deterministic XKeyscore graph layer on
+    // and veracity-scored, with the deterministic Resolve graph layer on
     // relationship-shaped turns. DuckDuckGo remains only as a degradation path
     // so a Zophiel outage never leaves the turn ungrounded.
     let webSearchContext = "";

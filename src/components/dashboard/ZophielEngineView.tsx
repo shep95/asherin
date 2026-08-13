@@ -38,7 +38,7 @@ const DorkPanel = lazy(() => import("./search/DorkPanel"));
 const GhostChainPanel = lazy(() => import("./search/GhostChainPanel"));
 const ZophielV2Panel = lazy(() => import("./search/ZophielV2Panel"));
 const ZophielSweepPanel = lazy(() => import("./search/ZophielSweepPanel"));
-const XKeyscorePanel = lazy(() => import("./search/XKeyscorePanel"));
+const ResolvePanel = lazy(() => import("./search/ResolvePanel"));
 const ShadowPanel = lazy(() => import("./search/ShadowPanel"));
 
 
@@ -90,7 +90,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
-  const [xkeyscoreOpen, setXkeyscoreOpen] = useState(false);
+  const [resolveOpen, setXkeyscoreOpen] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
@@ -110,10 +110,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Hide global header right-side controls while a side panel is open
   useEffect(() => {
-    const open = (intelMapOpen || intelSuiteOpen || xkeyscoreOpen) && searched && results.length > 0;
+    const open = (intelMapOpen || intelSuiteOpen || resolveOpen) && searched && results.length > 0;
     document.body.classList.toggle("zophiel-panel-open", open);
     return () => { document.body.classList.remove("zophiel-panel-open"); };
-  }, [intelMapOpen, intelSuiteOpen, xkeyscoreOpen, searched, results.length]);
+  }, [intelMapOpen, intelSuiteOpen, resolveOpen, searched, results.length]);
 
   // High-perf drag-to-resize: bypass React re-renders, write width directly via rAF
   const startResize = useCallback(() => {
@@ -437,7 +437,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
-  const canShowSidePanel = (intelMapOpen || intelSuiteOpen || xkeyscoreOpen) && searched && results.length > 0;
+  const canShowSidePanel = (intelMapOpen || intelSuiteOpen || resolveOpen) && searched && results.length > 0;
 
   
 
@@ -811,16 +811,16 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           <span className="sm:hidden">Key</span>
                         </button>
                         <button
-                          onClick={() => { setXkeyscoreOpen((v) => !v); if (!xkeyscoreOpen) { setIntelMapOpen(false); setIntelSuiteOpen(false); } }}
+                          onClick={() => { setXkeyscoreOpen((v) => !v); if (!resolveOpen) { setIntelMapOpen(false); setIntelSuiteOpen(false); } }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
-                            xkeyscoreOpen
+                            resolveOpen
                               ? "border-accent/40 bg-accent/15 text-accent"
                               : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                           }`}
                           title="Selector extraction, identity resolution, hop rings 0-3, timeline and exposure surface — derived only from these results"
                         >
                           <Fingerprint className="h-3.5 w-3.5" />
-                          <span className="hidden sm:inline">{xkeyscoreOpen ? "Close XKeyscore" : "XKeyscore"}</span>
+                          <span className="hidden sm:inline">{resolveOpen ? "Close Resolve" : "Resolve"}</span>
                           <span className="sm:hidden">XKS</span>
                         </button>
                         <button
@@ -924,15 +924,15 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         </div>
       )}
 
-      {/* XKeyscore intelligence panel */}
-      {xkeyscoreOpen && searched && results.length > 0 && (
+      {/* Resolve intelligence panel */}
+      {resolveOpen && searched && results.length > 0 && (
         <div
           ref={rightPanelRef}
           className="fixed inset-0 z-40 bg-background animate-fade-in lg:static lg:z-auto lg:min-w-0 lg:bg-transparent"
           style={{ width: window.innerWidth >= 1024 ? `${splitPct}%` : undefined }}
         >
           <Suspense fallback={null}>
-            <XKeyscorePanel
+            <ResolvePanel
               query={query}
               results={results}
               onClose={() => setXkeyscoreOpen(false)}
