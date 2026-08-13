@@ -267,6 +267,12 @@ export function seoPrerenderPlugin(): Plugin {
 
       for (const [path, entry] of routes) {
         if (!path.startsWith("/")) continue;
+        // A prerendered document IS a public page: the file exists on disk, so
+        // the host serves it with a real 200 and a real <title> even when the
+        // React router only redirects or gates that path. Anything marked
+        // noindex must therefore never get a physical head file — otherwise a
+        // scanner reads the stale marketing title of a retired surface.
+        if (entry.noindex) continue;
         const html = renderRouteHtml(template, path, entry);
         const target =
           path === "/" ? indexPath : join(outDir, path.replace(/^\//, ""), "index.html");
