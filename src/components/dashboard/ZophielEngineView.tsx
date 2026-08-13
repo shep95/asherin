@@ -314,6 +314,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       if (error) throw error;
       const res = data as SearchResponse;
 
+      // One Connect row per real engine hit. Status reflects what the engines
+      // actually returned: an empty corpus is a skip, never a green ok.
+      void emitPull({
+        organ: "zophiel",
+        capability: "search",
+        fromSurface: "zophiel",
+        status: res?.success && res.results?.length ? "ok" : "skip",
+        latencyMs: elapsed,
+        quote: res?.results?.[0]?.title ?? q,
+        meta: { hits: res?.results?.length ?? 0, mode },
+      });
+
       if (res.success) {
         // Filter blocked domains
         const filtered = res.results.filter(r => !blockedDomains.some(d => r.url.includes(d)));
@@ -336,6 +348,14 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       }
     } catch (e: any) {
       console.error("Search failed:", e);
+      void emitPull({
+        organ: "zophiel",
+        capability: "search",
+        fromSurface: "zophiel",
+        status: "fail",
+        latencyMs: Math.round(performance.now() - start),
+        quote: e?.message ? String(e.message) : "search failed",
+      });
       const msg = String(e?.message || e || "").toLowerCase();
       const ctx = e?.context;
       let status: number | undefined;
