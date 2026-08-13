@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Image as ImageIcon, Crosshair, ShieldAlert, Scan, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Ghost } from "lucide-react";
+import { Radar, Globe, Newspaper, GraduationCap, Code, BarChart3, FileText, Image as ImageIcon, Crosshair, ShieldAlert, Scan, FileArchive, ChevronDown, ShieldCheck, Database, Package, BookOpen, Ghost } from "lucide-react";
 import type { SearchMode } from "./types";
 
 type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: boolean };
@@ -7,6 +7,7 @@ type ModeDef = { id: SearchMode; label: string; icon: React.ReactNode; accent?: 
 // Primary modes — always visible. Everything else collapses behind "More".
 const primaryModes: ModeDef[] = [
   { id: "web", label: "Web", icon: <Globe className="h-3.5 w-3.5" /> },
+  { id: "sweep", label: "Sweep", icon: <Radar className="h-3.5 w-3.5" />, accent: true },
   { id: "ghostchain", label: "Ghost Chain", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
   { id: "shadow", label: "Shadow", icon: <Ghost className="h-3.5 w-3.5" />, accent: true },
   { id: "dataengine", label: "DataEngine", icon: <Database className="h-3.5 w-3.5" />, accent: true },
