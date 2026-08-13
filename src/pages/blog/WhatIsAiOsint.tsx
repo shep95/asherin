@@ -114,7 +114,7 @@ const WhatIsAiOsint = () => (
     <p>
       Asherin&apos;s{" "}
       <a href="/feature/zophiel">Zophiel OSINT engine</a> implements all four
-      pipeline stages on 30 live sources per query. Each surfaced claim
+      pipeline stages on the sources that actually return for a query. Each surfaced claim
       carries a veracity score, a per-source breakdown, and a contradiction
       flag where sources disagree. Operators can drill from the synthesized
       brief down to the raw document in two clicks. Cross-validation depth

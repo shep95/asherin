@@ -92,7 +92,7 @@ const FeatureZerlal = () => (
           icon: Layers,
           title: "BYOK + Sovereign Stack",
           description:
-            "ZERLAL reasoning runs through the operator's own provider key (Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, Venice). Findings never leave the operator's vendor account.",
+            "ZERLAL reasoning can run through your own provider key — you can bring a key from Gemini, OpenAI, Anthropic, Mistral, xAI, Groq, DeepSeek, OpenRouter or Venice. Findings never leave the operator's vendor account.",
         },
       ]}
       useCases={[

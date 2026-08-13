@@ -61,14 +61,14 @@ const FeatureZophiel = () => {
             </span>
           </>
         }
-        subheadline="Zophiel is Asherin's AI OSINT engine. Every query fans out across 30 live sources in parallel, cross-validates claims across independent corroborators, attaches a per-source veracity score, and synthesizes a single intelligence brief with traceable citations. No search wrappers. No vanity source counts. Real cross-validation, in production."
+        subheadline="Zophiel is Asherin's AI OSINT engine. Zophiel fans a query out across the engines your keys actually cover, keeps the sources that returned, marks where they disagree, and writes one brief with citations you can click back to. It reports the engines that answered — not a fixed source count."
         tierLabel="Included in every tier · Runs in the signed-in dashboard at /dashboard/search"
         capabilities={[
           {
             icon: Search,
             title: "Parallel Engine Fan-Out",
             description:
-              "Every query hits 30 live sources in parallel: news APIs, court records, regulatory filings, archive providers, social platforms, and specialty databases. Latency budget: under 14 seconds for a full pass.",
+              "A query is issued in parallel to the engines available for your account: news APIs, public records, archive providers, and open web search. The run reports which engines returned and which failed.",
           },
           {
             icon: ShieldCheck,
@@ -98,11 +98,11 @@ const FeatureZophiel = () => {
             icon: Layers,
             title: "Sovereign Stack Compatible",
             description:
-              "Runs on Asherin's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, or Mistral key route Zophiel calls through their own vendor account with zero platform-side prompt mutation.",
+              "Runs on Asherin's BYOK sovereign stack. You can bring a key from Gemini, OpenAI, Anthropic, Mistral and others; calls then run through your own vendor account.",
           },
         ]}
         useCases={[
-          "Investigative journalism source verification — cross-validate a claim across 30 independent sources before publication.",
+          "Investigative journalism source verification — cross-check a claim against the sources that actually returned before publication.",
           "OSINT analyst dossier building — assemble a multi-source intelligence brief in seconds instead of working hours.",
           "Trading desk live-event tracing — verify a market-moving claim across financial, regulatory, and news sources simultaneously.",
           "Security research threat-actor profiling — pull infrastructure, behavioral, and incident-history signals into one validated brief.",
@@ -136,8 +136,8 @@ const FeatureZophiel = () => {
                 four-stage AI OSINT pipeline
               </a>{" "}
               — ingestion, normalization, cross-validation, synthesis — across
-              30 live sources. Ingestion runs in parallel with a 14-second
-              latency budget. Normalization strips returned documents to
+              whichever engines answered. Ingestion runs in parallel and the
+              run states what came back and what timed out. Normalization strips returned documents to
               comparable claim records with timestamp, jurisdiction, and
               source-confidence metadata. Cross-validation checks every
               claim against the rest of the corpus and assigns a veracity
@@ -159,8 +159,7 @@ const FeatureZophiel = () => {
               </a>{" "}
               route Zophiel reasoning through their own vendor account with
               zero platform-side prompt mutation. Operators without a key get
-              the platform-paid Venice <code>mistral-31-24b</code> default —
-              uncensored, vision-capable, no monthly subscription. Either
+              the platform-paid Venice <code>mistral-31-24b</code> default. Either
               path, the OSINT pipeline is the same.
             </p>
 
@@ -169,7 +168,7 @@ const FeatureZophiel = () => {
               items={[
                 {
                   q: "What is Zophiel?",
-                  a: "Zophiel is Asherin's AI OSINT engine. It cross-validates 30 live sources per query, scores per-claim veracity, flags source disagreements, and synthesizes a single intelligence brief with traceable citations — all within a 14-second latency budget.",
+                  a: "Zophiel is Asherin's AI OSINT engine. It queries the engines your account covers, cross-checks claims across the ones that returned, flags disagreement instead of averaging it away, and writes one brief with clickable citations.",
                 },
                 {
                   q: "Where do I run Zophiel?",
@@ -185,7 +184,7 @@ const FeatureZophiel = () => {
                 },
                 {
                   q: "Can I use my own API key with Zophiel?",
-                  a: "Yes. Zophiel runs on Asherin's BYOK sovereign stack. Operators with their own Gemini, OpenAI, Claude, Mistral, xAI, Groq, DeepSeek, OpenRouter, or Venice key route Zophiel reasoning through their own vendor account with zero platform-side prompt mutation.",
+                  a: "Yes. Zophiel runs on Asherin's BYOK sovereign stack. You can bring a key from Gemini, OpenAI, Anthropic, Mistral, xAI, Groq, DeepSeek, OpenRouter or Venice; reasoning then runs through your own vendor account.",
                 },
               ]}
             />

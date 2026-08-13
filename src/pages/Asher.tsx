@@ -175,7 +175,7 @@ const Asher = () => {
             <ul className="space-y-3 text-sm font-extralight text-muted-foreground/85">
               {[
                 "Air-gapped deployment — no public network egress",
-                "End-to-end encrypted operator comms with per-device identity keys",
+                "Encrypted operator comms with per-device identity keys",
                 "Append-only audit logging of every inference",
                 "Role-based access controls with multi-party authorization",
                 "Tamper-evident model weights and config bundles",
@@ -260,7 +260,7 @@ const Asher = () => {
           </div>
           <div className="text-right">
             <p className="text-[10px] font-light tracking-[0.3em] text-red-400/70 uppercase">Classification: Restricted</p>
-            <p className="mt-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50">© {new Date().getFullYear()} Aureon. All rights reserved.</p>
+            <p className="mt-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50">© {new Date().getFullYear()} Asherin. All rights reserved.</p>
           </div>
         </div>
       </footer>
