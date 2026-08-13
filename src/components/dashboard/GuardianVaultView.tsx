@@ -15,8 +15,9 @@ import {
   listRegisteredDevices, removeDevice, sendTestPush, reportSecurityEvent,
   type PushStatus, type RegisteredDevice,
 } from "@/lib/securityPush";
+import VaultItemsPanel from "@/components/dashboard/vault/VaultItemsPanel";
 
-type VaultTab = "overview" | "sessions" | "activity" | "mfa" | "alerts" | "password";
+type VaultTab = "overview" | "items" | "watchtower" | "sessions" | "activity" | "mfa" | "alerts" | "password";
 
 interface Session {
   id: string;
@@ -69,6 +70,8 @@ const DEFAULT_PREFS: NotifPrefs = {
 
 const TABS: { id: VaultTab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Shield },
+  { id: "items", label: "Items", icon: Lock },
+  { id: "watchtower", label: "Watchtower", icon: ShieldAlert },
   { id: "sessions", label: "Active Sessions", icon: Monitor },
   { id: "activity", label: "Audit Trail", icon: History },
   { id: "mfa", label: "MFA", icon: Fingerprint },
@@ -505,6 +508,11 @@ const GuardianVaultView = () => {
               )}
             </>
           )}
+
+          {tab === "items" && <VaultItemsPanel mode="items" />}
+
+          {tab === "watchtower" && <VaultItemsPanel mode="watchtower" />}
+
 
           {tab === "sessions" && (
             <>
