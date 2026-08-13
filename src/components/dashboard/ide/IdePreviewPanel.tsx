@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Globe, RefreshCw, ExternalLink, Smartphone, Monitor, Tablet, Loader2, RotateCcw } from "lucide-react";
+import { emitPull } from "@/lib/connect/emitPull";
 import type { IdeFile } from "./IdeFileTree";
 
 interface Props {
@@ -320,7 +321,17 @@ const IdePreviewPanel = ({ files }: Props) => {
     };
   }, [refreshPreview]);
 
-  const handleIframeLoad = () => setLoading(false);
+  // One trace per rendered preview, not per keystroke: the debounce above
+  // already collapses edits, and a failed render reports itself honestly.
+  const handleIframeLoad = () => {
+    setLoading(false);
+    void emitPull({
+      organ: "ide", capability: "preview", fromSurface: "ide-preview",
+      status: error ? "fail" : "ok",
+      quote: `babel sandbox · ${files.length} file${files.length === 1 ? "" : "s"}`,
+      meta: { files: files.length, viewport },
+    });
+  };
 
   const openExternal = () => {
     const html = buildPreviewHtml(files);
@@ -336,6 +347,12 @@ const IdePreviewPanel = ({ files }: Props) => {
         <div className="flex items-center gap-2">
           <Globe className="h-3 w-3 text-accent/60 shrink-0" />
           <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase hidden sm:inline">Preview</span>
+          <span
+            className="text-[9px] font-light text-muted-foreground/40 hidden md:inline"
+            title="In-browser Babel standalone render. No install step, no Node, no bundler — imports are stripped and network calls are blocked."
+          >
+            babel sandbox · no npm install
+          </span>
           {loading && <Loader2 className="h-3 w-3 animate-spin text-accent/40" />}
         </div>
         <div className="flex items-center gap-1">

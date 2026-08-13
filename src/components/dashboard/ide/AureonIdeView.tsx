@@ -655,10 +655,16 @@ const AureonIdeView = () => {
     const label = `${changes.length} file change${changes.length === 1 ? "" : "s"}`;
     const ok = await requestApproval(label, changes);
     // Connect trace: a proposed write is a real capability pull, approved or not.
+    // Connect trace: a proposed write is a real capability pull, approved or
+    // not. The quote carries filenames only — never a byte of file body.
+    const fileHint = changes.length <= 3
+      ? changes.map(c => c.path.split("/").pop() ?? c.path).join(", ")
+      : `${changes.length} files`;
     void emitPull({
-      organ: "ide", capability, fromSurface: "ide",
+      organ: "ide", capability: "apply", fromSurface: "ide",
       status: ok ? "ok" : "skip",
-      quote: `${label}${ok ? " applied" : " rejected"}`,
+      quote: `${fileHint} · ${ok ? "applied" : "rejected"}`,
+      meta: { origin: capability === "chat_apply" ? "chat" : "agent", files: changes.length },
     });
     if (!ok) return "rejected";
 
@@ -671,7 +677,7 @@ const AureonIdeView = () => {
           trigger: trigger.slice(0, 200),
           files: flatNow.map(f => ({ fileId: f.id, filePath: f.name, content: f.content ?? "" })),
         });
-        void emitPull({ organ: "ide", capability: "checkpoint", fromSurface: "ide", status: "ok", quote: label });
+        void emitPull({ organ: "ide", capability: "checkpoint", fromSurface: "ide", status: "ok", quote: label, meta: { files: flatNow.length } });
       } catch (e) {
         console.warn("[ide] checkpoint failed", e);
         void emitPull({ organ: "ide", capability: "checkpoint", fromSurface: "ide", status: "fail", quote: "checkpoint failed" });
@@ -917,7 +923,10 @@ const AureonIdeView = () => {
           )}
           {mobilePanel === "editor" && (
             centerTab === "code"
-              ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
+              ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover}
+                  canWrite={ideMode === "agent"}
+                  onWriteBlocked={(reason) => toast({ title: "Chat mode is read-only", description: reason })}
+                />
               : <IdePreviewPanel files={files} />
           )}
           {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
@@ -1125,7 +1134,10 @@ const AureonIdeView = () => {
                   )}
                   <div className="flex-1 overflow-hidden">
                     {centerTab === "code"
-                      ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
+                      ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover}
+                  canWrite={ideMode === "agent"}
+                  onWriteBlocked={(reason) => toast({ title: "Chat mode is read-only", description: reason })}
+                />
                       : <IdePreviewPanel files={files} />}
 
                   </div>

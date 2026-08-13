@@ -67,6 +67,9 @@ const ORGANS: OrganDef[] = [
   { id: "snippets", label: "Snippets", x: 30, y: 92 },
   { id: "rad", label: "RAD", x: 16, y: 86 },
   { id: "shield", label: "Shield", x: 8, y: 76 },
+  // Binding, not organ: GitHub is an external remote the IDE is bound to.
+  // It is lit by the stored connection, never by an invented pull.
+  { id: "github", label: "GitHub", x: 97, y: 50 },
 ];
 
 const ORGAN_BY_ID = new Map(ORGANS.map(o => [o.id, o]));
@@ -83,7 +86,7 @@ const EDGES: Array<[string, string]> = [
   ["maps", "zaxin"], ["maps", "google"], ["maps", "zeeion"],
   ["zophiel", "ghost"], ["zophiel", "zacoon"], ["zophiel", "zali"],
   ["google", "briefings"], ["google", "notebooks"],
-  ["ide", "snippets"], ["ide", "teams"],
+  ["ide", "snippets"], ["ide", "teams"], ["ide", "github"],
   ["axrlen", "timeseries"], ["axrlen", "pattern"],
   ["gematria", "vedic"], ["chat", "gematria"], ["chat", "vedic"],
   ["document-studio", "notebooks"], ["chat", "document-studio"],
@@ -229,8 +232,10 @@ const ConnectView = () => {
   const states = useMemo(() => {
     const m = new Map<string, NodeState>();
     for (const o of ORGANS) m.set(o.id, organState(byOrgan.get(o.id) ?? []));
+    // GitHub is a binding: green only while a real connection row exists.
+    m.set("github", github.connected ? "ok" : "never");
     return m;
-  }, [byOrgan]);
+  }, [byOrgan, github.connected]);
 
   const filtered = useMemo(() => {
     if (!selected) return pulls.slice(0, 60);
