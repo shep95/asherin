@@ -148,7 +148,25 @@ const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
     }
   };
 
+  // Tools the vessel MUST forward to the asherin kernel. Any local stand-in
+  // would be exactly the failure mode we banned: pretending the kernel is
+  // there when it is not.
+  const KERNEL_TOOLS = new Set([
+    "zophiel_search", "elite_dorks", "dork", "path_map",
+    "search_swarm", "site_cyber_map", "intel_map",
+  ]);
+
   const dispatchToolCall = async (name: string, args: any): Promise<string> => {
+    if (KERNEL_TOOLS.has(name)) {
+      const { runKernelTool, KERNEL_OFFLINE_NOTICE } = await import("@/lib/asherinKernel");
+      const res = await runKernelTool(name, args || {});
+      if (!res.ok) return `**${name.toUpperCase()} · KERNEL OFFLINE**\n\n${KERNEL_OFFLINE_NOTICE}`;
+      const data = res.data;
+      try {
+        if (typeof data === "string") return data;
+        return "```json\n" + JSON.stringify(data, null, 2).slice(0, 4000) + "\n```";
+      } catch { return "Kernel returned an unreadable payload."; }
+    }
     try {
       switch (name) {
         case "map_search": {
