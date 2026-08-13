@@ -25,7 +25,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/pricing": {
     title: "Pricing | Asherin, Pro & Enterprise Plans",
     description:
-      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, NOMAD, Briefings, Zophiel Pro). Enterprise on request.",
+      "Asherin is $18/mo for the core platform and $399/mo for Asherin Pro (Azplen, Asherin Engine, Briefings, Zophiel Pro). Enterprise on request.",
   },
   "/terms": {
     title: "Terms of Service | Asherin",
@@ -50,7 +50,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/asher": {
     title: "Asher | Operator Workspace | Asherin",
     description:
-      "Asher: the operator workspace inside Aureon. Encrypted channels, intelligence modules, and live collaboration.",
+      "Asher: the operator workspace inside Asherin. Encrypted channels, intelligence modules, and live collaboration.",
   },
   "/privacy": {
     title: "Privacy Policy | Asherin",
@@ -70,7 +70,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/features": {
     title: "Features | Every Asherin Intelligence Module",
     description:
-      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, NOMAD dossiers, ZALI design, ZERLAL security, and the full operator stack.",
+      "Every Asherin module: Zophiel OSINT, AXRLEN predictive engine, Asherin Engine dossiers, ZALI design, ZERLAL security, and the full operator stack.",
   },
   "/benchmarks": {
     title: "Benchmarks | Asherin Model & Engine Performance",
@@ -190,11 +190,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "Zophiel cross-validates 30+ live OSINT sources, scores veracity, and surfaces verified intelligence with citations.",
   },
-  "/feature/nomad": {
-    title: "NOMAD | 14-Pass Intelligence Dossier Suite | Asherin",
-    description:
-      "NOMAD generates persistent intelligence dossiers across 30 OSINT sources with a 14-pass analysis tree.",
-  },
   "/feature/azplen": {
     title: "Azplen Foundry | 20-Tab Data Intelligence Suite | Asherin",
     description: "Azplen Foundry: a 20-tab data suite for live analysis, transformation, and intelligence operations.",
@@ -235,11 +230,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "Intelligence Notebooks: live SQL execution, AI reasoning, and 800ms-debounced query analysis with SECURITY DEFINER.",
   },
-  "/feature/video-intelligence": {
-    title: "Video Intelligence | FACS Behavioral Tracking | Asherin",
-    description:
-      "Video Intelligence: FACS behavioral tracking, micro-expression analysis, and object locus mapping.",
-  },
   "/feature/byok": {
     title: "BYOK | Bring Your Own Model & Key | Asherin",
     description:
@@ -264,18 +254,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "AXRLEN NEXUS-PRIME: multi-side predictive engine with probabilistic scenarios, timeline divergences, and brain-backed corpora.",
   },
-  "/feature/cross": {
-    title: "CROSS | 17-Mode Analytical Platform | Asherin",
-    description:
-      "CROSS: 17 analytical modes, WebM screen recording, micro-expression analysis, and 5-level intelligence hierarchy.",
-  },
   "/feature/zaplen": {
     title: "Zaplen | Dual-AI War Scenario Engine | Asherin",
     description: "Zaplen: dual-AI chess-style war scenario engine for adversarial modeling. Admin-only.",
-  },
-  "/feature/cipher": {
-    title: "Cipher | AES-256-GCM Vault Intelligence | Asherin",
-    description: "Cipher: end-to-end encrypted vault with AES-256-GCM, chrooted file access, and admin RLS partitions.",
   },
   "/feature/pattern-analysis": {
     title: "Pattern Analysis | Pro Forecasting & Recharts | Asherin",
@@ -290,10 +271,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     title: "E-book Generator | Long-Form Content | Asherin",
     description:
       "Generate full e-books from multi-session text uploads with 500-word chapters and AI-generated cover art.",
-  },
-  "/feature/plugin-marketplace": {
-    title: "Plugin Marketplace | Third-Party Integrations | Asherin",
-    description: "Live execution engine for third-party plugins and integrations inside Aureon.",
   },
   "/feature/coding-laws": {
     title: "Coding Laws | Asherin's Engineering Doctrine | Asherin",

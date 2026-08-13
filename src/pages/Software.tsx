@@ -4,8 +4,7 @@ import Header from "@/components/Header";
 import GeoBlock from "@/components/seo/GeoBlock";
 import SiteFooter from "@/components/SiteFooter";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
   MessageSquare, Search, Network, Shield, Hammer, Database,
@@ -50,11 +49,11 @@ const PRODUCTS: Product[] = [
     codename: "Flagship",
     tagline: "Conversational intelligence",
     description:
-      "Multi-model consensus chat with reasoning visualization, vision, voice, uncensored responses, and persistent memory in one surface.",
+      "One chat surface with reasoning visualization, vision, voice, file attachments and persistent memory. Inference runs on Gemini by default, on Venice (mistral-31-24b) for accounts without a key, or on your own key if you bring one.",
     icon: MessageSquare,
     features: [
       "Chat / Code / Research / Truth modes",
-      "Multi-model consensus across 9+ providers",
+      "Default routing: Gemini · platform fallback: Venice mistral-31-24b · BYOK: your provider",
       "Vision + voice + file attachments",
       "Persistent long-term memory",
       "Reasoning chain-of-thought view",
@@ -70,15 +69,15 @@ const PRODUCTS: Product[] = [
     codename: "Full Engine",
     tagline: "OSINT-grade web search",
     description:
-      "The complete Zophiel Search Intelligence tab — cross-validated intelligence search with Veracity Scores, dark-web and leak sweeps, dorking, archives, intel mapping and the V2 pipeline. Included with the $18 Asherin subscription (monthly and 6-month). Pro adds throughput and priority latency.",
+      "The Zophiel Search Intelligence tab. It queries public search endpoints and open registries, ranks what comes back by source credibility, and cites every hit. Coverage is whatever those public endpoints return on the day — not a guaranteed source count. Included with the $18 Asherin subscription; Pro adds throughput and priority latency.",
     icon: Search,
     features: [
-      "Real-time web search + source-credibility scoring",
-      "Deep Search, Link Extract, Archives Harvester",
-      "Dark Web, Leaks, Onion and GhostChain sweeps",
-      "Dorking, XKeyscore operators, Data Engine",
-      "Intel Map, URL/Domain mapping, Zophiel V2",
-      "Citation-first answers",
+      "Live search across public engines (DuckDuckGo, Bing RSS, Mojeek) with credibility ranking",
+      "Link extract, archive lookup (Wayback / public mirrors)",
+      "Public breach-index and paste lookups — no dark-web full take",
+      "Advanced search operators (dorking) with a live SERP fetch",
+      "Entity graph from returned results; URL and domain mapping",
+      "Citation-first answers — a claim with no fetched source is marked a gap",
     ],
     route: "/dashboard/search",
     tier: "aureon",
@@ -149,30 +148,49 @@ const PRODUCTS: Product[] = [
   },
   {
     name: "Zerlal Cyber",
-    tagline: "Vulnerability & exploit intel",
-    description: "Full-spectrum vulnerability scanning, domain recon, exploit intelligence, and Cyber Kill Chain analysis.",
+    tagline: "Domain recon + public CVE index",
+    description:
+      "Passive domain reconnaissance and a public CVE lookup. It reads DNS, TLS, headers and subdomains, then matches disclosed software versions against public advisory indexes. It does not authenticate, exploit, or scan hosts, and it is not a credentialed scanner.",
     icon: Shield,
-    features: ["Domain + subdomain recon", "CVE + exploit intelligence", "Cyber Kill Chain mapping", "Dark-web indicator sweep"],
+    features: [
+      "DNS, TLS, header and subdomain recon (passive)",
+      "Public CVE / advisory index lookup by product and version",
+      "Kill-chain framing of what recon found",
+      "Not a credentialed or exploit scanner — findings are inference from public surface",
+    ],
     route: "/dashboard/zerlal",
     tier: "aureon",
   },
   
   {
     name: "Zaxin Tactical",
-    tagline: "BLE + optical AR overlay",
-    description: "Bluetooth Low Energy scanner with RSSI trilateration, GATT pull, hop graph, and tactical HUD.",
+    tagline: "BLE field scout (browser Web Bluetooth)",
+    description:
+      "A browser BLE scout. It sees the devices the browser device picker and requestLEScan expose, reads a handful of GATT characteristics on a device you pair with, and plots coarse RSSI proximity. RSSI proximity is a log-distance estimate with metres of error, not trilateration, and the tab graph is BroadcastChannel between your own tabs, not a phone mesh.",
     icon: Bluetooth,
-    features: ["BLE scanner + RSSI mapping", "GATT service enumeration", "Hop-graph visualization", "Web Mercator + Esri satellite map"],
+    features: [
+      "Web Bluetooth picker + requestLEScan advertisement capture",
+      "Three GATT reads on a paired device (device info / battery where exposed)",
+      "Coarse RSSI proximity band — log-distance estimate, not trilateration",
+      "Tab-to-tab BroadcastChannel graph — your own tabs, not a device mesh",
+      "Esri satellite basemap for plotting what you observed",
+    ],
     route: "/dashboard/zaxin",
     tier: "aureon",
   },
   {
     name: "ZANOEM Design Lab",
     codename: "ZALI",
-    tagline: "First-principles universal design",
-    description: "Generative material and assembly design with simulation-grade physics — FEA, thermal, and CFD hints.",
+    tagline: "Design lab workspace",
+    description:
+      "A generative design workspace for material choices, assembly layouts and parametric sketches, written up as an engineering brief. It reasons about physics in text and geometry; it does not run a solver. No FEA, thermal or CFD simulation ships here — take the brief to a real solver before you build.",
     icon: Hammer,
-    features: ["Parametric CAD-class output", "FEA + thermal simulation", "Material property library", "Assembly + tolerance solver"],
+    features: [
+      "Parametric sketch and assembly layout",
+      "Material property library and selection rationale",
+      "Tolerance and fit reasoning written as a brief",
+      "No solver on board — not FEA, thermal or CFD",
+    ],
     route: "/dashboard/zali",
     tier: "aureon",
   },
@@ -216,14 +234,14 @@ const PRODUCTS: Product[] = [
     name: "Asherin Maps",
     tagline: "Tactical satellite map + live parcel intel",
     description:
-      "Satellite-first mapping with a scalable layer tree, live street-camera sweeps, fastest-route directions, explore/hiring nearby, and Zophiel parcel intelligence on any property you click.",
+      "Satellite-first mapping. On every fly it pulls public feeds in parallel and paints only what actually answered — public agency corridor cameras, OSM civic points, weather alerts, air quality and gauges. Property dossiers are public-index only; gaps are printed as gaps, never inferred.",
     icon: Map,
     features: [
-      "Satellite imagery with resizable layer tree",
-      "Live street-camera intelligence sweeps",
-      "Fast-lane directions, explore + hiring nearby",
-      "Parcel ownership, valuation, permits and risk overlay",
-      "Find-My locating for your signed-in device fleet",
+      "Satellite imagery with a floating, resizable layer drawer",
+      "Public agency highway / corridor camera stills — never private or doorbell cameras",
+      "OSRM routing, explore nearby from OpenStreetMap",
+      "Public-index property dossier: any field with no public record prints \"not in public index\"",
+      "Public sensor sweep on fly (weather alerts, civic points, air quality, quake and gauge feeds)",
     ],
     route: "/dashboard/geospatial",
     tier: "aureon",
@@ -232,14 +250,14 @@ const PRODUCTS: Product[] = [
     name: "Google Cloud Intelligence",
     tagline: "Your linked accounts, read as intelligence",
     description:
-      "Pair multiple Google accounts and every device signed into them. Gmail, Calendar, Drive and Meet become a single ledger with automated dossiers on anyone who contacts you, plus a live device mesh showing battery, link quality and last known position.",
+      "Pair multiple Google accounts and read them as one ledger: Gmail, Calendar and Drive metadata, plus Meet links carried on your calendar events. Contact dossiers are built from public sources on request. Device battery and position are reported only by devices you have signed in and granted permission on — Asherin cannot poll a device that has not reported in.",
     icon: Globe,
     features: [
-      "Multi-account Google pairing (Gmail, Calendar, Drive, Meet)",
-      "Automated contact intelligence dossiers",
-      "Signed-in device mesh — battery, link, live location",
-      "Always-on Sentinel alerts by email and push",
-      "Meet Vault — recordings and transcripts, downloadable",
+      "Multi-account Google pairing (Gmail, Calendar, Drive)",
+      "Contact dossiers assembled from public sources, with per-claim provenance",
+      "Device roster — battery and position from devices that opted in and reported; stale entries show their last report time",
+      "Sentinel alerts by email and web push",
+      "Meet links from your calendar events; a recording is listed only when Drive actually returns one",
     ],
     route: "/dashboard/google",
     tier: "aureon",
@@ -274,8 +292,8 @@ const PRODUCTS: Product[] = [
       "The same full Zophiel engine that ships with the $18 Asherin subscription, running at Pro limits — deeper crawl depth per query, higher throughput, and priority latency.",
     icon: Search,
     features: [
-      "30+ live sources triangulated",
-      "Veracity + provenance scoring",
+      "Deeper crawl depth per query — source count is whatever answers live, not a fixed 30",
+      "Credibility + provenance scoring on what was fetched",
       "Priority latency",
       "Higher query limits",
       "Sovereign Source Atlas access",
@@ -424,23 +442,10 @@ const PRODUCTS: Product[] = [
   
 ];
 
-const BENCHMARK_DATA = [
-  { metric: "Capability", aureon: 95, chatgpt: 78, claude: 82, gemini: 75, perplexity: 60 },
-  { metric: "Sources", aureon: 92, chatgpt: 50, claude: 45, gemini: 70, perplexity: 88 },
-  { metric: "Censorship-free", aureon: 98, chatgpt: 20, claude: 25, gemini: 18, perplexity: 35 },
-  { metric: "Tool breadth", aureon: 96, chatgpt: 55, claude: 50, gemini: 65, perplexity: 30 },
-  { metric: "Price/value", aureon: 100, chatgpt: 40, claude: 38, gemini: 45, perplexity: 50 },
-];
-
-const RADAR_DATA = [
-  { axis: "Reasoning", Asherin: 95, "GPT-5.5": 82, "Opus 4.8": 88, Gemini: 78 },
-  { axis: "Coding", Asherin: 92, "GPT-5.5": 80, "Opus 4.8": 90, Gemini: 75 },
-  { axis: "OSINT", Asherin: 98, "GPT-5.5": 45, "Opus 4.8": 50, Gemini: 60 },
-  { axis: "Vision", Asherin: 90, "GPT-5.5": 78, "Opus 4.8": 72, Gemini: 85 },
-  { axis: "Security", Asherin: 94, "GPT-5.5": 55, "Opus 4.8": 60, Gemini: 50 },
-  { axis: "Long context", Asherin: 88, "GPT-5.5": 82, "Opus 4.8": 95, Gemini: 90 },
-];
-
+/* The scored "capability" and radar charts are gone. They were invented
+   numbers — no test produced a 98 for "censorship-free", and a peer price for
+   an enterprise platform sold by quote was not a real list price. What is
+   left is published list pricing only, which anyone can check. */
 const PRICE_DATA = [
   { plan: "Asherin", cost: 18 },
   { plan: "Asherin Pro (full suite)", cost: 399 },
@@ -449,7 +454,6 @@ const PRICE_DATA = [
   { plan: "Gemini Advanced", cost: 20 },
   { plan: "Perplexity Pro", cost: 20 },
   { plan: "Cursor Pro", cost: 20 },
-  { plan: "Palantir Foundry", cost: 500 },
 ];
 
 const ProductCard = ({ p }: { p: Product }) => {
@@ -681,76 +685,38 @@ const Software = () => {
             </div>
           </section>
 
-          {/* Composite benchmark */}
+          {/* PRICING COMPARISON — published list prices only. The scored
+              capability bar and the model radar were removed: nobody ran that
+              test, so the numbers were decoration pretending to be evidence. */}
           <section className="space-y-6">
             <div className="text-center space-y-2">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground">
-                ◈ Composite benchmark
+                ◈ Published list pricing
               </p>
               <h2 className="text-2xl sm:text-3xl font-extralight tracking-tight">
-                Asherin vs the paid stack
+                What each plan costs per month
               </h2>
+              <p className="mx-auto max-w-2xl text-xs font-extralight text-muted-foreground">
+                Vendor list prices as published by each vendor. This is a price comparison, not a
+                capability benchmark — Asherin publishes no head-to-head capability scores because
+                it has not run a measured head-to-head test.
+              </p>
             </div>
 
             <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
               <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                ◉ Capability score · higher is better
+                ◉ Monthly cost · list price
               </p>
               <div className="h-[360px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={BENCHMARK_DATA}>
+                  <BarChart data={PRICE_DATA} layout="vertical" margin={{ left: 30 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                    <XAxis dataKey="metric" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                    <Bar dataKey="aureon"    name="Asherin"        fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="chatgpt"   name="ChatGPT Plus"  fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="claude"    name="Claude Pro"    fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="gemini"    name="Gemini Adv."   fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="perplexity" name="Perplexity"   fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    <XAxis type="number" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis type="category" dataKey="plan" width={170} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
+                    <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                  ◈ Model-vs-model radar
-                </p>
-                <div className="h-[360px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={RADAR_DATA}>
-                      <PolarGrid stroke="hsl(var(--border) / 0.3)" />
-                      <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
-                      <Legend wrapperStyle={{ fontSize: 11, fontWeight: 300 }} />
-                      <Radar name="Asherin"    dataKey="Asherin"    stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.35} />
-                      <Radar name="GPT-5.5"   dataKey="GPT-5.5"   stroke="#10b981" fill="#10b981" fillOpacity={0.18} />
-                      <Radar name="Opus 4.8"  dataKey="Opus 4.8"  stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.18} />
-                      <Radar name="Gemini"    dataKey="Gemini"    stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.18} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
-                <p className="text-[10px] font-medium tracking-[0.25em] uppercase text-muted-foreground mb-4">
-                  ◉ Monthly cost · Asherin vs competitors
-                </p>
-                <div className="h-[360px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={PRICE_DATA} layout="vertical" margin={{ left: 30 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                      <XAxis type="number" tick={{ fontSize: 11, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis type="category" dataKey="plan" width={170} tick={{ fontSize: 10, fontWeight: 300, fill: "hsl(var(--muted-foreground))" }} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `$${v}/mo`} />
-                      <Bar dataKey="cost" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
               </div>
             </div>
           </section>

@@ -141,7 +141,7 @@ const Index = () => {
           "@type": "WebSite",
           name: "Asherin",
           url: "https://asherin.com",
-          description: "Uncensored AI intelligence platform with a capable coding engine, live web search, and end-to-end encryption.",
+          description: "AI intelligence platform with a capable coding engine, live web search, and end-to-end encryption.",
         },
       },
       {
@@ -327,7 +327,7 @@ const Index = () => {
             </h1>
 
             <p className="mt-7 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-              Asherin tries to give you the fuller picture — unfiltered, sourced,
+              Asherin tries to give you the fuller picture — sourced,
               and honest about what it does not know.
             </p>
 
@@ -637,7 +637,7 @@ const Index = () => {
           <div className="mt-16 grid grid-cols-12 gap-3 sm:gap-4">
             {[
               { idx: "01", icon: Hammer, title: "For Builders", desc: "Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.", span: "col-span-12 md:col-span-5", tag: "Full-Stack" },
-              { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Get the full analysis on any topic: unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
+              { idx: "02", icon: FlaskConical, title: "For Researchers", desc: "Structured analysis backed by live search and cited sources, with the gaps named instead of smoothed over.", span: "col-span-12 md:col-span-4", tag: "OSINT" },
               { idx: "03", icon: Code, title: "For Coders", desc: "A coding engine that keeps your context. Debug, architect, and ship production code, with persistent context across every session.", span: "col-span-12 md:col-span-3", tag: "Production" },
               { idx: "04", icon: Target, title: "For Strategists", desc: "Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.", span: "col-span-12 md:col-span-3", tag: "Forecast" },
               { idx: "05", icon: Feather, title: "For Writers", desc: "Write with your voice intact. Asherin adapts to your tone and delivers raw creative output, no corporate rewrites.", span: "col-span-12 md:col-span-4", tag: "Voice-True" },
@@ -712,7 +712,7 @@ const Index = () => {
               <span className="italic text-muted-foreground/60">One Dashboard.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground/80">
-              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, NOMAD, AXRLEN, ZEEION, CROSS and more) ships in Asherin Pro at $399/month.
+              All software modules available inside your Asherin workspace. Core modules ship in the $18/month Asherin plan; the advanced intelligence suite (Azplen, AXRLEN, ZEEION, Zerlal and more) ships in Asherin Pro at $399/month.
             </p>
           </div>
 
@@ -721,7 +721,7 @@ const Index = () => {
               group: "Core",
               blurb: "The intelligence engine",
               items: [
-                { icon: Brain, name: "Asherin Chat", codename: "Intelligence Engine", desc: "Uncensored AI with persistent memory, multi-model consensus, and end-to-end encryption. Bring your own key." },
+                { icon: Brain, name: "Asherin Chat", codename: "Intelligence Engine", desc: "Persistent memory, live tool calls and end-to-end encryption. Routes to Gemini, Venice mistral-31-24b, or your own key." },
               ]
             },
             {
@@ -742,7 +742,6 @@ const Index = () => {
                 { icon: Cpu, name: "Pattern Analysis", codename: "Pattern Engine", desc: "Visual pattern recognition and forecasting across complex datasets." },
                 { icon: Clock, name: "Time-Series", codename: "Temporal Analysis", desc: "Temporal analysis with anomaly detection and forecasting." },
                 { icon: Globe, name: "Geospatial", codename: "Geo Intelligence", desc: "Spatial-temporal analysis and route optimization." },
-                { icon: Monitor, name: "Video Intelligence", codename: "Behavior Analysis", desc: "Deception detection, personality profiling, and FACS behavioral tracking from video." },
               ]
             },
             {
@@ -750,10 +749,8 @@ const Index = () => {
               blurb: "Search, OSINT, prediction, and security tools",
               items: [
                 { icon: Search, name: "Zophiel", codename: "Search Intelligence", desc: "Privacy-first source-credibility search across 30+ intelligence lanes." },
-                { icon: Globe, name: "NOMAD", codename: "OSINT Investigation", desc: "30+ source open-source intelligence with AI correlation and dossier output." },
                 { icon: Brain, name: "AXRLEN", codename: "Predictive Intelligence", desc: "Live global event prediction, scenario simulation, and Monte Carlo modeling." },
                 { icon: Download, name: "File Scrapper", codename: "Document Extraction", desc: "Pull all text from any document format via AI-powered extraction." },
-                { icon: Lock, name: "Cipher Toolkit", codename: "Crypto Tools", desc: "Encoding, hashing, and encryption, all client-side, zero server exposure." },
                 { icon: Flag, name: "Daily Briefings", codename: "Intel Briefings", desc: "Competitor, regulatory, and market signals delivered every morning." },
               ]
             },
@@ -764,7 +761,6 @@ const Index = () => {
                 { icon: Code, name: "Asherin IDE", codename: "Cloud IDE", desc: "Browser IDE with project files, terminals, sessions, and BYOK AI assistance." },
                 { icon: Feather, name: "Intelligence Notebooks", codename: "Notebooks", desc: "Shared analysis sessions with live SQL execution and team collaboration." },
                 { icon: GitBranch, name: "Zahten", codename: "Agent Forge", desc: "Design, scaffold, and harden autonomous agents, then publish them as custom tabs." },
-                { icon: Cpu, name: "Plugin Marketplace", codename: "Plugins", desc: "Connectors and modules to extend Asherin with third-party integrations." },
                 { icon: Code, name: "Code Snippets", codename: "Snippet Vault", desc: "Save, tag, and reuse code blocks across all your conversations." },
               ]
             },
@@ -843,7 +839,7 @@ const Index = () => {
           {/* Bento grid 12-col */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             {[
-              { Icon: Unlock, title: "Uncensored Responses", desc: "No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
+              { Icon: Unlock, title: "Direct Answers", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b is the permissive default, Gemini keeps its vendor policy.", span: "md:col-span-7 md:row-span-2", featured: true, tag: "Core" },
               { Icon: Monitor, title: "Coding Engine", desc: "Production-grade output on complex builds, debugging, and multi-file architecture.", span: "md:col-span-5", tag: "Engine" },
               { Icon: Search, title: "Live Web Intelligence", desc: "Privacy-first real-time search. Current data, not 2-year-old training sets.", span: "md:col-span-5", tag: "Realtime" },
               { Icon: Brain, title: "Persistent Memory", desc: "Asherin remembers your context, preferences, and projects across every session.", span: "md:col-span-4", tag: "Stateful" },
@@ -914,10 +910,10 @@ const Index = () => {
             {/* Right list — spec rows */}
             <div className="lg:col-span-7 space-y-3">
               {[
-                { n: "S-01", label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
+                { n: "S-01", label: "Operator-set model", desc: "You choose the provider. Venice mistral-31-24b is the permissive default; your own key overrides it." },
                 { n: "S-02", label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
                 { n: "S-03", label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
-                { n: "S-04", label: "Public Intelligence & Forensics", desc: "Full-spectrum public intelligence: NOMAD, entity resolution, and dossier output." },
+                { n: "S-04", label: "Public Intelligence & Forensics", desc: "Public-source intelligence: Asherin Engine reach-back, entity resolution and cited dossier output." },
                 { n: "S-05", label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
                 { n: "S-06", label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
               ].map(({ n, label, desc }) => (
@@ -958,10 +954,10 @@ const Index = () => {
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
               Your Keys. <span className="italic text-muted-foreground/60">Your Models.</span>
               <br />
-              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Uncensored Through Every Provider.</span>
+              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground bg-clip-text text-transparent">Your Key. Your Provider.</span>
             </h2>
             <p className="mt-8 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-              Plug in your own API keys from any major AI provider. Every model runs through Asherin's uncensored intelligence layer. Same raw output, same zero-filter policy, regardless of which LLM powers it.
+              Plug in your own API keys from any major AI provider. Asherin adds the reasoning, memory and tool layer on top; the refusal behaviour is whatever your chosen model ships with — Asherin does not remove a vendor's safety layer.
             </p>
           </div>
 
@@ -1112,7 +1108,7 @@ const Index = () => {
               <p className="text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
                 If we don't ship the tool you want, build it yourself with <span className="text-foreground">Zahten</span>, our autonomous agent forge.
                 Spin up your own tab, your own module, your own intelligence engine inside Asherin and wire it directly to your own LLM API key.
-                We strip the safety filters off the model for you, so the software you build runs uncensored. No guardrails, no apologies, no refusals.
+                You pick the model and the key. Asherin supplies the reasoning, tools and memory around it, and states what it cannot verify instead of padding the answer.
               </p>
               <p className="mt-5 text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
                 Build any kind of software you want: research engines, trading bots, OSINT pipelines, creative tools, simulators, forensic systems,
@@ -1344,7 +1340,7 @@ const Index = () => {
           </div>
 
           <div className="space-y-3">
-            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, NOMAD, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
+            <FaqItem q="How much does Asherin cost?" a='Asherin is $18/month for the core platform: chat, code, base Zophiel Search, persistent memory, workspace and E2E encryption. Asherin Pro is $399/month and adds the full intelligence suite: Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, team collaboration, and 200 messages per 3-hour window. Enterprise (SSO, audit, dedicated capacity) is custom-priced.' />
             <FaqItem q="Is there a catch?" a="No. No usage trap. No data harvesting. No upsell wall after the first week. Bring your own API key on either tier, own your data, and cancel from the dashboard with one click. Asherin was built as a mission, not a funnel." />
             <FaqItem q="What makes Asherin different?" a="Asherin is more than a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and a capable coding engine into a single dashboard built for professionals." />
             <FaqItem q="How good is the coding engine?" a="Asherin holds full context across large codebases, debugs without circular loops, and delivers working architecture, not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard." />

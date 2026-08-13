@@ -20,13 +20,13 @@ type Feature = {
 
 const features: Feature[] = [
   // Core Chat + Modes
-  { name: "Chat Mode", desc: "Conversational uncensored AI for general questions, research and synthesis.", aureon: true, pro: true, enterprise: true },
+  { name: "Chat Mode", desc: "Conversational AI for general questions, research and synthesis.", aureon: true, pro: true, enterprise: true },
   { name: "Code Mode", desc: "Elite coding engine — architecture-level reasoning, multi-file edits, no circular debug loops.", aureon: true, pro: true, enterprise: true },
   { name: "Research Mode", desc: "Long-form research workflow with live citations and multi-source synthesis.", aureon: true, pro: true, enterprise: true },
   { name: "Truth Mode", desc: "Adversarial truth-extraction with cross-validation across multiple frontier models.", aureon: true, pro: true, enterprise: true },
 
   // Core Capabilities
-  { name: "Uncensored AI responses", desc: "Direct, unfiltered answers. No corporate hedging, no refusal layer.", aureon: true, pro: true, enterprise: true },
+  { name: "Direct answers", desc: "Analytical answers without corporate hedging. Model behaviour depends on the provider you route to — Gemini by default, Venice mistral-31-24b on the platform fallback, or your own key.", aureon: true, pro: true, enterprise: true },
   { name: "Elite coding engine", desc: "Production-grade code with full repository context, refactoring and verification.", aureon: true, pro: true, enterprise: true },
   { name: "Multi-language output", desc: "Generate output in any major spoken or programming language at identical quality.", aureon: true, pro: true, enterprise: true },
   { name: "Response depth control", desc: "Pick concise, standard or maximum-depth answers per turn.", aureon: true, pro: true, enterprise: true },
@@ -54,15 +54,11 @@ const features: Feature[] = [
 
   // Pro modules
   { name: "Azplen Data Intelligence Platform", desc: "Ingestion + analysis workflows, entity resolution, workflow automation, scenario simulation, threat modeling.", aureon: false, pro: true, enterprise: true },
-  { name: "NOMAD Public Intelligence Agent", desc: "OSINT investigation tooling, public web intelligence and entity matching.", aureon: false, pro: true, enterprise: true },
   { name: "Intelligence Briefings (Advanced)", desc: "Daily briefings with industry customization.", aureon: false, pro: true, enterprise: true },
   { name: "AXRLEN — Predictive Intelligence", desc: "Predictive probabilistic scenarios with Monte Carlo modeling and multi-side research.", aureon: false, pro: true, enterprise: true },
   { name: "ZEEION FI — Financial Intelligence", desc: "Live-source financial tracking, dispute resolution and workforce optimization analytics.", aureon: false, pro: true, enterprise: true },
   { name: "ZERLAL — Cyber Security", desc: "Vulnerability scanning, infrastructure recon, exploit intelligence and Cyber Kill Chain analysis.", aureon: false, pro: true, enterprise: true },
-  { name: "CROSS — Live Screen Intelligence", desc: "Live screen recording (WebM) with 17 analytical modes for real-time analysis.", aureon: false, pro: true, enterprise: true },
-  { name: "ZANOEM Design Lab", desc: "FEA + thermal simulation, generative material and assembly design.", aureon: false, pro: true, enterprise: true },
-  { name: "Video Intelligence", desc: "Frame-by-frame video analysis: objects, faces, micro-expressions, behavior.", aureon: false, pro: true, enterprise: true },
-  { name: "Plugin Marketplace", desc: "Install third-party plugins with a live execution engine.", aureon: false, pro: true, enterprise: true },
+  { name: "ZANOEM Design Lab", desc: "Generative material and assembly design written as an engineering brief. No solver on board — not FEA, thermal or CFD.", aureon: false, pro: true, enterprise: true },
   { name: "Automated Agents", desc: "Scheduled autonomous tasks with multi-channel webhook delivery and retry logic.", aureon: false, pro: true, enterprise: true },
   { name: "Asherin IDE", desc: "Full in-browser Monaco IDE with AI pair-programming and sandboxed execution.", aureon: false, pro: true, enterprise: true },
 
@@ -151,7 +147,7 @@ const PricingComparisonTable = () => {
               </div>
               {tier.id === "enterprise" ? (
                 <a
-                  href="mailto:asher@aureonai.app?subject=Asherin%20Enterprise%20Inquiry"
+                  href="mailto:asher@asherin.com?subject=Asherin%20Enterprise%20Inquiry"
                   className="block w-full rounded-lg py-2.5 text-xs font-light tracking-wide transition-all border border-foreground/30 text-foreground hover:bg-foreground/5"
                 >
                   Contact sales

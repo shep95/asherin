@@ -235,11 +235,11 @@ const Asher = () => {
             All requests are vetted under restricted credentialing protocols.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
-            <a href="mailto:asher@aureonai.app?subject=ASHER%20Access%20Request" className="group inline-flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-6 py-3 text-xs font-light tracking-[0.2em] text-red-200 uppercase transition-all hover:bg-red-500/20">
+            <a href="mailto:asher@asherin.com?subject=ASHER%20Access%20Request" className="group inline-flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-6 py-3 text-xs font-light tracking-[0.2em] text-red-200 uppercase transition-all hover:bg-red-500/20">
               Submit Access Request
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </a>
-            <a href="mailto:security@aureonai.app" className="text-xs font-light tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors uppercase">
+            <a href="mailto:security@asherin.com" className="text-xs font-light tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors uppercase">
               Contact Our Security Team
             </a>
           </div>
@@ -256,7 +256,7 @@ const Asher = () => {
           <div className="flex items-center justify-center gap-5 text-[11px] font-light tracking-[0.15em] text-muted-foreground uppercase">
             <Link to="/dashboard" className="hover:text-foreground">Dashboard</Link>
             <Link to="/terms" className="hover:text-foreground">Compliance</Link>
-            <a href="mailto:asher@aureonai.app" className="hover:text-foreground">Contact</a>
+            <a href="mailto:asher@asherin.com" className="hover:text-foreground">Contact</a>
           </div>
           <div className="text-right">
             <p className="text-[10px] font-light tracking-[0.3em] text-red-400/70 uppercase">Classification: Restricted</p>

@@ -24,8 +24,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "search", icon: Zap, label: "Zophiel Engine", desc: "30-source OSINT search engine with Veracity Scores and cross-validation across the open and dark web." },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", desc: "Daily truth-extracted intelligence briefings synthesized from live sources, with triple-fallback parsing." },
-      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", desc: "Autonomous OSINT agent running 14-pass deep analysis with persistent dossier trees." },
-      { id: "video", icon: Crosshair, label: "Video Intelligence", pro: true, desc: "FACS-based behavioral video tracking, micro-expression detection, and frame-by-frame locus mapping." },
       { id: "reverse", icon: Search, label: "Reverse Engineer", desc: "Architecture deconstruction from images, video, and binaries — see the blueprint behind any system." },
       { id: "zahten", icon: Workflow, label: "Zahten Agent Forge", desc: "Build hardened autonomous agents with a Mission Console, Scope Assessor, and multi-channel delivery." },
     ],
@@ -57,7 +55,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "ebook", icon: FileText, label: "E-Book Generator", desc: "Multi-session text uploads, 500 words/chapter, and PNG cover generation." },
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", desc: "Auto-build presentation decks with consistent theme and dense data layouts." },
       { id: "file-scrapper", icon: FileText, label: "File Scrapper", desc: "Extract unstructured documents to clean TXT via Gemini Flash." },
-      { id: "cipher", icon: Shield, label: "Cipher Toolkit", desc: "AES-256-GCM encryption, hashing, and key management utilities." },
+      { id: "guardian-vault", icon: Shield, label: "Guardian Vault", desc: "MFA and secret storage with AES-256-GCM, rotation reminders and breach monitoring." },
     ],
   },
   {

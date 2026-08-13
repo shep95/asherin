@@ -27,11 +27,11 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, NOMAD, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month for the core platform. Asherin Pro is $399 per month and unlocks the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you uncensored chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($399/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "Is there a free trial?",
@@ -172,7 +172,7 @@ const Pricing = () => {
             primaryTopic="Asherin subscription pricing"
             keyFacts={[
               "Asherin: $18/month — core chat, four modes (Chat, Code, Research, Truth), a capable coding engine, base Zophiel Search, persistent memory, 60 messages per 3-hour window.",
-              "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
+              "Asherin Pro: $399/month — everything in Asherin plus Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro, full team collaboration, 200 messages per 3-hour window.",
               "Enterprise: custom pricing — SSO/SAML, org policy controls, audit logs, dedicated capacity, custom SLAs.",
               "All plans bill monthly in USD via Stripe. No free trial; cancel anytime; data exportable or deletable at any time.",
               "BYOK (bring-your-own-key) is supported on every paid tier across nine providers.",
@@ -235,7 +235,7 @@ const Pricing = () => {
                     ["BYOK (9 providers)", "✓", "✓", "✓"],
                     ["Messages / 3-hour window", "60", "200", "Custom"],
                     ["Azplen Data Intelligence Platform", "—", "✓", "✓"],
-                    ["NOMAD Public Intelligence Agent (OSINT)", "—", "✓", "✓"],
+                    ["Asherin Engine reach-back harvest (OSINT)", "—", "✓", "✓"],
                     ["Advanced Intelligence Briefings", "—", "✓", "✓"],
                     ["AXRLEN / ZEEION / ZERLAL / CROSS suite", "—", "✓", "✓"],
                     ["Team workspace", "Limited", "Full + admin controls", "Org-wide + SSO/SAML"],
