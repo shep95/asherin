@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { emitPull } from "@/lib/connect/emitPull";
 import { MEMORY_KINDS, guardMemoryContent, memoryLabel, type MemoryKind } from "@/lib/memory/memoryKinds";
 import { getActiveScope, onScopeChange, type ProjectScope } from "@/lib/projects/scope";
+import { useIsV2 } from "@/lib/dashboardUiContext";
+import { V2Action, v2ActionClass } from "@/components/dashboard/v2/V2PageShell";
 
 interface MemoryEntry {
   id: string;
@@ -27,6 +29,7 @@ const SOURCE_ICONS: Record<string, React.ElementType> = {
 };
 
 const MemoryCenterView = () => {
+  const v2 = useIsV2();
   const { user } = useAuth();
   const { toast } = useToast();
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
@@ -168,23 +171,40 @@ const MemoryCenterView = () => {
     <div className="h-full overflow-y-auto">
     <div className="max-w-3xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extralight tracking-wide text-foreground">Memory</h2>
-          <p className="text-sm font-extralight text-muted-foreground mt-1">
-            Every rule asherin carries is listed here, with its origin — and can be deleted. Credentials are refused: those live in Guardian Vault.
-          </p>
+      {v2 ? (
+        // v.2: destructive wipe is not a header peer of export — it stays in
+        // the list footer, out of the accidental-click path.
+        <V2Action>
+          <button onClick={exportAll} className={v2ActionClass} title="Export every memory as json">
+            <Download className="h-3.5 w-3.5" /> export
+          </button>
+        </V2Action>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground">Memory</h2>
+            <p className="text-sm font-extralight text-muted-foreground mt-1">
+              Every rule asherin carries is listed here, with its origin — and can be deleted. Credentials are refused: those live in Guardian Vault.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={exportAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors" title="Export all">
+              <Download className="h-4 w-4" />
+            </button>
+            <button onClick={wipeAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-destructive hover:text-destructive/80 transition-colors" title="Wipe all">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
-        </div>
-        <div className="flex gap-2">
-          <button onClick={exportAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors" title="Export all">
-            <Download className="h-4 w-4" />
-          </button>
-          <button onClick={wipeAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-destructive hover:text-destructive/80 transition-colors" title="Wipe all">
-            <Trash2 className="h-4 w-4" />
+      {v2 && (
+        <div className="flex justify-end">
+          <button onClick={wipeAll} className="text-[10px] font-light text-destructive/70 hover:text-destructive transition-colors">
+            wipe every memory
           </button>
         </div>
-      </div>
+      )}
 
       {/* Stats bar */}
       <div className="flex items-center gap-4 text-[10px] font-light text-muted-foreground/50">
