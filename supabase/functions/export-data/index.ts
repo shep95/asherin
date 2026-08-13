@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireAssuredUser } from "../_shared/assuranceGate.ts";
+
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 // [Finding #2 & #10] — Stream data in batches instead of buffering entire dataset in memory
