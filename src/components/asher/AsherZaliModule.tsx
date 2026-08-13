@@ -22,7 +22,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { ZaliProject, ZaliMessage, ZaliTab } from "@/components/dashboard/zali/types";
 import type { ChatMode } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
-import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { extractZanoemCodeFiles } from "@/components/dashboard/zali/zanoemOutput";
 import React from "react";
 import { ADMIN_EMAIL } from "@/lib/adminEmail";
@@ -291,15 +290,7 @@ const AsherZaliModule = () => {
 
     try {
       const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
-      let personaSystemPrompt: string | null = null;
       let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
-
-      try {
-        const personaId = localStorage.getItem("aureon_active_persona_id");
-        const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
-        const activePersona = customPersonas.find((p: any) => p.id === personaId) || builtInPersonas.find((p) => p.id === personaId);
-        personaSystemPrompt = activePersona?.systemPrompt || null;
-      } catch { /* no persona context */ }
 
       const activeBrainId = localStorage.getItem("aureon_active_brain_id");
       if (activeBrainId) {
@@ -345,7 +336,6 @@ const AsherZaliModule = () => {
               name: activeProject.name, description: activeProject.description,
               phase: activeProject.phase, designType: activeProject.designType,
             },
-            personaSystemPrompt,
             brainContext,
           }),
           signal: controller.signal,
