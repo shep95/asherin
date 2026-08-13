@@ -2531,7 +2531,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       hasChartAttachment || _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
       _R.visual ? AUREON_VISUAL_DOMINANCE : "",
-      CONTEXT_INTELLIGENCE_PROMPT,
+      _R.trivial ? "" : CONTEXT_INTELLIGENCE_PROMPT,
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       // ── USER-CONTROLLED OVERRIDES (highest recency priority) ──
