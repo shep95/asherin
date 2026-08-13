@@ -45,7 +45,6 @@ interface DashboardSidebarProps {
   onViewChange: (view: DashboardView) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  onPersonaChange?: (id: string | null) => void;
   publishedAgents?: { id: string; name: string }[];
 }
 
@@ -179,7 +178,6 @@ const DashboardSidebar = ({
   const [archivedLoading, setArchivedLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const setPersonaId = onPersonaChange ?? (() => {});
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
   });
