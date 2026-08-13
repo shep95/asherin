@@ -17,6 +17,7 @@ import { sampleRoofColor, type RoofColorVote } from "@/lib/asher/roofColor";
 import CameraIntelligencePanel from "@/components/asher/CameraIntelligencePanel";
 
 import { fetchStreetCameras, type StreetCamera, type CameraQuery } from "@/lib/asher/streetCameras";
+import { emitPull } from "@/lib/connect/emitPull";
 import { searchNearby, streetViewUrl, type Place } from "@/lib/asher/places";
 import {
   getDirections, fmtDistance as fmtDistUnits, fmtDuration as fmtDurUnits, fmtEta,
@@ -1068,14 +1069,29 @@ const IntelligenceMapModule = () => {
       if (!map) return;
       const bounds = map.getBounds();
       const tasks: Promise<void>[] = [];
+      /* Each live layer is its own capability pull. The fetchers swallow their
+         own network errors and return [], so an empty array is traced as skip:
+         Connect shows a quiet layer, never a fabricated field of pins. */
+      const traced = (capability: string, run: Promise<ThreatPoint[]>, apply: (d: ThreatPoint[]) => void) => {
+        const started = performance.now();
+        return run.then((d) => {
+          apply(d);
+          void emitPull({
+            organ: "maps", capability, fromSurface: "maps",
+            status: d.length ? "ok" : "skip",
+            latencyMs: performance.now() - started,
+            quote: d.length ? `${d.length} live returns in view` : "no returns published for this viewport",
+          });
+        });
+      };
       if (activeThreats["h-quake"]) {
-        tasks.push(fetchEarthquakes().then((d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
+        tasks.push(traced("quakes", fetchEarthquakes(), (d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
       }
       if (activeThreats["h-fire"]) {
-        tasks.push(fetchWildfires(bounds).then((d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
+        tasks.push(traced("wildfires", fetchWildfires(bounds), (d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
       }
       if (activeThreats["h-air"]) {
-        tasks.push(fetchAircraft(bounds).then((d) => setThreatData((p) => ({ ...p, "h-air": d }))));
+        tasks.push(traced("aircraft", fetchAircraft(bounds), (d) => setThreatData((p) => ({ ...p, "h-air": d }))));
       }
       await Promise.all(tasks);
     };
@@ -1145,6 +1161,13 @@ const IntelligenceMapModule = () => {
 
   const flyTo = (lat: number, lng: number, zoom = 11) => {
     mapRef.current?.flyTo([lat, lng], zoom, { duration: 0.8 });
+
+    /* Connect trace: the camera really moved. Coordinates only — a fly carries
+       no register data, so there is nothing here to mask beyond precision. */
+    void emitPull({
+      organ: "maps", capability: "go", fromSurface: "maps", status: "ok",
+      quote: `${lat.toFixed(5)}, ${lng.toFixed(5)} · z${zoom}`,
+    });
 
     if (zoom < 14) return; // metro-scale fly — a camera sweep there is noise.
     const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
@@ -1322,22 +1345,54 @@ const IntelligenceMapModule = () => {
      handling stays — an empty result clears the layer instead of leaving the
      previous corridor's pins floating over a new city. */
   const loadCamerasQuiet = useCallback(async (opts: CameraQuery) => {
+    const started = performance.now();
     try {
       const sweep = await fetchStreetCameras(opts);
       setCameras(sweep.cameras);
-    } catch {
+      // An empty corridor is a real, honest outcome — traced as a skip, not a
+      // failure and never as a green pull that implies cameras were found.
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps",
+        status: sweep.cameras.length ? "ok" : "skip",
+        latencyMs: performance.now() - started,
+        quote: sweep.cameras.length
+          ? `${sweep.cameras.length} public cameras in corridor`
+          : (sweep.coverageNote || "no published cameras for this corridor"),
+        meta: { auto: true },
+      });
+    } catch (e: any) {
       setCameras([]);
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - started,
+        quote: e?.message || "camera catalogue unavailable",
+        meta: { auto: true },
+      });
     }
   }, []);
 
   const loadCameras = useCallback(async (opts: CameraQuery) => {
 
     setCameraBusy(true);
+    const started = performance.now();
     try {
       const sweep = await fetchStreetCameras(opts);
       setCameras(sweep.cameras);
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps",
+        status: sweep.cameras.length ? "ok" : "skip",
+        latencyMs: performance.now() - started,
+        quote: sweep.cameras.length
+          ? `${sweep.cameras.length} public cameras in corridor`
+          : (sweep.coverageNote || "no published cameras for this corridor"),
+      });
       if (!sweep.cameras.length) toast.info(sweep.coverageNote || "No public traffic cameras published for that corridor.");
     } catch (e: any) {
+      void emitPull({
+        organ: "maps", capability: "cameras", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - started,
+        quote: e?.message || "camera catalogue unavailable",
+      });
       toast.error(e?.message || "Camera catalogue unavailable.");
     } finally {
       setCameraBusy(false);
@@ -1421,6 +1476,14 @@ const IntelligenceMapModule = () => {
 
     flyTo(lat, lng, zoom);
 
+    /* Connect trace: this is the "take me to X" arrival itself, distinct from
+       the raw camera move above. The quote is the place name the operator will
+       see on the pin — never the raw query, which can carry personal detail. */
+    void emitPull({
+      organ: "maps", capability: "take", fromSurface: "maps", status: "ok",
+      quote: label, meta: { zoom },
+    });
+
     /* AUTO-PULL (Queue 06 B): arriving at a target IS the request for local
        sensor context. The Cameras button is a manual refresh, never the
        precondition for first paint. Cameras must never block the dossier, so
@@ -1450,12 +1513,32 @@ const IntelligenceMapModule = () => {
       const run = ++organRunRef.current;
       setOrganBusy(true);
       setSelectedCameraId(null);
+      const sweepStarted = performance.now();
       try {
         const radius = zoom >= 18 ? 500 : zoom >= 16 ? 900 : 1600;
         const [pull, roof] = await Promise.all([
           pullNearbyOrgans(lat, lng, { radiusM: radius }),
           zoom >= 17 ? sampleRoofColor(lat, lng) : Promise.resolve(null),
         ]);
+        // Two organs ran, so two rows. The roof sample is traced as a skip when
+        // the zoom never authorised it and fail when the tile could not be read
+        // — a gap in the index is never dressed up as a successful pull.
+        void emitPull({
+          organ: "maps", capability: "nearby", fromSurface: "maps",
+          status: pull.points.length ? "ok" : "skip",
+          latencyMs: performance.now() - sweepStarted,
+          quote: `${pull.points.length} public features within ${radius} m`,
+        });
+        void emitPull({
+          organ: "maps", capability: "roofs", fromSurface: "maps",
+          status: roof ? "ok" : zoom >= 17 ? "fail" : "skip",
+          latencyMs: performance.now() - sweepStarted,
+          quote: roof
+            ? `${roof.klass} · ${Math.round(roof.confidence * 100)}% of sampled pixels`
+            : zoom >= 17
+              ? "imagery tile unavailable or canvas read blocked"
+              : "only sampled at rooftop zoom",
+        });
         if (run !== organRunRef.current) return; // a newer arrival owns the paint
         const rows = [...pull.results];
         rows.push(
@@ -1466,7 +1549,12 @@ const IntelligenceMapModule = () => {
         setRoofVote(roof);
         setOrganPoints(pull.points);
         setOrganDigest(buildOrganDigest(rows));
-      } catch {
+      } catch (e: any) {
+        void emitPull({
+          organ: "maps", capability: "nearby", fromSurface: "maps", status: "fail",
+          latencyMs: performance.now() - sweepStarted,
+          quote: e?.message || "nearby sweep unavailable",
+        });
         if (run === organRunRef.current) { setOrganPoints([]); setOrganDigest(null); }
       } finally {
         if (run === organRunRef.current) setOrganBusy(false);
@@ -1551,6 +1639,7 @@ const IntelligenceMapModule = () => {
       address || `Unresolved parcel @ ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
     setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    const indexStarted = performance.now();
     try {
       const { data, error } = await supabase.functions.invoke("asherin-public-index", {
         body: { lat, lon: lng, address: resolvedAddress },
@@ -1584,8 +1673,26 @@ const IntelligenceMapModule = () => {
         })) as any,
         error: null,
       });
+      // Connect trace: the register really answered. The quote counts filled
+      // fields so a mostly-empty record reads as thin coverage rather than a
+      // full dossier — the map already refuses to invent the missing ones.
+      const filled = [data.ownership, data.year_built, data.building_type, data.criminal]
+        .filter((v: unknown) => typeof v === "string" && v && v !== NIL).length;
+      void emitPull({
+        organ: "maps", capability: "property", fromSurface: "maps",
+        status: filled ? "ok" : "skip",
+        latencyMs: performance.now() - indexStarted,
+        quote: filled
+          ? `${filled}/4 core register fields published`
+          : "no core register fields — not in public index",
+      });
       logAsherEvent("module_open", { module: "public_index", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
     } catch (e: any) {
+      void emitPull({
+        organ: "maps", capability: "property", fromSurface: "maps", status: "fail",
+        latencyMs: performance.now() - indexStarted,
+        quote: e?.message || "public index unavailable",
+      });
       setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Public index unavailable" });
     }
   };
