@@ -1267,6 +1267,12 @@ const IntelligenceMapModule = () => {
        the sweep runs alongside loadEntity and swallows its own failure. */
     const camSweep = (async () => {
       if (zoom < 14) return; // metro scale — a sweep there is thousands of noise nodes
+      // flyTo queues a debounced sweep for the same point; cancel it so the
+      // corridor is fetched exactly once per arrival.
+      if (autoCamTimerRef.current !== null) {
+        window.clearTimeout(autoCamTimerRef.current);
+        autoCamTimerRef.current = null;
+      }
       const b = mapRef.current?.getBounds();
       const radiusM = b
         ? Math.min(4000, Math.max(400, b.getNorthEast().distanceTo(b.getSouthWest()) / 2))
