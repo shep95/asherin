@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import welcomeImg from "@/assets/welcome-silhouette.png.asset.json";
 
 const STORAGE_PREFIX = "aureon_welcome_seen_";
-const EXPIRED_PREFIX = "aureon_trial_expired_seen_";
 
 
 /**
@@ -141,49 +140,6 @@ function WelcomePanel({ onBegin, onPlans }: { onBegin: () => void; onPlans: () =
           className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition"
         >
           View plans →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ExpiredPanel({ onPlans, onDismiss }: { onPlans: () => void; onDismiss: () => void }) {
-  return (
-    <div className="p-7 space-y-5 max-h-[80vh] overflow-y-auto">
-      <div>
-        <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">
-          ◈ ASHERIN · ACCESS TIERS
-        </p>
-        <h2 className="mt-2 text-2xl font-extralight tracking-wide text-foreground">
-          Your trial window has closed.
-        </h2>
-        <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
-          Continue with the tier that matches your operation. Free modules
-          (library, projects, memory, settings) remain open without a plan.
-        </p>
-      </div>
-
-      <CapabilityGrid />
-
-      <div>
-        <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40 mb-2">
-          ◈ Subscription Models
-        </p>
-        <PlanList />
-      </div>
-
-      <div className="flex items-center gap-3 pt-1">
-        <Button
-          onClick={onPlans}
-          className="bg-foreground text-background hover:bg-foreground/90 font-light tracking-wide"
-        >
-          Choose a Plan
-        </Button>
-        <button
-          onClick={onDismiss}
-          className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition"
-        >
-          Continue with free modules →
         </button>
       </div>
     </div>
