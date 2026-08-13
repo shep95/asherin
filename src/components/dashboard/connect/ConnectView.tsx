@@ -325,7 +325,18 @@ const ConnectView = () => {
           />
         </section>
 
+        {v2 && (
+          <button
+            onClick={() => setShowMap((v) => !v)}
+            className="text-[11px] font-light text-muted-foreground hover:text-foreground transition-colors"
+            aria-expanded={showMap}
+          >
+            {showMap ? "hide map" : "show map"} · {counts.ok} live, {counts.fail} failed
+          </button>
+        )}
+
         {/* DAG */}
+        {(!v2 || showMap) && (
         <section className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-4 mb-4 text-[11px] font-light text-muted-foreground">
             <Legend color={STATE_STROKE.ok} label={`live ${counts.ok}`} />
@@ -380,6 +391,7 @@ const ConnectView = () => {
             </svg>
           </div>
         </section>
+        )}
 
         {/* Live log */}
         <section className="rounded-3xl border border-border/30 bg-card/20 backdrop-blur-sm overflow-hidden">
