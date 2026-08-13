@@ -819,7 +819,16 @@ const GuardianVaultView = () => {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { setEnrollingTotp(false); setTotpUri(null); setTotpSecret(null); setTotpVerifyCode(""); }}
+                      onClick={() => {
+                        // Abandoning setup must not leave a half-enrolled row
+                        // behind: that row is what used to raise a second-factor
+                        // wall at the next login with nothing to verify.
+                        if (enrolledFactorId) {
+                          void supabase.auth.mfa.unenroll({ factorId: enrolledFactorId }).catch(() => undefined);
+                        }
+                        setEnrolledFactorId(null);
+                        setEnrollingTotp(false); setTotpUri(null); setTotpSecret(null); setTotpVerifyCode("");
+                      }}
                       className="flex-1 py-2.5 rounded-xl border border-border/20 text-xs font-light text-muted-foreground hover:bg-foreground/5 transition-colors"
                     >
                       Cancel
