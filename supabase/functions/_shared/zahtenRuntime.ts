@@ -1,4 +1,4 @@
-// ZAHTEN RUNTIME — durable step execution for Agent Forge.
+// ZAHTEN RUNTIME — durable step execution for Agent Forge (shared module).
 //
 // The shape borrowed from durable-job engines (Trigger.dev checkpoints,
 // Temporal retry policy, Inngest human-in-the-loop pause) without the second
