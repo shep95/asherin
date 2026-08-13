@@ -147,6 +147,8 @@ const App = () => (
           <main>
           <Routes>
             <Route path="/" element={<Index />} />
+            {/* /auth is the sign-in surface every gated route falls back to. */}
+            <Route path="/auth" element={<Index />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/ziaassets" element={<ProtectedRoute><Ziaassets /></ProtectedRoute>} />
             <Route path="/ZIAASSETS" element={<ProtectedRoute><Ziaassets /></ProtectedRoute>} />
