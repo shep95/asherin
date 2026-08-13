@@ -19,14 +19,9 @@
   <url><loc>https://asherin.com/whiteboard</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://asherin.com/asher</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://asherin.com/updates</loc><lastmod>2026-06-17</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-   <url><loc>https://asherin.com/houseofasher/theories</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
-   <url><loc>https://asherin.com/hosrad</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-   <url><loc>https://asherin.com/symbols-of-the-bible</loc><lastmod>2026-07-10</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-   <url><loc>https://asherin.com/zaxin/theories</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Blog cluster (Theory 8 — Nested Fractal) -->
   <url><loc>https://asherin.com/blog</loc><lastmod>2026-07-12</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-   <url><loc>https://asherin.com/blog/how-to-break-any-encryption-theory</loc><lastmod>2026-07-12</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
    <url><loc>https://asherin.com/blog/the-truth-and-reality-of-wars</loc><lastmod>2026-06-24</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
    <url><loc>https://asherin.com/blog/zaxin-tactical-ble-intelligence</loc><lastmod>2026-06-26</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
    <url><loc>https://asherin.com/blog/asherin-engine-deep-time</loc><lastmod>2026-08-02</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
@@ -39,21 +34,10 @@
    <url><loc>https://asherin.com/blog/aureon-legal-advisor-multi-jurisdictional</loc><lastmod>2026-07-08</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
   <url><loc>https://asherin.com/blog/comparison</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://asherin.com/blog/venice-integration</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://asherin.com/blog/uncensored-ai-text-generator-guide</loc><lastmod>2026-06-17</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://asherin.com/blog/what-is-ai-osint</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://asherin.com/blog/sovereign-ai-platforms</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://asherin.com/blog/ai-without-restrictions</loc><lastmod>2026-06-19</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0622</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0623</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0624</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://asherin.com/blog/predictions/world-cup-2026-group-matches-0625</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://asherin.com/blog/predictions/peru-2026-keiko-fujimori</loc><lastmod>2026-06-22</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
- <url><loc>https://asherin.com/blog/predictions/russia-ukraine-war-2026-endgame</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://asherin.com/blog/predictions/china-taiwan-2026-flashpoint</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
- <url><loc>https://asherin.com/blog/predictions/israel-iran-2026-shadow-war</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://asherin.com/blog/the-crypto-dump-october-2026</loc><lastmod>2026-06-23</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://asherin.com/blog/elite-corporations-algorithms-vs-axrlen</loc><lastmod>2026-06-24</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://asherin.com/blog/btc-daily-predictions</loc><lastmod>2026-06-24</lastmod><changefreq>daily</changefreq><priority>0.95</priority></url>
   <url><loc>https://asherin.com/blog/aureon-pricing-explained</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
 
   <!-- Cluster satellites — Security (ZERLAL spine) -->
@@ -69,8 +53,6 @@
 
   <!-- Pricing spine (Theory 12 — Sovereign Niche Monopoly on "Aureon pricing") -->
   <url><loc>https://asherin.com/pricing</loc><lastmod>2026-06-19</lastmod><changefreq>weekly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://asherin.com/investors</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://asherin.com/valuation</loc><lastmod>2026-07-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Glossary cluster (Theory 12 — Sovereign Niche Monopoly) -->
   <url><loc>https://asherin.com/sources</loc><lastmod>2026-08-07</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>

@@ -51,8 +51,6 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 
 ## Predictive intelligence reports
 
-- [AXRLEN Forecast: World Cup 2026 — 22 June slate](/blog/predictions/world-cup-2026-group-matches-0622): Argentina over Austria, France over Iraq, Norway over Senegal, Algeria over Jordan. Generated 22 Jun 2026, 12:25 PM EST.
-- [AXRLEN Prediction: Keiko Fujimori — Future President of Peru 2026](/blog/predictions/peru-2026-keiko-fujimori): Fuerza Popular wins the runoff by exhaustion under the Antivoto Paradox. 94% polarized runoff probability.
 - [Aureon pricing explained](/blog/aureon-pricing-explained): full breakdown of $18/mo and $399/mo, market comparison, predictive trajectory.
 
 ## Pages
@@ -67,7 +65,6 @@ Aureon ships the operator stack for analysts, journalists, traders, security res
 - [Glossary](/glossary): Sovereign AI vocabulary, definitive reference.
 - [Updates](/updates): Release notes and platform updates.
 - [Whiteboard](/whiteboard): Infinite-canvas planning surface.
-- [House of Asher · Theories](/houseofasher/theories): Architectural theory writings.
 
 ## Optional
 
