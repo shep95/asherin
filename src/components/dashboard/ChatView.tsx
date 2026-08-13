@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
 import { Link } from "react-router-dom";
 
-import { Copy, Check, Download, FileText, ExternalLink, RefreshCw, MoreHorizontal, X, ZoomIn, Pencil, Lock } from "lucide-react";
+import { Copy, Check, Download, FileText, ExternalLink, RefreshCw, MoreHorizontal, X, ZoomIn, Pencil, Lock, LayoutDashboard } from "lucide-react";
+import { queueBoardDrop } from "@/lib/whiteboard/boardInbox";
 import DiffView from "./DiffView";
 import ChatErrorBanner from "./ChatErrorBanner";
 import ChatSearchBar from "./ChatSearchBar";
@@ -53,6 +54,45 @@ interface ChatViewProps {
   storedProviders?: string[];
   activeBrainId?: string | null;
   onBrainChange?: (brainId: string | null) => void;
+}
+
+/**
+ * Drops an answer onto the whiteboard as a brief. Boards are decrypted with
+ * the operator's own key in the browser, so the payload rides an in-memory
+ * queue instead of a server round trip, then we open the board view.
+ */
+function SendToBoardButton({ content }: { content: string }) {
+  const [sent, setSent] = useState(false);
+  const send = () => {
+    const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
+    const heading = lines.find((line) => line.startsWith("#"))?.replace(/^#+\s*/, "");
+    const bullets = lines
+      .filter((line) => /^([-*•]|\d+[.)])\s+/.test(line))
+      .map((line) => line.replace(/^([-*•]|\d+[.)])\s+/, ""))
+      .slice(0, 8);
+    queueBoardDrop({
+      kind: bullets.length ? "brief" : "note",
+      source: "chat",
+      title: heading || "asherin answer",
+      text: bullets.length ? undefined : content.slice(0, 1200),
+      bullets: bullets.length ? bullets : undefined,
+    });
+    setSent(true);
+    window.setTimeout(() => {
+      window.location.assign("/dashboard?view=whiteboard");
+    }, 220);
+  };
+
+  return (
+    <button
+      onClick={send}
+      className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+      title="Send this answer to the whiteboard"
+    >
+      <LayoutDashboard className="h-3 w-3" />
+      {sent ? "On board" : "Send to board"}
+    </button>
+  );
 }
 
 // Copy button for messages
@@ -679,6 +719,9 @@ const ChatView = ({
                             <Pencil className="h-3 w-3" />
                             Edit
                           </button>
+                        )}
+                        {msg.role === "assistant" && (
+                          <SendToBoardButton content={msg.content} />
                         )}
                         {msg.role === "assistant" && (
                           <button
