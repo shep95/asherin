@@ -56,7 +56,7 @@ interface ChatMsg {
 }
 
 type CenterTab = "code" | "preview";
-type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
+type MobilePanel = "explorer" | "editor" | "terminal";
 type LeftTab = "files" | "search" | "sessions" | "git" | "agents";
 
 const STARTER_FILES: IdeFile[] = [
@@ -920,19 +920,6 @@ const AureonIdeView = () => {
               ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} onHover={rag.hover} />
               : <IdePreviewPanel files={files} />
           )}
-          {mobilePanel === "chat" && (
-            <IdeChatPanel
-              messages={chatMessages}
-              isStreaming={isStreaming}
-              onSend={sendChatMessage}
-              onStop={stopStreaming}
-              mode={ideMode}
-              activeFileName={activeFile?.name}
-              activeFileContent={activeFile?.content}
-              creditsRemaining={creditsRemaining}
-              maxCredits={maxCredits}
-            />
-          )}
           {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} onCrashDetected={handleCrashEvent} />}
         </div>
 
@@ -941,12 +928,18 @@ const AureonIdeView = () => {
           {([
             { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
             { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
-            { id: "chat" as MobilePanel, icon: ideMode === "agent" ? Bot : MessageSquare, label: ideMode === "agent" ? "Agent" : "Chat" },
+            { id: "ask" as const, icon: MessageSquare, label: "Ask" },
             { id: "terminal" as MobilePanel, icon: TerminalIcon, label: "Terminal" },
           ]).map(tab => (
             <button key={tab.id}
-              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code"); else setMobilePanel(tab.id); }}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
+              onClick={() => {
+                // "Ask" is not a second chat — it hands the operator back to the
+                // one asherin ChatView, which is where every conversation lives.
+                if (tab.id === "ask") { requestReturnToChat(); return; }
+                if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code");
+                else setMobilePanel(tab.id as MobilePanel);
+              }}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${tab.id !== "ask" && mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
@@ -1003,13 +996,23 @@ const AureonIdeView = () => {
           <IdeModeToggle scope="aureon" value={ideMode} onChange={setIdeMode} />
           <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
 
-          {/* Chat panel toggle */}
+          {/* Pending changes panel */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-light transition-colors ${rightOpen ? "bg-accent/15 text-accent" : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5"}`}
-            title="Toggle chat panel"
+            title="Toggle changed files"
           >
-            {ideMode === "agent" ? <Bot className="h-3.5 w-3.5" /> : <MessageSquare className="h-3.5 w-3.5" />}
+            <GitCommit className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Changes</span>
+          </button>
+
+          {/* Back to the one asherin chat — the workspace never hosts a second one. */}
+          <button
+            onClick={requestReturnToChat}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+            title="Back to asherin chat"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
             <span className="hidden lg:inline">Chat</span>
           </button>
 
@@ -1164,18 +1167,12 @@ const AureonIdeView = () => {
                       onOpenFile={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
                     />
                   </div>
-                  <div className="flex-1 min-h-0">
-                    <IdeChatPanel
-                      messages={chatMessages}
-                      isStreaming={isStreaming}
-                      onSend={sendChatMessage}
-                      onStop={stopStreaming}
-                      mode={ideMode}
-                      activeFileName={activeFile?.name}
-                      activeFileContent={activeFile?.content}
-                      creditsRemaining={creditsRemaining}
-                      maxCredits={maxCredits}
-                    />
+                  <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-1">
+                    <p className="text-[10px] font-light leading-relaxed text-muted-foreground/45">
+                      Writes arrive from asherin chat and from Agent mode. Each one lands
+                      here as a diff you approve, with a checkpoint taken first — restore
+                      from Checkpoints to undo any apply.
+                    </p>
                   </div>
                 </div>
 
