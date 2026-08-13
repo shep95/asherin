@@ -421,6 +421,8 @@ Return STRICT JSON only with this exact schema:
     "reasoning": "one sentence, evidence-based"
   },
 
+  "criminal_at_address": ["only offences a source explicitly ties to THIS address, with the source name; empty array when none published"],
+
   "citations": [{"label":"string","url":"string","channel":"ownership|residents|permits|financial|listings|history"}]
 }`;
 
