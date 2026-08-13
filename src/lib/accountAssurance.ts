@@ -31,14 +31,126 @@ export const UNKNOWN_ASSURANCE: Assurance = {
   challengeRequired: false,
 };
 
+export interface VerifiedFactor {
+  id: string;
+  friendlyName: string | null;
+  createdAt: string;
+  /** totp, phone, webauthn/passkey — whatever GoTrue actually verified. */
+  type: string;
+}
+
+interface RawFactor {
+  id: string;
+  status?: string;
+  factor_type?: string;
+  friendly_name?: string | null;
+  created_at?: string;
+}
+
+/**
+ * Every bucket GoTrue returns, flattened. `all` is the superset in current
+ * clients, but older shapes only populate the per-type arrays, so both are
+ * read and de-duplicated by id. A passkey enrolled by ACCOUNT-SEC lands here
+ * even though it is not a TOTP.
+ */
+async function allFactors(): Promise<RawFactor[]> {
+  const { data } = await supabase.auth.mfa.listFactors();
+  if (!data) return [];
+  const buckets = [
+    (data as { all?: RawFactor[] }).all,
+    data.totp,
+    (data as { phone?: RawFactor[] }).phone,
+    (data as { webauthn?: RawFactor[] }).webauthn,
+  ];
+  const seen = new Map<string, RawFactor>();
+  for (const b of buckets) {
+    for (const f of (b ?? []) as RawFactor[]) if (f?.id) seen.set(f.id, f);
+  }
+  return [...seen.values()];
+}
+
+/**
+ * A half-finished enrollment is not a second factor.
+ *
+ * GoTrue raises `nextLevel` to aal2 the moment a TOTP row exists, verified or
+ * not. Someone who opened the QR in Guardian Vault and closed the tab would
+ * otherwise be met at the next login by a challenge screen with nothing to
+ * challenge. Sweeping the unverified rows is what makes that impossible.
+ *
+ * Returns how many rows were removed, so the caller knows to re-read AAL.
+ */
+export async function clearUnverifiedFactors(): Promise<number> {
+  try {
+    const stale = (await allFactors()).filter((f) => f.status !== "verified");
+    if (!stale.length) return 0;
+    const results = await Promise.all(
+      stale.map((f) =>
+        supabase.auth.mfa
+          .unenroll({ factorId: f.id })
+          .then((r) => !r.error)
+          .catch(() => false),
+      ),
+    );
+    return results.filter(Boolean).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Verified factors of any type. Unverified enrollments never gate anything. */
+export async function listVerifiedFactors(): Promise<VerifiedFactor[]> {
+  try {
+    return (await allFactors())
+      .filter((f) => f.status === "verified")
+      .map((f) => ({
+        id: f.id,
+        friendlyName: f.friendly_name ?? null,
+        createdAt: f.created_at ?? "",
+        type: f.factor_type ?? "totp",
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Read how strongly this session is authenticated.
+ *
+ * The wall is raised on evidence, not on entitlement: `challengeRequired` is
+ * true only when a factor the operator actually finished verifying exists and
+ * the live token is still aal1. An account with no MFA at all reaches the
+ * dashboard on password or Google alone, the way it did before ACCOUNT-SEC —
+ * and an account that DID enrol is still stopped cold.
+ */
 export async function readAssurance(): Promise<Assurance> {
   try {
     const { data, error } =
       await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (error || !data) return UNKNOWN_ASSURANCE;
-    const current = (data.currentLevel ?? null) as Aal;
-    const next = (data.nextLevel ?? null) as Aal;
-    const canRaise = next === "aal2";
+    let current = (data.currentLevel ?? null) as Aal;
+    let next = (data.nextLevel ?? null) as Aal;
+
+    // Nothing to weigh unless GoTrue thinks aal2 is reachable.
+    if (next !== "aal2") {
+      return { current, next, canRaise: false, challengeRequired: false };
+    }
+
+    let verified = await listVerifiedFactors();
+    if (verified.length === 0) {
+      // aal2 is only reachable because of leftovers. Remove them and ask again
+      // so the session is judged on what is really enrolled.
+      const removed = await clearUnverifiedFactors();
+      if (removed > 0) {
+        const again = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (again.data) {
+          current = (again.data.currentLevel ?? null) as Aal;
+          next = (again.data.nextLevel ?? null) as Aal;
+        }
+        verified = await listVerifiedFactors();
+      }
+    }
+
+    const canRaise = verified.length > 0;
     return {
       current,
       next,
@@ -46,30 +158,14 @@ export async function readAssurance(): Promise<Assurance> {
       challengeRequired: canRaise && current === "aal1",
     };
   } catch {
-    // A network failure must not silently downgrade the account to "no MFA".
-    // Callers treat UNKNOWN as "cannot prove anything" and keep the gate shut
-    // where the gate is the dangerous-action path.
+    // A network failure must not invent a factor the operator never enrolled.
+    // UNKNOWN carries challengeRequired: false, so the login gate opens; the
+    // dangerous-action path treats UNKNOWN as "cannot prove anything" and
+    // still asks for reauth.
     return UNKNOWN_ASSURANCE;
   }
 }
 
-export interface VerifiedFactor {
-  id: string;
-  friendlyName: string | null;
-  createdAt: string;
-}
-
-/** Verified TOTP factors only — unverified enrollments never gate anything. */
-export async function listVerifiedFactors(): Promise<VerifiedFactor[]> {
-  const { data } = await supabase.auth.mfa.listFactors();
-  return (data?.totp ?? [])
-    .filter((f) => f.status === "verified")
-    .map((f) => ({
-      id: f.id,
-      friendlyName: f.friendly_name ?? null,
-      createdAt: f.created_at,
-    }));
-}
 
 /**
  * Raise the current session to aal2 with a code from the authenticator app.

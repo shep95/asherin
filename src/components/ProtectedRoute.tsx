@@ -34,8 +34,10 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <Navigate to={`/auth?next=${next}`} replace />;
   }
 
-  // A session that COULD be aal2 but is only aal1 never renders the app: the
-  // second factor is a wall, not a banner.
+  // The wall stands only for an operator who finished verifying a factor and
+  // is still on an aal1 token (readAssurance proves that; entitlement alone is
+  // not enough). Accounts with no MFA — the ones who do not know what a second
+  // factor is — go straight through on password or Google.
   if (mfaRequired) {
     return <MfaChallenge />;
   }
