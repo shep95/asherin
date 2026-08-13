@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus, Network, Bot } from "lucide-react";
-import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat, type SwarmAgent } from "@/components/asher/AsherWorkflowMap";
+import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, MessageSquare, ChevronDown, ChevronUp, MoreHorizontal, Plus, Bot } from "lucide-react";
+
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
