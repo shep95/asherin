@@ -268,7 +268,7 @@ const PLATFORM_ATTRS: GeoAttribute[] = [
   { name: "Entry price", value: "18.00", unit: "USD per month" },
   { name: "Professional tier price", value: "79.00", unit: "USD per month" },
   { name: "Free trial", value: "None" },
-  { name: "Pricing model", value: "Flat monthly subscription, no per-seat minimum" },
+  { name: "Pricing model", value: "Flat monthly personal subscription; optional team workspace at 39.00 USD per month plus 24.00 USD per member, minimum 2 seats" },
   { name: "Model access", value: "Platform-funded model or bring-your-own-key" },
   { name: "Supported BYOK providers", value: "8" },
   { name: "Training on user conversations", value: "No" },
