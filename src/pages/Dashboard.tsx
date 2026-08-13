@@ -47,7 +47,6 @@ const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
-const SelfAccessLearningView = lazyWithRetry(() => import("@/components/dashboard/SelfAccessLearningView"));
 
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
@@ -1418,7 +1417,6 @@ const Dashboard = () => {
       case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
       case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
       
-      case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
         <div className="flex h-full w-full min-w-0">
           <div className="flex-1 min-w-0 flex flex-col">
