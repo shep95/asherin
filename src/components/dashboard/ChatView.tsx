@@ -355,13 +355,21 @@ const ChatView = ({
         const [hit] = detectAddresses(m.content);
         if (!hit) continue;
         geocodeAttempted.current.add(m.id);
+        const started = performance.now();
         const g = await geocodeAddress(hit.raw);
+        // Real trace: the geocoder actually ran, so Connect records it.
+        void emitPull({
+          organ: "maps", capability: "property", fromSurface: "chat",
+          status: g ? "ok" : "fail", latencyMs: performance.now() - started,
+          quote: g ? g.formatted : hit.raw,
+        });
         if (cancelled || !g) continue;
         setPropertyMaps((prev) =>
           prev[m.id]
             ? prev
             : { ...prev, [m.id]: { address: hit.raw, formatted: g.formatted, lat: g.lat, lng: g.lng, category: g.category } },
         );
+
       }
     })();
     return () => { cancelled = true; };
