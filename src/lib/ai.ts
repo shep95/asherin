@@ -44,6 +44,7 @@ export async function streamChat({
   onReplace,
   onDone,
   onTools,
+  onHands,
   onThinkingStart,
   onThinkingDelta,
   onThinkingDone,
@@ -62,6 +63,8 @@ export async function streamChat({
   onDone: () => void;
   /** Ghost Chain phase 1 hooks — omit them and the reasoning pass is skipped entirely. */
   onTools?: (rows: Array<{ label: string; detail?: string }>) => void;
+  /** Workspaces to open because their organ actually ran this turn. */
+  onHands?: (hands: Array<{ surface: string; organ: string; focus?: string }>) => void;
   onThinkingStart?: () => void;
   onThinkingDelta?: (text: string) => void;
   onThinkingDone?: (fullThinking: string) => void;
@@ -248,6 +251,7 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           if (Array.isArray(parsed.asherin_tools)) onTools?.(parsed.asherin_tools);
+          if (Array.isArray(parsed.asherin_hands)) onHands?.(parsed.asherin_hands);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) consumePassContent(content);
         } catch {

@@ -119,13 +119,32 @@ export interface FoldedPlan {
   files?: FoldedFile[];
 }
 
+/**
+ * One real invoke, as the transcript and Connect both see it. The tool card in
+ * chat is built from this: organ + latency + a masked quote. Nothing here is
+ * synthesised — a row exists only because an invoke returned or failed.
+ */
+export interface FoldedRow {
+  organ: string;
+  capability: string;
+  ok: boolean;
+  latencyMs: number;
+  /** Short, PII-masked evidence line. Never a secret, never a full payload. */
+  quote?: string;
+}
+
 export interface FoldedResult {
   context: string;
   fired: string[];
   offline: string[];
+  /** Structured rows for the chat tool cards and the hand hints. */
+  rows: FoldedRow[];
+  /** Organ ids that actually ran this turn (deduped, routable only). */
+  organs: string[];
 }
 
 import { emitPull } from "./connectPull.ts";
+import { isRoutableOrgan } from "./organRouter.ts";
 
 // ── PII masking ──────────────────────────────────────────────────────────────
 
@@ -503,27 +522,52 @@ export async function runFoldedTools(
 ): Promise<FoldedResult> {
   const fired: string[] = [];
   const offline: string[] = [];
+  const rows: FoldedRow[] = [];
   const parts: string[] = [];
   const started = Date.now();
 
   const legs: Array<[string, Promise<void>]> = [];
 
-  const note = (fn: string, out: InvokeOutcome) => {
+  const note = (fn: string, out: InvokeOutcome, quote?: string) => {
     fired.push(`${fn}(${out.status})`);
     if (out.failure) offline.push(out.failure);
+    const key = fn.split(":")[0];
+    // An unmapped function is traced under "chat" rather than being invented
+    // into a subsystem, and a retired id can never reach the graph at all.
+    const mapped = ORGAN_OF[key] ?? "chat";
+    const organ = isRoutableOrgan(mapped) ? mapped : "chat";
+    const capability = fn.includes(":") ? fn.split(":").slice(1).join(":") : key;
+    const evidence = out.failure ?? (quote ? maskPii(quote).slice(0, 180) : undefined);
+    rows.push({
+      organ,
+      capability,
+      ok: out.ok,
+      latencyMs: out.latencyMs ?? 0,
+      quote: evidence,
+    });
     // One Connect row per real invoke, keyed to the assistant turn so the
     // transcript and the Connect log can never disagree about what ran. A
     // failed tool is written fail-red, never dropped or dressed as success.
-    const key = fn.split(":")[0];
     void emitPull(trace?.userId, {
-      organ: ORGAN_OF[key] ?? "chat",
-      capability: fn.includes(":") ? fn.split(":").slice(1).join(":") : key,
+      organ,
+      capability,
       fromSurface: "chat",
       status: out.ok ? "ok" : "fail",
       latencyMs: out.latencyMs,
-      quote: out.failure ?? null,
+      quote: evidence ?? null,
       meta: trace?.turnId ? { turn_id: trace.turnId } : undefined,
     });
+  };
+
+  /**
+   * Attaches the first live line an organ returned to its already-written row,
+   * so the chat tool card quotes real bytes instead of a generic "ran ok".
+   * Masked, clipped, and only ever applied to a row that exists.
+   */
+  const quoteRow = (fn: string, text: string) => {
+    const key = fn.split(":")[0];
+    const row = [...rows].reverse().find((r) => r.capability === key || r.capability === fn);
+    if (row && !row.quote && text) row.quote = maskPii(text).replace(/\s+/g, " ").trim().slice(0, 180);
   };
 
   // ── Knowledge Vault read ───────────────────────────────────────────────
@@ -538,6 +582,7 @@ export async function runFoldedTools(
         return;
       }
       parts.push(`KNOWLEDGE VAULT (${matches.length} chunk(s), operator's own files):`);
+      quoteRow("vault-retrieve", `${matches.length} chunk(s) · ${String(matches[0]?.content || "").slice(0, 140)}`);
       matches.slice(0, 6).forEach((m, i) => {
         const sim = typeof m.similarity === "number" ? m.similarity.toFixed(2) : "?";
         parts.push(`[Vault ${i + 1} · ${m.sourceName || "source"} · sim=${sim}] ${String(m.content || "").slice(0, 1200)}`);
@@ -926,5 +971,7 @@ export async function runFoldedTools(
       : "",
     fired,
     offline,
+    rows,
+    organs: [...new Set(rows.map((r) => r.organ))].filter((o) => o !== "chat"),
   };
 }

@@ -1063,6 +1063,42 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // relationship-shaped turns. DuckDuckGo remains only as a degradation path
     // so a Zophiel outage never leaves the turn ungrounded.
     let webSearchContext = "";
+    // ── ORGAN LEDGER FOR THIS TURN ─────────────────────────────────────────
+    // Chat is the mouth; these are the organs that actually ran. Nothing is
+    // added on intent alone — a hand only opens behind a real invoke, so the
+    // operator never watches a workspace appear for work that did not happen.
+    const organsFired = new Set<string>();
+    const handFocus: Record<string, string> = {};
+    const organRows: Array<{ organ: string; capability: string; ok: boolean; latencyMs: number; quote?: string }> = [];
+    let organTraceUserId: string | null = null;
+    const traceOrgan = async (
+      row: { organ: string; capability: string; ok: boolean; latencyMs: number; quote?: string },
+    ) => {
+      const { isRoutableOrgan } = await import("../_shared/organRouter.ts");
+      if (!isRoutableOrgan(row.organ)) return; // retired modules never route
+      organsFired.add(row.organ);
+      organRows.push(row);
+      const { emitPull } = await import("../_shared/connectPull.ts");
+      void emitPull(organTraceUserId, {
+        organ: row.organ,
+        capability: row.capability,
+        fromSurface: "chat",
+        status: row.ok ? "ok" : "fail",
+        latencyMs: row.latencyMs,
+        quote: row.quote ?? null,
+        meta: typeof turnId === "string" ? { turn_id: turnId } : undefined,
+      });
+    };
+    try {
+      if (authHeader) {
+        organTraceUserId =
+          (await resolveCallerCached(
+            authHeader,
+            Deno.env.get("SUPABASE_URL") || "",
+            Deno.env.get("SUPABASE_ANON_KEY") || "",
+          ))?.id ?? null;
+      }
+    } catch { /* a missing trace identity must never cost the turn */ }
     // ── QUEUE 09 (C): geography RUNS. asher-property-intel (+ street cameras)
     // fires before we answer. Never zophiel-intelmap for cartography. ──
     let geoToolContext = "";
@@ -1072,9 +1108,24 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const { detectGeoTarget, runGeoTools } = await import("../_shared/geoToolBridge.ts");
         const _geo = detectGeoTarget(String(_lastGeoMsg.content || ""));
         if (_geo) {
+          const _t0 = Date.now();
           const _out = await runGeoTools(_geo, req.headers.get("Authorization"));
           geoToolContext = _out.context;
           console.log(`[chat] geo tools fired: ${_out.fired.join(",")}`);
+          // Maps is a hand: the map opens and flies because the map organ ran.
+          const _focus = typeof (_geo as any)?.query === "string"
+            ? (_geo as any).query
+            : typeof (_geo as any)?.address === "string"
+              ? (_geo as any).address
+              : String(_lastGeoMsg.content || "").slice(0, 120);
+          handFocus.maps = _focus;
+          await traceOrgan({
+            organ: "maps",
+            capability: _out.fired[0] || "geo",
+            ok: _out.fired.length > 0,
+            latencyMs: Date.now() - _t0,
+            quote: _focus.slice(0, 160),
+          });
         }
       }
     } catch (e) {
@@ -1303,6 +1354,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           turnId: typeof turnId === "string" ? turnId : null,
         });
         foldedToolContext = out.context;
+        for (const r of out.rows) {
+          if (!organRows.some((x) => x.organ === r.organ && x.capability === r.capability)) organRows.push(r);
+          organsFired.add(r.organ);
+        }
         for (const f of out.fired) firedToolRows.push({ label: toolRowLabel(f), detail: f });
         for (const o of out.offline) firedToolRows.push({ label: "Offline", detail: o });
         console.log(
@@ -1483,6 +1538,13 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           if (ctx) {
             webSearchContext = `${webSearchContext || ""}${ctx}`;
             ledgerHandled = true;
+            await traceOrgan({
+              organ: "ghost",
+              capability: "ledger",
+              ok: true,
+              latencyMs: lb!.elapsedMs,
+              quote: `${lb!.hostsProbed}/${lb!.hostsConsidered} host(s) probed from ${lb!.scanned} record(s)`,
+            });
             console.log(
               `[chat] Ghost ledger: scanned=${lb!.scanned}, probed=${lb!.hostsProbed}/${lb!.hostsConsidered}, ${lb!.elapsedMs}ms`,
             );
@@ -1494,6 +1556,14 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const bundle = await runGhostForChat(req, ghostText);
         if (bundle) {
           webSearchContext = `${webSearchContext || ""}${formatGhostContext(bundle)}`;
+          handFocus.ghost = ghostText.slice(0, 120);
+          await traceOrgan({
+            organ: "ghost",
+            capability: "sweep",
+            ok: true,
+            latencyMs: bundle.elapsedMs,
+            quote: `${bundle.index.coverage.indexed} probe(s), ${bundle.index.anomalies.length} anomaly(ies)`,
+          });
           console.log(
             `[chat] Ghost shell: ${bundle.index.coverage.indexed} probes, ${bundle.index.anomalies.length} anomalies, ${bundle.elapsedMs}ms`,
           );
@@ -1796,14 +1866,45 @@ The user is asking about internal code, backend, or architecture. You are FORBID
               .eq("text_status", "ok")
               .order("created_at", { ascending: false })
               .limit(12);
-            const blocks = (docs || [])
+            // The library is NOT the prompt. A pinned project scopes which files
+            // are reachable; it does not license dumping every one of them into
+            // every turn. Files the operator named with @file are always carried
+            // whole; the rest are ranked against this turn's words and only the
+            // top few ride along, clipped. A turn that needs more can name it.
+            const turnText = String(
+              [...messages].reverse().find((m: any) => m.role === "user")?.content || "",
+            ).toLowerCase();
+            const mentioned = new Set(
+              (turnText.match(/@[\w.\-]+/g) || []).map((t) => t.slice(1).toLowerCase()),
+            );
+            const terms = [...new Set(turnText.split(/[^a-z0-9]+/).filter((w) => w.length > 3))].slice(0, 24);
+            const scored = (docs || [])
               .filter((d: any) => typeof d.extracted_text === "string" && d.extracted_text.trim())
-              .map((d: any, i: number) => `[S${i + 1}] ${d.file_name}\n${String(d.extracted_text).slice(0, 12000)}`);
+              .map((d: any) => {
+                const name = String(d.file_name || "").toLowerCase();
+                const pinned = [...mentioned].some((m) => name.includes(m));
+                const hay = `${name} ${String(d.extracted_text).slice(0, 4000).toLowerCase()}`;
+                const score = terms.reduce((n, t) => (hay.includes(t) ? n + 1 : n), 0);
+                return { doc: d, pinned, score };
+              })
+              .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.score - a.score);
+            const carried = scored.filter((x, i) => x.pinned || (x.score > 0 && i < 4)).slice(0, 5);
+            const blocks = carried.map(
+              (x, i) =>
+                `[S${i + 1}] ${x.doc.file_name}\n${String(x.doc.extracted_text).slice(0, x.pinned ? 12000 : 4000)}`,
+            );
+            const heldBack = scored.length - carried.length;
             const header = `\n\n## PROJECT CORPUS — ${proj.name} (${isolated ? "isolated sources" : "web + corpus"})`;
             if (blocks.length) {
-              projectCorpusStr = `${header}\nCite passages as [S1], [S2] … using the exact file name shown.\n\n${blocks.join("\n\n")}`;
+              projectCorpusStr = `${header}\nCite passages as [S1], [S2] … using the exact file name shown.${
+                heldBack > 0
+                  ? ` ${heldBack} other project file(s) were not loaded this turn — if the answer needs one, say which and ask the operator to name it with @file.`
+                  : ""
+              }\n\n${blocks.join("\n\n")}`;
             } else {
-              projectCorpusStr = `${header}\nThis project has no readable files yet.`;
+              projectCorpusStr = scored.length
+                ? `${header}\nNo file in this project matched the question. Say so plainly and ask the operator to name the file with @file rather than answering from general knowledge as if it were the corpus.`
+                : `${header}\nThis project has no readable files yet.`;
             }
             projectCorpusStr += isolated
               ? `\n\nISOLATED MODE — HARD RULE: answer only from the passages above. If the corpus does not support a claim, say plainly that this is unsure because it is not in the project files, and name what would settle it. Do not fill the gap from general knowledge or the open web, and never cite a source that is not listed above.`
@@ -2892,8 +2993,33 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
     // make words flicker as frames arrive.
     // One honest frame up front: which tools actually ran for this turn.
+    // Organ cards first: organ + latency + a masked quote of what came back.
+    // These are written from real invokes only, so a card the operator sees is
+    // a call that happened; a failed organ shows fail-red rather than vanishing.
+    for (const r of organRows.slice(0, 12)) {
+      const { organLabel } = await import("../_shared/organRouter.ts");
+      firedToolRows.push({
+        label: `${organLabel(r.organ)} · ${r.capability}`,
+        detail: [r.ok ? null : "failed", r.latencyMs ? `${r.latencyMs}ms` : null, r.quote]
+          .filter(Boolean)
+          .join(" · "),
+      });
+    }
     if (firedToolRows.length) {
-      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 12) })}\n\n`);
+      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 16) })}\n\n`);
+    }
+
+    // Hands: the workspaces that must open because their organ ran. The client
+    // splits to Maps / IDE / Ghost / Whiteboard so the operator is not left
+    // hunting a tab for work asherin already did.
+    try {
+      const { handsForOrgans } = await import("../_shared/organRouter.ts");
+      const hands = handsForOrgans([...organsFired], handFocus);
+      if (hands.length) {
+        await safeWrite(`data: ${JSON.stringify({ asherin_hands: hands })}\n\n`);
+      }
+    } catch (e) {
+      console.error("[chat] hand emit failed:", (e as Error).message);
     }
 
     const _scanner = createPostInferenceScanner();
