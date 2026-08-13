@@ -1,4 +1,3 @@
-import GestureLab from "./pages/__GestureLab";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import ByokRequiredDialog from "@/components/ByokRequiredDialog";
@@ -157,7 +156,6 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
           <main>
           <Routes>
-            <Route path="/__gesturelab" element={<GestureLab />} />
             <Route path="/" element={<Index />} />
             {/* /auth is the sign-in surface every gated route falls back to. */}
             <Route path="/auth" element={<Index />} />
