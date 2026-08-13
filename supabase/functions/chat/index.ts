@@ -971,7 +971,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale, turnId } = _parsedBody;
+    const { messages, mode, depth, userProfile, byokProvider, byokModel, brainContext, taskDirective, skillInjection, swarmInjection, activeAgentId, numberedFormat, timezone, locale, turnId, projectScope } = _parsedBody;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1742,21 +1742,76 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const memUser = await resolveCallerCached(authH, SUPABASE_URL_M, ANON_M);
         if (memUser) {
           const adminM = ccM(SUPABASE_URL_M, SRK_M);
-          const { data: mems } = await adminM
+          // Project scope: global memories always apply; project memories only
+          // inside their own project. Another project's memories never load.
+          const scopedProjectId = typeof projectScope?.projectId === "string" ? projectScope.projectId : null;
+          let memQ = adminM
             .from("memory_entries")
-            .select("content, category")
+            .select("content, category, kind")
             .eq("user_id", memUser.id)
-            .eq("enabled", true)
+            .eq("enabled", true);
+          memQ = scopedProjectId
+            ? memQ.or(`project_id.is.null,project_id.eq.${scopedProjectId}`)
+            : memQ.is("project_id", null);
+          const { data: mems } = await memQ
             .order("created_at", { ascending: false })
             .limit(100);
           if (mems && mems.length) {
-            const lines = mems.map((m: any) => `- [${m.category}] ${m.content}`).join("\n");
+            const lines = mems.map((m: any) => `- [${m.kind || m.category}] ${m.content}`).join("\n");
             memoryContextStr = `\n\n## PERSISTENT USER MEMORY (style and preference layer only)\nThese are durable preferences and rules the user saved in other conversations. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\nHARD LIMIT: this block is NOT evidence. Never present anything here as a research finding, a public record, a sourced fact, or a citation, and never attribute it to a website or registry. If a claim exists only here, it does not go in a dossier, profile, entity card, or sources list.\n\n${lines}`;
           }
         }
       }
     } catch (e) {
       console.error("memory load failed:", e);
+    }
+
+    // ── PROJECT CORPUS (Library files scoped to the active project) ────────
+    // Isolated mode is the research default: the model may only ground on this
+    // corpus and must say it is unsure for anything the corpus does not cover.
+    let projectCorpusStr = "";
+    try {
+      const pid = typeof projectScope?.projectId === "string" ? projectScope.projectId : null;
+      const authP = req.headers.get("Authorization");
+      if (pid && authP) {
+        const URL_P = Deno.env.get("SUPABASE_URL") || "";
+        const SRK_P = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const ANON_P = Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const { createClient: ccP } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const pUser = await resolveCallerCached(authP, URL_P, ANON_P);
+        if (pUser) {
+          const adminP = ccP(URL_P, SRK_P);
+          // The project itself is re-read under the caller's id — a forged
+          // project id from the client cannot reach another user's corpus.
+          const { data: proj } = await adminP
+            .from("projects").select("id,name,mode").eq("id", pid).eq("user_id", pUser.id).maybeSingle();
+          if (proj) {
+            const isolated = String(proj.mode) !== "web";
+            const { data: docs } = await adminP
+              .from("library_files")
+              .select("file_name, extracted_text, text_status")
+              .eq("user_id", pUser.id)
+              .eq("project_id", pid)
+              .eq("text_status", "ok")
+              .order("created_at", { ascending: false })
+              .limit(12);
+            const blocks = (docs || [])
+              .filter((d: any) => typeof d.extracted_text === "string" && d.extracted_text.trim())
+              .map((d: any, i: number) => `[S${i + 1}] ${d.file_name}\n${String(d.extracted_text).slice(0, 12000)}`);
+            const header = `\n\n## PROJECT CORPUS — ${proj.name} (${isolated ? "isolated sources" : "web + corpus"})`;
+            if (blocks.length) {
+              projectCorpusStr = `${header}\nCite passages as [S1], [S2] … using the exact file name shown.\n\n${blocks.join("\n\n")}`;
+            } else {
+              projectCorpusStr = `${header}\nThis project has no readable files yet.`;
+            }
+            projectCorpusStr += isolated
+              ? `\n\nISOLATED MODE — HARD RULE: answer only from the passages above. If the corpus does not support a claim, say plainly that this is unsure because it is not in the project files, and name what would settle it. Do not fill the gap from general knowledge or the open web, and never cite a source that is not listed above.`
+              : `\n\nWEB + CORPUS MODE: the project passages are primary. When you use anything outside them, label it as outside the project corpus.`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("project corpus load failed:", e);
     }
 
     // ── AUREON VAULT (RAG) — Pro tier only ─────────────────────────────────
@@ -2348,6 +2403,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // ── USER-CONTROLLED OVERRIDES (highest recency priority) ──
       userContextStr,
       memoryContextStr,
+      projectCorpusStr,
       vaultContextStr,
       brainContextStr,
       skillInjection ? `\n${skillInjection}` : "",

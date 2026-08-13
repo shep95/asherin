@@ -3,6 +3,9 @@ import { Brain, Trash2, Edit3, Download, Plus, X, Check, Loader2, Shield, Eye, E
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { emitPull } from "@/lib/connect/emitPull";
+import { MEMORY_KINDS, guardMemoryContent, memoryLabel, type MemoryKind } from "@/lib/memory/memoryKinds";
+import { getActiveScope, onScopeChange, type ProjectScope } from "@/lib/projects/scope";
 
 interface MemoryEntry {
   id: string;
@@ -12,6 +15,8 @@ interface MemoryEntry {
   source?: string;
   reason?: string;
   enabled?: boolean;
+  kind?: MemoryKind;
+  project_id?: string | null;
 }
 
 const SOURCE_ICONS: Record<string, React.ElementType> = {
@@ -29,11 +34,16 @@ const MemoryCenterView = () => {
   const [addingMode, setAddingMode] = useState(false);
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState("general");
+  const [newKind, setNewKind] = useState<MemoryKind>("prefer");
+  const [scopeToProject, setScopeToProject] = useState(true);
+  const [scope, setScope] = useState<ProjectScope | null>(() => getActiveScope());
   const [editId, setEditId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [showDisabled, setShowDisabled] = useState(false);
+
+  useEffect(() => onScopeChange(setScope), []);
 
   useEffect(() => {
     if (!user) return;
@@ -44,29 +54,64 @@ const MemoryCenterView = () => {
           source: (m as any).source || "manual",
           reason: (m as any).reason || "Manually added",
           enabled: (m as any).enabled !== false,
+          kind: ((m as any).kind || "general") as MemoryKind,
+          project_id: (m as any).project_id ?? null,
         })));
         setLoading(false);
       });
   }, [user]);
 
   const addMemory = async () => {
-    if (!user || !newContent.trim()) return;
-    const { data } = await supabase.from("memory_entries")
-      .insert({ user_id: user.id, content: newContent.trim(), category: newCategory })
-      .select().single();
-    if (data) {
-      setMemories((prev) => [{ ...data, source: "manual", reason: "Manually added", enabled: true }, ...prev]);
-      setNewContent(""); setNewCategory("general"); setAddingMode(false);
+    if (!user) return;
+    // Credentials never enter memory — Guardian Vault is the only place for those.
+    const guard = guardMemoryContent(newContent);
+    if (!guard.ok) {
+      toast({ title: "Not stored", description: guard.reason, variant: "destructive" });
+      void emitPull({
+        organ: "memory", capability: "learn", fromSurface: "memory", status: "fail",
+        quote: `${newKind}: refused`, meta: { reason: guard.reason ?? "refused" },
+      });
+      return;
     }
+    const projectId = scopeToProject && scope ? scope.projectId : null;
+    const { data, error } = await supabase.from("memory_entries")
+      .insert({ user_id: user.id, content: newContent.trim(), category: newCategory, kind: newKind, project_id: projectId } as never)
+      .select().single();
+    if (error || !data) {
+      toast({ title: "Save failed", description: error?.message ?? "Unknown error", variant: "destructive" });
+      return;
+    }
+    setMemories((prev) => [{ ...(data as any), source: "manual", reason: "Manually added", enabled: true, kind: newKind, project_id: projectId }, ...prev]);
+    void emitPull({
+      organ: "memory", capability: "learn", fromSurface: "memory", status: "ok",
+      quote: memoryLabel(newKind, newContent), meta: { kind: newKind, project_id: projectId ?? "" },
+    });
+    setNewContent(""); setNewCategory("general"); setNewKind("prefer"); setAddingMode(false);
   };
 
+
   const deleteMemory = async (id: string) => {
-    await supabase.from("memory_entries").delete().eq("id", id);
+    const target = memories.find((m) => m.id === id);
+    const { error } = await supabase.from("memory_entries").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setMemories((prev) => prev.filter((m) => m.id !== id));
+    void emitPull({
+      organ: "memory", capability: "forget", fromSurface: "memory", status: "ok",
+      quote: target ? memoryLabel((target.kind ?? "general") as MemoryKind, target.content) : "memory removed",
+    });
   };
+
 
   const saveEdit = async (id: string) => {
     const trimmed = editContent.trim();
+    const guard = guardMemoryContent(trimmed);
+    if (!guard.ok) {
+      toast({ title: "Not saved", description: guard.reason, variant: "destructive" });
+      return;
+    }
     setEditId(null);
     const { error } = await supabase.from("memory_entries").update({ content: trimmed }).eq("id", id);
     if (error) {
@@ -101,7 +146,7 @@ const MemoryCenterView = () => {
     const json = JSON.stringify(memories, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "aureon-memories.json"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "asherin-memories.json"; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -125,10 +170,11 @@ const MemoryCenterView = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-extralight tracking-wide text-foreground">Memory Vault</h2>
+          <h2 className="text-xl font-extralight tracking-wide text-foreground">Memory</h2>
           <p className="text-sm font-extralight text-muted-foreground mt-1">
-            Full control over what Aureon remembers — with proof of origin.
+            Every rule asherin carries is listed here, with its origin — and can be deleted. Credentials are refused: those live in Guardian Vault.
           </p>
+
         </div>
         <div className="flex gap-2">
           <button onClick={exportAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors" title="Export all">
@@ -177,7 +223,27 @@ const MemoryCenterView = () => {
       {/* Add memory */}
       {addingMode ? (
         <div className="rounded-xl border border-border/30 bg-card/20 p-4 space-y-3">
-          <input value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder="What should Aureon remember?" className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none" />
+          <input value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder="What rule should asherin follow?" className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none" />
+          <div className="flex flex-wrap gap-1.5">
+            {MEMORY_KINDS.map((k) => (
+              <button
+                key={k.id}
+                onClick={() => setNewKind(k.id)}
+                title={k.hint}
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-light transition-colors ${
+                  newKind === k.id ? "border-foreground/40 text-foreground bg-foreground/10" : "border-border/20 text-muted-foreground/60 hover:text-foreground"
+                }`}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+          {scope && (
+            <label className="flex items-center gap-2 text-[10px] font-light text-muted-foreground">
+              <input type="checkbox" checked={scopeToProject} onChange={(e) => setScopeToProject(e.target.checked)} className="accent-current" />
+              Only apply inside project “{scope.name}”
+            </label>
+          )}
           <div className="flex items-center gap-2">
             <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="text-xs bg-background/50 border border-border/20 rounded-lg px-2 py-1 text-foreground outline-none">
               <option value="general">General</option>
@@ -188,8 +254,12 @@ const MemoryCenterView = () => {
             <button onClick={addMemory} className="text-xs bg-foreground text-background px-3 py-1 rounded-lg">Save</button>
             <button onClick={() => setAddingMode(false)} className="text-xs text-muted-foreground">Cancel</button>
           </div>
+          <p className="text-[10px] font-extralight text-muted-foreground/50">
+            No api keys, passwords, tokens or seed phrases — those are refused here on purpose.
+          </p>
         </div>
       ) : (
+
         <button onClick={() => setAddingMode(true)} className="flex w-full items-center gap-2 rounded-xl border border-dashed border-border/30 bg-card/10 p-3 text-sm font-light text-muted-foreground hover:text-foreground hover:border-border/50 transition-all">
           <Plus className="h-4 w-4" /> Add Memory Manually
         </button>
@@ -225,7 +295,10 @@ const MemoryCenterView = () => {
                       )}
                       {/* Proof row: source, reason, category, date */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="text-[10px] font-light text-foreground/70 rounded-full border border-border/30 px-2 py-0.5 uppercase tracking-wider">{m.kind ?? "general"}</span>
                         <span className="text-[10px] font-light text-muted-foreground/60 rounded-full border border-border/20 px-2 py-0.5">{m.category}</span>
+                        {m.project_id && <span className="text-[10px] font-light text-muted-foreground/60 rounded-full border border-border/20 px-2 py-0.5">project-scoped</span>}
+
                         <span className="text-[10px] text-muted-foreground/40">{new Date(m.created_at).toLocaleDateString()}</span>
                         <span className="text-[9px] text-muted-foreground/30">•</span>
                         <span className="text-[10px] text-muted-foreground/40 italic">Source: {m.source || "manual"}</span>
