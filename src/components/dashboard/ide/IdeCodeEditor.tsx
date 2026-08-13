@@ -5,6 +5,7 @@ import type { editor as MonacoEditor } from "monaco-editor";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
 import { validateCode, attachCursorFeatures } from "@/lib/ide";
+import { emitPull } from "@/lib/connect/emitPull";
 
 interface HoverFetcher {
   (args: { symbol: string; file_path: string; language: string; line_text: string; surrounding: string }): Promise<string>;
@@ -16,8 +17,12 @@ interface Props {
   onSelectTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onContentChange: (id: string, content: string) => void;
-  /** Optional RAG-grounded AI hover provider. When supplied, Monaco hover shows AUREON intel. */
+  /** Optional RAG-grounded AI hover provider. When supplied, Monaco hover shows grounded intel. */
   onHover?: HoverFetcher;
+  /** False in Chat mode: ⌘K and ghost completions must not touch the buffer. */
+  canWrite?: boolean;
+  /** Surface hook so a refused write is said out loud, not swallowed. */
+  onWriteBlocked?: (reason: string) => void;
 }
 
 // Map our friendly language ids to Monaco's expected ids.
@@ -74,7 +79,7 @@ function registerAureonTheme(monaco: Monaco) {
   });
 }
 
-const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onContentChange, onHover }: Props) => {
+const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onContentChange, onHover, canWrite = true, onWriteBlocked }: Props) => {
   const [copied, setCopied] = useState(false);
   const [wordWrap, setWordWrap] = useState(false);
   const [showMinimap, setShowMinimap] = useState(false);
@@ -117,6 +122,10 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
   const onHoverRef = useRef<HoverFetcher | undefined>(onHover);
   const activeFileRef = useRef(activeFile);
   const languageRef = useRef(language);
+  const canWriteRef = useRef(canWrite);
+  const onWriteBlockedRef = useRef(onWriteBlocked);
+  useEffect(() => { canWriteRef.current = canWrite; }, [canWrite]);
+  useEffect(() => { onWriteBlockedRef.current = onWriteBlocked; }, [onWriteBlocked]);
   useEffect(() => { onHoverRef.current = onHover; }, [onHover]);
   useEffect(() => { activeFileRef.current = activeFile; }, [activeFile]);
   useEffect(() => { languageRef.current = language; }, [language]);
