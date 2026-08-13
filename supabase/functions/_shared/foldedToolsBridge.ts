@@ -362,7 +362,7 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
   // default reading of a bare noun.
   if (!plan.googleMesh) {
     const meshAction: GoogleMeshAction | null =
-      /\b(daily\s+digest|digest\s+of\s+my\s+day|what'?s\s+on\s+my\s+plate|catch\s+me\s+up\s+on\s+(my\s+)?(mail|day))\b/i.test(raw)
+      /\b(daily\s+digest|\bdigest\b|what'?s\s+on\s+my\s+plate|catch\s+me\s+up\s+on\s+(my\s+)?(mail|day)|brief\s+me\s+on\s+my\s+day)\b/i.test(raw)
         ? "daily_digest"
         : /\b(relationship\s+(graph|map)|who\s+(am\s+i|have\s+i)\s+(closest|lost\s+touch|gone\s+quiet)|who\s+is\s+going\s+quiet|going\s+dormant)\b/i.test(raw)
           ? "relationship_graph"
