@@ -22,8 +22,7 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { scanFileForThreats, scanContentForThreats } from "@/lib/brainSafetyScan";
 import { ShieldCheck } from "lucide-react";
 import JSZip from "jszip";
-import { isOwnerEmail } from "@/lib/adminEmail";
-const CONTRIBUTOR_EMAILS = [ADMIN_EMAIL, "ekk447@gmail.com"];
+import { isOwnerEmail, isContributorEmail } from "@/lib/adminEmail";
 const BRAINS_GATE_KEY = "asher_brains_unlocked";
 
 const BrainsPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
@@ -144,7 +143,7 @@ const BrainPreview = ({ brain, onClose }: { brain: AsherBrain; onClose: () => vo
 const AsherBrainsModule = () => {
   const { user } = useAuth();
   const isAdmin = isOwnerEmail(user?.email);
-  const canContribute = !!user?.email && CONTRIBUTOR_EMAILS.includes(user.email.toLowerCase());
+  const canContribute = isContributorEmail(user?.email);
 
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(BRAINS_GATE_KEY) === "1"; } catch { return false; }
