@@ -11,8 +11,20 @@ import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  MessageSquare, Search, Map, Database, Layers, Lock, Shield,
-  Bluetooth, Hammer, Users, Network,
+  MessageSquare,
+  Search,
+  Map,
+  Database,
+  Layers,
+  Lock,
+  Shield,
+  Bluetooth,
+  Hammer,
+  Users,
+  Network,
+  Eye,
+  ShieldCheck,
+  Globe,
 } from "lucide-react";
 
 type Tool = {
@@ -48,6 +60,33 @@ const JOBS: Tool[] = [
 
 const TOOLS: Tool[] = [
   {
+    name: "asherinx.eng",
+    line: "public-index search",
+    detail:
+      "federated public indexes — wayback, nvd, github, wiki, and the rest of the public stack. it does not intercept login ips, sms, dms, or private mail.",
+    icon: Globe,
+  },
+  {
+    name: "asherin.maps",
+    line: "satellite globe, public cameras, public-index file",
+    detail:
+      "esri/nasa tiles, public-agency traffic stills, and a public-register property file. satellite is a near-daily mosaic, not live seconds. it does not hijack doorbell or flock cameras.",
+    icon: Map,
+  },
+  {
+    name: "asherin.defender",
+    line: "owned-device defence",
+    detail:
+      "bluetooth, wifi, and spy-software pattern checks on this device. it does not ship a keylogger and it does not remap keys consumed by apps or sites.",
+    icon: ShieldCheck,
+  },
+  {
+    name: "asherin.arvision",
+    line: "camera intelligence hud",
+    detail: "live user-facing camera overlays on this device. visual-intel labels, not a face database.",
+    icon: Eye,
+  },
+  {
     name: "zophiel — search",
     line: "public engines, cited",
     detail:
@@ -57,8 +96,7 @@ const TOOLS: Tool[] = [
   {
     name: "guardian vault",
     line: "credentials and documents",
-    detail:
-      "encrypted storage scoped to your account, with breach lookups against public indexes.",
+    detail: "encrypted storage scoped to your account, with breach lookups against public indexes.",
     icon: Lock,
   },
   {
@@ -129,7 +167,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "asherin — software",
       description:
-        "what asherin actually does: ask (chat with sources), keep (library, projects, memory, vault), and look at a place (maps). $18/mo, $79/mo for Pro.",
+        "rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, library, projects, memory, vault. $18/mo, $79/mo pro.",
       url: "https://asherin.com/software",
     });
     document.head.appendChild(el);
@@ -145,20 +183,19 @@ const Software = () => {
       <main className="px-6 pt-32 pb-20">
         <div className="mx-auto max-w-5xl space-y-20">
           <header className="max-w-2xl space-y-5">
-            <p className="text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground">
-              software
-            </p>
-            <h1 className="text-4xl font-extralight leading-[1.1] tracking-tight sm:text-5xl">
-              three things, honestly.
-            </h1>
+            <p className="text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground">software</p>
+            <h1 className="text-4xl font-extralight leading-[1.1] tracking-tight sm:text-5xl">software | asherin</h1>
+            <p className="text-2xl font-extralight tracking-tight text-foreground/80">three things, honestly.</p>
             <p className="text-base font-extralight leading-relaxed text-muted-foreground">
-              asherin is one chat with a few rooms behind it. everything below runs after you sign
-              in. if something is not listed here, it is not something we sell you today.
+              asherin is one chat with a few rooms behind it. everything below runs after you sign in. if something is
+              not listed here, it is not something we sell you today.
             </p>
           </header>
 
           <section className="grid gap-4 sm:grid-cols-3" aria-label="What asherin is for">
-            {JOBS.map((t) => <Card key={t.name} t={t} />)}
+            {JOBS.map((t) => (
+              <Card key={t.name} t={t} />
+            ))}
           </section>
 
           <section className="space-y-6" aria-labelledby="rooms">
@@ -166,15 +203,17 @@ const Software = () => {
               the rooms behind the chat
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              {TOOLS.map((t) => <Card key={t.name} t={t} />)}
+              {TOOLS.map((t) => (
+                <Card key={t.name} t={t} />
+              ))}
             </div>
           </section>
 
           <section className="space-y-5 rounded-2xl border border-border/25 bg-card/20 p-8">
             <h2 className="text-2xl font-extralight tracking-tight">$18 a month. $79 for pro.</h2>
             <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
-              pro raises message limits and opens the heavier research and forecasting work. there
-              is no free trial. cancel in one click.
+              pro raises message limits and opens the heavier research and forecasting work. there is no free trial.
+              cancel in one click.
             </p>
             <div className="flex flex-wrap gap-3">
               {user ? (
