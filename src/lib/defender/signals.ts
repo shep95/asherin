@@ -116,7 +116,7 @@ export async function pickHid(): Promise<number> {
   const hid = (
     navigator as unknown as {
       hid?: {
-        requestDevice?: (opts: { filters: Array<Record<string, never>> }) => Promise<Array<{ productName?: string }>>;
+        requestDevice?: (opts: { filters: Array<{ usagePage?: number }> }) => Promise<Array<{ productName?: string }>>;
       };
     }
   ).hid;
