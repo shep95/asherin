@@ -70,12 +70,12 @@ export async function streamChat({
   onThinkingDone?: (fullThinking: string) => void;
 }) {
   // Transform attachments for the backend
-  const apiMessages = messages.map(m => {
+  const apiMessages = messages.map((m) => {
     if (m.attachments?.length) {
       return {
         role: m.role,
         content: m.content,
-        attachments: m.attachments.map(a => ({
+        attachments: m.attachments.map((a) => ({
           name: a.name,
           type: a.type,
           base64: a.base64,
@@ -102,7 +102,9 @@ export async function streamChat({
         byokModel = parsed.model;
       }
     }
-  } catch { /* no selection */ }
+  } catch {
+    /* no selection */
+  }
 
   // Per-conversation API toggle: a globally-selected BYOK provider (set in Settings)
   // applies to ALL conversations by default. Users can EXPLICITLY disable it for a
@@ -116,7 +118,9 @@ export async function streamChat({
         byokProvider = undefined;
         byokModel = undefined;
       }
-    } catch { /* respect global setting */ }
+    } catch {
+      /* respect global setting */
+    }
   }
 
   // Get auth token for BYOK key lookup
@@ -124,7 +128,9 @@ export async function streamChat({
   let userEmail: string | null = null;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (session?.access_token) authToken = session.access_token;
     userEmail = session?.user?.email ?? null;
     if (!byokProvider && session?.user?.id) {
@@ -140,34 +146,44 @@ export async function streamChat({
         localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: byokProvider, model: byokModel }));
       }
     }
-  } catch { /* fallback to anon key */ }
-
-
+  } catch {
+    /* fallback to anon key */
+  }
 
   // Auto-detect and inject domain skills based on conversation context
-  const detectedSkills = detectRelevantSkills(messages.map(m => ({ role: m.role, content: m.content })));
+  const detectedSkills = detectRelevantSkills(messages.map((m) => ({ role: m.role, content: m.content })));
   const skillInjection = buildSkillInjectionPrompt(detectedSkills);
 
   // Swarm Agent Orchestration — select best specialist agent for the conversation
-  const swarmContext = buildSwarmContext(messages.map(m => ({ role: m.role, content: m.content })));
+  const swarmContext = buildSwarmContext(messages.map((m) => ({ role: m.role, content: m.content })));
   const swarmInjection = swarmContext.swarmPrompt;
   const activeAgentId = swarmContext.activeAgent.id;
 
   let assistantAccum = "";
-  const wrappedDelta = (t: string) => { assistantAccum += t; onDelta(t); };
+  const wrappedDelta = (t: string) => {
+    assistantAccum += t;
+    onDelta(t);
+  };
   const outputLimitMarker = /\n?\n?\[GENERATION_INCOMPLETE:[^\]]+\]/gi;
 
   const numberedFormat = (() => {
     try {
       const m = JSON.parse(localStorage.getItem("aureon_numbered_format_off") || "{}");
       return !(conversationId && m[conversationId] === true);
-    } catch { return true; }
+    } catch {
+      return true;
+    }
   })();
 
   const looksIncomplete = (text: string, latestChunk = text) => {
     if (!text) return false;
-    if (/GENERATION_INCOMPLETE|stopped at the output-token limit|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(latestChunk)) return true;
-    if (((text.match(/```/g) || []).length % 2) === 1) return true;
+    if (
+      /GENERATION_INCOMPLETE|stopped at the output-token limit|finish_reason\s*[:=]\s*(?:length|max_tokens)/i.test(
+        latestChunk,
+      )
+    )
+      return true;
+    if ((text.match(/```/g) || []).length % 2 === 1) return true;
     if (/\{\s*"files"\s*:\s*\[/i.test(text) && !/\]\s*}\s*```?\s*$/s.test(text.trim())) return true;
     return false;
   };
@@ -187,14 +203,30 @@ export async function streamChat({
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ messages: requestMessages, mode, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId, numberedFormat, turnId, projectScope: getActiveScope(), vaultMode: getVaultMode() }),
+        body: JSON.stringify({
+          messages: requestMessages,
+          mode,
+          depth,
+          userProfile,
+          byokProvider,
+          byokModel,
+          brainContext,
+          skillInjection,
+          swarmInjection,
+          activeAgentId,
+          numberedFormat,
+          turnId,
+          projectScope: getActiveScope(),
+          vaultMode: getVaultMode(),
+        }),
         signal,
       });
 
       if (resp.ok) break;
 
       const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-      const transient = err?.code === "UPSTREAM_BUSY" || resp.status === 502 || resp.status === 503 || resp.status === 504;
+      const transient =
+        err?.code === "UPSTREAM_BUSY" || resp.status === 502 || resp.status === 503 || resp.status === 504;
 
       if (transient && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
         const waitMs = Math.max(1200, Number(err?.retryAfterMs) || 0) * (attempt + 1);
@@ -206,14 +238,15 @@ export async function streamChat({
         try {
           const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
           triggerByokRequired({ source: "aureon-chat", reason: err?.error || "An API key is required." });
-        } catch { /* noop */ }
+        } catch {
+          /* noop */
+        }
       }
 
       throw new Error(err?.error || `HTTP ${resp.status}`);
     }
 
     if (!resp.body) throw new Error("No response body");
-
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
@@ -246,7 +279,10 @@ export async function streamChat({
         if (!line.startsWith("data: ")) continue;
 
         const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") { streamDone = true; break; }
+        if (jsonStr === "[DONE]") {
+          streamDone = true;
+          break;
+        }
 
         try {
           const parsed = JSON.parse(jsonStr);
@@ -274,7 +310,9 @@ export async function streamChat({
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) consumePassContent(content);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     }
 
@@ -293,7 +331,7 @@ export async function streamChat({
   const lastUserContent = lastUserIdx >= 0 ? String(apiMessages[lastUserIdx].content ?? "") : "";
 
   let thinkingText = "";
-  if (onThinkingDelta && lastUserIdx >= 0 && shouldRunThinkingPass(lastUserContent)) {
+  if (onThinkingDelta && lastUserIdx >= 0 && shouldRunThinkingPass(lastUserContent, depth)) {
     onThinkingStart?.();
     try {
       const thinkingMessages = apiMessages.map((m, i) =>
@@ -308,7 +346,10 @@ export async function streamChat({
         // Re-derive from the accumulator so a tag split across chunks never leaks.
         const visible = stripThinkingTags(extractThinking(rawThinking));
         const delta = visible.slice(thinkingText.length);
-        if (delta) { thinkingText = visible; onThinkingDelta(delta); }
+        if (delta) {
+          thinkingText = visible;
+          onThinkingDelta(delta);
+        }
       });
       const finalThinking = extractThinking(rawThinking || pass.text);
       if (finalThinking.length > thinkingText.length) {
@@ -361,7 +402,7 @@ export async function streamChat({
   // ── Fire-and-forget memory extraction (cross-chat persistent rules) ──
   // Only mine the LAST user message; skip if no auth token (anon).
   try {
-    const lastUser = [...messages].reverse().find(m => m.role === "user");
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
     if (lastUser?.content && authToken && authToken !== import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
       const EXTRACT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-extract`;
       fetch(EXTRACT_URL, {
@@ -372,9 +413,13 @@ export async function streamChat({
           assistantMessage: assistantAccum,
           conversationId,
         }),
-      }).catch(() => { /* silent */ });
+      }).catch(() => {
+        /* silent */
+      });
     }
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
 }
 
 // ── Multi-Model Consensus ──────────────────────────────────────────────
@@ -436,9 +481,13 @@ export async function fetchConsensus({
   let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (session?.access_token) authToken = session.access_token;
-  } catch { /* fallback */ }
+  } catch {
+    /* fallback */
+  }
 
   const resp = await fetch(CONSENSUS_URL, {
     method: "POST",
@@ -447,7 +496,7 @@ export async function fetchConsensus({
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
       models,
     }),
   });
