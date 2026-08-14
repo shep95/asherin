@@ -8,7 +8,7 @@
  *   an organ is LIVE only when a public endpoint answered with rows,
  *   GAP when it answered empty / failed / has no open feed here,
  *   ENGINE when it is a local capability, not a fetch,
- *   REFUSED when we deliberately do not fetch it.
+ *   GAP when a public index does not answer — never a policy refuse.
  *
  * Nothing here infers, models, or fills. Empty is printed as empty.
  */
@@ -57,7 +57,12 @@ async function getJson<T = any>(url: string, signal?: AbortSignal, init?: Reques
 
 const gap = (id: string, label: string, note: string): OrganResult => ({ id, label, status: "gap", count: 0, note });
 const live = (id: string, label: string, count: number, note: string, points?: OrganPoint[]): OrganResult => ({
-  id, label, status: "live", count, note, points: points?.slice(0, MAX_POINTS_PER_ORGAN),
+  id,
+  label,
+  status: "live",
+  count,
+  note,
+  points: points?.slice(0, MAX_POINTS_PER_ORGAN),
 });
 
 /** Metres between two WGS84 points (haversine). */
@@ -73,7 +78,14 @@ export function distanceM(aLat: number, aLng: number, bLat: number, bLng: number
 
 /* ─────────────────────────── OSM / Overpass ─────────────────────────── */
 
-interface OsmEl { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }
+interface OsmEl {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
 
 /**
  * One Overpass round trip feeds ten organs. Ten separate queries would rate-
@@ -118,10 +130,19 @@ async function pullOverpass(lat: number, lng: number, radiusM: number, signal?: 
     const lo = e.lon ?? e.center?.lon;
     if (typeof la !== "number" || typeof lo !== "number") return null;
     const t = e.tags ?? {};
-    return { lat: la, lng: lo, kind, label: t.name || t.operator || t.amenity || t.railway || t.man_made || t.highway || kind };
+    return {
+      lat: la,
+      lng: lo,
+      kind,
+      label: t.name || t.operator || t.amenity || t.railway || t.man_made || t.highway || kind,
+    };
   };
   const bucket = (kind: string, match: (t: Record<string, string>) => boolean) =>
-    els.map((e) => ({ e, t: e.tags ?? {} })).filter(({ t }) => match(t)).map(({ e }) => pt(e, kind)).filter(Boolean) as OrganPoint[];
+    els
+      .map((e) => ({ e, t: e.tags ?? {} }))
+      .filter(({ t }) => match(t))
+      .map(({ e }) => pt(e, kind))
+      .filter(Boolean) as OrganPoint[];
 
   /* Overpass unreachable is not the same as "nothing is here" — say which. */
   if (!j) {
@@ -143,11 +164,23 @@ async function pullOverpass(lat: number, lng: number, radiusM: number, signal?: 
   const defs: Array<[string, string, (t: Record<string, string>) => boolean]> = [
     ["osm-surveillance", "OSM surveillance", (t) => t.man_made === "surveillance"],
     ["red-light-cameras", "Speed / red-light cameras", (t) => t.highway === "speed_camera" || !!t.enforcement],
-    ["civic-fire-police-school", "Fire / police / school / hospital", (t) => ["fire_station", "police", "school", "hospital", "clinic"].includes(t.amenity)],
-    ["transit-stops", "Transit stops", (t) => t.highway === "bus_stop" || ["station", "halt", "tram_stop"].includes(t.railway)],
+    [
+      "civic-fire-police-school",
+      "Fire / police / school / hospital",
+      (t) => ["fire_station", "police", "school", "hospital", "clinic"].includes(t.amenity),
+    ],
+    [
+      "transit-stops",
+      "Transit stops",
+      (t) => t.highway === "bus_stop" || ["station", "halt", "tram_stop"].includes(t.railway),
+    ],
     ["rail-crossings", "Rail crossings", (t) => t.railway === "level_crossing"],
     ["ev-chargers", "EV chargers", (t) => t.amenity === "charging_station"],
-    ["cell-towers-osm", "Cell masts (OSM)", (t) => (t.man_made === "mast" || t.man_made === "tower") && t["tower:type"] === "communication"],
+    [
+      "cell-towers-osm",
+      "Cell masts (OSM)",
+      (t) => (t.man_made === "mast" || t.man_made === "tower") && t["tower:type"] === "communication",
+    ],
     ["street-lighting", "Street lighting", (t) => t.highway === "street_lamp"],
     ["parking-meters", "Parking", (t) => t.amenity === "parking" || t.vending === "parking_tickets"],
     ["construction", "Construction", (t) => t.landuse === "construction" || t.building === "construction"],
@@ -165,18 +198,23 @@ async function pullOverpass(lat: number, lng: number, radiusM: number, signal?: 
 
 async function pullWeatherAlerts(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
   const j = await getJson<{ features?: any[] }>(
-    `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`, signal,
+    `https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`,
+    signal,
   );
   if (!j) return gap("weather-alerts", "NWS alerts", "api.weather.gov did not answer (US-only service).");
   const f = j.features ?? [];
   if (!f.length) return gap("weather-alerts", "NWS alerts", "No active NWS alert at this point.");
-  const names = f.slice(0, 3).map((x) => String(x?.properties?.event ?? "alert")).join(", ");
+  const names = f
+    .slice(0, 3)
+    .map((x) => String(x?.properties?.event ?? "alert"))
+    .join(", ");
   return live("weather-alerts", "NWS alerts", f.length, `Active: ${names}`);
 }
 
 async function pullQuakes(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
   const j = await getJson<{ features?: any[] }>(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson", signal,
+    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+    signal,
   );
   if (!j) return gap("earthquakes", "Earthquakes 24h", "USGS feed did not answer.");
   const near = (j.features ?? [])
@@ -197,7 +235,12 @@ async function pullAircraft(lat: number, lng: number, signal?: AbortSignal): Pro
   if (!j) return gap("aircraft-overhead", "Aircraft overhead", "OpenSky anonymous quota refused or timed out.");
   const pts = (j.states ?? [])
     .filter((s) => typeof s?.[6] === "number" && typeof s?.[5] === "number")
-    .map((s) => ({ lat: s[6] as number, lng: s[5] as number, kind: "aircraft", label: String(s[1] ?? s[0] ?? "aircraft").trim() }));
+    .map((s) => ({
+      lat: s[6] as number,
+      lng: s[5] as number,
+      kind: "aircraft",
+      label: String(s[1] ?? s[0] ?? "aircraft").trim(),
+    }));
   return pts.length
     ? live("aircraft-overhead", "Aircraft overhead", pts.length, "OpenSky live state vectors", pts)
     : gap("aircraft-overhead", "Aircraft overhead", "No OpenSky state vector in this box right now.");
@@ -209,38 +252,55 @@ async function pullAirQuality(lat: number, lng: number, signal?: AbortSignal): P
     signal,
   );
   const c = j?.current;
-  if (!c || typeof c.pm2_5 !== "number") return gap("air-quality", "Air quality", "No modelled air-quality value for this point.");
-  return live("air-quality", "Air quality", 1, `PM2.5 ${c.pm2_5} µg/m³ · US AQI ${c.us_aqi ?? "—"} (Open-Meteo CAMS model, not a ground station)`);
+  if (!c || typeof c.pm2_5 !== "number")
+    return gap("air-quality", "Air quality", "No modelled air-quality value for this point.");
+  return live(
+    "air-quality",
+    "Air quality",
+    1,
+    `PM2.5 ${c.pm2_5} µg/m³ · US AQI ${c.us_aqi ?? "—"} (Open-Meteo CAMS model, not a ground station)`,
+  );
 }
 
 async function pullStreamGauges(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
   const d = 0.25;
   const bbox = [lng - d, lat - d, lng + d, lat + d].map((v) => v.toFixed(4)).join(",");
   const j = await getJson<any>(
-    `https://waterservices.usgs.gov/nwis/iv/?format=json&bBox=${bbox}&parameterCd=00065&siteStatus=active`, signal,
+    `https://waterservices.usgs.gov/nwis/iv/?format=json&bBox=${bbox}&parameterCd=00065&siteStatus=active`,
+    signal,
   );
   const ts = j?.value?.timeSeries;
-  if (!Array.isArray(ts) || !ts.length) return gap("stream-gauges", "USGS water gauges", "No active USGS gauge in this box.");
-  const pts = ts.map((t: any) => {
-    const g = t?.sourceInfo?.geoLocation?.geogLocation;
-    return g ? { lat: Number(g.latitude), lng: Number(g.longitude), kind: "gauge", label: String(t?.sourceInfo?.siteName ?? "gauge") } : null;
-  }).filter(Boolean) as OrganPoint[];
+  if (!Array.isArray(ts) || !ts.length)
+    return gap("stream-gauges", "USGS water gauges", "No active USGS gauge in this box.");
+  const pts = ts
+    .map((t: any) => {
+      const g = t?.sourceInfo?.geoLocation?.geogLocation;
+      return g
+        ? {
+            lat: Number(g.latitude),
+            lng: Number(g.longitude),
+            kind: "gauge",
+            label: String(t?.sourceInfo?.siteName ?? "gauge"),
+          }
+        : null;
+    })
+    .filter(Boolean) as OrganPoint[];
   return live("stream-gauges", "USGS water gauges", ts.length, "USGS instantaneous-values service", pts);
 }
 
 async function pullPanoramax(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
   const d = 0.004;
   const bbox = [lng - d, lat - d, lng + d, lat + d].map((v) => v.toFixed(5)).join(",");
-  const j = await getJson<{ features?: any[] }>(
-    `https://api.panoramax.xyz/api/search?bbox=${bbox}&limit=25`, signal,
-  );
+  const j = await getJson<{ features?: any[] }>(`https://api.panoramax.xyz/api/search?bbox=${bbox}&limit=25`, signal);
   if (!j) return gap("panoramax-stills", "Panoramax street stills", "Panoramax did not answer.");
   const f = j.features ?? [];
   if (!f.length) return gap("panoramax-stills", "Panoramax street stills", "No Panoramax capture within ~400 m.");
-  const pts = f.map((x) => {
-    const c = x?.geometry?.coordinates;
-    return Array.isArray(c) ? { lat: c[1], lng: c[0], kind: "pano", label: "Panoramax still" } : null;
-  }).filter(Boolean) as OrganPoint[];
+  const pts = f
+    .map((x) => {
+      const c = x?.geometry?.coordinates;
+      return Array.isArray(c) ? { lat: c[1], lng: c[0], kind: "pano", label: "Panoramax still" } : null;
+    })
+    .filter(Boolean) as OrganPoint[];
   return live("panoramax-stills", "Panoramax street stills", f.length, "Panoramax open street imagery", pts);
 }
 
@@ -259,19 +319,27 @@ async function pullFloodZone(lat: number, lng: number, signal?: AbortSignal): Pr
   if (!j) return gap("flood-zone", "FEMA flood zone", "FEMA NFHL did not answer (US-only service).");
   const a = j?.features?.[0]?.attributes;
   if (!a?.FLD_ZONE) return gap("flood-zone", "FEMA flood zone", "No NFHL polygon covers this point.");
-  return live("flood-zone", "FEMA flood zone", 1, `Zone ${a.FLD_ZONE}${a.ZONE_SUBTY ? ` · ${a.ZONE_SUBTY}` : ""} (FEMA NFHL)`);
+  return live(
+    "flood-zone",
+    "FEMA flood zone",
+    1,
+    `Zone ${a.FLD_ZONE}${a.ZONE_SUBTY ? ` · ${a.ZONE_SUBTY}` : ""} (FEMA NFHL)`,
+  );
 }
 
 async function pullMetar(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
   const d = 0.9;
   const bbox = [lat - d, lng - d, lat + d, lng + d].map((v) => v.toFixed(2)).join(",");
-  const j = await getJson<any[]>(
-    `https://aviationweather.gov/api/data/metar?format=json&bbox=${bbox}`, signal,
-  );
+  const j = await getJson<any[]>(`https://aviationweather.gov/api/data/metar?format=json&bbox=${bbox}`, signal);
   if (!Array.isArray(j)) return gap("airport-metar", "Airport METAR", "aviationweather.gov did not answer.");
   if (!j.length) return gap("airport-metar", "Airport METAR", "No reporting station within ~100 km.");
   const first = j[0];
-  return live("airport-metar", "Airport METAR", j.length, `${first?.icaoId ?? "station"}: ${String(first?.rawOb ?? "").slice(0, 90)}`);
+  return live(
+    "airport-metar",
+    "Airport METAR",
+    j.length,
+    `${first?.icaoId ?? "station"}: ${String(first?.rawOb ?? "").slice(0, 90)}`,
+  );
 }
 
 async function pullWildfire(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
@@ -283,8 +351,208 @@ async function pullWildfire(lat: number, lng: number, signal?: AbortSignal): Pro
   if (!j) return gap("wildfire-perimeters", "Wildfire incidents", "NIFC WFIGS did not answer.");
   const f = j?.features ?? [];
   if (!f.length) return gap("wildfire-perimeters", "Wildfire incidents", "No current NIFC incident within 150 km.");
-  const pts = f.map((x: any) => (x?.geometry ? { lat: x.geometry.y, lng: x.geometry.x, kind: "fire", label: String(x?.attributes?.IncidentName ?? "incident") } : null)).filter(Boolean) as OrganPoint[];
+  const pts = f
+    .map((x: any) =>
+      x?.geometry
+        ? {
+            lat: x.geometry.y,
+            lng: x.geometry.x,
+            kind: "fire",
+            label: String(x?.attributes?.IncidentName ?? "incident"),
+          }
+        : null,
+    )
+    .filter(Boolean) as OrganPoint[];
   return live("wildfire-perimeters", "Wildfire incidents", f.length, "NIFC WFIGS current incidents within 150 km", pts);
+}
+
+async function pullCensusBlock(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
+  const j = await getJson<any>(
+    "https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x=" +
+      lng.toFixed(6) +
+      "&y=" +
+      lat.toFixed(6) +
+      "&benchmark=Public_AR_Current&vintage=Current_Current&format=json",
+    signal,
+  );
+  const geo = j?.result?.geographies;
+  const block = geo?.["2020 Census Blocks"]?.[0] || geo?.["Census Blocks"]?.[0];
+  if (!block)
+    return gap("census-block", "Census block", "Census geocoder did not return a block for this point (US-only).");
+  const geoid = block.GEOID || block.GEOID20 || "";
+  const tract = block.TRACT || block.TRACTCE || "";
+  return live(
+    "census-block",
+    "Census block",
+    1,
+    (geoid || "block") + " · tract " + (tract || "—") + " (Census geocoder, public)",
+  );
+}
+
+async function pullTides(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
+  const j = await getJson<any>(
+    "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels&lat=" +
+      lat.toFixed(4) +
+      "&lon=" +
+      lng.toFixed(4) +
+      "&radius=50",
+    signal,
+  );
+  const stations = j?.stations ?? [];
+  if (!Array.isArray(stations) || !stations.length) {
+    return gap(
+      "tide-marine",
+      "Tide / marine",
+      "No NOAA CO-OPS water-level station within 50 km, or the API did not answer.",
+    );
+  }
+  const first = stations[0];
+  const pts = stations
+    .slice(0, 25)
+    .map((s: any) => ({
+      lat: Number(s.lat),
+      lng: Number(s.lng),
+      kind: "tide",
+      label: String(s.name || s.id || "station"),
+    }))
+    .filter((p: OrganPoint) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  return live(
+    "tide-marine",
+    "Tide / marine",
+    stations.length,
+    String(first?.name || first?.id) + " · NOAA CO-OPS within 50 km",
+    pts,
+  );
+}
+
+async function pullSexOffenderDistance(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
+  const d = 8000;
+  const tail =
+    "&geometryType=esriGeometryPoint&inSR=4326&distance=" +
+    d +
+    "&units=esriSRUnit_Meter&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID&returnGeometry=true&f=json&resultRecordCount=25";
+  const urls = [
+    "https://geo.txdps.state.tx.us/arcgis/rest/services/SexOffender/MapServer/0/query?geometry=" +
+      lng.toFixed(5) +
+      "," +
+      lat.toFixed(5) +
+      tail,
+    "https://gis.fdle.state.fl.us/arcgis/rest/services/SexOffenders/MapServer/0/query?geometry=" +
+      lng.toFixed(5) +
+      "," +
+      lat.toFixed(5) +
+      tail,
+  ];
+  let answered = false;
+  for (const url of urls) {
+    const j = await getJson<any>(url, signal);
+    if (!j) continue;
+    answered = true;
+    const f = j?.features;
+    if (!Array.isArray(f) || !f.length) continue;
+    const pts = f
+      .map((x: any) => {
+        const g = x?.geometry;
+        const lat2 = typeof g?.y === "number" ? g.y : g?.latitude;
+        const lng2 = typeof g?.x === "number" ? g.x : g?.longitude;
+        if (typeof lat2 !== "number" || typeof lng2 !== "number") return null;
+        const metres = Math.round(distanceM(lat, lng, lat2, lng2));
+        return { lat: lat2, lng: lng2, kind: "registry", label: metres + " m" };
+      })
+      .filter(Boolean) as OrganPoint[];
+    return live(
+      "sex-offender-distance-tagged",
+      "Sex-offender distance",
+      pts.length || f.length,
+      "public GIS · " + pts.length + " points within 8 km · distance only, no images",
+      pts,
+    );
+  }
+  return gap(
+    "sex-offender-distance-tagged",
+    "Sex-offender distance",
+    answered
+      ? "Public GIS answered empty within 8 km — not in this index."
+      : "No CORS-open public JSON registry answered for this point — not refused.",
+  );
+}
+
+async function pullLaneClosures(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
+  const r = 2000;
+  const q =
+    "[out:json][timeout:15];(way(around:" +
+    r +
+    "," +
+    lat +
+    "," +
+    lng +
+    ')["highway"="construction"];way(around:' +
+    r +
+    "," +
+    lat +
+    "," +
+    lng +
+    ')["construction"];);out center 40;';
+  let j: { elements?: OsmEl[] } | null = null;
+  for (const host of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]) {
+    j = await getJson<{ elements?: OsmEl[] }>(host, signal, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "data=" + encodeURIComponent(q),
+    });
+    if (j) break;
+  }
+  if (!j)
+    return gap(
+      "lane-closures",
+      "Lane closures",
+      "Overpass did not answer — no national CORS-open lane-closure index besides OSM construction.",
+    );
+  const els = j.elements ?? [];
+  const pts = els
+    .map((e) => {
+      const la = e.lat ?? e.center?.lat;
+      const lo = e.lon ?? e.center?.lon;
+      if (typeof la !== "number" || typeof lo !== "number") return null;
+      return { lat: la, lng: lo, kind: "lane", label: e.tags?.name || e.tags?.highway || "construction" };
+    })
+    .filter(Boolean) as OrganPoint[];
+  return pts.length
+    ? live("lane-closures", "Lane closures", pts.length, "OSM highway=construction within " + r + " m", pts)
+    : gap(
+        "lane-closures",
+        "Lane closures",
+        "None tagged in OpenStreetMap within " + r + " m. No national CORS-open crash/lane index.",
+      );
+}
+
+async function pullTrafficIncidents(lat: number, lng: number, signal?: AbortSignal): Promise<OrganResult> {
+  const j = await getJson<{ features?: any[] }>(
+    "https://api.weather.gov/alerts/active?point=" + lat.toFixed(4) + "," + lng.toFixed(4),
+    signal,
+  );
+  if (!j) {
+    return gap(
+      "traffic-incidents",
+      "Traffic incidents",
+      "No national CORS-open incident index. NWS did not answer for a travel-alert fallback.",
+    );
+  }
+  const f = (j.features ?? []).filter((x) =>
+    /road|highway|travel|traffic|closure|winter weather/i.test(String(x?.properties?.event ?? "")),
+  );
+  if (!f.length) {
+    return gap(
+      "traffic-incidents",
+      "Traffic incidents",
+      "No national CORS-open crash index. No NWS road/travel alert at this point.",
+    );
+  }
+  const names = f
+    .slice(0, 3)
+    .map((x) => String(x?.properties?.event ?? "alert"))
+    .join(", ");
+  return live("traffic-incidents", "Traffic incidents", f.length, "NWS travel/road alerts (not a crash CAD): " + names);
 }
 
 /* ─────────────────────────── collector ─────────────────────────── */
@@ -318,6 +586,11 @@ export async function pullNearbyOrgans(
     pullFloodZone(lat, lng, s),
     pullMetar(lat, lng, s),
     pullWildfire(lat, lng, s),
+    pullCensusBlock(lat, lng, s),
+    pullTides(lat, lng, s),
+    pullSexOffenderDistance(lat, lng, s),
+    pullLaneClosures(lat, lng, s),
+    pullTrafficIncidents(lat, lng, s),
   ]);
 
   const results: OrganResult[] = [];
@@ -348,7 +621,7 @@ export const ORGAN_ROSTER: Array<{ id: string; label: string; kind: "fetch" | "d
   { id: "crime-at-address", label: "Crime at address", kind: "dossier" },
   { id: "crime-nearby", label: "Crime nearby", kind: "dossier" },
   { id: "parcel-outline", label: "Parcel outline", kind: "dossier" },
-  { id: "census-block", label: "Census block", kind: "dossier" },
+  { id: "census-block", label: "Census block", kind: "fetch" },
   { id: "permits", label: "Permits", kind: "dossier" },
   { id: "liens", label: "Liens", kind: "dossier" },
   { id: "last-sale", label: "Last sale", kind: "dossier" },
@@ -392,7 +665,7 @@ export const ORGAN_ROSTER: Array<{ id: string; label: string; kind: "fetch" | "d
   { id: "area-code-geoint", label: "Area-code GEOINT", kind: "engine" },
   { id: "red-light-cameras", label: "Red-light / speed cameras", kind: "fetch" },
   { id: "change-ping-append", label: "Change-ping append", kind: "engine" },
-  { id: "sex-offender-distance-tagged", label: "Sex-offender distance", kind: "refused" },
+  { id: "sex-offender-distance-tagged", label: "Sex-offender distance", kind: "fetch" },
 ];
 
 export interface OrganDigest {
@@ -413,9 +686,12 @@ export function buildOrganDigest(fetched: OrganResult[], dossierLive: Set<string
   const rows = ORGAN_ROSTER.map<OrganResult>((o) => {
     const hit = byId.get(o.id);
     if (hit) return hit;
-    if (o.kind === "refused") return { id: o.id, label: o.label, status: "refused", count: 0, note: "Not fetched by policy." };
-    if (o.kind === "engine") return { id: o.id, label: o.label, status: "engine", count: 0, note: "Local capability, not a public feed." };
-    if (dossierLive.has(o.id)) return { id: o.id, label: o.label, status: "live", count: 1, note: "Filled from the public-index dossier." };
+    if (o.kind === "refused")
+      return { id: o.id, label: o.label, status: "refused", count: 0, note: "Not fetched by policy." };
+    if (o.kind === "engine")
+      return { id: o.id, label: o.label, status: "engine", count: 0, note: "Local capability, not a public feed." };
+    if (dossierLive.has(o.id))
+      return { id: o.id, label: o.label, status: "live", count: 1, note: "Filled from the public-index dossier." };
     return { id: o.id, label: o.label, status: "gap", count: 0, note: "not in public index" };
   });
   return {
