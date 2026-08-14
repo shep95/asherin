@@ -1,18 +1,18 @@
-// CameraIntelligencePanel — the camera intelligence surface for Asherin Maps.
+// CameraIntelligencePanel â the camera intelligence surface for Asherin Maps.
 //
 // Public agency stills + OSM-tagged devices + URLs the operator pastes.
-// Ring / Flock / private NVR live taps need that owner's login — this panel
+// Ring / Flock / private NVR live taps need that owner's login â this panel
 // does not hijack them. Empty catalogue = gap, never a simulated pin.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera as CameraIcon, X, Loader2, RefreshCw, Crosshair, Video, MapPin, Link2 } from "lucide-react";
-import { sweepCamerasEscalating, type StreetCamera } from "@/lib/asher/streetCameras";
+import { liveFrameUrl, sweepCamerasEscalating, type StreetCamera } from "@/lib/asher/streetCameras";
 import { fmtDistance, type Units } from "@/lib/asher/directions";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Sweep anchor — the operator's own fix when we have one, else map centre. */
+  /** Sweep anchor â the operator's own fix when we have one, else map centre. */
   anchor: { lat: number; lng: number };
   /** True when `anchor` came from the GPS rather than the viewport. */
   anchorIsOperator: boolean;
@@ -60,6 +60,7 @@ const CameraIntelligencePanel = ({
   const [radiusM, setRadiusM] = useState<number | null>(null);
   const [pasteUrl, setPasteUrl] = useState("");
   const [pasteName, setPasteName] = useState("");
+  const [tick, setTick] = useState(() => Date.now());
   const abortRef = useRef<AbortController | null>(null);
 
   /* Callbacks arrive as fresh identities every parent render. Held in refs so
@@ -105,7 +106,7 @@ const CameraIntelligencePanel = ({
         const owned = loadOperatorCams();
         if (owned.length) {
           publish([], ["your URL"], null);
-          setNote(e instanceof Error ? e.message : "Agency catalogue unavailable — your pasted feeds still show.");
+          setNote(e instanceof Error ? e.message : "Agency catalogue unavailable â your pasted feeds still show.");
         } else {
           setPhase("error");
           setNote(e instanceof Error ? e.message : "Camera catalogue unavailable.");
@@ -133,6 +134,11 @@ const CameraIntelligencePanel = ({
     }
   }, [open]);
   useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => setTick(Date.now()), 2000);
+    return () => window.clearInterval(id);
+  }, [open]);
 
   const addOwnFeed = () => {
     const url = pasteUrl.trim();
@@ -210,7 +216,7 @@ const CameraIntelligencePanel = ({
         <input
           value={pasteUrl}
           onChange={(e) => setPasteUrl(e.target.value)}
-          placeholder="https://… still / mjpeg / .m3u8"
+          placeholder="https://â¦ still / mjpeg / .m3u8"
           className="w-full rounded-md border border-border/30 bg-background/40 px-2 py-1 text-[11px] text-foreground outline-none placeholder:text-muted-foreground/50"
         />
         <button
@@ -222,7 +228,7 @@ const CameraIntelligencePanel = ({
         </button>
         <p className="text-[9px] leading-snug text-muted-foreground/70">
           Public DOT / OSM stills auto-pull. Ring, Flock, and private NVRs only connect if you paste a URL you already
-          have — this map does not log into someone else's camera.
+          have â this map does not log into someone else's camera.
         </p>
       </div>
 
@@ -230,7 +236,7 @@ const CameraIntelligencePanel = ({
         {busy && (
           <div className="space-y-2 p-3">
             <p className="text-[10px] font-light text-muted-foreground">
-              Sweeping public agency catalogues — widening until a feed answers.
+              Sweeping public agency catalogues â widening until a feed answers.
             </p>
             {[0, 1, 2, 3].map((i) => (
               <div
@@ -248,7 +254,7 @@ const CameraIntelligencePanel = ({
               {note}
             </p>
             <p className="text-[10px] leading-snug text-muted-foreground/70">
-              Move the map over a corridor covered by a state DOT or city traffic authority and re-run — or paste a feed
+              Move the map over a corridor covered by a state DOT or city traffic authority and re-run â or paste a feed
               you own above.
             </p>
           </div>
@@ -269,36 +275,48 @@ const CameraIntelligencePanel = ({
         )}
 
         {(phase === "ready" || cams.length > 0) &&
-          cams.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onFocus(c)}
-              className="block w-full border-b border-border/10 px-3 py-2 text-left hover:bg-foreground/5"
-            >
-              <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
-                {c.streamUrl || c.imageUrl ? (
-                  <Video className="h-3 w-3 shrink-0 text-[#c98b3a]" />
-                ) : (
-                  <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+          cams.map((c) => {
+            const frame = liveFrameUrl(c, tick);
+            return (
+              <button
+                key={c.id}
+                onClick={() => onFocus(c)}
+                className="block w-full border-b border-border/10 px-3 py-2 text-left hover:bg-foreground/5"
+              >
+                {frame && (
+                  <img
+                    src={frame}
+                    alt=""
+                    width={300}
+                    height={84}
+                    className="mb-1.5 h-[84px] w-full rounded-md bg-black/40 object-cover"
+                  />
                 )}
-                <span className="truncate">{c.name}</span>
-              </p>
-              <p className="mt-0.5 text-[10px] font-light text-muted-foreground">
-                {[c.roadway, c.direction].filter(Boolean).join(" · ") || c.source}
-                {c.distanceM !== undefined ? ` · ${fmtDistance(c.distanceM, units)}` : ""}
-              </p>
-              <p className="text-[9px] font-light text-muted-foreground/60">
-                {c.operator || c.source}
-                {c.streamUrl || c.imageUrl ? " · live frame available" : " · position only"}
-              </p>
-            </button>
-          ))}
+                <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                  {c.streamUrl || c.imageUrl ? (
+                    <Video className="h-3 w-3 shrink-0 text-[#c98b3a]" />
+                  ) : (
+                    <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="truncate">{c.name}</span>
+                </p>
+                <p className="mt-0.5 text-[10px] font-light text-muted-foreground">
+                  {[c.roadway, c.direction].filter(Boolean).join(" Â· ") || c.source}
+                  {c.distanceM !== undefined ? ` Â· ${fmtDistance(c.distanceM, units)}` : ""}
+                </p>
+                <p className="text-[9px] font-light text-muted-foreground/60">
+                  {c.operator || c.source}
+                  {c.streamUrl || c.imageUrl ? " Â· live frame available" : " Â· position only"}
+                </p>
+              </button>
+            );
+          })}
       </div>
 
       <p className="border-t border-border/15 px-3 py-1.5 text-[9px] text-muted-foreground/60">
         {phase === "ready" || cams.length
-          ? `${cams.length} camera${cams.length === 1 ? "" : "s"} · ${sources.join(", ") || "public agency feeds"}`
-          : "Public agency CCTV and OSM-tagged devices only — plus URLs you paste."}
+          ? `${cams.length} camera${cams.length === 1 ? "" : "s"} Â· ${sources.join(", ") || "public agency feeds"}`
+          : "Public agency CCTV and OSM-tagged devices only â plus URLs you paste."}
       </p>
     </div>
   );
