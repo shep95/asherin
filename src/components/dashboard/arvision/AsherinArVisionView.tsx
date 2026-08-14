@@ -122,7 +122,12 @@ const HUD_CSS = `
   @container arv (max-width: 1100px) {
     .misb { top: 12px; left: 12px; padding: 10px 12px; font-size: 11px; max-width: min(240px, calc(100% - 72px)); }
     .compass { top: 12px; right: 12px; }
-    .layers { top: 12px; width: min(520px, calc(100% - 260px)); gap: 6px; }
+    .layers {
+      top: 12px; left: 268px; right: clamp(64px, 12cqi, 108px); transform: none;
+      width: auto; max-width: none; gap: 6px;
+      flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .tog { flex: 0 0 auto; }
     .tog { padding: 7px 10px; font-size: 11px; }
     .sheet { right: 12px; top: 104px; bottom: 104px; width: min(248px, 34cqi); padding: 12px; }
     #inbox { left: 12px; top: 104px; bottom: 104px; width: min(248px, 34cqi); padding: 12px; }
