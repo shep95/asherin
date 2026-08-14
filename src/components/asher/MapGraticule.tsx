@@ -84,7 +84,7 @@ const MapGraticule = ({ enabled, color = "#d8c9a3", labels = true }: Props) => {
       }
 
       const style: L.PolylineOptions = {
-        color<
+        color,
         weight: 0.6,
         opacity: 0.28,
         interactive: false,
@@ -101,23 +101,45 @@ const MapGraticule = ({ enabled, color = "#d8c9a3", labels = true }: Props) => {
         opacity: 0.09,
         interactive: false,
       };
-      const minorFits =
-        lineCount(north - south, minorStep) <= 120 &&
-        lineCount(east - west, minorStep) <= 120;
+      const minorFits = lineCount(north - south, minorStep) <= 120 && lineCount(east - west, minorStep) <= 120;
 
       if (minorFits) {
         for (let lat = snapDown(south, minorStep); lat <= north; lat += minorStep) {
           if (lat < -85 || lat > 85) continue;
-          group.addLayer(L.polyline([[lat, west], [lat, east]], minorStyle));
+          group.addLayer(
+            L.polyline(
+              [
+                [lat, west],
+                [lat, east],
+              ],
+              minorStyle,
+            ),
+          );
         }
         for (let lng = snapDown(west, minorStep); lng <= east; lng += minorStep) {
-          group.addLayer(L.polyline([[south, lng], [north, lng]], minorStyle));
+          group.addLayer(
+            L.polyline(
+              [
+                [south, lng],
+                [north, lng],
+              ],
+              minorStyle,
+            ),
+          );
         }
       }
 
       for (let lat = snapDown(south, useStep); lat <= north; lat += useStep) {
         if (lat < -85 || lat > 85) continue;
-        group.addLayer(L.polyline([[lat, west], [lat, east]], style));
+        group.addLayer(
+          L.polyline(
+            [
+              [lat, west],
+              [lat, east],
+            ],
+            style,
+          ),
+        );
         if (labels) {
           group.addLayer(
             L.marker([lat, west], {
@@ -134,7 +156,15 @@ const MapGraticule = ({ enabled, color = "#d8c9a3", labels = true }: Props) => {
       }
 
       for (let lng = snapDown(west, useStep); lng <= east; lng += useStep) {
-        group.addLayer(L.polyline([[south, lng], [north, lng]], style));
+        group.addLayer(
+          L.polyline(
+            [
+              [south, lng],
+              [north, lng],
+            ],
+            style,
+          ),
+        );
         if (labels) {
           group.addLayer(
             L.marker([south, lng], {
@@ -167,15 +197,7 @@ export default MapGraticule;
 /** Glass targeting box on the selected parcel â corner brackets on the imagery,
  *  not a Palantir left rail. Size is a drawing constant (~32 m), not a surveyed
  *  lot line. GIBS/Esri remain near-daily mosaics, not live satellite seconds. */
-export function SatelliteTargetBox({
-  lat,
-  lng,
-  label,
-}: {
-  lat: number;
-  lng: number;
-  label?: string;
-}) {
+export function SatelliteTargetBox({ lat, lng, label }: { lat: number; lng: number; label?: string }) {
   const map = useMap();
 
   useEffect(() => {
