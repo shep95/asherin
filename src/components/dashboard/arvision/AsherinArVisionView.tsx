@@ -1,4 +1,4 @@
-// asherin.arvision — camera first, HUD sparse, honesty printed.
+// asherin.arvision — camera first, HUD sparse.
 //
 // Narrative check: the old AR lived as a tab inside a BLE scanner, so the
 // camera was a guest in someone else's room and the HUD carried clone-suspect
@@ -15,14 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Grid3x3, RefreshCw, Save, Snowflake } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
 import { emitPull } from "@/lib/connect/emitPull";
-import {
-  CANNOT_RESOLVE,
-  EMPTY_INTEL,
-  analyseFrame,
-  sceneGeoVerdict,
-  visualLevel,
-  type FrameIntel,
-} from "@/lib/arvision/frameIntel";
+import { EMPTY_INTEL, analyseFrame, sceneGeoVerdict, visualLevel, type FrameIntel } from "@/lib/arvision/frameIntel";
 
 const SAMPLE_W = 96;
 const SAMPLE_H = 72;
@@ -132,7 +125,6 @@ const AsherinArVisionView = () => {
     const next = facing === "user" ? "environment" : "user";
     stop();
     setFacing(next);
-    // start() reads `facing` from the next render, so the restart is deferred.
     window.setTimeout(() => {
       void start();
     }, 0);
@@ -241,7 +233,7 @@ const AsherinArVisionView = () => {
         </div>
       )}
 
-      {/* HUD — one MISB-named chip row, wraps on narrow screens. */}
+      {/* HUD */}
       {on && (
         <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-wrap gap-2 p-3 sm:p-4">
           <span className="rounded-full border border-foreground/12 bg-background/60 px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-foreground/60 backdrop-blur-md">
@@ -259,7 +251,7 @@ const AsherinArVisionView = () => {
         </div>
       )}
 
-      {/* CONTROLS — ≥44px touch targets, bottom of the room. */}
+      {/* CONTROLS */}
       <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center justify-center gap-2 p-3 sm:p-4">
         {on && (
           <>
@@ -326,18 +318,6 @@ const AsherinArVisionView = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* limits — collapsed, only after the feed is live. never first paint. */}
-      {on && (
-        <details className="absolute bottom-16 left-3 right-3 mx-auto max-w-sm rounded-full border border-foreground/12 bg-background/70 px-3 py-1 text-center backdrop-blur-md sm:left-auto sm:right-4 sm:mx-0">
-          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/50">
-            limits
-          </summary>
-          <p className="mt-1 pb-1 text-[10px] font-extralight leading-relaxed text-muted-foreground/70">
-            cannot resolve: {CANNOT_RESOLVE.join(" · ")}.
-          </p>
-        </details>
       )}
     </div>
   );
