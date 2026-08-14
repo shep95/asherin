@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { emitPull } from "@/lib/connect/emitPull";
 
 const HUD_CSS = `
-  .arv-root { position:absolute; inset:0; width:100%; height:100%; overflow:hidden; background:#000; color-scheme:dark; }
+  .arv-root { position:absolute; inset:0; width:100%; height:100%; min-width:0; min-height:0; overflow:hidden; background:#000; color-scheme:dark; container-type:size; container-name:arv; }
 
   .arv-root {
     --bg: hsl(var(--background));
@@ -43,14 +43,14 @@ const HUD_CSS = `
   }
   .misb {
     position: absolute; top: 16px; left: 16px; z-index: 8;
-    padding: 12px 16px; pointer-events: auto; min-width: 220px;
+    padding: 12px 16px; pointer-events: auto; min-width: 0; max-width: min(280px, calc(100% - 80px));
     font: 300 12px/1.5 inherit; color: var(--ink);
   }
   .misb b { color: var(--accent); font-weight: 500; }
   .misb .m { color: var(--mute); font-size: 11px; }
   .compass {
     position: absolute; top: 16px; right: 16px; z-index: 8;
-    width: 88px; height: 88px; border-radius: 50%; padding: 0; cursor: pointer;
+    width: clamp(48px, 12cqi, 88px); height: clamp(48px, 12cqi, 88px); border-radius: 50%; padding: 0; cursor: pointer;
     background: hsl(var(--card) / .62);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--line);
@@ -64,7 +64,7 @@ const HUD_CSS = `
   .layers {
     position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
     z-index: 8; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-    width: min(720px, calc(100% - 260px)); pointer-events: auto;
+    width: min(720px, calc(100% - 160px)); max-width: calc(100% - 16px); pointer-events: auto;
   }
   .tog {
     border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; cursor: pointer;
@@ -75,7 +75,7 @@ const HUD_CSS = `
   .tog.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color: transparent; }
   .sheet {
     position: absolute; right: 16px; top: 116px; bottom: 110px; z-index: 8;
-    width: min(280px, 32vw); padding: 16px; overflow: auto; pointer-events: auto;
+    width: min(280px, 32cqi, calc(100% - 24px)); padding: 16px; overflow: auto; pointer-events: auto;
   }
   .sheet h2 { margin: 0 0 10px; font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; color: var(--mute); }
   .sheet .row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -85,7 +85,7 @@ const HUD_CSS = `
   .talk {
     position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
     z-index: 9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-    padding: 10px 12px; width: min(980px, calc(100% - 36px)); justify-content: center;
+    padding: 10px 12px; width: min(980px, calc(100% - 16px)); max-width: calc(100% - 16px); justify-content: center;
   }
   .talk button {
     border: 1px solid transparent; border-radius: 999px; padding: 10px 16px; cursor: pointer;
@@ -99,7 +99,7 @@ const HUD_CSS = `
     background: hsl(var(--background) / .78); backdrop-filter: blur(18px);
   }
   #gate[hidden] { display: none; }
-  #gate .card { padding: 28px 32px; max-width: 420px; text-align: center; }
+  #gate .card { padding: 28px 32px; max-width: min(420px, calc(100% - 24px)); width: min(420px, calc(100% - 24px)); text-align: center; }
   #gate p { color: var(--mute); font-size: 14px; line-height: 1.6; }
   #gate button {
     border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer;
@@ -107,17 +107,29 @@ const HUD_CSS = `
   }
   #note {
     position: absolute; left: 16px; bottom: 110px; z-index: 8;
-    padding: 10px 14px; font-size: 12px; color: var(--mute); max-width: 320px;
+    padding: 10px 14px; font-size: 12px; color: var(--mute); max-width: min(320px, calc(100% - 24px));
     pointer-events: none;
   }
   #inbox {
     position: absolute; left: 16px; top: 116px; bottom: 110px; z-index: 10;
-    width: min(280px, 34vw); padding: 14px; overflow: auto; pointer-events: auto;
+    width: min(280px, 34cqi, calc(100% - 24px)); padding: 14px; overflow: auto; pointer-events: auto;
   }
   #inbox[hidden] { display: none; }
   #inbox h2 { margin: 0 0 10px; font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; color: var(--mute); }
   #inbox .shot { width: 100%; border-radius: 10px; margin: 0 0 10px; border: 1px solid var(--line); display: block; }
   #inbox .meta { font-size: 11px; color: var(--mute); margin: -6px 0 12px; }
+  @container arv (max-width: 840px) {
+    .misb { right: clamp(56px, 14cqi, 96px); max-width: none; width: auto; }
+    .layers { top: auto; left: 8px; right: 8px; transform: none; width: auto; max-width: none; bottom: 72px; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; max-height: 44px; }
+    .sheet, #inbox { left: 8px; right: 8px; width: auto; max-width: none; top: auto; bottom: 120px; max-height: 42%; }
+    .talk { left: 8px; right: 8px; transform: none; width: auto; max-width: none; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+    #note { left: 8px; right: 8px; max-width: none; bottom: 120px; }
+  }
+  @container arv (max-height: 520px) {
+    .compass { width: 44px; height: 44px; }
+    .sheet, #inbox { max-height: 36%; padding: 8px 10px; }
+    .talk { padding: 6px 8px; gap: 6px; }
+  }
 `;
 const HUD_BODY =
   '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
@@ -1897,7 +1909,7 @@ const AsherinArVisionView = () => {
       root.innerHTML = "";
     };
   }, []);
-  return <div ref={rootRef} className="absolute inset-0 h-full min-h-[100%] w-full overflow-hidden bg-black" />;
+  return <div ref={rootRef} className="relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-black" />;
 };
 
 export default AsherinArVisionView;
