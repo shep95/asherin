@@ -7,7 +7,110 @@
 import { useEffect, useRef } from "react";
 import { emitPull } from "@/lib/connect/emitPull";
 
-const HUD_CSS = '\n  .arv-root { position:absolute; inset:0; width:100%; height:100%; overflow:hidden; background:#000; color-scheme:dark; }\n\n  .arv-root {\n    --bg: #07080a;\n    --ink: #f5f7fb;\n    --mute: rgba(245,247,251,.58);\n    --line: rgba(255,255,255,.14);\n    --accent: #9ec9ff;\n    --ok: #7ee0c6;\n    --warn: #e8c56b;\n    --r: 28px;\n  }\n  .arv-root, .arv-root * { box-sizing: border-box; }\n  .arv-root * { scrollbar-width: none !important; -ms-overflow-style: none !important; }\n  .arv-root *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }\n  .arv-root {\n    margin: 0; height: 100%; background: var(--bg); color: var(--ink);\n    font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;\n    letter-spacing: -.018em; color-scheme: dark; overflow: hidden;\n  }\n  #stage { position: absolute; inset: 0; background: #000; }\n  #cam, #hud {\n    position: absolute; inset: 0; width: 100%; height: 100%;\n    object-fit: cover;\n  }\n  #cam.mirror { transform: scaleX(-1); }\n  #hud { pointer-events: none; }\n  .glass {\n    background: linear-gradient(180deg, rgba(28,32,42,.58), rgba(12,14,18,.42));\n    backdrop-filter: blur(32px) saturate(1.55);\n    -webkit-backdrop-filter: blur(32px) saturate(1.55);\n    border: 1px solid var(--line);\n    border-radius: var(--r);\n  }\n  .misb {\n    position: absolute; top: 16px; left: 16px; z-index: 8;\n    padding: 12px 16px; pointer-events: auto; min-width: 220px;\n    font: 500 12px/1.45 inherit; color: var(--ink);\n  }\n  .misb b { color: var(--accent); font-weight: 600; }\n  .misb .m { color: var(--mute); font-size: 11px; }\n  .compass {\n    position: absolute; top: 16px; right: 16px; z-index: 8;\n    width: 88px; height: 88px; border-radius: 50%; padding: 0; cursor: pointer;\n    background: linear-gradient(180deg, rgba(28,32,42,.58), rgba(12,14,18,.42));\n    border: 1px solid var(--line);\n  }\n  .compass svg { width: 100%; height: 100%; }\n  .compass.dim { opacity: .45; }\n  .layers {\n    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);\n    z-index: 8; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;\n    width: min(720px, calc(100% - 260px)); pointer-events: auto;\n  }\n  .tog {\n    border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer;\n    color: var(--ink); font: 600 12px/1 inherit; background: rgba(16,18,24,.48);\n    backdrop-filter: blur(24px);\n  }\n  .tog.on { background: rgba(158,201,255,.92); color: #0b1018; }\n  .sheet {\n    position: absolute; right: 16px; top: 116px; bottom: 110px; z-index: 8;\n    width: min(280px, 32vw); padding: 16px; overflow: auto; pointer-events: auto;\n  }\n  .sheet h2 { margin: 0 0 10px; font: 600 13px/1.2 inherit; letter-spacing: -.02em; }\n  .sheet .row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }\n  .sheet .k { color: var(--mute); }\n  .sheet .v { text-align: right; }\n  .sheet .list { margin-top: 10px; font-size: 12px; color: var(--mute); line-height: 1.45; }\n  .talk {\n    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);\n    z-index: 9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;\n    padding: 10px 12px; width: min(980px, calc(100% - 36px)); justify-content: center;\n  }\n  .talk button {\n    border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer;\n    background: rgba(158,201,255,.92); color: #0b1018; font: 600 13px/1 inherit;\n  }\n  .talk button.ghost { background: rgba(255,255,255,.08); color: var(--ink); }\n  #gate {\n    position: absolute; inset: 0; z-index: 20; display: grid; place-items: center;\n    background: rgba(7,8,10,.72); backdrop-filter: blur(18px);\n  }\n  #gate[hidden] { display: none; }\n  #gate .card { padding: 28px 32px; max-width: 420px; text-align: center; }\n  #gate p { color: var(--mute); font-size: 14px; line-height: 1.5; }\n  #gate button {\n    border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer;\n    background: rgba(158,201,255,.92); color: #0b1018; font: 600 14px inherit;\n  }\n  #note {\n    position: absolute; left: 16px; bottom: 110px; z-index: 8;\n    padding: 10px 14px; font-size: 12px; color: var(--mute); max-width: 320px;\n    pointer-events: none;\n  }\n';
+const HUD_CSS = `
+  .arv-root { position:absolute; inset:0; width:100%; height:100%; overflow:hidden; background:#000; color-scheme:dark; }
+
+  .arv-root {
+    --bg: hsl(var(--background));
+    --ink: hsl(var(--foreground));
+    --mute: hsl(var(--muted-foreground));
+    --line: hsl(var(--border));
+    --accent: hsl(var(--accent));
+    --accent-ink: hsl(var(--accent-foreground));
+    --ok: hsl(var(--accent));
+    --warn: hsl(var(--accent));
+    --r: 1rem;
+  }
+  .arv-root, .arv-root * { box-sizing: border-box; }
+  .arv-root * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+  .arv-root *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+  .arv-root {
+    margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 300; letter-spacing: -.01em; color-scheme: dark; overflow: hidden;
+  }
+  #stage { position: absolute; inset: 0; background: #000; }
+  #cam, #hud { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #cam.mirror { transform: scaleX(-1); }
+  #hud { pointer-events: none; }
+  .glass {
+    background: hsl(var(--card) / .62);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: 0 18px 50px -24px rgba(0,0,0,.9);
+  }
+  .misb {
+    position: absolute; top: 16px; left: 16px; z-index: 8;
+    padding: 12px 16px; pointer-events: auto; min-width: 220px;
+    font: 300 12px/1.5 inherit; color: var(--ink);
+  }
+  .misb b { color: var(--accent); font-weight: 500; }
+  .misb .m { color: var(--mute); font-size: 11px; }
+  .compass {
+    position: absolute; top: 16px; right: 16px; z-index: 8;
+    width: 88px; height: 88px; border-radius: 50%; padding: 0; cursor: pointer;
+    background: hsl(var(--card) / .62);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--line);
+  }
+  .compass svg { width: 100%; height: 100%; }
+  .compass svg text { fill: hsl(var(--accent)); }
+  .compass svg polygon { fill: hsl(var(--foreground)); }
+  .compass svg rect { fill: hsl(var(--accent)); }
+  .compass svg circle { stroke: hsl(var(--border)); }
+  .compass.dim { opacity: .45; }
+  .layers {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 8; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    width: min(720px, calc(100% - 260px)); pointer-events: auto;
+  }
+  .tog {
+    border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; cursor: pointer;
+    color: var(--mute); font: 400 12px/1 inherit; background: hsl(var(--card) / .55);
+    backdrop-filter: blur(20px); transition: color .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .tog:hover { color: var(--ink); border-color: hsl(var(--accent) / .4); }
+  .tog.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color: transparent; }
+  .sheet {
+    position: absolute; right: 16px; top: 116px; bottom: 110px; z-index: 8;
+    width: min(280px, 32vw); padding: 16px; overflow: auto; pointer-events: auto;
+  }
+  .sheet h2 { margin: 0 0 10px; font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; color: var(--mute); }
+  .sheet .row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .sheet .k { color: var(--mute); }
+  .sheet .v { text-align: right; }
+  .sheet .list { margin-top: 10px; font-size: 12px; color: var(--mute); line-height: 1.5; }
+  .talk {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 10px 12px; width: min(980px, calc(100% - 36px)); justify-content: center;
+  }
+  .talk button {
+    border: 1px solid transparent; border-radius: 999px; padding: 10px 16px; cursor: pointer;
+    background: hsl(var(--accent)); color: var(--accent-ink); font: 500 13px/1 inherit;
+    transition: opacity .15s ease;
+  }
+  .talk button:hover { opacity: .88; }
+  .talk button.ghost { background: hsl(var(--muted) / .6); color: var(--ink); border-color: var(--line); }
+  #gate {
+    position: absolute; inset: 0; z-index: 20; display: grid; place-items: center;
+    background: hsl(var(--background) / .78); backdrop-filter: blur(18px);
+  }
+  #gate[hidden] { display: none; }
+  #gate .card { padding: 28px 32px; max-width: 420px; text-align: center; }
+  #gate p { color: var(--mute); font-size: 14px; line-height: 1.6; }
+  #gate button {
+    border: 0; border-radius: 999px; padding: 12px 20px; cursor: pointer;
+    background: hsl(var(--accent)); color: var(--accent-ink); font: 500 14px inherit;
+  }
+  #note {
+    position: absolute; left: 16px; bottom: 110px; z-index: 8;
+    padding: 10px 14px; font-size: 12px; color: var(--mute); max-width: 320px;
+    pointer-events: none;
+  }
+`;
 const HUD_BODY = '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass talk" id="talk"></div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
 
 function bootArvision(wrap, root, emitPull) {
