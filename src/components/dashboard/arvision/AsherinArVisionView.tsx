@@ -118,18 +118,67 @@ const HUD_CSS = `
   #inbox h2 { margin: 0 0 10px; font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; color: var(--mute); }
   #inbox .shot { width: 100%; border-radius: 10px; margin: 0 0 10px; border: 1px solid var(--line); display: block; }
   #inbox .meta { font-size: 11px; color: var(--mute); margin: -6px 0 12px; }
-  @container arv (max-width: 840px) {
-    .misb { right: clamp(56px, 14cqi, 96px); max-width: none; width: auto; }
-    .layers { top: auto; left: 8px; right: 8px; transform: none; width: auto; max-width: none; bottom: 72px; flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; max-height: 44px; }
-    .sheet, #inbox { left: 8px; right: 8px; width: auto; max-width: none; top: auto; bottom: 120px; max-height: 42%; }
-    .talk { left: 8px; right: 8px; transform: none; width: auto; max-width: none; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
-    #note { left: 8px; right: 8px; max-width: none; bottom: 120px; }
+  /* tablet — keep the desktop frame, tighten every gutter and panel */
+  @container arv (max-width: 1100px) {
+    .misb { top: 12px; left: 12px; padding: 10px 12px; font-size: 11px; max-width: min(240px, calc(100% - 72px)); }
+    .compass { top: 12px; right: 12px; }
+    .layers { top: 12px; width: min(520px, calc(100% - 260px)); gap: 6px; }
+    .tog { padding: 7px 10px; font-size: 11px; }
+    .sheet { right: 12px; top: 104px; bottom: 104px; width: min(248px, 34cqi); padding: 12px; }
+    #inbox { left: 12px; top: 104px; bottom: 104px; width: min(248px, 34cqi); padding: 12px; }
+    #note { left: 12px; bottom: 100px; max-width: min(260px, calc(100% - 20px)); }
+    .talk { bottom: 14px; padding: 8px 10px; gap: 6px; }
+    .talk button { padding: 9px 13px; font-size: 12px; }
   }
-  @container arv (max-height: 520px) {
-    .compass { width: 44px; height: 44px; }
-    .sheet, #inbox { max-height: 36%; padding: 8px 10px; }
+
+  /* phone — stack the chrome: reading panels, then layer strip, then talk bar */
+  @container arv (max-width: 780px) {
+    .misb {
+      top: 8px; left: 8px; right: clamp(52px, 16cqi, 76px);
+      width: auto; max-width: none; padding: 8px 10px; font: 300 11px/1.45 inherit;
+    }
+    .misb .m { font-size: 10px; }
+    .compass { top: 8px; right: 8px; width: clamp(38px, 13cqi, 48px); height: clamp(38px, 13cqi, 48px); }
+
+    .layers {
+      top: auto; bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+      left: 8px; right: 8px; transform: none; width: auto; max-width: none;
+      flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; padding-bottom: 2px; gap: 6px;
+    }
+    .tog { flex: 0 0 auto; padding: 7px 11px; font-size: 11px; }
+
+    .sheet, #inbox {
+      left: 8px; right: 8px; width: auto; max-width: none;
+      top: auto; bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+      max-height: min(38cqh, 300px); padding: 12px; overflow: auto;
+    }
+    .sheet .row { font-size: 11px; padding: 5px 0; }
+
+    #note {
+      left: 8px; right: 8px; max-width: none;
+      bottom: calc(108px + env(safe-area-inset-bottom, 0px)); padding: 8px 10px; font-size: 11px;
+    }
+
+    .talk {
+      left: 8px; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      transform: none; width: auto; max-width: none;
+      flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; padding: 8px; gap: 6px;
+    }
+    .talk button { flex: 0 0 auto; padding: 9px 13px; font-size: 12px; }
+    #gate .card { padding: 20px 18px; }
+    #gate p { font-size: 13px; }
+  }
+
+  /* short / landscape phone — nothing may eat the frame */
+  @container arv (max-height: 560px) {
+    .compass { width: 40px; height: 40px; }
+    .sheet, #inbox { max-height: 46cqh; padding: 10px; }
     .talk { padding: 6px 8px; gap: 6px; }
+    .talk button { padding: 8px 12px; }
   }
+
 `;
 const HUD_BODY =
   '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
