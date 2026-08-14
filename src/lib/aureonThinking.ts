@@ -22,8 +22,7 @@ Inside the block, execute these six steps in order, each on its own labelled lin
 
 Be terse and real — this is scratch work, not prose. Hard cap: 320 words. Close the tag when step 6 is written.`;
 
-export const buildThinkingPrompt = (userMessage: string) =>
-  `${userMessage}\n\n${GHOST_CHAIN_PROTOCOL}`;
+export const buildThinkingPrompt = (userMessage: string) => `${userMessage}\n\n${GHOST_CHAIN_PROTOCOL}`;
 
 export const buildAnswerPromptWithThinking = (userMessage: string, thinking: string) =>
   `${userMessage}\n\n[AUREON INTERNAL REASONING — already completed by you, private. Build the final answer on top of it. Never quote it, never mention that you reasoned, never re-run the protocol.]\n${thinking.trim()}\n[END INTERNAL REASONING]\n\nNow deliver the final answer only: clean, precise, authoritative, no hedging, no meta-commentary.`;
@@ -48,9 +47,14 @@ const TRIVIAL = /^(hi|hey|hello|yo|sup|thanks|thank you|ok|okay|cool|nice|got it
  * not deserve a second API call — that would double cost and latency for zero
  * intelligence gain (perf flaw 6.x: unconditional work on the hot path).
  */
-export function shouldRunThinkingPass(userMessage: string): boolean {
+export function shouldRunThinkingPass(userMessage: string, depth?: string): boolean {
   const t = (userMessage || "").trim();
   if (t.length < 12) return false;
   if (TRIVIAL.test(t)) return false;
+  if (/GHOST CHAIN PROTOCOL/i.test(t) || /AUREON INTERNAL REASONING/i.test(t)) return false;
+  // Standard turns stream in one call. The extra /chat round-trip (and its
+  // organ wait) is reserved for deep/exhaustive — that is where a plan
+  // actually changes the answer. Speed is the product requirement.
+  if (depth !== "deep" && depth !== "exhaustive") return false;
   return true;
 }
