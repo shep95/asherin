@@ -96,7 +96,7 @@ const Index = () => {
       },
       {
         q: "what does the $18 plan include?",
-        a: "Chat with sources beside the answer, a coding engine, search, maps, a private vault, and memory that persists between sessions.",
+        a: "Chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, a private vault, and memory that persists between sessions.",
       },
       {
         q: "is my work used to train asherin?",
@@ -113,7 +113,7 @@ const Index = () => {
           name: "Asherin",
           url: "https://asherin.com",
           description:
-            "Asherin is a research workspace that puts sources beside the answer and says plainly what it does not know.",
+            "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision. $18/mo, $79/mo pro. honest about what it does not know.",
         },
       },
       {
@@ -245,12 +245,9 @@ const Index = () => {
       <Section className="flex min-h-[88vh] flex-col justify-center px-6 pt-32 pb-20">
         <div className="mx-auto w-full max-w-5xl">
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[0.94] text-foreground">
-            <span className="sr-only">asherin — a research workspace that shows its sources: </span>
-            <span aria-hidden="true">look a little</span>
+            asherin —
             <br />
-            <span className="zophiel-shimmer-text italic font-light" aria-hidden="true">
-              closer.
-            </span>
+            <span className="zophiel-shimmer-text italic font-light">look a little closer.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
@@ -282,6 +279,10 @@ const Index = () => {
               pricing
             </Link>
           </div>
+          <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
+            rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision. $18 / month. $79 /
+            month pro.
+          </p>
         </div>
       </Section>
 
@@ -338,14 +339,10 @@ const Index = () => {
             )}
 
             {asking && !answer && (
-              <p className="mt-5 text-xs font-mono tracking-[0.2em] uppercase text-muted-foreground/60">
-                working…
-              </p>
+              <p className="mt-5 text-xs font-mono tracking-[0.2em] uppercase text-muted-foreground/60">working…</p>
             )}
 
-            {askError && (
-              <p className="mt-5 text-sm font-extralight text-muted-foreground">{askError}</p>
-            )}
+            {askError && <p className="mt-5 text-sm font-extralight text-muted-foreground">{askError}</p>}
 
             {answer && (
               <div className="mt-6 rounded-xl border border-border/10 bg-background/20 p-5 max-h-[52vh] overflow-y-auto">
@@ -383,9 +380,7 @@ const Index = () => {
             what stays private.
           </h2>
           <ul className="mt-8 space-y-4 text-sm font-extralight leading-relaxed text-muted-foreground">
-            <li>
-              your conversations, files, and vault entries are account-scoped and encrypted at rest.
-            </li>
+            <li>your conversations, files, and vault entries are account-scoped and encrypted at rest.</li>
             <li>
               answering a question means sending it to a model, so it is not a sealed room — asherin will not claim
               otherwise.
@@ -421,13 +416,16 @@ const Index = () => {
             {[
               {
                 q: "what does the $18 plan include?",
-                a: "chat with sources beside the answer, a coding engine, search, maps, a private vault, and memory that carries between sessions.",
+                a: "chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, a private vault, and memory that carries between sessions.",
               },
               {
                 q: "what does pro add?",
                 a: "the heavier research and analysis work: deeper source pulls, longer sessions, and the modules that need more compute.",
               },
-              { q: "can i cancel?", a: "yes, in one click from the dashboard. no retention loop, no call, no email chain." },
+              {
+                q: "can i cancel?",
+                a: "yes, in one click from the dashboard. no retention loop, no call, no email chain.",
+              },
               {
                 q: "is my work used to train asherin?",
                 a: "no. it is account-scoped, encrypted at rest, never sold, and never turned into training data.",
@@ -482,9 +480,7 @@ const Index = () => {
 
       <SiteFooter />
 
-      {showAuth && (
-        <AuthOverlay isLogin={authIsLogin} setIsLogin={setAuthIsLogin} onClose={() => setShowAuth(false)} />
-      )}
+      {showAuth && <AuthOverlay isLogin={authIsLogin} setIsLogin={setAuthIsLogin} onClose={() => setShowAuth(false)} />}
     </LandingBackground>
   );
 };
