@@ -77,6 +77,7 @@ const DENY = new RegExp(
     // scanner as "this origin proxies the API" (REPORT 4 soft-404 expansion).
     "|/debug(?:/|$)" +
     "|/api/internal(?:/|$)" +
+    "|/api(?:/|$)" +
     "|/rest/v1(?:/|$)" +
     "|/functions/v1(?:/|$)" +
     "|/storage/v1(?:/|$)" +
