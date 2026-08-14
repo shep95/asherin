@@ -1,16 +1,10 @@
 # asherin — robots policy
-# Everything public is crawlable. Only the signed-in app surfaces are closed:
-# they redirect to auth, so crawling them buys nothing.
+# Public marketing is crawlable. Signed-in app surfaces are not listed here.
+# Auth already gates those routes.
 
 User-agent: *
 Allow: /
-Disallow: /dashboard
-Disallow: /dashboard/
-Disallow: /asher-dashboard
-Disallow: /asher-dashboard/
 
-# Model-training crawlers that send no referral traffic. AI *search* crawlers
-# (OAI-SearchBot, ChatGPT-User, PerplexityBot, ClaudeBot) stay allowed above.
 User-agent: GPTBot
 Disallow: /
 
