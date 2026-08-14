@@ -1909,7 +1909,7 @@ const AsherinArVisionView = () => {
       root.innerHTML = "";
     };
   }, []);
-  return <div ref={rootRef} className="absolute inset-0 h-full min-h-0 w-full overflow-hidden bg-black" />;
+  return <div ref={rootRef} className="relative h-full w-full min-h-0 min-w-0 overflow-hidden bg-black" />;
 };
 
 export default AsherinArVisionView;
