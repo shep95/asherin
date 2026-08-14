@@ -31,6 +31,9 @@
 /actuator/*    /404-not-found  404
 /debug/*       /404-not-found  404
 /api/internal/* /404-not-found 404
+/api            /404-not-found  404
+/api/*          /404-not-found  404
+/security.txt   /.well-known/security.txt  301
 
 # Signed-in app surfaces — real routes, gated by the app, not marketing pages.
 /auth              /index.html  200
