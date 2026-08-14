@@ -856,7 +856,7 @@ function bootArvision(wrap, root, emitPull) {
       <div class="row"><span class="k">who</span><span class="v">${esc(S.identity.status || "—")}</span></div>
       <div class="row"><span class="k">objects</span><span class="v">${obj}</span></div>
       <div class="row"><span class="k">what</span><span class="v">${esc((S.classes || []).slice(0, 3).map((c) => c.name).join(", ") || "classifier…")}</span></div>
-      <div class="row"><span class="k">car</span><span class="v">${esc((S.intel && S.intel.car && (S.intel.car.guess || (S.intel.car.in_frame ? "in frame · unsure") : "none")) || "none")}</span></div>
+      <div class="row"><span class="k">car</span><span class="v">${esc((S.intel && S.intel.car && (S.intel.car.guess || (S.intel.car.in_frame ? "in frame · unsure" : "none"))) || "none")}</span></div>
       <div class="row"><span class="k">plate</span><span class="v">${esc((S.intel && S.intel.plates && S.intel.plates[0] && S.intel.plates[0].plate) || "none")}</span></div>
       <div class="row"><span class="k">ids</span><span class="v">${S.barcodes[0] ? S.barcodes[0].slice(0, 18) : "none"}</span></div>
       <div class="list">${S.blend || ""}</div>
