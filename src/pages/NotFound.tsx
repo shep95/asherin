@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { applySeoHead } from "@/lib/seoHead";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 
-
 /**
  * ASHERIN 404 — "Lost in Orbit"
  * A monochrome, Aureon-themed not-found page with an offline
@@ -22,7 +21,7 @@ const QUIPS = [
   "houston, we lost the page.",
   "this URL drifted past saturn.",
   "the page got sucked into a black hole.",
-  "even zophiel can't find this one.",
+  "even asherin can't find this one.",
   "404: page achieved escape velocity.",
 ];
 
@@ -49,14 +48,20 @@ const NotFound = () => {
     dead: false,
     saturnRot: 0,
     stars: [] as { x: number; y: number; r: number; tw: number }[],
-    soul: null as null | { x: number; y: number; vy: number; vx: number; life: number; particles: { x: number; y: number; vx: number; vy: number; r: number; life: number }[] },
+    soul: null as null | {
+      x: number;
+      y: number;
+      vy: number;
+      vx: number;
+      life: number;
+      particles: { x: number; y: number; vx: number; vy: number; r: number; life: number }[];
+    },
   });
-
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
     applySeoHead({
-      title: "404 — Lost in Orbit | Asherin",
+      title: "not found | asherin",
       description:
         "This isn't a page on asherin. Click to return — or play the offline space-dino game while you're here.",
       path: location.pathname,
@@ -76,7 +81,6 @@ const NotFound = () => {
       else robots?.setAttribute("content", prev);
     };
   }, [location.pathname]);
-
 
   const reset = useCallback(() => {
     const s = stateRef.current;
@@ -229,7 +233,7 @@ const NotFound = () => {
       ctx.fillStyle = "#9a9a9a";
       ctx.fillRect(-6, 2, 8, 16);
       ctx.fillStyle = "#ff7a3d";
-      const flame = (frame % 6 < 3 ? 6 : 4);
+      const flame = frame % 6 < 3 ? 6 : 4;
       ctx.fillRect(-10, 8, 4, flame);
 
       // legs — animate when on ground
@@ -367,7 +371,6 @@ const NotFound = () => {
             });
             break;
           }
-
         }
       }
 
@@ -428,7 +431,6 @@ const NotFound = () => {
         ctx.fillRect(soul.x + 2, soul.y - 4, 2, 3);
         ctx.restore();
       }
-
 
       // HUD
       ctx.fillStyle = "#e8e8e8";
@@ -496,16 +498,16 @@ const NotFound = () => {
           asherin · signal lost
         </div>
 
-        <h1 className="text-center font-semibold tracking-tight">
+        <p className="text-center font-semibold tracking-tight" aria-hidden="true">
           <span className="block text-[88px] leading-none text-white sm:text-[128px]">404</span>
-          <span className="mt-3 block text-lg text-zinc-300 sm:text-xl">
-            this isn't a page on asherin.
-          </span>
+        </p>
+        <h1 className="mt-3 text-center text-lg font-semibold tracking-tight text-zinc-300 sm:text-xl">
+          not found | asherin
         </h1>
+        <p className="mt-2 max-w-md text-center text-sm text-zinc-500">this isn't a page on asherin.</p>
 
         <p className="mt-3 max-w-md text-center text-sm text-zinc-500">
-          {quip} meanwhile, our intern (a dino in a space suit) is dodging asteroids near saturn.
-          give him a hand.
+          {quip} meanwhile, our intern (a dino in a space suit) is dodging asteroids near saturn. give him a hand.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -535,12 +537,7 @@ const NotFound = () => {
           role="button"
           aria-label="Offline space-dino game. Tap or press space to jump."
         >
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={240}
-            className="block h-auto w-full select-none"
-          />
+          <canvas ref={canvasRef} width={800} height={240} className="block h-auto w-full select-none" />
         </div>
 
         <div className="mt-4 flex items-center gap-4 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
