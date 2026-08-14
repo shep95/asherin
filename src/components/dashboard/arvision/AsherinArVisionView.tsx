@@ -50,7 +50,7 @@ const HUD_CSS = `
   .misb .m { color: var(--mute); font-size: 11px; }
   .compass {
     position: absolute; top: 16px; right: 16px; z-index: 8;
-    width: clamp(48px, 12cqi, 88px); height: clamp(48px, 12cqi, 88px); border-radius: 50%; padding: 0; cursor: pointer;
+    width: clamp(48px, 12cqi, 56px); height: clamp(48px, 12cqi, 56px); border-radius: 14px; padding: 0; cursor: pointer;
     background: hsl(var(--card) / .62);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--line);
@@ -61,11 +61,7 @@ const HUD_CSS = `
   .compass svg rect { fill: hsl(var(--accent)); }
   .compass svg circle { stroke: hsl(var(--border)); }
   .compass.dim { opacity: .45; }
-  .layers {
-    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-    z-index: 8; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-    width: min(720px, calc(100% - 160px)); max-width: calc(100% - 16px); pointer-events: auto;
-  }
+  .layers { display: none !important; }
   .tog {
     border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; cursor: pointer;
     color: var(--mute); font: 400 12px/1 inherit; background: hsl(var(--card) / .55);
@@ -77,6 +73,8 @@ const HUD_CSS = `
     position: absolute; right: 16px; top: 116px; bottom: 110px; z-index: 8;
     width: min(280px, 32cqi, calc(100% - 24px)); padding: 16px; overflow: auto; pointer-events: auto;
   }
+  .sheet .fold { display:flex; align-items:center; justify-content:space-between; width:100%; border:0; background:transparent; color: var(--mute); font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; cursor:pointer; padding:0 0 8px; text-align:left; }
+  .sheet.folded { height: 48px; overflow: hidden; top: auto; }
   .sheet h2 { margin: 0 0 10px; font: 400 13px/1.2 inherit; letter-spacing: .02em; text-transform: lowercase; color: var(--mute); }
   .sheet .row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
   .sheet .k { color: var(--mute); }
@@ -207,13 +205,13 @@ function bootArvision(wrap, root, emitPull) {
 
   const layers = {
     reticle: true,
-    grid: false,
+    grid: true,
     horizon: true,
     peaking: false,
     motion: true,
-    mesh: true,
+    mesh: false,
     objects: true,
-    pose: true,
+    pose: false,
     rf: true,
     identity: true,
     classify: true,
@@ -269,6 +267,7 @@ function bootArvision(wrap, root, emitPull) {
     lastAhash: "",
     clsTick: 0,
     lastShot: 0,
+    sensitivity: "high",
     inbox: [],
     inboxOpen: false,
     deviceLog: [],
@@ -291,27 +290,21 @@ function bootArvision(wrap, root, emitPull) {
 
   function talkBtns() {
     const spec = [
-      ["freeze", "ghost", freeze],
-      ["packet", "", savePacket],
-      ["reverse", "ghost", reverseSearch],
-      ["ocr", "ghost", runOcr],
       ["flip cam", "ghost", flipCam],
       [
-        "mirror",
+        "shot",
         "ghost",
         () => {
-          S.mirror = !S.mirror;
-          applyMirror();
+          shotInbox();
+          S.inboxOpen = true;
+          const box = $("inbox");
+          if (box) {
+            box.hidden = false;
+            paintInbox();
+          }
         },
       ],
-      ["torch", "ghost", toggleTorch],
       ["record", "ghost", toggleRec],
-      ["probe rf", "", probeStrongest],
-      ["enroll me", "", enrollMe],
-      ["shot log", "ghost", shotInbox],
-      ["inbox", "ghost", toggleInbox],
-      ["tag person", "ghost", tagPerson],
-      ["intel", "", runIntel],
     ];
     talkEl.innerHTML = "";
     spec.forEach(([label, cls, fn]) => {
@@ -428,6 +421,9 @@ function bootArvision(wrap, root, emitPull) {
     applyMirror();
     $("gate").hidden = true;
     note("");
+    try {
+      enableHeading();
+    } catch (_) {}
     try {
       emitPull({
         organ: "arvision",
@@ -1053,8 +1049,8 @@ function bootArvision(wrap, root, emitPull) {
             delegate: "GPU",
           },
           runningMode: "VIDEO",
-          scoreThreshold: 0.45,
-          maxResults: 8,
+          scoreThreshold: 0.18,
+          maxResults: 16,
         });
       } catch (_) {}
       try {
@@ -1065,8 +1061,8 @@ function bootArvision(wrap, root, emitPull) {
             delegate: "GPU",
           },
           runningMode: "VIDEO",
-          maxResults: 5,
-          scoreThreshold: 0.18,
+          maxResults: 8,
+          scoreThreshold: 0.08,
         });
       } catch (_) {}
       S.models.connectors = {
@@ -1341,7 +1337,10 @@ function bootArvision(wrap, root, emitPull) {
     if (S.models.obj && layers.objects && canDetect) {
       try {
         const res = S.models.obj.detectForVideo(src, ts + 2);
-        const dets = res.detections || [];
+        const minScore = S.sensitivity === "high" ? 0.18 : S.sensitivity === "field" ? 0.32 : 0.5;
+        const dets = (res.detections || []).filter(
+          (d) => ((d.categories && d.categories[0] && d.categories[0].score) || 0) >= minScore,
+        );
         S.objects = dets.map((d) => {
           const cat = (d.categories && d.categories[0]) || {};
           const bb = d.boundingBox || {};
@@ -1442,8 +1441,14 @@ function bootArvision(wrap, root, emitPull) {
       (S.intel && S.intel.car && (S.intel.car.guess || (S.intel.car.in_frame ? "in frame · unsure" : "none"))) ||
       "none";
     const plate = (S.intel && S.intel.plates && S.intel.plates[0] && S.intel.plates[0].plate) || "none";
+    const folded = sheetEl.classList.contains("folded");
     let html =
-      "<h2>live intel</h2>" +
+      '<button type="button" class="fold" id="sheet-fold">' +
+      (folded ? "live intel ·" : "live intel") +
+      "</button>" +
+      '<button type="button" class="fold" id="sens-cycle">sens · ' +
+      (S.sensitivity || "high") +
+      "</button>" +
       row("luma", S.luma.toFixed(2)) +
       row("contrast", S.contrast.toFixed(2)) +
       row("motion", S.motion.toFixed(3)) +
@@ -1464,7 +1469,8 @@ function bootArvision(wrap, root, emitPull) {
       list("headphones music: CANNOT_RESOLVE unless MCS GATT · A2DP intercept refused") +
       list("open apps / tabs / SMS / in-app DMs on another phone: CANNOT_RESOLVE · no implant") +
       list("laptop screen: CANNOT_RESOLVE · no implant") +
-      list("private camera feed: CANNOT_RESOLVE · public DOT / your URL only");
+      list("private camera feed: CANNOT_RESOLVE · public DOT / your URL only") +
+      list("hvac / ac radio: CANNOT_RESOLVE · see it ≠ connect · no implant");
     const log = S.deviceLog || [];
     for (let i = 0; i < log.length && i < 6; i++) {
       const d = log[i];
