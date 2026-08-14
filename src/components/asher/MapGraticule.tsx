@@ -90,6 +90,33 @@ const MapGraticule = ({ enabled, color = "#d8c9a3", labels = true }: Props) => {
         interactive: false,
       };
 
+      // Faint sub-grid: five minor cells per major cell, drawn first so the
+      // labelled graticule always sits on top. Barely there on imagery — a
+      // measurable texture, not a fog sheet — and skipped when the minor mesh
+      // would exceed the same density guard the major lines answer to.
+      const minorStep = useStep / 5;
+      const minorStyle: L.PolylineOptions = {
+        color,
+        weight: 0.4,
+        opacity: 0.09,
+        interactive: false,
+      };
+      const minorFits =
+        lineCount(north - south, minorStep) <= 120 &&
+        lineCount(east - west, minorStep) <= 120;
+
+      if (minorFits) {
+        for (let lat = snapDown(south, minorStep); lat <= north; lat += minorStep) {
+          if (lat < -85 || lat > 85) continue;
+          group.addLayer(L.polyline([[lat, west], [lat, east]], minorStyle));
+        }
+        for (let lng = snapDown(west, minorStep); lng <= east; lng += minorStep) {
+          group.addLayer(L.polyline([[south, lng], [north, lng]], minorStyle));
+        }
+      }
+
+
+
       for (let lat = snapDown(south, useStep); lat <= north; lat += useStep) {
         if (lat < -85 || lat > 85) continue;
         group.addLayer(L.polyline([[lat, west], [lat, east]], style));
