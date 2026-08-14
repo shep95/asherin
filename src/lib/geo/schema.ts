@@ -34,7 +34,7 @@ export function buildOrganization(): Json {
     founder: { "@type": "Person", name: "Asher Newton" },
     ...(ORG_SAME_AS.length ? { sameAs: ORG_SAME_AS } : {}),
     description:
-      "Asherin is a subscription AI workspace: chat, search, notes, files, maps and an encrypted vault, with the option to bring your own model key.",
+      "asherin is a subscription research workspace: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, notes, files and an encrypted vault, with the option to bring your own model key.",
   };
 }
 
@@ -64,12 +64,15 @@ export function buildSoftwareApplication(): Json {
     publisher: { "@id": ORG_ID },
     featureList: [
       "Chat",
+      "asherinx.eng",
+      "asherin.maps",
+      "asherin.defender",
+      "asherin.arvision",
       "Library",
       "Projects",
       "Memory",
       "Guardian Vault",
       "Whiteboard",
-      "Maps",
       "Connect",
       "Team",
     ],
