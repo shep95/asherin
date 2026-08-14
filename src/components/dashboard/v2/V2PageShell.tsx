@@ -42,7 +42,7 @@ const V2PageShell = ({ title, subtitle, canvas = false, children }: Props) => {
         </div>
         <div id={ACTION_SLOT_ID} className="flex shrink-0 items-center gap-2" />
       </header>
-      <div className={`min-h-0 flex-1 ${canvas ? "overflow-hidden" : "overflow-auto"}`}>{children}</div>
+      <div className={`relative min-h-0 flex-1 ${canvas ? "overflow-hidden" : "overflow-auto"}`}>{children}</div>
     </div>
   );
 };
