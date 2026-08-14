@@ -7,10 +7,12 @@
 // (recognition, not recall), and the findings list is dash-led facts with
 // `this is unsure` printed wherever a browser genuinely cannot see.
 //
-// The flaw the old surface had was pretending. A tab cannot stop a kernel
-// logger, so this room never claims it does: browser-only shows live status and
-// names what the companion would do, and apply is explicit, dry-run first, and
-// never reaches anyone else's machine.
+// The flaw the old surface had was pretending — and hiding browser-capable
+// work behind `npx cap`. A tab cannot stop a kernel logger, so this room never
+// claims it does. What it can do, it does here: pick a Bluetooth device you
+// own, freeze this origin's tracker beacons, rotate a unique 60-second poison
+// map for in-page observers only. Apply is explicit, dry-run first, and never
+// reaches anyone else's machine.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
@@ -20,7 +22,15 @@ import {
   BUNKER_NEVER,
   BUNKER_TARGETS,
   RESIDUAL_BLIND_SPOTS,
+  applyBunker,
+  armTab,
+  bunkerBlockedCount,
   collectSignals,
+  hasCompanion,
+  isNativeCompanion,
+  pickBluetooth,
+  pickHid,
+  restoreBunker,
   type Signal,
   type SignalLevel,
 } from "@/lib/defender/signals";
@@ -41,10 +51,6 @@ const GROUPS: Array<{ id: Signal["group"]; label: string }> = [
   { id: "poison", label: "key-poison" },
 ];
 
-const hasCompanion = (): boolean =>
-  typeof window !== "undefined" &&
-  Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
-
 const AsherinDefenderView = () => {
   const { hasPro, isAdmin } = useAccess();
   const proActions = hasPro || isAdmin;
@@ -56,7 +62,9 @@ const AsherinDefenderView = () => {
   const [dryRun, setDryRun] = useState(true);
   const [showConnect, setShowConnect] = useState(false);
   const [companionTick, setCompanionTick] = useState(0);
+  const [connectNote, setConnectNote] = useState<string | null>(null);
   const companion = useMemo(hasCompanion, [companionTick]);
+  const native = useMemo(isNativeCompanion, [companionTick]);
 
   const scan = useCallback(async () => {
     setScanning(true);
@@ -90,26 +98,59 @@ const AsherinDefenderView = () => {
   }, [scan]);
   useEffect(() => watchCamera(setCamera), []);
 
-  const connectCompanion = useCallback(() => {
-    if (hasCompanion()) {
+  const armThisTab = useCallback(async () => {
+    armTab();
+    setCompanionTick((n) => n + 1);
+    setShowConnect(false);
+    setConnectNote(
+      "this tab is armed. bunker and the 60s poison map run here. ssid, bios and other-process spy match stay residual.",
+    );
+    void scan();
+  }, [scan]);
+
+  const connectCompanion = useCallback(async () => {
+    if (isNativeCompanion()) {
       setCompanionTick((n) => n + 1);
       setShowConnect(false);
       void scan();
       return;
     }
-    setShowConnect(true);
+    const notes: string[] = [];
+    try {
+      const d = await pickBluetooth();
+      if (d) notes.push(`bluetooth · ${d.name || d.id.slice(0, 8)}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/cancel|abort/i.test(msg)) notes.push(`bluetooth picker: ${msg.slice(0, 80)}`);
+    }
+    try {
+      const n = await pickHid();
+      if (n) notes.push(`hid · ${n} granted`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/cancel|abort/i.test(msg)) notes.push(`hid picker: ${msg.slice(0, 80)}`);
+    }
+    armTab();
+    setCompanionTick((n) => n + 1);
+    setShowConnect(false);
+    setConnectNote(notes.length ? notes.join(" · ") : "this tab is armed without a new device grant.");
+    void scan();
   }, [scan]);
 
   const toggleBunker = useCallback(() => {
     const next = !bunker;
     setBunker(next);
     setCovertEnforcement(next);
+    if (next && !dryRun && proActions) applyBunker();
+    else restoreBunker();
     void emitPull({
       organ: "defender",
       capability: next ? "bunker-on" : "bunker-off",
       fromSurface: "asherin-defender",
       status: proActions ? "ok" : "skip",
-      quote: next ? `${dryRun ? "dry-run" : "apply"} · freeze ${BUNKER_TARGETS.length} classes` : "restore",
+      quote: next
+        ? `${dryRun ? "dry-run" : "apply"} · freeze ${BUNKER_TARGETS.length} classes · blocked ${bunkerBlockedCount()}`
+        : "restore",
     });
   }, [bunker, dryRun, proActions]);
 
@@ -148,7 +189,7 @@ const AsherinDefenderView = () => {
               </h2>
               <p className="mt-1 text-sm font-extralight leading-relaxed text-muted-foreground">
                 freeze {BUNKER_TARGETS.join(", ")}. {BUNKER_NEVER.join(" and ")} are never frozen. off restores
-                everything.
+                everything. phone calls and messenger apps outside this origin stay residual.
               </p>
             </div>
             <button
@@ -176,15 +217,15 @@ const AsherinDefenderView = () => {
             </button>
             {companion ? (
               <span className="text-[11px] font-extralight text-muted-foreground/70">
-                companion present on this device.
+                {native ? "native companion present on this device." : "this tab is armed."}
               </span>
             ) : (
               <button
                 type="button"
-                onClick={connectCompanion}
+                onClick={() => setShowConnect(true)}
                 className="min-h-[36px] rounded-full border border-foreground/20 px-3 text-[11px] font-extralight text-foreground/80 hover:bg-foreground/[0.06]"
               >
-                connect companion
+                arm this tab
               </button>
             )}
             {!proActions && (
@@ -193,6 +234,7 @@ const AsherinDefenderView = () => {
               </span>
             )}
           </div>
+          {connectNote && <p className="mt-3 text-[11px] font-extralight text-muted-foreground/80">{connectNote}</p>}
         </section>
 
         {/* STATUS CHIPS — one glance. */}
@@ -206,42 +248,42 @@ const AsherinDefenderView = () => {
           )}
           {chip("spy", alerts ? "alert" : "ok", alerts ? `${alerts} to read` : "nothing matched")}
           {companion ? (
-            chip("poison", "ok", "companion ready")
+            chip("poison", "ok", "60s map armed")
           ) : (
             <button
               type="button"
-              onClick={connectCompanion}
+              onClick={() => setShowConnect(true)}
               className="flex min-h-[36px] items-center gap-2 rounded-full border border-foreground/12 bg-foreground/[0.03] px-3 py-1.5 text-left"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-foreground/25" />
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/55">poison</span>
-              <span className="text-[11px] font-extralight text-muted-foreground">connect companion</span>
+              <span className="text-[11px] font-extralight text-muted-foreground">arm this tab</span>
             </button>
           )}
         </div>
 
         {showConnect && !companion && (
           <section className="mt-5 rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-5">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ connect companion</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ arm this tab</p>
             <p className="mt-2 text-sm font-extralight text-foreground/85">
-              this tab can read live status. apply, freeze, and full hardware scan run on the native companion on this
-              same device.
+              this tab can freeze its own tracker beacons and rotate a unique 60-second poison map for in-page
+              observers. pick a bluetooth or hid device you own to grant this origin the rest of the tree. ssid scan,
+              bios, and other-process spy match stay residual — a tab cannot see them.
             </p>
-            <ol className="mt-3 list-decimal space-y-1 pl-5 text-[11px] font-extralight text-muted-foreground/80">
-              <li>export this project and pull it locally</li>
-              <li>npm install</li>
-              <li>npx cap add android or ios</li>
-              <li>npm run build then npx cap sync</li>
-              <li>npx cap run android or ios</li>
-              <li>open this room inside the companion app, then retry</li>
-            </ol>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={connectCompanion}
+                onClick={() => void connectCompanion()}
                 className="min-h-[36px] rounded-full border border-foreground/20 px-3 text-[11px] font-extralight"
               >
-                retry — companion is open
+                pick bluetooth / hid
+              </button>
+              <button
+                type="button"
+                onClick={() => void armThisTab()}
+                className="min-h-[36px] rounded-full border border-foreground/20 px-3 text-[11px] font-extralight"
+              >
+                arm without a picker
               </button>
               <button
                 type="button"
@@ -307,20 +349,9 @@ const AsherinDefenderView = () => {
                               <span className="text-muted-foreground/60"> · this is unsure</span>
                             )}
                           </p>
-                          {s.action &&
-                            (companion ? (
-                              <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/70">
-                                — {s.action}
-                              </p>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={connectCompanion}
-                                className="mt-0.5 text-left text-[11px] font-extralight text-foreground/70 underline-offset-2 hover:underline"
-                              >
-                                — connect companion to run: {s.action}
-                              </button>
-                            ))}
+                          {s.action && (
+                            <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/70">— {s.action}</p>
+                          )}
                         </div>
                       </li>
                     ))}
