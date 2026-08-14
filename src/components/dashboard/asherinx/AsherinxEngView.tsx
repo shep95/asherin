@@ -1,15 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// asherinx.eng — public-index search. no tap.
-//
-// First paint is one box. Nothing else. The engine classifies the query, asks
-// a pack of public indexes in parallel, and groups what came back by field
-// site. Sites that refused, timed out or hold nothing are listed under the
-// results as skips with their reason — an empty index is an empty answer, not
-// a silence dressed up as intelligence.
-//
-// Depth ($79 pro / team) widens the fan-out and unlocks the delegated carves:
-// origin (provenance of one artefact), identifier (selector sweep) and the
-// short retention buffer. Base ($18) gets the matched pack whole.
+// asherinx.eng — public-index search + area log (automation, not a button).
+// Nearby radios this box already hears. Place/IP of where you are. Scroll back.
+// Sees ≠ joins. No tap.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -48,6 +40,48 @@ interface QueryPayload {
   depth: "basic" | "full";
 }
 
+interface Emission {
+  kind?: string;
+  seen?: boolean;
+  asherinx_joined?: boolean;
+  label?: string;
+  ssid?: string;
+  channel?: string;
+  band?: string;
+  freq_mhz?: number;
+  radio?: string;
+  auth?: string;
+  signal?: string;
+  relation?: string;
+  ip?: string;
+  rssi?: number;
+}
+
+interface Place {
+  ip?: string;
+  city?: string;
+  region?: string;
+  zip?: string;
+  country?: string;
+  lat?: number;
+  lon?: number;
+  address?: string;
+  local_ipv4s?: string[];
+  isp?: string;
+}
+
+interface LogRow {
+  ts: string;
+  source: "box" | "browser";
+  place: Place;
+  geo?: { lat: number; lon: number; acc?: number } | null;
+  counts?: { wifi?: number; arp?: number; ssdp?: number; ble?: number };
+  emissions?: Emission[];
+}
+
+const LOG_KEY = "asherinx.eng.area-log";
+const BOX = "http://127.0.0.1:8768";
+
 const ACTIONS: { id: Action; label: string; hint: string; pro?: boolean }[] = [
   { id: "query", label: "query", hint: "ask the public indexes" },
   { id: "classify", label: "classify", hint: "which pack this lands in" },
@@ -59,11 +93,24 @@ const ACTIONS: { id: Action; label: string; hint: string; pro?: boolean }[] = [
 ];
 
 const SITE_LABEL: Record<string, string> = {
-  wayback: "wayback machine", wikipedia: "wikipedia", ddg_instant: "duckduckgo",
-  hn: "hacker news", github: "github", nvd: "nvd", cisa_kev: "cisa kev",
-  openalex: "openalex", arxiv: "arxiv", crossref: "crossref", gdelt: "gdelt",
-  urlscan: "urlscan", wikidata: "wikidata", courtlistener: "courtlistener",
-  sec_efts: "sec edgar", pypi: "pypi", npm: "npm", pubmed: "pubmed",
+  wayback: "wayback machine",
+  wikipedia: "wikipedia",
+  ddg_instant: "duckduckgo",
+  hn: "hacker news",
+  github: "github",
+  nvd: "nvd",
+  cisa_kev: "cisa kev",
+  openalex: "openalex",
+  arxiv: "arxiv",
+  crossref: "crossref",
+  gdelt: "gdelt",
+  urlscan: "urlscan",
+  wikidata: "wikidata",
+  courtlistener: "courtlistener",
+  sec_efts: "sec edgar",
+  pypi: "pypi",
+  npm: "npm",
+  pubmed: "pubmed",
 };
 
 const PLACEHOLDER: Record<Action, string> = {
@@ -75,6 +122,44 @@ const PLACEHOLDER: Record<Action, string> = {
   identifier: "an email, handle, phone or domain",
   buffer: "press run to list your shelf",
 };
+
+function loadLog(): LogRow[] {
+  try {
+    const raw = localStorage.getItem(LOG_KEY);
+    const rows = raw ? JSON.parse(raw) : [];
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLog(rows: LogRow[]) {
+  try {
+    localStorage.setItem(LOG_KEY, JSON.stringify(rows.slice(0, 400)));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function ipPlace(): Promise<Place> {
+  const r = await fetch("https://ip-api.com/json/?fields=status,query,city,regionName,country,zip,lat,lon,isp");
+  const d = await r.json();
+  const city = d.city || "";
+  const region = d.regionName || "";
+  const zip = d.zip || "";
+  const country = d.country || "";
+  return {
+    ip: d.query,
+    city,
+    region,
+    zip,
+    country,
+    lat: d.lat,
+    lon: d.lon,
+    isp: d.isp,
+    address: [city, region, zip, country].filter(Boolean).join(", ") || undefined,
+  };
+}
 
 const AsherinxEngView = () => {
   const isV2 = useIsV2();
@@ -90,9 +175,86 @@ const AsherinxEngView = () => {
   const [openSites, setOpenSites] = useState<Record<string, boolean>>({});
   const abortRef = useRef<AbortController | null>(null);
 
+  const [rows, setRows] = useState<LogRow[]>([]);
+  const [logging, setLogging] = useState("starting");
+  const [boxLive, setBoxLive] = useState(false);
+  const geoRef = useRef<{ lat: number; lon: number; acc?: number } | null>(null);
+
   useEffect(() => {
     inputRef.current?.focus();
     return () => abortRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    setRows(loadLog());
+    let stop = false;
+    let watch = 0;
+    if (navigator.geolocation) {
+      watch = navigator.geolocation.watchPosition(
+        (p) => {
+          geoRef.current = {
+            lat: p.coords.latitude,
+            lon: p.coords.longitude,
+            acc: p.coords.accuracy,
+          };
+        },
+        () => {
+          /* GNSS denied — IP city still logs */
+        },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 },
+      );
+    }
+
+    const pulse = async () => {
+      if (stop) return;
+      let place: Place = {};
+      try {
+        place = await ipPlace();
+      } catch {
+        place = {};
+      }
+      let companion: { ok?: boolean; rows?: Array<Record<string, unknown>> } | null = null;
+      try {
+        const r = await fetch(`${BOX}/log?n=12`, { mode: "cors" });
+        if (r.ok) companion = await r.json();
+      } catch {
+        companion = null;
+      }
+      const boxOn = !!(companion && companion.ok !== false && Array.isArray(companion.rows));
+      setBoxLive(boxOn);
+      setLogging(boxOn ? "box radios + place" : "place/IP on this browser · wifi needs this box");
+      const latest = boxOn ? (companion?.rows?.[0] as Record<string, unknown> | undefined) : undefined;
+      const row: LogRow = {
+        ts: (latest?.ts as string) || new Date().toISOString(),
+        source: boxOn ? "box" : "browser",
+        place: (latest?.place as Place) || place,
+        geo: geoRef.current,
+        counts: (latest?.counts as LogRow["counts"]) || undefined,
+        emissions: (latest?.emissions as Emission[]) || [],
+      };
+      setRows((prev) => {
+        const head = prev[0];
+        if (head && head.ts === row.ts && head.source === row.source) return prev;
+        const next = [row, ...prev].slice(0, 400);
+        saveLog(next);
+        return next;
+      });
+      void emitPull({
+        organ: "ghost",
+        capability: "asherinx.area-log",
+        fromSurface: "asherinx-eng",
+        status: "ok",
+        quote: boxOn ? "area log tick · this box" : "area log tick · browser place",
+      });
+    };
+
+    void pulse();
+    const id = window.setInterval(() => void pulse(), 20000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+      if (watch && navigator.geolocation) navigator.geolocation.clearWatch(watch);
+    };
   }, []);
 
   const run = useCallback(async () => {
@@ -131,8 +293,6 @@ const AsherinxEngView = () => {
         }
       }
 
-      // Connect trace: the room reports what it actually ran, masked to the
-      // verb and the shape of the ask — never the operator's full query body.
       void emitPull({
         organ: "ghost",
         capability: `asherinx.${action}`,
@@ -166,78 +326,118 @@ const AsherinxEngView = () => {
     }
   };
 
-  const siteOrder = useMemo(
-    () => (result ? Object.keys(result.grouped || {}) : []),
-    [result],
-  );
-  const skipped = useMemo(
-    () => (result?.sites ?? []).filter((s) => s.status !== "ok"),
-    [result],
-  );
+  const siteOrder = useMemo(() => (result ? Object.keys(result.grouped || {}) : []), [result]);
+  const skipped = useMemo(() => (result?.sites ?? []).filter((s) => s.status !== "ok"), [result]);
 
-  const firstPaint = !result && !raw && !error && !busy;
+  const nowPlace = rows[0]?.place;
+  const nowGeo = rows[0]?.geo;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
       {!isV2 && (
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-lg font-extralight lowercase tracking-wide text-foreground">asherinx.eng</h1>
-          <p className="mt-1 text-xs font-extralight text-muted-foreground/70">public-index search. no tap.</p>
+          <p className="mt-1 text-xs font-extralight text-muted-foreground/70">
+            area log · public-index search · no tap
+          </p>
         </div>
       )}
 
-      {/* ── the box ─────────────────────────────────────────────────────── */}
-      <div className={firstPaint ? "flex flex-1 flex-col justify-center" : ""}>
-        <div className="rounded-2xl border border-border/20 bg-card/30 p-2">
-          <textarea
-            ref={inputRef}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={onKeyDown}
-            rows={2}
-            placeholder={PLACEHOLDER[action]}
-            className="w-full resize-none bg-transparent px-3 py-2 text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
-          />
-          <div className="flex items-center justify-between gap-2 px-2 pb-1">
-            <p className="truncate text-[11px] font-extralight text-muted-foreground/50">
-              {ACTIONS.find((a) => a.id === action)?.hint}
-            </p>
-            <button
-              onClick={() => void run()}
-              disabled={busy || (action !== "buffer" && !q.trim())}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border/25 bg-card/50 px-3 py-1.5 text-xs font-light text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-40"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
-              run
-            </button>
-          </div>
-        </div>
-
-        {/* verbs — quiet, no tool mall */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {ACTIONS.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setAction(a.id)}
-              title={a.hint}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-extralight lowercase transition-colors ${
-                action === a.id
-                  ? "border-border/40 bg-foreground/10 text-foreground"
-                  : "border-border/15 text-muted-foreground/60 hover:text-foreground"
-              }`}
-            >
-              {a.label}{a.pro ? " ·" : ""}
-            </button>
-          ))}
-        </div>
-        {firstPaint && (
-          <p className="mt-4 text-center text-[11px] font-extralight text-muted-foreground/40">
-            eighteen public indexes, asked in parallel. no wire, no dumps, no tap.
-          </p>
-        )}
+      <div className="mb-4 rounded-2xl border border-border/20 bg-card/30 px-4 py-3">
+        <p className="text-[11px] font-extralight lowercase tracking-wide text-muted-foreground/70">
+          logging · {logging}
+        </p>
+        <p className="mt-1 text-sm font-light text-foreground">{nowPlace?.address || "locating…"}</p>
+        <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/55">
+          {nowPlace?.ip ? `ip ${nowPlace.ip}` : "ip …"}
+          {nowPlace?.local_ipv4s?.length ? ` · lan ${nowPlace.local_ipv4s.join(", ")}` : ""}
+          {nowGeo ? ` · gnss ${nowGeo.lat.toFixed(5)}, ${nowGeo.lon.toFixed(5)}` : ""}
+          {boxLive ? " · this box radios" : " · wifi from this box when the logger is up"}
+        </p>
       </div>
 
-      {/* ── answer ──────────────────────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-auto pb-4">
+        {rows.length === 0 && (
+          <p className="py-8 text-center text-[11px] font-extralight text-muted-foreground/40">
+            writing the first area row…
+          </p>
+        )}
+        {rows.map((row, i) => (
+          <article key={`${row.ts}-${i}`} className="mb-3 rounded-xl border border-border/15 bg-card/20 px-4 py-3">
+            <p className="text-[11px] font-extralight text-muted-foreground/50">
+              {row.ts} · {row.source}
+            </p>
+            <p className="mt-1 text-xs font-light text-foreground">{row.place?.address || "place unsure"}</p>
+            <p className="text-[11px] font-extralight text-muted-foreground/55">
+              {row.place?.ip ? `ip ${row.place.ip}` : ""}
+              {row.counts
+                ? ` · wifi ${row.counts.wifi ?? 0} · arp ${row.counts.arp ?? 0} · ssdp ${row.counts.ssdp ?? 0} · ble ${row.counts.ble ?? 0}`
+                : " · browser place only"}
+            </p>
+            {!!row.emissions?.length && (
+              <ul className="mt-2 space-y-1">
+                {row.emissions.slice(0, 24).map((e, j) => (
+                  <li key={j} className="text-[11px] font-extralight text-muted-foreground/70">
+                    <span className="text-muted-foreground/40">{e.kind}</span>
+                    {" · "}
+                    {e.label || e.ssid || e.ip || "seen"}
+                    {e.channel ? ` · ch ${e.channel}` : ""}
+                    {e.freq_mhz ? ` · ${Math.round(e.freq_mhz)} MHz` : ""}
+                    {e.band ? ` · ${e.band}` : ""}
+                    {e.auth ? ` · ${e.auth}` : ""}
+                    {e.signal ? ` · ${e.signal}` : ""}
+                    {e.relation === "seen_not_connected" ? " · seen, not joined" : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-border/20 bg-card/30 p-2">
+        <textarea
+          ref={inputRef}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={onKeyDown}
+          rows={2}
+          placeholder={PLACEHOLDER[action]}
+          className="w-full resize-none bg-transparent px-3 py-2 text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+        />
+        <div className="flex items-center justify-between gap-2 px-2 pb-1">
+          <p className="truncate text-[11px] font-extralight text-muted-foreground/50">
+            {ACTIONS.find((a) => a.id === action)?.hint}
+          </p>
+          <button
+            onClick={() => void run()}
+            disabled={busy || (action !== "buffer" && !q.trim())}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border/25 bg-card/50 px-3 py-1.5 text-xs font-light text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-40"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            run
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {ACTIONS.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => setAction(a.id)}
+            title={a.hint}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-extralight lowercase transition-colors ${
+              action === a.id
+                ? "border-border/40 bg-foreground/10 text-foreground"
+                : "border-border/15 text-muted-foreground/60 hover:text-foreground"
+            }`}
+          >
+            {a.label}
+            {a.pro ? " ·" : ""}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <p className="mt-6 rounded-xl border border-border/20 bg-card/20 px-4 py-3 text-xs font-extralight text-muted-foreground">
           {error}
@@ -247,8 +447,8 @@ const AsherinxEngView = () => {
       {result && (
         <div className="mt-6 min-h-0 flex-1 overflow-auto pb-8">
           <p className="mb-3 text-[11px] font-extralight text-muted-foreground/50">
-            {result.classification?.domain} pack · {result.hits.length} results from{" "}
-            {siteOrder.length} of {result.sites.length} indexes · {Math.round(result.took_ms / 100) / 10}s
+            {result.classification?.domain} pack · {result.hits.length} results from {siteOrder.length} of{" "}
+            {result.sites.length} indexes · {Math.round(result.took_ms / 100) / 10}s
             {result.depth === "basic" ? " · basic depth" : ""}
           </p>
 
@@ -261,7 +461,9 @@ const AsherinxEngView = () => {
                   onClick={() => setOpenSites((s) => ({ ...s, [site]: !open }))}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left"
                 >
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground/50 transition-transform ${open ? "" : "-rotate-90"}`} />
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 text-muted-foreground/50 transition-transform ${open ? "" : "-rotate-90"}`}
+                  />
                   <span className="text-xs font-light lowercase text-foreground">{SITE_LABEL[site] ?? site}</span>
                   <span className="text-[11px] font-extralight text-muted-foreground/40">{hits.length}</span>
                 </button>
@@ -279,12 +481,17 @@ const AsherinxEngView = () => {
                           <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground/40" />
                         </a>
                         {h.snippet && (
-                          <p className="mt-0.5 text-[11px] font-extralight leading-relaxed text-muted-foreground/60">{h.snippet}</p>
+                          <p className="mt-0.5 text-[11px] font-extralight leading-relaxed text-muted-foreground/60">
+                            {h.snippet}
+                          </p>
                         )}
                         {!!h.genesis?.length && (
                           <p className="mt-1 flex flex-wrap gap-1">
                             {h.genesis.map((g) => (
-                              <span key={g} className="rounded border border-border/15 px-1.5 py-0.5 text-[10px] font-extralight text-muted-foreground/50">
+                              <span
+                                key={g}
+                                className="rounded border border-border/15 px-1.5 py-0.5 text-[10px] font-extralight text-muted-foreground/50"
+                              >
                                 {g}
                               </span>
                             ))}
