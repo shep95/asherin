@@ -1,26 +1,29 @@
 # asherin
 
-> asherin is a subscription AI workspace. two tiers: asherin at $18/month, and asherin pro at $79/month. monthly, in USD, no free trial. a team workspace is billed separately. enterprise pricing is on request.
+> asherin is a subscription research workspace. speaker: asherin. two seats: asherin at $18/month, asherin pro at $79/month. monthly, USD, no free trial. a team workspace is billed separately. enterprise on request.
 
-what you get on a seat: chat, a library of saved material, projects, memory, guardian vault (encrypted storage), whiteboard, maps, connect, and a team workspace on pro. you can bring your own model key — gemini, openai, claude, mistral, xai, groq, deepseek, openrouter, venice — and pay that vendor directly, with no markup from us.
+what a signed-in seat can open today: chat (the mouth), asherinx.eng (public-index search — not a wiretap), asherin.maps (satellite globe, public-agency cameras, public-index property file), asherin.defender (owned-device defence), asherin.arvision (camera intelligence HUD on this device), library, projects, memory, guardian vault, whiteboard, connect, team (pro).
+
+you can bring your own model key — gemini, openai, claude, mistral, xai grok, groq, deepseek, openrouter, venice — and pay that vendor directly.
 
 ## honest limits
 
-- asherin reads live sources and cites them. it does not always find one, and when it does not, it says so.
-- forecasts are probabilistic, with a stated verification plan. they are not predictions of record.
+- asherin reads live public sources and cites them. when it does not find one, it says so.
+- asherinx.eng can watch a public leak index for an email, phone, or handle you type. it does not intercept login IPs, SMS, DMs, or private mail.
+- asherin.maps uses public agency stills and public registers. it does not hijack doorbell or flock cameras, and satellite tiles are near-daily mosaics, not live seconds.
+- forecasts are probabilistic. they are not predictions of record.
 - nothing here is legal, medical or financial advice.
-- some modules are research surfaces, not sold products. those are labelled as such on the page.
 
 ## pages
 
-- [Home](/): what asherin is.
-- [Pricing](/pricing): $18/month and $79/month, cancel in one click.
-- [Software](/software): the tools on a seat.
+- [Home](/): asherin — look a little closer.
+- [Pricing](/pricing): $18/month and $79/month.
+- [Software](/software): the rooms on a seat.
 - [Founder](/founder): asher newton.
-- [Blog](/blog): write-ups on how the parts work.
-- [Glossary](/glossary): definitions of the terms used here.
-- [Sources](/sources): what we cite, and when it was last checked.
-- [Updates](/updates): what shipped.
+- [Blog](/blog)
+- [Glossary](/glossary)
+- [Sources](/sources)
+- [Updates](/updates)
 - [Privacy](/privacy)
 - [Terms](/terms)
 - [Security policy](/security-policy)
