@@ -104,13 +104,28 @@ const AsherinArVisionView = () => {
       }
       setOn(true);
       rafRef.current = requestAnimationFrame(loop);
-      void emitPull({ organ: "arvision", capability: "camera-open", fromSurface: "asherin-arvision", status: "ok", quote: facing });
+      void emitPull({
+        organ: "arvision",
+        capability: "camera-open",
+        fromSurface: "asherin-arvision",
+        status: "ok",
+        quote: facing,
+      });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "camera refused");
-      void emitPull({ organ: "arvision", capability: "camera-open", fromSurface: "asherin-arvision", status: "fail", quote: "camera refused" });
+      void emitPull({
+        organ: "arvision",
+        capability: "camera-open",
+        fromSurface: "asherin-arvision",
+        status: "fail",
+        quote: "camera refused",
+      });
     }
   }, [facing, loop]);
 
+  useEffect(() => {
+    void start();
+  }, []);
   useEffect(() => stop, [stop]);
 
   const flip = useCallback(async () => {
@@ -118,7 +133,9 @@ const AsherinArVisionView = () => {
     stop();
     setFacing(next);
     // start() reads `facing` from the next render, so the restart is deferred.
-    window.setTimeout(() => { void start(); }, 0);
+    window.setTimeout(() => {
+      void start();
+    }, 0);
   }, [facing, start, stop]);
 
   const freeze = useCallback(async () => {
@@ -133,13 +150,19 @@ const AsherinArVisionView = () => {
     setFrozen(c.toDataURL("image/jpeg", 0.9));
 
     const found: string[] = [];
-    const Detector = (window as unknown as { BarcodeDetector?: new (o?: unknown) => { detect(s: CanvasImageSource): Promise<Array<{ rawValue: string }>> } }).BarcodeDetector;
+    const Detector = (
+      window as unknown as {
+        BarcodeDetector?: new (o?: unknown) => { detect(s: CanvasImageSource): Promise<Array<{ rawValue: string }>> };
+      }
+    ).BarcodeDetector;
     if (Detector) {
       try {
         const det = new Detector();
         const hits = await det.detect(c);
         for (const h of hits) found.push(h.rawValue);
-      } catch { /* a refused detector is a gap, never a fabricated read */ }
+      } catch {
+        /* a refused detector is a gap, never a fabricated read */
+      }
     }
     setCodes(found);
     void emitPull({
@@ -157,7 +180,13 @@ const AsherinArVisionView = () => {
     a.href = frozen;
     a.download = `asherin-arvision-packet-${Date.now()}.jpg`;
     a.click();
-    void emitPull({ organ: "arvision", capability: "packet-save", fromSurface: "asherin-arvision", status: "ok", quote: "A–E visual intel packet" });
+    void emitPull({
+      organ: "arvision",
+      capability: "packet-save",
+      fromSurface: "asherin-arvision",
+      status: "ok",
+      quote: "A–E visual intel packet",
+    });
   }, [frozen, proActions]);
 
   const votes = (intel.edges > 0.08 ? 1 : 0) + (codes.length ? 1 : 0) + (intel.contrast > 0.5 ? 1 : 0);
@@ -178,7 +207,8 @@ const AsherinArVisionView = () => {
       {!on && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
           <p className="max-w-sm text-sm font-extralight leading-relaxed text-muted-foreground">
-            live camera, mirrored so you see yourself first. nothing is uploaded — frames stay in this tab unless you save a packet.
+            live camera, mirrored so you see yourself first. nothing is uploaded — frames stay in this tab unless you
+            save a packet.
           </p>
           <button
             onClick={() => void start()}
@@ -233,16 +263,29 @@ const AsherinArVisionView = () => {
       <div className="absolute bottom-0 left-0 right-0 flex flex-wrap items-center justify-center gap-2 p-3 sm:p-4">
         {on && (
           <>
-            <button onClick={() => void freeze()} className="flex min-h-[44px] items-center gap-2 rounded-full border border-foreground/15 bg-background/70 px-4 text-[12px] font-light text-foreground/85 backdrop-blur-md">
+            <button
+              onClick={() => void freeze()}
+              className="flex min-h-[44px] items-center gap-2 rounded-full border border-foreground/15 bg-background/70 px-4 text-[12px] font-light text-foreground/85 backdrop-blur-md"
+            >
               <Snowflake className="h-4 w-4" /> freeze
             </button>
-            <button onClick={() => void flip()} className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full border border-foreground/15 bg-background/70 px-4 text-[12px] font-light text-foreground/85 backdrop-blur-md">
+            <button
+              onClick={() => void flip()}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full border border-foreground/15 bg-background/70 px-4 text-[12px] font-light text-foreground/85 backdrop-blur-md"
+            >
               <RefreshCw className="h-4 w-4" /> flip
             </button>
-            <button onClick={() => setGrid((g) => !g)} aria-pressed={grid} className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-foreground/15 bg-background/70 px-4 text-foreground/70 backdrop-blur-md">
+            <button
+              onClick={() => setGrid((g) => !g)}
+              aria-pressed={grid}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-foreground/15 bg-background/70 px-4 text-foreground/70 backdrop-blur-md"
+            >
               <Grid3x3 className="h-4 w-4" />
             </button>
-            <button onClick={stop} className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-foreground/15 bg-background/70 px-4 text-foreground/70 backdrop-blur-md">
+            <button
+              onClick={stop}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-foreground/15 bg-background/70 px-4 text-foreground/70 backdrop-blur-md"
+            >
               <CameraOff className="h-4 w-4" />
             </button>
           </>
@@ -253,7 +296,11 @@ const AsherinArVisionView = () => {
       {frozen && (
         <div className="absolute inset-x-2 bottom-20 mx-auto max-w-md rounded-2xl border border-foreground/12 bg-background/85 p-4 backdrop-blur-xl sm:inset-x-4">
           <div className="flex items-start gap-3">
-            <img src={frozen} alt="frozen frame held locally in this tab" className="h-16 w-24 shrink-0 rounded-lg object-cover" />
+            <img
+              src={frozen}
+              alt="frozen frame held locally in this tab"
+              className="h-16 w-24 shrink-0 rounded-lg object-cover"
+            />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-extralight text-muted-foreground">
                 {codes.length ? `— read: ${codes.join(" · ")}` : "— no barcode or qr in this frame"}
@@ -281,13 +328,16 @@ const AsherinArVisionView = () => {
         </div>
       )}
 
-      {/* HONESTY LEDGER */}
-      {!on && (
-        <div className="absolute bottom-3 left-0 right-0 px-4">
-          <p className="mx-auto max-w-2xl text-center text-[10px] font-extralight leading-relaxed text-muted-foreground/55">
+      {/* limits — collapsed, only after the feed is live. never first paint. */}
+      {on && (
+        <details className="absolute bottom-16 left-3 right-3 mx-auto max-w-sm rounded-full border border-foreground/12 bg-background/70 px-3 py-1 text-center backdrop-blur-md sm:left-auto sm:right-4 sm:mx-0">
+          <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/50">
+            limits
+          </summary>
+          <p className="mt-1 pb-1 text-[10px] font-extralight leading-relaxed text-muted-foreground/70">
             cannot resolve: {CANNOT_RESOLVE.join(" · ")}.
           </p>
-        </div>
+        </details>
       )}
     </div>
   );
