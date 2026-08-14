@@ -24,12 +24,7 @@ import {
   type Signal,
   type SignalLevel,
 } from "@/lib/defender/signals";
-import {
-  readCameraState,
-  setCovertEnforcement,
-  watchCamera,
-  type CameraState,
-} from "@/lib/defender/covertCamera";
+import { readCameraState, setCovertEnforcement, watchCamera, type CameraState } from "@/lib/defender/covertCamera";
 
 const LEVEL_DOT: Record<SignalLevel, string> = {
   ok: "bg-emerald-400/70",
@@ -59,7 +54,9 @@ const AsherinDefenderView = () => {
   const [camera, setCamera] = useState<CameraState>(() => readCameraState());
   const [bunker, setBunker] = useState(false);
   const [dryRun, setDryRun] = useState(true);
-  const companion = useMemo(hasCompanion, []);
+  const [showConnect, setShowConnect] = useState(false);
+  const [companionTick, setCompanionTick] = useState(0);
+  const companion = useMemo(hasCompanion, [companionTick]);
 
   const scan = useCallback(async () => {
     setScanning(true);
@@ -76,14 +73,32 @@ const AsherinDefenderView = () => {
         quote: `${next.length} signals · ${next.filter((s) => s.level === "alert").length} alert`,
       });
     } catch {
-      void emitPull({ organ: "defender", capability: "device-scan", fromSurface: "asherin-defender", status: "fail", quote: "scan refused" });
+      void emitPull({
+        organ: "defender",
+        capability: "device-scan",
+        fromSurface: "asherin-defender",
+        status: "fail",
+        quote: "scan refused",
+      });
     } finally {
       setScanning(false);
     }
   }, []);
 
-  useEffect(() => { void scan(); }, [scan]);
+  useEffect(() => {
+    void scan();
+  }, [scan]);
   useEffect(() => watchCamera(setCamera), []);
+
+  const connectCompanion = useCallback(() => {
+    if (hasCompanion()) {
+      setCompanionTick((n) => n + 1);
+      setShowConnect(false);
+      void scan();
+      return;
+    }
+    setShowConnect(true);
+  }, [scan]);
 
   const toggleBunker = useCallback(() => {
     const next = !bunker;
@@ -94,16 +109,17 @@ const AsherinDefenderView = () => {
       capability: next ? "bunker-on" : "bunker-off",
       fromSurface: "asherin-defender",
       status: proActions ? "ok" : "skip",
-      quote: next
-        ? `${dryRun ? "dry-run" : "apply"} · freeze ${BUNKER_TARGETS.length} classes`
-        : "restore",
+      quote: next ? `${dryRun ? "dry-run" : "apply"} · freeze ${BUNKER_TARGETS.length} classes` : "restore",
     });
   }, [bunker, dryRun, proActions]);
 
   const alerts = signals.filter((s) => s.level === "alert").length;
 
   const chip = (label: string, tone: SignalLevel, text: string) => (
-    <div key={label} className="flex items-center gap-2 rounded-full border border-foreground/12 bg-foreground/[0.03] px-3 py-1.5">
+    <div
+      key={label}
+      className="flex items-center gap-2 rounded-full border border-foreground/12 bg-foreground/[0.03] px-3 py-1.5"
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${LEVEL_DOT[tone]}`} />
       <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/55">{label}</span>
       <span className="text-[11px] font-extralight text-muted-foreground">{text}</span>
@@ -111,12 +127,17 @@ const AsherinDefenderView = () => {
   );
 
   const cameraTone: SignalLevel =
-    camera.verdict === "covert-blocked" ? "alert" : camera.verdict === "previewed" ? "ok" : camera.verdict === "idle" ? "ok" : "unsure";
+    camera.verdict === "covert-blocked"
+      ? "alert"
+      : camera.verdict === "previewed"
+        ? "ok"
+        : camera.verdict === "idle"
+          ? "ok"
+          : "unsure";
 
   return (
     <div className="h-full w-full overflow-y-auto">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
-
         {/* BUNKER — the one control a person came here to press. */}
         <section className="rounded-3xl border border-foreground/12 bg-foreground/[0.03] p-5 sm:p-7">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -126,7 +147,8 @@ const AsherinDefenderView = () => {
                 {bunker ? "outbound is frozen." : "outbound is open."}
               </h2>
               <p className="mt-1 text-sm font-extralight leading-relaxed text-muted-foreground">
-                freeze {BUNKER_TARGETS.join(", ")}. {BUNKER_NEVER.join(" and ")} are never frozen. off restores everything.
+                freeze {BUNKER_TARGETS.join(", ")}. {BUNKER_NEVER.join(" and ")} are never frozen. off restores
+                everything.
               </p>
             </div>
             <button
@@ -152,11 +174,19 @@ const AsherinDefenderView = () => {
             >
               {dryRun ? "dry-run — nothing is applied" : "apply — explicit, this device only"}
             </button>
-            <span className="text-[11px] font-extralight text-muted-foreground/70">
-              {companion
-                ? "companion present on this device."
-                : "browser only — status is live, the freeze itself needs the companion on your own device."}
-            </span>
+            {companion ? (
+              <span className="text-[11px] font-extralight text-muted-foreground/70">
+                companion present on this device.
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={connectCompanion}
+                className="min-h-[36px] rounded-full border border-foreground/20 px-3 text-[11px] font-extralight text-foreground/80 hover:bg-foreground/[0.06]"
+              >
+                connect companion
+              </button>
+            )}
             {!proActions && (
               <span className="rounded-full border border-foreground/12 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-foreground/45">
                 apply is on pro
@@ -169,10 +199,60 @@ const AsherinDefenderView = () => {
         <div className="mt-5 flex flex-wrap gap-2">
           {chip("camera", cameraTone, camera.verdict === "covert-blocked" ? "covert · blocked" : camera.verdict)}
           {chip("wifi", "unsure", typeof navigator !== "undefined" && navigator.onLine ? "linked" : "offline")}
-          {chip("bluetooth", signals.find((s) => s.id === "ble-adapter")?.level ?? "unsure", signals.find((s) => s.id === "ble-adapter")?.observed.slice(0, 28) ?? "reading")}
+          {chip(
+            "bluetooth",
+            signals.find((s) => s.id === "ble-adapter")?.level ?? "unsure",
+            signals.find((s) => s.id === "ble-adapter")?.observed.slice(0, 28) ?? "reading",
+          )}
           {chip("spy", alerts ? "alert" : "ok", alerts ? `${alerts} to read` : "nothing matched")}
-          {chip("poison", "unsure", companion ? "companion ready" : "companion needed")}
+          {companion ? (
+            chip("poison", "ok", "companion ready")
+          ) : (
+            <button
+              type="button"
+              onClick={connectCompanion}
+              className="flex min-h-[36px] items-center gap-2 rounded-full border border-foreground/12 bg-foreground/[0.03] px-3 py-1.5 text-left"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-foreground/25" />
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/55">poison</span>
+              <span className="text-[11px] font-extralight text-muted-foreground">connect companion</span>
+            </button>
+          )}
         </div>
+
+        {showConnect && !companion && (
+          <section className="mt-5 rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ connect companion</p>
+            <p className="mt-2 text-sm font-extralight text-foreground/85">
+              this tab can read live status. apply, freeze, and full hardware scan run on the native companion on this
+              same device.
+            </p>
+            <ol className="mt-3 list-decimal space-y-1 pl-5 text-[11px] font-extralight text-muted-foreground/80">
+              <li>export this project and pull it locally</li>
+              <li>npm install</li>
+              <li>npx cap add android or ios</li>
+              <li>npm run build then npx cap sync</li>
+              <li>npx cap run android or ios</li>
+              <li>open this room inside the companion app, then retry</li>
+            </ol>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={connectCompanion}
+                className="min-h-[36px] rounded-full border border-foreground/20 px-3 text-[11px] font-extralight"
+              >
+                retry — companion is open
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConnect(false)}
+                className="min-h-[36px] rounded-full border border-foreground/12 px-3 text-[11px] font-extralight text-muted-foreground"
+              >
+                hide
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* COVERT CAMERA */}
         <section className="mt-5 rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-5">
@@ -189,7 +269,9 @@ const AsherinDefenderView = () => {
           </div>
           <ul className="mt-3 space-y-1">
             {camera.uncovered.map((u) => (
-              <li key={u} className="text-[11px] font-extralight text-muted-foreground/70">— not covered: {u}</li>
+              <li key={u} className="text-[11px] font-extralight text-muted-foreground/70">
+                — not covered: {u}
+              </li>
             ))}
           </ul>
         </section>
@@ -221,13 +303,24 @@ const AsherinDefenderView = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-extralight text-foreground/85">
                             {s.label} — {s.observed}
-                            {s.level === "unsure" && <span className="text-muted-foreground/60"> · this is unsure</span>}
+                            {s.level === "unsure" && (
+                              <span className="text-muted-foreground/60"> · this is unsure</span>
+                            )}
                           </p>
-                          {s.action && (
-                            <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/70">
-                              — companion: {s.action}
-                            </p>
-                          )}
+                          {s.action &&
+                            (companion ? (
+                              <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/70">
+                                — {s.action}
+                              </p>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={connectCompanion}
+                                className="mt-0.5 text-left text-[11px] font-extralight text-foreground/70 underline-offset-2 hover:underline"
+                              >
+                                — connect companion to run: {s.action}
+                              </button>
+                            ))}
                         </div>
                       </li>
                     ))}
@@ -240,14 +333,19 @@ const AsherinDefenderView = () => {
 
         {/* RESIDUAL HONESTY */}
         <section className="mt-5 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ not covered by anything here</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">
+            ◈ not covered by anything here
+          </p>
           <ul className="mt-2 space-y-1">
             {RESIDUAL_BLIND_SPOTS.map((b) => (
-              <li key={b} className="text-[11px] font-extralight text-muted-foreground/70">— {b}</li>
+              <li key={b} className="text-[11px] font-extralight text-muted-foreground/70">
+                — {b}
+              </li>
             ))}
           </ul>
           <p className="mt-3 text-[11px] font-extralight text-muted-foreground/60">
-            counter-measures run locally on your own device and default to dry-run. nothing here reaches another person's machine.
+            counter-measures run locally on your own device and default to dry-run. nothing here reaches another
+            person's machine.
           </p>
         </section>
       </div>
