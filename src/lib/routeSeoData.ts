@@ -29,8 +29,9 @@ export type SeoEntry = {
 
 export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
-    title: "asherin",
-    description: "look a little closer. sourced, and honest about what it does not know.",
+    title: "asherin — look a little closer.",
+    description:
+      "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision. $18/mo, $79/mo pro. honest about what it does not know.",
   },
 
   // --- Product / company ---
@@ -40,9 +41,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
       "asherin is $18/mo. asherin pro is $79/mo. monthly, in USD, cancel in one click. enterprise on request.",
   },
   "/software": {
-    title: "Software | asherin",
+    title: "software | asherin",
     description:
-      "the tools inside asherin: chat, library, projects, memory, guardian vault, whiteboard, maps, connect, team.",
+      "the rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
   },
   "/founder": {
     title: "Founder | asherin",
@@ -294,7 +295,8 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   },
   "/feature/zerlal": {
     title: "ZERLAL | asherin",
-    description: "zerlal reads a target for weaknesses and reports the exploit path, with its confidence.",
+    description:
+      "zerlal reads dns, tls, headers and subdomains, then matches disclosed versions against public advisory indexes. it does not authenticate or exploit.",
   },
   "/feature/axrlen": {
     title: "AXRLEN | asherin",
