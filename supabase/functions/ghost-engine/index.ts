@@ -30,22 +30,27 @@ import { extractGhostRecord, isPublicHttpUrl, pool, type GhostRecord } from "../
 import { buildIndex } from "../_shared/ghostIndex.ts";
 import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
 import {
-  deriveFields, selectContent, ttlToExpiry, SelectorError,
-  BUFFER_DEFAULT_TTL_MIN, type BufferRow, type Selector,
+  deriveFields,
+  selectContent,
+  ttlToExpiry,
+  SelectorError,
+  BUFFER_DEFAULT_TTL_MIN,
+  type BufferRow,
+  type Selector,
 } from "../_shared/ghostBuffer.ts";
 import { isLedgerChannel, runGhostLedger, type LedgerChannel } from "../_shared/ghostLedger.ts";
 import { traceOrigin, traceUpload, type UploadedArtifact } from "../_shared/ghostOrigin.ts";
 import {
-  assessArtifact, recordArtifact, decodeBase64, filenameKey,
-  MAX_ARTIFACT_BYTES, type LedgerWrite,
+  assessArtifact,
+  recordArtifact,
+  decodeBase64,
+  filenameKey,
+  MAX_ARTIFACT_BYTES,
+  type LedgerWrite,
 } from "../_shared/artifactLedger.ts";
 import { deepTimeSweep } from "../_shared/ghostTimeMachine.ts";
 import { sweepIdentifier } from "../_shared/identifierSweep.ts";
-import {
-  classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity,
-} from "../_shared/ghostHarvest.ts";
-
-
+import { classifySelector, harvestLeads, type HarvestLead, type SelectorIdentity } from "../_shared/ghostHarvest.ts";
 
 // The probe budget and the harvest aperture are two different numbers. The
 // harvest is wide — it collects every URL the fan-out surfaces. The probe is
@@ -58,11 +63,23 @@ const HARVEST_CAP = 400;
 const BUCKET = "ghost-buffer";
 
 type Action =
-  | "search" | "searchBuffer" | "sweep" | "buffer" | "content" | "payload"
-  | "purge" | "ledger" | "history" | "historyDetail" | "forget" | "origin"
-  | "upload" | "timeline" | "identifier" | "artifact" | "artifactHistory";
-
-
+  | "search"
+  | "searchBuffer"
+  | "sweep"
+  | "buffer"
+  | "content"
+  | "payload"
+  | "purge"
+  | "ledger"
+  | "history"
+  | "historyDetail"
+  | "forget"
+  | "origin"
+  | "upload"
+  | "timeline"
+  | "identifier"
+  | "artifact"
+  | "artifactHistory";
 
 interface GhostRequest {
   action?: Action;
@@ -109,8 +126,6 @@ interface GhostRequest {
   chain?: boolean;
 }
 
-
-
 /** A bare URL (with or without scheme) is a direct probe, not a sweep. */
 function asUrl(raw: string): string | null {
   const s = raw.trim();
@@ -120,7 +135,9 @@ function asUrl(raw: string): string | null {
     const u = new URL(candidate);
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(u.hostname)) return null;
     return isPublicHttpUrl(u.toString());
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -162,7 +179,6 @@ async function discoverWide(
   }
 }
 
-
 /** Service-role client — the buffer is written on the operator's behalf. */
 function serviceClient(): SupabaseClient | null {
   const url = Deno.env.get("SUPABASE_URL") ?? "";
@@ -176,21 +192,23 @@ async function callerUserId(req: Request): Promise<string | null> {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token) return null;
   try {
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { auth: { persistSession: false } },
-    );
+    const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+      auth: { persistSession: false },
+    });
     const { data } = await sb.auth.getUser(token);
     return data?.user?.id ?? null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** Live rows only — an expired session is not in the buffer, whatever the row says. */
 async function liveRows(sb: SupabaseClient, userId: string, limit = 400): Promise<BufferRow[]> {
   const { data, error } = await sb
     .from("ghost_sessions")
-    .select("session_id,url,host,source_type,status,content_text,content_bytes,content_sha256,storage_path,truncated,language_tag,entropy,is_encrypted,emails,phones,ipv4s,filenames,urls,captured_at,expires_at")
+    .select(
+      "session_id,url,host,source_type,status,content_text,content_bytes,content_sha256,storage_path,truncated,language_tag,entropy,is_encrypted,emails,phones,ipv4s,filenames,urls,captured_at,expires_at",
+    )
     .eq("user_id", userId)
     .gt("expires_at", new Date().toISOString())
     .order("captured_at", { ascending: false })
@@ -263,7 +281,11 @@ interface SearchResult {
 
 function leadResult(l: HarvestLead): SearchResult {
   let host = "";
-  try { host = new URL(l.url).hostname.replace(/^www\./, ""); } catch { /* noop */ }
+  try {
+    host = new URL(l.url).hostname.replace(/^www\./, "");
+  } catch {
+    /* noop */
+  }
   const badges = [
     "unprobed",
     l.engine || "",
@@ -285,7 +307,6 @@ function leadResult(l: HarvestLead): SearchResult {
   };
 }
 
-
 /**
  * Fold a retained body into the flat result shape.
  *
@@ -299,8 +320,13 @@ function leadResult(l: HarvestLead): SearchResult {
  * the only thing that deserves a pin.
  */
 function bufferResult(h: {
-  session_id: string; url: string; host: string; source_type: string;
-  is_encrypted: boolean; content_bytes: number; matches: number;
+  session_id: string;
+  url: string;
+  host: string;
+  source_type: string;
+  is_encrypted: boolean;
+  content_bytes: number;
+  matches: number;
   snippets: { text: string }[];
 }): SearchResult {
   const kb = Math.max(1, Math.round(h.content_bytes / 1024));
@@ -326,8 +352,7 @@ function bufferResult(h: {
       `${kb} KB`,
     ].filter(Boolean),
     score,
-    rank_basis:
-      `retained body · ${h.matches} match${h.matches === 1 ? "" : "es"} at ${density.toFixed(1)} per KB-decade`,
+    rank_basis: `retained body · ${h.matches} match${h.matches === 1 ? "" : "es"} at ${density.toFixed(1)} per KB-decade`,
     layers: ["buffer"],
     session_id: h.session_id,
   };
@@ -355,9 +380,9 @@ function webResult(
   lead?: HarvestLead,
 ): SearchResult {
   const weight = anomalies.reduce((n, a) => n + (ANOMALY_WEIGHT[a.severity] ?? 3), 0);
-  const worst = anomalies.slice().sort(
-    (a, b) => (ANOMALY_WEIGHT[b.severity] ?? 0) - (ANOMALY_WEIGHT[a.severity] ?? 0),
-  )[0];
+  const worst = anomalies
+    .slice()
+    .sort((a, b) => (ANOMALY_WEIGHT[b.severity] ?? 0) - (ANOMALY_WEIGHT[a.severity] ?? 0))[0];
 
   const badges = [
     r.status ? String(r.status) : "unreachable",
@@ -380,7 +405,9 @@ function webResult(
     r.created_at ? `created ${r.created_at.slice(0, 16).replace("T", " ")}Z` : null,
     r.modified_at ? `modified ${r.modified_at.slice(0, 16).replace("T", " ")}Z` : null,
     r.device_id ? `device ${r.device_id}` : null,
-    r.redirect_chain.length ? `${r.redirect_chain.length} redirect hop${r.redirect_chain.length === 1 ? "" : "s"}` : null,
+    r.redirect_chain.length
+      ? `${r.redirect_chain.length} redirect hop${r.redirect_chain.length === 1 ? "" : "s"}`
+      : null,
     r.dns.ns.length ? `ns ${r.dns.ns.slice(0, 2).join(", ")}` : null,
   ].filter(Boolean) as string[];
 
@@ -388,9 +415,13 @@ function webResult(
   // two layers are actually comparable.
   const raw =
     (r.status && r.status < 400 ? 14 : 0) +
-    (r.author ? 20 : 0) + (r.device_id ? 17 : 0) + (r.software ? 8 : 0) +
-    (r.geo_lat != null ? 17 : 0) + (r.created_at ? 7 : 0) +
-    weight + Math.min(facts.length, 6) * 2 +
+    (r.author ? 20 : 0) +
+    (r.device_id ? 17 : 0) +
+    (r.software ? 8 : 0) +
+    (r.geo_lat != null ? 17 : 0) +
+    (r.created_at ? 7 : 0) +
+    weight +
+    Math.min(facts.length, 6) * 2 +
     Math.min(lead?.corroboration ?? 0, 8) * 1.5;
   const score = Math.max(4, Math.min(96, Math.round(raw)));
 
@@ -404,10 +435,10 @@ function webResult(
 
   const forensic = facts.join(" · ");
   const context = (lead?.snippet || "").trim();
-  const snippet = context && forensic
-    ? `${context} — ${forensic}`
-    : context || forensic ||
-      "Shell reachable, nothing embedded — the publisher strips metadata on upload.";
+  const snippet =
+    context && forensic
+      ? `${context} — ${forensic}`
+      : context || forensic || "Shell reachable, nothing embedded — the publisher strips metadata on upload.";
 
   return {
     id: `web:${r.entity_id}`,
@@ -419,7 +450,10 @@ function webResult(
     badges,
     score,
     anomalies: anomalies.map((a) => ({
-      code: a.code, severity: a.severity, title: a.title, detail: a.detail,
+      code: a.code,
+      severity: a.severity,
+      title: a.title,
+      detail: a.detail,
     })),
     anomaly_weight: weight,
     rank_basis: basis.length ? basis.join(" · ") : "reachable shell, nothing embedded",
@@ -429,7 +463,6 @@ function webResult(
     corroboration: lead?.corroboration,
   };
 }
-
 
 /** Related searches, derived from the facets the sweep already produced. */
 function suggestFromFacets(facets: { field: string; value: string; count: number }[]): string[] {
@@ -462,7 +495,11 @@ Deno.serve(async (req) => {
   }
 
   let body: GhostRequest;
-  try { body = await req.json(); } catch { return json({ error: "Invalid JSON body" }, 400); }
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
 
   const rawAction: Action = body.action ?? "sweep";
   // `search` is the front-door verb: one box, one Enter. It reuses the sweep
@@ -477,7 +514,13 @@ Deno.serve(async (req) => {
   // Every entry point sweeps the shelf clean of anything past its window. The
   // buffer's finitude is enforced on the request path, not by a cron that may
   // not have run.
-  if (sb) { try { await sb.rpc("ghost_buffer_purge"); } catch { /* best effort */ } }
+  if (sb) {
+    try {
+      await sb.rpc("ghost_buffer_purge");
+    } catch {
+      /* best effort */
+    }
+  }
 
   // ── ORIGIN — provenance of a single artefact ───────────────────────────────
   // The sweep answers "what is on this host". ORIGIN answers "who wrote this
@@ -537,7 +580,10 @@ Deno.serve(async (req) => {
     }
     if (bytes.length === 0) return json({ error: "Empty file — nothing to fingerprint." }, 400);
     if (bytes.length > MAX_ARTIFACT_BYTES) {
-      return json({ error: `File exceeds the ${Math.round(MAX_ARTIFACT_BYTES / 1024 / 1024)} MB analysis ceiling.` }, 413);
+      return json(
+        { error: `File exceeds the ${Math.round(MAX_ARTIFACT_BYTES / 1024 / 1024)} MB analysis ceiling.` },
+        413,
+      );
     }
     const report = await assessArtifact(bytes, String(f.filename || "upload"), String(f.contentType || ""));
     const ledger = await recordArtifact(sb, userId, report, String(body.source || "ghost-engine:artifact"));
@@ -547,17 +593,20 @@ Deno.serve(async (req) => {
   // ── ARTIFACT HISTORY — the ledger as a queryable timeline ──────────────────
   if (action === "artifactHistory") {
     if (!sb || !userId) return json({ error: "Ledger unavailable for this session" }, 503);
-    let q = sb.from("artifact_ledger")
-      .select("id, sha256, sha1, filename, filename_key, size_bytes, kind, format, arch, signed, build_time, posture_score, mitigations, banned_symbols, drift, source, first_seen, last_seen, seen_count")
+    let q = sb
+      .from("artifact_ledger")
+      .select(
+        "id, sha256, sha1, filename, filename_key, size_bytes, kind, format, arch, signed, build_time, posture_score, mitigations, banned_symbols, drift, source, first_seen, last_seen, seen_count",
+      )
       .eq("user_id", userId);
     const nameFilter = String(body.filename || "").trim();
     if (nameFilter) q = q.eq("filename_key", filenameKey(nameFilter));
-    const { data, error } = await q.order("last_seen", { ascending: false })
+    const { data, error } = await q
+      .order("last_seen", { ascending: false })
       .limit(Math.min(Math.max(Number(body.limit) || 100, 1), 300));
     if (error) return json({ error: "Ledger read failed", details: error.message }, 500);
     return json({ action: "artifactHistory", entries: data ?? [], count: (data ?? []).length });
   }
-
 
   // ── TIMELINE — the engine's own reach-back ─────────────────────────────────
   // No outside capture archive is consulted. The engine re-runs its own harvest
@@ -627,19 +676,21 @@ Deno.serve(async (req) => {
         .slice(0, CHAIN_CAP);
       if (docish.length) {
         const traces = await pool(docish, 3, async (s) => {
-          try { return { url: s.url, host: s.host, grade: s.grade, trace: await traceOrigin(s.url) }; }
-          catch { return null; }
+          try {
+            return { url: s.url, host: s.host, grade: s.grade, trace: await traceOrigin(s.url) };
+          } catch {
+            return null;
+          }
         });
         provenance = traces.filter(Boolean) as typeof provenance;
         if (provenance.length) {
           report.notes.push(
             `${provenance.length} document sighting${provenance.length === 1 ? " was" : "s were"} chained ` +
-            `into an origin trace automatically — authoring clock, producing software and lineage are attached.`,
+              `into an origin trace automatically — authoring clock, producing software and lineage are attached.`,
           );
         }
       }
     }
-
 
     // A sweep is an entity lookup, so it belongs on the same history rail the
     // intercept writes to — otherwise the record of who was checked is split
@@ -655,14 +706,17 @@ Deno.serve(async (req) => {
           scope: "identifier_sweep",
           leads_found: report.leadsHarvested,
           probed: report.opened,
-          anomalies: report.surfaces.filter(
-            (s) => s.surfaceClass === "breach-index" || s.surfaceClass === "paste",
-          ).length,
+          anomalies: report.surfaces.filter((s) => s.surfaceClass === "breach-index" || s.surfaceClass === "paste")
+            .length,
           elapsed_ms: report.elapsedMs,
           results: {
             surfaces: report.surfaces.slice(0, 30).map((s) => ({
-              host: s.host, class: s.surfaceClass, sightings: s.sightings.length,
-              firstSeen: s.firstSeen, lastSeen: s.lastSeen, bestGrade: s.bestGrade,
+              host: s.host,
+              class: s.surfaceClass,
+              sightings: s.sightings.length,
+              firstSeen: s.firstSeen,
+              lastSeen: s.lastSeen,
+              bestGrade: s.bestGrade,
             })),
           },
           summary: {
@@ -681,7 +735,6 @@ Deno.serve(async (req) => {
 
     return json({ action: "identifier", report, provenance });
   }
-
 
   // ── HISTORY — the second half of the dual sidebar ──────────────────────────
   // INTERCEPT is what the engine is pulling right now. HISTORY is what it has
@@ -704,7 +757,9 @@ Deno.serve(async (req) => {
       if (!key) return json({ error: "entity key is required" }, 400);
       const { data, error } = await sb
         .from("ghost_entity_history")
-        .select("id,entity_key,entity_kind,entity_label,query,scope,leads_found,probed,anomalies,elapsed_ms,results,summary,created_at")
+        .select(
+          "id,entity_key,entity_kind,entity_label,query,scope,leads_found,probed,anomalies,elapsed_ms,results,summary,created_at",
+        )
         .eq("user_id", userId)
         .eq("entity_key", key)
         .order("created_at", { ascending: false })
@@ -720,7 +775,7 @@ Deno.serve(async (req) => {
       // relative to the run immediately before it.
       const runs = (data || []) as Array<Record<string, unknown>>;
       const urlsOf = (run: Record<string, unknown>) => {
-        const rows = Array.isArray(run.results) ? run.results as Array<Record<string, unknown>> : [];
+        const rows = Array.isArray(run.results) ? (run.results as Array<Record<string, unknown>>) : [];
         const m = new Map<string, { title: string; score: number; host: string }>();
         for (const r of rows) {
           const url = typeof r.url === "string" ? r.url.replace(/[#?].*$/, "").replace(/\/+$/, "") : "";
@@ -750,7 +805,8 @@ Deno.serve(async (req) => {
             changed.push({ url, title: cur.title, from: was.score, to: cur.score });
           }
         }
-        const vanished = [...then].filter(([url]) => !now.has(url))
+        const vanished = [...then]
+          .filter(([url]) => !now.has(url))
           .map(([url, was]) => ({ url, title: was.title, host: was.host }));
         return {
           ...run,
@@ -782,11 +838,20 @@ Deno.serve(async (req) => {
 
     // Collapse runs into entities. The rail lists WHO was looked up, not how
     // many times a query string was retyped.
-    const byEntity = new Map<string, {
-      entity_key: string; entity_kind: string; entity_label: string;
-      runs: number; last_seen: string; first_seen: string;
-      total_leads: number; total_anomalies: number; queries: string[];
-    }>();
+    const byEntity = new Map<
+      string,
+      {
+        entity_key: string;
+        entity_kind: string;
+        entity_label: string;
+        runs: number;
+        last_seen: string;
+        first_seen: string;
+        total_leads: number;
+        total_anomalies: number;
+        queries: string[];
+      }
+    >();
     for (const r of data || []) {
       const e = byEntity.get(r.entity_key);
       if (e) {
@@ -816,7 +881,6 @@ Deno.serve(async (req) => {
     });
   }
 
-
   // ── LEDGER — Cloud Intelligence fused into the Ghost Engine ────────────────
   // The operator's own correspondence nominates the targets; Ghost probes the
   // infrastructure named inside it. Read through the caller's own token, so a
@@ -829,8 +893,9 @@ Deno.serve(async (req) => {
       // No channel means every channel. Mail and messages were the only two the
       // fusion ever read, which quietly excluded Drive shares, calendar invites
       // and contact records that live in the very same ledger.
-      channel: (Array.isArray(body.channel) ? body.channel : body.channel ? [body.channel] : [])
-        .filter(isLedgerChannel),
+      channel: (Array.isArray(body.channel) ? body.channel : body.channel ? [body.channel] : []).filter(
+        isLedgerChannel,
+      ),
       focus: body.focus ? String(body.focus).slice(0, 120) : null,
       maxHosts: Number(body.maxHosts) || 14,
       budgetMs: 60_000,
@@ -848,10 +913,11 @@ Deno.serve(async (req) => {
     return json({ action: "ledger", tier: access.reason, ...bundle });
   }
 
-
   // ── Buffer-only search — the shelf without a new sweep ─────────────────────
   if (action === "searchBuffer") {
-    const q = String(body.query ?? "").trim().slice(0, 400);
+    const q = String(body.query ?? "")
+      .trim()
+      .slice(0, 400);
     if (!sb || !userId) return json({ error: "Buffer unavailable for this session" }, 503);
     if (!q) return json({ error: "query is required" }, 400);
     const rows = await liveRows(sb, userId);
@@ -862,8 +928,14 @@ Deno.serve(async (req) => {
       if (!(e instanceof SelectorError)) throw e;
     }
     return json({
-      action: "search", scope: "buffer", query: q, mode: "target",
-      elapsedMs: 0, tier: access.reason, index: null, buffer: null,
+      action: "search",
+      scope: "buffer",
+      query: q,
+      mode: "target",
+      elapsedMs: 0,
+      tier: access.reason,
+      index: null,
+      buffer: null,
       results: hits.map(bufferResult),
       suggestions: [...new Set(hits.map((h) => `host:${h.host}`))].slice(0, 8),
       scanned: rows.length,
@@ -876,8 +948,16 @@ Deno.serve(async (req) => {
 
     if (action === "purge") {
       const { data: rows } = await sb.from("ghost_sessions").select("storage_path").eq("user_id", userId);
-      const paths = (rows || []).map((r: { storage_path: string | null }) => r.storage_path).filter(Boolean) as string[];
-      if (paths.length) { try { await sb.storage.from(BUCKET).remove(paths); } catch { /* object may be gone */ } }
+      const paths = (rows || [])
+        .map((r: { storage_path: string | null }) => r.storage_path)
+        .filter(Boolean) as string[];
+      if (paths.length) {
+        try {
+          await sb.storage.from(BUCKET).remove(paths);
+        } catch {
+          /* object may be gone */
+        }
+      }
       const { error } = await sb.from("ghost_sessions").delete().eq("user_id", userId);
       if (error) return json({ error: "Purge failed", details: error.message }, 500);
       return json({ action, purged: paths.length || (rows || []).length });
@@ -920,7 +1000,9 @@ Deno.serve(async (req) => {
   }
 
   // ── Sweep / INTERCEPT ──────────────────────────────────────────────────────
-  const query = String(body.query ?? "").trim().slice(0, 400);
+  const query = String(body.query ?? "")
+    .trim()
+    .slice(0, 400);
   const explicit = Array.isArray(body.urls) ? body.urls.slice(0, MAX_PROBE) : [];
   // `limit` is now the PROBE budget, not the harvest aperture. The harvest is
   // uncapped relative to it — every lead the fan-out surfaces is reported.
@@ -928,10 +1010,10 @@ Deno.serve(async (req) => {
   if (!query && explicit.length === 0) return json({ error: "query or urls is required" }, 400);
 
   const started = Date.now();
-  // The buffer is the shelf. Retention is ON unless the operator explicitly
-  // turns it off — a metadata hit the operator cannot reopen and read is a
-  // card catalog with no library behind it, which was the complaint.
-  const capture = body.capture !== false && !!sb && !!userId;
+  // The buffer is opt-in. Sweep still runs. Capture writes to the shelf only
+  // when the operator sets capture: true. Forward from asherinx-engine is
+  // unchanged — that caller can still pass capture explicitly.
+  const capture = body.capture === true && !!sb && !!userId;
   const noiseFilter = body.noiseFilter !== false;
   const filterFloor = Number.isFinite(Number(body.filterFloor)) ? Number(body.filterFloor) : undefined;
 
@@ -943,7 +1025,6 @@ Deno.serve(async (req) => {
   // person. Only a selector the classifier calls a *domain* is a direct target.
   const direct = query && identity.kind === "domain" ? asUrl(query) : null;
 
-
   let harvest: HarvestLead[] = [];
   let legCount = 0;
   let filterReport: DiscoveryReport["filter"] = { applied: false, raw: 0, kept: 0, dropped: 0, reasons: {} };
@@ -953,13 +1034,15 @@ Deno.serve(async (req) => {
     const u = new URL(direct);
     // A single door tells you little; the host's standard surfaces tell you a
     // lot — and the fan-out then tells you who else is talking about the host.
-    targets = [...new Set([
-      direct,
-      `${u.origin}/`,
-      `${u.origin}/robots.txt`,
-      `${u.origin}/sitemap.xml`,
-      `${u.origin}/.well-known/security.txt`,
-    ])];
+    targets = [
+      ...new Set([
+        direct,
+        `${u.origin}/`,
+        `${u.origin}/robots.txt`,
+        `${u.origin}/sitemap.xml`,
+        `${u.origin}/.well-known/security.txt`,
+      ]),
+    ];
     const wide = await discoverWide(identity, req.headers.get("Authorization"), noiseFilter, filterFloor);
     harvest = wide.leads;
     legCount = wide.legs;
@@ -979,7 +1062,12 @@ Deno.serve(async (req) => {
     targets = harvest.slice(0, probeBudget).map((l) => l.url);
     if (!targets.length) {
       return json({
-        query, mode, targets: [], index: null, results: [], suggestions: [],
+        query,
+        mode,
+        targets: [],
+        index: null,
+        results: [],
+        suggestions: [],
         harvest: { leads: 0, legs: legCount, probed: 0, unprobed: 0 },
         identity,
         elapsedMs: Date.now() - started,
@@ -995,7 +1083,7 @@ Deno.serve(async (req) => {
   const leadByUrl = new Map(harvest.map((l) => [l.url, l]));
   console.log(
     `[ghost-engine] ${mode} · selector=${identity.kind} · legs=${legCount} · ` +
-    `harvest=${harvest.length} · probing=${targets.length} · capture=${capture} · caller=${access.reason}`,
+      `harvest=${harvest.length} · probing=${targets.length} · capture=${capture} · caller=${access.reason}`,
   );
 
   // ── Probe + shelve, streamed ───────────────────────────────────────────────
@@ -1009,12 +1097,12 @@ Deno.serve(async (req) => {
   const bufferErrors: string[] = [];
   const expiresAt = ttlToExpiry(body.ttlMinutes);
   let retainedBytes = 0;
-  const RETAIN_BUDGET = 24 * 1024 * 1024;   // total bytes shelved per sweep
+  const RETAIN_BUDGET = 24 * 1024 * 1024; // total bytes shelved per sweep
 
   const records = (await pool(targets, CONCURRENCY, async (t: string) => {
     const rec = (await extractGhostRecord(t, capture)) as GhostRecord;
     const p = rec.payload;
-    delete rec.payload;                      // never returned inline
+    delete rec.payload; // never returned inline
     if (!p || !p.bytes.length) return rec;
     if (!(capture && sb && userId)) return rec;
     if (retainedBytes + p.bytes.length > RETAIN_BUDGET) return rec;
@@ -1027,18 +1115,21 @@ Deno.serve(async (req) => {
         upsert: true,
       });
       if (up.error) bufferErrors.push(`${p.host}: ${up.error.message}`);
-      const { error } = await sb.from("ghost_sessions").upsert({
-        user_id: userId,
-        session_id: p.session_id,
-        url: p.url,
-        host: p.host,
-        source_type: p.source_type,
-        status: p.status,
-        storage_path: up.error ? null : path,
-        expires_at: expiresAt,
-        captured_at: new Date().toISOString(),
-        ...fields,
-      }, { onConflict: "user_id,session_id" });
+      const { error } = await sb.from("ghost_sessions").upsert(
+        {
+          user_id: userId,
+          session_id: p.session_id,
+          url: p.url,
+          host: p.host,
+          source_type: p.source_type,
+          status: p.status,
+          storage_path: up.error ? null : path,
+          expires_at: expiresAt,
+          captured_at: new Date().toISOString(),
+          ...fields,
+        },
+        { onConflict: "user_id,session_id" },
+      );
       if (error) bufferErrors.push(`${p.host}: ${error.message}`);
       else buffered++;
     } catch (e) {
@@ -1046,7 +1137,6 @@ Deno.serve(async (req) => {
     }
     return rec;
   })) as GhostRecord[];
-
 
   const index = buildIndex(records);
 
@@ -1068,9 +1158,7 @@ Deno.serve(async (req) => {
       if (bucket) bucket.push(a);
       else anomalyByEntity.set(a.entity_id, [a]);
     }
-    results = records.map((r) =>
-      webResult(r, anomalyByEntity.get(r.entity_id) ?? [], leadByUrl.get(r.url))
-    );
+    results = records.map((r) => webResult(r, anomalyByEntity.get(r.entity_id) ?? [], leadByUrl.get(r.url)));
     results = [...results, ...unprobed.map(leadResult)];
 
     if (scope === "all" && sb && userId && query) {
@@ -1096,7 +1184,11 @@ Deno.serve(async (req) => {
     for (const r of results) {
       const key = r.url.replace(/[#?].*$/, "").replace(/\/+$/, "");
       const prior = byUrl.get(key);
-      if (!prior) { byUrl.set(key, r); merged.push(r); continue; }
+      if (!prior) {
+        byUrl.set(key, r);
+        merged.push(r);
+        continue;
+      }
       // A lead is a promise of a page; a probed shell or a retained body is the
       // page. A lead never survives a merge against either.
       const keep = prior.source === "lead" ? r : r.source === "lead" ? prior : prior;
@@ -1119,10 +1211,11 @@ Deno.serve(async (req) => {
     }
     results = merged;
 
-    results.sort((a, b) =>
-      b.score - a.score ||
-      (b.layers?.length ?? 1) - (a.layers?.length ?? 1) ||
-      (b.anomaly_weight ?? 0) - (a.anomaly_weight ?? 0)
+    results.sort(
+      (a, b) =>
+        b.score - a.score ||
+        (b.layers?.length ?? 1) - (a.layers?.length ?? 1) ||
+        (b.anomaly_weight ?? 0) - (a.anomaly_weight ?? 0),
     );
     suggestions = suggestFromFacets(index.facets);
   }
@@ -1178,13 +1271,11 @@ Deno.serve(async (req) => {
     suggestions,
     buffer: capture
       ? {
-        captured: buffered,
-        expiresAt,
-        ttlMinutes: Math.round((Date.parse(expiresAt) - Date.now()) / 60000) || BUFFER_DEFAULT_TTL_MIN,
-        errors: bufferErrors.slice(0, 6),
-      }
+          captured: buffered,
+          expiresAt,
+          ttlMinutes: Math.round((Date.parse(expiresAt) - Date.now()) / 60000) || BUFFER_DEFAULT_TTL_MIN,
+          errors: bufferErrors.slice(0, 6),
+        }
       : null,
   });
 });
-
-
