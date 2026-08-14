@@ -1875,6 +1875,44 @@ function bootArvision(wrap, root, emitPull) {
     el.innerHTML = html;
   }
 
+  function applyHeading(deg, src) {
+    if (typeof deg !== "number" || Number.isNaN(deg)) return;
+    S.heading = ((deg % 360) + 360) % 360;
+    S.headingSrc = src;
+    const dim = src === "none" || src === "alpha-unsure";
+    compassBtn.classList.toggle("dim", dim);
+    if (rose) rose.setAttribute("transform", "rotate(" + -S.heading + " 44 44)");
+  }
+  async function enableHeading() {
+    try {
+      if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
+        await DeviceOrientationEvent.requestPermission();
+      }
+    } catch (_) {}
+    try {
+      const Sensor = window.AbsoluteOrientationSensor;
+      if (Sensor && !S._absOri) {
+        const sensor = new Sensor({ frequency: 20 });
+        sensor.addEventListener("reading", () => {
+          const q = sensor.quaternion;
+          if (!q) return;
+          const x = q[0],
+            y = q[1],
+            z = q[2],
+            w = q[3];
+          const yaw = (Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * 180) / Math.PI;
+          applyHeading(yaw, "absolute-orientation");
+        });
+        sensor.start();
+        S._absOri = sensor;
+        offs.push(() => {
+          try {
+            sensor.stop();
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
+  }
   function sensors() {
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
@@ -1883,6 +1921,11 @@ function bootArvision(wrap, root, emitPull) {
           S.lon = p.coords.longitude;
           S.acc = p.coords.accuracy;
           S.geoSrc = "gnss";
+          if (typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) && p.coords.heading >= 0) {
+            if (S.headingSrc !== "webkitCompassHeading" && S.headingSrc !== "absolute-orientation") {
+              applyHeading(p.coords.heading, "gnss-heading");
+            }
+          }
         },
         () => {
           S.geoSrc = "denied";
@@ -1891,22 +1934,12 @@ function bootArvision(wrap, root, emitPull) {
       );
     }
     const onOri = (e) => {
-      const abs = e.webkitCompassHeading;
-      if (typeof abs === "number" && !Number.isNaN(abs)) {
-        S.heading = abs;
-        S.headingSrc = "webkitCompassHeading";
-      } else if (e.absolute && typeof e.alpha === "number") {
-        S.heading = (360 - e.alpha) % 360;
-        S.headingSrc = "absolute-alpha";
-      } else if (typeof e.alpha === "number") {
-        S.heading = (360 - e.alpha) % 360;
-        S.headingSrc = "alpha-unsure";
-      }
       S.beta = e.beta;
       S.gamma = e.gamma;
-      const dim = S.headingSrc === "none" || S.headingSrc === "alpha-unsure";
-      compassBtn.classList.toggle("dim", dim);
-      if (S.heading != null) rose.setAttribute("transform", `rotate(${-S.heading} 44 44)`);
+      const abs = e.webkitCompassHeading;
+      if (typeof abs === "number" && !Number.isNaN(abs)) applyHeading(abs, "webkitCompassHeading");
+      else if (e.absolute && typeof e.alpha === "number") applyHeading((360 - e.alpha) % 360, "absolute-alpha");
+      else if (typeof e.alpha === "number") applyHeading((360 - e.alpha) % 360, "alpha-unsure");
     };
     window.addEventListener("deviceorientationabsolute", onOri, true);
     window.addEventListener("deviceorientation", onOri, true);
@@ -1914,12 +1947,19 @@ function bootArvision(wrap, root, emitPull) {
       window.removeEventListener("deviceorientationabsolute", onOri, true);
       window.removeEventListener("deviceorientation", onOri, true);
     });
-    if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) {
-      compassBtn.onclick = async () => {
-        try {
-          await DeviceOrientationEvent.requestPermission();
-        } catch (_) {}
-      };
+    compassBtn.onclick = () => {
+      enableHeading().catch(() => {});
+    };
+    enableHeading().catch(() => {});
+    if (sheetEl && !sheetEl._foldBound) {
+      sheetEl._foldBound = true;
+      sheetEl.addEventListener("click", (ev) => {
+        const id = ev.target && ev.target.id;
+        if (id === "sheet-fold") sheetEl.classList.toggle("folded");
+        if (id === "sens-cycle") {
+          S.sensitivity = S.sensitivity === "high" ? "field" : S.sensitivity === "field" ? "low" : "high";
+        }
+      });
     }
   }
 
