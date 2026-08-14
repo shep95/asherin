@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Grid3x3, RefreshCw, Save, Snowflake } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
 import { emitPull } from "@/lib/connect/emitPull";
-import { EMPTY_INTEL, analyseFrame, sceneGeoVerdict, visualLevel, type FrameIntel } from "@/lib/arvision/frameIntel";
+import { EMPTY_INTEL, analyseFrame, visualLevel, type FrameIntel } from "@/lib/arvision/frameIntel";
 
 const SAMPLE_W = 96;
 const SAMPLE_H = 72;
@@ -40,10 +40,23 @@ const AsherinArVisionView = () => {
   const [codes, setCodes] = useState<string[]>([]);
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [clock, setClock] = useState(() => new Date().toISOString());
+  const [heading, setHeading] = useState<number | null>(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setClock(new Date().toISOString()), 1000);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const onOri = function (e) {
+      var w = e.webkitCompassHeading;
+      var h = typeof w === "number" ? w : e.alpha;
+      if (typeof h === "number") setHeading(h);
+    };
+    window.addEventListener("deviceorientation", onOri);
+    return function () {
+      window.removeEventListener("deviceorientation", onOri);
+    };
   }, []);
 
   useEffect(() => {
@@ -194,13 +207,13 @@ const AsherinArVisionView = () => {
   }, [frozen, proActions]);
 
   const votes = (intel.edges > 0.08 ? 1 : 0) + (codes.length ? 1 : 0) + (intel.contrast > 0.5 ? 1 : 0);
-  const verdict = sceneGeoVerdict(votes);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
       {/* CAMERA — the room itself. */}
       <video
         ref={videoRef}
+        autoPlay
         playsInline
         muted
         className="absolute inset-0 h-full w-full object-cover"
@@ -236,29 +249,44 @@ const AsherinArVisionView = () => {
         />
       )}
 
+      {on && (
+        <div className="pointer-events-none absolute inset-5">
+          <div className="absolute left-0 top-0 h-10 w-10 border-l-2 border-t-2 border-white/80" />
+          <div className="absolute right-0 top-0 h-10 w-10 border-r-2 border-t-2 border-white/80" />
+          <div className="absolute bottom-0 left-0 h-10 w-10 border-b-2 border-l-2 border-white/80" />
+          <div className="absolute bottom-0 right-0 h-10 w-10 border-b-2 border-r-2 border-white/80" />
+        </div>
+      )}
+
+      {on && (
+        <div className="pointer-events-none absolute right-4 top-4 z-10 flex h-16 w-16 items-center justify-center rounded-full border border-white/30 bg-black/70 font-mono text-sm text-white backdrop-blur-md">
+          <span style={heading == null ? undefined : { transform: "rotate(" + String(-heading) + "deg)" }}>N</span>
+        </div>
+      )}
+
       {/* RETICLE */}
       {on && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-16 w-16 rounded-full border border-foreground/20" />
-          <div className="absolute h-px w-8 bg-foreground/25" />
-          <div className="absolute h-8 w-px bg-foreground/25" />
+          <div className="h-20 w-20 rounded-full border-2 border-white/80" />
+          <div className="absolute h-0.5 w-10 bg-white/80" />
+          <div className="absolute h-10 w-0.5 bg-white/80" />
         </div>
       )}
 
       {/* HUD */}
       {on && (
         <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-wrap gap-2 p-3 sm:p-4">
-          <span className="rounded-full border border-foreground/12 bg-background/60 px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-foreground/60 backdrop-blur-md">
+          <span className="rounded-md border border-white/25 bg-black/70 px-3 py-1.5 font-mono text-xs text-white backdrop-blur-md">
             {clock}
           </span>
-          <span className="rounded-full border border-foreground/12 bg-background/60 px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-foreground/60 backdrop-blur-md">
+          <span className="rounded-md border border-white/25 bg-black/70 px-3 py-1.5 font-mono text-xs text-white backdrop-blur-md">
             device {geo ? `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}` : "gnss unavailable"}
           </span>
-          <span className="rounded-full border border-foreground/12 bg-background/60 px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-foreground/60 backdrop-blur-md">
+          <span className="rounded-md border border-white/25 bg-black/70 px-3 py-1.5 font-mono text-xs text-white backdrop-blur-md">
             luma {intel.luma.toFixed(2)} · motion {intel.motion.toFixed(3)} · edges {intel.edges.toFixed(3)}
           </span>
-          <span className="rounded-full border border-foreground/12 bg-background/60 px-3 py-1 font-mono text-[10px] tracking-[0.14em] text-foreground/60 backdrop-blur-md">
-            {visualLevel(votes)} · scene geo {verdict}
+          <span className="rounded-md border border-white/25 bg-black/70 px-3 py-1.5 font-mono text-xs text-white backdrop-blur-md">
+            {visualLevel(votes)} · votes {votes}/3
           </span>
         </div>
       )}
