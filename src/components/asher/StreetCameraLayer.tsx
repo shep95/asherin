@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CircleMarker, Polygon, Polyline, Popup, Tooltip } from "react-leaflet";
+import L from "leaflet";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { liveFrameUrl, type StreetCamera } from "@/lib/asher/streetCameras";
 
@@ -29,9 +30,26 @@ interface Props {
  *  camera:direction in degrees. Anything we cannot parse returns null and the
  *  cone is simply not drawn — a guessed bearing would be a fabricated fact. */
 const COMPASS: Record<string, number> = {
-  n: 0, nb: 0, north: 0, ne: 45, northeast: 45, e: 90, eb: 90, east: 90,
-  se: 135, southeast: 135, s: 180, sb: 180, south: 180, sw: 225, southwest: 225,
-  w: 270, wb: 270, west: 270, nw: 315, northwest: 315,
+  n: 0,
+  nb: 0,
+  north: 0,
+  ne: 45,
+  northeast: 45,
+  e: 90,
+  eb: 90,
+  east: 90,
+  se: 135,
+  southeast: 135,
+  s: 180,
+  sb: 180,
+  south: 180,
+  sw: 225,
+  southwest: 225,
+  w: 270,
+  wb: 270,
+  west: 270,
+  nw: 315,
+  northwest: 315,
 };
 function bearingOf(direction?: string): number | null {
   if (!direction) return null;
@@ -73,18 +91,27 @@ const CameraStream = ({ url }: { url: string }) => {
     const isHls = /\.m3u8(\?|$)/i.test(url);
     if (!isHls || video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = url;
-      video.play().catch(() => { /* autoplay refusal is not a failure */ });
+      video.play().catch(() => {
+        /* autoplay refusal is not a failure */
+      });
     } else {
       import("hls.js")
         .then(({ default: Hls }) => {
           if (destroyed || !ref.current) return;
-          if (!Hls.isSupported()) { setFailed(true); return; }
+          if (!Hls.isSupported()) {
+            setFailed(true);
+            return;
+          }
           const inst = new Hls({ lowLatencyMode: true, maxBufferLength: 8 });
           hls = inst;
-          inst.on(Hls.Events.ERROR, (_e, data) => { if (data?.fatal) setFailed(true); });
+          inst.on(Hls.Events.ERROR, (_e, data) => {
+            if (data?.fatal) setFailed(true);
+          });
           inst.loadSource(url);
           inst.attachMedia(ref.current);
-          ref.current.play().catch(() => { /* ignore */ });
+          ref.current.play().catch(() => {
+            /* ignore */
+          });
         })
         .catch(() => setFailed(true));
     }
@@ -92,7 +119,13 @@ const CameraStream = ({ url }: { url: string }) => {
     return () => {
       destroyed = true;
       hls?.destroy();
-      try { video.pause(); video.removeAttribute("src"); video.load(); } catch { /* teardown best-effort */ }
+      try {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      } catch {
+        /* teardown best-effort */
+      }
     };
   }, [url]);
 
@@ -100,7 +133,10 @@ const CameraStream = ({ url }: { url: string }) => {
     return (
       <p className="text-[10px] leading-snug opacity-70">
         Stream would not play in-browser.{" "}
-        <a href={url} target="_blank" rel="noopener noreferrer" className="underline">Open it directly</a>.
+        <a href={url} target="_blank" rel="noopener noreferrer" className="underline">
+          Open it directly
+        </a>
+        .
       </p>
     );
   }
@@ -113,10 +149,14 @@ const CameraStream = ({ url }: { url: string }) => {
       autoPlay
       loop
       controls
+      hidden
       width={260}
       height={146}
       className="block w-[260px] rounded border border-black/20 bg-black/60 object-cover"
       style={{ aspectRatio: "16 / 9" }}
+      onPlaying={(e) => {
+        (e.currentTarget as HTMLVideoElement).hidden = false;
+      }}
     />
   );
 };
@@ -162,7 +202,13 @@ const CameraFrame = ({ cam, refreshMs }: { cam: StreetCamera; refreshMs: number 
   );
 };
 
-const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onSelect, anchor = null }: Props) => {
+const StreetCameraLayer = ({ cameras, refreshMs = 800, selectedId = null, onSelect, anchor = null }: Props) => {
+  const markerRefs = useRef({});
+  useEffect(() => {
+    if (!selectedId) return;
+    const m = markerRefs.current[selectedId];
+    if (m && typeof m.openPopup === "function") m.openPopup();
+  }, [selectedId, cameras]);
   if (!cameras.length) return null;
   const selected = cameras.find((c) => c.id === selectedId) ?? null;
   const selBearing = selected ? bearingOf(selected.direction) : null;
@@ -177,7 +223,10 @@ const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onS
       )}
       {selected && anchor && (
         <Polyline
-          positions={[[anchor.lat, anchor.lng], [selected.lat, selected.lng]]}
+          positions={[
+            [anchor.lat, anchor.lng],
+            [selected.lat, selected.lng],
+          ]}
           pathOptions={{ color: "#e0a955", weight: 1.2, opacity: 0.7, dashArray: "5 6" }}
           interactive={false}
         />
@@ -191,6 +240,9 @@ const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onS
             key={cam.id}
             center={[cam.lat, cam.lng]}
             radius={isSel ? 9 : live ? 6 : 4}
+            ref={(el) => {
+              markerRefs.current[cam.id] = el as unknown as L.CircleMarker;
+            }}
             eventHandlers={{ click: () => onSelect?.(cam) }}
             pathOptions={{
               color,
@@ -199,7 +251,9 @@ const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onS
               fillOpacity: live ? 0.85 : 0.15,
             }}
           >
-            <Tooltip direction="top" opacity={0.95}>{cam.name}</Tooltip>
+            <Tooltip direction="top" opacity={0.95}>
+              {cam.name}
+            </Tooltip>
             <Popup minWidth={272}>
               <div className="space-y-1.5">
                 <div className="text-[11px] font-semibold leading-tight">{cam.name}</div>
@@ -211,18 +265,26 @@ const StreetCameraLayer = ({ cameras, refreshMs = 15_000, selectedId = null, onS
                 <div className="flex items-center gap-2 pt-0.5 text-[10px]">
                   {cam.imageUrl && (
                     <span className="flex items-center gap-1 opacity-70">
-                      <RefreshCw className="h-2.5 w-2.5" />auto-refresh {Math.round(refreshMs / 1000)}s
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      auto-refresh {Math.round(refreshMs / 1000)}s
                     </span>
                   )}
                   {cam.streamUrl && (
-                    <a href={cam.streamUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 underline">
-                      <ExternalLink className="h-2.5 w-2.5" />Open stream
+                    <a
+                      href={cam.streamUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 underline"
+                    >
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      Open stream
                     </a>
                   )}
                 </div>
                 <div className="text-[9px] opacity-50">Source: {cam.source}</div>
                 <div className="text-[9px] leading-snug opacity-50">
-                  Highway / corridor still published by a transport agency. This is not a camera on a house — Asherin has no access to doorbell or private CCTV.
+                  Highway / corridor still published by a transport agency. This is not a camera on a house — Asherin
+                  has no access to doorbell or private CCTV.
                 </div>
               </div>
             </Popup>
