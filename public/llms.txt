@@ -9,7 +9,7 @@ you can bring your own model key — gemini, openai, claude, mistral, xai grok, 
 ## honest limits
 
 - asherin reads live public sources and cites them. when it does not find one, it says so.
-- asherinx.eng can watch a public leak index for an email, phone, or handle you type. it does not intercept login IPs, SMS, DMs, or private mail.
+- asherinx.eng queries public indexes (wayback, nvd, github, wiki, and the rest of the public stack). it does not intercept login IPs, SMS, DMs, or private mail.
 - asherin.maps uses public agency stills and public registers. it does not hijack doorbell or flock cameras, and satellite tiles are near-daily mosaics, not live seconds.
 - forecasts are probabilistic. they are not predictions of record.
 - nothing here is legal, medical or financial advice.
