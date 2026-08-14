@@ -155,6 +155,7 @@ function bootArvision(wrap, root, emitPull) {
 
   const S = {
     stream: null,
+    halted: false,
     devices: [],
     deviceId: null,
     facing: "user",
@@ -275,18 +276,83 @@ function bootArvision(wrap, root, emitPull) {
     S.devices = all.filter((d) => d.kind === "videoinput");
   }
 
-  async function startCam(deviceId) {
+  async function haltCam(why) {
+    S.halted = true;
+    try {
+      if (S.stream) S.stream.getTracks().forEach((t) => t.stop());
+    } catch (_) {}
+    S.stream = null;
+    try {
+      cam.srcObject = null;
+    } catch (_) {}
+    note("asherin.arvision halted — this box, not the feed. " + String(why || ""));
+    try {
+      emitPull({
+        organ: "arvision",
+        capability: "camera-open",
+        fromSurface: "asherin-arvision",
+        status: "fail",
+        quote: String(why || "halt").slice(0, 160),
+      });
+    } catch (_) {}
+  }
+
+  async function startCam(deviceId, isRetry) {
+    if (S.halted && !isRetry) {
+      note("camera halted — tap cam to retry once");
+      return;
+    }
+    S.halted = false;
     if (S.stream) S.stream.getTracks().forEach((t) => t.stop());
-    const video = deviceId
-      ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      : { facingMode: S.facing, width: { ideal: 1280 }, height: { ideal: 720 } };
-    S.stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+    S.stream = null;
+    const ladders = [];
+    if (deviceId) {
+      ladders.push({ deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } });
+      ladders.push({ deviceId: { ideal: deviceId } });
+    }
+    ladders.push({ facingMode: S.facing, width: { ideal: 1280 }, height: { ideal: 720 } });
+    ladders.push({ facingMode: S.facing });
+    ladders.push(true);
+    let lastErr = null;
+    for (let i = 0; i < ladders.length; i++) {
+      try {
+        S.stream = await navigator.mediaDevices.getUserMedia({ video: ladders[i], audio: false });
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        const name = e && e.name;
+        if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+          note("camera permission blocked on this box");
+          await haltCam(name);
+          return;
+        }
+        if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          note("no camera on this box");
+          await haltCam(name);
+          return;
+        }
+        if (name === "NotReadableError" || name === "TrackStartError") {
+          if (!isRetry) {
+            await new Promise((r) => setTimeout(r, 300));
+            return startCam(deviceId, true);
+          }
+          note("camera in use on this box — CANNOT_RESOLVE");
+          await haltCam(name);
+          return;
+        }
+      }
+    }
+    if (!S.stream) {
+      await haltCam((lastErr && (lastErr.name || lastErr.message)) || "getUserMedia failed");
+      return;
+    }
     cam.srcObject = S.stream;
     await cam.play();
     await listCams();
-    const track = S.stream.getVideoTracks()[0];
-    S.deviceId = track.getSettings().deviceId || deviceId;
-    const s = track.getSettings();
+    const _track = S.stream.getVideoTracks()[0];
+    S.deviceId = _track.getSettings().deviceId || deviceId;
+    const s = _track.getSettings();
     if (s.facingMode) S.facing = s.facingMode;
     if (s.width && s.focalLength) {
       S.hfov = (2 * Math.atan(s.width / 2 / s.focalLength) * 180) / Math.PI;
@@ -1787,12 +1853,14 @@ function bootArvision(wrap, root, emitPull) {
 
   $("allow").onclick = () =>
     startCam().catch((e) => {
-      note(String(e.message || e));
+      haltCam(String((e && (e.name || e.message)) || e));
     });
   layerChips();
   talkBtns();
   sensors();
-  startCam().catch(() => {});
+  startCam().catch((e) => {
+    haltCam(String((e && (e.name || e.message)) || e));
+  });
   loadModels();
   loadIdentity();
   loadLogs();
