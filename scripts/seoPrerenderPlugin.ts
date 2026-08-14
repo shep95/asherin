@@ -18,24 +18,17 @@ import type { Plugin } from "vite";
 import { ORIGIN, ROUTE_SEO, type SeoEntry } from "../src/lib/routeSeoData";
 import { buildRouteGraph } from "../src/lib/geo/schema";
 
-
 /** Hard ceiling so route growth can never push the build past publish limits. */
 const MAX_PRERENDER_PAGES = 2000;
 
 function escapeAttr(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** Replace an existing tag matched by `pattern`, or append `tag` to <head>. */
 function upsertTag(html: string, pattern: RegExp, tag: string) {
   // Patterns are built per-call and used once, so no lastIndex state to carry.
-  return pattern.test(html)
-    ? html.replace(pattern, tag)
-    : html.replace("</head>", `  ${tag}\n</head>`);
+  return pattern.test(html) ? html.replace(pattern, tag) : html.replace("</head>", `  ${tag}\n</head>`);
 }
 
 function metaPattern(attr: "name" | "property", key: string) {
@@ -49,7 +42,6 @@ function buildJsonLd(path: string, entry: SeoEntry) {
   ).replace(/</g, "\\u003c")}</script>`;
 }
 
-
 function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   const canonical = `${ORIGIN}${path}`;
   const title = escapeAttr(entry.title);
@@ -58,41 +50,21 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   let html = template;
 
   html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${title}</title>`);
-  html = upsertTag(
-    html,
-    metaPattern("name", "description"),
-    `<meta name="description" content="${description}" />`,
-  );
-  html = upsertTag(
-    html,
-    /<link[^>]*rel=["']canonical["'][^>]*>/i,
-    `<link rel="canonical" href="${canonical}" />`,
-  );
-  html = upsertTag(
-    html,
-    metaPattern("property", "og:title"),
-    `<meta property="og:title" content="${title}" />`,
-  );
+  html = upsertTag(html, metaPattern("name", "description"), `<meta name="description" content="${description}" />`);
+  html = upsertTag(html, /<link[^>]*rel=["']canonical["'][^>]*>/i, `<link rel="canonical" href="${canonical}" />`);
+  html = upsertTag(html, metaPattern("property", "og:title"), `<meta property="og:title" content="${title}" />`);
   html = upsertTag(
     html,
     metaPattern("property", "og:description"),
     `<meta property="og:description" content="${description}" />`,
   );
-  html = upsertTag(
-    html,
-    metaPattern("property", "og:url"),
-    `<meta property="og:url" content="${canonical}" />`,
-  );
+  html = upsertTag(html, metaPattern("property", "og:url"), `<meta property="og:url" content="${canonical}" />`);
   html = upsertTag(
     html,
     metaPattern("property", "og:type"),
     `<meta property="og:type" content="${entry.ogType ?? "website"}" />`,
   );
-  html = upsertTag(
-    html,
-    metaPattern("name", "twitter:title"),
-    `<meta name="twitter:title" content="${title}" />`,
-  );
+  html = upsertTag(html, metaPattern("name", "twitter:title"), `<meta name="twitter:title" content="${title}" />`);
   html = upsertTag(
     html,
     metaPattern("name", "twitter:description"),
@@ -103,17 +75,9 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
   const robots = entry.noindex
     ? "noindex,nofollow"
     : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
-  html = upsertTag(
-    html,
-    metaPattern("name", "robots"),
-    `<meta name="robots" content="${robots}" />`,
-  );
+  html = upsertTag(html, metaPattern("name", "robots"), `<meta name="robots" content="${robots}" />`);
   if (entry.noindex) {
-    html = upsertTag(
-      html,
-      metaPattern("name", "googlebot"),
-      `<meta name="googlebot" content="noindex,nofollow" />`,
-    );
+    html = upsertTag(html, metaPattern("name", "googlebot"), `<meta name="googlebot" content="noindex,nofollow" />`);
   }
 
   html = html.replace("</head>", `  ${buildJsonLd(path, entry)}\n</head>`);
@@ -149,8 +113,7 @@ export function seoPrerenderPlugin(): Plugin {
         // scanner reads the stale marketing title of a retired surface.
         if (entry.noindex) continue;
         const html = renderRouteHtml(template, path, entry);
-        const target =
-          path === "/" ? indexPath : join(outDir, path.replace(/^\//, ""), "index.html");
+        const target = path === "/" ? indexPath : join(outDir, path.replace(/^\//, ""), "index.html");
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, html);
         written += 1;
@@ -159,18 +122,11 @@ export function seoPrerenderPlugin(): Plugin {
       // A dedicated 404 document. The host serves it with a real 404 status
       // (see public/_redirects), so unknown URLs never answer as a 200 clone
       // of the homepage. noindex, and no canonical pointing at "/".
-      const notFound = renderRouteHtml(
-        template,
-        "/404",
-        {
-          title: "Not found | asherin",
-          description: "this is not a page on asherin.",
-          noindex: true,
-        },
-      ).replace(
-        /<link[^>]*rel=["']canonical["'][^>]*>/i,
-        "",
-      );
+      const notFound = renderRouteHtml(template, "/404", {
+        title: "not found | asherin",
+        description: "this is not a page on asherin.",
+        noindex: true,
+      }).replace(/<link[^>]*rel=["']canonical["'][^>]*>/i, "");
       writeFileSync(join(outDir, "404.html"), notFound);
 
       const skipped = Object.keys(ROUTE_SEO).length - routes.length;
