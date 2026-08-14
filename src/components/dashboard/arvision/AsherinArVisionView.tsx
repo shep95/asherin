@@ -29,6 +29,7 @@ const AsherinArVisionView = () => {
   const prevGray = useRef<Float32Array | null>(null);
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const genRef = useRef(0);
 
   const [on, setOn] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -56,9 +57,10 @@ const AsherinArVisionView = () => {
   }, []);
 
   const stop = useCallback(() => {
+    genRef.current += 1;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     prevGray.current = null;
     setOn(false);
@@ -84,16 +86,25 @@ const AsherinArVisionView = () => {
   }, []);
 
   const start = useCallback(async () => {
+    const my = ++genRef.current;
     setErr(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1280 } },
         audio: false,
       });
+      if (my !== genRef.current) {
+        stream.getTracks().forEach((tr) => tr.stop());
+        return;
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => undefined);
+      }
+      if (my !== genRef.current) {
+        stream.getTracks().forEach((tr) => tr.stop());
+        return;
       }
       setOn(true);
       rafRef.current = requestAnimationFrame(loop);
@@ -118,17 +129,18 @@ const AsherinArVisionView = () => {
 
   useEffect(() => {
     void start();
-  }, []);
-  useEffect(() => stop, [stop]);
+    return () => {
+      genRef.current += 1;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      streamRef.current?.getTracks().forEach((tr) => tr.stop());
+      streamRef.current = null;
+    };
+  }, [start]);
 
-  const flip = useCallback(async () => {
-    const next = facing === "user" ? "environment" : "user";
-    stop();
-    setFacing(next);
-    window.setTimeout(() => {
-      void start();
-    }, 0);
-  }, [facing, start, stop]);
+  const flip = useCallback(() => {
+    setFacing((f) => (f === "user" ? "environment" : "user"));
+  }, []);
 
   const freeze = useCallback(async () => {
     const video = videoRef.current;
@@ -276,9 +288,9 @@ const AsherinArVisionView = () => {
             </button>
             <button
               onClick={stop}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-foreground/15 bg-background/70 px-4 text-foreground/70 backdrop-blur-md"
+              className="flex min-h-[44px] items-center gap-2 rounded-full border border-foreground/15 bg-background/70 px-4 text-[12px] font-light text-foreground/85 backdrop-blur-md"
             >
-              <CameraOff className="h-4 w-4" />
+              <CameraOff className="h-4 w-4" /> close
             </button>
           </>
         )}
