@@ -1,14 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  ORIGIN,
-  DEFAULT_OG_IMAGE,
-  ROUTE_SEO as SEO,
-  SKIP_PREFIXES,
-  type SeoEntry,
-} from "@/lib/routeSeoData";
+import { ORIGIN, DEFAULT_OG_IMAGE, ROUTE_SEO as SEO, SKIP_PREFIXES, type SeoEntry } from "@/lib/routeSeoData";
 import { buildRouteGraph } from "@/lib/geo/schema";
-
 
 /**
  * Centralized per-route SEO (runtime layer).
@@ -17,7 +10,6 @@ import { buildRouteGraph } from "@/lib/geo/schema";
  */
 
 const JSONLD_ID = "route-seo-jsonld";
-
 
 function upsertMeta(selector: string, attr: string, value: string, build: () => HTMLElement) {
   let el = document.head.querySelector(selector) as HTMLElement | null;
@@ -125,7 +117,6 @@ function applySeo(entry: SeoEntry, path: string) {
   }
   ld.textContent = JSON.stringify(buildRouteGraph(path, entry));
 
-
   if (entry.noindex) {
     upsertMeta('meta[name="robots"]', "content", "noindex,nofollow", () => {
       const m = document.createElement("meta");
@@ -142,7 +133,15 @@ export default function RouteSeo() {
 
   useEffect(() => {
     if (SKIP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-      return; // Do not touch /asher or /dashboard heads.
+      applySeo(
+        {
+          title: "asherin",
+          description: "signed-in asherin workspace. not for search indexes.",
+          noindex: true,
+        },
+        pathname,
+      );
+      return;
     }
     const entry = SEO[pathname];
     if (!entry) return; // Unknown route → leave existing head intact.
