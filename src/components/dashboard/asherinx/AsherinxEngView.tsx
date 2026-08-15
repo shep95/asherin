@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// asherinx.eng — public-index search + area log (automation, not a button).
-// Nearby radios this box already hears. Place/IP of where you are. Scroll back.
-// Sees ≠ joins. No tap.
+// asherinx.eng — walking hub journal + public-index search.
+// The laptop collects. This page never asks location, camera, or any permission.
+// Place = IP/city from the box. Radios = what this box already hears. Sees ≠ joins.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -74,7 +74,6 @@ interface LogRow {
   ts: string;
   source: "box" | "browser";
   place: Place;
-  geo?: { lat: number; lon: number; acc?: number } | null;
   counts?: { wifi?: number; arp?: number; ssdp?: number; ble?: number };
   emissions?: Emission[];
 }
@@ -178,7 +177,6 @@ const AsherinxEngView = () => {
   const [rows, setRows] = useState<LogRow[]>([]);
   const [logging, setLogging] = useState("starting");
   const [boxLive, setBoxLive] = useState(false);
-  const geoRef = useRef<{ lat: number; lon: number; acc?: number } | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -188,22 +186,6 @@ const AsherinxEngView = () => {
   useEffect(() => {
     setRows(loadLog());
     let stop = false;
-    let watch = 0;
-    if (navigator.geolocation) {
-      watch = navigator.geolocation.watchPosition(
-        (p) => {
-          geoRef.current = {
-            lat: p.coords.latitude,
-            lon: p.coords.longitude,
-            acc: p.coords.accuracy,
-          };
-        },
-        () => {
-          /* GNSS denied — IP city still logs */
-        },
-        { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 },
-      );
-    }
 
     const pulse = async () => {
       if (stop) return;
@@ -222,13 +204,12 @@ const AsherinxEngView = () => {
       }
       const boxOn = !!(companion && companion.ok !== false && Array.isArray(companion.rows));
       setBoxLive(boxOn);
-      setLogging(boxOn ? "box radios + place" : "place/IP on this browser · wifi needs this box");
+      setLogging(boxOn ? "this box · walking hub" : "place/IP · wifi when this box hub is up");
       const latest = boxOn ? (companion?.rows?.[0] as Record<string, unknown> | undefined) : undefined;
       const row: LogRow = {
         ts: (latest?.ts as string) || new Date().toISOString(),
         source: boxOn ? "box" : "browser",
         place: (latest?.place as Place) || place,
-        geo: geoRef.current,
         counts: (latest?.counts as LogRow["counts"]) || undefined,
         emissions: (latest?.emissions as Emission[]) || [],
       };
@@ -253,7 +234,6 @@ const AsherinxEngView = () => {
     return () => {
       stop = true;
       window.clearInterval(id);
-      if (watch && navigator.geolocation) navigator.geolocation.clearWatch(watch);
     };
   }, []);
 
@@ -330,7 +310,6 @@ const AsherinxEngView = () => {
   const skipped = useMemo(() => (result?.sites ?? []).filter((s) => s.status !== "ok"), [result]);
 
   const nowPlace = rows[0]?.place;
-  const nowGeo = rows[0]?.geo;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
@@ -351,8 +330,7 @@ const AsherinxEngView = () => {
         <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/55">
           {nowPlace?.ip ? `ip ${nowPlace.ip}` : "ip …"}
           {nowPlace?.local_ipv4s?.length ? ` · lan ${nowPlace.local_ipv4s.join(", ")}` : ""}
-          {nowGeo ? ` · gnss ${nowGeo.lat.toFixed(5)}, ${nowGeo.lon.toFixed(5)}` : ""}
-          {boxLive ? " · this box radios" : " · wifi from this box when the logger is up"}
+          {boxLive ? " · this box radios" : " · wifi from this box hub"}
         </p>
       </div>
 
