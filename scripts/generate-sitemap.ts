@@ -22,13 +22,13 @@ function candidateFiles(path: string): string[] {
   if (path === "/") return ["src/pages/Index.tsx"];
   const seg = path.split("/").filter(Boolean);
   const pascal = (s: string) =>
-    s.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
+    s
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join("");
   const last = pascal(seg[seg.length - 1]);
   const dir = seg.length > 1 ? seg[0] : "";
-  return [
-    dir ? `src/pages/${dir}/${last}.tsx` : `src/pages/${last}.tsx`,
-    `src/pages/${last}.tsx`,
-  ];
+  return [dir ? `src/pages/${dir}/${last}.tsx` : `src/pages/${last}.tsx`, `src/pages/${last}.tsx`];
 }
 
 function gitDate(file: string): string | undefined {
@@ -52,12 +52,18 @@ function lastmodFor(path: string): string | undefined {
   return entry?.dateModified ?? entry?.datePublished;
 }
 
-const urls = sitemapPaths().map((path) => {
+const EXTRA_PATHS = [
+  "/for",
+  "/for/research",
+  "/for/journalists",
+  "/for/companies",
+  "/for/investigators",
+  "/for/analysts",
+];
+const urls = Array.from(new Set(sitemapPaths().concat(EXTRA_PATHS))).map((path) => {
   const lastmod = lastmodFor(path);
   return (
-    `  <url>\n    <loc>${ORIGIN}${path}</loc>` +
-    (lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : "") +
-    `\n  </url>`
+    `  <url>\n    <loc>${ORIGIN}${path}</loc>` + (lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : "") + `\n  </url>`
   );
 });
 
