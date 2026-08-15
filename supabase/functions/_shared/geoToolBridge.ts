@@ -28,7 +28,7 @@ const PATTERNS: { re: RegExp; property: boolean }[] = [
   { re: /\b(?:compare|contrast)\s+(.+\s+(?:vs\.?|versus|and)\s+.+)$/i, property: true },
   { re: /\b(?:map|pull\s+up|open\s+the\s+map\s+(?:on|for))\s+(.+)$/i, property: false },
   {
-    re: /^(\d{1,6}\s+[A-Za-z0-9'.\- ]{3,}\s+(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pkwy|parkway|hwy|highway|ter|terrace|pl|place|cir|circle|trl|trail|loop|sq|square)\b.*)$/i,
+    re: /(\d{1,6}\s+[A-Za-z0-9'.\- ]{3,}\s+(?:st|street|ave|avenue|rd|road|blvd|boulevard|dr|drive|ln|lane|way|ct|court|pkwy|parkway|hwy|highway|ter|terrace|pl|place|cir|circle|trl|trail|loop|sq|square)\b.*)$/i,
     property: true,
   },
 ];
