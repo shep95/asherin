@@ -45,6 +45,36 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "the rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
   },
+  "/for": {
+    title: "who asherin is for",
+    description:
+      "five desks on one seat: people who already chat with a model, journalists, companies, private investigators, and data analytics people. $18/mo, $79/mo pro.",
+  },
+  "/for/research": {
+    title: "asherin for people who already chat with a model",
+    description:
+      "if you already talk to a model and need sources beside the answer, a map, files, and a vault — that is this seat. $18/mo, $79/mo pro.",
+  },
+  "/for/journalists": {
+    title: "asherin for journalists",
+    description:
+      "sourced research for reporting: citations beside the answer, public-index search, a map for place, and a vault that does not enter chat. $18/mo, $79/mo pro.",
+  },
+  "/for/companies": {
+    title: "asherin for companies that need intelligence-grade research",
+    description:
+      "a sourced research seat for teams: chat, public-index search, maps, vault, memory, connect, team. $18/mo, $79/mo pro.",
+  },
+  "/for/investigators": {
+    title: "asherin for private investigators",
+    description:
+      "public-index research, a talkable map, and a vault that stays out of chat. for licensed investigators working open sources. $18/mo, $79/mo pro.",
+  },
+  "/for/analysts": {
+    title: "asherin for data analytics people",
+    description:
+      "a sourced research seat for analysts: ask with citations, keep files and memory, map a place, connect the model you already use. $18/mo, $79/mo pro.",
+  },
   "/founder": {
     title: "Founder | asherin",
     description: "asher newton, who built asherin, and the book he wrote alongside it.",
