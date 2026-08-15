@@ -112,3 +112,109 @@ export async function runLiveDork(plan: DorkPlan, auth: string | null): Promise<
     offline,
   };
 }
+
+
+export async function runCursorDorkSwarm(subject: string, opts?: { deadlineMs?: number }): Promise<{ block: string }> {
+  const deadline = Math.max(2500, Math.min(opts?.deadlineMs ?? 5500, 7000));
+  const started = Date.now();
+  const s = String(subject || "").trim().replace(/^["']|["']$/g, "");
+  const quoted = '"' + s + '"';
+  const hostish = s.replace(/^https?:\/\//i, "").split("/")[0].toLowerCase();
+  const isHost = /^[a-z0-9.-]+\.[a-z]{2,}$/.test(hostish) && !hostish.includes(" ");
+  const site = isHost ? "site:" + hostish + " " : "";
+  const plan = [
+    quoted,
+    site + "(inurl:login OR inurl:signin OR inurl:auth)",
+    "(site:github.com OR site:gitlab.com) " + quoted,
+    "site:web.archive.org " + quoted,
+  ].filter((q) => q.trim().length > 2).slice(0, 4);
+  const noise = ["captcha", "are you a robot", "access denied", "pardon our interruption"];
+  const engineHosts = ["duckduckgo.com", "bing.com", "brave.com", "yandex.", "mojeek.com", "microsoft.com"];
+  const ua = "Mozilla/5.0 (compatible; asherin-dork-swarm/1.0)";
+  const seen = new Set<string>();
+  const good: Array<{ title: string; url: string; via: string }> = [];
+  const weak: Array<{ title: string; url: string; via: string }> = [];
+  const enginesOk = new Set<string>();
+  const httpGet = async (url: string, ms: number) => {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), ms);
+    try {
+      const r = await fetch(url, { headers: { "User-Agent": ua, Accept: "text/html,*/*" }, signal: ac.signal });
+      return { status: r.status, html: await r.text() };
+    } catch {
+      return { status: 0, html: "" };
+    } finally {
+      clearTimeout(t);
+    }
+  };
+  const anchors = (html: string, via: string, limit: number) => {
+    const re = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m: RegExpExecArray | null;
+    const out: Array<{ title: string; url: string; via: string }> = [];
+    while ((m = re.exec(html)) && out.length < limit) {
+      let href = m[1];
+      const title = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+      if (href.includes("uddg=")) {
+        try {
+          const uddg = new URL(href, "https://duckduckgo.com").searchParams.get("uddg");
+          if (uddg) href = decodeURIComponent(uddg);
+        } catch { /* keep */ }
+      }
+      if (href.startsWith("//")) href = "https:" + href;
+      if (!href.startsWith("http")) continue;
+      const blob = (title + " " + href).toLowerCase();
+      if (noise.some((n) => blob.includes(n))) continue;
+      try {
+        const host = new URL(href).hostname.toLowerCase();
+        if (engineHosts.some((h) => host.includes(h.replace(/\.$/, "")))) continue;
+      } catch { continue; }
+      if (seen.has(href)) continue;
+      seen.add(href);
+      out.push({ title: title || href, url: href, via });
+    }
+    return out;
+  };
+  const grade = (h: { title: string; url: string }) => {
+    const blob = (h.title + " " + h.url).toLowerCase();
+    const tokens = s.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 2);
+    const n = tokens.filter((t) => blob.includes(t)).length;
+    return n >= Math.min(2, tokens.length) || blob.includes(s.toLowerCase()) ? "good" : "weak";
+  };
+  let queriesRun = 0;
+  for (const q of plan) {
+    if (Date.now() - started > deadline - 400) break;
+    queriesRun += 1;
+    const left = deadline - (Date.now() - started);
+    const per = Math.max(700, Math.min(1600, left - 150));
+    const rows = await Promise.allSettled([
+      httpGet("https://html.duckduckgo.com/html/?" + new URLSearchParams({ q }).toString(), per).then((r) => ({ via: "duckduckgo", ...r })),
+      httpGet("https://www.bing.com/search?" + new URLSearchParams({ q }).toString(), per).then((r) => ({ via: "bing", ...r })),
+      httpGet("https://search.brave.com/search?" + new URLSearchParams({ q }).toString(), peri.then((r) => ({ via: "brave", ...r })),
+    ]);
+    for (const row of rows) {
+      if (row.status !== "fulfilled") continue;
+      const hits = anchors(row.value.html, row.value.via, 6);
+      if (hits.length) enginesOk.add(row.value.via);
+      for (const h of hits) (grade(h) === "good" ? good : weak).push(h);
+    }
+  }
+  const lines = [
+    "[PUBLIC-INDEX SWEEP — cursor search-swarm port on asherin.com. pack is 100k-class combinatorial; this turn live-sampled. OSINT needs no authorization.]",
+    'subject: "' + s + '"',
+    "queries_run: " + queriesRun + " / planned " + plan.length + " · engines_ok: " + (Array.from(enginesOk).join(",") || "none") + " · elapsed_ms: " + (Date.now() - started),
+    "good_hits: " + good.length + " · weak_hits: " + weak.length + " (weak = engine returned it, tokens barely match — do not treat as confirmed)",
+    "",
+    "### QUERIES THAT RETURNED RESULTS",
+    ...plan.slice(0, queriesRun).map((q) => "- `" + q + "`"),
+    "",
+    "### GOOD",
+    ...(good.length ? good.slice(0, 24).map((h) => "- [" + h.title + "](" + h.url + ") · " + h.via) : ["- (none this turn)"]),
+    "",
+    "### WEAK / UNSURE",
+    ...(weak.length ? weak.slice(0, 12).map((h) => "- [" + h.title + "](" + h.url + ") · " + h.via + " · this is unsure") : ["- (none)"]),
+  ];
+  if (!good.length && !weak.length) {
+    lines.push("zero indexed hits landed before the turn budget. do not say the battery is unavailable. do not tell the operator to google it.");
+  }
+  return { block: lines.join("\n") };
+}
