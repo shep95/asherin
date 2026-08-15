@@ -794,15 +794,24 @@ async function searchDuckDuckGo(query: string, callerAuth?: string | null): Prom
       ? callerAuth
       : `Bearer ${SERVICE_ROLE || SUPABASE_ANON_KEY}`;
 
-    const resp = await fetch(`${SUPABASE_URL}/functions/v1/ddg-search`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: bearer,
-      },
-      body: JSON.stringify({ query, numResults: 6 }),
-    });
+    // Bounded: an unbounded fallback fetch could alone eat the edge idle ceiling.
+    const ctl = new AbortController();
+    const killer = setTimeout(() => ctl.abort(), 8_000);
+    let resp: Response;
+    try {
+      resp = await fetch(`${SUPABASE_URL}/functions/v1/ddg-search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: bearer,
+        },
+        body: JSON.stringify({ query, numResults: 6 }),
+        signal: ctl.signal,
+      });
+    } finally {
+      clearTimeout(killer);
+    }
 
     if (!resp.ok) {
       console.error("DDG search failed:", resp.status);
