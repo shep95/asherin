@@ -1928,81 +1928,14 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         dorkIntentFired = true;
         dorkSubject = resolvedSubject;
         console.log("[chat] Asherin exposure sweep firing:", engineKind, resolvedSubject, "self=", trig.selfTarget);
-        const { runAureonDork, formatDorkContext } = await import("../_shared/aureonDorkEngine.ts");
-        const _gKey = Deno.env.get("GEMINI_API_KEY") || "";
-        const _dorkRace = (cap: number, conc: number, perQ: number, budget: number) =>
-          Promise.race([
-            runAureonDork(
-              { subject: resolvedSubject, kind: engineKind, hints: trig.hints },
-              {
-                geminiKey: _gKey,
-                testCap: cap,
-                concurrency: conc,
-                perQueryTimeoutMs: perQ,
-                skipBrief: true,
-                depth: continuationDepth,
-              },
-            ),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), budget)),
-          ]);
-        const _turnBudget = _organBudgetMs();
-        const _deepPass = _turnBudget >= 20000;
-        let report = _deepPass
-          ? await _dorkRace(48, 12, 3000, Math.min(18000, Math.max(8000, _turnBudget - 2000)))
-          : await _dorkRace(16, 8, 2200, Math.min(6500, Math.max(3500, _turnBudget - 400)));
-        const _empty =
-          !report ||
-          !(
-            Array.isArray((report as { topExposures?: unknown[] }).topExposures) &&
-            (report as { topExposures?: unknown[] }).topExposures!.length
-          );
-        if (_empty) {
-          report = await _dorkRace(8, 4, 1600, Math.min(3200, Math.max(1800, _organBudgetMs())));
-        }
+        const { runCursorDorkSwarm } = await import("../_shared/liveDorkBridge.ts");
         const _nl = "\n";
-        const _attachSweep = (rep: {
-          topExposures?: { hits?: { url?: string; host?: string }[] }[];
-          defensiveGuidance?: string;
-        }) => {
-          const urls: string[] = [];
-          for (const th of rep.topExposures || [])
-            for (const h of th.hits || []) if (h.url) urls.push("- [" + (h.host || h.url) + "](" + h.url + ")");
-          const sources = urls.length
-            ? _nl +
-              _nl +
-              "**SOURCES (" +
-              urls.length +
-              ') — reproduce verbatim in the answer under a "### Sources" heading:**' +
-              _nl +
-              urls.slice(0, 60).join(_nl)
-            : "";
-          dorkContext =
-            formatDorkContext(rep as Parameters<typeof formatDorkContext>[0]) +
-            _nl +
-            _nl +
-            (rep.defensiveGuidance || "") +
-            _nl +
-            _nl +
-            "> **URL PRESERVATION RULE:** reproduce every markdown link `[title](url)` verbatim. End the reply with a `### Sources` list of every URL below. A finding without its source URL is useless." +
-            sources;
-        };
-        if (report) {
-          _attachSweep(report);
-        } else if (liveDorkContext && String(liveDorkContext).trim()) {
-          dorkContext =
-            _nl +
-            _nl +
-            "[PUBLIC-INDEX SWEEP — asherin retried a budget-fit battery this turn, then folded the live-dork organ already collected. Do not say the battery is unavailable. Do not tell the operator to run queries in Google.]" +
-            _nl +
-            _nl +
-            String(liveDorkContext);
-        } else {
-          dorkContext =
-            _nl +
-            _nl +
-            '[PUBLIC-INDEX SWEEP — platform already ran and retried a budget-fit battery this turn on "' +
-            resolvedSubject +
-            '". Zero indexed hits landed before the remaining organ budget. Continue the intelligence ask from other organs and public facts on hand. Do not say the battery is unavailable. Do not tell the operator to run queries in Google.]';
+        const swarm = await runCursorDorkSwarm(resolvedSubject, {
+          deadlineMs: Math.min(5500, Math.max(2500, _organBudgetMs() - 800)),
+        });
+        dorkContext = _nl + _nl + swarm.block;
+        if (liveDorkContext && String(liveDorkContext).trim()) {
+          dorkContext += _nl + _nl + String(liveDorkContext);
         }
       } else if (trig.fire && !resolvedSubject) {
         // Trigger fired but no anchor exists — ask for one identifier instead
