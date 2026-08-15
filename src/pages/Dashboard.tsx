@@ -19,12 +19,7 @@ import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardSidebarV2 from "@/components/dashboard/DashboardSidebarV2";
-import {
-  DASHBOARD_UI_EVENT,
-  hydrateDashboardUiFromDb,
-  readDashboardUi,
-  type DashboardUi,
-} from "@/lib/dashboardUi";
+import { DASHBOARD_UI_EVENT, hydrateDashboardUiFromDb, readDashboardUi, type DashboardUi } from "@/lib/dashboardUi";
 import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
@@ -65,7 +60,6 @@ const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
 
-
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
@@ -93,7 +87,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import { thinkingStore } from "@/hooks/useAureonThinking";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
-import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch, hydrateMessageBranches, restoreBranchesFromDB, saveBranchesToDB } from "@/components/dashboard/ConversationBranches";
+import {
+  getActiveBranch,
+  getMessageBranch,
+  tagMessageBranch,
+  retargetMessageBranch,
+  hydrateMessageBranches,
+  restoreBranchesFromDB,
+  saveBranchesToDB,
+} from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
@@ -118,7 +120,12 @@ const FeatureGate = ({
   description,
   onUpgrade,
   compact = false,
-}: { title: string; description: string; onUpgrade: () => void; compact?: boolean }) => (
+}: {
+  title: string;
+  description: string;
+  onUpgrade: () => void;
+  compact?: boolean;
+}) => (
   <div className="flex flex-1 items-center justify-center p-6">
     <div className="max-w-md text-center space-y-6 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10">
       <Lock className="h-10 w-10 text-accent mx-auto" />
@@ -138,7 +145,6 @@ const FeatureGate = ({
 /** v.2 gate copy: one sentence, never the product essay. */
 const v2GateLine = (title: string) => `${title.toLowerCase()} is on paid plans.`;
 
-
 const serializeAttachments = (attachments?: FileAttachment[]): FileAttachment[] | undefined =>
   attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment);
 
@@ -149,7 +155,9 @@ const decryptAttachments = async (ciphertext: unknown, userId: string): Promise<
     if (!Array.isArray(parsed)) return undefined;
     return (parsed as FileAttachment[]).map((attachment) => ({
       ...attachment,
-      previewUrl: attachment.previewUrl || (attachment.type.startsWith("image/") ? `data:${attachment.type};base64,${attachment.base64}` : undefined),
+      previewUrl:
+        attachment.previewUrl ||
+        (attachment.type.startsWith("image/") ? `data:${attachment.type};base64,${attachment.base64}` : undefined),
     }));
   } catch {
     return undefined;
@@ -168,12 +176,59 @@ const Dashboard = () => {
   const { canAccess, tierKey } = useAccess();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(() => {
-    try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
+    try {
+      return localStorage.getItem("aureon_active_conv_id") || null;
+    } catch {
+      return null;
+    }
   });
-  const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
+  const asherEmbed =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
   const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
-  const VALID_VIEWS: DashboardView[] = ["chat","library","projects","memory","settings","api-keys","connect","search","subscription","azplen","briefing","snippets","teams","notebooks","geospatial","timeseries","audit","zali","community","google","ide","pdf-generator","pattern-analysis","slideshow","bug-reports","ebook","guardian-vault","zeeion","zerlal","axrlen","zaxin","zacoon","file-scrapper","vedic-astrology","zahten","gematria","ghost-engine","whiteboard","knowledge-vault","asherin-defender","asherin-arvision"];
+  const VALID_VIEWS: DashboardView[] = [
+    "chat",
+    "library",
+    "projects",
+    "memory",
+    "settings",
+    "api-keys",
+    "connect",
+    "search",
+    "subscription",
+    "azplen",
+    "briefing",
+    "snippets",
+    "teams",
+    "notebooks",
+    "geospatial",
+    "timeseries",
+    "audit",
+    "zali",
+    "community",
+    "google",
+    "ide",
+    "pdf-generator",
+    "pattern-analysis",
+    "slideshow",
+    "bug-reports",
+    "ebook",
+    "guardian-vault",
+    "zeeion",
+    "zerlal",
+    "axrlen",
+    "zaxin",
+    "zacoon",
+    "file-scrapper",
+    "vedic-astrology",
+    "zahten",
+    "gematria",
+    "ghost-engine",
+    "whiteboard",
+    "knowledge-vault",
+    "asherin-defender",
+    "asherin-arvision",
+  ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
   // chat as if the room did not exist.
@@ -195,13 +250,22 @@ const Dashboard = () => {
   };
   const initialView: DashboardView = resolveView(viewParam) ?? "chat";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
+  const [mapDock, setMapDock] = useState(false);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
   // The code workspace can hand the operator back to the mouth. One chat only —
   // the workspace never hosts a transcript of its own.
   useEffect(() => {
     const back = () => setActiveViewRaw("chat");
     window.addEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
-    return () => window.removeEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+    const onHand = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.surface === "maps") setMapDock(true);
+    };
+    window.addEventListener("asherin:hand-open", onHand as EventListener);
+    return () => {
+      window.removeEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
+      window.removeEventListener("asherin:hand-open", onHand as EventListener);
+    };
   }, []);
 
   // Sync URL -> state (back/forward navigation, deep links)
@@ -218,6 +282,7 @@ const Dashboard = () => {
   }, [viewParam]);
   const setActiveView = (v: DashboardView) => {
     if (asherEmbed && v !== "chat") return;
+    if (v !== "chat") setMapDock(false);
     setActiveViewRaw(v);
     setSuggestions([]);
     // Push URL: /dashboard for chat, /dashboard/<view> otherwise
@@ -238,7 +303,9 @@ const Dashboard = () => {
   const [algorithmModeRaw, setAlgorithmMode] = useState<boolean>(false);
   const algorithmMode = false;
   const showAlgorithmToggle = false;
-  const toggleAlgorithmMode = () => { /* no-op: BYOK only */ };
+  const toggleAlgorithmMode = () => {
+    /* no-op: BYOK only */
+  };
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -264,7 +331,11 @@ const Dashboard = () => {
   const [publishedAgents, setPublishedAgents] = useState<{ id: string; name: string; entry_html: string | null }[]>([]);
   const [isDraggingConvo, setIsDraggingConvo] = useState(false);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
-    try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
+    try {
+      return localStorage.getItem("aureon_active_brain_id") || null;
+    } catch {
+      return null;
+    }
   });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try {
@@ -276,7 +347,9 @@ const Dashboard = () => {
         return "aureon";
       }
       return existing;
-    } catch { return "aureon"; }
+    } catch {
+      return "aureon";
+    }
   });
   const [appearance, setAppearance] = useState<DashboardAppearance>(() => readAppearance());
   // Chrome layout is a preference, not a deploy. Swapping it exchanges the
@@ -296,7 +369,6 @@ const Dashboard = () => {
       path: "/dashboard",
     });
   }, []);
-
 
   useEffect(() => {
     const handler = () => {
@@ -354,26 +426,32 @@ const Dashboard = () => {
     };
   }, []);
 
-  const addSplitPane = useCallback((convId: string) => {
-    if (splitPanes.length >= 4) return;
-    if (splitPanes.some(p => p.conversationId === convId)) return;
-    setSplitPanes(prev => [...prev, { id: crypto.randomUUID(), conversationId: convId }]);
-  }, [splitPanes]);
+  const addSplitPane = useCallback(
+    (convId: string) => {
+      if (splitPanes.length >= 4) return;
+      if (splitPanes.some((p) => p.conversationId === convId)) return;
+      setSplitPanes((prev) => [...prev, { id: crypto.randomUUID(), conversationId: convId }]);
+    },
+    [splitPanes],
+  );
 
   const removeSplitPane = useCallback((paneId: string) => {
-    setSplitPanes(prev => {
-      const next = prev.filter(p => p.id !== paneId);
+    setSplitPanes((prev) => {
+      const next = prev.filter((p) => p.id !== paneId);
       return next;
     });
   }, []);
 
-  const handleSplitSendMessage = useCallback(async (content: string, convId: string, attachments?: FileAttachment[]) => {
-    // Temporarily switch active conv to send to the right conversation
-    const prevActive = activeConvId;
-    setActiveConvId(convId);
-    await sendMessageCore(content, convId, attachments);
-    if (prevActive) setActiveConvId(prevActive);
-  }, [activeConvId]);
+  const handleSplitSendMessage = useCallback(
+    async (content: string, convId: string, attachments?: FileAttachment[]) => {
+      // Temporarily switch active conv to send to the right conversation
+      const prevActive = activeConvId;
+      setActiveConvId(convId);
+      await sendMessageCore(content, convId, attachments);
+      if (prevActive) setActiveConvId(prevActive);
+    },
+    [activeConvId],
+  );
 
   // Online/offline detection
   useEffect(() => {
@@ -384,7 +462,11 @@ const Dashboard = () => {
     };
     const handleOffline = () => {
       setOnline(false);
-      toast({ title: "You're offline", description: "Messages will be queued and sent when you reconnect.", variant: "destructive" });
+      toast({
+        title: "You're offline",
+        description: "Messages will be queued and sent when you reconnect.",
+        variant: "destructive",
+      });
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -418,12 +500,12 @@ const Dashboard = () => {
         if (!navigator.onLine) break;
         if (msg.retryCount >= msg.maxRetries) {
           await updateMessageStatus(msg.id, "failed");
-          setMessageStatuses(prev => ({ ...prev, [msg.id]: "failed" }));
+          setMessageStatuses((prev) => ({ ...prev, [msg.id]: "failed" }));
           continue;
         }
         try {
           await updateMessageStatus(msg.id, "sending");
-          setMessageStatuses(prev => ({ ...prev, [msg.id]: "sending" }));
+          setMessageStatuses((prev) => ({ ...prev, [msg.id]: "sending" }));
 
           // Actually persist the user message to DB
           const encryptedContent = await encryptText(msg.content, user.id);
@@ -433,35 +515,53 @@ const Dashboard = () => {
             : null;
           const { data: savedMsg } = await supabase
             .from("messages")
-            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
+            .insert({
+              conversation_id: msg.conversationId,
+              user_id: user.id,
+              role: "user",
+              content: encryptedContent,
+              attachments_enc: encryptedAttachments,
+            } as any)
             .select()
             .single();
 
           if (savedMsg) {
             // Update the optimistic message with the real DB id
-            setConversations(prev => prev.map(c =>
-              c.id === msg.conversationId
-                ? { ...c, messages: c.messages.map(m => m.id === msg.id ? { ...m, id: savedMsg.id } : m) }
-                : c
-            ));
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === msg.conversationId
+                  ? { ...c, messages: c.messages.map((m) => (m.id === msg.id ? { ...m, id: savedMsg.id } : m)) }
+                  : c,
+              ),
+            );
           }
 
           await removeMessage(msg.id);
-          setMessageStatuses(prev => ({ ...prev, [msg.id]: "sent" }));
+          setMessageStatuses((prev) => ({ ...prev, [msg.id]: "sent" }));
 
           // Trigger AI response for this queued message
-          const conv = conversationsRef.current.find(c => c.id === msg.conversationId);
+          const conv = conversationsRef.current.find((c) => c.id === msg.conversationId);
           if (conv) {
             const assistantId = crypto.randomUUID();
-            setConversations(prev => prev.map(c =>
-              c.id === msg.conversationId
-                ? { ...c, messages: [...c.messages, { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() }] }
-                : c
-            ));
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === msg.conversationId
+                  ? {
+                      ...c,
+                      messages: [
+                        ...c.messages,
+                        { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() },
+                      ],
+                    }
+                  : c,
+              ),
+            );
             setIsStreaming(true);
             let assistantContent = "";
-            const history = [...conv.messages, { role: "user" as const, content: msg.content }]
-              .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+            const history = [...conv.messages, { role: "user" as const, content: msg.content }].map((m) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
 
             try {
               await streamChat({
@@ -473,18 +573,26 @@ const Dashboard = () => {
                 onDelta: (chunk) => {
                   assistantContent += chunk;
                   const current = assistantContent;
-                  setConversations(prev => prev.map(c =>
-                    c.id === msg.conversationId
-                      ? { ...c, messages: c.messages.map(m => m.id === assistantId ? { ...m, content: current } : m) }
-                      : c
-                  ));
+                  setConversations((prev) =>
+                    prev.map((c) =>
+                      c.id === msg.conversationId
+                        ? {
+                            ...c,
+                            messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m)),
+                          }
+                        : c,
+                    ),
+                  );
                 },
                 onDone: async () => {
                   setIsStreaming(false);
                   const encAssistant = await encryptText(assistantContent, user.id);
                   await supabase.from("messages").insert({
-                    id: assistantId, conversation_id: msg.conversationId,
-                    user_id: user.id, role: "assistant", content: encAssistant,
+                    id: assistantId,
+                    conversation_id: msg.conversationId,
+                    user_id: user.id,
+                    role: "assistant",
+                    content: encAssistant,
                   });
                   pushNotification({
                     title: "Queued response ready",
@@ -502,8 +610,8 @@ const Dashboard = () => {
         } catch {
           const delay = getRetryDelay(msg.retryCount);
           await updateMessageStatus(msg.id, "retrying");
-          setMessageStatuses(prev => ({ ...prev, [msg.id]: "retrying" }));
-          await new Promise(r => setTimeout(r, delay));
+          setMessageStatuses((prev) => ({ ...prev, [msg.id]: "retrying" }));
+          await new Promise((r) => setTimeout(r, delay));
         }
       }
     } finally {
@@ -518,10 +626,22 @@ const Dashboard = () => {
         e.preventDefault();
         setCmdPaletteOpen((o) => !o);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); setMode("chat"); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "2") { e.preventDefault(); setMode("code"); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "3") { e.preventDefault(); setMode("research"); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "4") { e.preventDefault(); setMode("truth"); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "1") {
+        e.preventDefault();
+        setMode("chat");
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "2") {
+        e.preventDefault();
+        setMode("code");
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "3") {
+        e.preventDefault();
+        setMode("research");
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "4") {
+        e.preventDefault();
+        setMode("truth");
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -541,10 +661,15 @@ const Dashboard = () => {
   // "aureon" is platform-hosted (no key) and always available as a switchable provider.
   useEffect(() => {
     if (!user) return;
-    supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
-      const byok = data ? data.map(d => d.provider) : [];
-      setStoredProviders(["aureon", ...byok.filter(p => p !== "aureon")]);
-    });
+    supabase
+      .from("user_api_keys")
+      .select("provider")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .then(({ data }) => {
+        const byok = data ? data.map((d) => d.provider) : [];
+        setStoredProviders(["aureon", ...byok.filter((p) => p !== "aureon")]);
+      });
   }, [user?.id]);
 
   // Load conversations and user profile from DB
@@ -554,7 +679,12 @@ const Dashboard = () => {
 
     const load = async () => {
       const [convResult, profileResult, settingsResult] = await Promise.all([
-        supabase.from("conversations").select("*").eq("user_id", user.id).eq("archived", false).order("created_at", { ascending: false }),
+        supabase
+          .from("conversations")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("archived", false)
+          .order("created_at", { ascending: false }),
         supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
@@ -589,13 +719,12 @@ const Dashboard = () => {
       // Restore the appearance mode / colour the same way: the account row wins
       // on a new device, and hydrate broadcasts so the surface repaints once.
       {
-        const row = settingsResult.data as
-          | { dashboard_bg_mode?: string | null; dashboard_bg_color?: string | null }
-          | null;
+        const row = settingsResult.data as {
+          dashboard_bg_mode?: string | null;
+          dashboard_bg_color?: string | null;
+        } | null;
         if (row && (row.dashboard_bg_mode || row.dashboard_bg_color)) {
-          setAppearance(
-            hydrateAppearanceFromDb(row.dashboard_bg_mode, row.dashboard_bg_color),
-          );
+          setAppearance(hydrateAppearanceFromDb(row.dashboard_bg_mode, row.dashboard_bg_color));
         }
       }
 
@@ -610,9 +739,7 @@ const Dashboard = () => {
       if (convRows.length === 0) {
         const savedConvId = localStorage.getItem("aureon_active_conv_id");
         const canBootstrapConversation =
-          !bootstrapConversationRef.current &&
-          conversationsRef.current.length === 0 &&
-          !savedConvId;
+          !bootstrapConversationRef.current && conversationsRef.current.length === 0 && !savedConvId;
 
         if (canBootstrapConversation) {
           bootstrapConversationRef.current = true;
@@ -632,7 +759,16 @@ const Dashboard = () => {
           }
 
           if (newConv) {
-            setConversations([{ id: newConv.id, title: newConv.title, messages: [], createdAt: new Date(newConv.created_at), pinned: newConv.pinned, mode: newConv.mode as ChatMode }]);
+            setConversations([
+              {
+                id: newConv.id,
+                title: newConv.title,
+                messages: [],
+                createdAt: new Date(newConv.created_at),
+                pinned: newConv.pinned,
+                mode: newConv.mode as ChatMode,
+              },
+            ]);
             setActiveConvId(newConv.id);
           }
         }
@@ -666,9 +802,10 @@ const Dashboard = () => {
         } as Conversation;
       });
       setConversations(shellConvs);
-      const initialActiveId = (preferredConvId && shellConvs.find(c => c.id === preferredConvId))
-        ? preferredConvId
-        : (shellConvs[0]?.id ?? null);
+      const initialActiveId =
+        preferredConvId && shellConvs.find((c) => c.id === preferredConvId)
+          ? preferredConvId
+          : (shellConvs[0]?.id ?? null);
       setActiveConvId(initialActiveId);
       setLoaded(true);
 
@@ -678,8 +815,15 @@ const Dashboard = () => {
         const restored = localStorage.getItem("aureon_conv_branches");
         const parsed = restored ? JSON.parse(restored) : {};
         const current = parsed[c.id];
-        if (!Array.isArray((c as any).branches) || (c as any).branches.length === 0 || !current?.some((branch: any) => branch.id === "main")) {
-          void saveBranchesToDB(c.id, current && current.length > 0 ? current : [{ id: "main", name: "Main", createdAt: 0 }]);
+        if (
+          !Array.isArray((c as any).branches) ||
+          (c as any).branches.length === 0 ||
+          !current?.some((branch: any) => branch.id === "main")
+        ) {
+          void saveBranchesToDB(
+            c.id,
+            current && current.length > 0 ? current : [{ id: "main", name: "Main", createdAt: 0 }],
+          );
         }
       });
 
@@ -692,44 +836,50 @@ const Dashboard = () => {
           .order("created_at", { ascending: true })
           .limit(500);
         const rows = data ?? [];
-        hydrateMessageBranches(rows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-        const decrypted = await Promise.all(rows.map(async (m) => {
-          let content = "";
-          try {
-            content = await decryptText(m.content, user.id);
-          } catch {
-            content = "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
-          }
-          const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
-          return {
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content,
-            timestamp: new Date(m.created_at),
-            truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-            sources: (m.sources as { title: string; url: string }[]) ?? [],
-            attachments,
-          } as Message;
-        }));
+        hydrateMessageBranches(rows.map((m) => ({ id: m.id, branch_id: (m as any).branch_id })));
+        const decrypted = await Promise.all(
+          rows.map(async (m) => {
+            let content = "";
+            try {
+              content = await decryptText(m.content, user.id);
+            } catch {
+              content =
+                "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
+            }
+            const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
+            return {
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content,
+              timestamp: new Date(m.created_at),
+              truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+              sources: (m.sources as { title: string; url: string }[]) ?? [],
+              attachments,
+            } as Message;
+          }),
+        );
         if (cancelled) return;
-        setConversations(prev => prev.map(c => c.id === cid ? { ...c, messages: decrypted } : c));
+        setConversations((prev) => prev.map((c) => (c.id === cid ? { ...c, messages: decrypted } : c)));
       };
 
       // Only conversations with nothing in memory need a fetch. Re-hydrating a
       // populated thread is the second half of the "chat refreshed" complaint.
-      const needsHydration = (cid: string) =>
-        (priorById.get(cid)?.messages.length ?? 0) === 0;
+      const needsHydration = (cid: string) => (priorById.get(cid)?.messages.length ?? 0) === 0;
 
       (async () => {
         if (initialActiveId && needsHydration(initialActiveId)) {
-          try { await hydrateConv(initialActiveId); } catch {}
+          try {
+            await hydrateConv(initialActiveId);
+          } catch {}
         }
         if (cancelled) return;
         for (const c of convRows) {
           if (cancelled) return;
           if (c.id === initialActiveId) continue;
           if (!needsHydration(c.id)) continue;
-          try { await hydrateConv(c.id); } catch {}
+          try {
+            await hydrateConv(c.id);
+          } catch {}
         }
       })();
     };
@@ -768,7 +918,9 @@ const Dashboard = () => {
   }, [loaded, conversations, activeConvId]);
 
   // Keep ref in sync so sendMessageCore always reads latest conversations
-  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Re-sync UI when tab becomes visible again — but ONLY if we were hidden long
   // enough that drift is likely AND the DB actually has newer messages than local.
@@ -809,7 +961,7 @@ const Dashboard = () => {
           .order("created_at", { ascending: false })
           .limit(1);
 
-        const localConv = conversationsRef.current.find(c => c.id === currentConvId);
+        const localConv = conversationsRef.current.find((c) => c.id === currentConvId);
         const localMsgs = localConv?.messages ?? [];
         const localLast = localMsgs[localMsgs.length - 1];
         const remoteLastId = probe?.[0]?.id;
@@ -833,7 +985,8 @@ const Dashboard = () => {
             try {
               content = await decryptText(m.content, user.id);
             } catch {
-              content = "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
+              content =
+                "_[This message was saved with an older device-only key. Open it on the device that wrote it and re-save this conversation.]_";
             }
             const attachments = await decryptAttachments((m as any).attachments_enc, user.id);
             return {
@@ -845,22 +998,24 @@ const Dashboard = () => {
               sources: (m.sources as { title: string; url: string }[]) ?? [],
               attachments,
             };
-          })
+          }),
         );
 
-        setConversations(prev => prev.map(c => {
-          if (c.id !== currentConvId) return c;
-          const existingById = Object.fromEntries(c.messages.map(m => [m.id, m]));
-          return {
-            ...c,
-            // Reverse-merge: DB provides the baseline row, but in-memory fields
-            // (consensusData, streaming partials, richer attachments) win.
-            messages: decrypted.map(dm => ({
-              ...dm,
-              ...existingById[dm.id],
-            })),
-          };
-        }));
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id !== currentConvId) return c;
+            const existingById = Object.fromEntries(c.messages.map((m) => [m.id, m]));
+            return {
+              ...c,
+              // Reverse-merge: DB provides the baseline row, but in-memory fields
+              // (consensusData, streaming partials, richer attachments) win.
+              messages: decrypted.map((dm) => ({
+                ...dm,
+                ...existingById[dm.id],
+              })),
+            };
+          }),
+        );
       } catch {
         // Non-critical — local state is still valid
       }
@@ -903,17 +1058,19 @@ const Dashboard = () => {
     return () => window.removeEventListener("asherin:conversation-restored", onRestored);
   }, []);
 
-
   const activeConv = activeConvId
-    ? conversations.find((c) => c.id === activeConvId) ?? null
-    : conversations[0] ?? null;
+    ? (conversations.find((c) => c.id === activeConvId) ?? null)
+    : (conversations[0] ?? null);
 
-  const handleDepthChange = useCallback((newDepth: ResponseDepth) => {
-    setDepth(newDepth);
-    if (user) {
-      supabase.from("user_settings").update({ response_depth: newDepth }).eq("user_id", user.id).then();
-    }
-  }, [user]);
+  const handleDepthChange = useCallback(
+    (newDepth: ResponseDepth) => {
+      setDepth(newDepth);
+      if (user) {
+        supabase.from("user_settings").update({ response_depth: newDepth }).eq("user_id", user.id).then();
+      }
+    },
+    [user],
+  );
 
   // Load Zahten-published agents so they surface as dynamic dashboard tabs (mirrors Asher Dashboard).
   useEffect(() => {
@@ -931,49 +1088,66 @@ const Dashboard = () => {
     load();
     const onUpd = () => load();
     window.addEventListener("asher-agents-updated", onUpd);
-    return () => { cancelled = true; window.removeEventListener("asher-agents-updated", onUpd); };
+    return () => {
+      cancelled = true;
+      window.removeEventListener("asher-agents-updated", onUpd);
+    };
   }, [user?.id]);
 
-  const trackUsage = useCallback(async (modeUsed: ChatMode) => {
-    if (!user) return;
-    const modeCol = `${modeUsed}_prompts`;
-    // maybeSingle(): zero rows is a normal first-use state, not a 406 error.
-    const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).maybeSingle();
-    if (stats) {
-      const today = new Date().toISOString().split("T")[0];
-      const streakDays = stats.last_active_date === today ? stats.streak_days :
-        (stats.last_active_date === new Date(Date.now() - 86400000).toISOString().split("T")[0] ? stats.streak_days + 1 : 1);
-      const update: Record<string, any> = {
-        total_prompts: (stats.total_prompts ?? 0) + 1,
-        streak_days: streakDays,
-        last_active_date: today,
-      };
-      update[modeCol] = ((stats as any)[modeCol] ?? 0) + 1;
-      await supabase.from("usage_stats").update(update).eq("user_id", user.id);
-    }
-  }, [user]);
-
-  const handleCalibrationFeedback = useCallback(async (messageId: string, feedback: FeedbackType) => {
-    if (!user) return;
-    await supabase.from("calibration_feedback").insert({ user_id: user.id, message_id: messageId, feedback });
-    const { data: profile } = await supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle();
-    if (profile) {
-      const updates: Record<string, any> = { total_calibrations: (profile.total_calibrations ?? 0) + 1 };
-      if (feedback === "too_shallow") {
-        const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
-        const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
-        if (idx < depthOrder.length - 1) updates.depth_auto = depthOrder[idx + 1];
-      } else if (feedback === "too_deep") {
-        const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
-        const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
-        if (idx > 0) updates.depth_auto = depthOrder[idx - 1];
-      } else if (feedback === "perfect") {
-        updates.tone_preference = "direct";
+  const trackUsage = useCallback(
+    async (modeUsed: ChatMode) => {
+      if (!user) return;
+      const modeCol = `${modeUsed}_prompts`;
+      // maybeSingle(): zero rows is a normal first-use state, not a 406 error.
+      const { data: stats } = await supabase.from("usage_stats").select("*").eq("user_id", user.id).maybeSingle();
+      if (stats) {
+        const today = new Date().toISOString().split("T")[0];
+        const streakDays =
+          stats.last_active_date === today
+            ? stats.streak_days
+            : stats.last_active_date === new Date(Date.now() - 86400000).toISOString().split("T")[0]
+              ? stats.streak_days + 1
+              : 1;
+        const update: Record<string, any> = {
+          total_prompts: (stats.total_prompts ?? 0) + 1,
+          streak_days: streakDays,
+          last_active_date: today,
+        };
+        update[modeCol] = ((stats as any)[modeCol] ?? 0) + 1;
+        await supabase.from("usage_stats").update(update).eq("user_id", user.id);
       }
-      await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
-    }
-    toast({ title: "Calibrated", description: "Asherin adjusted to your preference." });
-  }, [user, toast]);
+    },
+    [user],
+  );
+
+  const handleCalibrationFeedback = useCallback(
+    async (messageId: string, feedback: FeedbackType) => {
+      if (!user) return;
+      await supabase.from("calibration_feedback").insert({ user_id: user.id, message_id: messageId, feedback });
+      const { data: profile } = await supabase
+        .from("user_intelligence_profile")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profile) {
+        const updates: Record<string, any> = { total_calibrations: (profile.total_calibrations ?? 0) + 1 };
+        if (feedback === "too_shallow") {
+          const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
+          const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
+          if (idx < depthOrder.length - 1) updates.depth_auto = depthOrder[idx + 1];
+        } else if (feedback === "too_deep") {
+          const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
+          const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
+          if (idx > 0) updates.depth_auto = depthOrder[idx - 1];
+        } else if (feedback === "perfect") {
+          updates.tone_preference = "direct";
+        }
+        await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
+      }
+      toast({ title: "Calibrated", description: "Asherin adjusted to your preference." });
+    },
+    [user, toast],
+  );
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
@@ -999,25 +1173,27 @@ const Dashboard = () => {
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
-    const conv = conversationsRef.current.find(c => c.id === convId);
+    const conv = conversationsRef.current.find((c) => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
     const currentBranch = getActiveBranch(convId);
     tagMessageBranch(tempMsgId, currentBranch);
-    const branchMsgs = conv?.messages.filter(m => getMessageBranch(m.id) === currentBranch) ?? [];
-    const isFirst = branchMsgs.length === 0 && (conv?.messages.length === 0);
+    const branchMsgs = conv?.messages.filter((m) => getMessageBranch(m.id) === currentBranch) ?? [];
+    const isFirst = branchMsgs.length === 0 && conv?.messages.length === 0;
     if (isFirst) {
       const newTitle = content.slice(0, 50);
-      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === convId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c)),
+      );
       supabase.from("conversations").update({ title: newTitle }).eq("id", convId).then();
     } else {
-      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c));
+      setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c)));
     }
 
-    setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "sending" }));
+    setMessageStatuses((prev) => ({ ...prev, [tempMsgId]: "sending" }));
     await enqueueMessage({ id: tempMsgId, conversationId: convId, content, role: "user" }).catch(() => {});
 
     if (!navigator.onLine) {
-      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
+      setMessageStatuses((prev) => ({ ...prev, [tempMsgId]: "queued" }));
       registerBackgroundSync().catch(() => {});
       toast({ title: "Message queued", description: "Will send automatically when you're back online." });
       return;
@@ -1030,23 +1206,32 @@ const Dashboard = () => {
         : null;
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, attachments_enc: encryptedAttachments } as any)
+        .insert({
+          conversation_id: convId,
+          user_id: user.id,
+          role: "user",
+          content: encryptedContent,
+          attachments_enc: encryptedAttachments,
+        } as any)
         .select()
         .single();
 
       if (userMsgRow) {
         retargetMessageBranch(tempMsgId, userMsgRow.id);
         tagMessageBranch(userMsgRow.id, currentBranch); // ensure tag exists even if retarget missed
-        setConversations((prev) => prev.map((c) => c.id === convId
-          ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
-          : c
-        ));
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.map((m) => (m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m)) }
+              : c,
+          ),
+        );
       }
 
-      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "sent" }));
+      setMessageStatuses((prev) => ({ ...prev, [tempMsgId]: "sent" }));
       await removeMessage(tempMsgId).catch(() => {});
     } catch (err) {
-      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
+      setMessageStatuses((prev) => ({ ...prev, [tempMsgId]: "queued" }));
       registerBackgroundSync().catch(() => {});
       toast({ title: "Message queued", description: "Network issue. Will retry automatically." });
       // Release the early streaming lock if we bail here.
@@ -1067,9 +1252,15 @@ const Dashboard = () => {
     setConversations((prev) =>
       prev.map((c) =>
         c.id === convId
-          ? { ...c, messages: [...c.messages, { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() }] }
-          : c
-      )
+          ? {
+              ...c,
+              messages: [
+                ...c.messages,
+                { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() },
+              ],
+            }
+          : c,
+      ),
     );
 
     // Only send branch-scoped history to AI (no memory leaking between branches).
@@ -1085,20 +1276,29 @@ const Dashboard = () => {
       attachments: m.attachments,
     }));
 
-
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
     if (activeBrainId) {
       try {
-        const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();
+        const { data: brain } = await supabase
+          .from("brains")
+          .select("system_prompt, file_ids")
+          .eq("id", activeBrainId)
+          .single();
         if (brain) {
           const fileContents: { name: string; content: string }[] = [];
           if (brain.file_ids?.length) {
-            const { data: files } = await supabase.from("library_files").select("file_name, storage_path, file_type").in("id", brain.file_ids);
+            const { data: files } = await supabase
+              .from("library_files")
+              .select("file_name, storage_path, file_type")
+              .in("id", brain.file_ids);
             if (files) {
               for (const f of files) {
                 // Only load text-readable files as context
-                const isText = !f.file_type.startsWith("image/") && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/");
+                const isText =
+                  !f.file_type.startsWith("image/") &&
+                  !f.file_type.startsWith("video/") &&
+                  !f.file_type.startsWith("audio/");
                 if (isText) {
                   const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
                   if (blob) {
@@ -1118,31 +1318,39 @@ const Dashboard = () => {
 
     // Algorithm mode removed — all chat runs through BYOK only.
 
-
     // ── CONSENSUS MODE ──────────────────────────────────────────────
 
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
         const result = await fetchConsensus({
-          messages: history.map(m => ({ role: m.role, content: m.content })),
-          models: consensusModels.map(m => ({ provider: m.provider, model: m.model })),
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          models: consensusModels.map((m) => ({ provider: m.provider, model: m.model })),
           mode,
         });
 
         // Pick the best content: use verdict response if available
         const verdictIdx = result.verdict?.index ?? 0;
-        const successfulResponses = result.responses.filter(r => r.content && !r.error);
-        const bestContent = successfulResponses[verdictIdx]?.content
-          || successfulResponses[0]?.content
-          || result.responses.filter(r => r.content).map(r => `**${r.provider}/${r.model}:**\n${r.content}`).join("\n\n---\n\n")
-          || "No models responded successfully.";
+        const successfulResponses = result.responses.filter((r) => r.content && !r.error);
+        const bestContent =
+          successfulResponses[verdictIdx]?.content ||
+          successfulResponses[0]?.content ||
+          result.responses
+            .filter((r) => r.content)
+            .map((r) => `**${r.provider}/${r.model}:**\n${r.content}`)
+            .join("\n\n---\n\n") ||
+          "No models responded successfully.";
 
         setConversations((prev) =>
           prev.map((c) =>
             c.id === convId
-              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: bestContent, consensusData: result as any } : m) }
-              : c
-          )
+              ? {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === assistantId ? { ...m, content: bestContent, consensusData: result as any } : m,
+                  ),
+                }
+              : c,
+          ),
         );
         setIsStreaming(false);
         isStreamingRef.current = false;
@@ -1172,11 +1380,7 @@ const Dashboard = () => {
         setIsStreaming(false);
         isStreamingRef.current = false;
         setConversations((prev) =>
-          prev.map((c) =>
-            c.id === convId
-              ? { ...c, messages: c.messages.filter(m => m.id !== assistantId) }
-              : c
-          )
+          prev.map((c) => (c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c)),
         );
         toast({ title: "Consensus Error", description: e.message, variant: "destructive" });
       }
@@ -1195,8 +1399,7 @@ const Dashboard = () => {
         turnId: assistantId,
         signal: controller.signal,
         // Ghost Chain phase 1 — reasoning streams into the transparency panel.
-        onTools: (rows) =>
-          rows.forEach((r) => thinkingStore.step(assistantId, r.label, r.detail, "done")),
+        onTools: (rows) => rows.forEach((r) => thinkingStore.step(assistantId, r.label, r.detail, "done")),
         // A workspace opens because its organ ran — never because a keyword
         // matched. The split happens after the tool cards land, so the
         // operator sees what fired and where it went in the same beat.
@@ -1214,9 +1417,9 @@ const Dashboard = () => {
           setConversations((prev) =>
             prev.map((c) =>
               c.id === convId
-                ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: current } : m) }
-                : c
-            )
+                ? { ...c, messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m)) }
+                : c,
+            ),
           );
         },
         onReplace: (content) => {
@@ -1224,9 +1427,9 @@ const Dashboard = () => {
           setConversations((prev) =>
             prev.map((c) =>
               c.id === convId
-                ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content } : m) }
-                : c
-            )
+                ? { ...c, messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content } : m)) }
+                : c,
+            ),
           );
         },
         onDone: async () => {
@@ -1238,19 +1441,24 @@ const Dashboard = () => {
           // actually succeeded (BUG-FLOW-03).
           const persistOnce = async () => {
             const encryptedAssistant = await encryptText(assistantContent, user.id);
-            await supabase.from("messages").upsert({
-              id: assistantId,
-              conversation_id: convId,
-              user_id: user.id,
-              role: "assistant",
-              content: encryptedAssistant,
-            }, { onConflict: "id", ignoreDuplicates: true });
+            await supabase.from("messages").upsert(
+              {
+                id: assistantId,
+                conversation_id: convId,
+                user_id: user.id,
+                role: "assistant",
+                content: encryptedAssistant,
+              },
+              { onConflict: "id", ignoreDuplicates: true },
+            );
           };
           try {
             await persistOnce();
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
-            try { await persistOnce(); } catch (retryErr) {
+            try {
+              await persistOnce();
+            } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
             }
           }
@@ -1260,8 +1468,9 @@ const Dashboard = () => {
           // live in the workspace, so nothing is written from here.
           try {
             const { extractZanoemCodeFiles } = await import("@/components/dashboard/zali/zanoemOutput");
-            const written = extractZanoemCodeFiles(assistantContent)
-              .filter((f) => f.filename && !/^snippet-\d+\./i.test(f.filename) && f.content?.trim());
+            const written = extractZanoemCodeFiles(assistantContent).filter(
+              (f) => f.filename && !/^snippet-\d+\./i.test(f.filename) && f.content?.trim(),
+            );
             if (written.length > 0) {
               const { queueIdeHandoff } = await import("@/lib/ide/chatHandoff");
               if (queueIdeHandoff(written, content)) setActiveView("ide" as DashboardView);
@@ -1272,7 +1481,9 @@ const Dashboard = () => {
           try {
             const sug = await fetchSuggestions(assistantContent);
             setSuggestions(sug);
-          } catch { /* suggestions are non-critical */ }
+          } catch {
+            /* suggestions are non-critical */
+          }
           pushNotification({
             title: "Asherin responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
@@ -1297,7 +1508,9 @@ const Dashboard = () => {
               role: "assistant",
               content: encryptedPartial,
             });
-          } catch { /* best-effort save */ }
+          } catch {
+            /* best-effort save */
+          }
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
       } else {
@@ -1312,7 +1525,9 @@ const Dashboard = () => {
               role: "assistant",
               content: encPartial,
             });
-          } catch { /* best-effort save */ }
+          } catch {
+            /* best-effort save */
+          }
         }
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
       }
@@ -1331,14 +1546,14 @@ const Dashboard = () => {
       }
       const next = pendingQueue.current.shift()!;
       // Remove from visible queue
-      setQueueItems(prev => prev.length > 0 ? prev.slice(1) : prev);
+      setQueueItems((prev) => (prev.length > 0 ? prev.slice(1) : prev));
       const [convId, ...contentParts] = next.split("||");
       const content = contentParts.join("||");
       const fileAttachments = attachmentMapRef.current.get(content);
       if (fileAttachments) attachmentMapRef.current.delete(content);
       await sendMessageCore(content, convId, fileAttachments);
       // Wait for streaming to finish before processing next
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         const check = () => {
           if (!isStreamingRef.current) return resolve();
           setTimeout(check, 100);
@@ -1350,7 +1565,7 @@ const Dashboard = () => {
   }, [user, mode, depth, userProfile]);
 
   const toggleQueuePause = useCallback(() => {
-    setQueuePaused(prev => {
+    setQueuePaused((prev) => {
       const next = !prev;
       queuePausedRef.current = next;
       // If unpausing, kick off processing
@@ -1379,11 +1594,12 @@ const Dashboard = () => {
       const { detectGeoIntent, requestMapFocus } = await import("@/lib/geoIntent");
       const geo = detectGeoIntent(content);
       if (geo) {
-        setActiveView("geospatial");
+        setMapDock(true);
         requestMapFocus(geo);
       }
-    } catch { /* never block a send on the map */ }
-
+    } catch {
+      /* never block a send on the map */
+    }
 
     // F-01 Auto-config: on the FIRST user message of a conversation, infer the
     // best Mode / Depth from intent keywords so users don't have to think about
@@ -1397,7 +1613,9 @@ const Dashboard = () => {
         if (hint.mode && hint.mode !== mode) setMode(hint.mode as ChatMode);
         if (hint.depth && hint.depth !== depth) setDepth(hint.depth as ResponseDepth);
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     // Store attachments for the first message in a ref-based map
     if (attachments?.length) {
@@ -1407,11 +1625,11 @@ const Dashboard = () => {
     if (isStreamingRef.current) {
       const tempId = crypto.randomUUID();
       const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date(), attachments };
-      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c));
-      setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
+      setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c)));
+      setMessageStatuses((prev) => ({ ...prev, [tempId]: "queued" }));
       const queueEntry = `${convId}||${content}`;
       pendingQueue.current.push(queueEntry);
-      setQueueItems(prev => [...prev, { id: tempId, content }]);
+      setQueueItems((prev) => [...prev, { id: tempId, content }]);
       toast({ title: "Message queued", description: "Will send after current response completes." });
       return;
     }
@@ -1419,19 +1637,20 @@ const Dashboard = () => {
     processQueue();
   };
 
-
   const removeFromQueue = useCallback((id: string) => {
-    setQueueItems(prev => {
-      const idx = prev.findIndex(q => q.id === id);
+    setQueueItems((prev) => {
+      const idx = prev.findIndex((q) => q.id === id);
       if (idx >= 0) pendingQueue.current.splice(idx, 1);
-      return prev.filter(q => q.id !== id);
+      return prev.filter((q) => q.id !== id);
     });
     // Remove from conversation messages too
-    setConversations(prev => prev.map(c => ({
-      ...c,
-      messages: c.messages.filter(m => m.id !== id),
-    })));
-    setMessageStatuses(prev => {
+    setConversations((prev) =>
+      prev.map((c) => ({
+        ...c,
+        messages: c.messages.filter((m) => m.id !== id),
+      })),
+    );
+    setMessageStatuses((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
@@ -1439,17 +1658,19 @@ const Dashboard = () => {
   }, []);
 
   const clearQueue = useCallback(() => {
-    const ids = queueItems.map(q => q.id);
+    const ids = queueItems.map((q) => q.id);
     pendingQueue.current = [];
     setQueueItems([]);
     // Remove queued messages from conversation
-    setConversations(prev => prev.map(c => ({
-      ...c,
-      messages: c.messages.filter(m => !ids.includes(m.id)),
-    })));
-    setMessageStatuses(prev => {
+    setConversations((prev) =>
+      prev.map((c) => ({
+        ...c,
+        messages: c.messages.filter((m) => !ids.includes(m.id)),
+      })),
+    );
+    setMessageStatuses((prev) => {
       const next = { ...prev };
-      ids.forEach(id => delete next[id]);
+      ids.forEach((id) => delete next[id]);
       return next;
     });
   }, [queueItems]);
@@ -1466,8 +1687,11 @@ const Dashboard = () => {
       return;
     }
     const conv: Conversation = {
-      id: newConv.id, title: newConv.title, messages: [],
-      createdAt: new Date(newConv.created_at), pinned: newConv.pinned,
+      id: newConv.id,
+      title: newConv.title,
+      messages: [],
+      createdAt: new Date(newConv.created_at),
+      pinned: newConv.pinned,
       mode: newConv.mode as ChatMode,
     };
     // CRITICAL: sync the ref synchronously so any sendMessage fired before
@@ -1507,14 +1731,18 @@ const Dashboard = () => {
       toast({
         title: "Conversation archived",
         description: archived.title,
-        action: React.createElement(ToastAction, {
-          altText: "Undo archive",
-          onClick: async () => {
-            await supabase.from("conversations").update({ archived: false }).eq("id", id);
-            setConversations((prev) => [archived, ...prev]);
-            setActiveConvId(id);
-          },
-        } as any, "Undo") as any,
+        action: React.createElement(
+          ToastAction,
+          {
+            altText: "Undo archive",
+            onClick: async () => {
+              await supabase.from("conversations").update({ archived: false }).eq("id", id);
+              setConversations((prev) => [archived, ...prev]);
+              setActiveConvId(id);
+            },
+          } as any,
+          "Undo",
+        ) as any,
       });
     }
   };
@@ -1522,7 +1750,7 @@ const Dashboard = () => {
   const renameConversation = async (id: string, newTitle: string) => {
     if (!newTitle.trim()) return;
     await supabase.from("conversations").update({ title: newTitle.trim() }).eq("id", id);
-    setConversations((prev) => prev.map((c) => c.id === id ? { ...c, title: newTitle.trim() } : c));
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle.trim() } : c)));
   };
 
   const togglePin = async (id: string) => {
@@ -1530,7 +1758,7 @@ const Dashboard = () => {
     if (!conv) return;
     const newPinned = !conv.pinned;
     await supabase.from("conversations").update({ pinned: newPinned }).eq("id", id);
-    setConversations((prev) => prev.map((c) => c.id === id ? { ...c, pinned: newPinned } : c));
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: newPinned } : c)));
   };
 
   const isV2 = dashboardUi === "v2";
@@ -1538,7 +1766,14 @@ const Dashboard = () => {
   const renderView = () => {
     // Gate map: view -> { component, title, description }
     const gatedView = (view: DashboardView, Component: React.ComponentType, title: string, description: string) => {
-      if (canAccess(view)) return <ErrorBoundary><Suspense fallback={<LazyFallback />}><Component /></Suspense></ErrorBoundary>;
+      if (canAccess(view))
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <Component />
+            </Suspense>
+          </ErrorBoundary>
+        );
       // v.2 refuses the sales essay: the shell already names the room, so the
       // gate says the one thing the operator needs and points at plans.
       return (
@@ -1550,7 +1785,6 @@ const Dashboard = () => {
         />
       );
     };
-
 
     // Dynamic Zahten-published agent tabs (id format: "agent:<uuid>")
     if (typeof activeView === "string" && (activeView as string).startsWith("agent:")) {
@@ -1567,124 +1801,386 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
-      case "asherin-defender": return gatedView("asherin-defender", AsherinDefenderView, "asherin.defender", "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.");
-      case "asherin-arvision": return gatedView("asherin-arvision", AsherinArVisionView, "asherin.arvision", "live camera hud with native frame intel and freeze. included with the $18 asherin plan; saved packets, the rf lattice and plate or vin public-index lookups open on pro.");
-      case "ghost-engine": return gatedView("ghost-engine", AsherinxEngView, "asherinx.eng", "public-index search over eighteen open indexes. included with the $18 asherin plan; pro widens the fan-out and opens origin, identifier and the buffer.");
-      case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
-      case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
-      case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");
-      case "azplen": return gatedView("azplen", AzplenView, "Azplen Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.");
+      case "asherin-defender":
+        return gatedView(
+          "asherin-defender",
+          AsherinDefenderView,
+          "asherin.defender",
+          "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
+        );
+      case "asherin-arvision":
+        return gatedView(
+          "asherin-arvision",
+          AsherinArVisionView,
+          "asherin.arvision",
+          "live camera hud with native frame intel and freeze. included with the $18 asherin plan; saved packets, the rf lattice and plate or vin public-index lookups open on pro.",
+        );
+      case "ghost-engine":
+        return gatedView(
+          "ghost-engine",
+          AsherinxEngView,
+          "asherinx.eng",
+          "public-index search over eighteen open indexes. included with the $18 asherin plan; pro widens the fan-out and opens origin, identifier and the buffer.",
+        );
+      case "search":
+        return gatedView(
+          "search",
+          ZophielEngineView,
+          "Zophiel Engine",
+          "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.",
+        );
+      case "zali":
+        return gatedView(
+          "zali",
+          ZaliView,
+          "ZANOEM Design Lab",
+          "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.",
+        );
+      case "community":
+        return gatedView(
+          "community",
+          CommunityView,
+          "Community",
+          "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.",
+        );
+      case "azplen":
+        return gatedView(
+          "azplen",
+          AzplenView,
+          "Azplen Intelligence",
+          "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.",
+        );
       // case "elion" removed
-      case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
+      case "briefing":
+        return gatedView(
+          "briefing",
+          BriefingView,
+          "Intelligence Briefings",
+          "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.",
+        );
       // Team is deliberately ungated: an $18 seat is allowed to start a Team
       // checkout, and an invited member must reach the accept screen before
       // they hold any Pro-class entitlement at all.
-      case "teams": return <TeamsView />;
+      case "teams":
+        return <TeamsView />;
 
-      case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.");
-      case "geospatial": return gatedView("geospatial", GeospatialView, "asherin.maps", "a dark glass map you can talk to — public cameras, coordinates and weather on every move. included with the $18 asherin plan; pro adds the property dossier and the plane and ship layers.");
-      case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
-      case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
-      case "zahten": return gatedView("zahten" as DashboardView, AsherZahtenModule, "Zahten Agent Forge", "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.");
-      
-      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
-      case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
-      case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — scenario forecasting", "named-method scenario forecasting with intervals and invalidation conditions. available on the asherin pro plan.");
-      case "zerlal": return gatedView("zerlal", ZerlalView, "ZERLAL — Cyber Recon", "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.");
-      case "google": return gatedView("google", GoogleIntelligenceView, "Cloud Intelligence Mesh — Maximum Tier", "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $79/mo, Maximum Intelligence.");
-      case "zaxin": return gatedView("zaxin", ZaxinView, "Zaxin — BLE Field Scout", "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.");
-      case "zacoon": return gatedView("zacoon", ZacoonPhantomView, "Zacoon Phantom Grid v3.0", "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $79/mo Pro plan.");
-      
-      
+      case "notebooks":
+        return gatedView(
+          "notebooks",
+          NotebooksView,
+          "Intelligence Notebooks",
+          "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.",
+        );
+      case "geospatial":
+        return gatedView(
+          "geospatial",
+          GeospatialView,
+          "asherin.maps",
+          "a dark glass map you can talk to — public cameras, coordinates and weather on every move. included with the $18 asherin plan; pro adds the property dossier and the plane and ship layers.",
+        );
+      case "timeseries":
+        return gatedView(
+          "timeseries",
+          TimeSeriesView,
+          "Time-Series Intelligence",
+          "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.",
+        );
+      case "audit":
+        return gatedView(
+          "audit",
+          AuditLogView,
+          "Audit Trail",
+          "Complete access and activity logging for compliance and security. Available on Pro plans.",
+        );
+      case "zahten":
+        return gatedView(
+          "zahten" as DashboardView,
+          AsherZahtenModule,
+          "Zahten Agent Forge",
+          "Autonomous agent builder — design, scaffold, and harden production-grade automated agents. Available on the Chat plan and above.",
+        );
+
+      case "pattern-analysis":
+        return gatedView(
+          "pattern-analysis",
+          PatternAnalysisView,
+          "Pattern Analysis Engine",
+          "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.",
+        );
+      case "zeeion":
+        return gatedView(
+          "zeeion",
+          ZeeionView,
+          "Zeeion — Financial Intelligence",
+          "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.",
+        );
+      case "axrlen":
+        return gatedView(
+          "axrlen",
+          AxrlenView,
+          "Axrlen — scenario forecasting",
+          "named-method scenario forecasting with intervals and invalidation conditions. available on the asherin pro plan.",
+        );
+      case "zerlal":
+        return gatedView(
+          "zerlal",
+          ZerlalView,
+          "ZERLAL — Cyber Recon",
+          "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.",
+        );
+      case "google":
+        return gatedView(
+          "google",
+          GoogleIntelligenceView,
+          "Cloud Intelligence Mesh — Maximum Tier",
+          "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $79/mo, Maximum Intelligence.",
+        );
+      case "zaxin":
+        return gatedView(
+          "zaxin",
+          ZaxinView,
+          "Zaxin — BLE Field Scout",
+          "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.",
+        );
+      case "zacoon":
+        return gatedView(
+          "zacoon",
+          ZacoonPhantomView,
+          "Zacoon Phantom Grid v3.0",
+          "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $79/mo Pro plan.",
+        );
+
       // case "imagine-intelligence" removed
-      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.");
-      
-      case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
-      case "guardian-vault": return gatedView("guardian-vault", GuardianVaultView, "Guardian Vault", "Sessions, MFA, audit trail, encrypted item storage, and Watchtower exposure review. Included on every paid plan.");
-      case "knowledge-vault": return gatedView("knowledge-vault", KnowledgeVaultView, "Knowledge Vault (RAG)", "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $79/mo Pro plan.");
-      case "gematria": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GematriaView /></Suspense></ErrorBoundary>;
-      // Always-accessible views
-      case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
-      case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
-      case "whiteboard": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><div className="h-full w-full min-h-0"><WhiteboardView /></div></Suspense></ErrorBoundary>;
-      case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
-      case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
-      case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
-      case "vedic-astrology": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VedicAstrologyView /></Suspense></ErrorBoundary>;
-      case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
-      case "api-keys":
-      case "connect": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ConnectView /></Suspense></ErrorBoundary>;
-      case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
-      case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
-      case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><DocumentExportLanding /></Suspense></ErrorBoundary>;
-      case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
-      case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
-      
-      default: return activeConv ? (
-        <div className="flex h-full w-full min-w-0">
-          <div className="flex-1 min-w-0 flex flex-col">
-        <ChatView
-          conversation={activeConv}
-          onSendMessage={sendMessage}
-          mode={mode}
-          onModeChange={setMode}
-          depth={depth}
-          onDepthChange={handleDepthChange}
-          isStreaming={isStreaming}
-          suggestions={suggestions}
-          onCalibrationFeedback={handleCalibrationFeedback}
-          onStopStreaming={stopStreaming}
-          focusMode={focusMode}
-          messageStatuses={messageStatuses}
-          queueItems={queueItems}
-          onRemoveFromQueue={removeFromQueue}
-          onClearQueue={clearQueue}
-          onProcessQueueNow={forceProcessQueue}
-          queuePaused={queuePaused}
-          onToggleQueuePause={toggleQueuePause}
-          consensusEnabled={consensusEnabled}
-          onConsensusToggle={setConsensusEnabled}
-          consensusModels={consensusModels}
-          onConsensusModelsChange={setConsensusModels}
-          storedProviders={storedProviders}
-          activeBrainId={activeBrainId}
-          onBrainChange={setActiveBrainId}
-        />
-          </div>
-          <PromptEnhancerPanel conversation={activeConv} />
-        </div>
-      ) : (
+      case "file-scrapper":
+        return gatedView(
+          "file-scrapper",
+          FileScrapperView,
+          "File Scrapper",
+          "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Asherin and above.",
+        );
 
-        <div className="flex h-full w-full items-center justify-center px-6">
-          <div className="max-w-md text-center space-y-4">
-            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground">
-              {dashboardUi === "v2" ? "start with a question." : "Welcome to your workspace."}
-            </h2>
-            <p className="text-sm font-extralight text-muted-foreground">
-              {dashboardUi === "v2"
-                ? "ask, and asherin will use search, files, or a map when it needs them."
-                : "Spin up your first conversation, or pick a module from the sidebar."}
-            </p>
-            <button
-              onClick={async () => {
-                if (!user) return;
-                const { data: nc } = await supabase
-                  .from("conversations")
-                  .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
-                  .select().single();
-                if (nc) {
-                  setConversations([{ id: nc.id, title: nc.title, messages: [], createdAt: new Date(nc.created_at), pinned: nc.pinned, mode: nc.mode as ChatMode }]);
-                  setActiveConvId(nc.id);
-                }
-              }}
-              className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.04] px-5 py-2 text-sm font-light text-foreground hover:bg-white/[0.08] transition"
-            >
-              + Start a conversation
-            </button>
+      case "bug-reports":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <BugReportsView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "guardian-vault":
+        return gatedView(
+          "guardian-vault",
+          GuardianVaultView,
+          "Guardian Vault",
+          "Sessions, MFA, audit trail, encrypted item storage, and Watchtower exposure review. Included on every paid plan.",
+        );
+      case "knowledge-vault":
+        return gatedView(
+          "knowledge-vault",
+          KnowledgeVaultView,
+          "Knowledge Vault (RAG)",
+          "Private retrieval-augmented memory — upload files or connect APIs and Asherin will cite them automatically in every chat. Available on the $79/mo Pro plan.",
+        );
+      case "gematria":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <GematriaView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      // Always-accessible views
+      case "library":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <LibraryView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "snippets":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <CodeSnippetsView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "whiteboard":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <div className="h-full w-full min-h-0">
+                <WhiteboardView />
+              </div>
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "projects":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <ProjectsView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "memory":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <MemoryCenterView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "stats":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <StatsView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "vedic-astrology":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <VedicAstrologyView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "settings":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <SettingsView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "api-keys":
+      case "connect":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <ConnectView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "subscription":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <SubscriptionView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "ide":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <AureonIdeView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "pdf-generator":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <DocumentExportLanding />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "ebook":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <EBookGeneratorView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "slideshow":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <SlideshowGeneratorView />
+            </Suspense>
+          </ErrorBoundary>
+        );
+
+      default:
+        return activeConv ? (
+          <div className="flex h-full w-full min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col">
+              <ChatView
+                conversation={activeConv}
+                onSendMessage={sendMessage}
+                mode={mode}
+                onModeChange={setMode}
+                depth={depth}
+                onDepthChange={handleDepthChange}
+                isStreaming={isStreaming}
+                suggestions={suggestions}
+                onCalibrationFeedback={handleCalibrationFeedback}
+                onStopStreaming={stopStreaming}
+                focusMode={focusMode}
+                messageStatuses={messageStatuses}
+                queueItems={queueItems}
+                onRemoveFromQueue={removeFromQueue}
+                onClearQueue={clearQueue}
+                onProcessQueueNow={forceProcessQueue}
+                queuePaused={queuePaused}
+                onToggleQueuePause={toggleQueuePause}
+                consensusEnabled={consensusEnabled}
+                onConsensusToggle={setConsensusEnabled}
+                consensusModels={consensusModels}
+                onConsensusModelsChange={setConsensusModels}
+                storedProviders={storedProviders}
+                activeBrainId={activeBrainId}
+                onBrainChange={setActiveBrainId}
+              />
+            </div>
+            <PromptEnhancerPanel conversation={activeConv} />
           </div>
-        </div>
-      );
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-6">
+            <div className="max-w-md text-center space-y-4">
+              <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">◈ ASHERIN</p>
+              <h2 className="text-xl font-extralight tracking-wide text-foreground">
+                {dashboardUi === "v2" ? "start with a question." : "Welcome to your workspace."}
+              </h2>
+              <p className="text-sm font-extralight text-muted-foreground">
+                {dashboardUi === "v2"
+                  ? "ask, and asherin will use search, files, or a map when it needs them."
+                  : "Spin up your first conversation, or pick a module from the sidebar."}
+              </p>
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  const { data: nc } = await supabase
+                    .from("conversations")
+                    .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
+                    .select()
+                    .single();
+                  if (nc) {
+                    setConversations([
+                      {
+                        id: nc.id,
+                        title: nc.title,
+                        messages: [],
+                        createdAt: new Date(nc.created_at),
+                        pinned: nc.pinned,
+                        mode: nc.mode as ChatMode,
+                      },
+                    ]);
+                    setActiveConvId(nc.id);
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-white/[0.04] px-5 py-2 text-sm font-light text-foreground hover:bg-white/[0.08] transition"
+              >
+                + Start a conversation
+              </button>
+            </div>
+          </div>
+        );
     }
   };
 
@@ -1696,11 +2192,11 @@ const Dashboard = () => {
     );
   }
 
-
-
   return (
     <div className="relative min-h-dvh w-full overflow-hidden">
-      <Suspense fallback={null}><NewAccountWelcomeModal /></Suspense>
+      <Suspense fallback={null}>
+        <NewAccountWelcomeModal />
+      </Suspense>
       <h1 className="sr-only">Asherin Dashboard — Your Intelligence Workspace</h1>
       <DashboardSurface
         appearance={appearance}
@@ -1711,27 +2207,44 @@ const Dashboard = () => {
       {/* Light streak wipe — ABOVE overlay */}
       {isDashTransitioning && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 4 }}>
-          <div style={{
-            position: "absolute", top: "-20%", bottom: "-20%", width: "35%",
-            background: "linear-gradient(90deg, transparent 0%, hsla(275,80%,70%,0.12) 15%, hsla(275,80%,85%,0.3) 35%, hsla(0,0%,100%,0.5) 50%, hsla(275,80%,85%,0.3) 65%, hsla(275,80%,70%,0.12) 85%, transparent 100%)",
-            filter: "blur(25px)",
-            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
-            transform: "translateX(-100%) skewX(-8deg)",
-          }} />
-          <div style={{
-            position: "absolute", top: "-10%", bottom: "-10%", width: "3px",
-            background: "linear-gradient(180deg, transparent 5%, hsla(275,80%,85%,0.7) 30%, hsla(0,0%,100%,0.95) 50%, hsla(275,80%,85%,0.7) 70%, transparent 95%)",
-            filter: "blur(1px)",
-            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
-            transform: "translateX(-100%) skewX(-8deg)",
-          }} />
-          <div style={{
-            position: "absolute", top: "-30%", bottom: "-30%", width: "60%",
-            background: "radial-gradient(ellipse at center, hsla(275,60%,70%,0.18) 0%, transparent 70%)",
-            filter: "blur(40px)",
-            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
-            transform: "translateX(-100%) skewX(-5deg)",
-          }} />
+          <div
+            style={{
+              position: "absolute",
+              top: "-20%",
+              bottom: "-20%",
+              width: "35%",
+              background:
+                "linear-gradient(90deg, transparent 0%, hsla(275,80%,70%,0.12) 15%, hsla(275,80%,85%,0.3) 35%, hsla(0,0%,100%,0.5) 50%, hsla(275,80%,85%,0.3) 65%, hsla(275,80%,70%,0.12) 85%, transparent 100%)",
+              filter: "blur(25px)",
+              animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+              transform: "translateX(-100%) skewX(-8deg)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "-10%",
+              bottom: "-10%",
+              width: "3px",
+              background:
+                "linear-gradient(180deg, transparent 5%, hsla(275,80%,85%,0.7) 30%, hsla(0,0%,100%,0.95) 50%, hsla(275,80%,85%,0.7) 70%, transparent 95%)",
+              filter: "blur(1px)",
+              animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+              transform: "translateX(-100%) skewX(-8deg)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "-30%",
+              bottom: "-30%",
+              width: "60%",
+              background: "radial-gradient(ellipse at center, hsla(275,60%,70%,0.18) 0%, transparent 70%)",
+              filter: "blur(40px)",
+              animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+              transform: "translateX(-100%) skewX(-5deg)",
+            }}
+          />
         </div>
       )}
 
@@ -1754,44 +2267,55 @@ const Dashboard = () => {
       {!focusMode && <IntelAlertCenter />}
 
       <div className="relative z-10 flex h-dvh">
-        {!focusMode && (dashboardUi === "v2" ? (
-          <DashboardSidebarV2
-            conversations={conversations}
-            activeConversationId={activeConvId ?? ""}
-            activeView={activeView}
-            onSelectConversation={(id) => { setActiveConvId(id); setSuggestions([]); }}
-            onNewConversation={newConversation}
-            onDeleteConversation={deleteConversation}
-            onArchiveConversation={archiveConversation}
-            onRenameConversation={renameConversation}
-            onTogglePin={togglePin}
-            onViewChange={setActiveView}
-            sidebarOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            publishedAgents={publishedAgents}
-          />
-        ) : (
-          <DashboardSidebar
-            conversations={conversations}
-            activeConversationId={activeConvId ?? ""}
-            activeView={activeView}
-            onSelectConversation={(id) => { setActiveConvId(id); setSuggestions([]); }}
-            onNewConversation={newConversation}
-            onDeleteConversation={deleteConversation}
-            onArchiveConversation={archiveConversation}
-            onRenameConversation={renameConversation}
-            onTogglePin={togglePin}
-            onViewChange={setActiveView}
-            sidebarOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            publishedAgents={publishedAgents}
-          />
-        ))}
+        {!focusMode &&
+          (dashboardUi === "v2" ? (
+            <DashboardSidebarV2
+              conversations={conversations}
+              activeConversationId={activeConvId ?? ""}
+              activeView={activeView}
+              onSelectConversation={(id) => {
+                setActiveConvId(id);
+                setSuggestions([]);
+              }}
+              onNewConversation={newConversation}
+              onDeleteConversation={deleteConversation}
+              onArchiveConversation={archiveConversation}
+              onRenameConversation={renameConversation}
+              onTogglePin={togglePin}
+              onViewChange={setActiveView}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+              publishedAgents={publishedAgents}
+            />
+          ) : (
+            <DashboardSidebar
+              conversations={conversations}
+              activeConversationId={activeConvId ?? ""}
+              activeView={activeView}
+              onSelectConversation={(id) => {
+                setActiveConvId(id);
+                setSuggestions([]);
+              }}
+              onNewConversation={newConversation}
+              onDeleteConversation={deleteConversation}
+              onArchiveConversation={archiveConversation}
+              onRenameConversation={renameConversation}
+              onTogglePin={togglePin}
+              onViewChange={setActiveView}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+              publishedAgents={publishedAgents}
+            />
+          ))}
 
         <main
           className="flex flex-1 flex-col min-w-0 overflow-hidden h-full relative"
           onDragOver={(e) => {
-            if (e.dataTransfer.types.includes("text/aureon-conversation-id") && splitPanes.length === 0 && activeView === "chat") {
+            if (
+              e.dataTransfer.types.includes("text/aureon-conversation-id") &&
+              splitPanes.length === 0 &&
+              activeView === "chat"
+            ) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "copy";
             }
@@ -1809,40 +2333,46 @@ const Dashboard = () => {
           }}
         >
           {splitPanes.length > 0 ? (
-            <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">Loading split view…</div>}>
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                  Loading split view…
+                </div>
+              }
+            >
               <SplitPaneManager
-              panes={splitPanes}
-              conversations={conversations}
-              onRemovePane={(paneId) => {
-                const next = splitPanes.filter(p => p.id !== paneId);
-                if (next.length <= 1) {
-                  // If only one pane left, exit split mode and set it as active
-                  if (next.length === 1) setActiveConvId(next[0].conversationId);
-                  setSplitPanes([]);
-                } else {
-                  setSplitPanes(next);
-                }
-              }}
-              onSendMessage={handleSplitSendMessage}
-              mode={mode}
-              onModeChange={setMode}
-              depth={depth}
-              onDepthChange={handleDepthChange}
-              isStreaming={isStreaming}
-              suggestions={suggestions}
-              onCalibrationFeedback={handleCalibrationFeedback}
-              onStopStreaming={stopStreaming}
-              focusMode={focusMode}
-              messageStatuses={messageStatuses}
-              storedProviders={storedProviders}
-              activeBrainId={activeBrainId}
-              onBrainChange={setActiveBrainId}
-              onDropConversation={(convId) => {
-                if (!splitPanes.some(p => p.conversationId === convId)) {
-                  addSplitPane(convId);
-                }
-              }}
-              isDraggingConvo={isDraggingConvo}
+                panes={splitPanes}
+                conversations={conversations}
+                onRemovePane={(paneId) => {
+                  const next = splitPanes.filter((p) => p.id !== paneId);
+                  if (next.length <= 1) {
+                    // If only one pane left, exit split mode and set it as active
+                    if (next.length === 1) setActiveConvId(next[0].conversationId);
+                    setSplitPanes([]);
+                  } else {
+                    setSplitPanes(next);
+                  }
+                }}
+                onSendMessage={handleSplitSendMessage}
+                mode={mode}
+                onModeChange={setMode}
+                depth={depth}
+                onDepthChange={handleDepthChange}
+                isStreaming={isStreaming}
+                suggestions={suggestions}
+                onCalibrationFeedback={handleCalibrationFeedback}
+                onStopStreaming={stopStreaming}
+                focusMode={focusMode}
+                messageStatuses={messageStatuses}
+                storedProviders={storedProviders}
+                activeBrainId={activeBrainId}
+                onBrainChange={setActiveBrainId}
+                onDropConversation={(convId) => {
+                  if (!splitPanes.some((p) => p.conversationId === convId)) {
+                    addSplitPane(convId);
+                  }
+                }}
+                isDraggingConvo={isDraggingConvo}
               />
             </Suspense>
           ) : (
@@ -1863,6 +2393,28 @@ const Dashboard = () => {
                     );
                   })()}
                 </DashboardUiProvider>
+              ) : mapDock && activeView === "chat" ? (
+                <div className="flex h-full min-h-0 w-full">
+                  <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{renderView()}</div>
+                  <aside className="relative hidden h-full w-[46%] min-w-[280px] max-w-[720px] border-l border-border/20 sm:block">
+                    <button
+                      type="button"
+                      onClick={() => setMapDock(false)}
+                      className="absolute right-2 top-2 z-[400] rounded-md border border-border/30 bg-background/70 px-2 py-0.5 text-[10px] font-extralight lowercase text-muted-foreground"
+                    >
+                      close map
+                    </button>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center text-[11px] font-extralight text-muted-foreground">
+                          map…
+                        </div>
+                      }
+                    >
+                      <GeospatialView />
+                    </Suspense>
+                  </aside>
+                </div>
               ) : (
                 renderView()
               )}
@@ -1888,9 +2440,18 @@ const Dashboard = () => {
           <CommandPalette
             open={cmdPaletteOpen}
             onClose={() => setCmdPaletteOpen(false)}
-            onNewConversation={() => { newConversation(); setCmdPaletteOpen(false); }}
-            onViewChange={(v) => { setActiveView(v); setCmdPaletteOpen(false); }}
-            onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
+            onNewConversation={() => {
+              newConversation();
+              setCmdPaletteOpen(false);
+            }}
+            onViewChange={(v) => {
+              setActiveView(v);
+              setCmdPaletteOpen(false);
+            }}
+            onModeChange={(m) => {
+              setMode(m);
+              setCmdPaletteOpen(false);
+            }}
             onFocusMode={() => setFocusMode((f) => !f)}
           />
         </Suspense>
@@ -1910,5 +2471,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-
