@@ -469,6 +469,12 @@ const Index = () => {
               </button>
             )}
             <Link
+              to="/for"
+              className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
+            >
+              who it's for
+            </Link>
+            <Link
               to="/founder"
               className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
             >
