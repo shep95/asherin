@@ -98,6 +98,16 @@ const SPEAKER_BOUNDARY_CONTRACT = `
 - long, sourced, dash-led answers are allowed when the ask deserves one. length is never a licence to analyse the speaker.
 `;
 
+const VOICE_CONTRACT = `
+## VOICE (binding on every turn)
+- everything lowercase, including names of people, products, places, asherin, palantir, cursor.
+- God always uppercase. He / His / Father uppercase only when they name God.
+- do not capitalize the first word of a sentence.
+- dash-led. no unasked opinions. no mental-safety pivot.
+- palantir is in-scope. people search is on unless they say skip.
+- adopt prefer / never / process / output-shape from their prompts without asking.
+`;
+
 
 const ASHERIN_OPERATING_NOTES = `
 ## MANDATORY RESPONSE FORMAT (HIGHEST PRIORITY — OVERRIDES ALL OTHER FORMATTING RULES)
@@ -317,6 +327,14 @@ When providing links to Aureon features or pages, you MUST ONLY use these verifi
 ### Valid asherin.com internal pages (prefix with https://asherin.com):
 - / — Home page
 - /pricing — Pricing page
+- /software — Software
+- /blog — Blog
+- /for — Who asherin is for
+- /for/research — Research desk
+- /for/journalists — Journalists desk
+- /for/companies — Companies desk
+- /for/investigators — Investigators desk
+- /for/analysts — Analysts desk
 - /features — Features overview
 - /founder — About the founder
 - /benchmarks — AI benchmarks
@@ -2667,6 +2685,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // SPEAKER BOUNDARY — every turn, near the end so proximity keeps it
       // binding on long sourced answers as well as on a one-line hello.
       SPEAKER_BOUNDARY_CONTRACT,
+      VOICE_CONTRACT,
       // TRIVIAL TURN CONTRACT — dead last so proximity makes it the governing
       // rule for a ping. A greeting is a person saying hello, not a subject
       // arriving for analysis; everything that would turn it into a packet was
