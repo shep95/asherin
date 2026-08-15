@@ -1,7 +1,20 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
 import { Link } from "react-router-dom";
 
-import { Copy, Check, Download, FileText, ExternalLink, RefreshCw, MoreHorizontal, X, ZoomIn, Pencil, Lock, LayoutDashboard } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Download,
+  FileText,
+  ExternalLink,
+  RefreshCw,
+  MoreHorizontal,
+  X,
+  ZoomIn,
+  Pencil,
+  Lock,
+  LayoutDashboard,
+} from "lucide-react";
 import { queueBoardDrop } from "@/lib/whiteboard/boardInbox";
 import DiffView from "./DiffView";
 import ChatErrorBanner from "./ChatErrorBanner";
@@ -23,6 +36,7 @@ import ThinkingPanel, { ThinkingPanelOrDots } from "./ThinkingPanel";
 import TurnTraces from "./TurnTraces";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
+import { detectGeoIntent } from "@/lib/geoIntent";
 import { emitPull } from "@/lib/connect/emitPull";
 import { renderLinkPreviews } from "./LinkPreview";
 import type { QueueItem } from "./MessageQueuePanel";
@@ -64,7 +78,10 @@ interface ChatViewProps {
 function SendToBoardButton({ content }: { content: string }) {
   const [sent, setSent] = useState(false);
   const send = () => {
-    const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
+    const lines = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
     const heading = lines.find((line) => line.startsWith("#"))?.replace(/^#+\s*/, "");
     const bullets = lines
       .filter((line) => /^([-*•]|\d+[.)])\s+/.test(line))
@@ -119,13 +136,16 @@ import type { AdaptiveInputBarHandle } from "./AdaptiveInputBar";
 import IntelReportCard from "./chat/IntelReportCard";
 import { wantsIntelReportFile } from "@/lib/intelligenceReport";
 
-const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
-  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
-  onStop?: () => void;
-  onQuickAction?: (action: string, content: string) => void;
-  isStreaming: boolean;
-  conversationId?: string;
-}>((props, ref) => {
+const SubscriptionGatedInput = forwardRef<
+  AdaptiveInputBarHandle,
+  {
+    onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
+    onStop?: () => void;
+    onQuickAction?: (action: string, content: string) => void;
+    isStreaming: boolean;
+    conversationId?: string;
+  }
+>((props, ref) => {
   // Free dashboard users are allowed to message through the Asherin Algorithm.
   // The backend owns the quota and only blocks after it is exhausted.
   return <AdaptiveInputBar ref={ref} {...props} disabled={false} />;
@@ -144,21 +164,30 @@ function UserMessageContent({ content }: { content: string }) {
 
   while ((match = regex.exec(content)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex, match.index)}</span>);
+      parts.push(
+        <span key={key++} className="whitespace-pre-wrap">
+          {content.slice(lastIndex, match.index)}
+        </span>,
+      );
     }
     parts.push(<CodeFilePreview key={key++} code={match[2].trimEnd()} language={match[1]} />);
     lastIndex = match.index + match[0].length;
   }
 
   if (lastIndex < content.length) {
-    parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex)}</span>);
+    parts.push(
+      <span key={key++} className="whitespace-pre-wrap">
+        {content.slice(lastIndex)}
+      </span>,
+    );
   }
 
   if (parts.length === 0) {
     const trimmed = content.trim();
-    const looksLikeCode = trimmed.split("\n").length >= 3 && (
-      /[{};()=>]/.test(trimmed) && /^(import|export|const|let|var|function|def |class |#include|package |fn |pub )/.test(trimmed)
-    );
+    const looksLikeCode =
+      trimmed.split("\n").length >= 3 &&
+      /[{};()=>]/.test(trimmed) &&
+      /^(import|export|const|let|var|function|def |class |#include|package |fn |pub )/.test(trimmed);
     if (looksLikeCode) {
       return <CodeFilePreview code={trimmed} />;
     }
@@ -173,7 +202,11 @@ function CodeBlockCopyButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      onClick={() => {
+        navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
       className="absolute top-2 right-2 p-1.5 rounded-md bg-foreground/10 hover:bg-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
       title="Copy code"
     >
@@ -184,14 +217,21 @@ function CodeBlockCopyButton({ code }: { code: string }) {
 
 // Valid internal routes for the app
 const VALID_INTERNAL_PATHS = new Set([
-  "/", "/pricing", "/software", "/founder", "/dashboard",
-  "/terms", "/privacy", "/security-policy",
+  "/",
+  "/pricing",
+  "/software",
+  "/founder",
+  "/dashboard",
+  "/terms",
+  "/privacy",
+  "/security-policy",
 ]);
 
 function isInternalLink(href: string): string | null {
   try {
     const url = new URL(href);
-    const isOwnDomain = url.hostname === "asherin.com" || url.hostname === "www.asherin.com" || url.hostname.endsWith(".lovable.app");
+    const isOwnDomain =
+      url.hostname === "asherin.com" || url.hostname === "www.asherin.com" || url.hostname.endsWith(".lovable.app");
     if (isOwnDomain && VALID_INTERNAL_PATHS.has(url.pathname)) {
       return url.pathname;
     }
@@ -203,7 +243,15 @@ function isInternalLink(href: string): string | null {
   return null;
 }
 
-function MarkdownLink({ href, children, navigate }: { href?: string; children?: React.ReactNode; navigate: ReturnType<typeof useNavigate> }) {
+function MarkdownLink({
+  href,
+  children,
+  navigate,
+}: {
+  href?: string;
+  children?: React.ReactNode;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
   if (!href) return <>{children}</>;
 
   const internalPath = isInternalLink(href);
@@ -245,7 +293,9 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
     const codeText = extractText(children);
     return (
       <div className="relative group overflow-hidden">
-        <pre className="overflow-x-auto" {...props}>{children}</pre>
+        <pre className="overflow-x-auto" {...props}>
+          {children}
+        </pre>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
           <CodeBlockCopyButton code={codeText} />
         </div>
@@ -253,51 +303,107 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
     );
   },
   a({ href, children }: any) {
-    return <MarkdownLink href={href} navigate={navigate}>{children}</MarkdownLink>;
+    return (
+      <MarkdownLink href={href} navigate={navigate}>
+        {children}
+      </MarkdownLink>
+    );
   },
   table({ children, ...props }: any) {
     return (
       <div className="my-3 overflow-x-auto rounded-lg border border-border/20">
-        <table className="w-full text-[12px] sm:text-[13px]" {...props}>{children}</table>
+        <table className="w-full text-[12px] sm:text-[13px]" {...props}>
+          {children}
+        </table>
       </div>
     );
   },
   thead({ children, ...props }: any) {
-    return <thead className="bg-foreground/5 border-b border-border/20" {...props}>{children}</thead>;
+    return (
+      <thead className="bg-foreground/5 border-b border-border/20" {...props}>
+        {children}
+      </thead>
+    );
   },
   th({ children, ...props }: any) {
-    return <th className="px-3 py-2 text-left font-medium text-foreground/80 text-[11px] uppercase tracking-wider" {...props}>{children}</th>;
+    return (
+      <th
+        className="px-3 py-2 text-left font-medium text-foreground/80 text-[11px] uppercase tracking-wider"
+        {...props}
+      >
+        {children}
+      </th>
+    );
   },
   td({ children, ...props }: any) {
-    return <td className="px-3 py-2 border-t border-border/10 text-muted-foreground" {...props}>{children}</td>;
+    return (
+      <td className="px-3 py-2 border-t border-border/10 text-muted-foreground" {...props}>
+        {children}
+      </td>
+    );
   },
   tr({ children, ...props }: any) {
-    return <tr className="hover:bg-foreground/[0.02] transition-colors" {...props}>{children}</tr>;
+    return (
+      <tr className="hover:bg-foreground/[0.02] transition-colors" {...props}>
+        {children}
+      </tr>
+    );
   },
   h1({ children, ...props }: any) {
-    return <h1 className="text-lg font-semibold text-foreground mt-4 mb-2 pb-1 border-b border-border/20" {...props}>{children}</h1>;
+    return (
+      <h1 className="text-lg font-semibold text-foreground mt-4 mb-2 pb-1 border-b border-border/20" {...props}>
+        {children}
+      </h1>
+    );
   },
   h2({ children, ...props }: any) {
-    return <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5" {...props}>{children}</h2>;
+    return (
+      <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5" {...props}>
+        {children}
+      </h2>
+    );
   },
   h3({ children, ...props }: any) {
-    return <h3 className="text-sm font-medium text-foreground/90 mt-2 mb-1" {...props}>{children}</h3>;
+    return (
+      <h3 className="text-sm font-medium text-foreground/90 mt-2 mb-1" {...props}>
+        {children}
+      </h3>
+    );
   },
   h4({ children, ...props }: any) {
-    return <h4 className="text-[13px] font-medium text-foreground/80 mt-2 mb-1" {...props}>{children}</h4>;
+    return (
+      <h4 className="text-[13px] font-medium text-foreground/80 mt-2 mb-1" {...props}>
+        {children}
+      </h4>
+    );
   },
   ul({ children, ...props }: any) {
-    return <ul className="list-disc list-inside space-y-0.5 text-muted-foreground" {...props}>{children}</ul>;
+    return (
+      <ul className="list-disc list-inside space-y-0.5 text-muted-foreground" {...props}>
+        {children}
+      </ul>
+    );
   },
   ol({ children, ...props }: any) {
-    return <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground" {...props}>{children}</ol>;
+    return (
+      <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground" {...props}>
+        {children}
+      </ol>
+    );
   },
   li({ children, ...props }: any) {
-    return <li className="text-[13px] leading-relaxed" {...props}>{children}</li>;
+    return (
+      <li className="text-[13px] leading-relaxed" {...props}>
+        {children}
+      </li>
+    );
   },
   blockquote({ children, ...props }: any) {
     return (
-      <blockquote className="border-l-2 border-accent/40 pl-3 py-1 my-2 text-muted-foreground/80 italic text-[13px]" {...props}>
+      <blockquote
+        className="border-l-2 border-accent/40 pl-3 py-1 my-2 text-muted-foreground/80 italic text-[13px]"
+        {...props}
+      >
         {children}
       </blockquote>
     );
@@ -308,7 +414,10 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   img({ src, alt, ...props }: any) {
     const hasAlt = typeof alt === "string" && alt.trim().length > 0;
     return (
-      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
+      <span
+        className="relative inline-block group cursor-pointer"
+        onClick={() => (window as any).__aureonLightbox?.(src)}
+      >
         <img
           src={src}
           alt={hasAlt ? alt : ""}
@@ -379,7 +488,9 @@ const ChatView = ({
       if (attempts++ < 20) timer = window.setTimeout(tryScroll, 120);
     };
     tryScroll();
-    return () => { if (timer) window.clearTimeout(timer); };
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
   }, [highlightedMsgId, branchMessages.length]);
 
   // ── Inline property/address satellite maps ────────────────────────────────
@@ -395,26 +506,35 @@ const ChatView = ({
         if (geocodeAttempted.current.has(m.id)) continue;
         if (m.role === "assistant" && isStreaming && m.id === lastMsgId) continue;
         const [hit] = detectAddresses(m.content);
-        if (!hit) continue;
+        const geo = hit ? null : detectGeoIntent(m.content);
+        const query = hit?.raw || geo?.place;
+        if (!query) continue;
         geocodeAttempted.current.add(m.id);
         const started = performance.now();
-        const g = await geocodeAddress(hit.raw);
+        const g = await geocodeAddress(query);
         // Real trace: the geocoder actually ran, so Connect records it.
         void emitPull({
-          organ: "maps", capability: "property", fromSurface: "chat",
-          status: g ? "ok" : "fail", latencyMs: performance.now() - started,
-          quote: g ? g.formatted : hit.raw,
+          organ: "maps",
+          capability: "property",
+          fromSurface: "chat",
+          status: g ? "ok" : "fail",
+          latencyMs: performance.now() - started,
+          quote: g ? g.formatted : query,
         });
         if (cancelled || !g) continue;
         setPropertyMaps((prev) =>
           prev[m.id]
             ? prev
-            : { ...prev, [m.id]: { address: hit.raw, formatted: g.formatted, lat: g.lat, lng: g.lng, category: g.category } },
+            : {
+                ...prev,
+                [m.id]: { address: query, formatted: g.formatted, lat: g.lat, lng: g.lng, category: g.category },
+              },
         );
-
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [branchMessages, propertyMaps, isStreaming, lastMsgId]);
 
   // Listen for cross-component jump signals (e.g. sidebar hover preview)
@@ -431,7 +551,9 @@ const ChatView = ({
   // Wire lightbox for markdown images
   useEffect(() => {
     (window as any).__aureonLightbox = (src: string) => setLightboxSrc(src);
-    return () => { delete (window as any).__aureonLightbox; };
+    return () => {
+      delete (window as any).__aureonLightbox;
+    };
   }, []);
 
   // Identity-resolution rack: confirming a candidate sends the server-authored
@@ -448,9 +570,10 @@ const ChatView = ({
 
   const downloadConversation = () => {
     if (!branchMessages.length) return;
-    const lines = branchMessages.map(m =>
-      // Speaker label is the product name the operator sees: asherin.
-      `**${m.role === "user" ? "You" : "asherin"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
+    const lines = branchMessages.map(
+      (m) =>
+        // Speaker label is the product name the operator sees: asherin.
+        `**${m.role === "user" ? "You" : "asherin"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`,
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });
@@ -462,22 +585,25 @@ const ChatView = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleQuickAction = useCallback((action: string, content: string) => {
-    const prompts: Record<string, string> = {
-      debug: `Debug this code:\n\`\`\`\n${content}\n\`\`\``,
-      explain: `Explain this code line by line:\n\`\`\`\n${content}\n\`\`\``,
-      optimize: `Optimize this code:\n\`\`\`\n${content}\n\`\`\``,
-      test: `Write tests for this code:\n\`\`\`\n${content}\n\`\`\``,
-      summarize: `Summarize the content at: ${content}`,
-      "fact-check": `Fact check: ${content}`,
-      extract: `Extract key data from: ${content}`,
-    };
-    const prompt = prompts[action] ?? `${action}: ${content}`;
-    onSendMessage(prompt);
-  }, [onSendMessage]);
+  const handleQuickAction = useCallback(
+    (action: string, content: string) => {
+      const prompts: Record<string, string> = {
+        debug: `Debug this code:\n\`\`\`\n${content}\n\`\`\``,
+        explain: `Explain this code line by line:\n\`\`\`\n${content}\n\`\`\``,
+        optimize: `Optimize this code:\n\`\`\`\n${content}\n\`\`\``,
+        test: `Write tests for this code:\n\`\`\`\n${content}\n\`\`\``,
+        summarize: `Summarize the content at: ${content}`,
+        "fact-check": `Fact check: ${content}`,
+        extract: `Extract key data from: ${content}`,
+      };
+      const prompt = prompts[action] ?? `${action}: ${content}`;
+      onSendMessage(prompt);
+    },
+    [onSendMessage],
+  );
 
   const lastMsg = branchMessages[branchMessages.length - 1];
-  const lastUserId = [...branchMessages].reverse().find(m => m.role === "user")?.id;
+  const lastUserId = [...branchMessages].reverse().find((m) => m.role === "user")?.id;
   // A queued send is only real when the transport actually parked one.
   const queuedCount = queueItems.length;
 
@@ -485,7 +611,6 @@ const ChatView = ({
     <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-
         {/* Top bar — search + one overflow menu. Nothing else. */}
         {!focusMode && (
           <div
@@ -513,7 +638,10 @@ const ChatView = ({
                     <div className="fixed inset-0 z-40" onClick={() => setOverflowOpen(false)} />
                     <div className="absolute right-0 top-full mt-1 z-50 w-[220px] rounded-2xl border border-border/25 bg-card/95 backdrop-blur-xl shadow-2xl p-1.5 animate-fade-in motion-reduce:animate-none">
                       <button
-                        onClick={() => { downloadConversation(); setOverflowOpen(false); }}
+                        onClick={() => {
+                          downloadConversation();
+                          setOverflowOpen(false);
+                        }}
                         className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                       >
                         <Download className="h-3.5 w-3.5" /> Download conversation
@@ -551,7 +679,8 @@ const ChatView = ({
                   <span className="text-xs font-extralight text-emerald-500/70">Account-synced encryption</span>
                 </div>
                 <p className="text-sm font-extralight text-muted-foreground">
-                  Conversations are stored encrypted at rest under a key bound to your account, so they open on every device you sign in from.
+                  Conversations are stored encrypted at rest under a key bound to your account, so they open on every
+                  device you sign in from.
                 </p>
               </div>
             </div>
@@ -562,7 +691,7 @@ const ChatView = ({
                   error={chatError}
                   onRetry={() => {
                     setChatError(null);
-                    const lastUserMsg = [...branchMessages].reverse().find(m => m.role === "user");
+                    const lastUserMsg = [...branchMessages].reverse().find((m) => m.role === "user");
                     if (lastUserMsg) onSendMessage(lastUserMsg.content);
                   }}
                   onFallback={() => setChatError(null)}
@@ -572,7 +701,9 @@ const ChatView = ({
               {branchMessages.map((msg, idx) => (
                 <div
                   key={msg.id}
-                  ref={(el) => { messageRefs.current[msg.id] = el; }}
+                  ref={(el) => {
+                    messageRefs.current[msg.id] = el;
+                  }}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up motion-reduce:animate-none transition-all duration-300 motion-reduce:transition-none ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                   style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
                 >
@@ -594,8 +725,10 @@ const ChatView = ({
                               seg.type === "card" || seg.type === "card-unknown" ? (
                                 <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
                               ) : (
-                                <ReactMarkdown key={`t-${i}`} components={markdownComponents}>{seg.value}</ReactMarkdown>
-                              )
+                                <ReactMarkdown key={`t-${i}`} components={markdownComponents}>
+                                  {seg.value}
+                                </ReactMarkdown>
+                              ),
                             )}
                             {isStreaming && msg === lastMsg && (
                               <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse motion-reduce:animate-none ml-0.5 align-text-bottom" />
@@ -611,7 +744,10 @@ const ChatView = ({
                             autoFocus
                             onChange={(e) => setEditDraft(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === "Escape") { e.preventDefault(); setEditingId(null); }
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                setEditingId(null);
+                              }
                               if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 const next = editDraft.trim();
@@ -649,8 +785,15 @@ const ChatView = ({
                               {msg.attachments.map((att, aidx) => (
                                 <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
                                   {att.type.startsWith("image/") && att.previewUrl ? (
-                                    <span className="relative group cursor-pointer block" onClick={() => setLightboxSrc(att.previewUrl!)}>
-                                      <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]" />
+                                    <span
+                                      className="relative group cursor-pointer block"
+                                      onClick={() => setLightboxSrc(att.previewUrl!)}
+                                    >
+                                      <img
+                                        src={att.previewUrl}
+                                        alt={att.name}
+                                        className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]"
+                                      />
                                       <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
                                         <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
                                       </span>
@@ -688,13 +831,15 @@ const ChatView = ({
                           before={previousResponses[msg.id]}
                           after={msg.content}
                           open={true}
-                          onClose={() => setDismissedDiffs(prev => ({ ...prev, [msg.id]: true }))}
+                          onClose={() => setDismissedDiffs((prev) => ({ ...prev, [msg.id]: true }))}
                         />
                       )}
 
                     {/* Timestamp */}
                     {msg.timestamp && (
-                      <div className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
+                      <div
+                        className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}
+                      >
                         {(() => {
                           const ts = new Date(msg.timestamp);
                           const now = new Date();
@@ -713,13 +858,14 @@ const ChatView = ({
                     {/* Action bar — copy, plus one action per role. Nothing else. */}
                     {msg.content && !isStreaming && editingId !== msg.id && (
                       <div className="flex items-center gap-2 mt-1 px-1 animate-fade-in motion-reduce:animate-none">
-                        {msg.role === "user" && (
-                          <MessageStatusIndicator status={messageStatuses[msg.id]} />
-                        )}
+                        {msg.role === "user" && <MessageStatusIndicator status={messageStatuses[msg.id]} />}
                         <MessageCopyButton text={msg.content} />
                         {msg.role === "user" && msg.id === lastUserId && (
                           <button
-                            onClick={() => { setEditingId(msg.id); setEditDraft(msg.content); }}
+                            onClick={() => {
+                              setEditingId(msg.id);
+                              setEditDraft(msg.content);
+                            }}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                             title="Edit and resend"
                           >
@@ -727,15 +873,16 @@ const ChatView = ({
                             Edit
                           </button>
                         )}
-                        {msg.role === "assistant" && (
-                          <SendToBoardButton content={msg.content} />
-                        )}
+                        {msg.role === "assistant" && <SendToBoardButton content={msg.content} />}
                         {msg.role === "assistant" && (
                           <button
                             onClick={() => {
-                              setPreviousResponses(prev => ({ ...prev, [msg.id]: msg.content }));
-                              setDismissedDiffs(prev => ({ ...prev, [msg.id]: false }));
-                              const userMsg = branchMessages.slice(0, idx).reverse().find(m => m.role === "user");
+                              setPreviousResponses((prev) => ({ ...prev, [msg.id]: msg.content }));
+                              setDismissedDiffs((prev) => ({ ...prev, [msg.id]: false }));
+                              const userMsg = branchMessages
+                                .slice(0, idx)
+                                .reverse()
+                                .find((m) => m.role === "user");
                               if (userMsg) onSendMessage(userMsg.content);
                             }}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
@@ -750,8 +897,12 @@ const ChatView = ({
 
                     {/* Branded intelligence report artifact — only when the operator
                         asked for the product as a file, and only after streaming. */}
-                    {msg.role === "assistant" && !!msg.content && !(isStreaming && msg === lastMsg) &&
-                      wantsIntelReportFile(branchMessages[idx - 1]?.role === "user" ? branchMessages[idx - 1].content : "") && (
+                    {msg.role === "assistant" &&
+                      !!msg.content &&
+                      !(isStreaming && msg === lastMsg) &&
+                      wantsIntelReportFile(
+                        branchMessages[idx - 1]?.role === "user" ? branchMessages[idx - 1].content : "",
+                      ) && (
                         <IntelReportCard
                           content={msg.content}
                           request={branchMessages[idx - 1]?.content}
@@ -827,7 +978,10 @@ const ChatView = ({
           onClick={() => setLightboxSrc(null)}
         >
           <button
-            onClick={(e) => { e.stopPropagation(); setLightboxSrc(null); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightboxSrc(null);
+            }}
             className="absolute top-4 right-4 p-2 rounded-full bg-foreground/10 hover:bg-foreground/20 text-white transition-colors z-10"
           >
             <X className="h-5 w-5" />
