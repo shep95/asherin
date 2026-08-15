@@ -5,25 +5,84 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
+const CANONICAL_HOSTS = new Set([
+  "asherin.com",
+  "www.asherin.com",
+  "localhost",
+  "127.0.0.1",
+  "aureonai.app",
+  "www.aureonai.app",
+]);
+function isFramed() {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+function isPreviewPrefix(host) {
+  return host.startsWith("id-preview--") || host.startsWith("preview--");
+}
+function stampNoIndex() {
+  try {
+    if (document.getElementById("asherin-gate-robots")) return;
+    var m = document.createElement("meta");
+    m.id = "asherin-gate-robots";
+    m.name = "robots";
+    m.content = "noindex,nofollow,noarchive";
+    document.head.appendChild(m);
+  } catch (e) {}
+}
+function bounceToCanonical() {
+  var path = window.location.pathname + window.location.search + window.location.hash;
+  window.location.replace("https://asherin.com" + path);
+}
+function probeInjectedPageScripts() {
+  try {
+    var entries = performance.getEntriesByType("resource");
+    for (var i = 0; i < entries.length; i++) {
+      var n = entries[i].name || "";
+      if (n.indexOf("chrome-extension://") === 0 || n.indexOf("moz-extension://") === 0) return true;
+    }
+  } catch (e) {}
+  return false;
+}
 
-/**
- * Hard restriction: on the aureonai.app production domain, only staff
- * identities (sha256 digest match) are permitted. Everyone else sees a lockout
- * screen and is signed out. Other hosts (preview, lovable.app, custom
- * staging) are unaffected.
- */
+/** Staff lockout on the legacy aureonai.app host. Canonical production is asherin.com. */
 const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   const [host, setHost] = useState<string>("");
+  const [extHit, setExtHit] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHost(window.location.hostname.toLowerCase());
+    if (typeof window === "undefined") return;
+    const h = window.location.hostname.toLowerCase();
+    setHost(h);
+    const framed = isFramed();
+    if (isPreviewPrefix(h) || (!CANONICAL_HOSTS.has(h) && window.location.protocol === "https:")) {
+      stampNoIndex();
+      if (!framed) {
+        bounceToCanonical();
+        return;
+      }
     }
+    if (probeInjectedPageScripts()) setExtHit(true);
   }, []);
 
   const isRestricted = RESTRICTED_HOSTS.has(host);
-  if (!isRestricted) return <>{children}</>;
+  if (!isRestricted) {
+    return (
+      <>
+        {extHit && (
+          <div className="w-full border-b border-border/40 bg-background/80 px-4 py-2 text-center text-[11px] font-extralight text-muted-foreground">
+            a page-injecting browser extension is present. a website cannot fully block extensions. sensitive work is
+            safer in a clean profile or with asherin.defender on this device.
+          </div>
+        )}
+        {children}
+      </>
+    );
+  }
   // SECURITY: render nothing while auth resolves so child components do not
   // fire data requests with whatever JWT happens to be in storage.
   if (loading) return null;
@@ -35,7 +94,11 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   // Block everyone else on this domain. Redirect to a stable internal path
   // (NOT an external Lovable preview URL — that project could be reclaimed).
   const handleSignOut = async () => {
-    try { await supabase.auth.signOut(); } catch { /* ignore */ }
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* ignore */
+    }
     window.location.href = "/";
   };
 
