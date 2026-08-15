@@ -1,13 +1,9 @@
 /**
  * Hands — the workspaces asherin opens when an organ runs.
  *
- * Chat carries intent, the folded software runs, and the surface that owns the
- * result opens itself. The operator does not hunt a missing tab. A hand only
- * ever arrives behind a real invoke: the backend derives these from organs that
- * actually returned bytes, so nothing here should be inferred from prompt text.
- *
- * Retired surfaces have no route. An unknown surface is dropped silently rather
- * than navigated to, because a dead view id in the URL is worse than no split.
+ * Chat is the mouth. Maps is a hand that docks beside the thread — it does
+ * not steal the conversation. IDE / ghost / whiteboard still take the rail
+ * because those rooms are the work. Maps must stay co-visible with the ask.
  */
 
 export interface HandOpen {
@@ -32,26 +28,30 @@ export function isHandOpen(value: unknown): value is HandOpen {
 }
 
 /**
- * Opens at most one hand per turn. Two organs can both own a surface, and
- * flipping the operator through three views mid-answer would be motion for its
- * own sake — the first hand wins and the rest stay in the tool cards.
+ * Opens at most one hand per turn. Maps docks in-place (no go()).
+ * Other hands still navigate — one flip, not three.
  */
-export function openHands(
-  hands: unknown[],
-  go: (view: string) => void,
-): HandOpen | null {
+export function openHands(hands: unknown[], go: (view: string) => void): HandOpen | null {
   const valid = (hands || []).filter(isHandOpen);
   const hand = valid[0];
   if (!hand) return null;
 
-  if (hand.surface === "maps" && hand.focus) {
-    // The map module owns the geocode and the fly; chat only names the focus.
+  if (hand.surface === "maps") {
+    const focus = String(hand.focus || "").trim();
     void import("@/lib/geoIntent")
       .then(({ detectGeoIntent, requestMapFocus }) => {
-        const geo = detectGeoIntent(hand.focus!);
+        const geo =
+          detectGeoIntent(focus) ||
+          (focus ? { place: focus, property: false, zoom: /\d{1,6}\s+\w/.test(focus) ? 17 : 12 } : null);
         if (geo) requestMapFocus(geo);
       })
-      .catch(() => { /* a failed focus must never block the split */ });
+      .catch(() => {
+        /* a failed focus must never block the mouth */
+      });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(HAND_OPEN_EVENT, { detail: hand }));
+    }
+    return hand;
   }
 
   if (typeof window !== "undefined") {
