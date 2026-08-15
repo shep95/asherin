@@ -6,10 +6,7 @@
 const ALLOWED_ORIGINS = [
   "https://asherin.com",
   "https://www.asherin.com",
-  // The two Lovable hosts this project actually serves from.
-  "https://ziali-magic-pixels.lovable.app",
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
-  "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",
@@ -18,15 +15,11 @@ const ALLOWED_ORIGINS = [
 /**
  * Exact-match only.
  *
- * The previous version also accepted any `*.lovable.app` / `*.lovableproject.com`
- * subdomain. Those are shared multi-tenant hosts: that wildcard let a page on
- * any other tenant's app read credentialed responses from these functions in a
- * victim's browser. Wildcards on a shared apex are not an allowlist.
+ * Exact-match allowlist only. Shared multi-tenant wildcard hosts are not trusted.
  */
 function isAllowedOrigin(origin: string): boolean {
   return ALLOWED_ORIGINS.includes(origin);
 }
-
 
 const BASE_ALLOWED_HEADERS =
   "authorization, x-client-info, apikey, content-type, x-supabase-api-version, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
@@ -47,7 +40,7 @@ export function getCorsHeaders(req: Request, extraAllowedHeaders = ""): Record<s
       ? `${BASE_ALLOWED_HEADERS}, ${extraAllowedHeaders}`
       : BASE_ALLOWED_HEADERS,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
 
