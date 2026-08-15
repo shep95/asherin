@@ -2,9 +2,9 @@
 
 > asherin is a subscription research workspace. speaker: asherin. two seats: asherin at $18/month, asherin pro at $79/month. monthly, USD, no free trial. a team workspace is billed separately. enterprise on request.
 
-what a signed-in seat can open today: chat (the mouth), asherinx.eng (public-index search — not a wiretap), asherin.maps (satellite globe, public-agency cameras, public-index property file), asherin.defender (owned-device defence), asherin.arvision (camera intelligence HUD on this device), library, projects, memory, guardian vault, whiteboard, connect, team (pro).
+what a signed-in seat can open today: chat (the mouth), asherinx.eng (public-index search â not a wiretap), asherin.maps (satellite globe, public-agency cameras, public-index property file), asherin.defender (owned-device defence), asherin.arvision (camera intelligence HUD on this device), library, projects, memory, guardian vault, whiteboard, connect, team (pro).
 
-you can bring your own model key — gemini, openai, claude, mistral, xai grok, groq, deepseek, openrouter, venice — and pay that vendor directly.
+bring your own api key and asherin is free â you pay that vendor for inference. want asherin.com's hosted uncensored model? that is the paid seat: venice qwen-3-6-plus (vendor claim: anonymized, no prompt retention).
 
 ## honest limits
 
@@ -16,9 +16,11 @@ you can bring your own model key — gemini, openai, claude, mistral, xai grok, 
 
 ## pages
 
-- [Home](/): asherin — look a little closer.
+- [Home](/): asherin â look a little closer.
 - [Pricing](/pricing): $18/month and $79/month.
 - [Software](/software): the rooms on a seat.
+- [For](/for): who asherin is for.
+- [Forums](/forums): notes from the work line.
 - [Founder](/founder): asher newton.
 - [Blog](/blog)
 - [Glossary](/glossary)
