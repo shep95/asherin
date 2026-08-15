@@ -1306,6 +1306,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     const _preflightLeft = () => PREFLIGHT_MS - (Date.now() - _preflightStart);
     const _organBudgetMs = () => Math.max(0, Math.min(_organBudgetBase, _preflightLeft()));
     const _organsLive = () => !_skipHeavyOrgans && _preflightLeft() > 3_000;
+    const _remainMs = () => Math.max(400, _preflightLeft());
+    const _raceNull = <T,>(p: Promise<T>, ms: number) =>
+      Promise.race([p, new Promise<null>((resolve) => setTimeout(() => resolve(null), Math.max(400, ms)))]);
     if (_skipHeavyOrgans) {
       console.log(`[chat] speed skip organs: kind=${_speedR.kind} ghost=${_ghostChainPass}`);
     }
@@ -1320,24 +1323,31 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           const _geo = detectGeoTarget(String(_lastGeoMsg.content || ""));
           if (_geo) {
             const _t0 = Date.now();
-            const _out = await runGeoTools(_geo, req.headers.get("Authorization"));
-            geoToolContext = _out.context;
-            console.log(`[chat] geo tools fired: ${_out.fired.join(",")}`);
-            // Maps is a hand: the map opens and flies because the map organ ran.
-            const _focus =
-              typeof (_geo as any)?.query === "string"
-                ? (_geo as any).query
-                : typeof (_geo as any)?.address === "string"
-                  ? (_geo as any).address
-                  : String(_lastGeoMsg.content || "").slice(0, 120);
-            handFocus.maps = _focus;
-            await traceOrgan({
-              organ: "maps",
-              capability: _out.fired[0] || "geo",
-              ok: _out.fired.length > 0,
-              latencyMs: Date.now() - _t0,
-              quote: _focus.slice(0, 160),
-            });
+            const _out = await _raceNull(
+              runGeoTools(_geo, req.headers.get("Authorization")),
+              Math.min(4000, _remainMs()),
+            );
+            if (!_out) {
+              console.warn("[chat] geo tools raced out — continuing to mouth");
+            } else {
+              geoToolContext = _out.context;
+              console.log(`[chat] geo tools fired: ${_out.fired.join(",")}`);
+              // Maps is a hand: the map opens and flies because the map organ ran.
+              const _focus =
+                typeof (_geo as any)?.query === "string"
+                  ? (_geo as any).query
+                  : typeof (_geo as any)?.address === "string"
+                    ? (_geo as any).address
+                    : String(_lastGeoMsg.content || "").slice(0, 120);
+              handFocus.maps = _focus;
+              await traceOrgan({
+                organ: "maps",
+                capability: _out.fired[0] || "geo",
+                ok: _out.fired.length > 0,
+                latencyMs: Date.now() - _t0,
+                quote: _focus.slice(0, 160),
+              });
+            }
           }
         }
       } catch (e) {
@@ -1355,10 +1365,17 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           const { planDork, runLiveDork } = await import("../_shared/liveDorkBridge.ts");
           const _plan = planDork(String(_lastDorkMsg.content || ""));
           if (_plan) {
-            const _out = await runLiveDork(_plan, req.headers.get("Authorization"));
-            liveDorkContext = _out.context;
-            if (_out.offline) liveDorkOffline = _out.offline;
-            console.log(`[chat] live dork fired: ${_out.fired.join(",")}${_out.offline ? ` | ${_out.offline}` : ""}`);
+            const _out = await _raceNull(
+              runLiveDork(_plan, req.headers.get("Authorization")),
+              Math.min(4000, _remainMs()),
+            );
+            if (!_out) {
+              console.warn("[chat] live dork raced out — continuing to mouth");
+            } else {
+              liveDorkContext = _out.context;
+              if (_out.offline) liveDorkOffline = _out.offline;
+              console.log(`[chat] live dork fired: ${_out.fired.join(",")}${_out.offline ? ` | ${_out.offline}` : ""}`);
+            }
           }
         }
       } catch (e) {
@@ -1584,7 +1601,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         ["social", socialLeg],
         ["folded", foldedLeg],
       ];
-      const settled = await Promise.allSettled(legs.map(([, p]) => p));
+      const settled = (await _raceNull(Promise.allSettled(legs.map(([, p]) => p)), Math.min(6000, _remainMs()))) || [];
       settled.forEach((s, i) => {
         if (s.status === "rejected") {
           console.error(`[chat] ${legs[i][0]} bridge failed:`, (s.reason as Error)?.message ?? s.reason);
