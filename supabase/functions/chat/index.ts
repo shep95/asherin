@@ -1170,14 +1170,25 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       responseDepth: _speedDepth,
     });
     const _skipHeavyOrgans = _speedR.trivial || _ghostChainPass;
-    const _organBudgetMs = (_speedR.deep || _speedDepth === "deep" || _speedDepth === "exhaustive") ? 28000 : 8000;
+    const _organBudgetBase = (_speedR.deep || _speedDepth === "deep" || _speedDepth === "exhaustive") ? 28000 : 8000;
+    // ── PREFLIGHT DEADLINE ────────────────────────────────────────────────
+    // Each organ was individually bounded, but the stages run one after the
+    // other: enough of them landing near their own ceiling walked the turn
+    // past the 150s edge idle limit and the caller got a 504 with no answer.
+    // One wall clock now governs ALL pre-model collection. When it is spent,
+    // remaining organs stand down and the model answers with what was gathered.
+    const _preflightStart = Date.now();
+    const PREFLIGHT_MS = 85_000;
+    const _preflightLeft = () => PREFLIGHT_MS - (Date.now() - _preflightStart);
+    const _organBudgetMs = () => Math.max(0, Math.min(_organBudgetBase, _preflightLeft()));
+    const _organsLive = () => !_skipHeavyOrgans && _preflightLeft() > 3_000;
     if (_skipHeavyOrgans) {
       console.log(`[chat] speed skip organs: kind=${_speedR.kind} ghost=${_ghostChainPass}`);
     }
     // ── QUEUE 09 (C): geography RUNS. asher-property-intel (+ street cameras)
     // fires before we answer. Never zophiel-intelmap for cartography. ──
     let geoToolContext = "";
-    if (!_skipHeavyOrgans) try {
+    if (_organsLive()) try {
       const _lastGeoMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (_lastGeoMsg) {
         const { detectGeoTarget, runGeoTools } = await import("../_shared/geoToolBridge.ts");
@@ -1211,7 +1222,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // the model an honest offline banner so it does not hallucinate URLs. ──
     let liveDorkContext = "";
     let liveDorkOffline = "";
-    if (!_skipHeavyOrgans) try {
+    if (_organsLive()) try {
       const _lastDorkMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (_lastDorkMsg) {
         const { planDork, runLiveDork } = await import("../_shared/liveDorkBridge.ts");
@@ -1271,7 +1282,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // that actually ran this turn. Never synthesised from the answer text.
     const firedToolRows: Array<{ label: string; detail?: string }> = [];
 
-    if (!_skipHeavyOrgans) {
+    if (_organsLive()) {
       const lastUserForBridges = [...messages].reverse().find((m: any) => m.role === "user");
       const bridgeQ = String(lastUserForBridges?.content || "");
       const bridgeStarted = Date.now();
@@ -1488,7 +1499,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         // Reuse the classification computed for the retrieval router above; only
         // re-derive it if that pass failed, so both layers agree on the turn type.
         const intent = intelIntent ?? classifyIntent(lastUser?.content || "");
-        if (_skipHeavyOrgans) return;
+        if (!_organsLive()) return;
         if (isDefensiveSecurityAuditRequest || vaultOwnsTurn || meshOwnsTurn || intent.kind === "none") return;
 
         isIntelTurn = true;
@@ -1522,7 +1533,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
         const bundle = await Promise.race([
           runJurisdictionalSearch(intent),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs())),
         ]);
         const live = bundle ? formatIntelContext(bundle) : "";
         if (live) jurisdictionalContext = jurisdictionalContext ? `${jurisdictionalContext}\n${live}` : live;
@@ -1535,7 +1546,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     })();
 
-    if (!_skipHeavyOrgans && shouldSearch(messages, mode)) {
+    if (_organsLive() && shouldSearch(messages, mode)) {
       const searchUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
       if (searchUserMsg) {
         const q = String(searchUserMsg.content || "").slice(0, 400);
@@ -1557,7 +1568,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             (!intelIntent || intelIntent.kind === "none");
           const bundle = await Promise.race([
             runZophielIntel(q, { deep, mode: "web", fast: true }),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs)),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs())),
           ]);
           webSearchContext = formatZophielContext(bundle);
 
@@ -1591,7 +1602,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     //      correspondence that produced them.
     //   2. TARGET — the operator names a public URL and asks about provenance.
     // Failure is non-fatal in both cases: chat continues without the shell.
-    if (!_skipHeavyOrgans) try {
+    if (_organsLive()) try {
       const ghostMsg = [...messages].reverse().find((m: any) => m.role === "user");
       const ghostText = String(ghostMsg?.content || "");
       const { needsGhostSweep, runGhostForChat, formatGhostContext } =
@@ -1611,7 +1622,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             channel: ledgerIntent.channel,
             focus: ledgerIntent.focus,
             maxHosts: 10,
-            budgetMs: _organBudgetMs,
+            budgetMs: _organBudgetMs(),
           });
           const ctx = formatGhostLedgerContext(lb);
           if (ctx) {
@@ -1632,7 +1643,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
 
       if (!ledgerHandled && ghostMsg && needsGhostSweep(ghostText)) {
-        const bundle = await runGhostForChat(req, ghostText);
+        const bundle = await Promise.race([
+          runGhostForChat(req, ghostText),
+          new Promise<null>((r) => setTimeout(() => r(null), _organBudgetMs())),
+        ]);
         if (bundle) {
           webSearchContext = `${webSearchContext || ""}${formatGhostContext(bundle)}`;
           handFocus.ghost = ghostText.slice(0, 120);
@@ -1663,7 +1677,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
     // ── Internet Archive (archive.org) live grounding ──────────────────────
     let archiveContext = "";
-    if (!_skipHeavyOrgans) try {
+    if (_organsLive()) try {
       const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
       const userText = lastUser?.content || "";
       const { searchArchive, formatArchiveContext, shouldQueryArchive } =
@@ -1771,7 +1785,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             { subject: resolvedSubject, kind: engineKind, hints: trig.hints },
             { geminiKey: Deno.env.get("GEMINI_API_KEY") || "", testCap: 999, concurrency: 24, perQueryTimeoutMs: 10000, skipBrief: false, depth: continuationDepth },
           ),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), _organBudgetMs())),
         ]);
         if (report) {
           // Extract every URL so the answer is forced to render a Sources section
@@ -1805,7 +1819,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       const lastUserForLoop = [...messages].reverse().find((m: any) => m.role === "user");
       const loopText = lastUserForLoop?.content || "";
       const authHLoop = isIntelTurn ? null : req.headers.get("Authorization");
-      if (!_skipHeavyOrgans && authHLoop && loopText && !isDefensiveSecurityAuditRequest) {
+      if (_organsLive() && authHLoop && loopText && !isDefensiveSecurityAuditRequest) {
         const { detectAutonomousIntent } = await import("../_shared/autonomousIntent.ts");
         const preTrig = detectAutonomousIntent(loopText);
         if (preTrig.fire) {
@@ -1826,7 +1840,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
                 supabaseAnonKey: ANON_L,
                 supabaseUrl: SB_URL_L,
               }),
-              new Promise<null>((r) => setTimeout(() => r(null), _organBudgetMs)),
+              new Promise<null>((r) => setTimeout(() => r(null), _organBudgetMs())),
             ]);
             if (result?.fired) {
               autonomousContext = result.contextBlock;
