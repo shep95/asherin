@@ -3358,7 +3358,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
     }
 
     // Determine which provider to call
-    let isGeminiResponse = true; // true if we need to transform Gemini SSE format
+    let isGeminiResponse = false; // only true after google BYOK is selected
     let isAnthropicResponse = false;
     let isResponsesApi = false; // true when an upstream BYOK provider uses the OpenAI Responses API
 
@@ -3369,15 +3369,15 @@ The operator is requesting a defensive security audit / flaw check of their own 
     let byokFailStatus = 0;
     let byokFailReason = "";
 
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
     const encoder = new TextEncoder();
     let writerClosed = false;
+    let _ctrl: ReadableStreamDefaultController<Uint8Array> | null = null;
+    let _pumpFn: () => Promise<void> = async () => {};
 
     const safeWrite = async (payload: string) => {
-      if (writerClosed) return false;
+      if (writerClosed || !_ctrl) return false;
       try {
-        await writer.write(encoder.encode(payload));
+        _ctrl.enqueue(encoder.encode(payload));
         return true;
       } catch (e) {
         writerClosed = true;
@@ -3390,13 +3390,23 @@ The operator is requesting a defensive security audit / flaw check of their own 
       if (writerClosed) return;
       writerClosed = true;
       try {
-        await writer.close();
+        _ctrl?.close();
       } catch (e) {
         console.warn("stream close skipped:", (e as Error)?.message || e);
       }
     };
 
-    const _pump = (async () => {
+    const readable = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        _ctrl = controller;
+        await _pumpFn();
+      },
+      cancel() {
+        writerClosed = true;
+      },
+    });
+
+    _pumpFn = async () => {
       try {
         await safeWrite(": ping\n\n");
         if (useByok && userApiKey && byokProvider && byokModel) {
@@ -3555,8 +3565,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
             while (true) {
               const { done, value } = await reader.read();
-              if (done) break;
-              buf += decoder.decode(value, { stream: true });
+              if (done) {
+                buf += decoder.decode();
+                if (buf.length && !buf.endsWith("\n")) buf += "\n";
+              } else {
+                buf += decoder.decode(value, { stream: true });
+              }
+              if (done && !buf.trim()) break;
 
               let idx: number;
               while ((idx = buf.indexOf("\n")) !== -1) {
@@ -3669,8 +3684,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
                   }
                   try {
                     const parsed = JSON.parse(jsonStr);
-                    const content = parsed.choices?.[0]?.delta?.content;
-                    if (content) {
+                    const _d = parsed.choices?.[0]?.delta || parsed.choices?.[0]?.message || {};
+                    let content = _d.content ?? _d.reasoning_content ?? _d.text;
+                    if (Array.isArray(content)) content = content.map((p: any) => p?.text || p?.content || "").join("");
+                    if (typeof content === "string" && content) {
                       await emitText(content);
                     }
                     const finishReason = parsed.choices?.[0]?.finish_reason;
@@ -3692,11 +3709,19 @@ The operator is requesting a defensive security audit / flaw check of their own 
                   }
                 }
               }
+              if (done) break;
             }
             await flushScanner();
             await safeWrite("data: [DONE]\n\n");
           } catch (e) {
             console.error("stream transform error:", e);
+            try {
+              const _em = e instanceof Error ? e.message : String(e);
+              await safeWrite("data: " + JSON.stringify({ choices: [{ delta: { content: _em } }] }) + "\n\n");
+              await safeWrite("data: [DONE]\n\n");
+            } catch {
+              /* noop */
+            }
           } finally {
             await safeClose();
           }
@@ -3712,13 +3737,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
         }
         await safeClose();
       }
-    })();
-    try {
-      const _er = (globalThis as any).EdgeRuntime;
-      if (_er && typeof _er.waitUntil === "function") _er.waitUntil(_pump);
-    } catch {
-      /* deno without EdgeRuntime */
-    }
+    };
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
