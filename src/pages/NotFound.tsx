@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import LandingBackground from "@/components/LandingBackground";
@@ -627,7 +627,7 @@ function Bars({ rows, max }: { rows: { label: string; hits: number }[]; max: num
   );
 }
 
-function Card({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+function Card({ title, children, hint }: { title: string; children: ReactNode; hint?: string }) {
   return (
     <section className="rounded-2xl border border-border/20 bg-card/25 backdrop-blur-md px-6 py-5">
       <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">{title}</p>
