@@ -32,10 +32,10 @@ export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/asher-fold-memory",
     title: "asher.fold-memory — leftover memory, stored once",
-    dek: "identical copies are stored once, unique bytes stay the floor, and unfold hands back the exact bits or refuses. the measured selftest numbers, the ice-cream law about cloud bills, and the $99 pack.",
+    dek: "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack — no account."
     tag: "Release",
     published: "2026-08-16T06:00:00.000Z",
-    readTime: "9 min",
+    readTime: "6 min",
     featured: true,
     pinned: true,
   },
