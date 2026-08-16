@@ -3414,20 +3414,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
     };
 
     let _pumpP: Promise<void> = Promise.resolve();
-    const readable = new ReadableStream<Uint8Array>({
-      start(controller) {
-        _ctrl = controller;
-        try {
-          controller.enqueue(encoder.encode(": ping\n\n"));
-        } catch {
-          /* stream already cancelled */
-        }
-        _pumpP = Promise.resolve().then(() => _pumpFn());
-      },
-      cancel() {
-        writerClosed = true;
-      },
-    });
 
     _pumpFn = async () => {
       try {
@@ -3764,7 +3750,21 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     };
     const _ert = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
-    if (_ert && typeof _ert.waitUntil === "function") _ert.waitUntil(_pumpP);
+    const readable = new ReadableStream<Uint8Array>({
+      start(controller) {
+        _ctrl = controller;
+        try {
+          controller.enqueue(encoder.encode(": ping\n\n"));
+        } catch {
+          /* stream already cancelled */
+        }
+        _pumpP = _pumpFn();
+        if (_ert && typeof _ert.waitUntil === "function") _ert.waitUntil(_pumpP);
+      },
+      cancel() {
+        writerClosed = true;
+      },
+    });
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
