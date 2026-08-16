@@ -1,5 +1,12 @@
-import { useLocation } from "react-router-dom";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import Header from "@/components/Header";
+import SiteFooter from "@/components/SiteFooter";
+import LandingBackground from "@/components/LandingBackground";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { streamChat } from "@/lib/ai";
+import { isInternalProEmail } from "@/lib/adminEmail";
 import { applySeoHead } from "@/lib/seoHead";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 
@@ -553,3 +560,337 @@ const NotFound = () => {
 };
 
 export default NotFound;
+
+type Daily = {
+  day: string;
+  visitors: number;
+  pageviews: number;
+  bounce_rate: number | null;
+  avg_session_seconds: number | null;
+};
+type Dim = { kind: string; label: string; hits: number; source: string };
+type Live = {
+  kind: string;
+  path: string;
+  dest: string | null;
+  referrer_host: string | null;
+  country: string | null;
+  region: string | null;
+};
+
+function forecastVisitors(days: Daily[]): { next: { day: string; visitors: number }[]; note: string } {
+  const last = days.slice(-14);
+  if (last.length < 4) {
+    return { next: [], note: "need more days before a trend is honest." };
+  }
+  const ys = last.map((d) => Number(d.visitors) || 0);
+  const n = ys.length;
+  const xMean = (n - 1) / 2;
+  const yMean = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - xMean) * (ys[i] - yMean);
+    den += (i - xMean) ** 2;
+  }
+  const slope = den === 0 ? 0 : num / den;
+  const lastDay = last[last.length - 1].day.slice(0, 10);
+  const out: { day: string; visitors: number }[] = [];
+  for (let i = 1; i <= 7; i++) {
+    const dt = new Date(lastDay + "T00:00:00Z");
+    dt.setUTCDate(dt.getUTCDate() + i);
+    const v = Math.max(0, Math.round(ys[n - 1] + slope * i));
+    out.push({ day: dt.toISOString().slice(0, 10), visitors: v });
+  }
+  return {
+    next: out,
+    note: "linear trend from the last 14 days. this is a trend, not a promise.",
+  };
+}
+
+function Bars({ rows, max }: { rows: { label: string; hits: number }[]; max: number }) {
+  const m = Math.max(1, max);
+  return (
+    <ul className="space-y-2">
+      {rows.map((r) => (
+        <li key={r.label}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="truncate font-extralight text-foreground/90">{r.label}</span>
+            <span className="shrink-0 font-mono text-[11px] text-foreground/50">{r.hits.toLocaleString()}</span>
+          </div>
+          <div className="mt-1 h-[2px] w-full bg-foreground/10">
+            <div className="h-full bg-foreground/70" style={{ width: `${Math.max(2, (r.hits / m) * 100)}%` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Card({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+  return (
+    <section className="rounded-2xl border border-border/20 bg-card/25 backdrop-blur-md px-6 py-5">
+      <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">{title}</p>
+      {hint ? <p className="mt-1 text-xs font-extralight text-muted-foreground">{hint}</p> : null}
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+export function SiteTraffic() {
+  const { user } = useAuth();
+  const [daily, setDaily] = useState<Daily[]>([]);
+  const [dims, setDims] = useState<Dim[]>([]);
+  const [live, setLive] = useState<Live[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [q, setQ] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [asking, setAsking] = useState(false);
+
+  const cosmeticAdmin = isInternalProEmail(user?.email);
+
+  useEffect(() => {
+    document.title = "asherin.traffic";
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const [dRes, dimRes, liveRes] = await Promise.all([
+        supabase
+          .from("site_traffic_daily" as never)
+          .select("day,visitors,pageviews,bounce_rate,avg_session_seconds")
+          .order("day", { ascending: true }),
+        supabase
+          .from("site_traffic_dim" as never)
+          .select("kind,label,hits,source")
+          .order("hits", { ascending: false }),
+        supabase
+          .from("site_traffic_events" as never)
+          .select("kind,path,dest,referrer_host,country,region")
+          .gte("occurred_at", weekAgo)
+          .limit(4000),
+      ]);
+      if (cancelled) return;
+      if (dRes.error || dimRes.error) {
+        setErr("this page is for admins.");
+        setBusy(false);
+        return;
+      }
+      setDaily((dRes.data as Daily[]) || []);
+      setDims((dimRes.data as Dim[]) || []);
+      setLive((liveRes.data as Live[]) || []);
+      setErr(null);
+      setBusy(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totals = useMemo(() => {
+    const visitors = daily.reduce((a, d) => a + (Number(d.visitors) || 0), 0);
+    const pageviews = daily.reduce((a, d) => a + (Number(d.pageviews) || 0), 0);
+    const last = daily.slice(-14);
+    const bounce = last.length === 0 ? null : last.reduce((a, d) => a + (Number(d.bounce_rate) || 0), 0) / last.length;
+    return { visitors, pageviews, bounce };
+  }, [daily]);
+
+  const fc = useMemo(() => forecastVisitors(daily), [daily]);
+  const of = (kind: string) => dims.filter((d) => d.kind === kind);
+  const pages = of("page");
+  const sources = of("source");
+  const countries = of("country");
+  const regions = of("region");
+  const outbound = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of live) {
+      if (e.kind !== "outbound" || !e.dest) continue;
+      m.set(e.dest, (m.get(e.dest) || 0) + 1);
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([label, hits]) => ({ label, hits }));
+  }, [live]);
+  const spark = daily.slice(-28);
+  const sparkMax = Math.max(1, ...spark.map((d) => Number(d.visitors) || 0));
+
+  const ask = async () => {
+    const text = q.trim();
+    if (!text || asking) return;
+    setAsking(true);
+    setAnswer("");
+    try {
+      await streamChat({
+        messages: [
+          {
+            role: "user",
+            content: `[site traffic desk] ${text}`,
+          },
+        ],
+        mode: "research",
+        onDelta: (t) => setAnswer((prev) => prev + t),
+        onDone: () => setAsking(false),
+      });
+    } catch (e) {
+      setAnswer(e instanceof Error ? e.message : "ask failed.");
+      setAsking(false);
+    }
+  };
+
+  return (
+    <LandingBackground>
+      <Header />
+      <section className="relative z-10 px-6 pt-32 pb-20">
+        <div className="mx-auto w-full max-w-3xl">
+          <nav className="mb-8 flex flex-wrap items-center gap-2 text-xs font-extralight tracking-[0.22em] uppercase text-muted-foreground">
+            <Link to="/" className="hover:text-foreground transition-colors">
+              asherin
+            </Link>
+            <span aria-hidden className="text-border">
+              /
+            </span>
+            <span className="text-foreground/70 normal-case tracking-normal">traffic</span>
+          </nav>
+
+          <p className="text-[10px] font-extralight tracking-[0.4em] uppercase text-accent/80 mb-4">
+            internal Â· admins
+          </p>
+          <h1 className="font-display text-4xl sm:text-5xl font-light tracking-[-0.025em] leading-[1.05] text-foreground">
+            asherin.traffic
+          </h1>
+          <p className="mt-6 max-w-xl text-base font-extralight leading-relaxed text-muted-foreground">
+            which pages get seen, where clicks go next, where people arrived from, and which country â then the region
+            of that country when we have it.
+          </p>
+          <p className="mt-3 max-w-xl text-sm font-extralight leading-relayed text-muted-foreground/80">
+            historic is the published-site count from 1 may 2026 through 16 aug 2026. that set has country, not region.
+            region below is a smaller signed-in sample. live clicks start after this page is on. no names. no emails. no
+            ips.
+          </p>
+
+          {busy ? (
+            <p className="mt-12 text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
+              asherin
+            </p>
+          ) : err ? (
+            <p className="mt-12 text-sm font-extralight text-muted-foreground">{err}</p>
+          ) : (
+            <>
+              <div className="mt-12 grid grid-cols-3 gap-3">
+                {[
+                  { k: "visitors", v: totals.visitors.toLocaleString() },
+                  { k: "pageviews", v: totals.pageviews.toLocaleString() },
+                  { k: "bounce Â· 14d", v: totals.bounce == null ? "â" : `${Math.round(totals.bounce)}%` },
+                ].map((s) => (
+                  <div key={s.k} className="rounded-2xl border border-border/20 bg-card/25 backdrop-blur-md px-4 py-4">
+                    <p className="font-mono text-[10px] tracking-[0.28em] uppercase text-foreground/40">{s.k}</p>
+                    <p className="mt-2 text-2xl font-light tracking-tight text-foreground">{s.v}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Card title="last 28 days" hint="visitors per day">
+                <div className="flex h-16 items-end gap-[3px]">
+                  {spark.map((d) => (
+                    <div
+                      key={d.day}
+                      className="flex-1 rounded-sm bg-foreground/70"
+                      style={{ height: `${Math.max(6, ((Number(d.visitors) || 0) / sparkMax) * 100)}%` }}
+                      title={`${d.day.slice(0, 10)} Â· ${d.visitors}`}
+                    />
+                  ))}
+                </div>
+              </Card>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <Card title="pages" hint="historic published-site count">
+                  <Bars rows={pages} max={pages[0]?.hits || 1} />
+                </Card>
+                <Card title="from where" hint="referrer / source">
+                  <Bars rows={sources} max={sources[0]?.hits || 1} />
+                </Card>
+                <Card title="country" hint="historic. in = india, us = united states.">
+                  <Bars rows={countries} max={countries[0]?.hits || 1} />
+                </Card>
+                <Card
+                  title="region of that country"
+                  hint="signed-in sessions only. historic public count has no region."
+                >
+                  {regions.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">this is unsure: no region yet.</p>
+                  ) : (
+                    <Bars rows={regions} max={regions[0]?.hits || 1} />
+                  )}
+                </Card>
+              </div>
+
+              <div className="mt-4">
+                <Card
+                  title="where clicks go"
+                  hint="live outbound since this page existed. empty until people click off-site."
+                >
+                  {outbound.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">none yet. this is not fake data.</p>
+                  ) : (
+                    <Bars rows={outbound} max={outbound[0]?.hits || 1} />
+                  )}
+                </Card>
+              </div>
+
+              <div className="mt-4">
+                <Card title="next 7 days" hint={fc.note}>
+                  {fc.next.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">{fc.note}</p>
+                  ) : (
+                    <ul className="space-y-1 text-sm font-extralight">
+                      {fc.next.map((d) => (
+                        <li key={d.day} className="flex justify-between text-foreground/80">
+                          <span>{d.day}</span>
+                          <span className="font-mono text-[11px] text-foreground/50">{d.visitors} visitors</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </div>
+
+              <div className="mt-8 rounded-2xl border border-border/20 bg-card/25 backdrop-blur-md px-6 py-5">
+                <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-foreground/40">ask asherin</p>
+                <p className="mt-1 text-xs font-extralight text-muted-foreground">
+                  same asherin.com ai. it can read these counts, predict from the trend, and answer questions.{" "}
+                  {cosmeticAdmin
+                    ? "your seat is on the admin list."
+                    : "it only answers this desk if your seat is admin."}
+                </p>
+                <textarea
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  rows={3}
+                  className="mt-4 w-full rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-sm font-light text-foreground"
+                  placeholder="which page is winning, and what happens next week?"
+                  aria-label="ask asherin about traffic"
+                />
+                <button
+                  type="button"
+                  onClick={ask}
+                  disabled={asking || !q.trim()}
+                  className="mt-3 rounded-lg bg-foreground px-4 py-2 text-sm font-light text-background disabled:opacity-50"
+                >
+                  {asking ? "thinkingâ¦" : "ask"}
+                </button>
+                {answer ? (
+                  <div className="mt-4 whitespace-pre-wrap text-sm font-extralight leading-relaxed text-foreground/80">
+                    {answer}
+                  </div>
+                ) : null}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+      <SiteFooter />
+    </LandingBackground>
+  );
+}
