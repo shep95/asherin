@@ -555,10 +555,20 @@ const Dashboard = () => {
             );
             setIsStreaming(true);
             let assistantContent = "";
-            const history = [...conv.messages, { role: "user" as const, content: msg.content }].map((m) => ({
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            }));
+            const history = [...conv.messages, { role: "user" as const, content: msg.content }]
+              .filter((m) => {
+                if (m.role !== "assistant") return true;
+                const t = String(m.content || "")
+                  .trim()
+                  .toLowerCase();
+                if (!t) return false;
+                if (t === "i'm here. say that again." || t === "i'm here. send again.") return false;
+                return true;
+              })
+              .map((m) => ({
+                role: m.role as "user" | "assistant",
+                content: m.content,
+              }));
 
             try {
               await streamChat({
@@ -587,6 +597,12 @@ const Dashboard = () => {
                 onDone: async () => {
                   setIsStreaming(false);
                   if (!String(assistantContent || "").trim()) return;
+                  {
+                    const t = String(assistantContent || "")
+                      .trim()
+                      .toLowerCase();
+                    if (t === "i'm here. say that again." || t === "i'm here. send again.") return;
+                  }
                   const encAssistant = await encryptText(assistantContent, user.id);
                   await supabase.from("messages").insert({
                     id: assistantId,
