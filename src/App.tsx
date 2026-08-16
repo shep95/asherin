@@ -204,6 +204,7 @@ function ForHub() {
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
+const BlogAsherFoldMemory = lazy(() => import("./pages/blog/AsherFoldMemory"));
 const BlogPaidSeatFreeDoor = lazy(() => import("./pages/Blog").then((m) => ({ default: m.PaidSeatFreeDoor })));
 const Updates = lazy(() => import("./pages/Updates"));
 const Sources = lazy(() => import("./pages/Sources"));
@@ -353,6 +354,7 @@ const App = () => (
                       />
                       <Route path="/blog" element={<Blog />} />
                       <Route path="/blog/paid-seat-free-door" element={<BlogPaidSeatFreeDoor />} />
+                      <Route path="/blog/asher-fold-memory" element={<BlogAsherFoldMemory />} />
                       <Route path="/blog/comparison" element={<Navigate to="/software" replace />} />
                       <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
                       <Route

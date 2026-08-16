@@ -272,6 +272,14 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-08-15",
   },
 
+  "/blog/asher-fold-memory": {
+    title: "asher.fold-memory — leftover memory, stored once",
+    description:
+      "leftover-memory software: identical copies stored once, cue and trance recall, and unfold that returns exact bits or refuses. one-time $99 pack.",
+    ogType: "article",
+    datePublished: "2026-08-16",
+  },
+
   // --- Glossary ---
   "/glossary": {
     title: "Glossary | asherin",
