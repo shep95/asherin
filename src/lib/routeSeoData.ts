@@ -357,7 +357,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
 // /asher is intentionally NOT skipped — it has an SEO entry and is in the
 // sitemap; skipping it let the static homepage canonical leak through and made
 // crawlers read /asher as a duplicate of "/".
-export const SKIP_PREFIXES = ["/dashboard", "/asher-dashboard"];
+export const SKIP_PREFIXES = ["/dashboard", "/asher-dashboard", "/internal"];
 
 /** Public routes that belong in sitemap.xml. */
 export function sitemapPaths(): string[] {
