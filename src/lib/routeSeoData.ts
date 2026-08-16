@@ -48,7 +48,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/for": {
     title: "who asherin is for",
     description:
-      "five desks on one seat: people who already chat with a model, journalists, companies, private investigators, and data analytics people. $18/mo, $79/mo pro.",
+      "five desks. same seat: sourced chat, public-index search, a map, a vault, memory. first click is look — wikipedia + wayback — not a paywall. $18 / month. $79 / month pro.",
   },
   "/for/research": {
     title: "asherin for people who already chat with a model",
@@ -92,8 +92,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description: "the papers, documents and first-party figures asherin cites, each with the date it was checked.",
   },
   "/forums": {
-    title: "Forums | asherin",
-    description: "open discussion between people using asherin.",
+    title: "notes from the work line | asherin",
+    description:
+      "paid seat. free door. bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
   },
 
   // --- Legal ---
@@ -262,6 +263,13 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description: "why a persona is not a reasoning procedure, and what we replaced ours with.",
     ogType: "article",
     datePublished: "2026-08-12",
+  },
+  "/blog/paid-seat-free-door": {
+    title: "paid seat. free door.",
+    description:
+      "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
+    ogType: "article",
+    datePublished: "2026-08-15",
   },
 
   // --- Glossary ---
