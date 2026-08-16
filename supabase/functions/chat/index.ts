@@ -1300,7 +1300,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       mode,
       responseDepth: _speedDepth,
     });
-    const _skipHeavyOrgans = _speedR.trivial || _ghostChainPass;
+    const { classifyTurnDomain: _classifyDomainEarly } = await import("../_shared/dorkIntent.ts");
+    const _turnDomainEarly = _classifyDomainEarly(_speedProbe);
+    const _skipHeavyOrgans =
+      _speedR.trivial || _ghostChainPass || _turnDomainEarly === "belief" || _turnDomainEarly === "smalltalk";
     const _organBudgetBase = _speedR.deep || _speedDepth === "deep" || _speedDepth === "exhaustive" ? 28000 : 8000;
     // ── PREFLIGHT DEADLINE ────────────────────────────────────────────────
     // Each organ was individually bounded, but the stages run one after the
@@ -1392,12 +1395,14 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // Classified once here and reused by the jurisdictional sweep below, so the
     // two retrieval layers cannot double-charge the turn's wall-clock budget.
     let intelIntent: any = null;
-    try {
-      const lastUserForIntent = [...messages].reverse().find((m: any) => m.role === "user");
-      const { classifyIntent } = await import("../_shared/jurisdictionalIntel.ts");
-      intelIntent = classifyIntent(lastUserForIntent?.content || "");
-    } catch (_e) {
-      intelIntent = null;
+    if (_organsLive()) {
+      try {
+        const lastUserForIntent = [...messages].reverse().find((m: any) => m.role === "user");
+        const { classifyIntent } = await import("../_shared/jurisdictionalIntel.ts");
+        intelIntent = classifyIntent(lastUserForIntent?.content || "");
+      } catch (_e) {
+        intelIntent = null;
+      }
     }
 
     // ── BRIDGE FAN-OUT — six independent sensors, one wave ────────────────
