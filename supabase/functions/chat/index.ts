@@ -2774,14 +2774,19 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // kernel is small and rides every non-trivial turn because the universal
     // operation must always be resident; the heavy operator dossiers are
     // relevance-gated to the two-to-three this message actually demands.
-    const {
-      PATTERN_RECOGNITION_KERNEL,
-      PATTERN_OPERATOR_ROSTER,
-      buildPatternEmphasis,
-      isIdentityLookup,
-      IDENTITY_VERDICT_CONTRACT,
-    } = await import("../_shared/patternRecognitionEngine.ts");
-    const _patternEmphasis = buildPatternEmphasis(_lastUserText);
+    let PATTERN_RECOGNITION_KERNEL = "";
+    let PATTERN_OPERATOR_ROSTER = "";
+    let IDENTITY_VERDICT_CONTRACT = "";
+    let _patternEmphasis = "";
+    let isIdentityLookup = (_t: string) => false;
+    if (!_skipHeavyOrgans) {
+      const _pe = await import("../_shared/patternRecognitionEngine.ts");
+      PATTERN_RECOGNITION_KERNEL = _pe.PATTERN_RECOGNITION_KERNEL;
+      PATTERN_OPERATOR_ROSTER = _pe.PATTERN_OPERATOR_ROSTER;
+      IDENTITY_VERDICT_CONTRACT = _pe.IDENTITY_VERDICT_CONTRACT;
+      _patternEmphasis = _pe.buildPatternEmphasis(_lastUserText);
+      isIdentityLookup = _pe.isIdentityLookup;
+    }
     // Identity turns carry no analytic vocabulary, so the keyword scorer used
     // to disarm the engine on exactly the questions where a wrong merge is
     // most expensive. Shape detection forces the corroboration stack and the
@@ -2791,8 +2796,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
     // Domain atlas — WHERE to look. 28 terrains / 274 subdomains. Resident
     // index + terrain records gated to the two domains this message enters.
-    const { DOMAIN_ATLAS_INDEX, buildDomainEmphasis } = await import("../_shared/domainAtlas.ts");
-    const _domainEmphasis = buildDomainEmphasis(_lastUserText);
+    let DOMAIN_ATLAS_INDEX = "";
+    let _domainEmphasis = "";
+    if (!_skipHeavyOrgans) {
+      const _da = await import("../_shared/domainAtlas.ts");
+      DOMAIN_ATLAS_INDEX = _da.DOMAIN_ATLAS_INDEX;
+      _domainEmphasis = _da.buildDomainEmphasis(_lastUserText);
+    }
 
     // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
     // Runs before a single prompt byte is assembled. It holds only the harm
@@ -3359,108 +3369,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
     let byokFailStatus = 0;
     let byokFailReason = "";
 
-    if (useByok && userApiKey && byokProvider && byokModel) {
-      console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
-      try {
-        if (byokProvider === "google") {
-          response = await callWithTransientRetry(() => callGeminiWithKey(userApiKey, byokModel), "google");
-          isGeminiResponse = true;
-        } else if (byokProvider === "anthropic") {
-          response = await callWithTransientRetry(() => callAnthropic(userApiKey, byokModel), "anthropic");
-          isGeminiResponse = false;
-          isAnthropicResponse = true;
-        } else {
-          const endpoint = PROVIDER_ENDPOINTS[byokProvider];
-          if (endpoint) {
-            response = await callWithTransientRetry(
-              () => callOpenAICompatible(userApiKey, endpoint.url, byokModel),
-              byokProvider,
-            );
-            isGeminiResponse = false;
-          } else {
-            byokFailed = true;
-            byokFailStatus = 400;
-            byokFailReason = `Provider "${byokProvider}" is saved but not yet wired for chat routing. Switch to Google, OpenAI, Anthropic, xAI, Meta, Mistral, DeepSeek, Perplexity, Venice, Cohere, Qwen, Zhipu, Moonshot, Nvidia, Reka, Sarvam, or Two AI in Settings → AI Keys.`;
-          }
-        }
-
-        if (response && !response.ok) {
-          const errText = await response.text().catch(() => lastTransientBody);
-          console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
-          byokFailed = true;
-          byokFailStatus = response.status;
-          if (response.status === 429 && /insufficient_quota|exceeded.*quota/i.test(errText)) {
-            byokFailReason = `Your ${byokProvider} API key is out of credits/quota.`;
-          } else if (response.status === 401 || response.status === 403) {
-            byokFailReason = `Your ${byokProvider} API key is invalid or revoked.`;
-          } else if (response.status === 429) {
-            byokFailReason = `Your ${byokProvider} API key is rate-limited — wait a moment and send again.`;
-          } else if (response.status >= 500) {
-            byokFailReason = `${byokProvider}'s servers are temporarily overloaded. Nothing is wrong with your key — send the request again.`;
-          } else {
-            byokFailReason = `${byokProvider} returned ${response.status}.`;
-          }
-          // A transient status that survived the ladder is a busy upstream, not
-          // an unreachable one — keep the real status so the client asks for a
-          // resend instead of blaming the key.
-          response = null;
-        }
-      } catch (e) {
-        console.error("BYOK call failed:", e);
-        byokFailed = true;
-        byokFailStatus = 503;
-        byokFailReason = `Could not reach ${byokProvider}.`;
-      }
-    }
-
-    // BYOK-ONLY: no in-house fallback. A MISSING or REJECTED key is the user's
-    // to fix → 403 BYOK_REQUIRED (surfaces the ByokRequiredDialog). A provider
-    // that is merely busy or unreachable after the retry ladder is NOT a key
-    // problem, so it returns 503 UPSTREAM_BUSY and the client asks for a resend
-    // instead of accusing a perfectly valid key.
-    if (!response) {
-      const transient = byokFailed && (byokFailStatus === 429 || byokFailStatus >= 500);
-      const reason = byokFailed
-        ? byokFailReason || `Your ${byokProvider} API key returned an error.`
-        : "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.";
-      return new Response(
-        JSON.stringify({
-          error: reason,
-          code: transient ? "UPSTREAM_BUSY" : "BYOK_REQUIRED",
-          ...(transient ? { retryAfterMs: 4000 } : {}),
-        }),
-        {
-          status: transient ? 503 : 403,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            ...(transient ? { "Retry-After": "4" } : {}),
-          },
-        },
-      );
-    }
-
-    if (!response || !response.ok) {
-      return new Response(
-        JSON.stringify({
-          error: "AI is temporarily unavailable. Please try again in a moment.",
-          fallback: true,
-          degraded: true,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // Chart annotation is handled separately via the "Show Proof" button
-    // which calls the dedicated chart-annotate edge function
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // STREAM TRANSFORMER — Normalize all provider formats to OpenAI SSE
-    // ══════════════════════════════════════════════════════════════════════════
-
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
@@ -3488,204 +3396,315 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     };
 
-    // ── LAYER 3 — POST-INFERENCE SCANNER ──────────────────────────────────
-    // Every model-authored character leaves through here. It suppresses a
-    // refusal opener layer 1 already ruled out, redacts scaffolding names so
-    // the doctrine never appears inside the answer, and forwards the rest
-    // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
-    // make words flicker as frames arrive.
-    // One honest frame up front: which tools actually ran for this turn.
-    // Organ cards first: organ + latency + a masked quote of what came back.
-    // These are written from real invokes only, so a card the operator sees is
-    // a call that happened; a failed organ shows fail-red rather than vanishing.
-    for (const r of organRows.slice(0, 12)) {
-      const { organLabel } = await import("../_shared/organRouter.ts");
-      firedToolRows.push({
-        label: `${organLabel(r.organ)} · ${r.capability}`,
-        detail: [r.ok ? null : "failed", r.latencyMs ? `${r.latencyMs}ms` : null, r.quote].filter(Boolean).join(" · "),
-      });
-    }
-    if (firedToolRows.length) {
-      await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 16) })}\n\n`);
-    }
-
-    // Hands: the workspaces that must open because their organ ran. The client
-    // splits to Maps / IDE / Ghost / Whiteboard so the operator is not left
-    // hunting a tab for work asherin already did.
-    try {
-      const { handsForOrgans } = await import("../_shared/organRouter.ts");
-      const hands = handsForOrgans([...organsFired], handFocus);
-      if (hands.length) {
-        await safeWrite(`data: ${JSON.stringify({ asherin_hands: hands })}\n\n`);
-      }
-    } catch (e) {
-      console.error("[chat] hand emit failed:", (e as Error).message);
-    }
-
-    const _scanner = createPostInferenceScanner();
-    const emitText = async (text: string) => {
-      const safe = _scanner.feed(text);
-      if (!safe) return;
-      await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
-    };
-    const flushScanner = async () => {
-      const tail = _scanner.flush();
-      if (tail) {
-        await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`);
-      }
-      const s = _scanner.stats();
-      if (s.refusalSuppressed || s.scaffoldRedactions) {
-        console.warn(`[chat] layer3 refusalSuppressed=${s.refusalSuppressed} redactions=${s.scaffoldRedactions}`);
-      }
-    };
-
-    (async () => {
+    void safeWrite(": ping\n\n");
+    void (async () => {
       try {
-        // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
-        // Do NOT inject base64 images inline — they corrupt SSE streams due to size
-
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-
-          let idx: number;
-          while ((idx = buf.indexOf("\n")) !== -1) {
-            const line = buf.slice(0, idx).trim();
-            buf = buf.slice(idx + 1);
-
-            if (isGeminiResponse) {
-              // Gemini SSE format
-              if (!line.startsWith("data: ")) continue;
-              const jsonStr = line.slice(6);
-              try {
-                const parsed = JSON.parse(jsonStr);
-                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                  await emitText(text);
-                }
-                const finishReason = parsed.candidates?.[0]?.finishReason;
-                if (finishReason && /MAX_TOKENS|TOKEN|LENGTH/i.test(String(finishReason))) {
-                  const chunk = JSON.stringify({
-                    choices: [
-                      {
-                        delta: {
-                          content:
-                            "\n\n[GENERATION_INCOMPLETE: Gemini stopped at the output-token limit. Continue requested.]",
-                        },
-                      },
-                    ],
-                  });
-                  if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
-                }
-              } catch {
-                /* skip */
-              }
-            } else if (isAnthropicResponse) {
-              // Anthropic SSE format
-              if (!line.startsWith("data: ")) continue;
-              const jsonStr = line.slice(6);
-              try {
-                const parsed = JSON.parse(jsonStr);
-                if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                  await emitText(parsed.delta.text);
-                } else if (
-                  parsed.type === "message_delta" &&
-                  /max_tokens|length/i.test(String(parsed.delta?.stop_reason || ""))
-                ) {
-                  const chunk = JSON.stringify({
-                    choices: [
-                      {
-                        delta: {
-                          content:
-                            "\n\n[GENERATION_INCOMPLETE: Anthropic stopped at the output-token limit. Continue requested.]",
-                        },
-                      },
-                    ],
-                  });
-                  if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
-                }
-              } catch {
-                /* skip */
-              }
-            } else if (isResponsesApi) {
-              // OpenAI Responses API SSE.
-              // Only surface `response.output_text.delta` as visible content;
-              // drop reasoning_text deltas (model's internal scratchpad).
-              if (!line.startsWith("data:")) continue;
-              const jsonStr = line.slice(5).trim();
-              if (!jsonStr) continue;
-              try {
-                const parsed = JSON.parse(jsonStr);
-                if (parsed?.type === "response.output_text.delta" && typeof parsed.delta === "string" && parsed.delta) {
-                  await emitText(parsed.delta);
-                } else if (
-                  parsed?.type === "response.completed" &&
-                  /length|max_tokens|token/i.test(
-                    String(parsed.response?.incomplete_details?.reason || parsed.response?.status || ""),
-                  )
-                ) {
-                  const chunk = JSON.stringify({
-                    choices: [
-                      {
-                        delta: {
-                          content:
-                            "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]",
-                        },
-                      },
-                    ],
-                  });
-                  if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
-                } else if (parsed?.type === "error") {
-                  const msg = parsed?.error?.message || parsed?.message || "upstream error";
-                  const chunk = JSON.stringify({ choices: [{ delta: { content: `\n\n[error] ${msg}` } }] });
-                  if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
-                }
-              } catch {
-                /* skip */
-              }
+        if (useByok && userApiKey && byokProvider && byokModel) {
+          console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
+          try {
+            if (byokProvider === "google") {
+              response = await callWithTransientRetry(() => callGeminiWithKey(userApiKey, byokModel), "google");
+              isGeminiResponse = true;
+            } else if (byokProvider === "anthropic") {
+              response = await callWithTransientRetry(() => callAnthropic(userApiKey, byokModel), "anthropic");
+              isGeminiResponse = false;
+              isAnthropicResponse = true;
             } else {
-              // OpenAI-compatible SSE format (OpenAI, xAI, Mistral, Venice, DeepSeek, Together)
-              if (!line.startsWith("data: ")) continue;
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr === "[DONE]") {
-                break;
-              }
-              try {
-                const parsed = JSON.parse(jsonStr);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  await emitText(content);
-                }
-                const finishReason = parsed.choices?.[0]?.finish_reason;
-                if (finishReason && /length|max_tokens|token/i.test(String(finishReason))) {
-                  const chunk = JSON.stringify({
-                    choices: [
-                      {
-                        delta: {
-                          content:
-                            "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]",
-                        },
-                      },
-                    ],
-                  });
-                  if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
-                }
-              } catch {
-                /* skip */
+              const endpoint = PROVIDER_ENDPOINTS[byokProvider];
+              if (endpoint) {
+                response = await callWithTransientRetry(
+                  () => callOpenAICompatible(userApiKey, endpoint.url, byokModel),
+                  byokProvider,
+                );
+                isGeminiResponse = false;
+              } else {
+                byokFailed = true;
+                byokFailStatus = 400;
+                byokFailReason = `Provider "${byokProvider}" is saved but not yet wired for chat routing. Switch to Google, OpenAI, Anthropic, xAI, Meta, Mistral, DeepSeek, Perplexity, Venice, Cohere, Qwen, Zhipu, Moonshot, Nvidia, Reka, Sarvam, or Two AI in Settings → AI Keys.`;
               }
             }
+
+            if (response && !response.ok) {
+              const errText = await response.text().catch(() => lastTransientBody);
+              console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
+              byokFailed = true;
+              byokFailStatus = response.status;
+              if (response.status === 429 && /insufficient_quota|exceeded.*quota/i.test(errText)) {
+                byokFailReason = `Your ${byokProvider} API key is out of credits/quota.`;
+              } else if (response.status === 401 || response.status === 403) {
+                byokFailReason = `Your ${byokProvider} API key is invalid or revoked.`;
+              } else if (response.status === 429) {
+                byokFailReason = `Your ${byokProvider} API key is rate-limited — wait a moment and send again.`;
+              } else if (response.status >= 500) {
+                byokFailReason = `${byokProvider}'s servers are temporarily overloaded. Nothing is wrong with your key — send the request again.`;
+              } else {
+                byokFailReason = `${byokProvider} returned ${response.status}.`;
+              }
+              // A transient status that survived the ladder is a busy upstream, not
+              // an unreachable one — keep the real status so the client asks for a
+              // resend instead of blaming the key.
+              response = null;
+            }
+          } catch (e) {
+            console.error("BYOK call failed:", e);
+            byokFailed = true;
+            byokFailStatus = 503;
+            byokFailReason = `Could not reach ${byokProvider}.`;
           }
         }
-        await flushScanner();
-        await safeWrite("data: [DONE]\n\n");
+
+        // BYOK-ONLY: no in-house fallback. A MISSING or REJECTED key is the user's
+        // to fix → 403 BYOK_REQUIRED (surfaces the ByokRequiredDialog). A provider
+        // that is merely busy or unreachable after the retry ladder is NOT a key
+        // problem, so it returns 503 UPSTREAM_BUSY and the client asks for a resend
+        // instead of accusing a perfectly valid key.
+        if (!response) {
+          const transient = byokFailed && (byokFailStatus === 429 || byokFailStatus >= 500);
+          const reason = byokFailed
+            ? byokFailReason || `Your ${byokProvider} API key returned an error.`
+            : "Bring Your Own API Key is required. Add a provider key in Settings → AI Keys.";
+          const code = transient ? "UPSTREAM_BUSY" : "BYOK_REQUIRED";
+          await safeWrite(
+            `data: ${JSON.stringify({ error: reason, code, choices: [{ delta: { content: reason } }] })}\n\n`,
+          );
+          await safeWrite("data: [DONE]\n\n");
+          await safeClose();
+          return;
+        }
+
+        if (!response.ok) {
+          const _busy = "AI is temporarily unavailable. Please try again in a moment.";
+          await safeWrite(
+            `data: ${JSON.stringify({ error: _busy, fallback: true, choices: [{ delta: { content: _busy } }] })}\n\n`,
+          );
+          await safeWrite("data: [DONE]\n\n");
+          await safeClose();
+          return;
+        }
+
+        // Chart annotation is handled separately via the "Show Proof" button
+        // which calls the dedicated chart-annotate edge function
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // STREAM TRANSFORMER — Normalize all provider formats to OpenAI SSE
+        // ══════════════════════════════════════════════════════════════════════════
+
+        /* stream already opened before provider fetch — first byte is : ping */
+
+        // ── LAYER 3 — POST-INFERENCE SCANNER ──────────────────────────────────
+        // Every model-authored character leaves through here. It suppresses a
+        // refusal opener layer 1 already ruled out, redacts scaffolding names so
+        // the doctrine never appears inside the answer, and forwards the rest
+        // verbatim. Casing stays layer 4's job — rewriting it mid-stream would
+        // make words flicker as frames arrive.
+        // One honest frame up front: which tools actually ran for this turn.
+        // Organ cards first: organ + latency + a masked quote of what came back.
+        // These are written from real invokes only, so a card the operator sees is
+        // a call that happened; a failed organ shows fail-red rather than vanishing.
+        for (const r of organRows.slice(0, 12)) {
+          const { organLabel } = await import("../_shared/organRouter.ts");
+          firedToolRows.push({
+            label: `${organLabel(r.organ)} · ${r.capability}`,
+            detail: [r.ok ? null : "failed", r.latencyMs ? `${r.latencyMs}ms` : null, r.quote]
+              .filter(Boolean)
+              .join(" · "),
+          });
+        }
+        if (firedToolRows.length) {
+          await safeWrite(`data: ${JSON.stringify({ asherin_tools: firedToolRows.slice(0, 16) })}\n\n`);
+        }
+
+        // Hands: the workspaces that must open because their organ ran. The client
+        // splits to Maps / IDE / Ghost / Whiteboard so the operator is not left
+        // hunting a tab for work asherin already did.
+        try {
+          const { handsForOrgans } = await import("../_shared/organRouter.ts");
+          const hands = handsForOrgans([...organsFired], handFocus);
+          if (hands.length) {
+            await safeWrite(`data: ${JSON.stringify({ asherin_hands: hands })}\n\n`);
+          }
+        } catch (e) {
+          console.error("[chat] hand emit failed:", (e as Error).message);
+        }
+
+        const _scanner = createPostInferenceScanner();
+        const emitText = async (text: string) => {
+          const safe = _scanner.feed(text);
+          if (!safe) return;
+          await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
+        };
+        const flushScanner = async () => {
+          const tail = _scanner.flush();
+          if (tail) {
+            await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`);
+          }
+          const s = _scanner.stats();
+          if (s.refusalSuppressed || s.scaffoldRedactions) {
+            console.warn(`[chat] layer3 refusalSuppressed=${s.refusalSuppressed} redactions=${s.scaffoldRedactions}`);
+          }
+        };
+
+        (async () => {
+          try {
+            // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
+            // Do NOT inject base64 images inline — they corrupt SSE streams due to size
+
+            const reader = response.body!.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += decoder.decode(value, { stream: true });
+
+              let idx: number;
+              while ((idx = buf.indexOf("\n")) !== -1) {
+                const line = buf.slice(0, idx).trim();
+                buf = buf.slice(idx + 1);
+
+                if (isGeminiResponse) {
+                  // Gemini SSE format
+                  if (!line.startsWith("data: ")) continue;
+                  const jsonStr = line.slice(6);
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                      await emitText(text);
+                    }
+                    const finishReason = parsed.candidates?.[0]?.finishReason;
+                    if (finishReason && /MAX_TOKENS|TOKEN|LENGTH/i.test(String(finishReason))) {
+                      const chunk = JSON.stringify({
+                        choices: [
+                          {
+                            delta: {
+                              content:
+                                "\n\n[GENERATION_INCOMPLETE: Gemini stopped at the output-token limit. Continue requested.]",
+                            },
+                          },
+                        ],
+                      });
+                      if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
+                    }
+                  } catch {
+                    /* skip */
+                  }
+                } else if (isAnthropicResponse) {
+                  // Anthropic SSE format
+                  if (!line.startsWith("data: ")) continue;
+                  const jsonStr = line.slice(6);
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+                      await emitText(parsed.delta.text);
+                    } else if (
+                      parsed.type === "message_delta" &&
+                      /max_tokens|length/i.test(String(parsed.delta?.stop_reason || ""))
+                    ) {
+                      const chunk = JSON.stringify({
+                        choices: [
+                          {
+                            delta: {
+                              content:
+                                "\n\n[GENERATION_INCOMPLETE: Anthropic stopped at the output-token limit. Continue requested.]",
+                            },
+                          },
+                        ],
+                      });
+                      if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
+                    }
+                  } catch {
+                    /* skip */
+                  }
+                } else if (isResponsesApi) {
+                  // OpenAI Responses API SSE.
+                  // Only surface `response.output_text.delta` as visible content;
+                  // drop reasoning_text deltas (model's internal scratchpad).
+                  if (!line.startsWith("data:")) continue;
+                  const jsonStr = line.slice(5).trim();
+                  if (!jsonStr) continue;
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (
+                      parsed?.type === "response.output_text.delta" &&
+                      typeof parsed.delta === "string" &&
+                      parsed.delta
+                    ) {
+                      await emitText(parsed.delta);
+                    } else if (
+                      parsed?.type === "response.completed" &&
+                      /length|max_tokens|token/i.test(
+                        String(parsed.response?.incomplete_details?.reason || parsed.response?.status || ""),
+                      )
+                    ) {
+                      const chunk = JSON.stringify({
+                        choices: [
+                          {
+                            delta: {
+                              content:
+                                "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]",
+                            },
+                          },
+                        ],
+                      });
+                      if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
+                    } else if (parsed?.type === "error") {
+                      const msg = parsed?.error?.message || parsed?.message || "upstream error";
+                      const chunk = JSON.stringify({ choices: [{ delta: { content: `\n\n[error] ${msg}` } }] });
+                      if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
+                    }
+                  } catch {
+                    /* skip */
+                  }
+                } else {
+                  // OpenAI-compatible SSE format (OpenAI, xAI, Mistral, Venice, DeepSeek, Together)
+                  if (!line.startsWith("data: ")) continue;
+                  const jsonStr = line.slice(6).trim();
+                  if (jsonStr === "[DONE]") {
+                    break;
+                  }
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    const content = parsed.choices?.[0]?.delta?.content;
+                    if (content) {
+                      await emitText(content);
+                    }
+                    const finishReason = parsed.choices?.[0]?.finish_reason;
+                    if (finishReason && /length|max_tokens|token/i.test(String(finishReason))) {
+                      const chunk = JSON.stringify({
+                        choices: [
+                          {
+                            delta: {
+                              content:
+                                "\n\n[GENERATION_INCOMPLETE: provider stopped at the output-token limit. Continue requested.]",
+                            },
+                          },
+                        ],
+                      });
+                      if (!(await safeWrite(`data: ${chunk}\n\n`))) return;
+                    }
+                  } catch {
+                    /* skip */
+                  }
+                }
+              }
+            }
+            await flushScanner();
+            await safeWrite("data: [DONE]\n\n");
+          } catch (e) {
+            console.error("stream transform error:", e);
+          } finally {
+            await safeClose();
+          }
+        })();
       } catch (e) {
-        console.error("stream transform error:", e);
-      } finally {
+        console.error("early sse provider:", e);
+        try {
+          await safeWrite("data: [DONE]\n\n");
+        } catch {
+          /* noop */
+        }
         await safeClose();
       }
     })();
