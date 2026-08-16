@@ -698,251 +698,255 @@ const ChatView = ({
                   onDismiss={() => setChatError(null)}
                 />
               )}
-              {branchMessages.map((msg, idx) => (
-                <div
-                  key={msg.id}
-                  ref={(el) => {
-                    messageRefs.current[msg.id] = el;
-                  }}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up motion-reduce:animate-none transition-all duration-300 motion-reduce:transition-none ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
-                  style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
-                >
-                  <div className="max-w-[95%] sm:max-w-[80%] min-w-0">
-                    <div
-                      className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm font-light leading-relaxed ${
-                        msg.role === "user"
-                          ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
-                          : "bg-background/90 text-foreground backdrop-blur-md border border-border/20"
-                      }`}
-                    >
-                      {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
-                        <ThinkingPanelOrDots messageId={msg.id} />
-                      ) : msg.role === "assistant" ? (
-                        <>
-                          <ThinkingPanel messageId={msg.id} />
-                          <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-                            {parseChatCards(msg.content).map((seg, i) =>
-                              seg.type === "card" || seg.type === "card-unknown" ? (
-                                <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
-                              ) : (
-                                <ReactMarkdown key={`t-${i}`} components={markdownComponents}>
-                                  {seg.value}
-                                </ReactMarkdown>
-                              ),
-                            )}
-                            {isStreaming && msg === lastMsg && (
-                              <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse motion-reduce:animate-none ml-0.5 align-text-bottom" />
-                            )}
-                            {renderLinkPreviews(msg.content)}
+              {branchMessages.map((msg, idx) =>
+                msg.role === "assistant" &&
+                !String(msg.content || "").trim() &&
+                !(isStreaming && msg === lastMsg) ? null : (
+                  <div
+                    key={msg.id}
+                    ref={(el) => {
+                      messageRefs.current[msg.id] = el;
+                    }}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up motion-reduce:animate-none transition-all duration-300 motion-reduce:transition-none ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
+                    style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
+                  >
+                    <div className="max-w-[95%] sm:max-w-[80%] min-w-0">
+                      <div
+                        className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm font-light leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
+                            : "bg-background/90 text-foreground backdrop-blur-md border border-border/20"
+                        }`}
+                      >
+                        {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
+                          <ThinkingPanelOrDots messageId={msg.id} />
+                        ) : msg.role === "assistant" ? (
+                          <>
+                            <ThinkingPanel messageId={msg.id} />
+                            <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
+                              {parseChatCards(msg.content).map((seg, i) =>
+                                seg.type === "card" || seg.type === "card-unknown" ? (
+                                  <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
+                                ) : (
+                                  <ReactMarkdown key={`t-${i}`} components={markdownComponents}>
+                                    {seg.value}
+                                  </ReactMarkdown>
+                                ),
+                              )}
+                              {isStreaming && msg === lastMsg && (
+                                <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse motion-reduce:animate-none ml-0.5 align-text-bottom" />
+                              )}
+                              {renderLinkPreviews(msg.content)}
+                            </div>
+                          </>
+                        ) : editingId === msg.id ? (
+                          /* Cursor-style edit of the last user turn: change it and resend. */
+                          <div className="min-w-[240px] sm:min-w-[360px]">
+                            <textarea
+                              value={editDraft}
+                              autoFocus
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  setEditingId(null);
+                                }
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  const next = editDraft.trim();
+                                  setEditingId(null);
+                                  if (next && next !== msg.content) onSendMessage(next);
+                                }
+                              }}
+                              rows={Math.min(8, Math.max(2, editDraft.split("\n").length))}
+                              className="w-full resize-none rounded-xl border border-border/30 bg-background/60 px-2.5 py-2 text-[13px] font-light text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            />
+                            <div className="mt-1.5 flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const next = editDraft.trim();
+                                  setEditingId(null);
+                                  if (next && next !== msg.content) onSendMessage(next);
+                                }}
+                                disabled={!editDraft.trim() || isStreaming}
+                                className="rounded-lg border border-accent/30 px-2.5 py-1 text-[10px] font-light text-accent/90 hover:bg-accent/10 disabled:opacity-40 transition-colors"
+                              >
+                                Send
+                              </button>
+                            </div>
                           </div>
-                        </>
-                      ) : editingId === msg.id ? (
-                        /* Cursor-style edit of the last user turn: change it and resend. */
-                        <div className="min-w-[240px] sm:min-w-[360px]">
-                          <textarea
-                            value={editDraft}
-                            autoFocus
-                            onChange={(e) => setEditDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Escape") {
-                                e.preventDefault();
-                                setEditingId(null);
-                              }
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                const next = editDraft.trim();
-                                setEditingId(null);
-                                if (next && next !== msg.content) onSendMessage(next);
-                              }
-                            }}
-                            rows={Math.min(8, Math.max(2, editDraft.split("\n").length))}
-                            className="w-full resize-none rounded-xl border border-border/30 bg-background/60 px-2.5 py-2 text-[13px] font-light text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        ) : (
+                          <>
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {msg.attachments.map((att, aidx) => (
+                                  <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
+                                    {att.type.startsWith("image/") && att.previewUrl ? (
+                                      <span
+                                        className="relative group cursor-pointer block"
+                                        onClick={() => setLightboxSrc(att.previewUrl!)}
+                                      >
+                                        <img
+                                          src={att.previewUrl}
+                                          alt={att.name}
+                                          className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]"
+                                        />
+                                        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                                          <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
+                                        </span>
+                                      </span>
+                                    ) : (
+                                      <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 text-xs text-muted-foreground">
+                                        <FileText className="h-4 w-4" />
+                                        <span className="truncate max-w-[150px]">{att.name}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <UserMessageContent content={msg.content} />
+                            {renderLinkPreviews(msg.content)}
+                          </>
+                        )}
+                      </div>
+
+                      {/* Inline satellite map for any address in the message */}
+                      {propertyMaps[msg.id] && (
+                        <div className="mt-2 max-w-[560px]">
+                          <PropertyMapCard data={propertyMaps[msg.id]} />
+                        </div>
+                      )}
+
+                      {/* Inline edit card — the patch is shown as it lands, never
+                        hidden behind a chip. Dismissible once read. */}
+                      {msg.role === "assistant" &&
+                        previousResponses[msg.id] &&
+                        previousResponses[msg.id] !== msg.content &&
+                        !dismissedDiffs[msg.id] && (
+                          <DiffView
+                            before={previousResponses[msg.id]}
+                            after={msg.content}
+                            open={true}
+                            onClose={() => setDismissedDiffs((prev) => ({ ...prev, [msg.id]: true }))}
                           />
-                          <div className="mt-1.5 flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
-                            >
-                              Cancel
-                            </button>
+                        )}
+
+                      {/* Timestamp */}
+                      {msg.timestamp && (
+                        <div
+                          className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}
+                        >
+                          {(() => {
+                            const ts = new Date(msg.timestamp);
+                            const now = new Date();
+                            const isToday = ts.toDateString() === now.toDateString();
+                            const yesterday = new Date(now);
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            const isYesterday = ts.toDateString() === yesterday.toDateString();
+                            const time = ts.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            if (isToday) return time;
+                            if (isYesterday) return `Yesterday ${time}`;
+                            return `${ts.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Action bar — copy, plus one action per role. Nothing else. */}
+                      {msg.content && !isStreaming && editingId !== msg.id && (
+                        <div className="flex items-center gap-2 mt-1 px-1 animate-fade-in motion-reduce:animate-none">
+                          {msg.role === "user" && <MessageStatusIndicator status={messageStatuses[msg.id]} />}
+                          <MessageCopyButton text={msg.content} />
+                          {msg.role === "user" && msg.id === lastUserId && (
                             <button
                               onClick={() => {
-                                const next = editDraft.trim();
-                                setEditingId(null);
-                                if (next && next !== msg.content) onSendMessage(next);
+                                setEditingId(msg.id);
+                                setEditDraft(msg.content);
                               }}
-                              disabled={!editDraft.trim() || isStreaming}
-                              className="rounded-lg border border-accent/30 px-2.5 py-1 text-[10px] font-light text-accent/90 hover:bg-accent/10 disabled:opacity-40 transition-colors"
+                              className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                              title="Edit and resend"
                             >
-                              Send
+                              <Pencil className="h-3 w-3" />
+                              Edit
                             </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {msg.attachments.map((att, aidx) => (
-                                <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
-                                  {att.type.startsWith("image/") && att.previewUrl ? (
-                                    <span
-                                      className="relative group cursor-pointer block"
-                                      onClick={() => setLightboxSrc(att.previewUrl!)}
-                                    >
-                                      <img
-                                        src={att.previewUrl}
-                                        alt={att.name}
-                                        className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]"
-                                      />
-                                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
-                                        <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
-                                      </span>
-                                    </span>
-                                  ) : (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 text-xs text-muted-foreground">
-                                      <FileText className="h-4 w-4" />
-                                      <span className="truncate max-w-[150px]">{att.name}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
                           )}
-                          <UserMessageContent content={msg.content} />
-                          {renderLinkPreviews(msg.content)}
-                        </>
+                          {msg.role === "assistant" && <SendToBoardButton content={msg.content} />}
+                          {msg.role === "assistant" && (
+                            <button
+                              onClick={() => {
+                                setPreviousResponses((prev) => ({ ...prev, [msg.id]: msg.content }));
+                                setDismissedDiffs((prev) => ({ ...prev, [msg.id]: false }));
+                                const userMsg = branchMessages
+                                  .slice(0, idx)
+                                  .reverse()
+                                  .find((m) => m.role === "user");
+                                if (userMsg) onSendMessage(userMsg.content);
+                              }}
+                              className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                              title="Regenerate this answer"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                              Regenerate
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Branded intelligence report artifact — only when the operator
+                        asked for the product as a file, and only after streaming. */}
+                      {msg.role === "assistant" &&
+                        !!msg.content &&
+                        !(isStreaming && msg === lastMsg) &&
+                        wantsIntelReportFile(
+                          branchMessages[idx - 1]?.role === "user" ? branchMessages[idx - 1].content : "",
+                        ) && (
+                          <IntelReportCard
+                            content={msg.content}
+                            request={branchMessages[idx - 1]?.content}
+                            conversationTitle={conversation.title}
+                            timestamp={msg.timestamp}
+                            sources={msg.sources}
+                          />
+                        )}
+
+                      {/* Sources — numbered so the answer's [n] markers resolve to a
+                        real link. The links the answer actually carried; no scores. */}
+                      {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 px-1">
+                          {msg.sources.map((s, i) => (
+                            <a
+                              key={`${s.url}-${i}`}
+                              href={s.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-accent transition-colors max-w-[280px]"
+                            >
+                              <span className="shrink-0 font-mono text-muted-foreground/40">[{i + 1}]</span>
+                              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate">{s.title || s.url}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tool traces — read back from the Connect pulls table, so a row
+                        exists only if a real invoke wrote it, and survives refresh. */}
+                      {msg.role === "assistant" && (
+                        <TurnTraces
+                          messageId={msg.id}
+                          onOpenOrgan={(organ) => navigate(`/dashboard/connect?organ=${encodeURIComponent(organ)}`)}
+                        />
                       )}
                     </div>
-
-                    {/* Inline satellite map for any address in the message */}
-                    {propertyMaps[msg.id] && (
-                      <div className="mt-2 max-w-[560px]">
-                        <PropertyMapCard data={propertyMaps[msg.id]} />
-                      </div>
-                    )}
-
-                    {/* Inline edit card — the patch is shown as it lands, never
-                        hidden behind a chip. Dismissible once read. */}
-                    {msg.role === "assistant" &&
-                      previousResponses[msg.id] &&
-                      previousResponses[msg.id] !== msg.content &&
-                      !dismissedDiffs[msg.id] && (
-                        <DiffView
-                          before={previousResponses[msg.id]}
-                          after={msg.content}
-                          open={true}
-                          onClose={() => setDismissedDiffs((prev) => ({ ...prev, [msg.id]: true }))}
-                        />
-                      )}
-
-                    {/* Timestamp */}
-                    {msg.timestamp && (
-                      <div
-                        className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}
-                      >
-                        {(() => {
-                          const ts = new Date(msg.timestamp);
-                          const now = new Date();
-                          const isToday = ts.toDateString() === now.toDateString();
-                          const yesterday = new Date(now);
-                          yesterday.setDate(yesterday.getDate() - 1);
-                          const isYesterday = ts.toDateString() === yesterday.toDateString();
-                          const time = ts.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                          if (isToday) return time;
-                          if (isYesterday) return `Yesterday ${time}`;
-                          return `${ts.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
-                        })()}
-                      </div>
-                    )}
-
-                    {/* Action bar — copy, plus one action per role. Nothing else. */}
-                    {msg.content && !isStreaming && editingId !== msg.id && (
-                      <div className="flex items-center gap-2 mt-1 px-1 animate-fade-in motion-reduce:animate-none">
-                        {msg.role === "user" && <MessageStatusIndicator status={messageStatuses[msg.id]} />}
-                        <MessageCopyButton text={msg.content} />
-                        {msg.role === "user" && msg.id === lastUserId && (
-                          <button
-                            onClick={() => {
-                              setEditingId(msg.id);
-                              setEditDraft(msg.content);
-                            }}
-                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                            title="Edit and resend"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Edit
-                          </button>
-                        )}
-                        {msg.role === "assistant" && <SendToBoardButton content={msg.content} />}
-                        {msg.role === "assistant" && (
-                          <button
-                            onClick={() => {
-                              setPreviousResponses((prev) => ({ ...prev, [msg.id]: msg.content }));
-                              setDismissedDiffs((prev) => ({ ...prev, [msg.id]: false }));
-                              const userMsg = branchMessages
-                                .slice(0, idx)
-                                .reverse()
-                                .find((m) => m.role === "user");
-                              if (userMsg) onSendMessage(userMsg.content);
-                            }}
-                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                            title="Regenerate this answer"
-                          >
-                            <RefreshCw className="h-3 w-3" />
-                            Regenerate
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Branded intelligence report artifact — only when the operator
-                        asked for the product as a file, and only after streaming. */}
-                    {msg.role === "assistant" &&
-                      !!msg.content &&
-                      !(isStreaming && msg === lastMsg) &&
-                      wantsIntelReportFile(
-                        branchMessages[idx - 1]?.role === "user" ? branchMessages[idx - 1].content : "",
-                      ) && (
-                        <IntelReportCard
-                          content={msg.content}
-                          request={branchMessages[idx - 1]?.content}
-                          conversationTitle={conversation.title}
-                          timestamp={msg.timestamp}
-                          sources={msg.sources}
-                        />
-                      )}
-
-                    {/* Sources — numbered so the answer's [n] markers resolve to a
-                        real link. The links the answer actually carried; no scores. */}
-                    {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 px-1">
-                        {msg.sources.map((s, i) => (
-                          <a
-                            key={`${s.url}-${i}`}
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-accent transition-colors max-w-[280px]"
-                          >
-                            <span className="shrink-0 font-mono text-muted-foreground/40">[{i + 1}]</span>
-                            <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-                            <span className="truncate">{s.title || s.url}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Tool traces — read back from the Connect pulls table, so a row
-                        exists only if a real invoke wrote it, and survives refresh. */}
-                    {msg.role === "assistant" && (
-                      <TurnTraces
-                        messageId={msg.id}
-                        onOpenOrgan={(organ) => navigate(`/dashboard/connect?organ=${encodeURIComponent(organ)}`)}
-                      />
-                    )}
                   </div>
-                </div>
-              ))}
+                ),
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
