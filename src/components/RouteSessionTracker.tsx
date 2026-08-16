@@ -21,11 +21,10 @@ export default function RouteSessionTracker() {
     const seconds = Math.max(0, Math.round((Date.now() - ev.enteredAt) / 1000));
     if (seconds < 1) return;
     try {
-      await supabase
-        .from("page_view_events")
-        .update({ duration_seconds: seconds })
-        .eq("id", ev.id);
-    } catch {/* ignore */}
+      await supabase.from("page_view_events").update({ duration_seconds: seconds }).eq("id", ev.id);
+    } catch {
+      /* ignore */
+    }
   };
 
   useEffect(() => {
@@ -59,14 +58,52 @@ export default function RouteSessionTracker() {
 
   // Finalize on tab close / unload
   useEffect(() => {
-    const onLeave = () => { finalize(); };
+    const onLeave = () => {
+      finalize();
+    };
     window.addEventListener("beforeunload", onLeave);
-    document.addEventListener("visibilitychange", () => { if (document.hidden) finalize(); });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) finalize();
+    });
     return () => {
       window.removeEventListener("beforeunload", onLeave);
       finalize();
     };
   }, []);
+
+  useEffect(() => {
+    const path = location.pathname || "/";
+    const skipP = ["/internal", "/dashboard", "/auth", "/ziaassets", "/asher-dashboard"];
+    if (skipP.some((s) => path === s || path.startsWith(s + "/"))) return;
+    let host = null as string | null;
+    try {
+      if (document.referrer) {
+        const u = new URL(document.referrer);
+        if (u.hostname !== window.location.hostname) host = u.hostname.replace(/^www\./, "").slice(0, 200);
+      }
+    } catch {
+      /* ignore */
+    }
+    void supabase
+      .from("site_traffic_events" as never)
+      .insert({ kind: "pageview", path: path.slice(0, 300), referrer_host: host, source: "live" } as never);
+    const onClick = (ev: MouseEvent) => {
+      const a = (ev.target as HTMLElement | null)?.closest?.("a") as HTMLAnchorElement | null;
+      if (!a?.href) return;
+      try {
+        const u = new URL(a.href, window.location.origin);
+        if (u.hostname === window.location.hostname) return;
+        const dest = (u.hostname.replace(/^www\./, "") + u.pathname).slice(0, 400);
+        void supabase
+          .from("site_traffic_events" as never)
+          .insert({ kind: "outbound", path: path.slice(0, 300), dest, referrer_host: host, source: "live" } as never);
+      } catch {
+        /* ignore */
+      }
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [location.pathname]);
 
   return null;
 }
