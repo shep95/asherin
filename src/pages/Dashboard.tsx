@@ -1247,6 +1247,8 @@ const Dashboard = () => {
     trackUsage(mode);
     setIsStreaming(true);
     let assistantContent = "";
+    const isHoldCostume = (s: string) =>
+      /^\s*i'm here\.\s*(say that again|send again)\.?\s*$/i.test(String(s || "").trim());
     const assistantId = crypto.randomUUID();
     tagMessageBranch(assistantId, currentBranch);
     // Reuse the controller we already assigned above so Stop works during pre-flight.
@@ -1262,11 +1264,13 @@ const Dashboard = () => {
     // wrapped directive.
     const { takeModelPromptOverride } = await import("@/lib/promptOverrideMap"); // async ok — resolves before streamChat
     const modelPromptOverride = takeModelPromptOverride(content);
-    const history = [...branchMsgs, userMsg].map((m, i, arr) => ({
-      role: m.role as "user" | "assistant",
-      content: modelPromptOverride && i === arr.length - 1 && m.role === "user" ? modelPromptOverride : m.content,
-      attachments: m.attachments,
-    }));
+    const history = [...branchMsgs, userMsg]
+      .filter((m) => m.role !== "assistant" || (String(m.content || "").trim() && !isHoldCostume(String(m.content))))
+      .map((m, i, arr) => ({
+        role: m.role as "user" | "assistant",
+        content: modelPromptOverride && i === arr.length - 1 && m.role === "user" ? modelPromptOverride : m.content,
+        attachments: m.attachments,
+      }));
 
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
@@ -1434,22 +1438,14 @@ const Dashboard = () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
           thinkingStore.finish(assistantId);
-          if (!String(assistantContent || "").trim()) {
-            const hold = "i'm here. say that again.";
-            assistantContent = hold;
+          if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
+            assistantContent = "";
             setConversations((prev) =>
-              prev.map((c) => {
-                if (c.id !== convId) return c;
-                const has = c.messages.some((m) => m.id === assistantId);
-                const messages = has
-                  ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
-                  : [
-                      ...c.messages,
-                      { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
-                    ];
-                return { ...c, messages };
-              }),
+              prev.map((c) =>
+                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
+              ),
             );
+            return;
           }
           // Persist assistant message via upsert — idempotent so a retry on a
           // flaky network cannot create a duplicate row when the first insert
@@ -1530,6 +1526,7 @@ const Dashboard = () => {
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
       } else {
         // Save partial content if we got any before the error
+        if (isHoldCostume(assistantContent)) assistantContent = "";
         if (assistantContent) {
           try {
             const encPartial = await encryptText(assistantContent, user.id);
@@ -1581,36 +1578,18 @@ const Dashboard = () => {
             ),
           );
         } else if (death) {
-          const hold = "i'm here. send again.";
-          assistantContent = hold;
+          if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
+            assistantContent = "";
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
+              ),
+            );
+          }
+        } else if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
+          assistantContent = "";
           setConversations((prev) =>
-            prev.map((c) => {
-              if (c.id !== convId) return c;
-              const has = c.messages.some((m) => m.id === assistantId);
-              const messages = has
-                ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
-                : [
-                    ...c.messages,
-                    { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
-                  ];
-              return { ...c, messages };
-            }),
-          );
-        } else {
-          const hold = String(e?.message || "i'm here. send again.").slice(0, 280);
-          assistantContent = hold;
-          setConversations((prev) =>
-            prev.map((c) => {
-              if (c.id !== convId) return c;
-              const has = c.messages.some((m) => m.id === assistantId);
-              const messages = has
-                ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
-                : [
-                    ...c.messages,
-                    { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
-                  ];
-              return { ...c, messages };
-            }),
+            prev.map((c) => (c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c)),
           );
         }
       }
