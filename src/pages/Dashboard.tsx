@@ -1271,7 +1271,19 @@ const Dashboard = () => {
     const controller = earlyController;
     abortRef.current = controller;
 
-    // assistant row is created on first onDelta so ChatView never paints an empty bubble
+    // assistant row exists from send so thinking + mouth have a home in ChatView
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === convId
+          ? {
+              ...c,
+              messages: c.messages.some((m) => m.id === assistantId)
+                ? c.messages
+                : [...c.messages, { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() }],
+            }
+          : c,
+      ),
+    );
 
     // Only send branch-scoped history to AI (no memory leaking between branches).
     // If the composer registered a hidden model-prompt override for this visible
@@ -1451,16 +1463,26 @@ const Dashboard = () => {
           );
         },
         onDone: async () => {
-          setIsStreaming(false);
-          isStreamingRef.current = false;
           thinkingStore.finish(assistantId);
           if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
-            assistantContent = "";
-            setConversations((prev) =>
-              prev.map((c) =>
-                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
-              ),
-            );
+            const thinkText = String(thinkingStore.snapshot(assistantId)?.text || "").trim();
+            if (thinkText && !isHoldCostume(thinkText)) {
+              assistantContent = thinkText;
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === convId
+                    ? {
+                        ...c,
+                        messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: thinkText } : m)),
+                      }
+                    : c,
+                ),
+              );
+            }
+          }
+          setIsStreaming(false);
+          isStreamingRef.current = false;
+          if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
             return;
           }
           // Persist assistant message via upsert — idempotent so a retry on a
@@ -1593,19 +1615,26 @@ const Dashboard = () => {
                 : c,
             ),
           );
-        } else if (death) {
-          if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
-            assistantContent = "";
-            setConversations((prev) =>
-              prev.map((c) =>
-                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
-              ),
-            );
+        } else if (death || !String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
+          if (isHoldCostume(assistantContent)) assistantContent = "";
+          const thinkText = String(thinkingStore.snapshot(assistantId)?.text || "").trim();
+          if (
+            (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) &&
+            thinkText &&
+            !isHoldCostume(thinkText)
+          ) {
+            assistantContent = thinkText;
           }
-        } else if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
-          assistantContent = "";
+          const keep = String(assistantContent || "").trim();
           setConversations((prev) =>
-            prev.map((c) => (c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c)),
+            prev.map((c) =>
+              c.id === convId
+                ? {
+                    ...c,
+                    messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: keep } : m)),
+                  }
+                : c,
+            ),
           );
         }
       }
