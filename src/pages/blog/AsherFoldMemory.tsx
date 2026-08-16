@@ -256,13 +256,15 @@ const AsherFoldMemory = () => (
     }
   >
     <ArticleJsonLd
+      id="asher-fold-memory"
       headline={TITLE}
       description="asher.fold-memory is leftover-memory software: identical copies are stored once, recall runs on a cue, and unfold returns the exact bits or refuses. one-time $99 pack."
       url={URL}
       datePublished={PUBLISHED}
-      image={`https://asherin.com${orbitAsset.url}`}
+      keywords={["deduplication", "leftover memory", "storage", "asherin"]}
     />
     <BreadcrumbJsonLd
+      id="asher-fold-memory"
       items={[
         { name: "asherin", url: "https://asherin.com/" },
         { name: "blog", url: "https://asherin.com/blog" },
@@ -446,9 +448,21 @@ const AsherFoldMemory = () => (
     <RelatedLinks
       heading="keep reading"
       links={[
-        { to: "/blog/asherin-agent-sovereign-intelligence-layer", label: "the asherin agent — a personal sovereign intelligence layer" },
-        { to: "/software", label: "what else asherin runs" },
-        { to: "/pricing", label: "seats and pricing" },
+        {
+          to: "/blog",
+          label: "notes from asherin",
+          description: "the rest of the writing — releases, teardowns, and the reasoning behind them.",
+        },
+        {
+          to: "/software",
+          label: "what else asherin runs",
+          description: "the full list of rooms and organs inside the platform.",
+        },
+        {
+          to: "/pricing",
+          label: "seats and pricing",
+          description: "$18 asherin, $79 pro, team seats. no trial countdown.",
+        },
       ]}
     />
   </ArticleShell>
