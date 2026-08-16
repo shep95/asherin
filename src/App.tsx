@@ -534,14 +534,14 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <AsherDashboard />
-                            <Route
-                              path="/internal/traffic"
-                              element={
-                                <ProtectedRoute>
-                                  <SiteTraffic />
-                                </ProtectedRoute>
-                              }
-                            />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/internal/traffic"
+                        element={
+                          <ProtectedRoute>
+                            <SiteTraffic />
                           </ProtectedRoute>
                         }
                       />
