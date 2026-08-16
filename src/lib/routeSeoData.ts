@@ -275,7 +275,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/blog/asher-fold-memory": {
     title: "asher.fold-memory — leftover memory, stored once",
     description:
-      "leftover-memory software: identical copies stored once, cue and trance recall, and unfold that returns exact bits or refuses. one-time $99 pack.",
+      "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack — no account.",
     ogType: "article",
     datePublished: "2026-08-16",
   },
