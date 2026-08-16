@@ -156,14 +156,14 @@ const LoopPanel = () => {
       <figcaption className="mb-4 text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground/60">
         ◈ the loop
       </figcaption>
-      <div className="flex flex-wrap items-stretch gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {steps.map((s, i) => (
-          <div key={s.k} className="flex min-w-[124px] flex-1 items-center gap-2">
+          <div key={s.k} className="flex items-center gap-2">
             <div className="min-w-0 flex-1 rounded-lg border border-border/20 bg-card/25 px-3 py-2 text-center">
               <p className="text-[11px] font-light text-foreground">{s.k}</p>
               <p className="mt-0.5 text-[10px] font-extralight text-muted-foreground/60">{s.v}</p>
             </div>
-            {i < steps.length - 1 && <span aria-hidden className="text-border">→</span>}
+            {i < steps.length - 1 && <span aria-hidden className="hidden text-border sm:inline">→</span>}
           </div>
         ))}
       </div>
