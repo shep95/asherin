@@ -197,30 +197,41 @@ export async function streamChat({
     let resp!: Response;
 
     for (let attempt = 0; attempt < TRANSIENT_ATTEMPTS; attempt++) {
-      resp = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          messages: requestMessages,
-          mode,
-          depth,
-          userProfile,
-          byokProvider,
-          byokModel,
-          brainContext,
-          skillInjection,
-          swarmInjection,
-          activeAgentId,
-          numberedFormat,
-          turnId,
-          projectScope: getActiveScope(),
-          vaultMode: getVaultMode(),
-        }),
-        signal,
-      });
+      try {
+        resp = await fetch(CHAT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            messages: requestMessages,
+            mode,
+            depth,
+            userProfile,
+            byokProvider,
+            byokModel,
+            brainContext,
+            skillInjection,
+            swarmInjection,
+            activeAgentId,
+            numberedFormat,
+            turnId,
+            projectScope: getActiveScope(),
+            vaultMode: getVaultMode(),
+          }),
+          signal,
+        });
+      } catch (fe: any) {
+        const death =
+          fe?.name === "TypeError" || /failed to fetch|networkerror|load failed/i.test(String(fe?.message || ""));
+        if (death && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+          continue;
+        }
+        throw fe;
+      }
 
       if (resp.ok) break;
 
