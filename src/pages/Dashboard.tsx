@@ -1249,19 +1249,7 @@ const Dashboard = () => {
     const controller = earlyController;
     abortRef.current = controller;
 
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.id === convId
-          ? {
-              ...c,
-              messages: [
-                ...c.messages,
-                { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() },
-              ],
-            }
-          : c,
-      ),
-    );
+    // assistant row is created on first onDelta so ChatView never paints an empty bubble
 
     // Only send branch-scoped history to AI (no memory leaking between branches).
     // If the composer registered a hidden model-prompt override for this visible
@@ -1415,11 +1403,17 @@ const Dashboard = () => {
           assistantContent += chunk;
           const current = assistantContent;
           setConversations((prev) =>
-            prev.map((c) =>
-              c.id === convId
-                ? { ...c, messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m)) }
-                : c,
-            ),
+            prev.map((c) => {
+              if (c.id !== convId) return c;
+              const has = c.messages.some((m) => m.id === assistantId);
+              const messages = has
+                ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m))
+                : [
+                    ...c.messages,
+                    { id: assistantId, role: "assistant" as const, content: current, timestamp: new Date() },
+                  ];
+              return { ...c, messages };
+            }),
           );
         },
         onReplace: (content) => {
