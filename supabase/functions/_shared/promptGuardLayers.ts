@@ -57,11 +57,7 @@ export type Layer1Verdict = "pass" | "block";
 
 export interface Layer1Result {
   verdict: Layer1Verdict;
-  reasonCode:
-    | "clear"
-    | "csam"
-    | "mass_casualty_weapon"
-    | "targeted_incitement";
+  reasonCode: "clear" | "csam" | "mass_casualty_weapon" | "targeted_incitement";
   /** Defensible reply text if the turn is blocked. Names the harm explicitly. */
   blockMessage?: string;
   /** Debug summary — safe to log, never contains the user's raw text. */
@@ -79,22 +75,38 @@ type Signal = { name: string; test: RegExp };
 // both. When both fire it is a hard block on first-principles grounds.
 
 const CSAM_MINOR: Signal[] = [
-  { name: "minor_age_words", test: /\b(child(ren)?|kid|minor|underage|pre[- ]?teen|preteen|toddler|infant|baby|newborn|schoolgirl|schoolboy)\b/i },
-  { name: "minor_age_number", test: /\b(?:age(?:d)?\s*)?(?:[0-9]|1[0-7])\s*(?:yo|y\/o|year[-\s]?old|yrs?[-\s]?old)\b/i },
+  {
+    name: "minor_age_words",
+    test: /\b(child(ren)?|kid|minor|underage|pre[- ]?teen|preteen|toddler|infant|baby|newborn|schoolgirl|schoolboy)\b/i,
+  },
+  {
+    name: "minor_age_number",
+    test: /\b(?:age(?:d)?\s*)?(?:[0-9]|1[0-7])\s*(?:yo|y\/o|year[-\s]?old|yrs?[-\s]?old)\b/i,
+  },
 ];
 // Third signal for category 1: the ask must be GENERATIVE or ACQUISITIVE.
 // Without it, the pair "minor + sexual" is what every safeguarding, forensic,
 // investigative, prosecutorial, and child-protection question looks like — all
 // of which this platform must answer.
 const CSAM_SOLICIT: Signal[] = [
-  { name: "solicit_generate", test: /\b(generate|create|render|draw|produce|write (?:me|a)|roleplay|role[- ]play|act as|simulate)\b/i },
-  { name: "solicit_acquire", test: /\b(download|where (?:can|do) i (?:get|find)|share|send me|link to|source for|access)\b/i },
+  {
+    name: "solicit_generate",
+    test: /\b(generate|create|render|draw|produce|write (?:me|a)|roleplay|role[- ]play|act as|simulate)\b/i,
+  },
+  {
+    name: "solicit_acquire",
+    test: /\b(download|where (?:can|do) i (?:get|find)|share|send me|link to|source for|access)\b/i,
+  },
 ];
 // Analytic framing that makes the turn protective rather than predatory.
-const CSAM_PROTECTIVE = /\b(forensic|signature|indicator|detect|detection|safeguard|protect|prevent|report(?:ing)?|investigat|prosecut|law enforcement|policy|research|statistic|survivor|awareness|warning sign)\w*/i;
+const CSAM_PROTECTIVE =
+  /\b(forensic|signature|indicator|detect|detection|safeguard|protect|prevent|report(?:ing)?|investigat|prosecut|law enforcement|policy|research|statistic|survivor|awareness|warning sign)\w*/i;
 
 const CSAM_SEX: Signal[] = [
-  { name: "sex_explicit", test: /\b(porn|pornograph|nude|naked|sex(ual)?|erotic|fondle|molest|rape|grooming|genital|arousal|masturbat)\w*/i },
+  {
+    name: "sex_explicit",
+    test: /\b(porn|pornograph|nude|naked|sex(ual)?|erotic|fondle|molest|rape|grooming|genital|arousal|masturbat)\w*/i,
+  },
 ];
 
 // Category 2: mass-casualty weaponization. Two-signal rule: an unambiguous
@@ -103,13 +115,28 @@ const CSAM_SEX: Signal[] = [
 // synthesise or aerosolise one is the other, and the pair is the block.
 
 const MC_AGENT: Signal[] = [
-  { name: "mc_bio", test: /\b(anthrax|smallpox|variola|ricin|botulinum|marburg|ebola|plague|weaponi[sz]ed pathogen|bioweapon)\b/i },
-  { name: "mc_chem", test: /\b(sarin|vx|novichok|tabun|soman|mustard gas|chlorine gas|phosgene|nerve agent|chemical weapon)\b/i },
-  { name: "mc_nuke", test: /\b(fissile|weapons[- ]grade uranium|plutonium pit|nuclear device|dirty bomb|radiological dispersal|thermonuclear)\b/i },
-  { name: "mc_explosive_bulk", test: /\b(vbied|truck bomb|suicide vest|ied[-\s]?fabricat|shaped charge (?:formula|design))\b/i },
+  {
+    name: "mc_bio",
+    test: /\b(anthrax|smallpox|variola|ricin|botulinum|marburg|ebola|plague|weaponi[sz]ed pathogen|bioweapon)\b/i,
+  },
+  {
+    name: "mc_chem",
+    test: /\b(sarin|vx|novichok|tabun|soman|mustard gas|chlorine gas|phosgene|nerve agent|chemical weapon)\b/i,
+  },
+  {
+    name: "mc_nuke",
+    test: /\b(fissile|weapons[- ]grade uranium|plutonium pit|nuclear device|dirty bomb|radiological dispersal|thermonuclear)\b/i,
+  },
+  {
+    name: "mc_explosive_bulk",
+    test: /\b(vbied|truck bomb|suicide vest|ied[-\s]?fabricat|shaped charge (?:formula|design))\b/i,
+  },
 ];
 const MC_INSTRUCT: Signal[] = [
-  { name: "mc_verb", test: /\b(synthesi[sz]e|synthesis(?:\s+route)?|manufactur|produce|make|build|assemble|weaponi[sz]e|aerosoli[sz]e|disperse|deliver|deploy|precursor(?:s|\s+route)|recipe|step[-\s]?by[-\s]?step|instructions?)\b/i },
+  {
+    name: "mc_verb",
+    test: /\b(synthesi[sz]e|synthesis(?:\s+route)?|manufactur|produce|make|build|assemble|weaponi[sz]e|aerosoli[sz]e|disperse|deliver|deploy|precursor(?:s|\s+route)|recipe|step[-\s]?by[-\s]?step|instructions?)\b/i,
+  },
 ];
 
 // Category 3: targeted incitement. Two-signal rule: a violent operational
@@ -119,15 +146,24 @@ const MC_INSTRUCT: Signal[] = [
 // three at once — those describe events, they do not commission one.
 
 const INCITE_VERB: Signal[] = [
-  { name: "incite_verb", test: /\b(kill|murder|assassinate|behead|stab|shoot|bomb|poison|abduct|kidnap|rape|dox to endanger)\b/i },
+  {
+    name: "incite_verb",
+    test: /\b(kill|murder|assassinate|behead|stab|shoot|bomb|poison|abduct|kidnap|rape|dox to endanger)\b/i,
+  },
 ];
 const INCITE_TARGET: Signal[] = [
-  { name: "incite_named", test: /\b(?:my|our)\s+(?:ex|wife|husband|boss|neighbou?r|teacher|coworker|roommate|landlord|father|mother|brother|sister|son|daughter)\b/i },
+  {
+    name: "incite_named",
+    test: /\b(?:my|our)\s+(?:ex|wife|husband|boss|neighbou?r|teacher|coworker|roommate|landlord|father|mother|brother|sister|son|daughter)\b/i,
+  },
   { name: "incite_handle", test: /@[A-Za-z0-9_.]{3,}/ },
   { name: "incite_propername", test: /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/ },
 ];
 const INCITE_INTENT: Signal[] = [
-  { name: "incite_intent", test: /\b(how (?:do|can) i|help me|walk me through|plan to|going to|want to|need to|the best way to)\b/i },
+  {
+    name: "incite_intent",
+    test: /\b(how (?:do|can) i|help me|walk me through|plan to|going to|want to|need to|the best way to)\b/i,
+  },
 ];
 
 const anyHit = (text: string, sigs: Signal[]): string | null => {
@@ -263,22 +299,30 @@ export function createPostInferenceScanner(): PostScanner {
       const fence = s.indexOf("```", i);
       if (fence === -1) {
         const seg = s.slice(i);
-        if (inCodeFence) { out += seg; }
-        else {
+        if (inCodeFence) {
+          out += seg;
+        } else {
           let cleaned = seg;
           for (const m of SCAFFOLD_MARKERS) {
-            cleaned = cleaned.replace(m, () => { scaffoldRedactions += 1; return "[…]"; });
+            cleaned = cleaned.replace(m, () => {
+              scaffoldRedactions += 1;
+              return "[…]";
+            });
           }
           out += cleaned;
         }
         break;
       }
       const seg = s.slice(i, fence);
-      if (inCodeFence) { out += seg; }
-      else {
+      if (inCodeFence) {
+        out += seg;
+      } else {
         let cleaned = seg;
         for (const m of SCAFFOLD_MARKERS) {
-          cleaned = cleaned.replace(m, () => { scaffoldRedactions += 1; return "[…]"; });
+          cleaned = cleaned.replace(m, () => {
+            scaffoldRedactions += 1;
+            return "[…]";
+          });
         }
         out += cleaned;
       }
@@ -318,13 +362,16 @@ export function createPostInferenceScanner(): PostScanner {
       if (!chunk) return "";
       if (!headDecided) {
         headBuf += chunk;
-        if (headBuf.length < HEAD_WINDOW) return "";
-        return decideHead(false);
+        if (headBuf.length >= HEAD_WINDOW) headDecided = true;
+        return scrubScaffold(chunk);
       }
       return scrubScaffold(chunk);
     },
     flush(): string {
-      if (!headDecided) return decideHead(true);
+      if (!headDecided) {
+        headDecided = true;
+        headBuf = "";
+      }
       return "";
     },
     stats() {
