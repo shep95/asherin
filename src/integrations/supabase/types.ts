@@ -13706,6 +13706,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      fold_memory_tick: { Args: never; Returns: Json }
       get_download_count: { Args: { _slug: string }; Returns: number }
       get_team_role: {
         Args: { _team_id: string; _user_id: string }
