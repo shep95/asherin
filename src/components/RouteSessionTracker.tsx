@@ -13,6 +13,7 @@ export default function RouteSessionTracker() {
   const location = useLocation();
   const { user, session } = useAuth();
   const currentEvent = useRef<{ id: string; path: string; enteredAt: number } | null>(null);
+  const prevPublic = useRef<string | null>(null);
 
   // Finalize duration when leaving a page
   const finalize = async () => {
@@ -74,7 +75,13 @@ export default function RouteSessionTracker() {
   useEffect(() => {
     const path = location.pathname || "/";
     const skipP = ["/internal", "/dashboard", "/auth", "/ziaassets", "/asher-dashboard"];
-    if (skipP.some((s) => path === s || path.startsWith(s + "/"))) return;
+    const skipped = skipP.some((s) => path === s || path.startsWith(s + "/"));
+    let zone: string | null = null;
+    try {
+      zone = Intl.DateTimeFormat().resolvedOptions().timeZone.slice(0, 80);
+    } catch {
+      zone = null;
+    }
     let host = null as string | null;
     try {
       if (document.referrer) {
@@ -84,9 +91,29 @@ export default function RouteSessionTracker() {
     } catch {
       /* ignore */
     }
-    void supabase
-      .from("site_traffic_events" as never)
-      .insert({ kind: "pageview", path: path.slice(0, 300), referrer_host: host, source: "live" } as never);
+    if (!skipped) {
+      void supabase.from("site_traffic_events" as never).insert({
+        kind: "pageview",
+        path: path.slice(0, 300),
+        referrer_host: host,
+        source: "live",
+        region: zone,
+        sub_region: zone,
+      } as never);
+      const prev = prevPublic.current;
+      if (prev && prev !== path) {
+        void supabase.from("site_traffic_events" as never).insert({
+          kind: "pageview",
+          path: prev.slice(0, 300),
+          dest: path.slice(0, 400),
+          referrer_host: host,
+          source: "live",
+          region: zone,
+          sub_region: zone,
+        } as never);
+      }
+      prevPublic.current = path;
+    }
     const onClick = (ev: MouseEvent) => {
       const a = (ev.target as HTMLElement | null)?.closest?.("a") as HTMLAnchorElement | null;
       if (!a?.href) return;
@@ -94,9 +121,15 @@ export default function RouteSessionTracker() {
         const u = new URL(a.href, window.location.origin);
         if (u.hostname === window.location.hostname) return;
         const dest = (u.hostname.replace(/^www\./, "") + u.pathname).slice(0, 400);
-        void supabase
-          .from("site_traffic_events" as never)
-          .insert({ kind: "outbound", path: path.slice(0, 300), dest, referrer_host: host, source: "live" } as never);
+        void supabase.from("site_traffic_events" as never).insert({
+          kind: "outbound",
+          path: path.slice(0, 300),
+          dest,
+          referrer_host: host,
+          source: "live",
+          region: zone,
+          sub_region: zone,
+        } as never);
       } catch {
         /* ignore */
       }
