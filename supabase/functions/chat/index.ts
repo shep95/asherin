@@ -3423,7 +3423,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
           /* stream already cancelled */
         }
         _pumpP = Promise.resolve().then(() => _pumpFn());
-        return _pumpP;
       },
       cancel() {
         writerClosed = true;
