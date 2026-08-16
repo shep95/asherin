@@ -3396,9 +3396,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       }
     };
 
-    void safeWrite(": ping\n\n");
-    void (async () => {
+    const _pump = (async () => {
       try {
+        await safeWrite(": ping\n\n");
         if (useByok && userApiKey && byokProvider && byokModel) {
           console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
           try {
@@ -3544,7 +3544,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
           }
         };
 
-        (async () => {
+        await (async () => {
           try {
             // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
             // Do NOT inject base64 images inline — they corrupt SSE streams due to size
@@ -3572,6 +3572,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
                     const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) {
                       await emitText(text);
+                    } else {
+                      const _oa = parsed.choices?.[0]?.delta?.content;
+                      if (_oa) await emitText(_oa);
                     }
                     const finishReason = parsed.candidates?.[0]?.finishReason;
                     if (finishReason && /MAX_TOKENS|TOKEN|LENGTH/i.test(String(finishReason))) {
@@ -3701,6 +3704,8 @@ The operator is requesting a defensive security audit / flaw check of their own 
       } catch (e) {
         console.error("early sse provider:", e);
         try {
+          const _msg = e instanceof Error ? e.message : String(e);
+          await safeWrite("data: " + JSON.stringify({ choices: [{ delta: { content: _msg } }] }) + "\n\n");
           await safeWrite("data: [DONE]\n\n");
         } catch {
           /* noop */
@@ -3708,9 +3713,15 @@ The operator is requesting a defensive security audit / flaw check of their own 
         await safeClose();
       }
     })();
+    try {
+      const _er = (globalThis as any).EdgeRuntime;
+      if (_er && typeof _er.waitUntil === "function") _er.waitUntil(_pump);
+    } catch {
+      /* deno without EdgeRuntime */
+    }
 
     return new Response(readable, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (e) {
     console.error("chat error:", e);
