@@ -548,10 +548,7 @@ const Dashboard = () => {
                 c.id === msg.conversationId
                   ? {
                       ...c,
-                      messages: [
-                        ...c.messages,
-                        { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() },
-                      ],
+                      messages: c.messages,
                     }
                   : c,
               ),
@@ -574,18 +571,22 @@ const Dashboard = () => {
                   assistantContent += chunk;
                   const current = assistantContent;
                   setConversations((prev) =>
-                    prev.map((c) =>
-                      c.id === msg.conversationId
-                        ? {
-                            ...c,
-                            messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m)),
-                          }
-                        : c,
-                    ),
+                    prev.map((c) => {
+                      if (c.id !== msg.conversationId) return c;
+                      const has = c.messages.some((m) => m.id === assistantId);
+                      const messages = has
+                        ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: current } : m))
+                        : [
+                            ...c.messages,
+                            { id: assistantId, role: "assistant" as const, content: current, timestamp: new Date() },
+                          ];
+                      return { ...c, messages };
+                    }),
                   );
                 },
                 onDone: async () => {
                   setIsStreaming(false);
+                  if (!String(assistantContent || "").trim()) return;
                   const encAssistant = await encryptText(assistantContent, user.id);
                   await supabase.from("messages").insert({
                     id: assistantId,
@@ -859,7 +860,8 @@ const Dashboard = () => {
           }),
         );
         if (cancelled) return;
-        setConversations((prev) => prev.map((c) => (c.id === cid ? { ...c, messages: decrypted } : c)));
+        const visible = decrypted.filter((m) => m.role !== "assistant" || String(m.content || "").trim());
+        setConversations((prev) => prev.map((c) => (c.id === cid ? { ...c, messages: visible } : c)));
       };
 
       // Only conversations with nothing in memory need a fetch. Re-hydrating a
@@ -1009,10 +1011,12 @@ const Dashboard = () => {
               ...c,
               // Reverse-merge: DB provides the baseline row, but in-memory fields
               // (consensusData, streaming partials, richer attachments) win.
-              messages: decrypted.map((dm) => ({
-                ...dm,
-                ...existingById[dm.id],
-              })),
+              messages: decrypted
+                .map((dm) => ({
+                  ...dm,
+                  ...existingById[dm.id],
+                }))
+                .filter((m) => m.role !== "assistant" || String(m.content || "").trim()),
             };
           }),
         );
