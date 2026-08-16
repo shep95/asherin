@@ -3730,11 +3730,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
               if (done) break;
             }
             await flushScanner();
-            if (_emitted === 0) {
-              const hold = "i'm here. say that again.";
-              _emitted += hold.length;
-              await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: hold } }] })}\n\n`);
-            }
             await safeWrite("data: [DONE]\n\n");
           } catch (e) {
             console.error("stream transform error:", e);
