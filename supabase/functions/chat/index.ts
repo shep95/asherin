@@ -3595,7 +3595,21 @@ The operator is requesting a defensive security audit / flaw check of their own 
                   const jsonStr = line.slice(6);
                   try {
                     const parsed = JSON.parse(jsonStr);
-                    const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const _gparts = parsed.candidates?.[0]?.content?.parts;
+                    let text = "";
+                    if (Array.isArray(_gparts)) {
+                      for (const _gp of _gparts) {
+                        if (!_gp || _gp.thought) continue;
+                        if (typeof _gp.text === "string" && _gp.text) text += _gp.text;
+                      }
+                      if (!text) {
+                        for (const _gp of _gparts) {
+                          if (typeof _gp?.text === "string" && _gp.text) text += _gp.text;
+                        }
+                      }
+                    } else if (typeof parsed.candidates?.[0]?.content?.parts?.[0]?.text === "string") {
+                      text = parsed.candidates[0].content.parts[0].text;
+                    }
                     if (text) {
                       await emitText(text);
                     } else {
