@@ -277,6 +277,27 @@ export async function streamChat({
       passText += cleaned;
       onText?.(cleaned);
     };
+    // sse mouth: data: optional space, gemini parts or openai delta, skip bad complete lines
+    const mouthFromParsed = (parsed: any): string => {
+      const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+      if (!obj || typeof obj !== "object") return "";
+      const d = obj.choices?.[0]?.delta || obj.choices?.[0]?.message || {};
+      let oa = d.content ?? d.reasoning_content ?? d.text;
+      if (Array.isArray(oa)) oa = oa.map((p: any) => p?.text || p?.content || "").join("");
+      if (typeof oa === "string" && oa) return oa;
+      const parts = obj.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        let t = "";
+        for (const p of parts) if (p && typeof p.text === "string") t += p.text;
+        if (t) return t;
+      }
+      return typeof obj.text === "string" ? obj.text : "";
+    };
+    const sseJson = (line: string): string | null => {
+      if (line.startsWith("data:")) return line.slice(5).trim();
+      if (line.startsWith("{") || line.startsWith("[")) return line;
+      return null;
+    };
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -290,9 +311,8 @@ export async function streamChat({
 
         if (line.endsWith("\r")) line = line.slice(0, -1);
         if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
-
-        const jsonStr = line.slice(6).trim();
+        const jsonStr = sseJson(line);
+        if (jsonStr == null) continue;
         if (jsonStr === "[DONE]") {
           streamDone = true;
           break;
@@ -300,13 +320,18 @@ export async function streamChat({
 
         try {
           const parsed = JSON.parse(jsonStr);
-          if (Array.isArray(parsed.asherin_tools)) onTools?.(parsed.asherin_tools);
-          if (Array.isArray(parsed.asherin_hands)) onHands?.(parsed.asherin_hands);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          const root = Array.isArray(parsed) ? parsed[0] : parsed;
+          if (Array.isArray(root?.asherin_tools)) onTools?.(root.asherin_tools);
+          if (Array.isArray(root?.asherin_hands)) onHands?.(root.asherin_hands);
+          const content = mouthFromParsed(parsed);
           if (content) consumePassContent(content);
         } catch {
-          textBuffer = line + "\n" + textBuffer;
-          break;
+          const open = (jsonStr.match(/[\[{]/g) || []).length;
+          const close = (jsonStr.match(/[\]}]/g) || []).length;
+          if (open > close) {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
         }
       }
     }
@@ -317,12 +342,11 @@ export async function streamChat({
         if (!raw) continue;
         if (raw.endsWith("\r")) raw = raw.slice(0, -1);
         if (raw.startsWith(":") || raw.trim() === "") continue;
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
+        const jsonStr = sseJson(raw);
+        if (jsonStr == null || jsonStr === "[DONE]") continue;
         try {
           const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          const content = mouthFromParsed(parsed);
           if (content) consumePassContent(content);
         } catch {
           /* ignore */
