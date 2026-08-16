@@ -1435,12 +1435,21 @@ const Dashboard = () => {
           isStreamingRef.current = false;
           thinkingStore.finish(assistantId);
           if (!String(assistantContent || "").trim()) {
+            const hold = "i'm here. say that again.";
+            assistantContent = hold;
             setConversations((prev) =>
-              prev.map((c) =>
-                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
-              ),
+              prev.map((c) => {
+                if (c.id !== convId) return c;
+                const has = c.messages.some((m) => m.id === assistantId);
+                const messages = has
+                  ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
+                  : [
+                      ...c.messages,
+                      { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
+                    ];
+                return { ...c, messages };
+              }),
             );
-            return;
           }
           // Persist assistant message via upsert — idempotent so a retry on a
           // flaky network cannot create a duplicate row when the first insert
@@ -1572,9 +1581,37 @@ const Dashboard = () => {
             ),
           );
         } else if (death) {
-          /* transport death: never a static paragraph as the mouth */
+          const hold = "i'm here. send again.";
+          assistantContent = hold;
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id !== convId) return c;
+              const has = c.messages.some((m) => m.id === assistantId);
+              const messages = has
+                ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
+                : [
+                    ...c.messages,
+                    { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
+                  ];
+              return { ...c, messages };
+            }),
+          );
         } else {
-          toast({ title: "AI Error", description: e.message, variant: "destructive" });
+          const hold = String(e?.message || "i'm here. send again.").slice(0, 280);
+          assistantContent = hold;
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id !== convId) return c;
+              const has = c.messages.some((m) => m.id === assistantId);
+              const messages = has
+                ? c.messages.map((m) => (m.id === assistantId ? { ...m, content: hold } : m))
+                : [
+                    ...c.messages,
+                    { id: assistantId, role: "assistant" as const, content: hold, timestamp: new Date() },
+                  ];
+              return { ...c, messages };
+            }),
+          );
         }
       }
     }
