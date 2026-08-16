@@ -38,6 +38,38 @@ const ALL_CATEGORIES: { id: Category; label: string; icon: typeof Lightbulb; des
   { id: "bug",    label: "Bugs",     icon: Bug,       desc: "Report privately — only admins see reports" },
 ];
 
+/** logged-out visible twin of /blog/paid-seat-free-door. not a compose paste. */
+const ForumsWorkLineTwin = () => (
+  <aside className="mb-6 rounded-2xl border border-border/20 bg-card/40 backdrop-blur-md p-5">
+    <p className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground/60">
+      from the journal
+    </p>
+    <h2 className="mt-2 text-xl font-light tracking-tight text-foreground">
+      paid seat. free door.
+    </h2>
+    <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+      personas don&apos;t make the model smarter. thinking patterns do. ~ asherin.com
+    </p>
+    <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+      bring your own api key — asherin is free. you pay that vendor for inference.
+      want our hosted uncensored model? that is the paid seat. $18 / month. $79 /
+      month pro. this is the offer. it does not claim a named hosted model is
+      already live on asherin.com today.
+    </p>
+    <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+      $0 goes to being findable. the first click is not a paywall. one
+      public-index look works logged out.
+    </p>
+    <Link
+      to="/blog/paid-seat-free-door"
+      className="mt-4 inline-block text-[11px] font-light tracking-[0.2em] uppercase text-foreground/80 hover:underline"
+    >
+      read the journal note
+    </Link>
+  </aside>
+];
+
+
 const Forums = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -172,6 +204,8 @@ const Forums = () => {
         <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground/80 mb-10">
           Share ideas, submit theories, drop leaks. Text only — no file uploads.
         </p>
+        <ForumsWorkLineTwin />
+
 
         {/* Category tabs */}
         <div className={`grid gap-2 mb-6 ${CATEGORIES.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
