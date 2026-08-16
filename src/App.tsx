@@ -205,6 +205,7 @@ const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
 const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogAsherFoldMemory = lazy(() => import("./pages/blog/AsherFoldMemory"));
+const SiteTraffic = lazy(() => import("./pages/SiteTraffic"));
 const BlogPaidSeatFreeDoor = lazy(() => import("./pages/Blog").then((m) => ({ default: m.PaidSeatFreeDoor })));
 const Updates = lazy(() => import("./pages/Updates"));
 const Sources = lazy(() => import("./pages/Sources"));
@@ -253,6 +254,7 @@ const GlossaryConversationalSeo = lazy(() => import("./pages/glossary/Conversati
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
+import SiteTrafficBeacon from "./components/SiteTrafficBeacon";
 import AutoTripMount from "./components/AutoTripMount";
 import SentinelDaemon from "./components/dashboard/SentinelDaemon";
 import RouteSeo from "./components/RouteSeo";
@@ -302,6 +304,7 @@ const App = () => (
             <BrowserRouter>
               <CommandPalette />
               <RouteSessionTracker />
+              <SiteTrafficBeacon />
               <AutoTripMount />
               <SentinelDaemon />
               <RouteSeo />
@@ -533,6 +536,14 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <AsherDashboard />
+                            <Route
+                              path="/internal/traffic"
+                              element={
+                                <ProtectedRoute>
+                                  <SiteTraffic />
+                                </ProtectedRoute>
+                              }
+                            />
                           </ProtectedRoute>
                         }
                       />
