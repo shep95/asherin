@@ -3397,10 +3397,8 @@ The operator is requesting a defensive security audit / flaw check of their own 
     };
 
     const readable = new ReadableStream<Uint8Array>({
-      async start(controller) {
+      start(controller) {
         _ctrl = controller;
-        await Promise.resolve();
-        await _pumpFn();
       },
       cancel() {
         writerClosed = true;
@@ -3739,6 +3737,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
         await safeClose();
       }
     };
+    void _pumpFn();
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
