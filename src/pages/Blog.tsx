@@ -30,6 +30,16 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/asher-fold-memory",
+    title: "asher.fold-memory — leftover memory, stored once",
+    dek: "identical copies are stored once, unique bytes stay the floor, and unfold hands back the exact bits or refuses. the measured selftest numbers, the ice-cream law about cloud bills, and the $99 pack.",
+    tag: "Release",
+    published: "2026-08-16T06:00:00.000Z",
+    readTime: "9 min",
+    featured: true,
+    pinned: true,
+  },
+  {
     slug: "/blog/paid-seat-free-door",
     title: "paid seat. free door.",
     dek: "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
