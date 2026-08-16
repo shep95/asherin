@@ -3399,6 +3399,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const readable = new ReadableStream<Uint8Array>({
       async start(controller) {
         _ctrl = controller;
+        await Promise.resolve();
         await _pumpFn();
       },
       cancel() {
