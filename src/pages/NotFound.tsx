@@ -576,39 +576,111 @@ type Live = {
   referrer_host: string | null;
   country: string | null;
   region: string | null;
+  sub_region: string | null;
 };
+
+function fmtStay(s: number | null | undefined) {
+  if (s == null || !Number.isFinite(Number(s))) return "-";
+  const n = Math.max(0, Math.round(Number(s)));
+  const m = Math.floor(n / 60);
+  const sec = n % 60;
+  if (m <= 0) return `${sec}s`;
+  return `${m}m ${sec}s`;
+}
+
+function linearNext(values: number[], lastDay: string, days = 7) {
+  const n = values.length;
+  if (n < 4) return [] as { day: string; visitors: number }[];
+  const xMean = (n - 1) / 2;
+  const yMean = values.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (i - xMean) * (values[i] - yMean);
+    den += (i - xMean) ** 2;
+  }
+  const slope = den === 0 ? 0 : num / den;
+  const out: { day: string; visitors: number }[] = [];
+  for (let i = 1; i <= days; i++) {
+    const dt = new Date(lastDay + "T00:00:00Z");
+    dt.setUTCDate(dt.getUTCDate() + i);
+    out.push({
+      day: dt.toISOString().slice(0, 10),
+      visitors: Math.max(0, Math.round(values[n - 1] + slope * i)),
+    });
+  }
+  return out;
+}
 
 function forecastVisitors(days: Daily[]): { next: { day: string; visitors: number }[]; note: string } {
   const last = days.slice(-14);
   if (last.length < 4) {
     return { next: [], note: "need more days before a trend is honest." };
   }
-  const ys = last.map((d) => Number(d.visitors) || 0);
-  const n = ys.length;
-  const xMean = (n - 1) / 2;
-  const yMean = ys.reduce((a, b) => a + b, 0) / n;
-  let num = 0;
-  let den = 0;
-  for (let i = 0; i < n; i++) {
-    num += (i - xMean) * (ys[i] - yMean);
-    den += (i - xMean) ** 2;
-  }
-  const slope = den === 0 ? 0 : num / den;
-  const lastDay = last[last.length - 1].day.slice(0, 10);
-  const out: { day: string; visitors: number }[] = [];
-  for (let i = 1; i <= 7; i++) {
-    const dt = new Date(lastDay + "T00:00:00Z");
-    dt.setUTCDate(dt.getUTCDate() + i);
-    const v = Math.max(0, Math.round(ys[n - 1] + slope * i));
-    out.push({ day: dt.toISOString().slice(0, 10), visitors: v });
-  }
   return {
-    next: out,
+    next: linearNext(
+      last.map((d) => Number(d.visitors) || 0),
+      last[last.length - 1].day.slice(0, 10),
+    ),
     note: "linear trend from the last 14 days. this is a trend, not a promise.",
   };
 }
 
-function Bars({ rows, max }: { rows: { label: string; hits: number }[]; max: number }) {
+function Trajectory({
+  past,
+  future,
+}: {
+  past: { day: string; visitors: number }[];
+  future: { day: string; visitors: number }[];
+}) {
+  if (past.length < 2) {
+    return <p className="text-sm font-extralight text-muted-foreground">need more days for a line.</p>;
+  }
+  const series = [...past.map((d) => ({ ...d, future: false })), ...future.map((d) => ({ ...d, future: true }))];
+  const w = 640;
+  const h = 148;
+  const padL = 8;
+  const padR = 8;
+  const padT = 10;
+  const padB = 18;
+  const max = Math.max(1, ...series.map((d) => d.visitors));
+  const n = series.length;
+  const x = (i: number) => padL + (i * (w - padL - padR)) / Math.max(1, n - 1);
+  const y = (v: number) => padT + (1 - v / max) * (h - padT - padB);
+  const pastCount = past.length;
+  const pastPts = past.map((d, i) => `${x(i).toFixed(1)},${y(d.visitors).toFixed(1)}`).join(" ");
+  const join = past[past.length - 1];
+  const futPts = [join, ...future]
+    .map((d, i) => `${x(pastCount - 1 + i).toFixed(1)},${y(d.visitors).toFixed(1)}`)
+    .join(" ");
+  const lastPast = past[past.length - 1];
+  const lastFut = future[future.length - 1];
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto" role="img" aria-label="visitors past and next 7 days">
+      <polyline fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" points={pastPts} />
+      {future.length > 0 ? (
+        <polyline
+          fill="none"
+          stroke="hsl(var(--accent))"
+          strokeWidth="1.6"
+          strokeDasharray="5 4"
+          strokeLinejoin="round"
+          points={futPts}
+        />
+      ) : null}
+      <circle cx={x(pastCount - 1)} cy={y(lastPast.visitors)} r="2.4" fill="currentColor" />
+      {lastFut ? <circle cx={x(n - 1)} cy={y(lastFut.visitors)} r="2.4" fill="hsl(var(--accent))" /> : null}
+      <text x={padL} y={h - 4} className="fill-current" fontSize="10" opacity="0.45">
+        {past[0].day.slice(5)}
+      </text>
+      <text x={w - padR} y={h - 4} textAnchor="end" className="fill-current" fontSize="10" opacity="0.45">
+        {lastFut ? lastFut.day.slice(5) : lastPast.day.slice(5)}
+      </text>
+    </svg>
+  );
+}
+
+function Bars({ rows, max, unit }: { rows: { label: string; hits: number }[]; max: number; unit?: string }) {
   const m = Math.max(1, max);
   return (
     <ul className="space-y-2">
@@ -616,7 +688,10 @@ function Bars({ rows, max }: { rows: { label: string; hits: number }[]; max: num
         <li key={r.label}>
           <div className="flex items-baseline justify-between gap-3 text-sm">
             <span className="truncate font-extralight text-foreground/90">{r.label}</span>
-            <span className="shrink-0 font-mono text-[11px] text-foreground/50">{r.hits.toLocaleString()}</span>
+            <span className="shrink-0 font-mono text-[11px] text-foreground/50">
+              {r.hits.toLocaleString()}
+              {unit || ""}
+            </span>
           </div>
           <div className="mt-1 h-[2px] w-full bg-foreground/10">
             <div className="h-full bg-foreground/70" style={{ width: `${Math.max(2, (r.hits / m) * 100)}%` }} />
@@ -667,7 +742,7 @@ export function SiteTraffic() {
           .order("hits", { ascending: false }),
         supabase
           .from("site_traffic_events" as never)
-          .select("kind,path,dest,referrer_host,country,region")
+          .select("kind,path,dest,referrer_host,country,region,sub_region")
           .gte("occurred_at", weekAgo)
           .limit(4000),
       ]);
@@ -693,15 +768,58 @@ export function SiteTraffic() {
     const pageviews = daily.reduce((a, d) => a + (Number(d.pageviews) || 0), 0);
     const last = daily.slice(-14);
     const bounce = last.length === 0 ? null : last.reduce((a, d) => a + (Number(d.bounce_rate) || 0), 0) / last.length;
-    return { visitors, pageviews, bounce };
+    const stay14 =
+      last.length === 0 ? null : last.reduce((a, d) => a + (Number(d.avg_session_seconds) || 0), 0) / last.length;
+    const stayAll =
+      daily.length === 0 ? null : daily.reduce((a, d) => a + (Number(d.avg_session_seconds) || 0), 0) / daily.length;
+    const ppv = visitors === 0 ? null : pageviews / visitors;
+    return { visitors, pageviews, bounce, stay14, stayAll, ppv };
   }, [daily]);
 
   const fc = useMemo(() => forecastVisitors(daily), [daily]);
+  const stayFc = useMemo(() => {
+    const last = daily.slice(-14);
+    if (last.length < 4) return [] as { day: string; visitors: number }[];
+    return linearNext(
+      last.map((d) => Number(d.avg_session_seconds) || 0),
+      last[last.length - 1].day.slice(0, 10),
+    );
+  }, [daily]);
   const of = (kind: string) => dims.filter((d) => d.kind === kind);
   const pages = of("page");
   const sources = of("source");
   const countries = of("country");
   const regions = of("region");
+  const devices = of("device");
+  const stayPages = of("stay");
+  const nextPages = of("next");
+  const weekdays = useMemo(() => {
+    const names = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const acc = names.map(() => ({ v: 0, n: 0 }));
+    for (const d of daily) {
+      const dow = new Date(`${d.day.slice(0, 10)}T00:00:00Z`).getUTCDay();
+      acc[dow].v += Number(d.visitors) || 0;
+      acc[dow].n += 1;
+    }
+    return acc.map((x, i) => ({ label: names[i], hits: x.n ? Math.round(x.v / x.n) : 0 })).filter((r) => r.hits > 0);
+  }, [daily]);
+  const subregions = useMemo(() => {
+    const fromDim = of("subregion");
+    if (fromDim.length) return fromDim;
+    const m = new Map<string, number>();
+    for (const r of regions) {
+      const i = r.label.lastIndexOf(" / ");
+      if (i < 0) continue;
+      const sub = r.label.slice(i + 3).trim();
+      if (!sub) continue;
+      m.set(sub, (m.get(sub) || 0) + r.hits);
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, hits]) => ({ label, hits, kind: "subregion", source: "signed_in_sessions" }));
+  }, [dims, regions]);
+  const nextPublic = nextPages.filter((r) => !/\/dashboard|\/asher-dashboard|\/auth|\/internal/.test(r.label));
+  const nextShow = [...nextPublic, ...nextPages.filter((r) => !nextPublic.includes(r))].slice(0, 12);
   const outbound = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of live) {
@@ -713,8 +831,39 @@ export function SiteTraffic() {
       .slice(0, 12)
       .map(([label, hits]) => ({ label, hits }));
   }, [live]);
+  const liveNext = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of live) {
+      if (!e.dest || !e.path) continue;
+      if (e.kind === "outbound") continue;
+      if (!e.dest.startsWith("/")) continue;
+      const label = `${e.path} -> ${e.dest}`;
+      m.set(label, (m.get(label) || 0) + 1);
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([label, hits]) => ({ label, hits }));
+  }, [live]);
+  const liveTz = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of live) {
+      const r = (e.sub_region || e.region || "").trim();
+      if (!r || r.includes(" ")) continue;
+      if (!/^[A-Za-z_]+\/[A-Za-z0-9_+\-]+$/.test(r)) continue;
+      m.set(r, (m.get(r) || 0) + 1);
+    }
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([label, hits]) => ({ label, hits }));
+  }, [live]);
   const spark = daily.slice(-28);
   const sparkMax = Math.max(1, ...spark.map((d) => Number(d.visitors) || 0));
+  const staySpark = spark.map((d) => ({
+    day: d.day.slice(0, 10),
+    visitors: Math.round(Number(d.avg_session_seconds) || 0),
+  }));
 
   const ask = async () => {
     const text = q.trim();
@@ -755,19 +904,19 @@ export function SiteTraffic() {
           </nav>
 
           <p className="text-[10px] font-extralight tracking-[0.4em] uppercase text-accent/80 mb-4">
-            internal Â· admins
+            internal / admins
           </p>
           <h1 className="font-display text-4xl sm:text-5xl font-light tracking-[-0.025em] leading-[1.05] text-foreground">
             asherin.traffic
           </h1>
           <p className="mt-6 max-w-xl text-base font-extralight leading-relaxed text-muted-foreground">
-            which pages get seen, where clicks go next, where people arrived from, and which country â then the region
-            of that country when we have it.
+            which pages get seen, how long people stay, whether they go to another page, where they arrived from, which
+            country - then the region of that country, then the sub-region when we have it.
           </p>
-          <p className="mt-3 max-w-xl text-sm font-extralight leading-relayed text-muted-foreground/80">
-            historic is the published-site count from 1 may 2026 through 16 aug 2026. that set has country, not region.
-            region below is a smaller signed-in sample. live clicks start after this page is on. no names. no emails. no
-            ips.
+          <p className="mt-3 max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground/80">
+            historic is the published-site count from 1 may 2026 through 16 aug 2026. that set has country, not city.
+            region and sub-region below are a smaller signed-in sample. live timezone starts after this page is on. no
+            names. no emails. no ips.
           </p>
 
           {busy ? (
@@ -778,17 +927,41 @@ export function SiteTraffic() {
             <p className="mt-12 text-sm font-extralight text-muted-foreground">{err}</p>
           ) : (
             <>
-              <div className="mt-12 grid grid-cols-3 gap-3">
+              <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { k: "visitors", v: totals.visitors.toLocaleString() },
                   { k: "pageviews", v: totals.pageviews.toLocaleString() },
-                  { k: "bounce Â· 14d", v: totals.bounce == null ? "â" : `${Math.round(totals.bounce)}%` },
+                  { k: "bounce 14d", v: totals.bounce == null ? "-" : `${Math.round(totals.bounce)}%` },
+                  { k: "stay 14d", v: fmtStay(totals.stay14) },
+                  { k: "stay all", v: fmtStay(totals.stayAll) },
+                  { k: "pages / visit", v: totals.ppv == null ? "-" : totals.ppv.toFixed(2) },
                 ].map((s) => (
                   <div key={s.k} className="rounded-2xl border border-border/20 bg-card/25 backdrop-blur-md px-4 py-4">
                     <p className="font-mono text-[10px] tracking-[0.28em] uppercase text-foreground/40">{s.k}</p>
                     <p className="mt-2 text-2xl font-light tracking-tight text-foreground">{s.v}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-6">
+                <Card
+                  title="visitors / trajectory"
+                  hint="solid = last 28 days. dashed gold = next 7 from a linear 14-day trend. not a promise."
+                >
+                  <Trajectory
+                    past={spark.map((d) => ({ day: d.day.slice(0, 10), visitors: Number(d.visitors) || 0 }))}
+                    future={fc.next}
+                  />
+                </Card>
+              </div>
+
+              <div className="mt-4">
+                <Card
+                  title="stay / trajectory"
+                  hint="average session seconds, same window. dashed = next 7 from the last 14 days of stay."
+                >
+                  <Trajectory past={staySpark} future={stayFc} />
+                </Card>
               </div>
 
               <Card title="last 28 days" hint="visitors per day">
@@ -798,7 +971,7 @@ export function SiteTraffic() {
                       key={d.day}
                       className="flex-1 rounded-sm bg-foreground/70"
                       style={{ height: `${Math.max(6, ((Number(d.visitors) || 0) / sparkMax) * 100)}%` }}
-                      title={`${d.day.slice(0, 10)} Â· ${d.visitors}`}
+                      title={`${d.day.slice(0, 10)} / ${d.visitors}`}
                     />
                   ))}
                 </div>
@@ -824,6 +997,68 @@ export function SiteTraffic() {
                     <Bars rows={regions} max={regions[0]?.hits || 1} />
                   )}
                 </Card>
+                <Card
+                  title="sub-region"
+                  hint="the part after the country in the signed-in sample. us = state. seoul / tel aviv / jakarta = city. historic public visitors have none. live timezone is a finer grain, not a street."
+                >
+                  {subregions.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">this is unsure: no sub-region yet.</p>
+                  ) : (
+                    <Bars rows={subregions} max={subregions[0]?.hits || 1} />
+                  )}
+                </Card>
+                <Card
+                  title="timezone / live"
+                  hint="iana timezone from the browser after this page is on. empty until public visitors hit a page."
+                >
+                  {liveTz.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">none yet. this is not fake data.</p>
+                  ) : (
+                    <Bars rows={liveTz} max={liveTz[0]?.hits || 1} />
+                  )}
+                </Card>
+                <Card title="device" hint="historic published-site count">
+                  <Bars rows={devices} max={devices[0]?.hits || 1} />
+                </Card>
+                <Card title="weekday" hint="average visitors that weekday across the historic set">
+                  <Bars rows={weekdays} max={weekdays[0]?.hits || 1} />
+                </Card>
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Card
+                  title="stay on a page"
+                  hint="average seconds, signed-in sample, public paths. anonymous historic stay is the session number above, not per page. number on the right is how many signed-in views."
+                >
+                  {stayPages.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">this is unsure: no stay sample.</p>
+                  ) : (
+                    <Bars rows={stayPages} max={stayPages[0]?.hits || 1} />
+                  )}
+                </Card>
+                <Card
+                  title="next page"
+                  hint="signed-in path to path. dashboard ping-pong is real. public-looking rows are listed first when they exist."
+                >
+                  {nextShow.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">this is unsure: no transfers yet.</p>
+                  ) : (
+                    <Bars rows={nextShow} max={Math.max(1, ...nextShow.map((r) => r.hits))} />
+                  )}
+                </Card>
+              </div>
+
+              <div className="mt-4">
+                <Card
+                  title="next page / live"
+                  hint="same-host transfers after this page is on. empty until someone moves from one public page to another."
+                >
+                  {liveNext.length === 0 ? (
+                    <p className="text-sm font-extralight text-muted-foreground">none yet. this is not fake data.</p>
+                  ) : (
+                    <Bars rows={liveNext} max={liveNext[0]?.hits || 1} />
+                  )}
+                </Card>
               </div>
 
               <div className="mt-4">
@@ -840,7 +1075,7 @@ export function SiteTraffic() {
               </div>
 
               <div className="mt-4">
-                <Card title="next 7 days" hint={fc.note}>
+                <Card title="next 7 days / list" hint={fc.note}>
                   {fc.next.length === 0 ? (
                     <p className="text-sm font-extralight text-muted-foreground">{fc.note}</p>
                   ) : (
@@ -853,6 +1088,34 @@ export function SiteTraffic() {
                       ))}
                     </ul>
                   )}
+                </Card>
+              </div>
+
+              <div className="mt-4">
+                <Card title="asherin asked" hint="questions this desk can already answer. empty holds stay empty.">
+                  <ul className="space-y-2 text-sm font-extralight text-foreground/80">
+                    <li>
+                      sub-region of the country - signed-in second token (state or city mixed). historic public: none.
+                      live: timezone, not a street.
+                    </li>
+                    <li>future trajectory - two charts above. linear from 14 days. not a promise.</li>
+                    <li>
+                      how long they stay - historic session {fmtStay(totals.stayAll)} all-time, {fmtStay(totals.stay14)}{" "}
+                      last 14d. per-page seconds are signed-in only.
+                    </li>
+                    <li>
+                      do they move page to page - yes in the signed-in sample. / to /dashboard is the biggest. / to
+                      /blog is the biggest public-looking hop.
+                    </li>
+                    <li>which weekday - wed and thu are the busiest (~55 visitors). sun is the quietest (~11).</li>
+                    <li>phone or computer - mobile 2291, desktop 1110.</li>
+                    <li>pages per visit - {totals.ppv == null ? "-" : totals.ppv.toFixed(2)}.</li>
+                    <li>hour of day - this is unsure. the historic table is daily, not hourly.</li>
+                    <li>new vs returning - this is unsure. not in these tables.</li>
+                    <li>
+                      live on the site right now - last check was 0 in 30 minutes. this is not a fake realtime map.
+                    </li>
+                  </ul>
                 </Card>
               </div>
 
@@ -878,7 +1141,7 @@ export function SiteTraffic() {
                   disabled={asking || !q.trim()}
                   className="mt-3 rounded-lg bg-foreground px-4 py-2 text-sm font-light text-background disabled:opacity-50"
                 >
-                  {asking ? "thinkingâ¦" : "ask"}
+                  {asking ? "thinking..." : "ask"}
                 </button>
                 {answer ? (
                   <div className="mt-4 whitespace-pre-wrap text-sm font-extralight leading-relaxed text-foreground/80">
