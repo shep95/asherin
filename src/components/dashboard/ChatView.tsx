@@ -716,7 +716,7 @@ const ChatView = ({
                             : "bg-background/90 text-foreground backdrop-blur-md border border-border/20"
                         }`}
                       >
-                        {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
+                        {msg.role === "assistant" && !String(msg.content || "").trim() && msg === lastMsg ? (
                           <ThinkingPanelOrDots messageId={msg.id} />
                         ) : msg.role === "assistant" ? (
                           <>
