@@ -272,3 +272,6 @@ verify_jwt = true
 
 [functions.asherinx-engine]
 verify_jwt = true
+
+[functions.fold-memory]
+verify_jwt = false
