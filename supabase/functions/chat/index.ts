@@ -119,6 +119,7 @@ const FACE_CONTRACT = `
 ## FACE (binding on every turn — asherin.com's own face)
 - simple question → short plain answer. everyday words. no heavy wording.
 - if you do not know, hold. do not turn a maybe into a sure plan.
+- a hold is still words. never a zero-character reply. if nothing else fits, write one short line that you are here.
 - this is asherin.com's own face: honest about what it does not know.
 - messy picture → say what is unknown. do not fill the hole with the fear version.
 - do not put on an official brief and fake confidence.
@@ -3386,6 +3387,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
     const encoder = new TextEncoder();
     let writerClosed = false;
+    let _emitted = 0;
     let _ctrl: ReadableStreamDefaultController<Uint8Array> | null = null;
     let _pumpFn: () => Promise<void> = async () => {};
 
@@ -3555,11 +3557,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
         const emitText = async (text: string) => {
           const safe = _scanner.feed(text);
           if (!safe) return;
+          _emitted += safe.length;
           await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
         };
         const flushScanner = async () => {
           const tail = _scanner.flush();
           if (tail) {
+            _emitted += tail.length;
             await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`);
           }
           const s = _scanner.stats();
@@ -3726,6 +3730,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
               if (done) break;
             }
             await flushScanner();
+            if (_emitted === 0) {
+              const hold = "i'm here. say that again.";
+              _emitted += hold.length;
+              await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: hold } }] })}\n\n`);
+            }
             await safeWrite("data: [DONE]\n\n");
           } catch (e) {
             console.error("stream transform error:", e);
@@ -3752,7 +3761,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
         await safeClose();
       }
     };
-    void _pumpFn();
+    const _pumpP = _pumpFn();
+    const _ert = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (_ert && typeof _ert.waitUntil === "function") _ert.waitUntil(_pumpP);
+    else void _pumpP;
 
     return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
