@@ -1027,12 +1027,17 @@ const Dashboard = () => {
               ...c,
               // Reverse-merge: DB provides the baseline row, but in-memory fields
               // (consensusData, streaming partials, richer attachments) win.
-              messages: decrypted
-                .map((dm) => ({
-                  ...dm,
-                  ...existingById[dm.id],
-                }))
-                .filter((m) => m.role !== "assistant" || String(m.content || "").trim()),
+              messages: (() => {
+                const fromDb = decrypted
+                  .map((dm) => ({
+                    ...dm,
+                    ...existingById[dm.id],
+                  }))
+                  .filter((m) => m.role !== "assistant" || String(m.content || "").trim());
+                const inDb = new Set(fromDb.map((m) => m.id));
+                const localOnly = c.messages.filter((m) => !inDb.has(m.id));
+                return [...fromDb, ...localOnly];
+              })(),
             };
           }),
         );
