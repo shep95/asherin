@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ArticleShell from "@/components/seo/ArticleShell";
+import { ArticleJsonLd, BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
+import RelatedLinks from "@/components/seo/RelatedLinks";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
@@ -27,6 +30,15 @@ type Post = {
 
 export const BLOG_POSTS: Post[] = [
   {
+    slug: "/blog/paid-seat-free-door",
+    title: "paid seat. free door.",
+    dek: "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
+    tag: "Product",
+    published: "2026-08-15T21:45:00.000Z",
+    readTime: "4 min",
+    featured: true,
+  },
+  {
     slug: "/blog/asherin-agent-sovereign-intelligence-layer",
     title: "the asherin agent — a personal sovereign intelligence layer you can download free",
     dek: "104 files, 43 thinking-pattern documents, 16 hook runners, and a doctrine that sits at the root of reasoning instead of on top of the output. full teardown of the package, its self-modification loop, its on-disk operator memory, and its honest limitations — with the whole archive free to download.",
@@ -44,7 +56,6 @@ export const BLOG_POSTS: Post[] = [
     published: "2026-08-11T00:00:00.000Z",
     readTime: "9 min",
     featured: true,
-
   },
   {
     slug: "/blog/ai-stack-for-indian-startups",
@@ -108,7 +119,7 @@ export const BLOG_POSTS: Post[] = [
     readTime: "12 min",
     featured: true,
   },
-  
+
   {
     slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
     title: "asherin legal mode — multi-jurisdictional legal research",
@@ -137,7 +148,7 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
     pinned: true,
   },
-  
+
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
     title: "zaxin — what web bluetooth actually gives you",
@@ -157,7 +168,7 @@ export const BLOG_POSTS: Post[] = [
     readTime: "5 min",
     featured: true,
   },
-  
+
   {
     slug: "/blog/aureon-pricing-explained",
     title: "Asherin pricing explained — why $18/mo and $79/mo",
@@ -166,14 +177,7 @@ export const BLOG_POSTS: Post[] = [
     published: "2026-06-19",
     readTime: "11 min",
   },
-  
-  
-  
-  
-  
-  
-  
-  
+
   {
     slug: "/blog/ai-vulnerability-scanning-explained",
     title: "AI vulnerability scanning, explained — beyond legacy SAST/DAST",
@@ -271,8 +275,7 @@ const fmtTime = (iso: string) => {
   return `${hh}:${mm}:${ss} UTC`;
 };
 
-const ALL_TAGS = (posts: Post[]) =>
-  Array.from(new Set(posts.map((p) => p.tag))).sort();
+const ALL_TAGS = (posts: Post[]) => Array.from(new Set(posts.map((p) => p.tag))).sort();
 
 /** Month-year bucket key, e.g. "August 2026" — used to group the reading feed. */
 const fmtBucket = (iso: string) =>
@@ -323,17 +326,12 @@ const Blog = () => {
     const fromMs = dateFrom ? Date.parse(`${dateFrom}T00:00:00Z`) : -Infinity;
     const toMs = dateTo ? Date.parse(`${dateTo}T23:59:59Z`) : Infinity;
     const q = query.trim().toLowerCase();
-    return BLOG_POSTS
-      .filter((p) => (tagFilter === "All" ? true : p.tag === tagFilter))
+    return BLOG_POSTS.filter((p) => (tagFilter === "All" ? true : p.tag === tagFilter))
       .filter((p) => {
         const t = Date.parse(toIso(p.published));
         return t >= fromMs && t <= toMs;
       })
-      .filter((p) =>
-        q
-          ? `${p.title} ${p.dek} ${p.tag}`.toLowerCase().includes(q)
-          : true,
-      )
+      .filter((p) => (q ? `${p.title} ${p.dek} ${p.tag}`.toLowerCase().includes(q) : true))
       .sort((a, b) => {
         const ta = Date.parse(toIso(a.published));
         const tb = Date.parse(toIso(b.published));
@@ -349,8 +347,7 @@ const Blog = () => {
   const lead = heroPinned[0] ?? null;
   const secondaryPinned = heroPinned.slice(1);
 
-  const isFiltering =
-    tagFilter !== "All" || sort !== "newest" || !!dateFrom || !!dateTo || !!query.trim();
+  const isFiltering = tagFilter !== "All" || sort !== "newest" || !!dateFrom || !!dateTo || !!query.trim();
   const pinnedSlugs = new Set(pinnedPosts.map((p) => p.slug));
   const listed = filtered.filter((p) => !pinnedSlugs.has(p.slug));
 
@@ -382,17 +379,14 @@ const Blog = () => {
       <main className="max-w-5xl mx-auto px-5 sm:px-6 pt-28 pb-24">
         {/* MASTHEAD */}
         <header className="border-b border-border/25 pb-10">
-          <p className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
-            asherin journal
-          </p>
+          <p className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">asherin journal</p>
           <h1 className="mt-5 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.03em] leading-[0.95] max-w-3xl">
             notes from
             <span className="block italic text-muted-foreground/60">asherin.</span>
           </h1>
           <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
             <p className="max-w-xl text-sm sm:text-base font-extralight text-muted-foreground leading-[1.75]">
-              how the thing is built, what it gets wrong, and sources next to answers.
-              no fake ranks.
+              how the thing is built, what it gets wrong, and sources next to answers. no fake ranks.
             </p>
             <span className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/60 tabular-nums">
               {BLOG_POSTS.length} entries
@@ -409,19 +403,23 @@ const Blog = () => {
             >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-light tracking-[0.26em] uppercase text-muted-foreground">
                 <span className="text-accent">Pinned</span>
-                <span aria-hidden className="text-border">/</span>
+                <span aria-hidden className="text-border">
+                  /
+                </span>
                 <span>{lead.tag}</span>
-                <span aria-hidden className="text-border">/</span>
+                <span aria-hidden className="text-border">
+                  /
+                </span>
                 <time dateTime={toIso(lead.published)}>{fmtDate(lead.published)}</time>
-                <span aria-hidden className="text-border">/</span>
+                <span aria-hidden className="text-border">
+                  /
+                </span>
                 <span>{lead.readTime}</span>
               </div>
               <h2 className="mt-5 font-display text-3xl sm:text-4xl md:text-5xl font-light tracking-[-0.025em] leading-[1.08] text-foreground">
                 {lead.title}
               </h2>
-              <p className="mt-5 max-w-2xl text-base font-extralight text-muted-foreground leading-[1.8]">
-                {lead.dek}
-              </p>
+              <p className="mt-5 max-w-2xl text-base font-extralight text-muted-foreground leading-[1.8]">{lead.dek}</p>
               <span className="mt-6 inline-flex items-center gap-2 text-[11px] font-light tracking-[0.24em] uppercase text-foreground/80">
                 Read the report
                 <ArrowUpRight
@@ -445,9 +443,13 @@ const Blog = () => {
                 >
                   <div className="flex flex-wrap items-center gap-x-2.5 text-[9px] font-light tracking-[0.26em] uppercase text-muted-foreground">
                     <span className="text-accent">Pinned</span>
-                    <span aria-hidden className="text-border">/</span>
+                    <span aria-hidden className="text-border">
+                      /
+                    </span>
                     <span>{p.tag}</span>
-                    <span aria-hidden className="text-border">/</span>
+                    <span aria-hidden className="text-border">
+                      /
+                    </span>
                     <span>{p.readTime}</span>
                   </div>
                   <h3 className="mt-3 text-xl font-light tracking-[-0.015em] leading-snug text-foreground/95 transition-colors group-hover:text-foreground">
@@ -464,10 +466,7 @@ const Blog = () => {
 
         {/* CONTROLS — search first, chips scroll on one line, the rarely used
             date range hides behind a disclosure instead of shouting. */}
-        <section
-          aria-label="Filter articles"
-          className="mt-14 border-t border-border/25 pt-6"
-        >
+        <section aria-label="Filter articles" className="mt-14 border-t border-border/25 pt-6">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search
@@ -499,7 +498,6 @@ const Blog = () => {
 
           <div className="mt-4 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible scrollbar-none">
             <div className="flex w-max sm:w-auto sm:flex-wrap items-center gap-2 pb-1">
-
               {tags.map((t) => {
                 const active = tagFilter === t;
                 return (
@@ -611,15 +609,14 @@ const Blog = () => {
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-x-2.5 text-[9px] font-light tracking-[0.24em] uppercase text-muted-foreground/60">
                               <span>{p.tag}</span>
-                              <span aria-hidden className="text-border">/</span>
+                              <span aria-hidden className="text-border">
+                                /
+                              </span>
                               <span>{p.readTime}</span>
                               <span className="sm:hidden" aria-hidden>
                                 /
                               </span>
-                              <time
-                                dateTime={toIso(p.published)}
-                                className="sm:hidden"
-                              >
+                              <time dateTime={toIso(p.published)} className="sm:hidden">
                                 {fmtDate(p.published)}
                               </time>
                             </div>
@@ -641,9 +638,7 @@ const Blog = () => {
           </section>
         ) : (
           <section className="mt-10 rounded-2xl border border-dashed border-border/40 p-14 text-center">
-            <p className="text-sm font-extralight text-muted-foreground">
-              No articles match these filters.
-            </p>
+            <p className="text-sm font-extralight text-muted-foreground">No articles match these filters.</p>
             {isFiltering && (
               <button
                 type="button"
@@ -664,3 +659,75 @@ const Blog = () => {
 
 export default Blog;
 
+export function PaidSeatFreeDoor() {
+  const URL = "https://asherin.com/blog/paid-seat-free-door";
+  const TITLE = "paid seat. free door.";
+  const DEK =
+    "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.";
+  const PUBLISHED = "2026-08-15";
+  const FAQ = [
+    {
+      q: "is asherin free if i bring my own key?",
+      a: "yes. bring your own api key and the software is free. you pay that vendor for inference. forever-free burns are yours.",
+    },
+    {
+      q: "what is the paid seat?",
+      a: "the paid seat is asherin.com's hosted uncensored model. two seats stay $18 / month and $79 / month pro. this note is the offer — it does not claim a named hosted model is already live on asherin.com today.",
+    },
+    {
+      q: "do you buy ads to get found?",
+      a: "no. $0 goes to being findable: sitemap, llms.txt, this journal, and the forums. not to ads.",
+    },
+  ];
+  return (
+    <ArticleShell eyebrow="Product" title={TITLE} dek={DEK} publishedLabel="Aug 15 2026" readTime="4 min">
+      <ArticleJsonLd
+        id="paid-seat-free-door"
+        url={URL}
+        headline={TITLE}
+        description={DEK}
+        datePublished={PUBLISHED}
+        keywords={["asherin pricing", "bring your own key", "byok free", "hosted uncensored model", "$18", "$79"]}
+      />
+      <BreadcrumbJsonLd
+        id="paid-seat-free-door"
+        items={[
+          { name: "Asherin", url: "/" },
+          { name: "Blog", url: "/blog" },
+          { name: TITLE, url: "/blog/paid-seat-free-door" },
+        ]}
+      />
+      <p>personas don&apos;t make the model smarter. thinking patterns do.</p>
+      <p>~ asherin.com</p>
+      <p>
+        if you already pay a vendor, bring that key. the software stays free. forever-free burns are yours — you pay
+        default-model inference yourself.
+      </p>
+      <p>
+        if you want asherin.com&apos;s hosted uncensored model, that is the paid seat. $18 / month. $79 / month pro.
+        byok stays free. this page is the offer. it does not claim a named hosted model is already live on asherin.com
+        today.
+      </p>
+      <p>
+        two seats stay $18 / month and $79 / month pro. we do not buy ads to fix a search miss. the sitemap, llms.txt,
+        the journal, and the forums are the $0 door.
+      </p>
+      <p>
+        the first click on a public page is not a paywall. one public-index look — wayback or wiki — works logged out.
+      </p>
+      <FaqJsonLd id="paid-seat-free-door" items={FAQ} />
+      <RelatedLinks
+        heading="related"
+        links={[
+          {
+            to: "/for",
+            label: "who asherin is for",
+            description: "five desks. one public-index look. first click is look.",
+          },
+          { to: "/pricing", label: "pricing", description: "$18 / month. $79 / month pro." },
+          { to: "/forums", label: "forums", description: "the $0 door next to this journal note." },
+        ]}
+      />
+    </ArticleShell>
+  );
+}
