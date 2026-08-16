@@ -14,7 +14,7 @@ import ArticleShell from "@/components/seo/ArticleShell";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 import { supabase } from "@/integrations/supabase/client";
-import orbitAsset from "@/assets/asherin-fold-memory-orbit.png.asset.json";
+import orbitImage from "@/assets/asherin-fold-memory-orbit.png";
 
 const URL = "https://asherin.com/blog/asher-fold-memory";
 const TITLE = "asher.fold-memory — leftover memory, stored once";
@@ -246,7 +246,7 @@ const AsherFoldMemory = () => (
     readTime="9 min"
     image={
       <img
-        src={orbitAsset.url}
+        src={orbitImage}
         alt="asher.fold-memory — a triangular satellite in low orbit above earth, captioned leftover memory, stored once"
         width={1080}
         height={1080}
