@@ -7,6 +7,7 @@ const ALLOWED_ORIGINS = [
   "https://asherin.com",
   "https://www.asherin.com",
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
+  "https://ziali-magic-pixels.lovable.app",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",
