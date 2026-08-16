@@ -699,9 +699,7 @@ const ChatView = ({
                 />
               )}
               {branchMessages.map((msg, idx) =>
-                msg.role === "assistant" &&
-                !String(msg.content || "").trim() &&
-                !(isStreaming && msg === lastMsg) ? null : (
+                msg.role === "assistant" && !String(msg.content || "").trim() && msg !== lastMsg ? null : (
                   <div
                     key={msg.id}
                     ref={(el) => {
