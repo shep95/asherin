@@ -203,7 +203,10 @@ export async function streamChat({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${authToken}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(() => {
+              const k = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+              return typeof k === "string" && k.length ? { apikey: k } : {};
+            })(),
           },
           body: JSON.stringify({
             messages: requestMessages,
