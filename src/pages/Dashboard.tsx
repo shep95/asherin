@@ -1566,15 +1566,7 @@ const Dashboard = () => {
             ),
           );
         } else if (death) {
-          const closed =
-            "the chat socket closed before a reply landed. the browser only reports failed to fetch — that is a transport death, not a model refusal. retry the same message.";
-          setConversations((prev) =>
-            prev.map((c) =>
-              c.id === convId
-                ? { ...c, messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: closed } : m)) }
-                : c,
-            ),
-          );
+          /* transport death: never a static paragraph as the mouth */
         } else {
           toast({ title: "AI Error", description: e.message, variant: "destructive" });
         }
