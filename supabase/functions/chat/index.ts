@@ -3289,7 +3289,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
             ],
             // Match zali-chat budget so the multi-brain system prompt doesn't
             // truncate Aureon's reply into a short factual blurb.
-            generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 16384, thinkingConfig: { thinkingBudget: 0 } },
           }),
         },
       );
