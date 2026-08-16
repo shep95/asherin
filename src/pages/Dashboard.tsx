@@ -1436,6 +1436,14 @@ const Dashboard = () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
           thinkingStore.finish(assistantId);
+          if (!String(assistantContent || "").trim()) {
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === convId ? { ...c, messages: c.messages.filter((m) => m.id !== assistantId) } : c,
+              ),
+            );
+            return;
+          }
           // Persist assistant message via upsert — idempotent so a retry on a
           // flaky network cannot create a duplicate row when the first insert
           // actually succeeded (BUG-FLOW-03).
