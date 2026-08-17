@@ -420,11 +420,27 @@ export default function PdfGeneratorView() {
   );
 
   const download = () => {
-    const blob = buildQuietPdf(doc);
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.click();
-    URL.revokeObjectURL(a.href);
+    try {
+      const blob = buildQuietPdf(docRef.current);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug(docRef.current.title || "page")}.pdf`;
+      a.rel = "noopener";
+      document.body.appendChild(a); // firefox needs the anchor in the tree
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000); // revoke after the browser has read the blob
+    } catch (e) {
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "ai",
+          thought: "the compile failed before the file left the page.",
+          rec: e instanceof Error ? e.message : "say it again.",
+        },
+      ]);
+    }
   };
 
   return (
