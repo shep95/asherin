@@ -550,9 +550,20 @@ export default function PdfGeneratorView() {
                 {doc.lede ? (
                   <p className="mt-[4%] text-[clamp(11px,1.6cqw,13px)] italic leading-relaxed opacity-70">{doc.lede}</p>
                 ) : null}
-                {doc.body ? (
-                  <p className="mt-[5%] max-w-[28em] text-[clamp(11px,1.5cqw,12.5px)] leading-[1.65]">{doc.body}</p>
-                ) : null}
+                {doc.body
+                  ? doc.body
+                      .split(/\n{2,}/)
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                      .map((p, i) => (
+                        <p
+                          key={i}
+                          className="mt-[5%] max-w-[34em] text-[clamp(11px,1.5cqw,12.5px)] leading-[1.65] first-of-type:mt-[5%]"
+                        >
+                          {p}
+                        </p>
+                      ))
+                  : null}
               </>
             ) : (
               <p className="grid h-full place-items-center text-[13px] tracking-wide opacity-30">
