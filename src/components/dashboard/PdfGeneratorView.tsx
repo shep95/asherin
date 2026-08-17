@@ -46,6 +46,9 @@ const ASPECT: Record<Size, string> = {
   book: "6 / 9",
 };
 
+// width ÷ height — used to keep the sheet inside the viewport on both axes
+const RATIO: Record<Size, number> = { letter: 8.5 / 11, a4: 210 / 297, book: 6 / 9 };
+
 const CREAM_LETTER: PageDoc = {
   title: "look a little closer",
   lede: "a page that starts blank — not a website printed.",
