@@ -533,11 +533,16 @@ export default function PdfGeneratorView() {
             </button>
           </form>
         </div>
-        <div className="order-1 flex min-h-0 min-w-0 items-center justify-center p-3 lg:order-2 lg:p-4">
+        <div
+          className="order-1 flex min-h-0 min-w-0 items-center justify-center p-3 lg:order-2 lg:p-4"
+          style={{ containerType: "size" }} // gives the sheet a height to measure against
+        >
           <article
-            className="h-full max-h-full w-auto max-w-full overflow-hidden shadow-2xl"
+            className="overflow-hidden shadow-2xl"
             style={{
               aspectRatio: ASPECT[doc.size],
+              width: `min(100%, ${RATIO[doc.size].toFixed(4)} * 100cqh)`, // fits on both axes; ratio never distorts
+              height: "auto",
               background: ink.bg,
               color: ink.ink,
               fontFamily: FACE[doc.font],
