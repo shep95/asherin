@@ -172,18 +172,64 @@ function packUserTurn(t: string, d: PageDoc) {
   ].join("\n\n");
 }
 
-function pdfEscape(s: string) {
-  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+/* ---------- pdf writer: the file must be the letter, not a generic sheet ---------- */
+
+const MEDIA: Record<Size, [number, number]> = {
+  letter: [612, 792],
+  a4: [595.28, 841.89],
+  book: [432, 648],
+};
+
+// base-14 pairs: serif faces map to Times, jost maps to Helvetica.
+const BASE14: Record<Face, { roman: string; italic: string; bold: string; css: string }> = {
+  cormorant: { roman: "Times-Roman", italic: "Times-Italic", bold: "Times-Bold", css: "'Times New Roman', serif" },
+  fraunces: { roman: "Times-Roman", italic: "Times-Italic", bold: "Times-Bold", css: "'Times New Roman', serif" },
+  newsreader: { roman: "Times-Roman", italic: "Times-Italic", bold: "Times-Bold", css: "'Times New Roman', serif" },
+  instrument: { roman: "Times-Roman", italic: "Times-Italic", bold: "Times-Bold", css: "'Times New Roman', serif" },
+  jost: { roman: "Helvetica", italic: "Helvetica-Oblique", bold: "Helvetica-Bold", css: "Helvetica, Arial, sans-serif" },
+};
+
+// smart punctuation → latin-1 safe; anything else outside latin-1 is dropped rather than corrupting the xref.
+function toLatin1(s: string) {
+  return s
+    .replace(/[\u2018\u2019\u201B]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u2026/g, "...")
+    .replace(/\u00A0/g, " ")
+    .replace(/[^\u0000-\u00FF]/g, "");
 }
 
-function wrap(s: string, width: number) {
-  const words = s.split(/\s+/).filter(Boolean);
+// keep the emitted file pure ascii so string length == byte length (xref offsets stay honest).
+function pdfEscape(s: string) {
+  let out = "";
+  for (const ch of toLatin1(s)) {
+    const c = ch.charCodeAt(0);
+    if (ch === "\\") out += "\\\\";
+    else if (ch === "(") out += "\\(";
+    else if (ch === ")") out += "\\)";
+    else if (c < 32 || c > 126) out += "\\" + c.toString(8).padStart(3, "0");
+    else out += ch;
+  }
+  return out;
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+function widthOf(text: string, size: number, css: string, style: "" | "italic " | "bold ") {
+  if (!measureCtx) measureCtx = document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return text.length * size * 0.5; // headless fallback: coarse but never NaN
+  measureCtx.font = `${style}${size}px ${css}`;
+  return measureCtx.measureText(text).width;
+}
+
+function wrapToWidth(s: string, max: number, size: number, css: string, style: "" | "italic " | "bold ") {
+  const words = toLatin1(s).split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
     const next = cur ? cur + " " + w : w;
-    if (next.length > width) {
-      if (cur) lines.push(cur);
+    if (cur && widthOf(next, size, css, style) > max) {
+      lines.push(cur);
       cur = w;
     } else cur = next;
   }
@@ -191,25 +237,89 @@ function wrap(s: string, width: number) {
   return lines;
 }
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.replace(/./g, (c) => c + c) : h, 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+const f3 = (n: number) => n.toFixed(3);
+
+type Block = { text: string; size: number; leading: number; style: "" | "italic " | "bold "; gapBefore: number; alpha: number };
+
 function buildQuietPdf(doc: PageDoc) {
-  const title = doc.title || "untitled";
-  const lines = [...wrap(title, 42), "", ...wrap(doc.lede || "", 72), "", ...wrap(doc.body || "", 72)];
-  const commands: string[] = ["BT", "/F1 18 Tf", "72 720 Td"];
-  lines.forEach((ln, i) => {
-    const size = i === 0 ? 18 : 11;
-    if (i === 0) commands.push(`/F1 ${size} Tf`);
-    if (i === 1) commands.push("/F1 11 Tf");
-    commands.push(`(${pdfEscape(ln)}) Tj`, "0 -16 Td");
-  });
-  commands.push("ET");
-  const stream = commands.join("\n");
-  const objs = [
+  const [pw, ph] = MEDIA[doc.size];
+  const face = BASE14[doc.font];
+  const paper = PAPER[doc.paper];
+  const [br, bg, bb] = hexToRgb(paper.bg);
+  const [ir, ig, ib] = hexToRgb(paper.ink);
+
+  const mx = pw * 0.12;
+  const mtop = ph * 0.11;
+  const mbot = ph * 0.12;
+  const colW = pw - mx * 2;
+  const titleSize = Math.max(20, Math.min(34, pw * 0.042));
+
+  const blocks: Block[] = [];
+  if (doc.title) blocks.push({ text: doc.title, size: titleSize, leading: titleSize * 1.12, style: "", gapBefore: 0, alpha: 1 });
+  if (doc.lede) blocks.push({ text: doc.lede, size: 12, leading: 17, style: "italic ", gapBefore: titleSize * 0.6, alpha: 0.7 });
+  for (const para of (doc.body || "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)) {
+    blocks.push({ text: para, size: 11.5, leading: 19, style: "", gapBefore: 14, alpha: 1 });
+  }
+  if (!blocks.length) blocks.push({ text: "untitled", size: titleSize, leading: titleSize * 1.12, style: "", gapBefore: 0, alpha: 1 });
+
+  const fontKey = (s: Block["style"]) => (s === "italic " ? "/F2" : s === "bold " ? "/F3" : "/F1");
+
+  // lay out into pages: text never runs off the sheet.
+  const pages: string[][] = [];
+  let cmds: string[] = [];
+  let y = ph - mtop;
+  let lastAlpha = -1;
+  const newPage = () => {
+    pages.push(cmds);
+    cmds = [];
+    y = ph - mtop;
+    lastAlpha = -1;
+  };
+  for (const b of blocks) {
+    // measured body column stays readable on wide sheets
+    const maxW = b.size <= 12 ? Math.min(colW, b.size * 34) : colW;
+    const lines = wrapToWidth(b.text, maxW, b.size, face.css, b.style);
+    if (!lines.length) continue;
+    y -= b.gapBefore;
+    for (const ln of lines) {
+      if (y - b.leading < mbot) newPage();
+      if (b.alpha !== lastAlpha) {
+        const a = b.alpha;
+        cmds.push(`${f3(ir + (br - ir) * (1 - a))} ${f3(ig + (bg - ig) * (1 - a))} ${f3(ib + (bb - ib) * (1 - a))} rg`);
+        lastAlpha = a;
+      }
+      cmds.push("BT", `${fontKey(b.style)} ${f3(b.size)} Tf`, `${f3(mx)} ${f3(y - b.size)} Td`, `(${pdfEscape(ln)}) Tj`, "ET");
+      y -= b.leading;
+    }
+  }
+  pages.push(cmds);
+
+  const bgCmd = `${f3(br)} ${f3(bg)} ${f3(bb)} rg\n0 0 ${f3(pw)} ${f3(ph)} re f\n`;
+  const streams = pages.map((c) => bgCmd + c.join("\n"));
+
+  // object layout: 1 catalog, 2 pages, 3-5 fonts, then page + content pairs
+  const firstPage = 6;
+  const kids = streams.map((_, i) => `${firstPage + i * 2} 0 R`).join(" ");
+  const objs: string[] = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>",
+    `<< /Type /Pages /Kids [${kids}] /Count ${streams.length} >>`,
+    `<< /Type /Font /Subtype /Type1 /BaseFont /${face.roman} /Encoding /WinAnsiEncoding >>`,
+    `<< /Type /Font /Subtype /Type1 /BaseFont /${face.italic} /Encoding /WinAnsiEncoding >>`,
+    `<< /Type /Font /Subtype /Type1 /BaseFont /${face.bold} /Encoding /WinAnsiEncoding >>`,
   ];
+  streams.forEach((s, i) => {
+    const contentRef = firstPage + i * 2 + 1;
+    objs.push(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f3(pw)} ${f3(ph)}] /Contents ${contentRef} 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> >>`,
+    );
+    objs.push(`<< /Length ${s.length} >>\nstream\n${s}\nendstream`);
+  });
+
   let body = "%PDF-1.4\n";
   const offs = [0];
   objs.forEach((o, i) => {
@@ -221,6 +331,16 @@ function buildQuietPdf(doc: PageDoc) {
   for (let i = 1; i <= objs.length; i++) body += `${String(offs[i]).padStart(10, "0")} 00000 n \n`;
   body += `trailer << /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`;
   return new Blob([body], { type: "application/pdf" });
+}
+
+function slug(s: string) {
+  return (
+    toLatin1(s)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "page"
+  );
 }
 
 export default function PdfGeneratorView() {
