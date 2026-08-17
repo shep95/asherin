@@ -10,12 +10,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { z } from "npm:zod@3.23.8";
 import { runOpSweep } from "../_shared/opSweep.ts";
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const SignalSchema = z.object({
   type: z.enum(["dns", "tls", "webrtc", "geodrift", "egress", "ble", "credential", "geo", "roster", "posture"]),
@@ -31,7 +28,17 @@ const SignalSchema = z.object({
 
 const Body = z.object({
   token: z.string().min(32).max(200).optional(),
-  action: z.enum(["enroll", "report", "state", "trust", "revoke", "acknowledge", "action-outcome", "settings", "sweep"]),
+  action: z.enum([
+    "enroll",
+    "report",
+    "state",
+    "trust",
+    "revoke",
+    "acknowledge",
+    "action-outcome",
+    "settings",
+    "sweep",
+  ]),
   deviceId: z.string().min(8).max(120).optional(),
   label: z.string().max(120).nullable().optional(),
   platform: z.string().max(80).nullable().optional(),
@@ -42,13 +49,15 @@ const Body = z.object({
   expectedIntervalMinutes: z.number().int().min(5).max(1440).optional(),
   tier: z.enum(["foreground", "background", "server"]).optional(),
   signals: z.array(SignalSchema).max(60).optional(),
-  network: z.object({
-    key: z.string().min(1).max(200),
-    label: z.string().max(120).nullable().optional(),
-    asn: z.string().max(60).nullable().optional(),
-    org: z.string().max(160).nullable().optional(),
-    country: z.string().max(8).nullable().optional(),
-  }).optional(),
+  network: z
+    .object({
+      key: z.string().min(1).max(200),
+      label: z.string().max(120).nullable().optional(),
+      asn: z.string().max(60).nullable().optional(),
+      org: z.string().max(160).nullable().optional(),
+      country: z.string().max(8).nullable().optional(),
+    })
+    .optional(),
   trusted: z.boolean().optional(),
   findingId: z.string().uuid().optional(),
   actionId: z.string().uuid().optional(),
@@ -59,7 +68,11 @@ const Body = z.object({
 });
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -93,11 +106,20 @@ Deno.serve(async (req) => {
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(b.token));
     const tokenHash = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
-    const { data: dev } = await admin.from("sentinel_devices").select("user_id,revoked").eq("token_hash", tokenHash).maybeSingle();
+    const { data: dev } = await admin
+      .from("sentinel_devices")
+      .select("user_id,revoked")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
     if (!dev || dev.revoked) return json({ error: "Unknown or revoked device token." }, 403);
     if (!b.deviceId) return json({ error: "deviceId required" }, 400);
 
-    const { data: roster } = await admin.from("op_devices").select("device_id,revoked").eq("user_id", dev.user_id).eq("device_id", b.deviceId).maybeSingle();
+    const { data: roster } = await admin
+      .from("op_devices")
+      .select("device_id,revoked")
+      .eq("user_id", dev.user_id)
+      .eq("device_id", b.deviceId)
+      .maybeSingle();
     if (!roster || roster.revoked) return json({ error: "Device is not on this account roster." }, 403);
 
     const stamp = new Date().toISOString();
@@ -116,10 +138,15 @@ Deno.serve(async (req) => {
       observed_at: s.observedAt ?? stamp,
     }));
     if (rows.length) await admin.from("op_signals").insert(rows);
-    await admin.from("op_devices").update({ last_report_at: stamp, last_tier: "background", updated_at: stamp })
-      .eq("user_id", dev.user_id).eq("device_id", b.deviceId);
+    await admin
+      .from("op_devices")
+      .update({ last_report_at: stamp, last_tier: "background", updated_at: stamp })
+      .eq("user_id", dev.user_id)
+      .eq("device_id", b.deviceId);
     // Correlation stays on the server clock: a background beacon must be cheap.
-    await admin.from("op_cron_state").upsert({ user_id: dev.user_id, enabled: true, next_due_at: stamp }, { onConflict: "user_id" });
+    await admin
+      .from("op_cron_state")
+      .upsert({ user_id: dev.user_id, enabled: true, next_due_at: stamp }, { onConflict: "user_id" });
     return json({ ok: true, tier: "background" });
   }
 
@@ -134,7 +161,6 @@ Deno.serve(async (req) => {
   const ledger = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const nowIso = new Date().toISOString();
 
-
   try {
     switch (b.action) {
       // ── ENROL ───────────────────────────────────────────────────────────
@@ -142,27 +168,43 @@ Deno.serve(async (req) => {
       // first minute instead of starting cold.
       case "enroll": {
         if (!b.deviceId) return json({ error: "deviceId required" }, 400);
-        await db.from("op_devices").upsert({
-          user_id: user.id,
-          device_id: b.deviceId,
-          label: b.label ?? null,
-          platform: b.platform ?? null,
-          app_version: b.appVersion ?? null,
-          form_factor: b.formFactor ?? "unknown",
-          fingerprint: b.fingerprint ?? {},
-          consent_level: b.consentLevel ?? "identity",
-          expected_interval_minutes: b.expectedIntervalMinutes ?? 30,
-          updated_at: nowIso,
-        }, { onConflict: "user_id,device_id" });
-
-        await db.from("op_cron_state").upsert(
-          { user_id: user.id, enabled: true, next_due_at: nowIso },
-          { onConflict: "user_id", ignoreDuplicates: true },
+        await db.from("op_devices").upsert(
+          {
+            user_id: user.id,
+            device_id: b.deviceId,
+            label: b.label ?? null,
+            platform: b.platform ?? null,
+            app_version: b.appVersion ?? null,
+            form_factor: b.formFactor ?? "unknown",
+            fingerprint: b.fingerprint ?? {},
+            consent_level: b.consentLevel ?? "identity",
+            expected_interval_minutes: b.expectedIntervalMinutes ?? 30,
+            updated_at: nowIso,
+          },
+          { onConflict: "user_id,device_id" },
         );
 
+        await db
+          .from("op_cron_state")
+          .upsert(
+            { user_id: user.id, enabled: true, next_due_at: nowIso },
+            { onConflict: "user_id", ignoreDuplicates: true },
+          );
+
         const [nets, findings] = await Promise.all([
-          db.from("op_networks").select("network_key,label,org,country,verdict,hostile_reports,clean_reports").eq("user_id", user.id).order("hostile_reports", { ascending: false }).limit(100),
-          db.from("op_findings").select("code,title,severity,confidence,response_tier,recommendations").eq("user_id", user.id).eq("status", "open").order("confidence", { ascending: false }).limit(30),
+          db
+            .from("op_networks")
+            .select("network_key,label,org,country,verdict,hostile_reports,clean_reports")
+            .eq("user_id", user.id)
+            .order("hostile_reports", { ascending: false })
+            .limit(100),
+          db
+            .from("op_findings")
+            .select("code,title,severity,confidence,response_tier,recommendations")
+            .eq("user_id", user.id)
+            .eq("status", "open")
+            .order("confidence", { ascending: false })
+            .limit(30),
         ]);
         return json({ ok: true, inherited: { networks: nets.data ?? [], findings: findings.data ?? [] } });
       }
@@ -170,7 +212,12 @@ Deno.serve(async (req) => {
       // ── REPORT ──────────────────────────────────────────────────────────
       case "report": {
         if (!b.deviceId) return json({ error: "deviceId required" }, 400);
-        const { data: dev } = await db.from("op_devices").select("device_id,revoked").eq("user_id", user.id).eq("device_id", b.deviceId).maybeSingle();
+        const { data: dev } = await db
+          .from("op_devices")
+          .select("device_id,revoked")
+          .eq("user_id", user.id)
+          .eq("device_id", b.deviceId)
+          .maybeSingle();
         if (!dev) return json({ error: "Device is not enrolled on this account." }, 403);
         if (dev.revoked) return json({ error: "Device revoked." }, 403);
 
@@ -193,29 +240,44 @@ Deno.serve(async (req) => {
         if (b.network) {
           const adverse = (b.signals ?? []).filter((s) => s.verdict === "hostile" || s.verdict === "anomalous").length;
           const clean = (b.signals ?? []).filter((s) => s.verdict === "clean").length;
-          const { data: existing } = await db.from("op_networks").select("id,hostile_reports,clean_reports,devices_seen").eq("user_id", user.id).eq("network_key", b.network.key).maybeSingle();
-          await db.from("op_networks").upsert({
-            user_id: user.id,
-            network_key: b.network.key,
-            label: b.network.label ?? null,
-            asn: b.network.asn ?? null,
-            org: b.network.org ?? null,
-            country: b.network.country ?? null,
-            hostile_reports: (existing?.hostile_reports ?? 0) + (adverse > 0 ? 1 : 0),
-            clean_reports: (existing?.clean_reports ?? 0) + (adverse === 0 && clean > 0 ? 1 : 0),
-            devices_seen: existing?.devices_seen ?? 1,
-            verdict: adverse > 0 ? "hostile" : (existing?.hostile_reports ?? 0) > 0 ? "watch" : "clean",
-            last_seen: nowIso,
-          }, { onConflict: "user_id,network_key" });
+          const { data: existing } = await db
+            .from("op_networks")
+            .select("id,hostile_reports,clean_reports,devices_seen")
+            .eq("user_id", user.id)
+            .eq("network_key", b.network.key)
+            .maybeSingle();
+          await db.from("op_networks").upsert(
+            {
+              user_id: user.id,
+              network_key: b.network.key,
+              label: b.network.label ?? null,
+              asn: b.network.asn ?? null,
+              org: b.network.org ?? null,
+              country: b.network.country ?? null,
+              hostile_reports: (existing?.hostile_reports ?? 0) + (adverse > 0 ? 1 : 0),
+              clean_reports: (existing?.clean_reports ?? 0) + (adverse === 0 && clean > 0 ? 1 : 0),
+              devices_seen: existing?.devices_seen ?? 1,
+              verdict: adverse > 0 ? "hostile" : (existing?.hostile_reports ?? 0) > 0 ? "watch" : "clean",
+              last_seen: nowIso,
+            },
+            { onConflict: "user_id,network_key" },
+          );
         }
 
-        await db.from("op_devices").update({ last_report_at: nowIso, last_tier: b.tier ?? "foreground", updated_at: nowIso })
-          .eq("user_id", user.id).eq("device_id", b.deviceId);
+        await db
+          .from("op_devices")
+          .update({ last_report_at: nowIso, last_tier: b.tier ?? "foreground", updated_at: nowIso })
+          .eq("user_id", user.id)
+          .eq("device_id", b.deviceId);
 
         const sweep = await runOpSweep(ledger as any, user.id, user.email ?? null);
-        const { data: pending } = await db.from("op_actions")
-          .select("id,action,rationale,requested_at").eq("user_id", user.id).eq("outcome", "pending")
-          .or(`device_id.eq.${b.deviceId},device_id.is.null`).limit(10);
+        const { data: pending } = await db
+          .from("op_actions")
+          .select("id,action,rationale,requested_at")
+          .eq("user_id", user.id)
+          .eq("outcome", "pending")
+          .or(`device_id.eq.${b.deviceId},device_id.is.null`)
+          .limit(10);
 
         return json({ ok: true, posture: sweep.posture, findings: sweep.findings, directives: pending ?? [] });
       }
@@ -225,11 +287,32 @@ Deno.serve(async (req) => {
       case "state": {
         if (b.action === "sweep") await runOpSweep(ledger as any, user.id, user.email ?? null);
         const [devices, findings, actions, networks, signals, state] = await Promise.all([
-          db.from("op_devices").select("*").eq("user_id", user.id).order("last_report_at", { ascending: false, nullsFirst: false }).limit(100),
-          db.from("op_findings").select("*").eq("user_id", user.id).neq("status", "expired").order("confidence", { ascending: false }).limit(80),
-          db.from("op_actions").select("*").eq("user_id", user.id).order("requested_at", { ascending: false }).limit(60),
+          db
+            .from("op_devices")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("last_report_at", { ascending: false, nullsFirst: false })
+            .limit(100),
+          db
+            .from("op_findings")
+            .select("*")
+            .eq("user_id", user.id)
+            .neq("status", "expired")
+            .order("confidence", { ascending: false })
+            .limit(80),
+          db
+            .from("op_actions")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("requested_at", { ascending: false })
+            .limit(60),
           db.from("op_networks").select("*").eq("user_id", user.id).order("last_seen", { ascending: false }).limit(60),
-          db.from("op_signals").select("device_id,signal_type,verdict,network_key,runtime_tier,observed_at").eq("user_id", user.id).order("observed_at", { ascending: false }).limit(120),
+          db
+            .from("op_signals")
+            .select("device_id,signal_type,verdict,network_key,runtime_tier,observed_at")
+            .eq("user_id", user.id)
+            .order("observed_at", { ascending: false })
+            .limit(120),
           db.from("op_cron_state").select("*").eq("user_id", user.id).maybeSingle(),
         ]);
         return json({
@@ -246,36 +329,55 @@ Deno.serve(async (req) => {
       // ── ROSTER CONTROL ──────────────────────────────────────────────────
       case "trust": {
         if (!b.deviceId) return json({ error: "deviceId required" }, 400);
-        await db.from("op_devices").update({ trusted: b.trusted !== false, updated_at: nowIso })
-          .eq("user_id", user.id).eq("device_id", b.deviceId);
-        await db.from("op_findings").update({ status: "resolved" }).eq("user_id", user.id).eq("code", `roster-stranger:${b.deviceId}`);
+        await db
+          .from("op_devices")
+          .update({ trusted: b.trusted !== false, updated_at: nowIso })
+          .eq("user_id", user.id)
+          .eq("device_id", b.deviceId);
+        await db
+          .from("op_findings")
+          .update({ status: "resolved" })
+          .eq("user_id", user.id)
+          .eq("code", `roster-stranger:${b.deviceId}`);
         return json({ ok: true });
       }
       case "revoke": {
         if (!b.deviceId) return json({ error: "deviceId required" }, 400);
-        await db.from("op_devices").update({ revoked: true, trusted: false, updated_at: nowIso })
-          .eq("user_id", user.id).eq("device_id", b.deviceId);
+        await db
+          .from("op_devices")
+          .update({ revoked: true, trusted: false, updated_at: nowIso })
+          .eq("user_id", user.id)
+          .eq("device_id", b.deviceId);
         return json({ ok: true });
       }
       case "acknowledge": {
         if (!b.findingId) return json({ error: "findingId required" }, 400);
-        await db.from("op_findings").update({ acknowledged_at: nowIso, status: "acknowledged" })
-          .eq("user_id", user.id).eq("id", b.findingId);
+        await db
+          .from("op_findings")
+          .update({ acknowledged_at: nowIso, status: "acknowledged" })
+          .eq("user_id", user.id)
+          .eq("id", b.findingId);
         return json({ ok: true });
       }
       case "action-outcome": {
         if (!b.actionId || !b.outcome) return json({ error: "actionId and outcome required" }, 400);
-        await db.from("op_actions").update({ outcome: b.outcome, executed_at: nowIso })
-          .eq("user_id", user.id).eq("id", b.actionId);
+        await db
+          .from("op_actions")
+          .update({ outcome: b.outcome, executed_at: nowIso })
+          .eq("user_id", user.id)
+          .eq("id", b.actionId);
         return json({ ok: true });
       }
       case "settings": {
-        await db.from("op_cron_state").upsert({
-          user_id: user.id,
-          enabled: b.enabled ?? true,
-          auto_response_enabled: b.autoResponse ?? true,
-          interval_minutes: b.intervalMinutes ?? 30,
-        }, { onConflict: "user_id" });
+        await db.from("op_cron_state").upsert(
+          {
+            user_id: user.id,
+            enabled: b.enabled ?? true,
+            auto_response_enabled: b.autoResponse ?? true,
+            interval_minutes: b.intervalMinutes ?? 30,
+          },
+          { onConflict: "user_id" },
+        );
         return json({ ok: true });
       }
     }
