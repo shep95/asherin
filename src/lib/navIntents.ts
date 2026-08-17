@@ -5,13 +5,7 @@
 
 import type { DashboardView } from "@/components/dashboard/types";
 
-export type IntentGroup =
-  | "Create"
-  | "Analyze"
-  | "Investigate"
-  | "Build"
-  | "Workspace"
-  | "Account";
+export type IntentGroup = "Create" | "Analyze" | "Investigate" | "Build" | "Workspace" | "Account";
 
 export interface NavIntent {
   /** Dashboard view id (preferred). */
@@ -34,32 +28,155 @@ export interface NavIntent {
   adminOnly?: boolean;
 }
 
-// WAVE 1 — tight sidebar. Only nine surfaces are navigable chrome. Every other
-// capability is reached by asking for it in chat, which routes to the tool.
-// Folded tools (search, zerlal, azplen, geospatial, google, zali, ide, zahten,
-// briefing, notebooks, knowledge-vault, axrlen, ghost-engine, zeeion, gematria,
-// vedic-astrology, pdf-generator, zaxin, zacoon, file-scrapper,
-// community, snippets, stats, audit, bug-reports) still resolve as views so
-// deep links keep working — they simply have no nav row.
+// WAVE 1 — tight sidebar. pages is a keep-stack room (chat-class). Folded tools
+// still resolve as views so deep links keep working — they simply have no nav row.
 export const NAV_INTENTS: NavIntent[] = [
   // WORKSPACE
-  { view: "chat", label: "Chat", codename: "Asherin", blurb: "Ask for anything — search, maps, code, data, cyber all run from here", keywords: ["chat", "ask", "talk", "conversation", "prompt", "assistant"], group: "Workspace" },
-  { view: "ghost-engine", label: "asherinx.eng", codename: "asherinx.eng", blurb: "Public-index search — eighteen open indexes asked in parallel, grouped by field site", keywords: ["asherinx", "eng", "engine", "osint", "public index", "wayback", "nvd", "search", "ghost"], group: "Workspace" },
-  { view: "geospatial", label: "asherin.maps", codename: "asherin.maps", blurb: "A map you can talk to — public cameras, coordinates, weather and open property records", keywords: ["maps", "map", "geospatial", "satellite", "camera", "location", "property", "parcel", "globe"], group: "Workspace" },
-  { view: "asherin-defender", label: "asherin.defender", codename: "asherin.defender", blurb: "Your own device — covert-camera law, wifi and bluetooth intel, bunker freeze", keywords: ["defender", "bunker", "counter surveillance", "camera", "wifi", "bluetooth", "spy", "keylogger", "poison", "protect"], group: "Workspace" },
-  { view: "asherin-arvision", label: "asherin.arvision", codename: "asherin.arvision", blurb: "Live camera HUD — frame intel, freeze, barcode, honest cannot-resolve", keywords: ["arvision", "ar", "vision", "camera", "hud", "freeze", "lens", "look", "see"], group: "Workspace" },
-  { view: "library", label: "Library", codename: "Library", blurb: "Saved files and references", keywords: ["library", "files", "storage", "documents"], group: "Workspace" },
-  { view: "projects", label: "Projects", codename: "Projects", blurb: "Organize conversations into projects", keywords: ["project", "folder", "organize"], group: "Workspace" },
-  { view: "memory", label: "Memory Center", codename: "Memory", blurb: "Long-term context and recall", keywords: ["memory", "remember", "context", "recall"], group: "Workspace" },
-  { view: "guardian-vault", label: "Guardian Vault", codename: "Vault", blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat", keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"], group: "Workspace" },
-  { view: "whiteboard", label: "Whiteboard", codename: "Canvas", blurb: "Infinite canvas with layers, snap grids, and freeform sketching", keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"], group: "Workspace" },
-  { view: "teams", label: "Team", codename: "Team", blurb: "Your company workspace — members, roles, invites, shared projects", keywords: ["team", "teams", "workspace", "members", "invite", "roles", "company", "org", "seats", "colleagues"], group: "Workspace" },
-
+  {
+    view: "chat",
+    label: "Chat",
+    codename: "Asherin",
+    blurb: "Ask for anything — search, maps, code, data, cyber all run from here",
+    keywords: ["chat", "ask", "talk", "conversation", "prompt", "assistant"],
+    group: "Workspace",
+  },
+  {
+    view: "ghost-engine",
+    label: "asherinx.eng",
+    codename: "asherinx.eng",
+    blurb: "Public-index search — eighteen open indexes asked in parallel, grouped by field site",
+    keywords: ["asherinx", "eng", "engine", "osint", "public index", "wayback", "nvd", "search", "ghost"],
+    group: "Workspace",
+  },
+  {
+    view: "geospatial",
+    label: "asherin.maps",
+    codename: "asherin.maps",
+    blurb: "A map you can talk to — public cameras, coordinates, weather and open property records",
+    keywords: ["maps", "map", "geospatial", "satellite", "camera", "location", "property", "parcel", "globe"],
+    group: "Workspace",
+  },
+  {
+    view: "asherin-defender",
+    label: "asherin.defender",
+    codename: "asherin.defender",
+    blurb: "Your own device — covert-camera law, wifi and bluetooth intel, bunker freeze",
+    keywords: [
+      "defender",
+      "bunker",
+      "counter surveillance",
+      "camera",
+      "wifi",
+      "bluetooth",
+      "spy",
+      "keylogger",
+      "poison",
+      "protect",
+    ],
+    group: "Workspace",
+  },
+  {
+    view: "asherin-arvision",
+    label: "asherin.arvision",
+    codename: "asherin.arvision",
+    blurb: "Live camera HUD — frame intel, freeze, barcode, honest cannot-resolve",
+    keywords: ["arvision", "ar", "vision", "camera", "hud", "freeze", "lens", "look", "see"],
+    group: "Workspace",
+  },
+  {
+    view: "pdf-generator",
+    label: "pages",
+    codename: "asherin.pages",
+    blurb: "prompt a page. quiet file. you keep the pdf.",
+    keywords: ["pages", "pdf", "typeset", "letter", "typst", "document", "pdf-generator"],
+    group: "Workspace",
+  },
+  {
+    view: "library",
+    label: "Library",
+    codename: "Library",
+    blurb: "Saved files and references",
+    keywords: ["library", "files", "storage", "documents"],
+    group: "Workspace",
+  },
+  {
+    view: "projects",
+    label: "Projects",
+    codename: "Projects",
+    blurb: "Organize conversations into projects",
+    keywords: ["project", "folder", "organize"],
+    group: "Workspace",
+  },
+  {
+    view: "memory",
+    label: "Memory Center",
+    codename: "Memory",
+    blurb: "Long-term context and recall",
+    keywords: ["memory", "remember", "context", "recall"],
+    group: "Workspace",
+  },
+  {
+    view: "guardian-vault",
+    label: "Guardian Vault",
+    codename: "Vault",
+    blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat",
+    keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"],
+    group: "Workspace",
+  },
+  {
+    view: "whiteboard",
+    label: "Whiteboard",
+    codename: "Canvas",
+    blurb: "Infinite canvas with layers, snap grids, and freeform sketching",
+    keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"],
+    group: "Workspace",
+  },
+  {
+    view: "teams",
+    label: "Team",
+    codename: "Team",
+    blurb: "Your company workspace — members, roles, invites, shared projects",
+    keywords: ["team", "teams", "workspace", "members", "invite", "roles", "company", "org", "seats", "colleagues"],
+    group: "Workspace",
+  },
 
   // ACCOUNT
-  { view: "settings", label: "Settings", codename: "Settings", keywords: ["settings", "preferences", "config", "options"], group: "Account" },
-  { view: "subscription", label: "Subscribe or manage your plan", codename: "Subscription", keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"], group: "Account" },
-  { view: "api-keys", label: "Connect", codename: "Connect", blurb: "Live capability pull-graph, bindings, and your encrypted provider keys (BYOK)", keywords: ["connect", "graph", "pulls", "bindings", "api", "api key", "byok", "keys", "provider", "openai", "anthropic", "gemini", "groq"], group: "Account" },
+  {
+    view: "settings",
+    label: "Settings",
+    codename: "Settings",
+    keywords: ["settings", "preferences", "config", "options"],
+    group: "Account",
+  },
+  {
+    view: "subscription",
+    label: "Subscribe or manage your plan",
+    codename: "Subscription",
+    keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"],
+    group: "Account",
+  },
+  {
+    view: "api-keys",
+    label: "Connect",
+    codename: "Connect",
+    blurb: "Live capability pull-graph, bindings, and your encrypted provider keys (BYOK)",
+    keywords: [
+      "connect",
+      "graph",
+      "pulls",
+      "bindings",
+      "api",
+      "api key",
+      "byok",
+      "keys",
+      "provider",
+      "openai",
+      "anthropic",
+      "gemini",
+      "groq",
+    ],
+    group: "Account",
+  },
 ];
 
 export const INTENT_GROUPS: IntentGroup[] = ["Workspace", "Account"];
@@ -69,7 +186,7 @@ export const INTENT_GROUP_BLURB: Record<IntentGroup, string> = {
   Analyze: "Data, financial, patterns, geospatial",
   Investigate: "Search, OSINT, prediction, cyber",
   Build: "IDE, notebooks, agents, plugins",
-  Workspace: "Chat, library, projects, memory, vault",
+  Workspace: "Chat, library, projects, memory, vault, pages",
   Account: "Settings, billing, API keys",
 };
 
@@ -86,16 +203,16 @@ export function trackRecentIntent(viewOrRoute: string): void {
     filtered.unshift(viewOrRoute);
     localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, RECENT_MAX)));
     window.dispatchEvent(new CustomEvent("aureon-recents-changed"));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getRecentIntents(): NavIntent[] {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
     const list: string[] = raw ? JSON.parse(raw) : [];
-    return list
-      .map((key) => NAV_INTENTS.find((i) => (i.view ?? i.route) === key))
-      .filter((i): i is NavIntent => !!i);
+    return list.map((key) => NAV_INTENTS.find((i) => (i.view ?? i.route) === key)).filter((i): i is NavIntent => !!i);
   } catch {
     return [];
   }
@@ -114,9 +231,15 @@ export function inferChatConfig(text: string): ChatConfigHint {
   const out: ChatConfigHint = {};
 
   // MODE
-  if (/\b(debug|refactor|implement|function|class|api|typescript|python|react|compile|build|error|stack trace)\b/.test(lower)) {
+  if (
+    /\b(debug|refactor|implement|function|class|api|typescript|python|react|compile|build|error|stack trace)\b/.test(
+      lower,
+    )
+  ) {
     out.mode = "code";
-  } else if (/\b(research|sources?|study|cite|literature|paper|academic|investigate|find out|deep dive)\b/.test(lower)) {
+  } else if (
+    /\b(research|sources?|study|cite|literature|paper|academic|investigate|find out|deep dive)\b/.test(lower)
+  ) {
     out.mode = "research";
   } else if (/\b(truth|uncensored|honest|raw|no filter|brutally|direct)\b/.test(lower)) {
     out.mode = "truth";
@@ -125,7 +248,9 @@ export function inferChatConfig(text: string): ChatConfigHint {
   // DEPTH
   if (/\b(quick|short|brief|tldr|one line|summary|summari[sz]e|in a sentence)\b/.test(lower)) {
     out.depth = "concise";
-  } else if (/\b(detailed|comprehensive|exhaustive|deep|long|full|thorough|step by step|walk me through)\b/.test(lower)) {
+  } else if (
+    /\b(detailed|comprehensive|exhaustive|deep|long|full|thorough|step by step|walk me through)\b/.test(lower)
+  ) {
     out.depth = "detailed";
   }
 
