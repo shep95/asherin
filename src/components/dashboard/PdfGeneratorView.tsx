@@ -272,7 +272,7 @@ export default function PdfGeneratorView() {
         await streamChat({
           messages: hist,
           mode: "chat",
-          depth: "concise",
+          depth: "shallow",
           brainContext: { prompt: PAGES_BRAIN, fileContents: [] }, // pages-mouth: brain in the user turn; seed the letter locally so the figure is never blank.
           onDelta: (chunk) => {
             acc += chunk;
