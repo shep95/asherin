@@ -240,6 +240,8 @@ const Dashboard = () => {
     "asherin-maps": "geospatial",
     asherinx: "ghost-engine",
     "asherinx-eng": "ghost-engine",
+    pages: "pdf-generator",
+    "asherin-pages": "pdf-generator",
   };
   const resolveView = (raw?: string): DashboardView | null => {
     if (!raw) return null;
