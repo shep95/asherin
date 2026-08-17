@@ -4,13 +4,7 @@
 // same plaintext.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 function b64(bytes: Uint8Array): string {
   let bin = "";
@@ -24,13 +18,7 @@ function unb64(s: string): Uint8Array {
 }
 
 async function wrapKey(secret: string, userId: string, salt: Uint8Array): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    "HKDF",
-    false,
-    ["deriveKey"],
-  );
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), "HKDF", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
@@ -46,7 +34,14 @@ async function wrapKey(secret: string, userId: string, salt: Uint8Array): Promis
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
     const secret = Deno.env.get("MESSAGE_CRYPTO_SECRET");
@@ -55,11 +50,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
@@ -76,7 +69,6 @@ Deno.serve(async (req) => {
         return json({ error: "step_up_required" }, 403);
       }
     }
-
 
     let action = "get_or_create";
     try {
@@ -101,9 +93,7 @@ Deno.serve(async (req) => {
       const iv = stored.subarray(0, 12);
       const ct = stored.subarray(12);
       const key = await wrapKey(secret, userId, salt);
-      const dek = new Uint8Array(
-        await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct),
-      );
+      const dek = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct));
       return json({ dek_b64: b64(dek) });
     }
 
@@ -111,9 +101,7 @@ Deno.serve(async (req) => {
     const salt = crypto.getRandomValues(new Uint8Array(32));
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const key = await wrapKey(secret, userId, salt);
-    const ct = new Uint8Array(
-      await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, dek as BufferSource),
-    );
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, dek as BufferSource));
     const packed = new Uint8Array(iv.length + ct.length);
     packed.set(iv);
     packed.set(ct, iv.length);
@@ -136,11 +124,7 @@ Deno.serve(async (req) => {
       const rStored = unb64(retry.wrapped_dek);
       const rKey = await wrapKey(secret, userId, rSalt);
       const rDek = new Uint8Array(
-        await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: rStored.subarray(0, 12) },
-          rKey,
-          rStored.subarray(12),
-        ),
+        await crypto.subtle.decrypt({ name: "AES-GCM", iv: rStored.subarray(0, 12) }, rKey, rStored.subarray(12)),
       );
       return json({ dek_b64: b64(rDek) });
     }
