@@ -10811,6 +10811,213 @@ export type Database = {
         }
         Relationships: []
       }
+      site_traffic_daily: {
+        Row: {
+          avg_session_seconds: number | null
+          bounce_rate: number | null
+          day: string
+          pageviews: number
+          source: string
+          visitors: number
+        }
+        Insert: {
+          avg_session_seconds?: number | null
+          bounce_rate?: number | null
+          day: string
+          pageviews?: number
+          source?: string
+          visitors?: number
+        }
+        Update: {
+          avg_session_seconds?: number | null
+          bounce_rate?: number | null
+          day?: string
+          pageviews?: number
+          source?: string
+          visitors?: number
+        }
+        Relationships: []
+      }
+      site_traffic_digest: {
+        Row: {
+          body: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_traffic_dim: {
+        Row: {
+          hits: number
+          kind: string
+          label: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          hits?: number
+          kind: string
+          label: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          hits?: number
+          kind?: string
+          label?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_traffic_events: {
+        Row: {
+          country: string | null
+          dest: string | null
+          device: string | null
+          id: string
+          kind: string
+          occurred_at: string
+          path: string
+          referrer_host: string | null
+          region: string | null
+          source: string
+          sub_region: string | null
+        }
+        Insert: {
+          country?: string | null
+          dest?: string | null
+          device?: string | null
+          id?: string
+          kind: string
+          occurred_at?: string
+          path: string
+          referrer_host?: string | null
+          region?: string | null
+          source?: string
+          sub_region?: string | null
+        }
+        Update: {
+          country?: string | null
+          dest?: string | null
+          device?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string
+          path?: string
+          referrer_host?: string | null
+          region?: string | null
+          source?: string
+          sub_region?: string | null
+        }
+        Relationships: []
+      }
+      site_traffic_focus: {
+        Row: {
+          as_of: string
+          id: string
+          kind: string
+          rank: number
+          score: number
+          surface: string
+          why: string
+        }
+        Insert: {
+          as_of?: string
+          id?: string
+          kind: string
+          rank: number
+          score: number
+          surface: string
+          why: string
+        }
+        Update: {
+          as_of?: string
+          id?: string
+          kind?: string
+          rank?: number
+          score?: number
+          surface?: string
+          why?: string
+        }
+        Relationships: []
+      }
+      site_traffic_forecast: {
+        Row: {
+          abs_error: number | null
+          actual_visitors: number | null
+          created_at: string
+          day: string
+          method: string
+          predicted_visitors: number
+          scored_at: string | null
+          weights_snapshot: Json | null
+        }
+        Insert: {
+          abs_error?: number | null
+          actual_visitors?: number | null
+          created_at?: string
+          day: string
+          method?: string
+          predicted_visitors: number
+          scored_at?: string | null
+          weights_snapshot?: Json | null
+        }
+        Update: {
+          abs_error?: number | null
+          actual_visitors?: number | null
+          created_at?: string
+          day?: string
+          method?: string
+          predicted_visitors?: number
+          scored_at?: string | null
+          weights_snapshot?: Json | null
+        }
+        Relationships: []
+      }
+      site_traffic_weights: {
+        Row: {
+          id: number
+          last_mae: number | null
+          last_mape: number | null
+          note: string | null
+          scored_n: number
+          trend_alpha: number
+          updated_at: string
+          weekday: Json
+        }
+        Insert: {
+          id?: number
+          last_mae?: number | null
+          last_mape?: number | null
+          note?: string | null
+          scored_n?: number
+          trend_alpha?: number
+          updated_at?: string
+          weekday?: Json
+        }
+        Update: {
+          id?: number
+          last_mae?: number | null
+          last_mape?: number | null
+          note?: string | null
+          scored_n?: number
+          trend_alpha?: number
+          updated_at?: string
+          weekday?: Json
+        }
+        Relationships: []
+      }
       social_intel_cache: {
         Row: {
           created_at: string
@@ -13767,6 +13974,7 @@ export type Database = {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
       }
+      is_site_traffic_admin: { Args: never; Returns: boolean }
       is_team_billing_active: { Args: { _team_id: string }; Returns: boolean }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
@@ -13882,6 +14090,7 @@ export type Database = {
         Args: { p_id: string; p_table: string }
         Returns: undefined
       }
+      site_traffic_run_brain: { Args: never; Returns: Json }
       soft_delete_asher_message: {
         Args: { p_message_id: string }
         Returns: undefined
