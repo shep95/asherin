@@ -532,13 +532,14 @@ export default function PdfGeneratorView() {
         </div>
         <div className="order-1 flex min-h-0 min-w-0 items-center justify-center p-3 lg:order-2 lg:p-4">
           <article
-            className="h-full max-h-full w-auto max-w-full shadow-2xl"
+            className="h-full max-h-full w-auto max-w-full overflow-hidden shadow-2xl"
             style={{
               aspectRatio: ASPECT[doc.size],
               background: ink.bg,
               color: ink.ink,
               fontFamily: FACE[doc.font],
               padding: "11% 12% 12%",
+              containerType: "inline-size", // cqw units in the type scale resolve to 0 without a container
             }}
           >
             {doc.title || doc.body ? (
