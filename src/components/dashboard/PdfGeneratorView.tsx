@@ -24,7 +24,7 @@ type Bubble = {
 };
 
 const PAGES_BRAIN =
-  "you are the mouth for asherin.pages. job: a custom-styled pdf from scratch (type, grid, margins). not chat-with-pdf. not html2canvas. reply with one short thought paragraph, then one recommend sentence, then a fenced json block tagged page with keys title, lede, body, paper (cream|white|night), font (cormorant|fraunces|newsreader|instrument|jost), size (letter|a4|book). optional chips as a json array tagged chips of {label,p}. quiet file is default. never wallpaper mall. never stamp a font name on the letter.";
+  "you are the mouth for asherin.pages. job: a custom-styled pdf from scratch (type, grid, margins). not chat-with-pdf. not html2canvas. not an encyclopedia. never define what a pdf is. never Recommend: use a pdf when. reply with one short thought paragraph about how this letter looks, then one recommend sentence, then a fenced json block tagged page with keys title, lede, body, paper (cream|white|night), font (cormorant|fraunces|newsreader|instrument|jost), size (letter|a4|book). optional chips as a json array tagged chips of {label,p}. quiet file is default. never wallpaper mall. never stamp a font name on the letter.";
 
 const PAPER: Record<Paper, { bg: string; ink: string }> = {
   cream: { bg: "#f3eee4", ink: "#1c1915" },
@@ -46,6 +46,15 @@ const ASPECT: Record<Size, string> = {
   book: "6 / 9",
 };
 
+const CREAM_LETTER: PageDoc = {
+  title: "look a little closer",
+  lede: "a page that starts blank — not a website printed.",
+  body: "type sits on a grid. margins hold. quiet file is default.",
+  paper: "cream",
+  font: "cormorant",
+  size: "letter",
+};
+
 const emptyDoc = (): PageDoc => ({
   title: "",
   lede: "",
@@ -61,22 +70,69 @@ function parseFence(src: string, tag: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-function parseReply(src: string, prev: PageDoc): { thought: string; rec: string; doc: PageDoc; chips: Chip[] } {
-  let doc = { ...prev };
+function looksLikeEncyclopedia(s: string) {
+  return /universal document|perfect choice for reports|it is a standard, a format|Recommend:\s*use a pdf when|can be read on any device/i.test(
+    s,
+  );
+}
+
+function tryJson(s: string): Partial<PageDoc> | null {
+  try {
+    return JSON.parse(s) as Partial<PageDoc>;
+  } catch {
+    return null;
+  }
+}
+
+function extractPageJson(src: string): Partial<PageDoc> | null {
   const raw = parseFence(src, "page") || parseFence(src, "json");
   if (raw) {
-    try {
-      const j = JSON.parse(raw) as Partial<PageDoc>;
-      if (j.title) doc.title = String(j.title).slice(0, 120);
-      if (j.lede) doc.lede = String(j.lede).slice(0, 400);
-      if (j.body) doc.body = String(j.body);
-      if (j.paper === "cream" || j.paper === "white" || j.paper === "night") doc.paper = j.paper;
-      if (j.font && j.font in FACE) doc.font = j.font;
-      if (j.size === "letter" || j.size === "a4" || j.size === "book") doc.size = j.size;
-    } catch {
-      /* keep prev */
-    }
+    const j = tryJson(raw);
+    if (j && (j.title || j.lede || j.body || j.paper || j.font || j.size)) return j;
   }
+  const m = src.match(/\{[^{}]*"title"\s*:[^{}]+\}/);
+  if (m) {
+    const j = tryJson(m[0]);
+    if (j && (j.title || j.body)) return j;
+  }
+  return null;
+}
+
+function applyPage(j: Partial<PageDoc>, prev: PageDoc): PageDoc {
+  const doc = { ...prev };
+  if (j.title) doc.title = String(j.title).slice(0, 120);
+  if (j.lede) doc.lede = String(j.lede).slice(0, 400);
+  if (j.body) doc.body = String(j.body);
+  if (j.paper === "cream" || j.paper === "white" || j.paper === "night") doc.paper = j.paper;
+  if (j.font && j.font in FACE) doc.font = j.font;
+  if (j.size === "letter" || j.size === "a4" || j.size === "book") doc.size = j.size;
+  return doc;
+}
+
+function localSeed(t: string, prev: PageDoc): PageDoc {
+  const low = t.toLowerCase();
+  let d = { ...prev };
+  const empty = !d.title && !d.body;
+  const wantsPage = /cream|letter|page|pdf|font|serif|modern|title|look a little closer|quiet|type sits/.test(low);
+  if (empty && wantsPage) d = { ...CREAM_LETTER };
+  if (/cream/.test(low)) d.paper = "cream";
+  if (/white paper|white page/.test(low)) d.paper = "white";
+  if (/night|dark paper/.test(low)) d.paper = "night";
+  if (/fraunces/.test(low)) d.font = "fraunces";
+  else if (/newsreader/.test(low)) d.font = "newsreader";
+  else if (/instrument/.test(low)) d.font = "instrument";
+  else if (/\bjost\b|sans/.test(low)) d.font = "jost";
+  else if (/cormorant/.test(low)) d.font = "cormorant";
+  else if (/modern/.test(low)) d.font = "instrument";
+  if (/\ba4\b/.test(low)) d.size = "a4";
+  if (/\bbook\b/.test(low)) d.size = "book";
+  return d;
+}
+
+function parseReply(src: string, prev: PageDoc): { thought: string; rec: string; doc: PageDoc; chips: Chip[] } {
+  let doc = { ...prev };
+  const j = extractPageJson(src);
+  if (j) doc = applyPage(j, prev);
   let chips: Chip[] = [];
   const chipRaw = parseFence(src, "chips");
   if (chipRaw) {
@@ -88,10 +144,32 @@ function parseReply(src: string, prev: PageDoc): { thought: string; rec: string;
     }
   }
   const stripped = src.replace(/```[\s\S]*?```/g, "").trim();
+  const encyclopedia = looksLikeEncyclopedia(stripped);
+  const fallbackThought = doc.title
+    ? "cream paper. type on a grid. say if a line feels wrong."
+    : "the page is type on a grid. quiet file is default.";
+  const fallbackRec = "say how it looks if it feels wrong.";
+  if (encyclopedia) {
+    return { thought: fallbackThought, rec: fallbackRec, doc, chips };
+  }
   const parts = stripped.split(/\n+/).filter(Boolean);
-  const thought = parts[0] || "the page is type on a grid. quiet file is default.";
-  const rec = parts[1] || "say how it looks if it feels wrong.";
+  const thoughtRaw = (parts[0] || "").trim();
+  const recRaw = (parts[1] || "").trim();
+  const thought =
+    thoughtRaw && thoughtRaw.length <= 280 && !/^recommend:/i.test(thoughtRaw) ? thoughtRaw : fallbackThought;
+  const rec = recRaw && recRaw.length <= 220 && !looksLikeEncyclopedia(recRaw) ? recRaw : fallbackRec;
   return { thought, rec, doc, chips };
+}
+
+function packUserTurn(t: string, d: PageDoc) {
+  return [
+    PAGES_BRAIN,
+    "current page json:",
+    JSON.stringify(d),
+    "job: typeset. mutate the json. never define pdf as a format. never encyclopedia.",
+    "user:",
+    t,
+  ].join("\n\n");
 }
 
 function pdfEscape(s: string) {
@@ -164,6 +242,10 @@ export default function PdfGeneratorView() {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
+  const docRef = useRef(doc);
+  const msgsRef = useRef(msgs);
+  docRef.current = doc;
+  msgsRef.current = msgs;
   const ink = PAPER[doc.paper];
 
   const send = useCallback(
@@ -172,19 +254,33 @@ export default function PdfGeneratorView() {
       if (!t || busy) return;
       setDraft("");
       setMsgs((m) => [...m, { role: "me", text: t }]);
+      const seeded = localSeed(t, docRef.current);
+      docRef.current = seeded;
+      setDoc(seeded);
       setBusy(true);
+      const hist: { role: "user" | "assistant"; content: string }[] = [];
+      for (const m of msgsRef.current.slice(-6)) {
+        if (m.role === "me" && m.text) hist.push({ role: "user", content: m.text });
+        if (m.role === "ai") {
+          const a = [m.thought, m.rec].filter(Boolean).join("\n");
+          if (a) hist.push({ role: "assistant", content: a });
+        }
+      }
+      hist.push({ role: "user", content: packUserTurn(t, seeded) });
       let acc = "";
       try {
         await streamChat({
-          messages: [{ role: "user", content: t }],
+          messages: hist,
           mode: "chat",
-          brainContext: { prompt: PAGES_BRAIN, fileContents: [] },
+          depth: "concise",
+          brainContext: { prompt: PAGES_BRAIN, fileContents: [] }, // pages-mouth: brain in the user turn; seed the letter locally so the figure is never blank.
           onDelta: (chunk) => {
             acc += chunk;
           },
           onDone: () => {},
         });
-        const parsed = parseReply(acc, doc);
+        const parsed = parseReply(acc, docRef.current);
+        docRef.current = parsed.doc;
         setDoc(parsed.doc);
         setMsgs((m) => [...m, { role: "ai", thought: parsed.thought, rec: parsed.rec, chips: parsed.chips }]);
       } catch (e) {
@@ -192,22 +288,21 @@ export default function PdfGeneratorView() {
           ...m,
           {
             role: "ai",
-            thought: "the mouth missed this pass.",
-            rec: e instanceof Error ? e.message : "say it again, or connect a key in connect.",
+            thought: "the mouth missed this pass. the letter on the right stayed.",
+            rec: e instanceof Error ? e.message : "say it again.",
           },
         ]);
       }
       setBusy(false);
       box.current?.focus();
     },
-    [busy, doc],
+    [busy],
   );
 
   const download = () => {
     const blob = buildQuietPdf(doc);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "page.pdf";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -271,7 +366,7 @@ export default function PdfGeneratorView() {
                 </div>
               ),
             )}
-            {busy && <p className="text-[11px] tracking-wide text-muted-foreground/60">setting type…</p>}
+            {busy && <p className="text-[11px] tracking-[0.16em] text-muted-foreground/60">setting type…</p>}
           </div>
           <form
             className="flex shrink-0 items-end gap-2 border-t border-border/15 p-3"
