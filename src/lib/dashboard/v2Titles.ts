@@ -45,7 +45,7 @@ const TITLES: Partial<Record<string, V2Title>> = {
   zali: { title: "zali", subtitle: "design exploration." },
   gematria: { title: "gematria" },
   "vedic-astrology": { title: "vedic" },
-  "pdf-generator": { title: "documents", subtitle: "export a document from a thread." },
+  "pdf-generator": { title: "pages", subtitle: "prompt a page. quiet file. you keep the pdf." },
   ebook: { title: "ebook" },
   slideshow: { title: "slides" },
   timeseries: { title: "time-series", subtitle: "temporal analysis and anomalies." },
