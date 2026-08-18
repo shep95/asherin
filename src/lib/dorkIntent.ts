@@ -296,26 +296,14 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   }
 
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
-  const softFire = SOFT_VERBS.test(text) && SOFT_OBJECTS.test(text);
+  const dorkOps = /\b(inurl:|intitle:|intext:|filetype:|ext:)\b/i.test(text);
+  // operator 2026-08-18: only dork when they ask for a dork.
+  if (!hard && !dorkOps) return none("no_explicit_dork_request");
 
-  // Pre-scan for anchors that let natural intel verbs ("look up", "background
-  // check", "who is", "info on") fire without the literal word "dork".
-  // A strong identifier (email/phone/handle/domain) OR a proper-name pattern
-  // ("Jane Doe", "Asher Shepherd Newton") both count as anchors — refusing to
-  // fire on names was the regression that made the operator do the work.
   const hasStrongId = EMAIL_RE.test(text) || PHONE_RE.test(text) || HANDLE_RE.test(text) || !!extractDomain(text);
   const hasProperName = !!looksLikeProperName(text);
   const quotedRaw = text.match(QUOTED_RE)?.[1]?.trim() ?? "";
   const hasQuoted = quotedRaw.length > 0 && isQuotedIntelAnchor(quotedRaw);
-  const naturalFire = INTEL_VERBS.test(text) && (hasStrongId || hasProperName || hasQuoted);
-
-  // ── IMPLICIT LAYER ────────────────────────────────────────────────────────
-  // The operator should never have to speak the platform's vocabulary. If the
-  // turn carries a real-world anchor and nothing about the turn says "this is
-  // not an intelligence question", the battery fires on its own.
-  const implicit = detectImplicitIntent(text, { hasStrongId, hasProperName, hasQuoted });
-
-  if (!hard && !softFire && !naturalFire && !implicit) return none("no_trigger");
 
   const selfTarget = SELF_RE.test(text) && !THIRD_PARTY_RE.test(text);
 
@@ -386,12 +374,6 @@ export function detectDorkIntent(userText: string): DorkTrigger {
   const loc = text.match(/\bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/);
   if (loc) hints.location = loc[1];
 
-  const reason = hard
-    ? "hard_trigger"
-    : softFire
-      ? "soft_verb+object"
-      : naturalFire
-        ? "natural_intel+id"
-        : implicit || "implicit";
+  const reason = hard ? "hard_trigger" : "dork_operator";
   return { fire: true, subject, kind, selfTarget, hints, reason };
 }
