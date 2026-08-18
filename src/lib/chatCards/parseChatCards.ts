@@ -198,6 +198,16 @@ export function mergeCreamPayload(base: CreamDoc, payload: Record<string, unknow
       .filter((j) => j.org || j.title)
       .slice(0, 12);
   }
+  if (Array.isArray(payload.turns)) {
+    d.turns = payload.turns
+      .filter((t) => !!t && typeof t === "object")
+      .map((t) => ({
+        who: String(t.who) === "you" ? "you" : "asherin",
+        text: String(t.text || "").slice(0, 1800),
+      }))
+      .filter((t) => t.text)
+      .slice(0, 24);
+  }
   return d;
 }
 
@@ -300,13 +310,6 @@ class Pages {
     this.buf = [];
     return this.streams;
   }
-}
-
-function drawFolio(p: Pages, n: number, totalHint: string) {
-  p.rgb(DUST);
-  p.text(totalHint, M, 36, 8, "F1");
-  p.text(String(n), W - M - 18, 36, 8, "F1");
-  p.rgb(INK);
 }
 
 function drawIntel(p: Pages, d: CreamDoc) {
@@ -555,8 +558,6 @@ export function compileCreamPdf(doc: CreamDoc): { bytes: Uint8Array; filename: s
   if (doc.species === "resume" && doc.nodes && doc.nodes.length) drawBubbles(p, doc);
   const streams = p.finish();
   const numbered = streams.map((s, i) => {
-    const folio = Pages.prototype as unknown as Pages;
-    void folio;
     const tag =
       doc.species === "intelligence"
         ? "asherin empire intelligence file"
@@ -570,7 +571,6 @@ export function compileCreamPdf(doc: CreamDoc): { bytes: Uint8Array; filename: s
       `\n${DUST.r.toFixed(3)} ${DUST.g.toFixed(3)} ${DUST.b.toFixed(3)} rg\nBT /F1 8 Tf ${M} 36 Td (${esc(tag)}) Tj ET\nBT /F1 8 Tf ${W - M - 18} 36 Td (${i + 1}) Tj ET\n`
     );
   });
-  void drawFolio;
   const bytes = assemblePdf(numbered.length ? numbered : streams);
   const slug = (doc.title || doc.species)
     .toLowerCase()
@@ -580,9 +580,15 @@ export function compileCreamPdf(doc: CreamDoc): { bytes: Uint8Array; filename: s
   return { bytes, filename: `${slug || "asherin"}-cream.pdf`, pages: numbered.length };
 }
 
+function toPdfBlob(bytes: Uint8Array): Blob {
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  return new Blob([ab], { type: "application/pdf" });
+}
+
 export function creamPdfObjectUrl(doc: CreamDoc): { url: string; filename: string; pages: number } {
   const { bytes, filename, pages } = compileCreamPdf(doc);
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const url = URL.createObjectURL(toPdfBlob(bytes));
   return { url, filename, pages };
 }
 
@@ -608,7 +614,7 @@ export function creamDocFromPayload(payload: Record<string, unknown>, fallback?:
 
 export function downloadCreamPdf(doc: CreamDoc) {
   const { bytes, filename } = compileCreamPdf(doc);
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const url = URL.createObjectURL(toPdfBlob(bytes));
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
