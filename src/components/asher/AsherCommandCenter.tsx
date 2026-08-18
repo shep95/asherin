@@ -242,14 +242,15 @@ const AsherCommandCenter = () => {
     if (activeId) return activeId;
     if (!user) return null;
     const { data } = await supabase
-      .from("asher_ai_sessions")
-      .insert({ user_id: user.id, title: "New Conversation" })
+      .from("conversations")
+      .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
       .select("id,title,updated_at").single();
     if (!data) return null;
     setSessions((p) => [data as Session, ...p]);
     setActiveId((data as Session).id);
     return (data as Session).id;
   };
+
 
   const send = async () => {
     const text = input.trim();
