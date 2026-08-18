@@ -128,15 +128,17 @@ const AsherCommandCenter = () => {
 
   useEffect(() => { document.title = "ASHER AI — Command Center"; }, []);
 
-  // Load sessions
+  // Load conversations — the shared dashboard history, not a private silo.
   const loadSessions = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("asher_ai_sessions")
+    const { data, error } = await supabase
+      .from("conversations")
       .select("id,title,updated_at")
       .eq("user_id", user.id)
+      .eq("archived", false)
       .order("updated_at", { ascending: false })
       .limit(100);
+    if (error) { toast.error("Could not load history"); return; }
     const list = (data as Session[] | null) ?? [];
     setSessions(list);
     if (!activeId && list.length) setActiveId(list[0].id);
@@ -144,26 +146,29 @@ const AsherCommandCenter = () => {
 
   useEffect(() => { void loadSessions(); }, [loadSessions]);
 
-  // Load messages for active session
+  // Load messages for the active conversation
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("asher_ai_messages")
+        .from("messages")
         .select("id,role,content,attachments")
-        .eq("session_id", activeId)
+        .eq("conversation_id", activeId)
         .order("created_at", { ascending: true });
       if (cancelled) return;
-      setMessages(((data as any[] | null) ?? []).map((r) => ({
-        id: r.id,
-        role: r.role,
-        content: r.content,
-        attachments: Array.isArray(r.attachments) ? r.attachments : [],
-      })));
+      setMessages(((data as any[] | null) ?? [])
+        .filter((r) => r.role === "user" || r.role === "assistant")
+        .map((r) => ({
+          id: r.id,
+          role: r.role,
+          content: r.content,
+          attachments: Array.isArray(r.attachments) ? r.attachments : [],
+        })));
     })();
     return () => { cancelled = true; };
   }, [activeId]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
