@@ -21,8 +21,14 @@ import ChatErrorBanner from "./ChatErrorBanner";
 import ChatSearchBar from "./ChatSearchBar";
 import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
-import { parseChatCards } from "@/lib/chatCards/parseChatCards";
-import ChatCardRenderer from "@/components/chatCards/ChatCardRenderer";
+import {
+  parseChatCards,
+  detectCreamPdfIntent,
+  creamDocFromConvo,
+  hasCreamPdfFence,
+  downloadCreamPdf,
+} from "@/lib/chatCards/parseChatCards";
+import ChatCardRenderer, { CreamPdfCard } from "@/components/chatCards/ChatCardRenderer";
 import { INTEL_SELECT_EVENT } from "@/components/chatCards/CandidatesCard";
 import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
@@ -603,7 +609,9 @@ const ChatView = ({
   );
 
   const lastMsg = branchMessages[branchMessages.length - 1];
-  const lastUserId = [...branchMessages].reverse().find((m) => m.role === "user")?.id;
+  const lastUserMsg = [...branchMessages].reverse().find((m) => m.role === "user");
+  const lastUserId = lastUserMsg?.id;
+  const creamIntent = detectCreamPdfIntent(String(lastUserMsg?.content || ""));
   // A queued send is only real when the transport actually parked one.
   const queuedCount = queueItems.length;
 
@@ -645,6 +653,18 @@ const ChatView = ({
                         className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
                       >
                         <Download className="h-3.5 w-3.5" /> Download conversation
+                      </button>
+                      <button
+                        onClick={() => {
+                          const intent = detectCreamPdfIntent(
+                            String([...branchMessages].reverse().find((m) => m.role === "user")?.content || ""),
+                          );
+                          downloadCreamPdf(creamDocFromConvo(branchMessages, intent.hit ? intent.species : "convo"));
+                          setOverflowOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                      >
+                        <FileText className="h-3.5 w-3.5" /> download creamy pdf
                       </button>
                     </div>
                   </>
@@ -734,6 +754,15 @@ const ChatView = ({
                               )}
                               {renderLinkPreviews(msg.content)}
                             </div>
+                            {msg === lastMsg &&
+                            !isStreaming &&
+                            creamIntent.hit &&
+                            !hasCreamPdfFence(String(msg.content || "")) ? (
+                              <CreamPdfCard
+                                doc={creamDocFromConvo(branchMessages, creamIntent.species)}
+                                origin="chat:asher"
+                              />
+                            ) : null}
                           </>
                         ) : editingId === msg.id ? (
                           /* Cursor-style edit of the last user turn: change it and resend. */
