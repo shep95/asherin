@@ -1907,8 +1907,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       // depth++ so the synthesis seed rotates to unexercised operator families.
       let continuationDepth = 0;
       if (!trig.fire && turnDomain !== "belief") {
-        const CONT_RE =
-          /\b(do\s+more|go\s+deeper|dig\s+deeper|dig\s+more|another\s+pass|next\s+pass|keep\s+going|expand|more\s+dorks?|more\s+queries|run\s+it\s+again|again)\b/i;
+        const CONT_RE = /\b(more\s+dorks?|dork\s+again|run\s+(the\s+)?dorks?\s+again|another\s+dork\s+pass)\b/i;
         if (CONT_RE.test(dorkText)) {
           // Walk assistant history for prior battery headers and count passes.
           let priorSubject = "";
