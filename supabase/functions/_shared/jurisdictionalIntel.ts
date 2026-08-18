@@ -21,7 +21,16 @@
 //   • NEVER touch breach/leak databases. Enforced by SOURCE_BLOCKLIST +
 //     stripBlocked + per-URL isBlockedSource check on every fused hit.
 
-import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
+import {
+  sourcesFor,
+  siteFilter,
+  parseJurisdiction,
+  isBlockedSource,
+  countryNameToIso,
+  COUNTRY_LABELS,
+  regionalJump,
+  keyedPublicIndexHits,
+} from "./jurisdictions.ts";
 import { buildFieldLedger, formatFieldLedger, type FieldLedger, type Seed } from "./intelExtract.ts";
 import { resolveCandidates, formatCandidateContext, type Candidate, type CandidateSet } from "./candidateResolve.ts";
 import {
@@ -57,6 +66,8 @@ export interface IntelIntent {
   needsClarification: boolean;
   clarifyQuestions: string[];
   accelerators: string[];
+  /** original user turn — regional jump reads this */
+  query?: string;
 }
 
 export interface IntelChannelHit {
@@ -96,6 +107,9 @@ export interface IntelBundle {
   queriesRun?: number;
   /** Act-1 identity clustering: distinct humans sharing this name */
   candidateSet?: CandidateSet;
+  /** country > region > state/province > county > city */
+  geoChain?: string[];
+  keyedIndexes?: string[];
 }
 
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
@@ -585,6 +599,8 @@ function scanLocation(raw: string): { country: string; state: string; county: st
   const co = t.match(/([A-Za-z\-\.\s]+?)\s+County/i);
   if (co) county = co[1].trim().toUpperCase();
 
+  if (!country) country = countryNameToIso(low);
+
   return { country, state, county, city };
 }
 
@@ -722,7 +738,7 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
   // Enter the sweep whenever we have (subject-like) + (locus) OR explicit address.
   if (!looksProperty && !hasName) return empty;
   if (looksProperty === false && !hasLocus) {
-    // person/entity with no locus at all → BLOCK for clarification
+    // world jump + global people indexes hunt; never leftover "which country" homework
     const subject = extractSubject(raw, []);
     return {
       kind: looksEntity ? "entity" : "person",
@@ -731,13 +747,10 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
       state: "",
       county: "",
       city: "",
-      needsClarification: true,
-      clarifyQuestions: [
-        `Which country is ${subject} in?`,
-        `Roughly what state, province, or region — and which city if you know?`,
-        `Any middle name, age range, employer, or known associate to narrow the search?`,
-      ],
-      accelerators: [],
+      query: raw,
+      needsClarification: false,
+      clarifyQuestions: [],
+      accelerators: ["a city, region, or prior country would tighten identity if several humans share this name"],
     };
   }
 
@@ -777,6 +790,7 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
     state,
     county,
     city,
+    query: raw,
     needsClarification: false,
     clarifyQuestions: [],
     accelerators,
@@ -1140,6 +1154,17 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const startedAt = Date.now();
   beginQueryRun(`${startedAt}:${intent.subject}`);
 
+  const jump = await regionalJump(
+    intent.query || [intent.subject, intent.city, intent.state, intent.country].filter(Boolean).join(" "),
+    { country: intent.country, state: intent.state, county: intent.county, city: intent.city },
+  );
+  if (jump.country) intent.country = intent.country || jump.country;
+  if (jump.state) intent.state = intent.state || jump.state;
+  if (jump.county) intent.county = intent.county || jump.county;
+  if (jump.city) intent.city = intent.city || jump.city;
+  const geoChain = jump.chain;
+  let keyedIndexes: string[] = [];
+
   // 30s only ever bought a snippet sweep. The deep harvest (26 documents) plus
   // the recursive HOP-1 collection need real wall clock; 68s still leaves the
   // /chat request ~80s of streaming headroom inside its 150s edge limit.
@@ -1151,39 +1176,17 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   ).slice(0, 25);
 
   const jurisdictionLabel =
-    [intent.city, intent.county ? `${intent.county} County` : "", intent.state, intent.country]
-      .filter(Boolean)
-      .join(", ") || "unspecified";
+    (geoChain.length
+      ? geoChain.join(" > ")
+      : [intent.city, intent.county ? `${intent.county} County` : "", intent.state, intent.country]
+          .filter(Boolean)
+          .join(", ")) || "unspecified";
 
   const subject = intent.subject;
   const subjectQuoted = /\s/.test(subject) ? `"${subject}"` : subject;
   // Country name maps to the geo token when no finer locus is present, so
   // Pass-1 web-tab parity actually includes "Australia" / "United Kingdom".
-  const COUNTRY_LABELS: Record<string, string> = {
-    US: "United States",
-    CA: "Canada",
-    GB: "United Kingdom",
-    AU: "Australia",
-    NZ: "New Zealand",
-    IE: "Ireland",
-    DE: "Germany",
-    FR: "France",
-    ES: "Spain",
-    IT: "Italy",
-    NL: "Netherlands",
-    SE: "Sweden",
-    NO: "Norway",
-    DK: "Denmark",
-    FI: "Finland",
-    CH: "Switzerland",
-    AT: "Austria",
-    BE: "Belgium",
-    IN: "India",
-    SG: "Singapore",
-    JP: "Japan",
-    MX: "Mexico",
-    BR: "Brazil",
-  };
+  // COUNTRY_LABELS imported from jurisdictions.ts (250 ISO rows)
   // County codes ("LEE") inside a query are noise no directory indexes — the
   // observed recall collapse ("Cape Coral LEE FL" → 0 hits) came from exactly
   // this token. City+state is the shape directories actually key on; the
@@ -1330,6 +1333,24 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       continue;
     }
     seen.add(hit.url);
+    const bucket = classifyDomain(hit.domain);
+    hit.bucket = bucket;
+    buckets[bucket].push(hit);
+  }
+
+  const keyed = await keyedPublicIndexHits({
+    subject: intent.subject,
+    country: intent.country,
+    state: intent.state,
+    city: intent.city,
+  });
+  keyedIndexes = keyed.used;
+  for (const kh of keyed.hits) {
+    if (!kh.url || seen.has(kh.url)) continue;
+    if (isBlockedSource(kh.domain) || isBlockedSource(kh.url)) continue;
+    seen.add(kh.url);
+    const hit: IntelChannelHit = { title: kh.title, url: kh.url, snippet: kh.snippet, domain: kh.domain };
+    scorePersonIdentity(hit, intent);
     const bucket = classifyDomain(hit.domain);
     hit.bucket = bucket;
     buckets[bucket].push(hit);
@@ -1550,7 +1571,9 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     candidateSet,
     ring2Executed,
     elapsedMs: Date.now() - startedAt,
-    queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
+    queriesRun: 2 + selectedEnrich.length + hopExecuted.length + (keyedIndexes.length ? 1 : 0),
+    geoChain,
+    keyedIndexes,
   };
 }
 
@@ -1566,11 +1589,22 @@ const BUCKET_LABELS: Record<DomainBucket, string> = {
 };
 
 export function formatIntelContext(bundle: IntelBundle): string {
+  const workflowThisTurn = [
+    "### WORKFLOW THIS TURN",
+    "1. regional jump — country > UN region/subregion > state/province > county > city",
+    "2. pass 1 — wide public index (web-tab parity)",
+    "3. pass 2 — jurisdiction registries for that jump",
+    "4. keyed public-index APIs when secrets exist (never leftover visit-the-registry)",
+    "5. pass 3 — open and parse documents (not snippets)",
+    "6. extract + 3-hop + intelligence packet to the human",
+    "",
+  ].join("\n");
   // Act 1 outcome: the name resolved to several distinct humans. Return the
   // chooser instead of a dossier — merging them is exactly the failure mode
   // this pipeline exists to prevent.
   if (bundle.candidateSet?.ambiguous) {
     return [
+      workflowThisTurn,
       `## JURISDICTIONAL INTEL SWEEP — PERSON (IDENTIFY PHASE)`,
       `Subject as asked: ${bundle.intent.subject}`,
       `Jurisdiction: ${bundle.jurisdictionLabel}`,
@@ -1598,12 +1632,15 @@ export function formatIntelContext(bundle: IntelBundle): string {
   } = bundle;
 
   const header = [
+    workflowThisTurn,
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
     `Subject: ${intent.subject}`,
     `Jurisdiction: ${jurisdictionLabel}`,
+    `Geo jump: ${bundle.geoChain && bundle.geoChain.length ? bundle.geoChain.join(" > ") : jurisdictionLabel} · keyed indexes: ${bundle.keyedIndexes && bundle.keyedIndexes.length ? bundle.keyedIndexes.join(", ") : "none bound this turn"}`,
     `Registries in scope: ${registries.slice(0, 12).join(", ") || "(none jurisdiction-specific — wide-web only)"}`,
     `Total unique hits (post-blocklist, deduped): ${totalHits}`,
     `Full documents opened and parsed: ${documentsFetched ?? 0}`,
+    `Public-index contract: open the pages, extract facts, return intelligence to the human. never leftover a clerk directory.`,
     `Queries executed: ${queriesRun ?? "n/a"} · Collection wall clock: ${elapsedMs ? `${(elapsedMs / 1000).toFixed(1)}s` : "n/a"}`,
     `Recursive HOP-1 seeds pursued: ${hopSeeds && hopSeeds.length ? hopSeeds.map((s) => `${s.value} (${s.kind})`).join("; ") : "none"}`,
     `Rejected as identity mismatches: ${rejectedIdentityHits}`,
