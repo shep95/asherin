@@ -1,7 +1,16 @@
 // ASHER AI · Command Center — sessioned chat with file uploads (image/video/PDF).
-// Asherin wallpaper background. Sessions stored in `asher_ai_sessions` + messages
-// in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
-// streamed to Gemini as inline_data parts via the asher-ai edge function.
+// Asherin wallpaper background.
+//
+// History store: the SAME tables the main dashboard chat uses — `conversations`
+// + `messages`. The map command center is a second mouth on one memory, not a
+// second memory: a conversation started here shows up in the dashboard sidebar
+// and vice-versa. The legacy `asher_ai_sessions` / `asher_ai_messages` rows
+// were copied across (and left untouched) by migration, so nothing was lost.
+//
+// Files upload to the private `asher-ai-uploads` bucket and stream to the model
+// as inline_data parts via the asher-ai edge function; their metadata rides in
+// `messages.attachments`.
+
 
 import { useEffect, useRef, useState, useCallback, memo } from "react";
 import {
@@ -119,15 +128,17 @@ const AsherCommandCenter = () => {
 
   useEffect(() => { document.title = "ASHER AI — Command Center"; }, []);
 
-  // Load sessions
+  // Load conversations — the shared dashboard history, not a private silo.
   const loadSessions = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("asher_ai_sessions")
+    const { data, error } = await supabase
+      .from("conversations")
       .select("id,title,updated_at")
       .eq("user_id", user.id)
+      .eq("archived", false)
       .order("updated_at", { ascending: false })
       .limit(100);
+    if (error) { toast.error("Could not load history"); return; }
     const list = (data as Session[] | null) ?? [];
     setSessions(list);
     if (!activeId && list.length) setActiveId(list[0].id);
@@ -135,26 +146,29 @@ const AsherCommandCenter = () => {
 
   useEffect(() => { void loadSessions(); }, [loadSessions]);
 
-  // Load messages for active session
+  // Load messages for the active conversation
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("asher_ai_messages")
+        .from("messages")
         .select("id,role,content,attachments")
-        .eq("session_id", activeId)
+        .eq("conversation_id", activeId)
         .order("created_at", { ascending: true });
       if (cancelled) return;
-      setMessages(((data as any[] | null) ?? []).map((r) => ({
-        id: r.id,
-        role: r.role,
-        content: r.content,
-        attachments: Array.isArray(r.attachments) ? r.attachments : [],
-      })));
+      setMessages(((data as any[] | null) ?? [])
+        .filter((r) => r.role === "user" || r.role === "assistant")
+        .map((r) => ({
+          id: r.id,
+          role: r.role,
+          content: r.content,
+          attachments: Array.isArray(r.attachments) ? r.attachments : [],
+        })));
     })();
     return () => { cancelled = true; };
   }, [activeId]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -174,10 +188,10 @@ const AsherCommandCenter = () => {
   const newSession = async () => {
     if (!user) return;
     const { data, error } = await supabase
-      .from("asher_ai_sessions")
-      .insert({ user_id: user.id, title: "New Conversation" })
+      .from("conversations")
+      .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
       .select("id,title,updated_at").single();
-    if (error || !data) { toast.error(error?.message || "Could not create session"); return; }
+    if (error || !data) { toast.error(error?.message || "Could not create conversation"); return; }
     setSessions((p) => [data as Session, ...p]);
     setActiveId(data.id);
     setMessages([]);
@@ -185,7 +199,10 @@ const AsherCommandCenter = () => {
 
   const deleteSession = async (id: string) => {
     if (!confirm("Delete this conversation?")) return;
-    await supabase.from("asher_ai_sessions").delete().eq("id", id);
+    // Same server-side path the dashboard sidebar uses, so a delete here is a
+    // delete there — no half-removed row left behind in the shared history.
+    const { error } = await supabase.rpc("delete_conversation", { p_conv_id: id });
+    if (error) { toast.error(error.message); return; }
     setSessions((p) => p.filter((s) => s.id !== id));
     if (activeId === id) {
       const next = sessions.find((s) => s.id !== id);
@@ -195,10 +212,11 @@ const AsherCommandCenter = () => {
 
   const renameSession = async (id: string, title: string) => {
     const t = title.trim() || "Untitled";
-    await supabase.from("asher_ai_sessions").update({ title: t }).eq("id", id);
+    await supabase.from("conversations").update({ title: t }).eq("id", id);
     setSessions((p) => p.map((s) => s.id === id ? { ...s, title: t } : s));
     setRenameId(null);
   };
+
 
   const onPickFiles = async (list: FileList | null) => {
     if (!list) return;
@@ -224,14 +242,15 @@ const AsherCommandCenter = () => {
     if (activeId) return activeId;
     if (!user) return null;
     const { data } = await supabase
-      .from("asher_ai_sessions")
-      .insert({ user_id: user.id, title: "New Conversation" })
+      .from("conversations")
+      .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
       .select("id,title,updated_at").single();
     if (!data) return null;
     setSessions((p) => [data as Session, ...p]);
     setActiveId((data as Session).id);
     return (data as Session).id;
   };
+
 
   const send = async () => {
     const text = input.trim();
@@ -267,18 +286,19 @@ const AsherCommandCenter = () => {
 
     // Persist user message (strip dataBase64 from stored attachments)
     const persistableAtts = uploaded.map(({ dataBase64, ...rest }) => rest);
-    await supabase.from("asher_ai_messages").insert({
-      session_id: sid, user_id: user.id, role: "user", content: text, attachments: persistableAtts,
+    await supabase.from("messages").insert({
+      conversation_id: sid, user_id: user.id, role: "user", content: text, attachments: persistableAtts,
     });
 
     // Auto-title from first user message
     if (messages.length === 0) {
       const t = (text || uploaded[0]?.name || "New").slice(0, 60);
-      await supabase.from("asher_ai_sessions").update({ title: t }).eq("id", sid);
+      await supabase.from("conversations").update({ title: t, updated_at: new Date().toISOString() }).eq("id", sid);
       setSessions((p) => p.map((s) => s.id === sid ? { ...s, title: t } : s));
     } else {
-      await supabase.from("asher_ai_sessions").update({ updated_at: new Date().toISOString() }).eq("id", sid);
+      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", sid);
     }
+
 
     logAsherEvent("module_open", { module: "asher_command_send", chars: text.length, atts: uploaded.length });
 
@@ -350,11 +370,13 @@ const AsherCommandCenter = () => {
       }
 
       if (assistantText.trim()) {
-        await supabase.from("asher_ai_messages").insert({
-          session_id: sid, user_id: user.id, role: "assistant", content: assistantText, attachments: [],
+        const { error: saveErr } = await supabase.from("messages").insert({
+          conversation_id: sid, user_id: user.id, role: "assistant", content: assistantText, attachments: [],
         });
-        await supabase.from("asher_ai_sessions").update({ updated_at: new Date().toISOString() }).eq("id", sid);
+        if (saveErr) toast.error("Reply not saved to history");
+        await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", sid);
       }
+
     } catch (e: any) {
       toast.error(e?.message || "ASHER AI failed");
       setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content: `_Stream failed: ${e?.message || e}_` }]);
