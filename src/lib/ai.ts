@@ -193,10 +193,17 @@ export async function streamChat({
     // retried silently here. Only a genuine key problem — missing, invalid,
     // revoked, out of quota — is allowed to raise the BYOK dialog, so a heavy
     // person-search turn no longer looks like "your API key is broken".
+    //
+    // Congestion arrives in TWO shapes and both must be handled. The edge
+    // function answers 200 with `text/event-stream` headers before it ever
+    // reaches the provider, so a provider 503 can only come back as an error
+    // FRAME inside an otherwise healthy stream. Reading that frame as prose —
+    // or dropping it silently — is what left an empty animated bubble on
+    // screen with no answer and no error.
     const TRANSIENT_ATTEMPTS = 3;
-    let resp!: Response;
 
     for (let attempt = 0; attempt < TRANSIENT_ATTEMPTS; attempt++) {
+      let resp!: Response;
       try {
         resp = await fetch(CHAT_URL, {
           method: "POST",
@@ -236,125 +243,176 @@ export async function streamChat({
         throw fe;
       }
 
-      if (resp.ok) break;
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        const transient =
+          err?.code === "UPSTREAM_BUSY" || resp.status === 502 || resp.status === 503 || resp.status === 504;
 
-      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
-      const transient =
-        err?.code === "UPSTREAM_BUSY" || resp.status === 502 || resp.status === 503 || resp.status === 504;
-
-      if (transient && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
-        const waitMs = Math.max(1200, Number(err?.retryAfterMs) || 0) * (attempt + 1);
-        await new Promise((r) => setTimeout(r, waitMs + Math.random() * 400));
-        continue;
-      }
-
-      if (!transient && (err?.code === "BYOK_REQUIRED" || resp.status === 403)) {
-        try {
-          const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
-          triggerByokRequired({ source: "aureon-chat", reason: err?.error || "An API key is required." });
-        } catch {
-          /* noop */
-        }
-      }
-
-      throw new Error(err?.error || `HTTP ${resp.status}`);
-    }
-
-    if (!resp.body) throw new Error("No response body");
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let textBuffer = "";
-    let streamDone = false;
-    let passText = "";
-    let passIncomplete = false;
-    const consumePassContent = (content: string) => {
-      const cleaned = content.replace(outputLimitMarker, () => {
-        passIncomplete = true;
-        return "";
-      });
-      if (!cleaned) return;
-      passText += cleaned;
-      onText?.(cleaned);
-    };
-    // sse mouth: data: optional space, gemini parts or openai delta, skip bad complete lines
-    const mouthFromParsed = (parsed: any): string => {
-      const obj = Array.isArray(parsed) ? parsed[0] : parsed;
-      if (!obj || typeof obj !== "object") return "";
-      const d = obj.choices?.[0]?.delta || obj.choices?.[0]?.message || {};
-      let oa = d.content ?? d.reasoning_content ?? d.text;
-      if (Array.isArray(oa)) oa = oa.map((p: any) => p?.text || p?.content || "").join("");
-      if (typeof oa === "string" && oa) return oa;
-      const parts = obj.candidates?.[0]?.content?.parts;
-      if (Array.isArray(parts)) {
-        let t = "";
-        for (const p of parts) if (p && typeof p.text === "string") t += p.text;
-        if (t) return t;
-      }
-      return typeof obj.text === "string" ? obj.text : "";
-    };
-    const sseJson = (line: string): string | null => {
-      if (line.startsWith("data:")) return line.slice(5).trim();
-      if (line.startsWith("{") || line.startsWith("[")) return line;
-      return null;
-    };
-
-    while (!streamDone) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      textBuffer += decoder.decode(value, { stream: true });
-
-      let newlineIndex: number;
-      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-        let line = textBuffer.slice(0, newlineIndex);
-        textBuffer = textBuffer.slice(newlineIndex + 1);
-
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        const jsonStr = sseJson(line);
-        if (jsonStr == null) continue;
-        if (jsonStr === "[DONE]") {
-          streamDone = true;
-          break;
+        if (transient && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
+          const waitMs = Math.max(1200, Number(err?.retryAfterMs) || 0) * (attempt + 1);
+          await new Promise((r) => setTimeout(r, waitMs + Math.random() * 400));
+          continue;
         }
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const root = Array.isArray(parsed) ? parsed[0] : parsed;
-          if (Array.isArray(root?.asherin_tools)) onTools?.(root.asherin_tools);
-          if (Array.isArray(root?.asherin_hands)) onHands?.(root.asherin_hands);
-          const content = mouthFromParsed(parsed);
-          if (content) consumePassContent(content);
-        } catch {
-          const open = (jsonStr.match(/[\[{]/g) || []).length;
-          const close = (jsonStr.match(/[\]}]/g) || []).length;
-          if (open > close) {
-            textBuffer = line + "\n" + textBuffer;
+        if (!transient && (err?.code === "BYOK_REQUIRED" || resp.status === 403)) {
+          try {
+            const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+            triggerByokRequired({ source: "aureon-chat", reason: err?.error || "An API key is required." });
+          } catch {
+            /* noop */
+          }
+        }
+
+        throw new Error(err?.error || `HTTP ${resp.status}`);
+      }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+      let passText = "";
+      let passIncomplete = false;
+      /** An error frame carried inside a 200 stream — never spoken as prose. */
+      let streamError: { message: string; code?: string; retryAfterMs?: number } | null = null;
+      const consumePassContent = (content: string) => {
+        const cleaned = content.replace(outputLimitMarker, () => {
+          passIncomplete = true;
+          return "";
+        });
+        if (!cleaned) return;
+        passText += cleaned;
+        onText?.(cleaned);
+      };
+      // sse mouth: data: optional space, gemini parts or openai delta, skip bad complete lines
+      const mouthFromParsed = (parsed: any): string => {
+        const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!obj || typeof obj !== "object") return "";
+        const d = obj.choices?.[0]?.delta || obj.choices?.[0]?.message || {};
+        let oa = d.content ?? d.reasoning_content ?? d.text;
+        if (Array.isArray(oa)) oa = oa.map((p: any) => p?.text || p?.content || "").join("");
+        if (typeof oa === "string" && oa) return oa;
+        const parts = obj.candidates?.[0]?.content?.parts;
+        if (Array.isArray(parts)) {
+          let t = "";
+          for (const p of parts) if (p && typeof p.text === "string") t += p.text;
+          if (t) return t;
+        }
+        return typeof obj.text === "string" ? obj.text : "";
+      };
+      /** Returns true when the frame is an error envelope, not model output. */
+      const takeStreamError = (parsed: any): boolean => {
+        const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (!obj || typeof obj !== "object") return false;
+        const raw = obj.error;
+        if (!raw && typeof obj.code !== "string") return false;
+        const message =
+          typeof raw === "string"
+            ? raw
+            : typeof raw?.message === "string"
+              ? raw.message
+              : typeof obj.message === "string"
+                ? obj.message
+                : "";
+        if (!message) return false;
+        streamError = {
+          message,
+          code: typeof obj.code === "string" ? obj.code : typeof raw?.code === "string" ? raw.code : undefined,
+          retryAfterMs: Number(obj.retryAfterMs) || undefined,
+        };
+        return true;
+      };
+      const sseJson = (line: string): string | null => {
+        if (line.startsWith("data:")) return line.slice(5).trim();
+        if (line.startsWith("{") || line.startsWith("[")) return line;
+        return null;
+      };
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          const jsonStr = sseJson(line);
+          if (jsonStr == null) continue;
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
             break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const root = Array.isArray(parsed) ? parsed[0] : parsed;
+            if (Array.isArray(root?.asherin_tools)) onTools?.(root.asherin_tools);
+            if (Array.isArray(root?.asherin_hands)) onHands?.(root.asherin_hands);
+            if (takeStreamError(parsed)) {
+              streamDone = true;
+              break;
+            }
+            const content = mouthFromParsed(parsed);
+            if (content) consumePassContent(content);
+          } catch {
+            const open = (jsonStr.match(/[\[{]/g) || []).length;
+            const close = (jsonStr.match(/[\]}]/g) || []).length;
+            if (open > close) {
+              textBuffer = line + "\n" + textBuffer;
+              break;
+            }
           }
         }
       }
-    }
 
-    // Final flush
-    if (textBuffer.trim()) {
-      for (let raw of textBuffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (raw.startsWith(":") || raw.trim() === "") continue;
-        const jsonStr = sseJson(raw);
-        if (jsonStr == null || jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = mouthFromParsed(parsed);
-          if (content) consumePassContent(content);
-        } catch {
-          /* ignore */
+      // Final flush
+      if (!streamError && textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          const jsonStr = sseJson(raw);
+          if (jsonStr == null || jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (takeStreamError(parsed)) break;
+            const content = mouthFromParsed(parsed);
+            if (content) consumePassContent(content);
+          } catch {
+            /* ignore */
+          }
         }
       }
+
+      if (streamError && !passText) {
+        const e = streamError as { message: string; code?: string; retryAfterMs?: number };
+        const transient = e.code === "UPSTREAM_BUSY" || /overload|temporar|try again|unavailable|503/i.test(e.message);
+        if (transient && attempt < TRANSIENT_ATTEMPTS - 1 && !signal?.aborted) {
+          const waitMs = Math.max(1200, e.retryAfterMs || 0) * (attempt + 1);
+          await new Promise((r) => setTimeout(r, waitMs + Math.random() * 400));
+          continue; // nothing was spoken yet — a clean re-ask, no duplicated text
+        }
+        if (e.code === "BYOK_REQUIRED") {
+          try {
+            const { triggerByokRequired } = await import("@/components/ByokRequiredDialog");
+            triggerByokRequired({ source: "aureon-chat", reason: e.message });
+          } catch {
+            /* noop */
+          }
+        }
+        throw new Error(e.message);
+      }
+
+      return { text: passText, incompleteSignal: passIncomplete };
     }
 
-    return { text: passText, incompleteSignal: passIncomplete };
+    // Loop exhausted without a return: every attempt was transient congestion.
+    throw new Error("the model provider is busy right now. send it again in a moment.");
   };
 
   // ── GHOST CHAIN — PHASE 1: the thinking call ────────────────────────────
