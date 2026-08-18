@@ -19,19 +19,22 @@ import {
   WarningCard,
 } from "@/components/chatCards/UniversalCards";
 import { CandidatesCard } from "@/components/chatCards/CandidatesCard";
-import type { CardSegment, UnknownCardSegment } from "@/lib/chatCards/parseChatCards";
-import { creamDocFromPayload } from "@/lib/chatCards/parseChatCards";
-import { AlertCircle } from "lucide-react";
-
+import type { CardSegment, CreamDoc, UnknownCardSegment } from "@/lib/chatCards/parseChatCards";
+import { compileCreamPdf, creamDocFromPayload } from "@/lib/chatCards/parseChatCards";
+import { AlertCircle, Download, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileText } from "lucide-react";
-import { compileCreamPdf, type CreamDoc } from "@/lib/chatCards/parseChatCards";
+
+function toPdfBlob(bytes: Uint8Array): Blob {
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  return new Blob([ab], { type: "application/pdf" });
+}
 
 const PAPER = "#F6F0E4";
 const INK = "#3B2F28";
 const MUTED = "#9A8B7C";
 
-export function CreamPdfCard({ doc, origin }: { doc: CreamDoc; origin?: string }) {
+function CreamPdfCard({ doc, origin }: { doc: CreamDoc; origin?: string }) {
   const built = useMemo(() => {
     try {
       return compileCreamPdf(doc);
@@ -46,7 +49,7 @@ export function CreamPdfCard({ doc, origin }: { doc: CreamDoc; origin?: string }
       setUrl(null);
       return;
     }
-    const u = URL.createObjectURL(new Blob([built.bytes], { type: "application/pdf" }));
+    const u = URL.createObjectURL(toPdfBlob(built.bytes));
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [built]);
@@ -185,7 +188,7 @@ export default function ChatCardRenderer({ segment, source }: Props) {
       return <CandidatesCard payload={payload} source={source} />;
     case "cream-pdf": {
       const doc = creamDocFromPayload(payload);
-      if (!doc.title && !(doc.sections && doc.sections.length)) return null;
+      if (!doc.title && !(doc.sections && doc.sections.length) && !(doc.turns && doc.turns.length)) return null;
       return <CreamPdfCard doc={doc} origin={source} />;
     }
     default:
