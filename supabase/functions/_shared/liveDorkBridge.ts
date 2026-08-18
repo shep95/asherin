@@ -10,8 +10,7 @@ export interface DorkPlan {
 }
 
 const HOST_RE = /\b([a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})\b/i;
-const TRIGGER_RE =
-  /\b(dork|inurl:|filetype:|site:|login|signin|contact|admin|path\s*map|map\s+.*paths|robots\.txt|sitemap)\b/i;
+const TRIGGER_RE = /\b(dork|inurl:|intitle:|intext:|filetype:|site:|path\s*map|map\s+.*paths|robots\.txt|sitemap)\b/i;
 // Words that look like TLDs but are prose. Kept small so "example.com" still fires.
 const HOST_STOPLIST = new Set(["e.g", "i.e", "u.s", "u.k"]);
 
@@ -27,7 +26,7 @@ export function planDork(text: string): DorkPlan | null {
   // else "I love google.com search" would fire the dork loop.
   if (!trigger) return null;
   const wantPathMap = /\b(path\s*map|map\s+.*paths|robots\.txt|sitemap|inventory)\b/i.test(raw);
-  const wantDork = !wantPathMap || /\b(dork|login|contact|signin|admin|inurl:|filetype:|site:)\b/i.test(raw);
+  const wantDork = !wantPathMap || /\b(dork|inurl:|intitle:|intext:|filetype:|site:)\b/i.test(raw);
   return { host, wantDork, wantPathMap };
 }
 
