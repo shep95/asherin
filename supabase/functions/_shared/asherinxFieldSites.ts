@@ -28,8 +28,7 @@ export interface SiteOutcome {
   took_ms: number;
 }
 
-export type Domain =
-  | "security" | "code" | "academic" | "world" | "legal" | "general";
+export type Domain = "security" | "code" | "academic" | "world" | "legal" | "general";
 
 /** Which field sites a domain pack fans out to. Order = reading order. */
 export const DOMAIN_PACKS: Record<Domain, string[]> = {
@@ -42,9 +41,24 @@ export const DOMAIN_PACKS: Record<Domain, string[]> = {
 };
 
 export const ALL_SITES = [
-  "wayback", "wikipedia", "ddg_instant", "hn", "github", "nvd", "cisa_kev",
-  "openalex", "arxiv", "crossref", "gdelt", "urlscan", "wikidata",
-  "courtlistener", "sec_efts", "pypi", "npm", "pubmed",
+  "wayback",
+  "wikipedia",
+  "ddg_instant",
+  "hn",
+  "github",
+  "nvd",
+  "cisa_kev",
+  "openalex",
+  "arxiv",
+  "crossref",
+  "gdelt",
+  "urlscan",
+  "wikidata",
+  "courtlistener",
+  "sec_efts",
+  "pypi",
+  "npm",
+  "pubmed",
 ] as const;
 
 const CVE_RE = /\bCVE-\d{4}-\d{4,7}\b/i;
@@ -84,13 +98,18 @@ export function classify(q: string): Classification {
 
 const UA = "asherin.eng/1.0 (public-index reader; +https://asherin.com)";
 
-async function get(url: string, ms: number, accept = "application/json"): Promise<Response> {
+async function get(
+  url: string,
+  ms: number,
+  accept = "application/json",
+  extra: Record<string, string> = {},
+): Promise<Response> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
     return await fetch(url, {
       signal: ctrl.signal,
-      headers: { "User-Agent": UA, Accept: accept },
+      headers: { "User-Agent": UA, Accept: accept, ...extra },
       redirect: "follow",
     });
   } finally {
@@ -104,7 +123,10 @@ function yearTag(v: unknown): string[] {
 }
 
 function clip(s: unknown, n = 240): string {
-  const t = String(s ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const t = String(s ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return t.length > n ? `${t.slice(0, n - 1)}…` : t;
 }
 
@@ -139,8 +161,11 @@ const SITES: Record<string, Fetcher> = {
     const out: Hit[] = [];
     if (j?.AbstractURL) {
       out.push({
-        site: "ddg_instant", title: String(j.Heading || q), url: String(j.AbstractURL),
-        snippet: clip(j.AbstractText), genesis: ["instant answer"],
+        site: "ddg_instant",
+        title: String(j.Heading || q),
+        url: String(j.AbstractURL),
+        snippet: clip(j.AbstractText),
+        genesis: ["instant answer"],
       });
     }
     for (const t of (j?.RelatedTopics ?? []).slice(0, 4)) {
@@ -165,11 +190,14 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async github(q) {
+    const tok = (Deno.env.get("GITHUB_TOKEN") || Deno.env.get("GH_TOKEN") || "").trim();
     const r = await get(
       `https://api.github.com/search/repositories?per_page=5&q=${encodeURIComponent(q)}`,
-      8000, "application/vnd.github+json",
+      8000,
+      "application/vnd.github+json",
+      tok ? { Authorization: `Bearer ${tok}` } : {},
     );
-    if (r.status === 403 || r.status === 429) throw new Error("rate limited (unauthenticated)");
+    if (r.status === 403 || r.status === 429) throw new Error(tok ? "rate limited" : "rate limited (unauthenticated)");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.items ?? []).map((it: Record<string, unknown>) => ({
@@ -177,7 +205,9 @@ const SITES: Record<string, Fetcher> = {
       title: String(it.full_name),
       url: String(it.html_url),
       snippet: clip(it.description),
-      genesis: yearTag(it.pushed_at).concat([`${it.stargazers_count ?? 0}★`, String(it.language || "")].filter(Boolean) as string[]),
+      genesis: yearTag(it.pushed_at).concat(
+        [`${it.stargazers_count ?? 0}★`, String(it.language || "")].filter(Boolean) as string[],
+      ),
     }));
   },
 
@@ -206,10 +236,7 @@ const SITES: Record<string, Fetcher> = {
   async cisa_kev(q) {
     const cve = q.match(CVE_RE)?.[0];
     if (!cve) throw new Error("kev is queried by cve id only");
-    const r = await get(
-      "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
-      15000,
-    );
+    const r = await get("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 15000);
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.vulnerabilities ?? [])
@@ -239,35 +266,42 @@ const SITES: Record<string, Fetcher> = {
   async arxiv(q) {
     const r = await get(
       `http://export.arxiv.org/api/query?max_results=5&search_query=all:${encodeURIComponent(q)}`,
-      9000, "application/atom+xml",
+      9000,
+      "application/atom+xml",
     );
     if (!r.ok) throw new Error(`http ${r.status}`);
     const xml = await r.text();
     const entries = xml.split("<entry>").slice(1, 6);
-    return entries.map((e) => {
-      const title = clip(e.match(/<title>([\s\S]*?)<\/title>/)?.[1], 140);
-      const link = e.match(/<id>([\s\S]*?)<\/id>/)?.[1]?.trim() ?? "";
-      const summary = clip(e.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]);
-      const pub = e.match(/<published>([\s\S]*?)<\/published>/)?.[1] ?? "";
-      return { site: "arxiv", title, url: link, snippet: summary, genesis: yearTag(pub).concat("preprint") };
-    }).filter((h) => !!h.url);
+    return entries
+      .map((e) => {
+        const title = clip(e.match(/<title>([\s\S]*?)<\/title>/)?.[1], 140);
+        const link = e.match(/<id>([\s\S]*?)<\/id>/)?.[1]?.trim() ?? "";
+        const summary = clip(e.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]);
+        const pub = e.match(/<published>([\s\S]*?)<\/published>/)?.[1] ?? "";
+        return { site: "arxiv", title, url: link, snippet: summary, genesis: yearTag(pub).concat("preprint") };
+      })
+      .filter((h) => !!h.url);
   },
 
   async crossref(q) {
     const r = await get(`https://api.crossref.org/works?rows=5&query=${encodeURIComponent(q)}`, 9000);
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
-    return (j?.message?.items ?? []).map((it: Record<string, any>) => ({
-      site: "crossref",
-      title: clip(it.title?.[0] || "(untitled)", 140),
-      url: String(it.URL || ""),
-      snippet: clip(`${it["container-title"]?.[0] ?? ""} · ${it.publisher ?? ""}`),
-      genesis: yearTag(it.created?.["date-time"]).concat("doi"),
-    })).filter((h: Hit) => !!h.url);
+    return (j?.message?.items ?? [])
+      .map((it: Record<string, any>) => ({
+        site: "crossref",
+        title: clip(it.title?.[0] || "(untitled)", 140),
+        url: String(it.URL || ""),
+        snippet: clip(`${it["container-title"]?.[0] ?? ""} · ${it.publisher ?? ""}`),
+        genesis: yearTag(it.created?.["date-time"]).concat("doi"),
+      }))
+      .filter((h: Hit) => !!h.url);
   },
 
   async gdelt(q, when) {
-    const span = when ? `&startdatetime=${when.replace(/-/g, "")}01000000&enddatetime=${when.replace(/-/g, "")}28000000` : "&timespan=3months";
+    const span = when
+      ? `&startdatetime=${when.replace(/-/g, "")}01000000&enddatetime=${when.replace(/-/g, "")}28000000`
+      : "&timespan=3months";
     const r = await get(
       `https://api.gdeltproject.org/api/v2/doc/doc?format=json&maxrecords=5&mode=artlist&query=${encodeURIComponent(q)}${span}`,
       10000,
@@ -275,7 +309,11 @@ const SITES: Record<string, Fetcher> = {
     if (!r.ok) throw new Error(`http ${r.status}`);
     const text = await r.text();
     let j: any;
-    try { j = JSON.parse(text); } catch { throw new Error("index returned non-json"); }
+    try {
+      j = JSON.parse(text);
+    } catch {
+      throw new Error("index returned non-json");
+    }
     return (j?.articles ?? []).map((a: Record<string, any>) => ({
       site: "gdelt",
       title: clip(a.title, 140),
@@ -290,13 +328,16 @@ const SITES: Record<string, Fetcher> = {
     if (r.status === 401 || r.status === 429) throw new Error("public search throttled");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
-    return (j?.results ?? []).slice(0, 5).map((it: Record<string, any>) => ({
-      site: "urlscan",
-      title: String(it.page?.domain || it.task?.url || "(scan)"),
-      url: String(it.result || it.task?.url || ""),
-      snippet: clip(`${it.page?.ip ?? ""} ${it.page?.server ?? ""} ${it.page?.country ?? ""}`),
-      genesis: yearTag(it.task?.time).concat("scan"),
-    })).filter((h: Hit) => !!h.url);
+    return (j?.results ?? [])
+      .slice(0, 5)
+      .map((it: Record<string, any>) => ({
+        site: "urlscan",
+        title: String(it.page?.domain || it.task?.url || "(scan)"),
+        url: String(it.result || it.task?.url || ""),
+        snippet: clip(`${it.page?.ip ?? ""} ${it.page?.server ?? ""} ${it.page?.country ?? ""}`),
+        genesis: yearTag(it.task?.time).concat("scan"),
+      }))
+      .filter((h: Hit) => !!h.url);
   },
 
   async wikidata(q) {
@@ -316,27 +357,24 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async courtlistener(q) {
-    const r = await get(
-      `https://www.courtlistener.com/api/rest/v4/search/?type=o&q=${encodeURIComponent(q)}`,
-      10000,
-    );
+    const r = await get(`https://www.courtlistener.com/api/rest/v4/search/?type=o&q=${encodeURIComponent(q)}`, 10000);
     if (r.status === 401 || r.status === 403) throw new Error("public api requires a token for this query");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
-    return (j?.results ?? []).slice(0, 5).map((it: Record<string, any>) => ({
-      site: "courtlistener",
-      title: clip(it.caseName || it.caption || "(opinion)", 140),
-      url: it.absolute_url ? `https://www.courtlistener.com${it.absolute_url}` : String(it.download_url || ""),
-      snippet: clip(`${it.court ?? ""} · ${it.dateFiled ?? ""}`),
-      genesis: yearTag(it.dateFiled).concat("opinion"),
-    })).filter((h: Hit) => !!h.url);
+    return (j?.results ?? [])
+      .slice(0, 5)
+      .map((it: Record<string, any>) => ({
+        site: "courtlistener",
+        title: clip(it.caseName || it.caption || "(opinion)", 140),
+        url: it.absolute_url ? `https://www.courtlistener.com${it.absolute_url}` : String(it.download_url || ""),
+        snippet: clip(`${it.court ?? ""} · ${it.dateFiled ?? ""}`),
+        genesis: yearTag(it.dateFiled).concat("opinion"),
+      }))
+      .filter((h: Hit) => !!h.url);
   },
 
   async sec_efts(q) {
-    const r = await get(
-      `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(`"${q}"`)}`,
-      10000,
-    );
+    const r = await get(`https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(`"${q}"`)}`, 10000);
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.hits?.hits ?? []).slice(0, 5).map((h: Record<string, any>) => {
@@ -348,9 +386,10 @@ const SITES: Record<string, Fetcher> = {
       return {
         site: "sec_efts",
         title: clip(`${src.display_names?.[0] ?? "(filer)"} — ${src.file_type ?? src.root_form ?? ""}`, 140),
-        url: cik && acc && file
-          ? `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${acc}/${file}`
-          : "https://efts.sec.gov/LATEST/search-index",
+        url:
+          cik && acc && file
+            ? `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${acc}/${file}`
+            : "https://efts.sec.gov/LATEST/search-index",
         snippet: clip(`${src.file_date ?? ""} · ${src.root_form ?? ""}`),
         genesis: yearTag(src.file_date).concat("filing"),
       } as Hit;
@@ -364,13 +403,15 @@ const SITES: Record<string, Fetcher> = {
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     const i = j?.info ?? {};
-    return [{
-      site: "pypi",
-      title: `${i.name} ${i.version ?? ""}`.trim(),
-      url: String(i.package_url || `https://pypi.org/project/${name}/`),
-      snippet: clip(i.summary),
-      genesis: ["package", String(i.license || "").slice(0, 24)].filter(Boolean) as string[],
-    }];
+    return [
+      {
+        site: "pypi",
+        title: `${i.name} ${i.version ?? ""}`.trim(),
+        url: String(i.package_url || `https://pypi.org/project/${name}/`),
+        snippet: clip(i.summary),
+        genesis: ["package", String(i.license || "").slice(0, 24)].filter(Boolean) as string[],
+      },
+    ];
   },
 
   async npm(q) {
@@ -456,29 +497,31 @@ export async function runQuery(
   const domain = opts.domain ?? classification.domain;
   const pack = (opts.sites?.length ? opts.sites : DOMAIN_PACKS[domain]).filter((s) => s in SITES);
 
-  const outcomes = await Promise.all(pack.map(async (site): Promise<SiteOutcome> => {
-    const t0 = Date.now();
-    try {
-      const hits = await SITES[site](q, opts.when);
-      return {
-        site,
-        status: hits.length ? "ok" : "empty",
-        hits,
-        took_ms: Date.now() - t0,
-        reason: hits.length ? undefined : "not in this public index",
-      };
-    } catch (e) {
-      const msg = String((e as Error)?.message || e);
-      const aborted = /abort/i.test(msg);
-      return {
-        site,
-        status: aborted || /rate|throttl|token/i.test(msg) ? "skip" : "fail",
-        reason: aborted ? "timed out" : msg.slice(0, 120),
-        hits: [],
-        took_ms: Date.now() - t0,
-      };
-    }
-  }));
+  const outcomes = await Promise.all(
+    pack.map(async (site): Promise<SiteOutcome> => {
+      const t0 = Date.now();
+      try {
+        const hits = await SITES[site](q, opts.when);
+        return {
+          site,
+          status: hits.length ? "ok" : "empty",
+          hits,
+          took_ms: Date.now() - t0,
+          reason: hits.length ? undefined : "not in this public index",
+        };
+      } catch (e) {
+        const msg = String((e as Error)?.message || e);
+        const aborted = /abort/i.test(msg);
+        return {
+          site,
+          status: aborted || /rate|throttl|token/i.test(msg) ? "skip" : "fail",
+          reason: aborted ? "timed out" : msg.slice(0, 120),
+          hits: [],
+          took_ms: Date.now() - t0,
+        };
+      }
+    }),
+  );
 
   // Rank: pack order first (the classifier's judgement), site rank second.
   const hits: Hit[] = [];
@@ -487,9 +530,7 @@ export async function runQuery(
     if (o) hits.push(...o.hits);
   }
 
-  const unsure = outcomes
-    .filter((o) => o.status !== "ok")
-    .map((o) => `${o.site}: ${o.reason ?? o.status}`);
+  const unsure = outcomes.filter((o) => o.status !== "ok").map((o) => `${o.site}: ${o.reason ?? o.status}`);
 
   return { query: q, classification, hits, sites: outcomes, unsure, took_ms: Date.now() - started };
 }
@@ -501,14 +542,22 @@ const PHONE_G = /(?:\+?\d[\d\s().-]{8,}\d)/g;
 
 /** Star public contact strings. Never returns the full mailbox or number. */
 export function starContacts(text: string): { emails: string[]; phones: string[] } {
-  const emails = Array.from(new Set((text.match(EMAIL_G) ?? []).map((e) => {
-    const [u, d] = e.split("@");
-    return `${u.slice(0, 1)}***@${d}`;
-  }))).slice(0, 20);
-  const phones = Array.from(new Set((text.match(PHONE_G) ?? []).map((p) => {
-    const d = p.replace(/\D/g, "");
-    return d.length >= 9 ? `***${d.slice(-4)}` : "***";
-  }))).slice(0, 20);
+  const emails = Array.from(
+    new Set(
+      (text.match(EMAIL_G) ?? []).map((e) => {
+        const [u, d] = e.split("@");
+        return `${u.slice(0, 1)}***@${d}`;
+      }),
+    ),
+  ).slice(0, 20);
+  const phones = Array.from(
+    new Set(
+      (text.match(PHONE_G) ?? []).map((p) => {
+        const d = p.replace(/\D/g, "");
+        return d.length >= 9 ? `***${d.slice(-4)}` : "***";
+      }),
+    ),
+  ).slice(0, 20);
   return { emails, phones };
 }
 
