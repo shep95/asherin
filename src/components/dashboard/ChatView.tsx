@@ -28,7 +28,7 @@ import {
   hasCreamPdfFence,
   downloadCreamPdf,
 } from "@/lib/chatCards/parseChatCards";
-import ChatCardRenderer, { CreamPdfCard } from "@/components/chatCards/ChatCardRenderer";
+import ChatCardRenderer from "@/components/chatCards/ChatCardRenderer";
 import { INTEL_SELECT_EVENT } from "@/components/chatCards/CandidatesCard";
 import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
@@ -778,9 +778,16 @@ const ChatView = ({
                                 )
                                   return null;
                                 return (
-                                  <CreamPdfCard
-                                    doc={creamDocFromConvo(branchMessages, creamIntent.species)}
-                                    origin="chat:asher"
+                                  <ChatCardRenderer
+                                    segment={{
+                                      type: "card",
+                                      cardType: "cream-pdf",
+                                      payload: creamDocFromConvo(
+                                        branchMessages,
+                                        creamIntent.species,
+                                      ) as unknown as Record<string, unknown>,
+                                    }}
+                                    source="chat:asher"
                                   />
                                 );
                               } catch {
