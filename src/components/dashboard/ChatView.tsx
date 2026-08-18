@@ -740,29 +740,53 @@ const ChatView = ({
                           <>
                             <ThinkingPanel messageId={msg.id} />
                             <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-                              {parseChatCards(msg.content).map((seg, i) =>
-                                seg.type === "card" || seg.type === "card-unknown" ? (
-                                  <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
-                                ) : (
-                                  <ReactMarkdown key={`t-${i}`} components={markdownComponents}>
-                                    {seg.value}
-                                  </ReactMarkdown>
-                                ),
-                              )}
+                              {(() => {
+                                const segs = parseChatCards(msg.content);
+                                const visible = segs.some(
+                                  (s) =>
+                                    s.type === "card" ||
+                                    s.type === "card-unknown" ||
+                                    (s.type === "text" && String(s.value || "").trim()),
+                                );
+                                if (!visible && String(msg.content || "").trim()) {
+                                  return <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>;
+                                }
+                                return segs.map((seg, i) =>
+                                  seg.type === "card" || seg.type === "card-unknown" ? (
+                                    <ChatCardRenderer key={`c-${i}`} segment={seg} source="chat:asher" />
+                                  ) : (
+                                    <ReactMarkdown key={`t-${i}`} components={markdownComponents}>
+                                      {seg.value}
+                                    </ReactMarkdown>
+                                  ),
+                                );
+                              })()}
                               {isStreaming && msg === lastMsg && (
                                 <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse motion-reduce:animate-none ml-0.5 align-text-bottom" />
                               )}
                               {renderLinkPreviews(msg.content)}
                             </div>
-                            {msg === lastMsg &&
-                            !isStreaming &&
-                            creamIntent.hit &&
-                            !hasCreamPdfFence(String(msg.content || "")) ? (
-                              <CreamPdfCard
-                                doc={creamDocFromConvo(branchMessages, creamIntent.species)}
-                                origin="chat:asher"
-                              />
-                            ) : null}
+                            {(() => {
+                              try {
+                                if (
+                                  !(
+                                    msg === lastMsg &&
+                                    !isStreaming &&
+                                    creamIntent.hit &&
+                                    !hasCreamPdfFence(String(msg.content || ""))
+                                  )
+                                )
+                                  return null;
+                                return (
+                                  <CreamPdfCard
+                                    doc={creamDocFromConvo(branchMessages, creamIntent.species)}
+                                    origin="chat:asher"
+                                  />
+                                );
+                              } catch {
+                                return null;
+                              }
+                            })()}
                           </>
                         ) : editingId === msg.id ? (
                           /* Cursor-style edit of the last user turn: change it and resend. */
