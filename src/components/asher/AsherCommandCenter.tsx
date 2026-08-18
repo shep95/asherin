@@ -286,18 +286,19 @@ const AsherCommandCenter = () => {
 
     // Persist user message (strip dataBase64 from stored attachments)
     const persistableAtts = uploaded.map(({ dataBase64, ...rest }) => rest);
-    await supabase.from("asher_ai_messages").insert({
-      session_id: sid, user_id: user.id, role: "user", content: text, attachments: persistableAtts,
+    await supabase.from("messages").insert({
+      conversation_id: sid, user_id: user.id, role: "user", content: text, attachments: persistableAtts,
     });
 
     // Auto-title from first user message
     if (messages.length === 0) {
       const t = (text || uploaded[0]?.name || "New").slice(0, 60);
-      await supabase.from("asher_ai_sessions").update({ title: t }).eq("id", sid);
+      await supabase.from("conversations").update({ title: t, updated_at: new Date().toISOString() }).eq("id", sid);
       setSessions((p) => p.map((s) => s.id === sid ? { ...s, title: t } : s));
     } else {
-      await supabase.from("asher_ai_sessions").update({ updated_at: new Date().toISOString() }).eq("id", sid);
+      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", sid);
     }
+
 
     logAsherEvent("module_open", { module: "asher_command_send", chars: text.length, atts: uploaded.length });
 
