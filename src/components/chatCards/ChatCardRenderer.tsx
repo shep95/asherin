@@ -32,14 +32,26 @@ const INK = "#3B2F28";
 const MUTED = "#9A8B7C";
 
 export function CreamPdfCard({ doc, origin }: { doc: CreamDoc; origin?: string }) {
-  const built = useMemo(() => compileCreamPdf(doc), [doc]);
+  const built = useMemo(() => {
+    try {
+      return compileCreamPdf(doc);
+    } catch {
+      return null;
+    }
+  }, [doc]);
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!built) {
+      setUrl(null);
+      return;
+    }
     const u = URL.createObjectURL(new Blob([built.bytes], { type: "application/pdf" }));
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [built]);
+
+  if (!built) return null;
 
   const download = () => {
     if (!url) return;
