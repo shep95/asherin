@@ -1,7 +1,16 @@
 // ASHER AI · Command Center — sessioned chat with file uploads (image/video/PDF).
-// Asherin wallpaper background. Sessions stored in `asher_ai_sessions` + messages
-// in `asher_ai_messages`. Files uploaded to private `asher-ai-uploads` bucket and
-// streamed to Gemini as inline_data parts via the asher-ai edge function.
+// Asherin wallpaper background.
+//
+// History store: the SAME tables the main dashboard chat uses — `conversations`
+// + `messages`. The map command center is a second mouth on one memory, not a
+// second memory: a conversation started here shows up in the dashboard sidebar
+// and vice-versa. The legacy `asher_ai_sessions` / `asher_ai_messages` rows
+// were copied across (and left untouched) by migration, so nothing was lost.
+//
+// Files upload to the private `asher-ai-uploads` bucket and stream to the model
+// as inline_data parts via the asher-ai edge function; their metadata rides in
+// `messages.attachments`.
+
 
 import { useEffect, useRef, useState, useCallback, memo } from "react";
 import {
