@@ -22,23 +22,25 @@
 //     stripBlocked + per-URL isBlockedSource check on every fused hit.
 
 import { sourcesFor, siteFilter, parseJurisdiction, isBlockedSource } from "./jurisdictions.ts";
+import { buildFieldLedger, formatFieldLedger, type FieldLedger, type Seed } from "./intelExtract.ts";
+import { resolveCandidates, formatCandidateContext, type Candidate, type CandidateSet } from "./candidateResolve.ts";
 import {
-  buildFieldLedger, formatFieldLedger,
-  type FieldLedger, type Seed,
-} from "./intelExtract.ts";
-import {
-  resolveCandidates, formatCandidateContext,
-  type Candidate, type CandidateSet,
-} from "./candidateResolve.ts";
-import {
-  createGraph, ingestRing1, ingestRing2, ring2Seeds, intersectBranches, formatGraph,
-  type IntelGraph, type GraphNode,
+  createGraph,
+  ingestRing1,
+  ingestRing2,
+  ring2Seeds,
+  intersectBranches,
+  formatGraph,
+  type IntelGraph,
+  type GraphNode,
 } from "./intelGraph.ts";
 
-
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("VITE_SUPABASE_URL") ?? "";
-const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? "";
+const SUPABASE_ANON =
+  Deno.env.get("SUPABASE_ANON_KEY") ??
+  Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+  Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ??
+  "";
 
 const NEWS_SITES = ["news.google.com", "reuters.com", "apnews.com", "bbc.com/news"];
 
@@ -69,14 +71,7 @@ export interface IntelChannelHit {
   identityBand?: "strong" | "possible" | "rejected";
 }
 
-export type DomainBucket =
-  | "authoritative"
-  | "corporate"
-  | "court"
-  | "people"
-  | "news"
-  | "social"
-  | "web";
+export type DomainBucket = "authoritative" | "corporate" | "court" | "people" | "news" | "social" | "web";
 
 export interface IntelBundle {
   intent: IntelIntent;
@@ -103,91 +98,147 @@ export interface IntelBundle {
   candidateSet?: CandidateSet;
 }
 
-
-
 // ── Lookup tables (kept from v1 — proven to work) ─────────────────────────
 const US_STATES: Record<string, string> = {
-  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
-  colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
-  hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA",
-  kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD",
-  massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
-  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
-  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
-  "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK",
-  oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
-  "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT",
-  virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI",
-  wyoming: "WY", "district of columbia": "DC",
+  alabama: "AL",
+  alaska: "AK",
+  arizona: "AZ",
+  arkansas: "AR",
+  california: "CA",
+  colorado: "CO",
+  connecticut: "CT",
+  delaware: "DE",
+  florida: "FL",
+  georgia: "GA",
+  hawaii: "HI",
+  idaho: "ID",
+  illinois: "IL",
+  indiana: "IN",
+  iowa: "IA",
+  kansas: "KS",
+  kentucky: "KY",
+  louisiana: "LA",
+  maine: "ME",
+  maryland: "MD",
+  massachusetts: "MA",
+  michigan: "MI",
+  minnesota: "MN",
+  mississippi: "MS",
+  missouri: "MO",
+  montana: "MT",
+  nebraska: "NE",
+  nevada: "NV",
+  "new hampshire": "NH",
+  "new jersey": "NJ",
+  "new mexico": "NM",
+  "new york": "NY",
+  "north carolina": "NC",
+  "north dakota": "ND",
+  ohio: "OH",
+  oklahoma: "OK",
+  oregon: "OR",
+  pennsylvania: "PA",
+  "rhode island": "RI",
+  "south carolina": "SC",
+  "south dakota": "SD",
+  tennessee: "TN",
+  texas: "TX",
+  utah: "UT",
+  vermont: "VT",
+  virginia: "VA",
+  washington: "WA",
+  "west virginia": "WV",
+  wisconsin: "WI",
+  wyoming: "WY",
+  "district of columbia": "DC",
 };
 const AU_STATES: Record<string, string> = {
-  "new south wales": "NSW", nsw: "NSW", victoria: "VIC", vic: "VIC",
-  queensland: "QLD", qld: "QLD", "western australia": "WA",
-  "south australia": "SA", tasmania: "TAS", tas: "TAS",
-  "australian capital territory": "ACT", act: "ACT",
-  "northern territory": "NT", nt: "NT",
+  "new south wales": "NSW",
+  nsw: "NSW",
+  victoria: "VIC",
+  vic: "VIC",
+  queensland: "QLD",
+  qld: "QLD",
+  "western australia": "WA",
+  "south australia": "SA",
+  tasmania: "TAS",
+  tas: "TAS",
+  "australian capital territory": "ACT",
+  act: "ACT",
+  "northern territory": "NT",
+  nt: "NT",
 };
 const CA_PROVINCES: Record<string, string> = {
-  ontario: "ON", "british columbia": "BC", alberta: "AB", quebec: "QC",
-  saskatchewan: "SK", manitoba: "MB", "nova scotia": "NS", "new brunswick": "NB",
-  "prince edward island": "PE", newfoundland: "NL", "newfoundland and labrador": "NL",
+  ontario: "ON",
+  "british columbia": "BC",
+  alberta: "AB",
+  quebec: "QC",
+  saskatchewan: "SK",
+  manitoba: "MB",
+  "nova scotia": "NS",
+  "new brunswick": "NB",
+  "prince edward island": "PE",
+  newfoundland: "NL",
+  "newfoundland and labrador": "NL",
 };
 const CITY_TO_COUNTY: Record<string, { country: string; state: string; county: string }> = {
   "cape coral": { country: "US", state: "FL", county: "LEE" },
   "fort myers": { country: "US", state: "FL", county: "LEE" },
-  "naples": { country: "US", state: "FL", county: "COLLIER" },
-  "miami": { country: "US", state: "FL", county: "MIAMI-DADE" },
+  naples: { country: "US", state: "FL", county: "COLLIER" },
+  miami: { country: "US", state: "FL", county: "MIAMI-DADE" },
   "miami beach": { country: "US", state: "FL", county: "MIAMI-DADE" },
   "fort lauderdale": { country: "US", state: "FL", county: "BROWARD" },
-  "hollywood": { country: "US", state: "FL", county: "BROWARD" },
+  hollywood: { country: "US", state: "FL", county: "BROWARD" },
   "west palm beach": { country: "US", state: "FL", county: "PALM BEACH" },
-  "orlando": { country: "US", state: "FL", county: "ORANGE" },
-  "tampa": { country: "US", state: "FL", county: "HILLSBOROUGH" },
+  orlando: { country: "US", state: "FL", county: "ORANGE" },
+  tampa: { country: "US", state: "FL", county: "HILLSBOROUGH" },
   "st petersburg": { country: "US", state: "FL", county: "PINELLAS" },
   "st. petersburg": { country: "US", state: "FL", county: "PINELLAS" },
-  "jacksonville": { country: "US", state: "FL", county: "DUVAL" },
+  jacksonville: { country: "US", state: "FL", county: "DUVAL" },
   "punta gorda": { country: "US", state: "FL", county: "CHARLOTTE" },
-  "sarasota": { country: "US", state: "FL", county: "SARASOTA" },
-  "houston": { country: "US", state: "TX", county: "HARRIS" },
-  "dallas": { country: "US", state: "TX", county: "DALLAS" },
+  sarasota: { country: "US", state: "FL", county: "SARASOTA" },
+  houston: { country: "US", state: "TX", county: "HARRIS" },
+  dallas: { country: "US", state: "TX", county: "DALLAS" },
   "fort worth": { country: "US", state: "TX", county: "TARRANT" },
   "san antonio": { country: "US", state: "TX", county: "BEXAR" },
-  "austin": { country: "US", state: "TX", county: "TRAVIS" },
+  austin: { country: "US", state: "TX", county: "TRAVIS" },
   "los angeles": { country: "US", state: "CA", county: "LOS ANGELES" },
   "san diego": { country: "US", state: "CA", county: "SAN DIEGO" },
   "san jose": { country: "US", state: "CA", county: "SANTA CLARA" },
-  "oakland": { country: "US", state: "CA", county: "ALAMEDA" },
+  oakland: { country: "US", state: "CA", county: "ALAMEDA" },
   "san francisco": { country: "US", state: "CA", county: "SAN FRANCISCO" },
   "new york": { country: "US", state: "NY", county: "NEW YORK" },
-  "manhattan": { country: "US", state: "NY", county: "NEW YORK" },
-  "brooklyn": { country: "US", state: "NY", county: "KINGS" },
-  "queens": { country: "US", state: "NY", county: "QUEENS" },
-  "chicago": { country: "US", state: "IL", county: "COOK" },
-  "sydney": { country: "AU", state: "NSW", county: "" },
-  "melbourne": { country: "AU", state: "VIC", county: "" },
-  "brisbane": { country: "AU", state: "QLD", county: "" },
-  "perth": { country: "AU", state: "WA", county: "" },
-  "adelaide": { country: "AU", state: "SA", county: "" },
-  "hobart": { country: "AU", state: "TAS", county: "" },
-  "canberra": { country: "AU", state: "ACT", county: "" },
-  "darwin": { country: "AU", state: "NT", county: "" },
-  "toronto": { country: "CA", state: "ON", county: "" },
-  "vancouver": { country: "CA", state: "BC", county: "" },
-  "calgary": { country: "CA", state: "AB", county: "" },
-  "edmonton": { country: "CA", state: "AB", county: "" },
-  "montreal": { country: "CA", state: "QC", county: "" },
-  "ottawa": { country: "CA", state: "ON", county: "" },
-  "london": { country: "GB", state: "", county: "" },
-  "manchester": { country: "GB", state: "", county: "" },
-  "edinburgh": { country: "GB", state: "SCT", county: "" },
-  "glasgow": { country: "GB", state: "SCT", county: "" },
-  "belfast": { country: "GB", state: "NIR", county: "" },
+  manhattan: { country: "US", state: "NY", county: "NEW YORK" },
+  brooklyn: { country: "US", state: "NY", county: "KINGS" },
+  queens: { country: "US", state: "NY", county: "QUEENS" },
+  chicago: { country: "US", state: "IL", county: "COOK" },
+  sydney: { country: "AU", state: "NSW", county: "" },
+  melbourne: { country: "AU", state: "VIC", county: "" },
+  brisbane: { country: "AU", state: "QLD", county: "" },
+  perth: { country: "AU", state: "WA", county: "" },
+  adelaide: { country: "AU", state: "SA", county: "" },
+  hobart: { country: "AU", state: "TAS", county: "" },
+  canberra: { country: "AU", state: "ACT", county: "" },
+  darwin: { country: "AU", state: "NT", county: "" },
+  toronto: { country: "CA", state: "ON", county: "" },
+  vancouver: { country: "CA", state: "BC", county: "" },
+  calgary: { country: "CA", state: "AB", county: "" },
+  edmonton: { country: "CA", state: "AB", county: "" },
+  montreal: { country: "CA", state: "QC", county: "" },
+  ottawa: { country: "CA", state: "ON", county: "" },
+  london: { country: "GB", state: "", county: "" },
+  manchester: { country: "GB", state: "", county: "" },
+  edinburgh: { country: "GB", state: "SCT", county: "" },
+  glasgow: { country: "GB", state: "SCT", county: "" },
+  belfast: { country: "GB", state: "NIR", county: "" },
 };
 
 // ── Detection ──────────────────────────────────────────────────────────────
-const PROPERTY_STRICT = /\b\d{1,6}\s+[A-Z][a-zA-Z0-9\.\-']+\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Ter|Terrace|Cir|Circle|Hwy|Highway|Pkwy|Parkway)\b/i;
+const PROPERTY_STRICT =
+  /\b\d{1,6}\s+[A-Z][a-zA-Z0-9\.\-']+\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Ter|Terrace|Cir|Circle|Hwy|Highway|Pkwy|Parkway)\b/i;
 const PROPERTY_HINTS = /\b(parcel|deed|acreage|owner of|assessor)\b/i;
-const ENTITY_HINTS = /\b(llc|inc\.?|corp\.?|corporation|company|ltd\.?|holdings|group|trust|foundation|pty|gmbh|s\.?a\.?)\b/i;
+const ENTITY_HINTS =
+  /\b(llc|inc\.?|corp\.?|corporation|company|ltd\.?|holdings|group|trust|foundation|pty|gmbh|s\.?a\.?)\b/i;
 
 // Person indicator: two or more name-like tokens.
 // Case-insensitive — we normalize casing before matching so lowercased
@@ -204,18 +255,161 @@ const NAME_RE = /\b([A-Z][a-z'’\-]{1,})(?:\s+([A-Z][a-z'’\-]{1,})){1,3}\b/;
  * is not evidence of a name — the tokens have to be capable of being one.
  */
 const NON_NAME_TOKENS = new Set([
-  "how","what","why","when","where","which","who","whom","whose","is","are","was",
-  "were","do","does","did","can","could","should","would","will","shall","may",
-  "might","the","a","an","and","or","but","if","then","than","that","this","these",
-  "those","there","here","of","in","on","at","to","for","from","by","with","about",
-  "into","over","under","between","many","much","more","most","less","least","some",
-  "any","all","none","not","no","yes","please","tell","me","my","you","your","i",
-  "we","us","it","its","he","she","they","them","his","her","their","explain",
-  "describe","compare","give","make","show","help","need","want","know","think",
-  "write","build","fix","create","list","find","search","look","up","out","get",
-  "now","today","tomorrow","yesterday","time","times","open","close","closed",
-  "price","cost","weather","near","best","good","bad","new","old","cup","ounces",
-  "code","file","error","function","page","app","site","data","report","map",
+  "how",
+  "what",
+  "why",
+  "when",
+  "where",
+  "which",
+  "who",
+  "whom",
+  "whose",
+  "is",
+  "are",
+  "was",
+  "were",
+  "do",
+  "does",
+  "did",
+  "can",
+  "could",
+  "should",
+  "would",
+  "will",
+  "shall",
+  "may",
+  "might",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "if",
+  "then",
+  "than",
+  "that",
+  "this",
+  "these",
+  "those",
+  "there",
+  "here",
+  "of",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "from",
+  "by",
+  "with",
+  "about",
+  "into",
+  "over",
+  "under",
+  "between",
+  "many",
+  "much",
+  "more",
+  "most",
+  "less",
+  "least",
+  "some",
+  "any",
+  "all",
+  "none",
+  "not",
+  "no",
+  "yes",
+  "please",
+  "tell",
+  "me",
+  "my",
+  "you",
+  "your",
+  "i",
+  "we",
+  "us",
+  "it",
+  "its",
+  "he",
+  "she",
+  "they",
+  "them",
+  "his",
+  "her",
+  "their",
+  "explain",
+  "describe",
+  "compare",
+  "give",
+  "make",
+  "show",
+  "help",
+  "need",
+  "want",
+  "know",
+  "think",
+  "write",
+  "build",
+  "fix",
+  "create",
+  "list",
+  "find",
+  "search",
+  "look",
+  "up",
+  "out",
+  "get",
+  "now",
+  "today",
+  "tomorrow",
+  "yesterday",
+  "time",
+  "times",
+  "open",
+  "close",
+  "closed",
+  "price",
+  "cost",
+  "weather",
+  "near",
+  "best",
+  "good",
+  "bad",
+  "new",
+  "old",
+  "cup",
+  "ounces",
+  "code",
+  "file",
+  "error",
+  "function",
+  "page",
+  "app",
+  "site",
+  "data",
+  "report",
+  "map",
+  "criminal",
+  "background",
+  "check",
+  "record",
+  "records",
+  "reside",
+  "used",
+  "born",
+  "january",
+  "february",
+  "march",
+  "april",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
 ]);
 
 function isPlausibleName(candidate: string): boolean {
@@ -234,21 +428,38 @@ function titleCaseForName(s: string): string {
 }
 
 function matchName(s: string): string {
-  const direct = s.match(NAME_RE);
-  if (direct && isPlausibleName(direct[0])) return direct[0];
-
-  // Title-case fallback is only for genuinely lowercased input. If the operator
-  // already capitalized something and it did not survive the plausibility test,
-  // re-casing the whole sentence cannot turn it into a name.
-  if (/[A-Z]/.test(s.replace(/^[^a-z]*/i, "").slice(1))) return "";
-  const tc = titleCaseForName(s).match(NAME_RE);
-  return tc && isPlausibleName(tc[0]) ? tc[0] : "";
+  // Sliding windows: the first title-cased phrase on a hunt request is often
+  // "Do Criminal Background Check", not the person. Scan every 3-then-2 token
+  // run of name-capable words so lowercase quoted names still resolve.
+  const windows = (src: string): string => {
+    const tokens = src
+      .split(/\s+/)
+      .map((t) => t.replace(/^["“‘]+|[ "”’.,;:!?()]+$/g, ""))
+      .filter((t) => t.length >= 2);
+    for (const width of [3, 2]) {
+      for (let i = 0; i + width <= tokens.length; i++) {
+        const cand = titleCaseForName(tokens.slice(i, i + width).join(" "));
+        if (isPlausibleName(cand)) return cand.split(/\s+/).slice(0, 3).join(" ");
+      }
+    }
+    return "";
+  };
+  const quoted = s.match(/["“']([^"”']{3,80})["”']/)?.[1];
+  if (quoted) {
+    const fromQuote = windows(titleCaseForName(quoted));
+    if (fromQuote) return fromQuote;
+  }
+  const hit = windows(titleCaseForName(s));
+  if (hit) return hit;
+  return "";
 }
-
 
 function stripTriggerVerbs(raw: string): string {
   return raw
-    .replace(/^\s*(please\s+)?(can you\s+)?(search|find|look\s?up|research|dig\s?up|pull records?\s+on|scan for|locate|track down|who is|osint on|background(?:\s+check)?\s+on|dossier on|profile of|tell me about|info on|information on|details on|data on)\s+(for\s+)?/i, "")
+    .replace(
+      /^\s*(please\s+)?((can|could)\s+you\s+)?(do\s+(a\s+|the\s+)?)?(search|find|look\s?up|research|dig\s?up|pull records?\s+on|scan for|locate|track down|who is|osint on|(criminal\s+)?background(?:\s+check)?\s+on|criminal\s+(record|history|background)\s+(of|on|for)|dossier on|profile of|tell me about|info on|information on|details on|data on)\s+(for\s+)?/i,
+      "",
+    )
     .replace(/\b(who lives?|that lives?|living|based|located|from|in|at)\s+(in|at)\s+/gi, " ")
     .trim();
 }
@@ -257,7 +468,10 @@ function stripTriggerVerbs(raw: string): string {
 function scanLocation(raw: string): { country: string; state: string; county: string; city: string } {
   const t = String(raw || "");
   const low = t.toLowerCase();
-  let country = "", state = "", county = "", city = "";
+  let country = "",
+    state = "",
+    county = "",
+    city = "";
 
   // Country tokens
   const countryPatterns: Array<[RegExp, string]> = [
@@ -268,13 +482,23 @@ function scanLocation(raw: string): { country: string; state: string; county: st
     [/\bnew zealand\b/, "NZ"],
     [/\bmexico\b/, "MX"],
     [/\b(germany|deutschland)\b/, "DE"],
-    [/\bfrance\b/, "FR"], [/\bspain\b/, "ES"], [/\bitaly\b/, "IT"],
-    [/\bnetherlands\b/, "NL"], [/\bireland\b/, "IE"], [/\bjapan\b/, "JP"],
-    [/\bsingapore\b/, "SG"], [/\b(uae|dubai|abu dhabi)\b/, "AE"],
-    [/\bsouth africa\b/, "ZA"], [/\bbrazil\b/, "BR"], [/\bindia\b/, "IN"],
+    [/\bfrance\b/, "FR"],
+    [/\bspain\b/, "ES"],
+    [/\bitaly\b/, "IT"],
+    [/\bnetherlands\b/, "NL"],
+    [/\bireland\b/, "IE"],
+    [/\bjapan\b/, "JP"],
+    [/\bsingapore\b/, "SG"],
+    [/\b(uae|dubai|abu dhabi)\b/, "AE"],
+    [/\bsouth africa\b/, "ZA"],
+    [/\bbrazil\b/, "BR"],
+    [/\bindia\b/, "IN"],
   ];
   for (const [re, code] of countryPatterns) {
-    if (re.test(low)) { country = code; break; }
+    if (re.test(low)) {
+      country = code;
+      break;
+    }
   }
 
   // City scan first (most specific → also sets country/state/county)
@@ -293,7 +517,9 @@ function scanLocation(raw: string): { country: string; state: string; county: st
   if (!state) {
     for (const [name, code] of Object.entries(US_STATES)) {
       if (new RegExp(`\\b${name}\\b`, "i").test(low)) {
-        state = code; if (!country) country = "US"; break;
+        state = code;
+        if (!country) country = "US";
+        break;
       }
     }
   }
@@ -301,7 +527,9 @@ function scanLocation(raw: string): { country: string; state: string; county: st
   if (!state && (country === "AU" || !country)) {
     for (const [name, code] of Object.entries(AU_STATES)) {
       if (new RegExp(`\\b${name}\\b`, "i").test(low)) {
-        state = code; country = "AU"; break;
+        state = code;
+        country = "AU";
+        break;
       }
     }
   }
@@ -309,7 +537,9 @@ function scanLocation(raw: string): { country: string; state: string; county: st
   if (!state && (country === "CA" || !country)) {
     for (const [name, code] of Object.entries(CA_PROVINCES)) {
       if (new RegExp(`\\b${name}\\b`, "i").test(low)) {
-        state = code; country = "CA"; break;
+        state = code;
+        country = "CA";
+        break;
       }
     }
   }
@@ -327,7 +557,9 @@ function scanLocation(raw: string): { country: string; state: string; county: st
     while ((m = codeRe.exec(t)) !== null) {
       const up = m[1];
       if (Object.values(US_STATES).includes(up)) {
-        state = up; if (!country) country = "US"; break;
+        state = up;
+        if (!country) country = "US";
+        break;
       }
     }
   }
@@ -340,7 +572,9 @@ function scanLocation(raw: string): { country: string; state: string; county: st
       if (word.length < 5) continue;
       for (const [name, code] of Object.entries(US_STATES)) {
         if (!name.includes(" ") && isFuzzyGeoMatch(word, name)) {
-          state = code; if (!country) country = "US"; break;
+          state = code;
+          if (!country) country = "US";
+          break;
         }
       }
       if (state) break;
@@ -356,14 +590,44 @@ function scanLocation(raw: string): { country: string; state: string; county: st
 
 // ── Fuzzy geo vocabulary ───────────────────────────────────────────────────
 // Single-word place names used to scrub location noise out of subject names.
-const GEO_WORDS: string[] = Array.from(new Set([
-  ...Object.keys(US_STATES), ...Object.keys(AU_STATES), ...Object.keys(CA_PROVINCES),
-  ...Object.keys(CITY_TO_COUNTY),
-  "usa", "america", "united", "states", "canada", "canadian", "england", "scotland",
-  "wales", "britain", "british", "australia", "australian", "mexico", "germany",
-  "france", "spain", "italy", "netherlands", "ireland", "japan", "singapore",
-  "county", "city", "town", "state", "province", "country",
-].flatMap((v) => v.split(/\s+/)))).filter((w) => w.length >= 4);
+const GEO_WORDS: string[] = Array.from(
+  new Set(
+    [
+      ...Object.keys(US_STATES),
+      ...Object.keys(AU_STATES),
+      ...Object.keys(CA_PROVINCES),
+      ...Object.keys(CITY_TO_COUNTY),
+      "usa",
+      "america",
+      "united",
+      "states",
+      "canada",
+      "canadian",
+      "england",
+      "scotland",
+      "wales",
+      "britain",
+      "british",
+      "australia",
+      "australian",
+      "mexico",
+      "germany",
+      "france",
+      "spain",
+      "italy",
+      "netherlands",
+      "ireland",
+      "japan",
+      "singapore",
+      "county",
+      "city",
+      "town",
+      "state",
+      "province",
+      "country",
+    ].flatMap((v) => v.split(/\s+/)),
+  ),
+).filter((w) => w.length >= 4);
 
 /** Levenshtein distance capped at 2 — enough for one typo/transposition. */
 function editDistance(a: string, b: string): number {
@@ -388,13 +652,15 @@ function isFuzzyGeoMatch(word: string, vocab: string): boolean {
 }
 
 function scrubGeoNoise(s: string): string {
-  return s.split(/\s+/).filter((tok) => {
-    const w = tok.toLowerCase().replace(/[^a-z]/g, "");
-    if (w.length < 4) return true;
-    return !GEO_WORDS.some((g) => isFuzzyGeoMatch(w, g));
-  }).join(" ");
+  return s
+    .split(/\s+/)
+    .filter((tok) => {
+      const w = tok.toLowerCase().replace(/[^a-z]/g, "");
+      if (w.length < 4) return true;
+      return !GEO_WORDS.some((g) => isFuzzyGeoMatch(w, g));
+    })
+    .join(" ");
 }
-
 
 /** Extract a plausible subject (proper-noun name or address) from the message. */
 function extractSubject(raw: string, jurisdictionTokens: string[]): string {
@@ -405,14 +671,17 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
     if (!tok) continue;
     s = s.replace(new RegExp(`\\b${tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"), " ");
   }
-  s = s.replace(/\b(who|that|which)\s+(lives?|living|is|are|was|were)\b/gi, " ")
-       .replace(/\s{2,}/g, " ")
-       .replace(/[,\.]+$/g, "")
-       .trim();
+  s = s
+    .replace(/\b(who|that|which)\s+(lives?|living|is|are|was|were)\b/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[,\.]+$/g, "")
+    .trim();
   // Kill misspelled/leftover place words ("flordia") before name matching —
   // otherwise they get absorbed as a fourth name token and every registry
   // query searches for a person who does not exist.
-  s = scrubGeoNoise(s).replace(/\s{2,}/g, " ").trim();
+  s = scrubGeoNoise(s)
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   const nameMatch = matchName(s);
   // Cap at three tokens: First [Middle] Last. A longer run is noise.
@@ -420,13 +689,19 @@ function extractSubject(raw: string, jurisdictionTokens: string[]): string {
   return s;
 }
 
-
 // ── Intent classifier ──────────────────────────────────────────────────────
 export function classifyIntent(rawUserMessage: string): IntelIntent {
   const raw = String(rawUserMessage || "").trim();
   const empty: IntelIntent = {
-    kind: "none", subject: "", country: "", state: "", county: "", city: "",
-    needsClarification: false, clarifyQuestions: [], accelerators: [],
+    kind: "none",
+    subject: "",
+    country: "",
+    state: "",
+    county: "",
+    city: "",
+    needsClarification: false,
+    clarifyQuestions: [],
+    accelerators: [],
   };
   if (!raw || raw.length < 4) return empty;
 
@@ -451,7 +726,11 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
     const subject = extractSubject(raw, []);
     return {
       kind: looksEntity ? "entity" : "person",
-      subject, country: "", state: "", county: "", city: "",
+      subject,
+      country: "",
+      state: "",
+      county: "",
+      city: "",
       needsClarification: true,
       clarifyQuestions: [
         `Which country is ${subject} in?`,
@@ -463,9 +742,21 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
   }
 
   const kind: IntelKind = looksProperty ? "property" : looksEntity ? "entity" : "person";
-  const jurisdictionTokens = [city, county, state, country,
-    "florida", "california", "texas", "new york",
-    "usa", "united states", "america", "who lives", "lives in", "who is",
+  const jurisdictionTokens = [
+    city,
+    county,
+    state,
+    country,
+    "florida",
+    "california",
+    "texas",
+    "new york",
+    "usa",
+    "united states",
+    "america",
+    "who lives",
+    "lives in",
+    "who is",
   ].filter(Boolean);
   const subject = extractSubject(raw, jurisdictionTokens);
 
@@ -480,8 +771,15 @@ export function classifyIntent(rawUserMessage: string): IntelIntent {
   }
 
   return {
-    kind, subject, country, state, county, city,
-    needsClarification: false, clarifyQuestions: [], accelerators,
+    kind,
+    subject,
+    country,
+    state,
+    county,
+    city,
+    needsClarification: false,
+    clarifyQuestions: [],
+    accelerators,
   };
 }
 
@@ -494,7 +792,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * degrade to zero results mid-sweep while identical queries succeeded seconds
  * later, so an empty response is treated as soft failure, not as "no data".
  */
-async function zophielQueryOnce(query: string, options: { timeoutMs?: number; limit?: number } = {}): Promise<IntelChannelHit[]> {
+async function zophielQueryOnce(
+  query: string,
+  options: { timeoutMs?: number; limit?: number } = {},
+): Promise<IntelChannelHit[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
 
   // Hard-cap any per-call timeout at 10s so a slow/degraded zophiel-search
@@ -506,8 +807,8 @@ async function zophielQueryOnce(query: string, options: { timeoutMs?: number; li
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
-        "apikey": SUPABASE_ANON,
+        Authorization: `Bearer ${SUPABASE_ANON}`,
+        apikey: SUPABASE_ANON,
       },
       // fast:true → zophiel-search runs only the engines that still return
       // data from edge IPs. The full fan-out costs >10s, which this call used
@@ -521,26 +822,33 @@ async function zophielQueryOnce(query: string, options: { timeoutMs?: number; li
     }
     const data = await resp.json();
 
-    let raw: any[] = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.hits) ? data.hits : []);
+    let raw: any[] = Array.isArray(data?.results) ? data.results : Array.isArray(data?.hits) ? data.hits : [];
     // Fallback: flatten `grouped` (category → results[]) if `results` empty.
     if (raw.length === 0 && data?.grouped && typeof data.grouped === "object") {
       raw = Object.values(data.grouped).flat() as any[];
     }
-    const mapped = raw.slice(0, limit).map((r: any) => {
-      const url = String(r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "");
-      let domain = "";
-      try { domain = new URL(url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
-      return {
-        title: String(r.title || r.name || ""),
-        url,
-        snippet: String(r.snippet || r.description || r.summary || "").slice(0, 500),
-        domain,
-      } as IntelChannelHit;
-    }).filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
+    const mapped = raw
+      .slice(0, limit)
+      .map((r: any) => {
+        const url = String(
+          r.url || r.link || r.source_url || (r.source && !r.source.includes(" ") ? `https://${r.source}` : "") || "",
+        );
+        let domain = "";
+        try {
+          domain = new URL(url).hostname.replace(/^www\./, "");
+        } catch {
+          /* ignore */
+        }
+        return {
+          title: String(r.title || r.name || ""),
+          url,
+          snippet: String(r.snippet || r.description || r.summary || "").slice(0, 500),
+          domain,
+        } as IntelChannelHit;
+      })
+      .filter((h: IntelChannelHit) => h.url && !isBlockedSource(h.domain) && !isBlockedSource(h.url));
     console.log(`[intel:query] raw=${raw.length} kept=${mapped.length} q="${query.slice(0, 80)}"`);
     return mapped;
-
-
   } catch (e) {
     console.error("[jurisdictionalIntel] zophiel query failed:", (e as Error).message);
     return [];
@@ -583,24 +891,48 @@ async function zophielQuery(
   return await run;
 }
 
-
-
 // ── Domain classifier ──────────────────────────────────────────────────────
 function classifyDomain(domain: string): DomainBucket {
   const d = domain.toLowerCase();
   // Government / authoritative records
-  if (/\.gov\b|\.gov\.|\.us\b|leepa\.org|floridaparcels\.com|sunbiz\.org|bcpa\.net|hcad\.org|acris\.nyc\.gov|nswlrs\.com\.au|landregistry\.data\.gov\.uk|companies-house|company-information\.service\.gov\.uk/.test(d)) return "authoritative";
-  if (/opencorporates\.com|sec\.gov|efts\.sec\.gov|linkedin\.com\/company|asic\.gov\.au|corporationscanada|handelsregister\.de|infogreffe\.fr/.test(d)) return "corporate";
+  if (
+    /\.gov\b|\.gov\.|\.us\b|leepa\.org|floridaparcels\.com|sunbiz\.org|bcpa\.net|hcad\.org|acris\.nyc\.gov|nswlrs\.com\.au|landregistry\.data\.gov\.uk|companies-house|company-information\.service\.gov\.uk/.test(
+      d,
+    )
+  )
+    return "authoritative";
+  if (
+    /opencorporates\.com|sec\.gov|efts\.sec\.gov|linkedin\.com\/company|asic\.gov\.au|corporationscanada|handelsregister\.de|infogreffe\.fr/.test(
+      d,
+    )
+  )
+    return "corporate";
   if (/pacer\.gov|courtlistener\.com|justia\.com|austlii|myflcourtaccess/.test(d)) return "court";
-  if (/truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|fastbackgroundcheck|freepeoplesearch|peoplefinders|searchpeoplefree|unmask\.com|idcrawl|intelius|nuwber|clustrmaps|cyberbackgroundchecks|ussearch|instantcheckmate|peekyou|zabasearch|addresses\.com|smartbackgroundchecks|officialusa|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(d)) return "people";
-  if (/news\.google\.com|reuters\.com|apnews\.com|bbc\.com|nytimes\.com|washingtonpost\.com|news-press\.com|winknews\.com|nbc-2\.com/.test(d)) return "news";
-  if (/facebook\.com|instagram\.com|x\.com|twitter\.com|linkedin\.com|tiktok\.com|youtube\.com|pinterest\.com/.test(d)) return "social";
+  if (
+    /truepeoplesearch|whitepages|spokeo|beenverified|fastpeoplesearch|fastbackgroundcheck|freepeoplesearch|peoplefinders|searchpeoplefree|unmask\.com|idcrawl|intelius|nuwber|clustrmaps|cyberbackgroundchecks|ussearch|instantcheckmate|peekyou|zabasearch|addresses\.com|smartbackgroundchecks|officialusa|radaris|thatsthem|voterrecords|usphonebook|canada411|192\.com/.test(
+      d,
+    )
+  )
+    return "people";
+  if (
+    /news\.google\.com|reuters\.com|apnews\.com|bbc\.com|nytimes\.com|washingtonpost\.com|news-press\.com|winknews\.com|nbc-2\.com/.test(
+      d,
+    )
+  )
+    return "news";
+  if (/facebook\.com|instagram\.com|x\.com|twitter\.com|linkedin\.com|tiktok\.com|youtube\.com|pinterest\.com/.test(d))
+    return "social";
   return "web";
 }
 
 function normalizeIdentityText(value: string): string {
-  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelChannelHit {
@@ -615,18 +947,39 @@ function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelCh
   const firstLast = `${first} ${last}`.trim();
   let score = 0;
   const reasons: string[] = [];
-  if (name && haystack.includes(name)) { score += 60; reasons.push("exact full name"); }
-  else if (firstLast && haystack.includes(firstLast)) { score += 32; reasons.push("first + last name"); }
-  else if (first && last && (haystack.includes(`${last} ${first}`) || haystack.includes(`${last} ${first} ${middleInitial}`))) { score += 32; reasons.push("registry name order"); }
-  else if (first && last && haystack.includes(first) && haystack.includes(last)) { score += 22; reasons.push("name tokens"); }
-  if (middle && haystack.includes(middle)) { score += 15; reasons.push("middle name"); }
+  if (name && haystack.includes(name)) {
+    score += 60;
+    reasons.push("exact full name");
+  } else if (firstLast && haystack.includes(firstLast)) {
+    score += 32;
+    reasons.push("first + last name");
+  } else if (
+    first &&
+    last &&
+    (haystack.includes(`${last} ${first}`) || haystack.includes(`${last} ${first} ${middleInitial}`))
+  ) {
+    score += 32;
+    reasons.push("registry name order");
+  } else if (first && last && haystack.includes(first) && haystack.includes(last)) {
+    score += 22;
+    reasons.push("name tokens");
+  }
+  if (middle && haystack.includes(middle)) {
+    score += 15;
+    reasons.push("middle name");
+  }
   const locators = [
-    [intent.city, 25, "city"], [intent.county, 15, "county"],
-    [intent.state, 10, "state"], [intent.country, 5, "country"],
+    [intent.city, 25, "city"],
+    [intent.county, 15, "county"],
+    [intent.state, 10, "state"],
+    [intent.country, 5, "country"],
   ] as const;
   for (const [value, weight, label] of locators) {
     const normalized = normalizeIdentityText(value);
-    if (normalized && new RegExp(`\\b${normalized}\\b`).test(haystack)) { score += weight; reasons.push(label); }
+    if (normalized && new RegExp(`\\b${normalized}\\b`).test(haystack)) {
+      score += weight;
+      reasons.push(label);
+    }
   }
   hit.identityScore = Math.min(score, 100);
   hit.identityReasons = reasons;
@@ -637,17 +990,19 @@ function scorePersonIdentity(hit: IntelChannelHit, intent: IntelIntent): IntelCh
 // ── Body fetch (deep pass) ─────────────────────────────────────────────────
 /** Collapse an HTML document to parseable plain text. */
 function htmlToText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim()
-    // 3.5 KB truncated people-directory pages before the relatives block. The
-    // extraction layer parses the whole document, so keep 14 KB.
-    .slice(0, 14000);
+  return (
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ")
+      .trim()
+      // 3.5 KB truncated people-directory pages before the relatives block. The
+      // extraction layer parses the whole document, so keep 14 KB.
+      .slice(0, 14000)
+  );
 }
 
 /**
@@ -695,11 +1050,16 @@ async function fetchBodyViaFirecrawl(url: string, timeoutMs: number): Promise<st
     const resp = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true, timeout: Math.min(timeoutMs - 500, 20000) }),
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+        timeout: Math.min(timeoutMs - 500, 20000),
+      }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!resp.ok) return "";
-    const json = await resp.json().catch(() => null) as any;
+    const json = (await resp.json().catch(() => null)) as any;
     const md: string = json?.data?.markdown || json?.data?.html || "";
     if (!md) return "";
     return htmlToText(md);
@@ -715,8 +1075,9 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
       headers: {
         // A self-identifying bot UA is auto-403'd by every major directory.
         // Present as a real browser; we only read publicly served pages.
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
       },
       signal: AbortSignal.timeout(Math.min(timeoutMs, 6000)),
@@ -730,16 +1091,20 @@ async function fetchBody(url: string, timeoutMs = 4500): Promise<string> {
         direct = htmlToText(raw);
       }
     }
-  } catch { /* fall through to Firecrawl */ }
+  } catch {
+    /* fall through to Firecrawl */
+  }
 
   // A challenge/interstitial returns 200 with almost no text — treat as failure.
-  if (direct.length >= 600 && !/just a moment|enable javascript|access denied|verify you are human/i.test(direct.slice(0, 400))) {
+  if (
+    direct.length >= 600 &&
+    !/just a moment|enable javascript|access denied|verify you are human/i.test(direct.slice(0, 400))
+  ) {
     return direct;
   }
   const rendered = await fetchBodyViaFirecrawl(url, timeoutMs);
   return rendered.length > direct.length ? rendered : direct;
 }
-
 
 function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   if (intent.kind === "person") {
@@ -770,7 +1135,6 @@ function scoreEnrichQuery(intent: IntelIntent, label: string): number {
   return 10;
 }
 
-
 // ── Three-pass sweep + fusion ───────────────────────────────────────────────
 export async function runJurisdictionalSearch(intent: IntelIntent): Promise<IntelBundle> {
   const startedAt = Date.now();
@@ -782,27 +1146,43 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   const deadlineMs = 68000;
 
   const src = sourcesFor(intent.country, intent.state, intent.county);
-  const registries = Array.from(new Set([
-    ...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people,
-  ])).slice(0, 25);
+  const registries = Array.from(
+    new Set([...src.ownership, ...src.tax, ...src.permits, ...src.entities, ...src.courts, ...src.people]),
+  ).slice(0, 25);
 
-  const jurisdictionLabel = [
-    intent.city,
-    intent.county ? `${intent.county} County` : "",
-    intent.state,
-    intent.country,
-  ].filter(Boolean).join(", ") || "unspecified";
+  const jurisdictionLabel =
+    [intent.city, intent.county ? `${intent.county} County` : "", intent.state, intent.country]
+      .filter(Boolean)
+      .join(", ") || "unspecified";
 
   const subject = intent.subject;
   const subjectQuoted = /\s/.test(subject) ? `"${subject}"` : subject;
   // Country name maps to the geo token when no finer locus is present, so
   // Pass-1 web-tab parity actually includes "Australia" / "United Kingdom".
   const COUNTRY_LABELS: Record<string, string> = {
-    US: "United States", CA: "Canada", GB: "United Kingdom", AU: "Australia",
-    NZ: "New Zealand", IE: "Ireland", DE: "Germany", FR: "France",
-    ES: "Spain", IT: "Italy", NL: "Netherlands", SE: "Sweden", NO: "Norway",
-    DK: "Denmark", FI: "Finland", CH: "Switzerland", AT: "Austria", BE: "Belgium",
-    IN: "India", SG: "Singapore", JP: "Japan", MX: "Mexico", BR: "Brazil",
+    US: "United States",
+    CA: "Canada",
+    GB: "United Kingdom",
+    AU: "Australia",
+    NZ: "New Zealand",
+    IE: "Ireland",
+    DE: "Germany",
+    FR: "France",
+    ES: "Spain",
+    IT: "Italy",
+    NL: "Netherlands",
+    SE: "Sweden",
+    NO: "Norway",
+    DK: "Denmark",
+    FI: "Finland",
+    CH: "Switzerland",
+    AT: "Austria",
+    BE: "Belgium",
+    IN: "India",
+    SG: "Singapore",
+    JP: "Japan",
+    MX: "Mexico",
+    BR: "Brazil",
   };
   // County codes ("LEE") inside a query are noise no directory indexes — the
   // observed recall collapse ("Cape Coral LEE FL" → 0 hits) came from exactly
@@ -812,9 +1192,8 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     ? [intent.city, intent.state].filter(Boolean).join(" ")
     : [intent.county ? `${titleCaseForName(intent.county)} County` : "", intent.state].filter(Boolean).join(" ");
 
-  const countryLabel = intent.country ? (COUNTRY_LABELS[intent.country] || intent.country) : "";
+  const countryLabel = intent.country ? COUNTRY_LABELS[intent.country] || intent.country : "";
   const locus = narrowLocus || countryLabel;
-
 
   // ── PASS 1 — WEB-TAB PARITY ─────────────────────────────────────────────
   // Unquoted, no site: restrictor. This is exactly what the Zophiel web tab runs.
@@ -823,30 +1202,38 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // person channel returns nothing and the answer drifts to whatever generic
   // .gov documents matched the loose tokens. Emit both forms.
   const nameParts = subject.split(/\s+/).filter(Boolean);
-  const firstLast = intent.kind === "person" && nameParts.length >= 3
-    ? `"${nameParts[0]} ${nameParts[nameParts.length - 1]}"`
-    : "";
-  const pass1Queries: string[] = [
-    `${subject} ${locus}`.trim(),
-    `${subjectQuoted} ${locus}`.trim(),
-  ];
+  const firstLast =
+    intent.kind === "person" && nameParts.length >= 3 ? `"${nameParts[0]} ${nameParts[nameParts.length - 1]}"` : "";
+  const pass1Queries: string[] = [`${subject} ${locus}`.trim(), `${subjectQuoted} ${locus}`.trim()];
 
   // ── PASS 2 — JURISDICTION ENRICH ────────────────────────────────────────
   const enrichQueries: Array<{ label: string; query: string }> = [];
   if (intent.kind === "property" || intent.kind === "person") {
-    if (src.ownership.length) enrichQueries.push({ label: "ownership", query: `${subjectQuoted} ${locus} owner deed ${siteFilter(src.ownership)}` });
-    if (src.tax.length)       enrichQueries.push({ label: "tax",       query: `${subjectQuoted} ${locus} assessed value ${siteFilter(src.tax)}` });
-    if (src.permits.length)   enrichQueries.push({ label: "permits",   query: `${subjectQuoted} ${locus} permit ${siteFilter(src.permits)}` });
+    if (src.ownership.length)
+      enrichQueries.push({
+        label: "ownership",
+        query: `${subjectQuoted} ${locus} owner deed ${siteFilter(src.ownership)}`,
+      });
+    if (src.tax.length)
+      enrichQueries.push({ label: "tax", query: `${subjectQuoted} ${locus} assessed value ${siteFilter(src.tax)}` });
+    if (src.permits.length)
+      enrichQueries.push({ label: "permits", query: `${subjectQuoted} ${locus} permit ${siteFilter(src.permits)}` });
   }
   if (intent.kind === "person" || intent.kind === "entity") {
-    if (src.entities.length) enrichQueries.push({ label: "entities", query: `${subjectQuoted} ${locus} director officer registered agent ${siteFilter(src.entities)}` });
-    if (src.courts.length)   enrichQueries.push({ label: "courts",   query: `${subjectQuoted} ${locus} case filing ${siteFilter(src.courts)}` });
+    if (src.entities.length)
+      enrichQueries.push({
+        label: "entities",
+        query: `${subjectQuoted} ${locus} director officer registered agent ${siteFilter(src.entities)}`,
+      });
+    if (src.courts.length)
+      enrichQueries.push({ label: "courts", query: `${subjectQuoted} ${locus} case filing ${siteFilter(src.courts)}` });
   }
   if (intent.kind === "person") {
     // A 9-way `site:a OR site:b …` restrictor returns near-zero on every real
     // SERP backend, so the people channel was structurally dead. Natural-language
     // record phrasing surfaces the same directories organically.
-    if (src.people.length) enrichQueries.push({ label: "people", query: `${firstLast || subjectQuoted} ${locus} address phone relatives` });
+    if (src.people.length)
+      enrichQueries.push({ label: "people", query: `${firstLast || subjectQuoted} ${locus} address phone relatives` });
     if (firstLast) {
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus} age relatives` });
       enrichQueries.push({ label: "people", query: `${firstLast} ${locus}` });
@@ -877,19 +1264,22 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
 
     enrichQueries.push({ label: "news", query: `${recordName} ${locus} news` });
     enrichQueries.push({ label: "social", query: `${recordName} ${locus} linkedin instagram` });
-
   }
-
 
   // Pass 1 is deliberately first, not part of a large Promise fan-out. The
   // Zophiel web tab succeeds on single wide calls; flooding it with 6+ nested
   // calls caused chat-timeout failures while the web tab itself still worked.
   const pass1a = await zophielQuery(pass1Queries[0], { timeoutMs: 10000, limit: 20 });
-  const pass1b = pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
-    ? []
-    : await zophielQuery(pass1Queries[1], { timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)), limit: 12 });
+  const pass1b =
+    pass1a.length >= 8 || pass1Queries[1] === pass1Queries[0]
+      ? []
+      : await zophielQuery(pass1Queries[1], {
+          timeoutMs: Math.max(4000, Math.min(8000, deadlineMs - (Date.now() - startedAt) - 3500)),
+          limit: 12,
+        });
 
-  const countryOnlyPerson = intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
+  const countryOnlyPerson =
+    intent.kind === "person" && Boolean(intent.country) && !intent.state && !intent.city && !intent.county;
   const maxEnrich = countryOnlyPerson ? 4 : 14;
   const selectedEnrich = enrichQueries
     .sort((a, b) => scoreEnrichQuery(intent, b.label) - scoreEnrichQuery(intent, a.label))
@@ -906,8 +1296,11 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     if (remaining < 4500) break;
     const wave = selectedEnrich.slice(i, i + WAVE);
     const results = await Promise.all(
-      wave.map((q) => zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10, retryEmpty: false })
-        .catch(() => [] as IntelChannelHit[])),
+      wave.map((q) =>
+        zophielQuery(q.query, { timeoutMs: Math.min(7000, remaining), limit: 10, retryEmpty: false }).catch(
+          () => [] as IntelChannelHit[],
+        ),
+      ),
     );
     pass2.push(...results);
     // Upstream degrades under back-to-back bursts; a short gap between waves
@@ -915,12 +1308,16 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     if (i + WAVE < selectedEnrich.length) await sleep(300);
   }
 
-
-
   // ── FUSE — dedupe by URL, block-check every hit, classify into buckets ──
   const seen = new Set<string>();
   const buckets: Record<DomainBucket, IntelChannelHit[]> = {
-    authoritative: [], corporate: [], court: [], people: [], news: [], social: [], web: [],
+    authoritative: [],
+    corporate: [],
+    court: [],
+    people: [],
+    news: [],
+    social: [],
+    web: [],
   };
   const all: IntelChannelHit[] = [...pass1a, ...pass1b, ...pass2.flat()];
   let rejectedIdentityHits = 0;
@@ -975,11 +1372,9 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, worker));
   };
 
-
-
   const allHits = () => (Object.keys(buckets) as DomainBucket[]).flatMap((b) => buckets[b]);
-  const bodyBudget = deadlineMs - (Date.now() - startedAt) > 12000 ? 26
-    : deadlineMs - (Date.now() - startedAt) > 7000 ? 10 : 3;
+  const bodyBudget =
+    deadlineMs - (Date.now() - startedAt) > 12000 ? 26 : deadlineMs - (Date.now() - startedAt) > 7000 ? 10 : 3;
   await harvest(pickTargets(bodyBudget, allHits()));
 
   // Re-score identity now that bodies exist — a body can promote a POSSIBLE
@@ -992,21 +1387,22 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // while the page itself sits behind a Cloudflare interstitial. Discarding
   // those hits starved ring 1 and left ring 2 with zero branch documents, so
   // snippet-only hits are admitted as lower-weight documents.
-  const docsOf = (hits: IntelChannelHit[]) => hits
-    .map((h) => {
-      const hasBody = !!h.body && h.body.length > 40;
-      const meta = `${h.title}\n${h.snippet}`.trim();
-      if (!hasBody && meta.length < 60) return null;
-      return {
-        domain: h.domain,
-        url: h.url,
-        bucket: h.bucket,
-        text: hasBody ? `${meta}\n${h.body}` : meta,
-        authoritative: hasBody && (h.bucket === "authoritative" || h.bucket === "court"),
-        band: h.identityBand,
-      };
-    })
-    .filter((d): d is NonNullable<typeof d> => d !== null);
+  const docsOf = (hits: IntelChannelHit[]) =>
+    hits
+      .map((h) => {
+        const hasBody = !!h.body && h.body.length > 40;
+        const meta = `${h.title}\n${h.snippet}`.trim();
+        if (!hasBody && meta.length < 60) return null;
+        return {
+          domain: h.domain,
+          url: h.url,
+          bucket: h.bucket,
+          text: hasBody ? `${meta}\n${h.body}` : meta,
+          authoritative: hasBody && (h.bucket === "authoritative" || h.bucket === "court"),
+          band: h.identityBand,
+        };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
 
   const toDocs = () => docsOf(allHits());
 
@@ -1019,11 +1415,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
   // When two clusters survive with comparable weight the sweep STOPS here: the
   // ring-2 expansion below is the expensive act and must never be spent on a
   // namesake.
-  const candidateSet = intent.kind === "person"
-    ? resolveCandidates(toDocs(), intent, (u) => IMAGE_BY_URL.get(u))
-    : undefined;
+  const candidateSet =
+    intent.kind === "person" ? resolveCandidates(toDocs(), intent, (u) => IMAGE_BY_URL.get(u)) : undefined;
   if (candidateSet) {
-    console.log(`[intel:candidates] clusters=${candidateSet.candidates.length} margin=${candidateSet.margin} ambiguous=${candidateSet.ambiguous} unattributed=${candidateSet.unattributed}`);
+    console.log(
+      `[intel:candidates] clusters=${candidateSet.candidates.length} margin=${candidateSet.margin} ambiguous=${candidateSet.ambiguous} unattributed=${candidateSet.unattributed}`,
+    );
   }
 
   // ── BOUNDED THREE-HOP GRAPH ────────────────────────────────────────────
@@ -1046,26 +1443,28 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
       // ring 2 was collapsing to zero; the unquoted form is the fallback.
       const queryFor = (n: GraphNode, loose: boolean) => {
         const name = loose ? n.label : `"${n.label}"`;
-        return n.kind === "person" ? `${name} ${locus} relatives address`
-          : n.kind === "address" ? `${name} ${locus} owner residents`
+        return n.kind === "person"
+          ? `${name} ${locus} relatives address`
+          : n.kind === "address"
+            ? `${name} ${locus} owner residents`
             : `${name} ${locus} officer registered agent`;
       };
 
       const runSeed = async (n: GraphNode, budget: number) => {
-        const strict = await zophielQuery(queryFor(n, false), { timeoutMs: budget, limit: 8 })
-          .catch(() => [] as IntelChannelHit[]);
+        const strict = await zophielQuery(queryFor(n, false), { timeoutMs: budget, limit: 8 }).catch(
+          () => [] as IntelChannelHit[],
+        );
         if (strict.length) return strict;
-        return await zophielQuery(queryFor(n, true), { timeoutMs: budget, limit: 8 })
-          .catch(() => [] as IntelChannelHit[]);
+        return await zophielQuery(queryFor(n, true), { timeoutMs: budget, limit: 8 }).catch(
+          () => [] as IntelChannelHit[],
+        );
       };
 
       for (let i = 0; i < seeds.length; i += 3) {
         const remaining = deadlineMs - (Date.now() - startedAt) - 6000;
         if (remaining < 5000) break;
         const wave = seeds.slice(i, i + 3);
-        const results = await Promise.all(
-          wave.map((n) => runSeed(n, Math.min(6500, remaining))),
-        );
+        const results = await Promise.all(wave.map((n) => runSeed(n, Math.min(6500, remaining))));
 
         // Per-seed fresh-hit sets keep ring-2 attribution honest: a node found
         // by seed A must not be credited to seed B.
@@ -1079,8 +1478,12 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
               // branch evidence when it actually names this seed — attribute it
               // to the branch without re-adding it to the bucket totals.
               const prior = allHits().find((x) => x.url === hit.url);
-              if (prior && `${prior.title} ${prior.snippet} ${prior.body || ""}`
-                .toLowerCase().includes(wave[k].label.toLowerCase())) {
+              if (
+                prior &&
+                `${prior.title} ${prior.snippet} ${prior.body || ""}`
+                  .toLowerCase()
+                  .includes(wave[k].label.toLowerCase())
+              ) {
                 freshPerSeed[k].push(prior);
               }
               continue;
@@ -1097,11 +1500,18 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
         await harvest(pickTargets(hopBodyBudget, freshPerSeed.flat()), 6);
 
         wave.forEach((node, k) => {
-          hopExecuted.push({ kind: node.kind === "person" ? "relative" : node.kind === "address" ? "address" : "entity", value: node.label, rationale: `information gain ${node.gain}` });
+          hopExecuted.push({
+            kind: node.kind === "person" ? "relative" : node.kind === "address" ? "address" : "entity",
+            value: node.label,
+            rationale: `information gain ${node.gain}`,
+          });
           ring2Executed += 1;
           const branchDocs = docsOf(freshPerSeed[k]);
           console.log(`[intel:ring2] seed="${node.label}" hits=${freshPerSeed[k].length} docs=${branchDocs.length}`);
-          if (!branchDocs.length) { branches.set(node.id, []); return; }
+          if (!branchDocs.length) {
+            branches.set(node.id, []);
+            return;
+          }
           // Ring-2 extraction is scoped to the SEED as subject, not the
           // original target — otherwise the seed's relatives would be parsed
           // as the subject's relatives.
@@ -1112,7 +1522,6 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
         });
       }
 
-
       // RING 3 — intersection only.
       intersectBranches(graph, branches);
     }
@@ -1122,14 +1531,20 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     ingestRing1(graph, fieldLedger);
   }
 
-
   const emptyBuckets = (Object.keys(buckets) as DomainBucket[]).filter((k) => buckets[k].length === 0);
   const totalHits = Object.values(buckets).reduce((a, b) => a + b.length, 0);
   const documentsFetched = allHits().filter((h) => h.body && h.body.length > 40).length;
 
   return {
-    intent, buckets, registries, jurisdictionLabel, emptyBuckets, totalHits,
-    rejectedIdentityHits, fieldLedger, documentsFetched,
+    intent,
+    buckets,
+    registries,
+    jurisdictionLabel,
+    emptyBuckets,
+    totalHits,
+    rejectedIdentityHits,
+    fieldLedger,
+    documentsFetched,
     hopSeeds: hopExecuted,
     graph: intent.kind === "person" && !candidateSet?.ambiguous ? graph : undefined,
     candidateSet,
@@ -1137,9 +1552,7 @@ export async function runJurisdictionalSearch(intent: IntelIntent): Promise<Inte
     elapsedMs: Date.now() - startedAt,
     queriesRun: 2 + selectedEnrich.length + hopExecuted.length,
   };
-
 }
-
 
 // ── Format for LLM context ────────────────────────────────────────────────
 const BUCKET_LABELS: Record<DomainBucket, string> = {
@@ -1168,11 +1581,21 @@ export function formatIntelContext(bundle: IntelBundle): string {
   }
 
   const {
-    intent, buckets, jurisdictionLabel, emptyBuckets, totalHits, registries,
-    rejectedIdentityHits, fieldLedger, documentsFetched, hopSeeds, elapsedMs, queriesRun,
-    graph, ring2Executed,
+    intent,
+    buckets,
+    jurisdictionLabel,
+    emptyBuckets,
+    totalHits,
+    registries,
+    rejectedIdentityHits,
+    fieldLedger,
+    documentsFetched,
+    hopSeeds,
+    elapsedMs,
+    queriesRun,
+    graph,
+    ring2Executed,
   } = bundle;
-
 
   const header = [
     `## JURISDICTIONAL INTEL SWEEP — ${intent.kind.toUpperCase()}`,
@@ -1186,17 +1609,20 @@ export function formatIntelContext(bundle: IntelBundle): string {
     `Rejected as identity mismatches: ${rejectedIdentityHits}`,
   ].join("\n");
 
-
   const accel = intent.accelerators.length
     ? `\n\n### ACCELERATORS (ask user, do not block)\n${intent.accelerators.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
     : "";
 
-  const NO_PRIORS_RULE = "  • ZERO-PRIOR RULE: you have never heard of this subject. Any name, company, product, founder, handle, lineage or affiliation that appears in your system prompt, platform/product description, saved memory, vault, or earlier conversations is PRODUCT METADATA — not evidence about the person being searched, even when the names match exactly. Never merge it into this dossier and never cite it.";
-  const NO_FABRICATED_SWEEP_RULE = "  • Never claim to have queried a database that is not listed in 'Registries in scope' above, and never present a registry name as a completed lookup unless a hit for it appears above.";
+  const NO_PRIORS_RULE =
+    "  • ZERO-PRIOR RULE: you have never heard of this subject. Any name, company, product, founder, handle, lineage or affiliation that appears in your system prompt, platform/product description, saved memory, vault, or earlier conversations is PRODUCT METADATA — not evidence about the person being searched, even when the names match exactly. Never merge it into this dossier and never cite it.";
+  const NO_FABRICATED_SWEEP_RULE =
+    "  • Never claim to have queried a database that is not listed in 'Registries in scope' above, and never present a registry name as a completed lookup unless a hit for it appears above.";
 
   if (totalHits === 0) {
     return [
-      header, accel, "",
+      header,
+      accel,
+      "",
       "### RESULT: No public records surfaced in queried sources.",
       "Report honestly. Do NOT fabricate. State what was searched, that nothing surfaced, and what lever would unlock the next layer (middle name, DOB range, previous address, employer, known associate).",
       "Distinguish 'no public record found' from 'this person does not exist'.",
@@ -1206,29 +1632,29 @@ export function formatIntelContext(bundle: IntelBundle): string {
     ].join("\n");
   }
 
-
-
-  const ledgerBlock = fieldLedger && fieldLedger.documentsParsed > 0
-    ? `\n\n${formatFieldLedger(fieldLedger)}`
-    : "";
+  const ledgerBlock = fieldLedger && fieldLedger.documentsParsed > 0 ? `\n\n${formatFieldLedger(fieldLedger)}` : "";
 
   const graphBlock = graph && graph.nodes.length > 1 ? `\n\n${formatGraph(graph)}` : "";
-
 
   const sections: string[] = [];
   const order: DomainBucket[] = ["authoritative", "corporate", "court", "people", "news", "social", "web"];
   for (const b of order) {
     const hits = buckets[b];
     if (!hits.length) continue;
-    const lines = hits.slice(0, 20).map((h, i) => {
-      const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 2600)}` : "";
-      const identity = intent.kind === "person"
-        ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
-        : "";
-      return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
-    }).join("\n");
-    sections.push(`### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 20)})\n${lines}`);
-
+    const lines = hits
+      .slice(0, 20)
+      .map((h, i) => {
+        const bodyBlock = h.body ? `\n     BODY EXCERPT: ${h.body.slice(0, 2600)}` : "";
+        const identity =
+          intent.kind === "person"
+            ? `\n     IDENTITY MATCH: ${h.identityBand?.toUpperCase()} (${h.identityScore}/100) — ${(h.identityReasons || []).join(", ")}`
+            : "";
+        return `  ${i + 1}. [${h.domain}] ${h.title}\n     URL: ${h.url}\n     SNIPPET: ${h.snippet}${identity}${bodyBlock}`;
+      })
+      .join("\n");
+    sections.push(
+      `### ${BUCKET_LABELS[b]} (${hits.length} hit${hits.length === 1 ? "" : "s"}, showing ${Math.min(hits.length, 20)})\n${lines}`,
+    );
   }
 
   const coverage = [
@@ -1247,13 +1673,14 @@ export function formatIntelContext(bundle: IntelBundle): string {
     `| Graph ring 3 (intersection only) | ${graph?.crossLinks.length ?? 0} | ${(graph?.crossLinks.length ?? 0) > 0 ? "CLOSED TRIANGLES FOUND" : "NO CONVERGENCE"} |`,
   ].join("\n");
 
-
   const emptyNote = emptyBuckets.length
     ? `\n\n### EMPTY BUCKETS: ${emptyBuckets.map((b) => BUCKET_LABELS[b].split(" ")[0]).join(", ")} — name the missing lever that would unlock each.`
     : "";
 
   return [
-    header, accel, "",
+    header,
+    accel,
+    "",
     ledgerBlock,
     graphBlock,
     "",
@@ -1290,14 +1717,14 @@ export function formatIntelContext(bundle: IntelBundle): string {
     "  • Include a coverage table: one row per bucket (authoritative, corporate, court, people, news, social, web) with hit count and status, so the user can see everything that was searched.",
     "  • NEVER reference leak/breach databases (Offshore Leaks, ICIJ, Have I Been Pwned, etc.) — they are blocked at retrieval.",
     "  • End with the ONE specific lever that would deepen the sweep next.",
-
   ].join("\n");
 }
 
 export function formatClarifyContext(intent: IntelIntent): string {
   return [
     `## JURISDICTIONAL INTEL — CLARIFICATION REQUIRED`,
-    `Subject: ${intent.subject}`, ``,
+    `Subject: ${intent.subject}`,
+    ``,
     `Cannot run a responsible sweep without at least a country. Ask these targeted questions:`,
     ...intent.clarifyQuestions.map((q, i) => `  ${i + 1}. ${q}`),
     ``,
