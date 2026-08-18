@@ -3977,6 +3977,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          legacy_asher_session_id: string | null
           mode: string
           persona_id: string | null
           pinned: boolean
@@ -3991,6 +3992,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          legacy_asher_session_id?: string | null
           mode?: string
           persona_id?: string | null
           pinned?: boolean
@@ -4005,6 +4007,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          legacy_asher_session_id?: string | null
           mode?: string
           persona_id?: string | null
           pinned?: boolean
@@ -7465,36 +7468,42 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachments: Json
           attachments_enc: string | null
           branch_id: string | null
           content: string
           conversation_id: string
           created_at: string
           id: string
+          legacy_asher_message_id: string | null
           role: string
           sources: Json | null
           truth_score: string | null
           user_id: string
         }
         Insert: {
+          attachments?: Json
           attachments_enc?: string | null
           branch_id?: string | null
           content?: string
           conversation_id: string
           created_at?: string
           id?: string
+          legacy_asher_message_id?: string | null
           role: string
           sources?: Json | null
           truth_score?: string | null
           user_id: string
         }
         Update: {
+          attachments?: Json
           attachments_enc?: string | null
           branch_id?: string | null
           content?: string
           conversation_id?: string
           created_at?: string
           id?: string
+          legacy_asher_message_id?: string | null
           role?: string
           sources?: Json | null
           truth_score?: string | null
