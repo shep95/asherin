@@ -200,9 +200,9 @@ export function mergeCreamPayload(base: CreamDoc, payload: Record<string, unknow
   }
   if (Array.isArray(payload.turns)) {
     d.turns = payload.turns
-      .filter((t) => !!t && typeof t === "object")
+      .filter((t): t is Record<string, unknown> => !!t && typeof t === "object" && !Array.isArray(t))
       .map((t) => ({
-        who: String(t.who) === "you" ? "you" : "asherin",
+        who: String(t.who) === "you" ? ("you" as const) : ("asherin" as const),
         text: String(t.text || "").slice(0, 1800),
       }))
       .filter((t) => t.text)
