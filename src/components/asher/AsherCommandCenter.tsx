@@ -188,10 +188,10 @@ const AsherCommandCenter = () => {
   const newSession = async () => {
     if (!user) return;
     const { data, error } = await supabase
-      .from("asher_ai_sessions")
-      .insert({ user_id: user.id, title: "New Conversation" })
+      .from("conversations")
+      .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
       .select("id,title,updated_at").single();
-    if (error || !data) { toast.error(error?.message || "Could not create session"); return; }
+    if (error || !data) { toast.error(error?.message || "Could not create conversation"); return; }
     setSessions((p) => [data as Session, ...p]);
     setActiveId(data.id);
     setMessages([]);
@@ -199,7 +199,10 @@ const AsherCommandCenter = () => {
 
   const deleteSession = async (id: string) => {
     if (!confirm("Delete this conversation?")) return;
-    await supabase.from("asher_ai_sessions").delete().eq("id", id);
+    // Same server-side path the dashboard sidebar uses, so a delete here is a
+    // delete there — no half-removed row left behind in the shared history.
+    const { error } = await supabase.rpc("delete_conversation", { p_conv_id: id });
+    if (error) { toast.error(error.message); return; }
     setSessions((p) => p.filter((s) => s.id !== id));
     if (activeId === id) {
       const next = sessions.find((s) => s.id !== id);
@@ -209,10 +212,11 @@ const AsherCommandCenter = () => {
 
   const renameSession = async (id: string, title: string) => {
     const t = title.trim() || "Untitled";
-    await supabase.from("asher_ai_sessions").update({ title: t }).eq("id", id);
+    await supabase.from("conversations").update({ title: t }).eq("id", id);
     setSessions((p) => p.map((s) => s.id === id ? { ...s, title: t } : s));
     setRenameId(null);
   };
+
 
   const onPickFiles = async (list: FileList | null) => {
     if (!list) return;
