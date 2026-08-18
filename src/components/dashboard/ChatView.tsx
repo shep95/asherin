@@ -32,7 +32,7 @@ import type { ResponseDepth } from "./DepthSelector";
 import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
 import ScrollIntelligence from "./ScrollIntelligence";
-import ThinkingPanel, { ThinkingPanelOrDots } from "./ThinkingPanel";
+import ThinkingPanel from "./ThinkingPanel";
 import TurnTraces from "./TurnTraces";
 import PropertyMapCard, { type PropertyMapCardData } from "@/components/dashboard/property/PropertyMapCard";
 import { detectAddresses, geocodeAddress } from "@/lib/propertyIntent";
@@ -699,7 +699,7 @@ const ChatView = ({
                 />
               )}
               {branchMessages.map((msg, idx) =>
-                msg.role === "assistant" && !String(msg.content || "").trim() && msg !== lastMsg ? null : (
+                msg.role === "assistant" && !String(msg.content || "").trim() ? null : (
                   <div
                     key={msg.id}
                     ref={(el) => {
@@ -716,9 +716,7 @@ const ChatView = ({
                             : "bg-background/90 text-foreground backdrop-blur-md border border-border/20"
                         }`}
                       >
-                        {msg.role === "assistant" && !String(msg.content || "").trim() && msg === lastMsg ? (
-                          <ThinkingPanelOrDots messageId={msg.id} />
-                        ) : msg.role === "assistant" ? (
+                        {msg.role === "assistant" ? (
                           <>
                             <ThinkingPanel messageId={msg.id} />
                             <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
