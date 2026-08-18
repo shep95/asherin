@@ -53,8 +53,9 @@ export function usePppQuote(): PppQuote {
     loading: true,
   });
   const alive = useRef(true);
+  const retry = useRef<number | null>(null);
 
-  const probe = useCallback(async () => {
+  const probe = useCallback(async (attempt = 0) => {
     try {
       const { data, error } = await supabase.functions.invoke("geo-guard", {
         body: { visitorId: visitorId() },
@@ -69,18 +70,32 @@ export function usePppQuote(): PppQuote {
         quote: data.quote,
         loading: false,
       });
-    } catch (err) {
-      console.error("geo-guard probe failed:", err);
-      if (alive.current) setState((s) => ({ ...s, loading: false }));
+    } catch {
+      // Transient edge-runtime degradation (503) must never break the page:
+      // hold full price and retry with backoff — 2s, 6s, 18s, then give up
+      // until the next scheduled probe.
+      if (!alive.current) return;
+      setState((s) => ({ ...s, loading: false }));
+      if (attempt < 3) {
+        retry.current = window.setTimeout(
+          () => probe(attempt + 1),
+          2000 * 3 ** attempt,
+        );
+      }
     }
   }, []);
 
   useEffect(() => {
     alive.current = true;
     probe();
-    const id = window.setInterval(probe, 5 * 60 * 1000);
-    return () => { alive.current = false; window.clearInterval(id); };
+    const id = window.setInterval(() => probe(), 5 * 60 * 1000);
+    return () => {
+      alive.current = false;
+      window.clearInterval(id);
+      if (retry.current) window.clearTimeout(retry.current);
+    };
   }, [probe]);
+
 
   return state;
 }
