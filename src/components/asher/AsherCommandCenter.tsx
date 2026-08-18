@@ -370,11 +370,13 @@ const AsherCommandCenter = () => {
       }
 
       if (assistantText.trim()) {
-        await supabase.from("asher_ai_messages").insert({
-          session_id: sid, user_id: user.id, role: "assistant", content: assistantText, attachments: [],
+        const { error: saveErr } = await supabase.from("messages").insert({
+          conversation_id: sid, user_id: user.id, role: "assistant", content: assistantText, attachments: [],
         });
-        await supabase.from("asher_ai_sessions").update({ updated_at: new Date().toISOString() }).eq("id", sid);
+        if (saveErr) toast.error("Reply not saved to history");
+        await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", sid);
       }
+
     } catch (e: any) {
       toast.error(e?.message || "ASHER AI failed");
       setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content: `_Stream failed: ${e?.message || e}_` }]);
