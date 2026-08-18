@@ -1336,7 +1336,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         _speedProbe,
       );
     const _organBudgetBase =
-      _speedR.deep || _speedDepth === "deep" || _speedDepth === "exhaustive" || _looksIntelHunt ? 45000 : 8000;
+      _speedR.deep || _speedDepth === "deep" || _speedDepth === "exhaustive" || _looksIntelHunt ? 28000 : 8000;
     // ── PREFLIGHT DEADLINE ────────────────────────────────────────────────
     // Each organ was individually bounded, but the stages run one after the
     // other: enough of them landing near their own ceiling walked the turn
