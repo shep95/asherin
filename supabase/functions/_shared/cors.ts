@@ -9,6 +9,7 @@ const ALLOWED_ORIGINS = [
   "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
   "https://ziali-magic-pixels.lovable.app",
   "https://preview--ziali-magic-pixels.lovable.app",
+  "https://5d5e1e10-9f71-4760-8dad-575a93313745.lovableproject.com",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",
@@ -35,6 +36,7 @@ function isThisProjectLovablePreview(origin: string): boolean {
   const namedPreview = new RegExp(
     "^preview--" + THIS_PREVIEW_SLUG.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\.[a-z0-9-]+)?\\.lovable\\.app$",
   );
+  if (host === THIS_PROJECT_ID + ".lovableproject.com") return true;
   return idPreview.test(host) || namedPreview.test(host);
 }
 
