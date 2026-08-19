@@ -60,7 +60,7 @@ function toolRowLabel(id: string): string {
   return "Running " + id;
 }
 
-// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
+// CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts (this-project preview origins)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ASHERIN OPERATING NOTES — output format, non-disclosure, product knowledge.
