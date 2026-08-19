@@ -1490,7 +1490,18 @@ const Dashboard = () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
           if (!String(assistantContent || "").trim() || isHoldCostume(assistantContent)) {
-            return;
+            const mouth = "no words came back from the model.";
+            assistantContent = mouth;
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === convId
+                  ? {
+                      ...c,
+                      messages: c.messages.map((m) => (m.id === assistantId ? { ...m, content: mouth } : m)),
+                    }
+                  : c,
+              ),
+            );
           }
           // Persist assistant message via upsert — idempotent so a retry on a
           // flaky network cannot create a duplicate row when the first insert
@@ -1632,7 +1643,10 @@ const Dashboard = () => {
           ) {
             assistantContent = thinkText;
           }
-          const keep = String(assistantContent || "").trim();
+          const keep =
+            String(assistantContent || "").trim() ||
+            String(e?.message || "").trim() ||
+            "no words came back from the model.";
           setConversations((prev) =>
             prev.map((c) =>
               c.id === convId
