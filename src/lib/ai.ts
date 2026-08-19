@@ -240,6 +240,7 @@ export async function streamChat({
           await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
           continue;
         }
+        if (death) throw new Error("the connection dropped before the answer finished.");
         throw fe;
       }
 
