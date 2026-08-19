@@ -1643,10 +1643,17 @@ const Dashboard = () => {
           ) {
             assistantContent = thinkText;
           }
-          const keep =
-            String(assistantContent || "").trim() ||
-            String(e?.message || "").trim() ||
-            "no words came back from the model.";
+          const errMsg = String(e?.message || "").trim();
+          const body = String(assistantContent || "").trim();
+          const fetchDeath =
+            death ||
+            /failed to fetch|networkerror|load failed/i.test(body) ||
+            /failed to fetch|networkerror|load failed/i.test(errMsg);
+          const keep = fetchDeath
+            ? "the connection dropped before the answer finished."
+            : body ||
+              (errMsg && !/failed to fetch|networkerror|load failed/i.test(errMsg) ? errMsg : "") ||
+              "no words came back from the model.";
           setConversations((prev) =>
             prev.map((c) =>
               c.id === convId
