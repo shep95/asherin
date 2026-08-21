@@ -105,8 +105,15 @@ export async function runAutonomousLoop(
   // ── 2) FAN OUT ────────────────────────────────────────────────────────────
   const legs: Promise<any>[] = [];
 
-  // Leg A — Aureon Dork Engine (100 theories)
-  legs.push((async () => {
+  // Leg A — Aureon Dork Engine (100 theories).
+  //
+  // Operator rule: a dork battery runs ONLY when the turn asks for a dork in
+  // so many words. A plain osint / research ask ("who is X", "background on
+  // Y") takes the other legs and leaves the query-theory sweep alone.
+  const DORK_WORDS = /\b(dork|dorks|dorking|dorked|google\s*dork|inurl:|intitle:|intext:|filetype:|ext:)\b/i;
+  const dorkRequested = DORK_WORDS.test(String(userText || ""));
+
+  if (dorkRequested) legs.push((async () => {
     try {
       const { runAureonDork, formatDorkContext } = await import("./aureonDorkEngine.ts");
       const rep = await withTimeout(
