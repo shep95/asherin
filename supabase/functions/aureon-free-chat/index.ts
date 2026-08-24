@@ -177,6 +177,8 @@ async function routeByok(byok: ByokConfig, messages: ChatMessage[]): Promise<str
       return callOpenAICompatible("https://api.perplexity.ai", apiKey, model, messages);
     case "venice":
       return callOpenAICompatible("https://api.venice.ai/api/v1", apiKey, model, messages);
+    case "openrouter":
+      return callOpenAICompatible("https://openrouter.ai/api/v1", apiKey, model, messages);
     case "meta":
       // Meta has no first-party API — assume user uses an OpenAI-compatible host (Together / Groq / OpenRouter).
       return callOpenAICompatible("https://api.together.xyz/v1", apiKey, model, messages);

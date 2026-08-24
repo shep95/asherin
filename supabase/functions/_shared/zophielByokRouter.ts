@@ -184,6 +184,12 @@ export async function callByokJson(
         return callOpenAICompat('https://api.venice.ai/api/v1', cfg.apiKey, cfg.model, sys, usr, {
           timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson: false,
         });
+      case 'openrouter':
+        // OpenRouter is OpenAI-compatible and fronts every routed vendor,
+        // including the stealth OX Alpha release (model id `stealth/ox-alpha`).
+        return callOpenAICompat('https://openrouter.ai/api/v1', cfg.apiKey, cfg.model, sys, usr, {
+          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
+        });
       default:
         throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
     }

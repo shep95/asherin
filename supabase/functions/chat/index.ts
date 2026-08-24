@@ -3203,6 +3203,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
       reka: { url: "https://api.reka.ai/v1/chat/completions", streamParam: true, transformResponse: false },
       sarvam: { url: "https://api.sarvam.ai/v1/chat/completions", streamParam: true, transformResponse: false },
       twoai: { url: "https://api.two.ai/v2/chat/completions", streamParam: true, transformResponse: false },
+      // OpenRouter — one key, every routed vendor, including the stealth OX Alpha
+      // release (model id `stealth/ox-alpha`). OpenAI-compatible SSE.
+      openrouter: {
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        streamParam: true,
+        transformResponse: false,
+      },
     };
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)

@@ -266,6 +266,9 @@ async function dispatch(p: ProviderCall, messages: ChatMessage[], systemPrompt: 
       return callOpenAICompatible("https://api.venice.ai/api/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "meta":
       return callOpenAICompatible("https://api.together.xyz/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
+    case "openrouter":
+      // OpenAI-compatible aggregator — carries OX Alpha (`stealth/ox-alpha`).
+      return callOpenAICompatible("https://openrouter.ai/api/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     default:
       throw new Error(`Unsupported provider: ${p.provider}`);
   }
