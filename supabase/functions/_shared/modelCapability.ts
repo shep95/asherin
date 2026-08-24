@@ -28,7 +28,7 @@
 
 export type CapProvider =
   | "google" | "openai" | "anthropic" | "xai"
-  | "deepseek" | "mistral" | "perplexity" | "venice";
+  | "deepseek" | "mistral" | "perplexity" | "venice" | "openrouter";
 
 export interface ModelCapability {
   /** Usable INPUT budget in characters (window minus output reserve minus safety margin). */
@@ -97,6 +97,13 @@ const MODEL_RULES: Record<CapProvider, ModelRule[]> = {
     { match: /dolphin-72b|72b/i, windowTokens: 32_000, tier: "mid" },
     { match: /venice-uncensored/i, windowTokens: 32_000, tier: "mid" },
   ],
+  openrouter: [
+    // OpenRouter proxies other vendors; the id carries the real model.
+    { match: /ox-alpha/i, windowTokens: 256_000, tier: "frontier" },
+    { match: /gpt-4o-mini|mini|flash/i, windowTokens: 128_000, tier: "large" },
+    { match: /gpt-5|claude-opus|gemini-3|o\d/i, windowTokens: 200_000, tier: "frontier" },
+    { match: /./, windowTokens: 128_000, tier: "large" },
+  ],
 };
 
 /** Providers whose OpenAI-compatible surface honors json_object reliably. */
@@ -109,11 +116,13 @@ const NATIVE_JSON: Record<CapProvider, boolean> = {
   mistral: true,
   perplexity: false,
   venice: false,      // accepted by the API, inconsistently honored per model
+  openrouter: true,   // normalizes response_format across routed vendors
 };
 
 const DEFAULT_WINDOW: Record<CapProvider, number> = {
   google: 1_000_000, openai: 128_000, anthropic: 200_000, xai: 128_000,
   deepseek: 64_000, mistral: 32_000, perplexity: 32_000, venice: 32_000,
+  openrouter: 128_000,
 };
 
 export function getModelCapability(

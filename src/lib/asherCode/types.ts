@@ -87,4 +87,11 @@ export const ASHER_CODE_PROVIDERS = [
     { id: "llama-3.3-70b", label: "Llama 3.3 70B" },
     { id: "venice-uncensored", label: "Venice Uncensored" },
   ]},
+  { id: "openrouter", label: "OpenRouter", models: [
+    { id: "stealth/ox-alpha", label: "OX Alpha" },
+    { id: "openai/gpt-5.5", label: "GPT-5.5 (routed)" },
+    { id: "anthropic/claude-opus-4.5", label: "Claude Opus 4.5 (routed)" },
+    { id: "google/gemini-3-pro-preview", label: "Gemini 3 Pro (routed)" },
+  ]},
+
 ] as const;

@@ -22,6 +22,7 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
   xai: "https://api.x.ai/v1/chat/completions",
   mistral: "https://api.mistral.ai/v1/chat/completions",
   deepseek: "https://api.deepseek.com/chat/completions",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions",
 };
 
 // ── Phase 1: Call a single provider ──────────────────────────────────────────────

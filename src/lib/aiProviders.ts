@@ -177,6 +177,24 @@ export const AI_PROVIDERS: ProviderConfig[] = [
       { id: "nemotron-3-8b-chat", name: "Nemotron 3 8B", description: "Oldest available — original Nemotron API" },
     ],
   },
+  {
+    id: "openrouter",
+    name: "OpenRouter (OX Alpha)",
+    icon: "◐",
+    country: "United States",
+    placeholder: "sk-or-v1-...",
+    helpUrl: "https://openrouter.ai/keys",
+    helpText: "One key, every routed model — includes the stealth OX Alpha release",
+    models: [
+      { id: "stealth/ox-alpha", name: "OX Alpha", description: "Newest stealth release routed via OpenRouter" },
+      { id: "openai/gpt-5.5", name: "GPT-5.5 (routed)", description: "OpenAI flagship through OpenRouter" },
+      { id: "anthropic/claude-opus-4.5", name: "Claude Opus 4.5 (routed)", description: "Anthropic flagship through OpenRouter" },
+      { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro (routed)", description: "Google frontier through OpenRouter" },
+      { id: "openai/gpt-4o-mini", name: "GPT-4o Mini (routed)", description: "Cheap fallback — oldest kept here" },
+    ],
+  },
+
+
 
   // ───────────────────────── UNITED KINGDOM ─────────────────────────
   {
