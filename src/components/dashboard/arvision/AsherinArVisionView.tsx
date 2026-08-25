@@ -5,6 +5,7 @@
 // never: Clearview, DMV owner, A2DP sniff, private NVR, thermal fake.
 
 import { useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 
 const HUD_CSS = `
