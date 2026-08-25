@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 
-const CESIUM_BASE = "https://unpkg.com/cesium@1.124.0/Build/Cesium/";
+const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
 
 const STYLES = ["normal", "crt", "nvg", "flir", "anime", "noir", "snow"];
@@ -757,7 +757,11 @@ const AsherinEyeView = () => {
       status.voice = "listening";
     }
 
-    boot().catch((e) => setNote(String(e.message || e)));
+    boot().catch((e) => {
+      const hud = $("#hud-line");
+      if (hud) hud.textContent = "globe engine did not load";
+      setNote("globe engine blocked. not a page bug in the hud — the page policy refused the cesium host.");
+    });
 
     return () => {
       dead = true;
