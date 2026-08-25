@@ -10,8 +10,7 @@
 //      good body and SAY it is stale — never a silent empty sky.
 //
 // Hard rules held here:
-//   • Allow-list of feeds only. No caller-supplied url is ever fetched, so
-//     this cannot be used as an SSRF hop.
+//   • Allow-list of feeds only. webmeta may fetch one https public page the caller named (private hosts blocked). this cannot be used as an SSRF hop.
 //   • Every outbound call has an AbortController deadline.
 //   • Numbers are coerced and bounded before they leave; no upstream string is
 //     interpolated into anything executable.
@@ -424,7 +423,7 @@ async function places(params: Record<string, unknown>) {
         lat: clampLat(la),
         lon: wrapLon(lo),
         kind: text(p.type, 40),
-        note: "nominatim public index Â· not a search-results page",
+        note: "nominatim public index  ·  not a search-results page",
       };
     })
     .filter(Boolean);
@@ -459,7 +458,7 @@ async function property(params: Record<string, unknown>) {
           label,
           lat: clampLat(ela),
           lon: wrapLon(elo),
-          note: "osm building/address Â· public tags, not a deed",
+          note: "osm building/address  ·  public tags, not a deed",
         };
       })
       .filter(Boolean) as Array<Record<string, unknown>>;
@@ -468,8 +467,8 @@ async function property(params: Record<string, unknown>) {
   }
   return {
     rows: [first, ...extra].slice(0, 48),
-    source: "nominatim Â· overpass",
-    note: extra.length ? "property footprint from public osm" : "place only Â· osm buildings did not answer",
+    source: "nominatim  ·  overpass",
+    note: extra.length ? "property footprint from public osm" : "place only  ·  osm buildings did not answer",
   };
 }
 
@@ -549,7 +548,7 @@ async function webmeta(params: Record<string, unknown>) {
   return {
     rows,
     source: "public page metadata",
-    note: `headers ${Object.keys(headers).join(" ") || "none"} Â· not a traffic intercept`,
+    note: `headers ${Object.keys(headers).join(" ") || "none"}  ·  not a traffic intercept`,
   };
 }
 
