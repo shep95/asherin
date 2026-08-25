@@ -70,6 +70,7 @@ const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/Axr
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
+const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
 const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
@@ -228,6 +229,7 @@ const Dashboard = () => {
     "knowledge-vault",
     "asherin-defender",
     "asherin-arvision",
+    "asherin-eye",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -236,6 +238,8 @@ const Dashboard = () => {
     defender: "asherin-defender",
     arvision: "asherin-arvision",
     "ar-vision": "asherin-arvision",
+    eye: "asherin-eye",
+    "asherin.eye": "asherin-eye",
     maps: "geospatial",
     "asherin-maps": "geospatial",
     asherinx: "ghost-engine",
@@ -1942,6 +1946,13 @@ const Dashboard = () => {
           AsherinDefenderView,
           "asherin.defender",
           "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
+        );
+      case "asherin-eye":
+        return gatedView(
+          "asherin-eye",
+          AsherinEyeView,
+          "asherin.eye",
+          "photoreal 3d globe with live public flights, sats, quakes, radio and osm sites. included with the $18 asherin plan. maps stays its own room.",
         );
       case "asherin-arvision":
         return gatedView(
