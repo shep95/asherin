@@ -157,7 +157,13 @@ const EYE_HUD_CSS = `
   }
   .eye-chat .chat-log { overflow:auto; padding:0 12px 8px; font:300 12px/1.45 inherit; flex:1; }
   .eye-chat .chat-log .me { color: var(--ink); margin:6px 0; }
-  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; }
+  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; white-space:pre-wrap; }
+  .eye-chat .cmd-row { display:flex; gap:6px; padding:0 10px 6px; flex-wrap:wrap; }
+  .eye-chat .cmd {
+    border:1px solid var(--line); border-radius:999px; padding:6px 10px; cursor:pointer;
+    background: transparent; color: var(--mute); font:400 11px/1 inherit;
+  }
+  .eye-chat .cmd.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
   .eye-chat .chat-row { display:flex; gap:6px; padding:8px 10px 10px; }
   .eye-chat input {
     flex:1; min-width:0; border-radius:999px; border:1px solid var(--line);
@@ -378,6 +384,7 @@ const AsherinEyeView = () => {
     let nearOnce = false;
     const pathHist = {};
     const layerOn = {};
+    let cmdMode = "place";
     LAYER_ROWS.forEach((l) => (layerOn[l.id] = false));
     const ds = {};
     const samples = {};
@@ -408,6 +415,7 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
           <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
           <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
+          <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
           <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic</span></div>
           <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
           <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
@@ -420,9 +428,13 @@ const AsherinEyeView = () => {
         <div class="glass eye-chat shut" id="eye-chat">
           <div class="chat-head" id="chat-toggle"><span>asherin.engine chat</span><span id="chat-key">…</span></div>
           <div id="chat-body" hidden>
+            <div class="cmd-row">
+              <button type="button" class="cmd on" id="cmd-place">go to a place</button>
+              <button type="button" class="cmd" id="cmd-property">property</button>
+            </div>
             <div class="chat-log" id="chat-log"></div>
             <div class="chat-row">
-              <input id="chat-in" type="text" placeholder="go to a place · property · url" autocomplete="off" />
+              <input id="chat-in" type="text" placeholder="go to a place" autocomplete="off" />
               <button type="button" class="go" id="chat-go">go</button>
             </div>
           </div>
@@ -734,11 +746,14 @@ const AsherinEyeView = () => {
         if (row.lat == null || row.lon == null) return;
         const id = `engine:${row.id || row.label || i}:${row.lat}:${row.lon}`;
         if (src.entities.getById(id)) return;
-        src.entities.add({
+        const ent = {
           id,
           name: row.label || "place",
           position: C.Cartesian3.fromDegrees(row.lon, row.lat, Number(row.alt || 0)),
-          point: { pixelSize: 11, color: C.Color.fromCssColorString("#9ec9ff") },
+          point: {
+            pixelSize: row.kind === "property" ? 13 : 11,
+            color: C.Color.fromCssColorString(row.kind === "property" ? "#f0d08a" : "#9ec9ff"),
+          },
           label: {
             text: String(row.label || "place").slice(0, 48),
             font: "12px Inter",
@@ -747,10 +762,147 @@ const AsherinEyeView = () => {
             showBackground: true,
             backgroundColor: C.Color.BLACK.withAlpha(0.45),
           },
-          asherin: { kind: "engine", label: row.label, lat: row.lat, lon: row.lon, note: row.note },
+          asherin: {
+            kind: row.kind || "engine",
+            label: row.label,
+            lat: row.lat,
+            lon: row.lon,
+            note: row.note,
+            intel: row.intel,
+          },
+        };
+        const ring = Array.isArray(row.ring) ? row.ring : [];
+        if (ring.length >= 3) {
+          const flat = [];
+          ring.forEach((p) => {
+            const rlon = Number(p.lon ?? p[0]);
+            const rlat = Number(p.lat ?? p[1]);
+            if (Number.isFinite(rlon) && Number.isFinite(rlat)) {
+              flat.push(rlon, rlat);
+            }
+          });
+          if (flat.length >= 6) {
+            ent.polygon = {
+              hierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(flat)),
+              material: C.Color.fromCssColorString("#f0d08a").withAlpha(0.28),
+              outline: true,
+              outlineColor: C.Color.fromCssColorString("#f0d08a"),
+              height: 0,
+            };
+          }
+        }
+        src.entities.add(ent);
+      });
+      if (flyFirst && rows?.[0]) {
+        const dest = Number(rows[0].flyAlt) || (rows[0].kind === "property" ? 420 : 18000);
+        flyTo(rows[0].lat, rows[0].lon, dest);
+      }
+    }
+
+    function kmBetween(aLat, aLon, bLat, bLon) {
+      const R = 6371;
+      const p1 = (aLat * Math.PI) / 180;
+      const p2 = (bLat * Math.PI) / 180;
+      const dLat = p2 - p1;
+      const dLon = ((bLon - aLon) * Math.PI) / 180;
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+
+    function setCmdMode(mode) {
+      cmdMode = mode === "property" ? "property" : "place";
+      const placeBtn = $("#cmd-place");
+      const propBtn = $("#cmd-property");
+      if (placeBtn) placeBtn.classList.toggle("on", cmdMode === "place");
+      if (propBtn) propBtn.classList.toggle("on", cmdMode === "property");
+      const input = $("#chat-in");
+      if (input) input.placeholder = cmdMode === "property" ? "property address" : "go to a place";
+      const box = $("#eye-chat");
+      const body = $("#chat-body");
+      if (body && body.hidden) {
+        body.hidden = false;
+        box.classList.remove("shut");
+      }
+    }
+
+    async function loadWebIndexAt(lat, lon, around) {
+      const jobs = await Promise.allSettled([
+        eyeFeed("cameras"),
+        eyeFeed("radio"),
+        eyeFeed("osmweb", { lat, lon, around: around || 900 }),
+      ]);
+      const rows = [];
+      const notes = [];
+      jobs.forEach((job, i) => {
+        const name = ["cameras", "radio", "osm mapped webcams"][i];
+        if (job.status !== "fulfilled") {
+          notes.push(`${name} refused`);
+          return;
+        }
+        const body = job.value || {};
+        if (body.error) {
+          notes.push(`${name}: ${body.error}`);
+          return;
+        }
+        (body.rows || []).forEach((row) => {
+          if (row.lat == null || row.lon == null) return;
+          if (i < 2 && kmBetween(lat, lon, row.lat, row.lon) > 8) return;
+          rows.push({ ...row, id: `${name}:${row.id || rows.length}`, note: row.note || name });
         });
       });
-      if (flyFirst && rows?.[0]) flyTo(rows[0].lat, rows[0].lon, rows[0].alt || 18000);
+      const sliced = rows.slice(0, 220);
+      plotRows(
+        "meta",
+        sliced,
+        `web metadata on this property · ${sliced.length} public points inside the focus · not a tap · ${notes.join(" · ")}`.trim(),
+      );
+    }
+
+    async function focusPropertyLayers(lat, lon) {
+      const bits = [];
+      if (layerOn.meta) {
+        await loadWebIndexAt(lat, lon, 900);
+        bits.push("web metadata recentered to ~900m around this address");
+      }
+      if (layerOn.cameras) {
+        try {
+          const j = await eyeFeed("cameras");
+          const near = (j.rows || []).filter((r) => r.lat != null && kmBetween(lat, lon, r.lat, r.lon) < 8);
+          plotRows(
+            "cameras",
+            near,
+            near.length
+              ? `public cameras within 8km of this property · ${near.length}`
+              : "public camera catalogs (austin/tfl) have no row this close · not a worldwide tap",
+          );
+          bits.push(near.length ? `public cameras ${near.length} within 8km` : "no catalog camera this close");
+        } catch (e) {
+          bits.push("cameras: " + String(e.message || e));
+        }
+      }
+      if (layerOn.engine) bits.push("engine pin on this property");
+      if (layerOn.near) bits.push("bluetooth near stays this-box radio · it does not jump to that address");
+      if (layerOn.flights) bits.push("flights still live around the camera");
+      if (layerOn.quakes) bits.push("earthquakes still live");
+      if (!bits.length) bits.push("no extra layers were on · toggle cameras/meta/engine to compose them here");
+      return bits;
+    }
+
+    function formatDossier(intel, layers, note) {
+      const d = intel || {};
+      return [
+        `property · ${d.address || "unlabeled"}`,
+        `- fly: z19-class rooftop (~420m), not a city glance`,
+        `- quality: ${d.quality || "this is unsure"}`,
+        `- owner: ${d.owner || "not on the public osm map"}`,
+        `- occupant: ${d.occupant || "none mapped"}`,
+        `- building: ${d.building || "no osm building tags"}`,
+        `- census: ${d.census || "not a us census hit"}`,
+        `- wikipedia: ${d.wikipedia || "none"}`,
+        `- crime file: ${d.crime || "no live county court file in this feed"}`,
+        `- layers: ${layers.join(" · ")}`,
+        `- ${d.honesty || note || "public index only"}`,
+      ].join("\n");
     }
 
     async function loadLayer(id) {
@@ -1076,24 +1228,39 @@ const AsherinEyeView = () => {
       const log = $("#chat-log");
       if (!log) return;
       log.innerHTML = chatLog
-        .slice(-12)
+        .slice(-16)
         .map(
           (m) =>
-            `<div class="${m.role === "user" ? "me" : "bot"}">${m.role === "user" ? "you" : "eye"}: ${String(m.text).slice(0, 420)}</div>`,
+            `<div class="${m.role === "user" ? "me" : "bot"}">${m.role === "user" ? "you" : "eye"}: ${String(m.text).slice(0, 1400)}</div>`,
         )
         .join("");
       log.scrollTop = log.scrollHeight;
-      $("#chat-key").textContent = keyBound() ? "key bound" : "places still pin";
+      $("#chat-key").textContent = keyBound()
+        ? "key bound"
+        : cmdMode === "property"
+          ? "property command"
+          : "places still pin";
     }
 
     async function handleChat(raw) {
-      const q = String(raw || "").trim();
-      if (!q) return;
-      chatLog.push({ role: "user", text: q });
+      const q0 = String(raw || "").trim();
+      if (!q0) return;
+      chatLog.push({ role: "user", text: q0 });
       paintChat();
-      setNote("engine looking for places…");
+      const url = q0.match(/https?:\/\/[^\s]+/i);
+      let q = q0;
+      let wantProperty = cmdMode === "property";
+      if (/^(property|parcel|cadastre)\b/i.test(q)) {
+        wantProperty = true;
+        q = q.replace(/^(property|parcel|cadastre)\s+/i, "").trim() || q;
+        setCmdMode("property");
+      } else if (/^(go to|fly to|take me to)\s+/i.test(q)) {
+        wantProperty = false;
+        q = q.replace(/^(go to|fly to|take me to)\s+/i, "").trim();
+        setCmdMode("place");
+      }
+      setNote(wantProperty ? "property command · public dossier…" : "engine looking for places…");
       try {
-        const url = q.match(/https?:\/\/[^\s]+/i);
         if (url) {
           const j = await eyeFeed("webmeta", { url: url[0] });
           const rows = j.rows || [];
@@ -1119,37 +1286,57 @@ const AsherinEyeView = () => {
           setNote("");
           return;
         }
-        const property = /propert|parcel|cadastre|building|address|house|lot /i.test(q);
-        const feed = property ? "property" : "places";
+        const feed = wantProperty ? "property" : "places";
         const j = await eyeFeed(feed, { q });
         const rows = j.rows || [];
         pinEngine(rows, true);
         void emitPull({
           organ: "eye",
-          capability: "engine-pin",
+          capability: wantProperty ? "property" : "engine-pin",
           fromSurface: "asherin-eye",
           status: rows.length ? "ok" : "skip",
           quote: q.slice(0, 80),
         });
-        let mouth = rows.length
-          ? `pinned ${rows.length} place${rows.length === 1 ? "" : "s"} on the globe. ${property ? "property is public osm/nominatim, not a deed office." : "asherin.engine finds locations; it does not dump search results here."}`
-          : "no public place matched. this is unsure.";
-        if (keyBound()) {
-          const talk = await eyeTalk([
-            {
-              role: "system",
-              content:
-                "you sit in asherin.eye. reply in lowercase. never dump a search engine results page. if the user wants a place, name it and coords. property research is public-index only.",
-            },
-            { role: "user", content: q },
-          ]);
-          const text = talk.reply || talk.text || talk.message || talk.error || "";
-          if (text && !talk.error) mouth = String(text).slice(0, 500);
-          extractPlaces(String(text)).forEach((p) => pinEngine([{ ...p, id: "talk" }], false));
+        if (wantProperty && rows[0]?.lat != null) {
+          const intel = j.dossier || rows[0].intel || {};
+          const layers = await focusPropertyLayers(rows[0].lat, rows[0].lon);
+          chatLog.push({ role: "eye", text: formatDossier(intel, layers, j.note).toLowerCase() });
+          if (keyBound()) {
+            const talk = await eyeTalk([
+              {
+                role: "system",
+                content:
+                  "you sit in asherin.eye. reply in lowercase. never dump a serp. property research is public-index only. do not invent owners, occupants, or crimes.",
+              },
+              {
+                role: "user",
+                content: `property dossier already pulled:\n${JSON.stringify(intel).slice(0, 800)}\noperator said: ${q}`,
+              },
+            ]);
+            const text = talk.reply || talk.text || talk.message || "";
+            if (text && !talk.error) chatLog.push({ role: "eye", text: String(text).slice(0, 500).toLowerCase() });
+          }
         } else {
-          mouth += " connect a model key in connect if you want the mouth. places still pin without it.";
+          let mouth = rows.length
+            ? `pinned ${rows.length} place${rows.length === 1 ? "" : "s"} on the globe. asherin.engine finds locations; it does not dump search results here.`
+            : "no public place matched. this is unsure.";
+          if (keyBound()) {
+            const talk = await eyeTalk([
+              {
+                role: "system",
+                content:
+                  "you sit in asherin.eye. reply in lowercase. never dump a search engine results page. if the user wants a place, name it and coords.",
+              },
+              { role: "user", content: q },
+            ]);
+            const text = talk.reply || talk.text || talk.message || talk.error || "";
+            if (text && !talk.error) mouth = String(text).slice(0, 500);
+            extractPlaces(String(text)).forEach((p) => pinEngine([{ ...p, id: "talk" }], false));
+          } else {
+            mouth += " connect a model key in connect if you want the mouth. places still pin without it.";
+          }
+          chatLog.push({ role: "eye", text: mouth.toLowerCase() });
         }
-        chatLog.push({ role: "eye", text: mouth.toLowerCase() });
         paintChat();
         setNote("");
       } catch (e) {
@@ -1324,6 +1511,8 @@ const AsherinEyeView = () => {
         box.classList.toggle("shut", !shut);
         paintChat();
       };
+      $("#cmd-place").onclick = () => setCmdMode("place");
+      $("#cmd-property").onclick = () => setCmdMode("property");
       $("#chat-go").onclick = () => {
         const v = $("#chat-in").value;
         $("#chat-in").value = "";
@@ -1414,7 +1603,13 @@ const AsherinEyeView = () => {
         STYLES.forEach((s) => {
           if (t.includes(s)) applyStyle(s);
         });
-        if (/go to |fly to |take me/.test(t)) handleChat(t.replace(/^(go to|fly to|take me to)\s+/i, ""));
+        if (/property |parcel /.test(t)) {
+          setCmdMode("property");
+          handleChat(t.replace(/^(property|parcel)\s+/i, ""));
+        } else if (/go to |fly to |take me/.test(t)) {
+          setCmdMode("place");
+          handleChat(t.replace(/^(go to|fly to|take me to)\s+/i, ""));
+        }
       };
       rec.onerror = () => setNote("voice: unavailable");
       rec.start();
