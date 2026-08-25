@@ -139,25 +139,42 @@ const TOUR_SHOTS = [
 ];
 
 const EYE_HUD_CSS = `
-  .eye-root { position:absolute; inset:0; width:100%; height:100%; min-width:0; min-height:0; overflow:hidden; background:#000; color-scheme:dark; container-type:size; container-name:eye; }
+  /* eye-fit-any-screen — size from the pane, never vw/window */
   .eye-root {
+    position:absolute; inset:0; width:100%; height:100%; min-width:0; min-height:0;
+    overflow:hidden; background:#000; color-scheme:dark;
+    container-type:size; container-name:eye;
     --bg: hsl(var(--background));
     --ink: hsl(var(--foreground));
     --mute: hsl(var(--muted-foreground));
     --line: hsl(var(--border));
     --accent: hsl(var(--accent));
     --accent-ink: hsl(var(--accent-foreground));
-    --r: 1rem;
+    --r: clamp(0.7rem, 1.6cqi, 1rem);
+    --pad: clamp(6px, 1.4cqi, 16px);
+    --dock-h: clamp(52px, 11cqh, 92px);
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-r: env(safe-area-inset-right, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-l: env(safe-area-inset-left, 0px);
+    --fs: clamp(11px, 0.9cqi + 0.35cqh, 14px);
     margin: 0; color: var(--ink);
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    font-weight: 300; letter-spacing: -.01em;
+    font-weight: 300; letter-spacing: -.01em; font-size: var(--fs);
   }
   .eye-root, .eye-root * { box-sizing: border-box; }
-  .eye-root * { scrollbar-width: thin; }
-  #eye-stage { position:absolute; inset:0; background:#000; }
-  .eye-root .cesium-widget, .eye-root .cesium-widget canvas { width:100% !important; height:100% !important; }
+  .eye-root * { scrollbar-width: thin; overscroll-behavior: contain; }
+  #eye-stage { position:absolute; inset:0; background:#000; width:100%; height:100%; min-width:0; min-height:0; }
+  .eye-root .cesium-widget, .eye-root .cesium-viewer, .eye-root .cesium-widget canvas, .eye-root .cesium-viewer canvas {
+    width:100% !important; height:100% !important; max-width:100%; max-height:100%;
+  }
   .eye-root .cesium-viewer-bottom, .eye-root .cesium-viewer-toolbar, .eye-root .cesium-viewer-animationContainer, .eye-root .cesium-viewer-timelineContainer { display:none !important; }
-  #eye-credits { position:absolute; left:12px; bottom:92px; z-index:6; max-width:min(420px,70%); font:300 9px/1.4 inherit; color:var(--mute); pointer-events:auto; }
+  #eye-credits {
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 6px); z-index:6;
+    max-width:min(420px, calc(100cqi - 2 * var(--pad)));
+    font:300 clamp(8px, 0.85cqi, 10px)/1.4 inherit; color:var(--mute); pointer-events:auto;
+  }
   #eye-credits a { color: var(--accent); }
   .glass {
     background: hsl(var(--card) / .62);
@@ -168,83 +185,115 @@ const EYE_HUD_CSS = `
     box-shadow: 0 18px 50px -24px rgba(0,0,0,.9);
   }
   .misb {
-    position:absolute; top:16px; left:16px; z-index:8;
-    padding:12px 16px; pointer-events:auto; min-width:0; max-width:min(280px, calc(100% - 80px));
-    font: 300 12px/1.5 inherit; color: var(--ink);
+    position:absolute; top:calc(var(--pad) + var(--safe-t)); left:calc(var(--pad) + var(--safe-l)); z-index:8;
+    padding: clamp(8px, 1.3cqi, 14px) clamp(10px, 1.6cqi, 16px); pointer-events:auto; min-width:0;
+    max-width: min(280px, calc(100cqi - 2 * var(--pad) - 72px));
+    font: 300 clamp(11px, 1.15cqi, 13px)/1.45 inherit; color: var(--ink);
   }
   .misb b { color: var(--accent); font-weight: 500; }
-  .misb .m { color: var(--mute); font-size: 11px; }
+  .misb .m { color: var(--mute); font-size: clamp(10px, 1.05cqi, 12px); overflow-wrap:anywhere; }
   .sheet {
-    position:absolute; right:16px; top:16px; bottom:110px; z-index:8;
-    width: min(300px, 36cqi, calc(100% - 24px)); padding:16px; overflow:auto; pointer-events:auto;
+    position:absolute; right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
+    width: min(300px, 32cqi, calc(100% - 2 * var(--pad)));
+    max-height: calc(100cqh - var(--dock-h) - var(--pad) * 2 - var(--safe-t) - var(--safe-b));
+    padding: clamp(10px, 1.5cqi, 16px); overflow:auto; pointer-events:auto;
+    -webkit-overflow-scrolling: touch;
   }
-  .sheet h2 { margin:0 0 10px; font:400 13px/1.2 inherit; letter-spacing:.02em; text-transform:lowercase; color:var(--mute); }
-  .sheet .row { display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:6px 0; border-bottom:1px solid var(--line); }
-  .sheet .k { color: var(--mute); }
+  .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .sheet-close { display:none; border:0; background:transparent; color:var(--mute); cursor:pointer; font:400 12px/1 inherit; padding:6px 8px; }
+  .sheet h2 { margin:0 0 10px; font:400 clamp(12px, 1.2cqi, 13px)/1.2 inherit; letter-spacing:.02em; text-transform:lowercase; color:var(--mute); }
+  .sheet .row { display:flex; justify-content:space-between; gap:10px; font-size:clamp(11px, 1.1cqi, 12px); padding:6px 0; border-bottom:1px solid var(--line); min-width:0; }
+  .sheet .row span { min-width:0; overflow-wrap:anywhere; }
+  .sheet .k { color: var(--mute); flex:0 0 auto; }
+  #layer-btns, #globe-btns, #style-btns { display:flex; flex-wrap:wrap; gap:6px; }
+  .grid, #mission-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap:8px; }
+  #mission-grid button {
+    border-radius:12px; padding:clamp(8px, 1.2cqi, 12px); border:1px solid var(--line);
+    background:hsl(var(--card)/.5); color:var(--ink); cursor:pointer; text-transform:lowercase;
+    min-height:40px; width:100%; font:400 clamp(11px, 1.1cqi, 13px)/1 inherit;
+  }
   .tog {
     border:1px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer;
-    color:var(--mute); font:400 12px/1 inherit; background: hsl(var(--card) / .55);
-    margin: 0 6px 6px 0;
+    color:var(--mute); font:400 clamp(11px, 1.1cqi, 12px)/1 inherit; background: hsl(var(--card) / .55);
   }
   .tog.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
   .talk {
-    position:absolute; left:50%; bottom:18px; transform:translateX(-50%);
-    z-index:9; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
-    padding:10px 12px; width:min(980px, calc(100% - 16px)); justify-content:center;
+    position:absolute; left:50%; bottom:calc(var(--pad) + var(--safe-b)); transform:translateX(-50%);
+    z-index:9; display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+    padding: clamp(6px, 1cqi, 10px) clamp(8px, 1.2cqi, 12px);
+    width: min(980px, calc(100cqi - var(--pad) * 2 - var(--safe-l) - var(--safe-r)));
+    max-height: min(28cqh, 148px); justify-content:center;
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
   }
   .talk button {
-    border:1px solid transparent; border-radius:999px; padding:10px 16px; cursor:pointer;
-    background: hsl(var(--accent)); color: var(--accent-ink); font:500 13px/1 inherit;
+    border:1px solid transparent; border-radius:999px;
+    padding: clamp(8px, 1.1cqi, 10px) clamp(10px, 1.5cqi, 16px); cursor:pointer;
+    background: hsl(var(--accent)); color: var(--accent-ink);
+    font:500 clamp(11px, 1.15cqi, 13px)/1 inherit; flex:0 0 auto; white-space:nowrap; min-height:40px;
   }
   .talk button.ghost { background: hsl(var(--muted) / .6); color: var(--ink); border-color: var(--line); }
-  .contacts { position:absolute; left:16px; top:116px; bottom:110px; z-index:8; width:min(260px,32cqi); padding:14px; overflow:auto; pointer-events:auto; }
+  .talk button.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
+  #btn-layers { display:none; }
+  .contacts {
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    top:calc(var(--pad) + var(--safe-t) + clamp(64px, 14cqh, 116px));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
+    width:min(260px, 28cqi); padding:clamp(10px, 1.4cqi, 14px); overflow:auto; pointer-events:auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .contacts[hidden] { display:none; }
-  .contacts .hit { display:block; width:100%; text-align:left; border:0; background:transparent; color:var(--ink); font:300 12px/1.4 inherit; padding:6px 0; border-bottom:1px solid var(--line); cursor:pointer; }
-  .contacts .hit span { color:var(--mute); display:block; font-size:11px; }
-  #note { position:absolute; left:16px; bottom:110px; z-index:8; padding:10px 14px; font-size:12px; color:var(--mute); max-width:min(320px, calc(100% - 24px)); pointer-events:none; }
-  #detect { position:absolute; inset:0; z-index:5; pointer-events:none; }
+  .contacts .hit { display:block; width:100%; text-align:left; border:0; background:transparent; color:var(--ink); font:300 clamp(11px, 1.1cqi, 12px)/1.4 inherit; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .contacts .hit span { color:var(--mute); display:block; font-size:clamp(10px, 1cqi, 11px); }
+  #note {
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
+    padding:clamp(8px, 1.2cqi, 12px) clamp(10px, 1.4cqi, 14px);
+    font-size:clamp(11px, 1.1cqi, 12px); color:var(--mute);
+    max-width:min(320px, calc(100cqi - 2 * var(--pad))); pointer-events:none;
+  }
+  #detect { position:absolute; inset:0; z-index:5; pointer-events:none; width:100%; height:100%; }
   .eye-chat {
-    position:absolute; left:16px; bottom:110px; z-index:11; width:min(268px, 38cqi); pointer-events:auto;
-    display:flex; flex-direction:column; max-height:min(42%, 340px);
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:11;
+    width:min(268px, 32cqi); pointer-events:auto;
+    display:flex; flex-direction:column; max-height:min(42cqh, 340px); min-width:0;
   }
   .eye-chat.shut { width:auto; max-height:none; }
   .eye-chat .chat-head {
     display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:8px 12px; cursor:pointer; font:400 12px/1 inherit; color:var(--mute);
+    padding:clamp(8px, 1.1cqi, 10px) clamp(10px, 1.3cqi, 12px); cursor:pointer;
+    font:400 clamp(11px, 1.1cqi, 12px)/1 inherit; color:var(--mute);
   }
-  .eye-chat .chat-log { overflow:auto; padding:0 12px 8px; font:300 12px/1.45 inherit; flex:1; }
-  .eye-chat .chat-log .me { color: var(--ink); margin:6px 0; }
-  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; white-space:pre-wrap; }
+  .eye-chat .chat-log { overflow:auto; padding:0 12px 8px; font:300 clamp(11px, 1.1cqi, 12px)/1.45 inherit; flex:1; min-height:0; -webkit-overflow-scrolling:touch; }
+  .eye-chat .chat-log .me { color: var(--ink); margin:6px 0; overflow-wrap:anywhere; }
+  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
   .eye-chat .cmd-row { display:flex; gap:6px; padding:0 10px 6px; flex-wrap:wrap; }
   .eye-chat .cmd {
     border:1px solid var(--line); border-radius:999px; padding:6px 10px; cursor:pointer;
-    background: transparent; color: var(--mute); font:400 11px/1 inherit;
+    background: transparent; color: var(--mute); font:400 clamp(10px, 1cqi, 11px)/1 inherit; min-height:36px;
   }
   .eye-chat .cmd.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
-  .eye-chat .chat-row { display:flex; gap:6px; padding:8px 10px 10px; }
+  .eye-chat .chat-row { display:flex; gap:6px; padding:8px 10px 10px; min-width:0; }
   .eye-chat input {
     flex:1; min-width:0; border-radius:999px; border:1px solid var(--line);
-    background: hsl(var(--background) / .5); color: var(--ink); padding:8px 12px; font:300 12px inherit;
+    background: hsl(var(--background) / .5); color: var(--ink);
+    padding:8px 12px; font:300 clamp(11px, 1.1cqi, 12px) inherit;
   }
   .eye-chat button.go {
     border:0; border-radius:999px; padding:8px 12px; cursor:pointer;
-    background: hsl(var(--accent)); color: var(--accent-ink); font:500 12px inherit;
-  }
-  @container eye (max-width: 780px) {
-    .misb { top:8px; left:8px; right:clamp(8px, 4cqi, 16px); max-width:none; }
-    .sheet { right:8px; left:8px; top:auto; bottom:calc(72px + env(safe-area-inset-bottom,0px)); width:auto; height:38%; }
-    .contacts { left:8px; top:96px; width:auto; right:8px; bottom:auto; height:28%; }
-    .talk { bottom:10px; }
-    .eye-chat { left:8px; right:8px; width:auto; }
+    background: hsl(var(--accent)); color: var(--accent-ink); font:500 12px inherit; flex:0 0 auto; min-height:40px;
   }
   #hover-card {
     position:absolute; z-index:12; display:none; pointer-events:none;
-    min-width:160px; max-width:240px; padding:10px 12px;
-    font:300 11px/1.4 inherit; color:var(--ink);
+    min-width:min(160px, calc(100cqi - 16px)); max-width:min(240px, calc(100cqi - 16px));
+    max-height:min(40cqh, 220px); overflow:auto;
+    padding:clamp(8px, 1.2cqi, 12px); font:300 clamp(10px, 1.05cqi, 11px)/1.4 inherit; color:var(--ink);
     transform:translate(-50%, calc(-100% - 14px));
   }
-  #hover-card b { display:block; color:var(--accent); font-weight:500; margin-bottom:4px; }
-  #hover-card .m { color:var(--mute); }
+  #hover-card.below { transform:translate(-50%, 14px); }
+  #hover-card b { display:block; color:var(--accent); font-weight:500; margin-bottom:4px; overflow-wrap:anywhere; }
+  #hover-card .m { color:var(--mute); overflow-wrap:anywhere; }
   #glitch {
     position:absolute; inset:0; z-index:7; pointer-events:none; display:none;
     background:
@@ -258,6 +307,46 @@ const EYE_HUD_CSS = `
     30% { opacity:1; transform:translateX(-6px); }
     60% { opacity:.7; transform:translateX(5px); }
     100% { opacity:0; transform:translateX(0); }
+  }
+  @container eye (max-width: 900px) {
+    #btn-layers { display:inline-flex; }
+    .sheet-close { display:inline-flex; }
+    .misb { max-width: calc(100cqi - 2 * var(--pad)); right:calc(var(--pad) + var(--safe-r)); }
+    .sheet {
+      display:none; left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
+      top:auto; width:auto; height:min(42cqh, 52%); bottom:calc(var(--dock-h) + var(--safe-b) + 6px);
+    }
+    .sheet.open { display:flex; flex-direction:column; }
+    .contacts {
+      left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
+      width:auto; top:calc(var(--pad) + var(--safe-t) + 56px); bottom:auto; height:min(32cqh, 240px);
+    }
+    .talk { flex-wrap:nowrap; max-height:none; justify-content:flex-start; }
+    .eye-chat { left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r)); width:auto; }
+    #note { max-width:calc(100cqi - 2 * var(--pad)); }
+    #eye-credits { max-width:calc(100cqi - 2 * var(--pad)); }
+  }
+  @container eye (max-width: 420px) {
+    .misb { padding:8px 10px; }
+    .talk button { padding:8px 10px; min-height:44px; }
+    .eye-chat .cmd { min-height:44px; }
+  }
+  @container eye (max-height: 520px) {
+    .misb { padding:6px 10px; }
+    .talk { padding:4px 8px; }
+    .talk button { min-height:36px; padding:6px 10px; }
+    .sheet { max-height:calc(100cqh - var(--dock-h) - 12px); }
+    .eye-chat { max-height:min(50cqh, 200px); }
+    .contacts { top:calc(var(--pad) + 44px); }
+  }
+  @container eye (min-width: 1600px) {
+    .sheet { width: min(340px, 22cqi); }
+    .contacts { width: min(280px, 18cqi); }
+    .talk { width: min(1180px, calc(100cqi - 2 * var(--pad))); }
+    .eye-chat { width: min(300px, 20cqi); }
+  }
+  @media (pointer: coarse) {
+    .talk button, .tog, .cmd, .go, .hit, .sheet-close, #mission-grid button { min-height:44px; }
   }
 `;
 
@@ -464,6 +553,22 @@ const AsherinEyeView = () => {
     let atmoLayer = null;
     let lastAltBand = "";
     let hoverEnt = null;
+    let paneWatch = null;
+    const fitGlobe = () => {
+      try {
+        viewer?.resize();
+      } catch {}
+      const box = root.querySelector(".eye-root") || root;
+      const cv = root.querySelector("#detect");
+      if (cv && box) {
+        const w = Math.max(1, box.clientWidth);
+        const h = Math.max(1, box.clientHeight);
+        if (cv.width !== w || cv.height !== h) {
+          cv.width = w;
+          cv.height = h;
+        }
+      }
+    };
     const satRecs = {};
     const pathHist = {};
     const layerOn = {};
@@ -486,7 +591,10 @@ const AsherinEyeView = () => {
           <div class="m" id="hud-honesty"></div>
         </div>
         <div class="glass sheet" id="sheet">
-          <h2>layers</h2>
+          <div class="sheet-head">
+            <h2>layers</h2>
+            <button type="button" class="sheet-close" id="sheet-close">close</button>
+          </div>
           <div id="layer-btns"></div>
           <h2 style="margin-top:14px">globe</h2>
           <div id="globe-btns"></div>
@@ -535,6 +643,7 @@ const AsherinEyeView = () => {
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
         <div class="glass talk">
+          <button type="button" class="ghost" id="btn-layers">layers</button>
           <button type="button" id="btn-cockpit">cockpit</button>
           <button type="button" class="ghost" id="btn-chase">chase</button>
           <button type="button" class="ghost" id="btn-orbit">orbit</button>
@@ -1067,8 +1176,19 @@ const AsherinEyeView = () => {
       const m = ent.asherin || {};
       card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
       card.style.display = "block";
-      card.style.left = `${win.x}px`;
-      card.style.top = `${win.y}px`;
+      const box = root.querySelector(".eye-root") || root;
+      const cw = box.clientWidth || 1;
+      const ch = box.clientHeight || 1;
+      const pad = 10;
+      const half = Math.min(120, cw * 0.42);
+      let x = Number(win.x) || 0;
+      let y = Number(win.y) || 0;
+      x = Math.min(Math.max(x, pad + half), cw - pad - half);
+      const below = y < 88;
+      card.classList.toggle("below", below);
+      y = Math.min(Math.max(y, pad + 8), ch - pad);
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
     }
 
     function pinHoverCard() {
@@ -1818,8 +1938,9 @@ const AsherinEyeView = () => {
     function drawDetect(on) {
       const cv = $("#detect");
       if (!cv || !viewer) return;
-      cv.width = root.clientWidth;
-      cv.height = root.clientHeight;
+      const box = root.querySelector(".eye-root") || root;
+      cv.width = box.clientWidth;
+      cv.height = box.clientHeight;
       const ctx = cv.getContext("2d");
       ctx.clearRect(0, 0, cv.width, cv.height);
       if (!on || !tracked || !viewer.trackedEntity) return;
@@ -2019,6 +2140,16 @@ const AsherinEyeView = () => {
         } catch {}
       }
       viewer.clock.shouldAnimate = true;
+      try {
+        paneWatch = new ResizeObserver(fitGlobe);
+        paneWatch.observe(root.querySelector(".eye-root") || root);
+        paneWatch.observe($("#eye-stage"));
+      } catch {
+        paneWatch = null;
+      }
+      window.visualViewport?.addEventListener("resize", fitGlobe);
+      window.addEventListener("orientationchange", fitGlobe);
+      fitGlobe();
       viewer.scene.preUpdate.addEventListener(() => {
         if (camMode !== "orbit" || !tracked) return;
         let ent = viewer.trackedEntity;
@@ -2136,9 +2267,20 @@ const AsherinEyeView = () => {
       $("#btn-orbit").onclick = () => applyCamMode("orbit");
       $("#btn-nadir").onclick = () => applyCamMode("nadir");
       $("#btn-tour").onclick = () => playTour();
+      const setSheetOpen = (on) => {
+        $("#sheet")?.classList.toggle("open", on);
+        $("#btn-layers")?.classList.toggle("on", on);
+      };
+      $("#btn-layers").onclick = () => {
+        const on = !$("#sheet").classList.contains("open");
+        setSheetOpen(on);
+        if (on) $("#contacts").hidden = true;
+      };
+      $("#sheet-close").onclick = () => setSheetOpen(false);
       $("#btn-contacts").onclick = () => {
         const el = $("#contacts");
         el.hidden = !el.hidden;
+        if (!el.hidden) setSheetOpen(false);
         refreshContacts();
       };
       let detectOn = false;
@@ -2173,6 +2315,7 @@ const AsherinEyeView = () => {
         const shut = body.hidden;
         body.hidden = !shut;
         box.classList.toggle("shut", !shut);
+        if (shut) setSheetOpen(false);
         paintChat();
       };
       $("#cmd-place").onclick = () => setCmdMode("place");
@@ -2196,8 +2339,7 @@ const AsherinEyeView = () => {
         const b = document.createElement("button");
         b.type = "button";
         b.textContent = m.title;
-        b.style.cssText =
-          "border-radius:12px;padding:12px;border:1px solid var(--line);background:hsl(var(--card)/.5);color:var(--ink);cursor:pointer;text-transform:lowercase";
+        b.style.cssText = "";
         b.onclick = async () => {
           flyTo(m.fly.lat, m.fly.lon, m.fly.alt);
           for (const id of m.layers) await enableLayer(id, true);
@@ -2292,13 +2434,22 @@ const AsherinEyeView = () => {
       dead = true;
       pollers.forEach(clearInterval);
       try {
+        paneWatch?.disconnect();
+      } catch {}
+      try {
+        window.visualViewport?.removeEventListener("resize", fitGlobe);
+        window.removeEventListener("orientationchange", fitGlobe);
+      } catch {}
+      try {
         viewer?.destroy();
       } catch {}
       root.innerHTML = "";
     };
   }, []);
 
-  return <div ref={hostRef} className="absolute inset-0 min-h-0 min-w-0" />;
+  return (
+    <div ref={hostRef} className="asherin-eye-host relative h-full min-h-0 min-w-0 w-full flex-1 overflow-hidden" />
+  );
 };
 
 export default AsherinEyeView;
