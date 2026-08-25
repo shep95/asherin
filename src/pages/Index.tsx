@@ -96,7 +96,7 @@ const Index = () => {
       },
       {
         q: "what does the $18 plan include?",
-        a: "Chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that persists between sessions.",
+        a: "Chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that persists between sessions.",
       },
       {
         q: "is my work used to train asherin?",
@@ -113,7 +113,7 @@ const Index = () => {
           name: "Asherin",
           url: "https://asherin.com",
           description:
-            "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, asherin.pages. $18/mo, $79/mo pro. honest about what it does not know.",
+            "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages. $18/mo, $79/mo pro. honest about what it does not know.",
         },
       },
       {
@@ -280,8 +280,8 @@ const Index = () => {
             </Link>
           </div>
           <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
-            rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, asherin.pages. $18 /
-            month. $79 / month pro.
+            rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision,
+            asherin.pages. $18 / month. $79 / month pro.
           </p>
         </div>
       </Section>
@@ -416,7 +416,7 @@ const Index = () => {
             {[
               {
                 q: "what does the $18 plan include?",
-                a: "chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that carries between sessions.",
+                a: "chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that carries between sessions.",
               },
               {
                 q: "what does pro add?",
