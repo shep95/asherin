@@ -31,7 +31,9 @@ type FeedName =
   | "local"
   | "places"
   | "property"
-  | "webmeta";
+  | "webmeta"
+  | "hex"
+  | "osmweb";
 
 interface CacheRow {
   at: number;
@@ -53,6 +55,8 @@ const TTL: Record<FeedName, number> = {
   places: 60_000,
   property: 90_000,
   webmeta: 120_000,
+  hex: 20_000,
+  osmweb: 90_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -552,6 +556,57 @@ async function webmeta(params: Record<string, unknown>) {
   };
 }
 
+async function hex(params: Record<string, unknown>) {
+  const icao = text(params.icao, 12)
+    .replace(/[^a-fA-F0-9]/g, "")
+    .toLowerCase();
+  if (icao.length < 4 || icao.length > 8) throw new Error("no icao");
+  const d = (await getJson(`https://api.adsb.lol/v2/hex/${icao}`, 10_000)) as { ac?: Array<Record<string, unknown>> };
+  const rows = (d.ac ?? [])
+    .map((a) => {
+      const la = num(a.lat);
+      const lo = num(a.lon);
+      if (la === null || lo === null) return null;
+      return {
+        id: text(a.hex, 12) || icao,
+        label: text(a.flight, 16).trim() || icao,
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        alt: num(a.alt_baro) ?? 0,
+      };
+    })
+    .filter(Boolean);
+  return { rows, source: "adsb.lol hex", note: "live hex snapshot, not a full-day globe_history dump" };
+}
+
+async function osmweb(params: Record<string, unknown>) {
+  const lat = num(params.lat);
+  const lon = num(params.lon);
+  if (lat === null || lon === null) throw new Error("no coordinate given");
+  const la = clampLat(lat);
+  const lo = wrapLon(lon);
+  const q = `[out:json][timeout:18];(node["man_made"="surveillance"](around:40000,${la.toFixed(4)},${lo.toFixed(4)});node["webcam"](around:40000,${la.toFixed(4)},${lo.toFixed(4)}););out 80;`;
+  const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 16_000)) as {
+    elements?: Array<Record<string, unknown>>;
+  };
+  const rows = (d.elements ?? [])
+    .map((el, i) => {
+      const ela = num(el.lat);
+      const elo = num(el.lon);
+      if (ela === null || elo === null) return null;
+      const tags = (el.tags as Record<string, unknown> | undefined) || {};
+      return {
+        id: `osmweb-${el.id || i}`,
+        label: (text(tags.name, 80) || "mapped webcam").toLowerCase(),
+        lat: clampLat(ela),
+        lon: wrapLon(elo),
+        note: "osm public map, mapped, not a live intercept",
+      };
+    })
+    .filter(Boolean);
+  return { rows, source: "openstreetmap overpass", note: "mapped surveillance/webcam nodes around the camera" };
+}
+
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
   military: () => military(),
@@ -565,6 +620,8 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   places,
   property,
   webmeta,
+  hex,
+  osmweb,
 };
 
 Deno.serve(async (req) => {
@@ -587,9 +644,13 @@ Deno.serve(async (req) => {
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
         : feed === "places" || feed === "property"
           ? String(params.q ?? "").slice(0, 80)
-          : feed === "webmeta"
-            ? String(params.url ?? "").slice(0, 120)
-            : "";
+          : feed === "hex"
+            ? String(params.icao ?? "").slice(0, 12)
+            : feed === "osmweb"
+              ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
+              : feed === "webmeta"
+                ? String(params.url ?? "").slice(0, 120)
+                : "";
     const key = `${feed}|${keyBits}`;
     const hit = CACHE.get(key);
     const now = Date.now();
