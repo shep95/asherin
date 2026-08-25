@@ -38,8 +38,18 @@ const LAYER_ROWS = [
     honesty: "asherin.engine places on the globe · not a search results list",
     keyed: false,
   },
-  { id: "near", label: "bluetooth near", honesty: "this-box ads · sees ≠ joins · no a2dp", keyed: false },
-  { id: "meta", label: "web metadata", honesty: "public page headers/og/geo tags · not a tap", keyed: false },
+  {
+    id: "near",
+    label: "bluetooth near",
+    honesty: "this-box ble ads polled live · radio range is meters · sees ≠ joins",
+    keyed: false,
+  },
+  {
+    id: "meta",
+    label: "web metadata",
+    honesty: "public cameras + radio hosts + osm mapped webcams · live poll · not a tap · not a port scan",
+    keyed: false,
+  },
 ];
 
 const LAYER_COLOR = {
@@ -61,6 +71,14 @@ const MISSIONS = [
   { id: "space", title: "space", layers: ["stations", "launches"], fly: { lat: 28.57, lon: -80.65, alt: 4.2e6 } },
   { id: "earth", title: "earth watch", layers: ["quakes"], fly: { lat: 19.4, lon: -155.3, alt: 1.1e6 } },
   { id: "city", title: "city", layers: ["cameras", "radio"], fly: { lat: 51.5, lon: -0.12, alt: 420000 } },
+];
+
+const CAM_MODES = ["chase", "orbit", "nadir"];
+const TOUR_SHOTS = [
+  { lat: 20, lon: -30, alt: 1.9e7, heading: 25, pitch: -65, duration: 5 },
+  { lat: 46, lon: 2, alt: 8e6, heading: 40, pitch: -52, duration: 5 },
+  { lat: 35, lon: 139, alt: 4.2e6, heading: 22, pitch: -46, duration: 5 },
+  { lat: 37.6, lon: -122.4, alt: 1.7e6, heading: 8, pitch: -40, duration: 5 },
 ];
 
 const EYE_HUD_CSS = `
@@ -355,6 +373,10 @@ const AsherinEyeView = () => {
     let tracked;
     let trail;
     let modelOn = false;
+    let camMode = "chase";
+    let orbitHeading = 0;
+    let nearOnce = false;
+    const pathHist = {};
     const layerOn = {};
     LAYER_ROWS.forEach((l) => (layerOn[l.id] = false));
     const ds = {};
@@ -386,6 +408,10 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
           <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
           <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
+          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic</span></div>
+          <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
+          <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
+          <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
           <h2 style="margin:0 0 8px;font:400 13px/1.2 inherit;color:var(--mute)">contacts · 250 km</h2>
@@ -404,6 +430,10 @@ const AsherinEyeView = () => {
         <div class="glass note" id="note"></div>
         <div class="glass talk">
           <button type="button" id="btn-cockpit">cockpit</button>
+          <button type="button" class="ghost" id="btn-chase">chase</button>
+          <button type="button" class="ghost" id="btn-orbit">orbit</button>
+          <button type="button" class="ghost" id="btn-nadir">nadir</button>
+          <button type="button" class="ghost" id="btn-tour">tour</button>
           <button type="button" class="ghost" id="btn-contacts">contacts</button>
           <button type="button" class="ghost" id="btn-detect">detect</button>
           <button type="button" class="ghost" id="btn-voice">voice</button>
@@ -428,9 +458,10 @@ const AsherinEyeView = () => {
       const alt = Math.round(carto.height);
       $("#hud-line").textContent = `${lat} · ${lon} · ${alt} m · ${status.style} · ${status.map}`;
       const hangar = tracked && modelOn ? " · 3d airframe" : "";
+      const modeBit = camMode !== "chase" ? ` · camera ${camMode}` : "";
       $("#hud-honesty").textContent = tracked
-        ? `tracking ${tracked.label || "contact"}${hangar} · camera follows`
-        : "click a contact to track. esc releases in place.";
+        ? `tracking ${tracked.label || "contact"}${hangar}${modeBit} · live trail from ads-b fixes`
+        : "click a contact to track. chase / orbit / nadir move the camera. esc releases.";
       $("#pr-status").textContent = status.photoreal;
     };
 
@@ -545,6 +576,7 @@ const AsherinEyeView = () => {
         if (b.dataset.layer === id) b.classList.toggle("on", on);
       });
       if (!on) {
+        if (id === "near") nearOnce = false;
         clearDs(id);
         return;
       }
@@ -603,6 +635,12 @@ const AsherinEyeView = () => {
           label: row.label || id,
           klass,
         };
+        const hist = pathHist[eid] || (pathHist[eid] = []);
+        const last = hist[hist.length - 1];
+        if (!last || Math.abs(last.lat - Number(row.lat)) + Math.abs(last.lon - Number(row.lon)) > 0.00025) {
+          hist.push({ lat: Number(row.lat), lon: Number(row.lon), alt, t: now });
+          if (hist.length > 240) hist.splice(0, hist.length - 240);
+        }
         let ent = src.entities.getById(eid);
         if (!ent) {
           ent = src.entities.add({
@@ -733,7 +771,7 @@ const AsherinEyeView = () => {
         return;
       }
       if (id === "meta") {
-        setNote("web metadata: paste an https url in the side chat. public headers/og/geo only — not a tap.");
+        await loadWebIndex();
         return;
       }
       const cam = viewer?.camera?.positionCartographic;
@@ -762,14 +800,14 @@ const AsherinEyeView = () => {
         const ads = Array.isArray(ble) ? ble : [];
         const rows = ads.slice(0, 40).map((d, i) => {
           const rssi = Number(d.rssi || -70);
-          const ring = Math.min(0.018, Math.max(0.002, (Math.abs(rssi) - 40) / 4000));
+          const ring = Math.min(0.004, Math.max(0.0004, (Math.abs(rssi) - 40) / 18000));
           const ang = (i / Math.max(1, ads.length)) * Math.PI * 2;
           return {
             id: d.address || d.chat_label || i,
             label: (d.chat_label || d.name || "ble ad").slice(0, 40),
             lat: lat + Math.sin(ang) * ring,
             lon: lon + Math.cos(ang) * ring,
-            note: "city-scale around this box · sees ≠ joins",
+            note: "this-box radio · meters · sees ≠ joins",
           };
         });
         if (!rows.length) {
@@ -781,11 +819,54 @@ const AsherinEyeView = () => {
             note: "no ble ads this tick",
           });
         }
-        plotRows("near", rows, "bluetooth near · this-box ads · not a hijack · ip-city is not a house");
-        flyTo(lat, lon, 28000);
+        plotRows(
+          "near",
+          rows,
+          `bluetooth near · ${rows.length} ads this tick · this radio is meters, not a state · not a hijack`,
+        );
+        if (!nearOnce) {
+          nearOnce = true;
+          flyTo(lat, lon, 12000);
+        }
       } catch (e) {
         throw new Error("companion not readable from this https tab · sees ≠ joins · " + (e.message || e));
       }
+    }
+
+    async function loadWebIndex() {
+      const C = window.Cesium;
+      const cam = viewer?.camera?.positionCartographic;
+      const lat = cam ? C.Math.toDegrees(cam.latitude) : 0;
+      const lon = cam ? C.Math.toDegrees(cam.longitude) : 0;
+      const jobs = await Promise.allSettled([eyeFeed("cameras"), eyeFeed("radio"), eyeFeed("osmweb", { lat, lon })]);
+      const rows = [];
+      const notes = [];
+      jobs.forEach((job, i) => {
+        const name = ["cameras", "radio", "osm mapped webcams"][i];
+        if (job.status !== "fulfilled") {
+          notes.push(`${name} refused`);
+          return;
+        }
+        const body = job.value || {};
+        if (body.error) {
+          notes.push(`${name}: ${body.error}`);
+          return;
+        }
+        (body.rows || []).forEach((row) => {
+          if (row.lat == null || row.lon == null) return;
+          rows.push({
+            ...row,
+            id: `${name}:${row.id || rows.length}`,
+            note: row.note || name,
+          });
+        });
+      });
+      const sliced = rows.slice(0, 220);
+      plotRows(
+        "meta",
+        sliced,
+        `web metadata live layer · ${sliced.length} public web-connected points · not a tap · not a port scan · ${notes.join(" · ")}`.trim(),
+      );
     }
 
     function planePng() {
@@ -810,29 +891,99 @@ const AsherinEyeView = () => {
 
     function trackEntity(ent) {
       tracked = { id: ent.id, label: ent.name, meta: ent.asherin || {} };
-      viewer.trackedEntity = ent;
-      if (trail) viewer.entities.remove(trail);
       const C = window.Cesium;
+      if (trail) viewer.entities.remove(trail);
       trail = viewer.entities.add({
         polyline: {
           positions: new C.CallbackProperty(() => {
-            if (!ent.position) return [];
-            const p = ent.position.getValue(viewer.clock.currentTime);
-            if (!p) return [];
-            const s = samples[ent.id];
-            if (!s) return [p];
-            const hist = [];
-            for (let i = 8; i >= 0; i--) {
-              const r = reckon({ ...s, t: s.t - i * 4000 }, Date.now());
-              hist.push(C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt));
+            const hist = pathHist[ent.id] || [];
+            const pts = hist.map((p) => C.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
+            if (ent.position) {
+              const p = ent.position.getValue(viewer.clock.currentTime);
+              if (p) pts.push(p);
             }
-            return hist;
+            return pts;
           }, false),
-          width: 2,
-          material: C.Color.fromCssColorString("#fbbf24").withAlpha(0.55),
+          width: 2.6,
+          material: C.Color.fromCssColorString("#fbbf24").withAlpha(0.85),
+          depthFailMaterial: C.Color.fromCssColorString("#fbbf24").withAlpha(0.4),
+          arcType: C.ArcType.GEODESIC,
         },
       });
+      applyCamMode(camMode);
+      const icao = String(ent.id || "").split(":")[1] || "";
+      if (/^[a-fA-F0-9]{4,8}$/.test(icao)) {
+        eyeFeed("hex", { icao })
+          .then((j) => {
+            const extra = j.rows || [];
+            const hist = pathHist[ent.id] || (pathHist[ent.id] = []);
+            extra.forEach((row) => {
+              if (row.lat == null || row.lon == null) return;
+              hist.unshift({ lat: Number(row.lat), lon: Number(row.lon), alt: Number(row.alt || 0), t: 0 });
+            });
+            if (hist.length > 240) hist.splice(0, hist.length - 240);
+          })
+          .catch(() => {});
+      }
       setHud();
+    }
+
+    function applyCamMode(mode) {
+      camMode = CAM_MODES.includes(mode) ? mode : "chase";
+      const C = window.Cesium;
+      const ent =
+        viewer?.trackedEntity ||
+        (tracked &&
+          (() => {
+            for (let i = 0; i < viewer.dataSources.length; i++) {
+              const e = viewer.dataSources.get(i).entities.getById(tracked.id);
+              if (e) return e;
+            }
+            return null;
+          })());
+      if (!ent) {
+        setNote("click a contact first");
+        return;
+      }
+      if (camMode === "orbit") {
+        viewer.trackedEntity = undefined;
+        setNote("orbit · camera walks around the contact");
+      } else if (camMode === "nadir") {
+        ent.viewFrom = new C.Cartesian3(0, 0, 420);
+        viewer.trackedEntity = undefined;
+        viewer.trackedEntity = ent;
+        setNote("nadir · looking down on the contact");
+      } else {
+        ent.viewFrom = new C.Cartesian3(-140, -50, 32);
+        viewer.trackedEntity = undefined;
+        viewer.trackedEntity = ent;
+        setNote("chase · camera rides behind the contact");
+      }
+      setHud();
+    }
+
+    async function playTour() {
+      if (!viewer) return;
+      camMode = "chase";
+      viewer.trackedEntity = undefined;
+      setNote("tour · zip scene-director class · public camera path");
+      const C = window.Cesium;
+      for (const shot of TOUR_SHOTS) {
+        if (dead) return;
+        await new Promise((resolve) => {
+          viewer.camera.flyTo({
+            destination: C.Cartesian3.fromDegrees(shot.lon, shot.lat, shot.alt),
+            orientation: {
+              heading: C.Math.toRadians(shot.heading || 0),
+              pitch: C.Math.toRadians(shot.pitch || -45),
+              roll: 0,
+            },
+            duration: shot.duration || 4,
+            complete: resolve,
+          });
+        });
+      }
+      setNote("tour ended");
     }
 
     function releaseTrack() {
@@ -1041,6 +1192,24 @@ const AsherinEyeView = () => {
       });
       viewer.scene.globe.depthTestAgainstTerrain = true;
       viewer.clock.shouldAnimate = true;
+      viewer.scene.preUpdate.addEventListener(() => {
+        if (camMode !== "orbit" || !tracked) return;
+        let ent = viewer.trackedEntity;
+        if (!ent) {
+          for (let i = 0; i < viewer.dataSources.length; i++) {
+            const e = viewer.dataSources.get(i).entities.getById(tracked.id);
+            if (e) {
+              ent = e;
+              break;
+            }
+          }
+        }
+        if (!ent?.position) return;
+        const p = ent.position.getValue(viewer.clock.currentTime);
+        if (!p) return;
+        orbitHeading += 0.0035;
+        viewer.camera.lookAt(p, new CesiumG.HeadingPitchRange(orbitHeading, CesiumG.Math.toRadians(-28), 560));
+      });
 
       try {
         if (keys.google) {
@@ -1109,6 +1278,7 @@ const AsherinEyeView = () => {
           setNote("click a contact first");
           return;
         }
+        camMode = "chase";
         const ent = viewer.trackedEntity;
         if (ent) {
           ent.viewFrom = new CesiumG.Cartesian3(-80, -20, 18);
@@ -1117,6 +1287,10 @@ const AsherinEyeView = () => {
         }
         setNote("cockpit · camera rides with the airframe. esc releases in place.");
       };
+      $("#btn-chase").onclick = () => applyCamMode("chase");
+      $("#btn-orbit").onclick = () => applyCamMode("orbit");
+      $("#btn-nadir").onclick = () => applyCamMode("nadir");
+      $("#btn-tour").onclick = () => playTour();
       $("#btn-contacts").onclick = () => {
         const el = $("#contacts");
         el.hidden = !el.hidden;
@@ -1205,7 +1379,13 @@ const AsherinEyeView = () => {
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
           if (layerOn.military) loadLayer("military").catch(() => {});
+          if (layerOn.near) loadNear().catch(() => {});
         }, 12000),
+      );
+      pollers.push(
+        setInterval(() => {
+          if (layerOn.meta) loadWebIndex().catch(() => {});
+        }, 40000),
       );
 
       void emitPull({ organ: "eye", capability: "open", fromSurface: "asherin-eye", status: "ok" });
