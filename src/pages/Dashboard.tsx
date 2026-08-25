@@ -1948,11 +1948,15 @@ const Dashboard = () => {
           "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
         );
       case "asherin-eye":
-        return gatedView(
-          "asherin-eye",
-          AsherinEyeView,
-          "asherin.eye",
-          "photoreal 3d globe with live public flights, sats, quakes, radio and osm sites. included with the $18 asherin plan. maps stays its own room.",
+        return (
+          <div className="asherin-eye-pane relative h-full min-h-0 w-full flex-1 overflow-hidden">
+            {gatedView(
+              "asherin-eye",
+              AsherinEyeView,
+              "asherin.eye",
+              "photoreal 3d globe with live public flights, sats, quakes, radio and osm sites. included with the $18 asherin plan. maps stays its own room.",
+            )}
+          </div>
         );
       case "asherin-arvision":
         return gatedView(
