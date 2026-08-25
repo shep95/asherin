@@ -50,6 +50,55 @@ const LAYER_ROWS = [
     honesty: "public cameras + radio hosts + osm mapped webcams · live poll · not a tap · not a port scan",
     keyed: false,
   },
+  {
+    id: "sats",
+    label: "satellites",
+    honesty: "celestrak tle + sgp4 orbit rings · gev class · not a classified catalog",
+    keyed: false,
+  },
+  {
+    id: "atmo",
+    label: "atmosphere",
+    honesty: "nasa gibs ozone tiles + ionosphere shell scaled by noaa kp · schematic height, not a lab",
+    keyed: false,
+  },
+  {
+    id: "lands",
+    label: "territories",
+    honesty: "world-atlas countries · click a country to highlight · ice/amber glass · not a threat tint",
+    keyed: false,
+  },
+  {
+    id: "zones",
+    label: "zones",
+    honesty: "open-meteo air quality grid · green good · brown no/mid · red unhealthy · not a war overlay",
+    keyed: false,
+  },
+  {
+    id: "dark",
+    label: "dark zones",
+    honesty:
+      "cells where our live public layers are sparse · missing public data is a signal · not an intercept blackout",
+    keyed: false,
+  },
+  {
+    id: "brittle",
+    label: "fault lines",
+    honesty: "osm power/port/air/hospital/mast + usgs quakes nearby · public brittle nodes · not an attack list",
+    keyed: false,
+  },
+  {
+    id: "future",
+    label: "future land",
+    honesty: "pb2002 plate edges · 50-200yr motion is meters · speculative cartography, not a new continent",
+    keyed: false,
+  },
+  {
+    id: "route",
+    label: "unstable route",
+    honesty: "osrm + open-meteo wind/precip as cost · sci-fi quantum routing rewritten · not a quantum computer",
+    keyed: false,
+  },
 ];
 
 const LAYER_COLOR = {
@@ -64,11 +113,19 @@ const LAYER_COLOR = {
   engine: "#9ec9ff",
   near: "#e8c56b",
   meta: "#c4b5fd",
+  sats: "#7dd3fc",
+  atmo: "#a5f3fc",
+  lands: "#9ec9ff",
+  zones: "#86efac",
+  dark: "#64748b",
+  brittle: "#fb7185",
+  future: "#fde68a",
+  route: "#67e8f9",
 };
 
 const MISSIONS = [
   { id: "air", title: "air", layers: ["flights", "military"], fly: { lat: 40.64, lon: -73.78, alt: 280000 } },
-  { id: "space", title: "space", layers: ["stations", "launches"], fly: { lat: 28.57, lon: -80.65, alt: 4.2e6 } },
+  { id: "space", title: "space", layers: ["stations", "sats", "atmo"], fly: { lat: 28.57, lon: -80.65, alt: 4.2e6 } },
   { id: "earth", title: "earth watch", layers: ["quakes"], fly: { lat: 19.4, lon: -155.3, alt: 1.1e6 } },
   { id: "city", title: "city", layers: ["cameras", "radio"], fly: { lat: 51.5, lon: -0.12, alt: 420000 } },
 ];
@@ -179,6 +236,28 @@ const EYE_HUD_CSS = `
     .contacts { left:8px; top:96px; width:auto; right:8px; bottom:auto; height:28%; }
     .talk { bottom:10px; }
     .eye-chat { left:8px; right:8px; width:auto; }
+  }
+  #hover-card {
+    position:absolute; z-index:12; display:none; pointer-events:none;
+    min-width:160px; max-width:240px; padding:10px 12px;
+    font:300 11px/1.4 inherit; color:var(--ink);
+    transform:translate(-50%, calc(-100% - 14px));
+  }
+  #hover-card b { display:block; color:var(--accent); font-weight:500; margin-bottom:4px; }
+  #hover-card .m { color:var(--mute); }
+  #glitch {
+    position:absolute; inset:0; z-index:7; pointer-events:none; display:none;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(158,201,255,.08) 3px),
+      rgba(7,8,10,.18);
+    mix-blend-mode: screen;
+    animation: eye-glitch .28s linear;
+  }
+  @keyframes eye-glitch {
+    0% { opacity:0; transform:translateX(0); }
+    30% { opacity:1; transform:translateX(-6px); }
+    60% { opacity:.7; transform:translateX(5px); }
+    100% { opacity:0; transform:translateX(0); }
   }
 `;
 
@@ -382,6 +461,10 @@ const AsherinEyeView = () => {
     let camMode = "chase";
     let orbitHeading = 0;
     let nearOnce = false;
+    let atmoLayer = null;
+    let lastAltBand = "";
+    let hoverEnt = null;
+    const satRecs = {};
     const pathHist = {};
     const layerOn = {};
     let cmdMode = "place";
@@ -420,6 +503,14 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
           <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
           <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
+          <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
+          <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
+          <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
+          <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
+          <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
+          <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
+          <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
+          <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
           <h2 style="margin:0 0 8px;font:400 13px/1.2 inherit;color:var(--mute)">contacts · 250 km</h2>
@@ -439,6 +530,9 @@ const AsherinEyeView = () => {
             </div>
           </div>
         </div>
+        <div class="glass hover-card" id="hover-card"></div>
+        <div id="glitch"></div>
+        <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
         <div class="glass talk">
           <button type="button" id="btn-cockpit">cockpit</button>
@@ -450,6 +544,7 @@ const AsherinEyeView = () => {
           <button type="button" class="ghost" id="btn-detect">detect</button>
           <button type="button" class="ghost" id="btn-voice">voice</button>
           <button type="button" class="ghost" id="btn-share">share</button>
+          <button type="button" class="ghost" id="btn-exif">pin photo</button>
           <button type="button" class="ghost" id="btn-reset">reset globe</button>
         </div>
       </div>`;
@@ -589,6 +684,7 @@ const AsherinEyeView = () => {
       });
       if (!on) {
         if (id === "near") nearOnce = false;
+        if (id === "atmo") clearAtmo();
         clearDs(id);
         return;
       }
@@ -727,8 +823,40 @@ const AsherinEyeView = () => {
             material: C.Color.fromCssColorString(color).withAlpha(0.55),
             height: 0,
           };
+        } else if (id === "zones") {
+          const band = String(row.band || "brown");
+          const fill = band === "green" ? "#4ade80" : band === "red" ? "#f87171" : "#a8a29e";
+          ent.ellipse = {
+            semiMajorAxis: 28000,
+            semiMinorAxis: 28000,
+            material: C.Color.fromCssColorString(fill).withAlpha(0.28),
+            height: 0,
+            outline: true,
+            outlineColor: C.Color.fromCssColorString(fill),
+          };
+        } else if (id === "dark") {
+          ent.ellipse = {
+            semiMajorAxis: 42000,
+            semiMinorAxis: 42000,
+            material: C.Color.fromCssColorString("#334155").withAlpha(0.35),
+            height: 0,
+          };
         } else {
-          ent.point = { pixelSize: id === "stations" ? 8 : 9, color: C.Color.fromCssColorString(color) };
+          ent.point = {
+            pixelSize: id === "stations" || id === "sats" ? 8 : 9,
+            color: C.Color.fromCssColorString(color),
+          };
+        }
+        if (id === "brittle" || id === "engine" || id === "cameras" || id === "sats" || id === "stations") {
+          ent.label = {
+            text: String(row.label || id).slice(0, 42),
+            font: "11px Inter",
+            fillColor: C.Color.WHITE,
+            pixelOffset: new C.Cartesian2(0, -18),
+            showBackground: true,
+            backgroundColor: C.Color.BLACK.withAlpha(0.5),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          };
         }
         src.entities.add(ent);
       });
@@ -905,6 +1033,465 @@ const AsherinEyeView = () => {
       ].join("\n");
     }
 
+    function flashGlitch() {
+      const el = $("#glitch");
+      if (!el) return;
+      el.style.display = "block";
+      window.setTimeout(() => {
+        el.style.display = "none";
+      }, 280);
+    }
+
+    function altitudeBand(h) {
+      if (h < 80000) return "low";
+      if (h < 400000) return "edge";
+      if (h < 2000000) return "leo";
+      return "high";
+    }
+
+    function tickGlitch() {
+      if (!viewer) return;
+      const h = viewer.camera.positionCartographic?.height ?? 0;
+      const band = altitudeBand(h);
+      if (lastAltBand && lastAltBand !== band) flashGlitch();
+      lastAltBand = band;
+    }
+
+    function setHoverCard(ent, win) {
+      const card = $("#hover-card");
+      if (!card) return;
+      if (!ent || !win) {
+        card.style.display = "none";
+        return;
+      }
+      const m = ent.asherin || {};
+      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
+      card.style.display = "block";
+      card.style.left = `${win.x}px`;
+      card.style.top = `${win.y}px`;
+    }
+
+    function pinHoverCard() {
+      if (!viewer) return;
+      const ent =
+        hoverEnt ||
+        (tracked &&
+          (() => {
+            for (let i = 0; i < viewer.dataSources.length; i++) {
+              const e = viewer.dataSources.get(i).entities.getById(tracked.id);
+              if (e) return e;
+            }
+            return viewer.entities.getById(tracked?.id);
+          })());
+      if (!ent?.position) {
+        if (!hoverEnt) setHoverCard(null);
+        return;
+      }
+      const p = ent.position.getValue(viewer.clock.currentTime);
+      if (!p) return;
+      const win = window.Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, p);
+      if (win) setHoverCard(ent, win);
+    }
+
+    function clearAtmo() {
+      const C = window.Cesium;
+      if (atmoLayer && viewer) {
+        try {
+          viewer.imageryLayers.remove(atmoLayer, true);
+        } catch {}
+        atmoLayer = null;
+      }
+      if (viewer) {
+        ["iono-shell", "ozone-pane", "iono-pane"].forEach((id) => {
+          const e = viewer.entities.getById(id);
+          if (e) viewer.entities.remove(e);
+        });
+      }
+    }
+
+    async function loadAtmo() {
+      const C = window.Cesium;
+      clearAtmo();
+      const cam = viewer.camera.positionCartographic;
+      const lat = C.Math.toDegrees(cam.latitude);
+      const lon = C.Math.toDegrees(cam.longitude);
+      try {
+        atmoLayer = viewer.imageryLayers.addImageryProvider(
+          new C.UrlTemplateImageryProvider({
+            url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/OMI_Aura_Ozone_DOAS_Total_Column_Daily/default/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png",
+            credit: "nasa gibs omi ozone",
+          }),
+        );
+        atmoLayer.alpha = 0.45;
+      } catch (e) {
+        setNote("ozone tiles missed · " + (e.message || e));
+      }
+      let kp = 3;
+      try {
+        const j = await eyeFeed("spaceweather");
+        kp = Number(j.rows?.[0]?.kp) || 3;
+      } catch {}
+      const ionoH = 280000 + kp * 8000;
+      viewer.entities.add({
+        id: "iono-shell",
+        name: "ionosphere shell",
+        position: C.Cartesian3.fromDegrees(lon, lat, ionoH),
+        ellipsoid: {
+          radii: new C.Cartesian3(480000, 480000, 90000),
+          material: C.Color.fromCssColorString("#67e8f9").withAlpha(0.08 + Math.min(0.18, kp / 80)),
+          outline: true,
+          outlineColor: C.Color.fromCssColorString("#67e8f9").withAlpha(0.35),
+        },
+        asherin: {
+          kind: "atmo",
+          label: `ionosphere schematic · kp ${kp}`,
+          lat,
+          lon,
+          note: "height follows noaa kp · not a raytrace of the real f2 layer",
+        },
+      });
+      viewer.entities.add({
+        id: "ozone-pane",
+        name: "ozone pane",
+        rectangle: {
+          coordinates: C.Rectangle.fromDegrees(lon - 7, lat - 5, lon + 7, lat + 5),
+          height: 22000,
+          material: C.Color.fromCssColorString("#9ec9ff").withAlpha(0.14),
+          outline: true,
+          outlineColor: C.Color.fromCssColorString("#9ec9ff").withAlpha(0.4),
+        },
+        asherin: {
+          kind: "atmo",
+          label: "ozone pane",
+          lat,
+          lon,
+          note: "glass plane at tropopause class · gibs tiles on the globe are the measurement",
+        },
+      });
+      setNote(
+        `atmosphere · ozone tiles + iono shell at ~${Math.round(ionoH / 1000)} km · kp ${kp} · schematic, not a chemistry lab`,
+      );
+    }
+
+    async function loadSats() {
+      const C = window.Cesium;
+      const sat = window.satellite;
+      if (!sat) throw new Error("satellite.js not loaded");
+      const j = await eyeFeed("sats");
+      const src = dsFor("sats");
+      src.entities.removeAll();
+      Object.keys(satRecs).forEach((k) => delete satRecs[k]);
+      const now = new Date();
+      (j.rows || []).slice(0, 70).forEach((row, i) => {
+        if (!row.tle1 || !row.tle2) return;
+        let rec;
+        try {
+          rec = sat.twoline2satrec(String(row.tle1).trim(), String(row.tle2).trim());
+        } catch {
+          return;
+        }
+        const pv = sat.propagate(rec, now);
+        if (!pv.position) return;
+        const gd = sat.eciToGeodetic(pv.position, sat.gstime(now));
+        const lat = sat.degreesLat(gd.latitude);
+        const lon = sat.degreesLong(gd.longitude);
+        const alt = gd.height * 1000;
+        const eid = `sats:${row.id || i}`;
+        satRecs[eid] = rec;
+        const path = [];
+        const periodMin = (2 * Math.PI) / rec.no;
+        for (let s = 0; s < 72; s++) {
+          const t = new Date(now.getTime() + (s / 72) * periodMin * 60000);
+          const p2 = sat.propagate(rec, t);
+          if (!p2.position) continue;
+          const g2 = sat.eciToGeodetic(p2.position, sat.gstime(t));
+          path.push(sat.degreesLong(g2.longitude), sat.degreesLat(g2.latitude), g2.height * 1000);
+        }
+        const footprint = Math.max(180000, alt * 0.35);
+        src.entities.add({
+          id: eid,
+          name: row.label || "sat",
+          position: C.Cartesian3.fromDegrees(lon, lat, alt),
+          point: { pixelSize: 7, color: C.Color.fromCssColorString("#7dd3fc") },
+          polyline:
+            path.length >= 6
+              ? {
+                  positions: C.Cartesian3.fromDegreesArrayHeights(path),
+                  width: 1.2,
+                  material: C.Color.fromCssColorString("#7dd3fc").withAlpha(0.55),
+                }
+              : undefined,
+          ellipse: {
+            semiMajorAxis: footprint,
+            semiMinorAxis: footprint,
+            material: C.Color.fromCssColorString("#7dd3fc").withAlpha(0.08),
+            height: 0,
+            outline: true,
+            outlineColor: C.Color.fromCssColorString("#7dd3fc").withAlpha(0.25),
+          },
+          label: {
+            text: String(row.label || "sat").slice(0, 28),
+            font: "11px Inter",
+            fillColor: C.Color.WHITE,
+            pixelOffset: new C.Cartesian2(0, -16),
+            showBackground: true,
+            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          asherin: {
+            kind: "sats",
+            label: row.label,
+            lat,
+            lon,
+            note: row.note || "celestrak orbit + coverage cone (elevation-class ellipse)",
+          },
+        });
+      });
+      setNote(j.note || "satellites · public tle orbits");
+    }
+
+    async function loadLands() {
+      const C = window.Cesium;
+      clearDs("lands");
+      const src = dsFor("lands");
+      const r = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json", {
+        signal: AbortSignal.timeout(12000),
+      });
+      const topo = await r.json();
+      const objects = topo.objects || {};
+      const key = objects.countries ? "countries" : Object.keys(objects)[0];
+      if (!key) throw new Error("world-atlas had no countries object");
+      if (!window.topojson) {
+        await loadScript("https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js");
+      }
+      const geo = window.topojson.feature(topo, objects[key]);
+      const dsx = await C.GeoJsonDataSource.load(geo, {
+        stroke: C.Color.fromCssColorString("#9ec9ff").withAlpha(0.7),
+        fill: C.Color.fromCssColorString("#9ec9ff").withAlpha(0.04),
+        strokeWidth: 1.4,
+      });
+      dsx.entities.values.forEach((e, i) => {
+        const name = e.name || e.properties?.name || e.properties?.NAME || "country";
+        e.name = String(name).toLowerCase();
+        e.asherin = { kind: "lands", label: e.name, note: "admin-0 outline · click to highlight · not a threat zone" };
+        if (e.polygon) {
+          e.polygon.material = C.Color.fromCssColorString("#9ec9ff").withAlpha(0.04);
+          e.polygon.outlineColor = C.Color.fromCssColorString("#9ec9ff").withAlpha(0.55);
+        }
+      });
+      viewer.dataSources.remove(src);
+      ds.lands = dsx;
+      viewer.dataSources.add(dsx);
+      setNote("territories · click a country · ice glass, not a red-threat costume");
+    }
+
+    function highlightCountry(ent) {
+      const C = window.Cesium;
+      const src = ds.lands;
+      if (!src) return;
+      src.entities.values.forEach((e) => {
+        if (!e.polygon) return;
+        const on = e.id === ent.id;
+        e.polygon.material = C.Color.fromCssColorString(on ? "#e8c56b" : "#9ec9ff").withAlpha(on ? 0.28 : 0.04);
+        e.polygon.outlineColor = C.Color.fromCssColorString(on ? "#e8c56b" : "#9ec9ff");
+      });
+      hoverEnt = ent;
+      pinHoverCard();
+      setNote(`territory · ${ent.name} · public admin outline`);
+    }
+
+    function loadDark() {
+      const C = window.Cesium;
+      const cam = viewer.camera.positionCartographic;
+      const lat = C.Math.toDegrees(cam.latitude);
+      const lon = C.Math.toDegrees(cam.longitude);
+      const counts = [];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const rlat = lat + dy * 4;
+          const rlon = lon + dx * 5;
+          let n = 0;
+          for (let i = 0; i < viewer.dataSources.length; i++) {
+            viewer.dataSources.get(i).entities.values.forEach((e) => {
+              const m = e.asherin;
+              if (!m || m.lat == null) return;
+              if (Math.abs(m.lat - rlat) < 2.2 && Math.abs(m.lon - rlon) < 2.8) n += 1;
+            });
+          }
+          if (n < 3) {
+            counts.push({
+              id: `dark-${dx}-${dy}`,
+              label: n === 0 ? "no public points" : `${n} public points`,
+              lat: rlat,
+              lon: rlon,
+              note: "sparse live public layers in this cell · not an internet-blackout claim · not intercept",
+            });
+          }
+        }
+      }
+      plotRows(
+        "dark",
+        counts,
+        counts.length
+          ? `dark zones · ${counts.length} sparse cells around the camera`
+          : "this view is dense with public points · no dark cell here",
+      );
+    }
+
+    async function loadFuture() {
+      const j = await eyeFeed("plates");
+      const C = window.Cesium;
+      const src = dsFor("future");
+      src.entities.removeAll();
+      (j.rows || []).forEach((row, i) => {
+        const ring = Array.isArray(row.ring) ? row.ring : [];
+        const flat = [];
+        ring.forEach((p) => {
+          if (Number.isFinite(p.lon) && Number.isFinite(p.lat)) flat.push(p.lon, p.lat);
+        });
+        if (flat.length < 4) return;
+        src.entities.add({
+          id: `future:${row.id || i}`,
+          name: row.label || "plate edge",
+          polyline: {
+            positions: C.Cartesian3.fromDegreesArray(flat),
+            width: 2,
+            material: C.Color.fromCssColorString("#fde68a").withAlpha(0.8),
+            clampToGround: true,
+          },
+          asherin: { kind: "future", label: row.label, lat: row.lat, lon: row.lon, note: row.note },
+        });
+      });
+      setNote(j.note || "plate edges · meters per century");
+    }
+
+    async function loadRoutePath(aLat, aLon, bLat, bLon) {
+      const j = await eyeFeed("route", { alat: aLat, alon: aLon, blat: bLat, blon: bLon });
+      const C = window.Cesium;
+      const src = dsFor("route");
+      src.entities.removeAll();
+      const row = (j.rows || [])[0];
+      const ring = Array.isArray(row?.ring) ? row.ring : [];
+      const flat = [];
+      ring.forEach((p) => {
+        if (Number.isFinite(p.lon) && Number.isFinite(p.lat)) flat.push(p.lon, p.lat);
+      });
+      if (flat.length >= 4) {
+        src.entities.add({
+          id: "route:0",
+          name: "unstable route",
+          polyline: {
+            positions: C.Cartesian3.fromDegreesArray(flat),
+            width: 3.2,
+            material: C.Color.fromCssColorString("#67e8f9"),
+            clampToGround: true,
+          },
+          asherin: { kind: "route", label: "unstable route", lat: aLat, lon: aLon, note: row.note },
+        });
+      }
+      layerOn.route = true;
+      setNote(row?.note || j.note || "public drive path");
+      return j;
+    }
+
+    function jpegGps(buf) {
+      const u8 = new Uint8Array(buf);
+      if (u8[0] !== 0xff || u8[1] !== 0xd8) return null;
+      let i = 2;
+      while (i + 4 < u8.length) {
+        if (u8[i] !== 0xff) break;
+        const marker = u8[i + 1];
+        const len = (u8[i + 2] << 8) | u8[i + 3];
+        if (marker === 0xe1) {
+          const start = i + 4;
+          const head = String.fromCharCode(...u8.slice(start, start + 6));
+          if (head.indexOf("Exif") < 0) {
+            i += 2 + len;
+            continue;
+          }
+          const tiff = start + 6;
+          const le = u8[tiff] === 0x49;
+          const u16 = (p) => (le ? u8[p] | (u8[p + 1] << 8) : (u8[p] << 8) | u8[p + 1]);
+          const u32 = (p) =>
+            le
+              ? u8[p] | (u8[p + 1] << 8) | (u8[p + 2] << 16) | (u8[p + 3] << 24)
+              : (u8[p] << 24) | (u8[p + 1] << 16) | (u8[p + 2] << 8) | u8[p + 3];
+          const ifd0 = tiff + u32(tiff + 4);
+          const n0 = u16(ifd0);
+          let gpsOff = 0;
+          for (let k = 0; k < n0; k++) {
+            const p = ifd0 + 2 + k * 12;
+            if (u16(p) === 0x8825) gpsOff = u32(p + 8);
+          }
+          if (!gpsOff) return { stripped: false, lat: null, lon: null };
+          const gifd = tiff + gpsOff;
+          const ng = u16(gifd);
+          const tags = {};
+          for (let k = 0; k < ng; k++) {
+            const p = gifd + 2 + k * 12;
+            tags[u16(p)] = { type: u16(p + 2), count: u32(p + 4), val: u32(p + 8) };
+          }
+          const rationals = (off, n) => {
+            const out = [];
+            for (let r = 0; r < n; r++) {
+              const a = u32(off + r * 8);
+              const b = u32(off + r * 8 + 4) || 1;
+              out.push(a / b);
+            }
+            return out;
+          };
+          const dms = (tag) => {
+            const t = tags[tag];
+            if (!t) return null;
+            const arr = rationals(tiff + t.val, 3);
+            return arr[0] + arr[1] / 60 + arr[2] / 3600;
+          };
+          let lat = dms(2);
+          let lon = dms(4);
+          const latRef = tags[1] ? String.fromCharCode(tags[1].val & 0xff) : "N";
+          const lonRef = tags[3] ? String.fromCharCode(tags[3].val & 0xff) : "E";
+          if (latRef === "S") lat = -lat;
+          if (lonRef === "W") lon = -lon;
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return { stripped: false, lat: null, lon: null };
+          return { stripped: false, lat, lon };
+        }
+        if (marker === 0xda) break;
+        i += 2 + len;
+      }
+      return { stripped: true, lat: null, lon: null };
+    }
+
+    async function pinOwnedPhoto(file) {
+      const buf = await file.arrayBuffer();
+      const gps = jpegGps(buf);
+      if (!gps || gps.lat == null) {
+        setNote(
+          "no gps in this file · metadata stripped or not a jpeg with exif · geolocation from pixels is a separate ask",
+        );
+        chatLog.push({
+          role: "eye",
+          text: "no gps in that file. this is unsure. drop a jpeg you own that still has exif.",
+        });
+        paintChat();
+        return;
+      }
+      pinEngine(
+        [
+          {
+            id: "exif",
+            label: (file.name || "photo").slice(0, 40),
+            lat: gps.lat,
+            lon: gps.lon,
+            kind: "engine",
+            note: "exif gps from a file you dropped · device/time stay on-disk in the organ, not a skip-trace",
+          },
+        ],
+        true,
+      );
+      chatLog.push({ role: "eye", text: `pinned exif gps ${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)}` });
+      paintChat();
+    }
+
     async function loadLayer(id) {
       if (id === "ships" || id === "fires" || id === "traffic") {
         throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
@@ -926,13 +1513,38 @@ const AsherinEyeView = () => {
         await loadWebIndex();
         return;
       }
+      if (id === "sats") {
+        await loadSats();
+        return;
+      }
+      if (id === "atmo") {
+        await loadAtmo();
+        return;
+      }
+      if (id === "lands") {
+        await loadLands();
+        return;
+      }
+      if (id === "dark") {
+        loadDark();
+        return;
+      }
+      if (id === "future") {
+        await loadFuture();
+        return;
+      }
+      if (id === "route") {
+        setNote("type route to <place> in chat · osrm public drive path + weather cost");
+        return;
+      }
       const cam = viewer?.camera?.positionCartographic;
       const params = {};
       if (cam && window.Cesium) {
         params.lat = window.Cesium.Math.toDegrees(cam.latitude);
         params.lon = window.Cesium.Math.toDegrees(cam.longitude);
       }
-      const j = await eyeFeed(id === "cameras" ? "cameras" : id, params);
+      const feedName = id === "cameras" ? "cameras" : id === "zones" ? "airgrid" : id;
+      const j = await eyeFeed(feedName, params);
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
@@ -1250,6 +1862,28 @@ const AsherinEyeView = () => {
       const url = q0.match(/https?:\/\/[^\s]+/i);
       let q = q0;
       let wantProperty = cmdMode === "property";
+      if (/^(route|path) to /i.test(q0)) {
+        try {
+          const dest = q0.replace(/^(route|path) to /i, "").trim();
+          const cam = viewer?.camera?.positionCartographic;
+          if (!cam) throw new Error("globe camera not ready");
+          const aLat = window.Cesium.Math.toDegrees(cam.latitude);
+          const aLon = window.Cesium.Math.toDegrees(cam.longitude);
+          const places = await eyeFeed("places", { q: dest });
+          const b = (places.rows || [])[0];
+          if (!b?.lat) throw new Error("no public place to route to");
+          const j = await loadRoutePath(aLat, aLon, b.lat, b.lon);
+          flyTo(b.lat, b.lon, 48000);
+          chatLog.push({ role: "eye", text: String(j.note || j.rows?.[0]?.note || "public drive path").toLowerCase() });
+          paintChat();
+          setNote("");
+        } catch (e) {
+          chatLog.push({ role: "eye", text: String(e.message || e).toLowerCase() });
+          paintChat();
+          setNote(String(e.message || e));
+        }
+        return;
+      }
       if (/^(property|parcel|cadastre)\b/i.test(q)) {
         wantProperty = true;
         q = q.replace(/^(property|parcel|cadastre)\s+/i, "").trim() || q;
@@ -1378,6 +2012,12 @@ const AsherinEyeView = () => {
         terrain: undefined,
       });
       viewer.scene.globe.depthTestAgainstTerrain = true;
+      if (keys.ion) {
+        try {
+          viewer.terrainProvider = await CesiumG.createWorldTerrainAsync();
+          status.photoreal = (status.photoreal || "") + " · world terrain bound";
+        } catch {}
+      }
       viewer.clock.shouldAnimate = true;
       viewer.scene.preUpdate.addEventListener(() => {
         if (camMode !== "orbit" || !tracked) return;
@@ -1449,9 +2089,27 @@ const AsherinEyeView = () => {
       handler.setInputAction((click) => {
         const picked = viewer.scene.pick(click.position);
         const ent = picked?.id;
-        if (ent && ent.asherin) trackEntity(ent);
-        else releaseTrack();
+        if (ent?.asherin?.kind === "lands") {
+          highlightCountry(ent);
+          return;
+        }
+        if (ent && ent.asherin) {
+          hoverEnt = ent;
+          trackEntity(ent);
+          pinHoverCard();
+        } else releaseTrack();
       }, CesiumG.ScreenSpaceEventType.LEFT_CLICK);
+      handler.setInputAction((mv) => {
+        const picked = viewer.scene.pick(mv.endPosition);
+        const ent = picked?.id;
+        if (ent?.asherin) {
+          hoverEnt = ent;
+          setHoverCard(ent, mv.endPosition);
+        } else if (!tracked) {
+          hoverEnt = null;
+          setHoverCard(null);
+        }
+      }, CesiumG.ScreenSpaceEventType.MOUSE_MOVE);
 
       document.addEventListener("keydown", onKey);
       function onKey(e) {
@@ -1496,6 +2154,12 @@ const AsherinEyeView = () => {
         } catch {
           setNote(location.href);
         }
+      };
+      $("#btn-exif").onclick = () => $("#exif-file")?.click();
+      $("#exif-file").onchange = (e) => {
+        const f = e.target.files?.[0];
+        if (f) pinOwnedPhoto(f).catch((err) => setNote(String(err.message || err)));
+        e.target.value = "";
       };
       $("#btn-reset").onclick = () => {
         releaseTrack();
@@ -1562,6 +2226,8 @@ const AsherinEyeView = () => {
           refreshContacts();
           refreshHangar();
           drawDetect(detectOn);
+          tickGlitch();
+          pinHoverCard();
         }, 250),
       );
       pollers.push(
