@@ -435,55 +435,182 @@ async function places(params: Record<string, unknown>) {
   return { rows, source: "openstreetmap nominatim", note: "asherin.engine places on the globe" };
 }
 
+function tagText(tags: Record<string, unknown>, key: string, n = 80) {
+  return text(tags[key], n);
+}
+
 async function property(params: Record<string, unknown>) {
-  const found = (await places(params)) as { rows: Array<Record<string, unknown>> };
-  const first = found.rows[0] as { lat: number; lon: number; label: string };
-  const la = first.lat;
-  const lo = first.lon;
-  const q = `[out:json][timeout:20];(way["building"](around:120,${la.toFixed(5)},${lo.toFixed(5)});node["addr:housenumber"](around:120,${la.toFixed(5)},${lo.toFixed(5)}););out center 40;`;
-  let extra: Array<Record<string, unknown>> = [];
+  const q = text(params.q, 160);
+  if (!q) throw new Error("no place given");
+  const nom = (await getJson(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&addressdetails=1&extratags=1&namedetails=1&q=${encodeURIComponent(q)}`,
+    10_000,
+  )) as Array<Record<string, unknown>>;
+  const hit = (nom ?? [])[0];
+  if (!hit) throw new Error("no public place matched");
+  const la = clampLat(Number(hit.lat));
+  const lo = wrapLon(Number(hit.lon));
+  const addr = (hit.address as Record<string, unknown> | undefined) || {};
+  const extras = (hit.extratags as Record<string, unknown> | undefined) || {};
+  const cls = `${text(hit.category, 24)} ${text(hit.type, 24)}`.toLowerCase();
+  const houseish = /house|building|residential|yes|address|property/.test(cls) || Boolean(addr.house_number);
+  const quality = houseish ? "house-level nominatim" : "this is unsure: city/area centroid, not a rooftop";
+  const oq = `[out:json][timeout:22];(way["building"](around:90,${la.toFixed(5)},${lo.toFixed(5)});relation["building"](around:90,${la.toFixed(5)},${lo.toFixed(5)});nwr["addr:housenumber"](around:90,${la.toFixed(5)},${lo.toFixed(5)}););out tags center geom 20;`;
+  let buildings: Array<Record<string, unknown>> = [];
   try {
-    const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 16_000)) as {
+    const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(oq)}`, 18_000)) as {
       elements?: Array<Record<string, unknown>>;
     };
-    extra = (d.elements ?? [])
+    buildings = (d.elements ?? [])
       .map((el, i) => {
         const c = (el.center as { lat?: number; lon?: number } | undefined) || el;
         const ela = num((c as { lat?: unknown }).lat);
         const elo = num((c as { lon?: unknown }).lon);
         if (ela === null || elo === null) return null;
         const tags = (el.tags as Record<string, unknown> | undefined) || {};
+        const geom = Array.isArray(el.geometry) ? (el.geometry as Array<{ lat?: number; lon?: number }>) : [];
+        const ring = geom
+          .map((p) => ({ lat: num(p.lat), lon: num(p.lon) }))
+          .filter((p) => p.lat !== null && p.lon !== null) as Array<{ lat: number; lon: number }>;
         const label =
-          text(tags["addr:housenumber"], 12) && text(tags["addr:street"], 60)
-            ? `${text(tags["addr:housenumber"], 12)} ${text(tags["addr:street"], 60)}`.toLowerCase()
-            : text(tags.name, 80) || "building";
+          tagText(tags, "addr:housenumber", 12) && tagText(tags, "addr:street", 60)
+            ? `${tagText(tags, "addr:housenumber", 12)} ${tagText(tags, "addr:street", 60)}`.toLowerCase()
+            : tagText(tags, "name", 80) || "building";
+        const occupant =
+          [
+            tagText(tags, "name"),
+            tagText(tags, "brand"),
+            tagText(tags, "operator"),
+            tagText(tags, "shop"),
+            tagText(tags, "office"),
+            tagText(tags, "amenity"),
+          ]
+            .filter(Boolean)
+            .join(" · ")
+            .toLowerCase() || "none mapped on osm";
         return {
           id: `prop-${el.id || i}`,
           label,
           lat: clampLat(ela),
           lon: wrapLon(elo),
-          note: "osm building/address  ·  public tags, not a deed",
+          tags,
+          occupant,
+          owner: tagText(tags, "owner") || tagText(extras, "owner") || "",
+          levels: tagText(tags, "building:levels", 8) || tagText(tags, "building:flats", 8),
+          height: tagText(tags, "height", 12),
+          year: tagText(tags, "start_date", 12) || tagText(tags, "building:year", 12),
+          building: tagText(tags, "building", 24) || "yes",
+          wiki: tagText(tags, "wikipedia", 80) || tagText(tags, "wikidata", 24),
+          ring,
+          note: "osm building/address · public tags, not a deed",
         };
       })
       .filter(Boolean) as Array<Record<string, unknown>>;
   } catch {
-    extra = [];
+    buildings = [];
   }
-  return {
-    rows: [first, ...extra].slice(0, 48),
-    source: "nominatim  ·  overpass",
-    note: extra.length ? "property footprint from public osm" : "place only  ·  osm buildings did not answer",
+  const primary = (buildings[0] as Record<string, unknown> | undefined) || {};
+  let census = "not a us census hit";
+  try {
+    const us = /united states|usa|us\b/i.test(text(addr.country, 40) + " " + text(addr.country_code, 8));
+    if (
+      us ||
+      /\b(al|ak|az|ar|ca|co|ct|dc|fl|ga|hi|ia|id|il|in|ks|ky|la|ma|md|me|mi|mn|mo|ms|mt|nc|nd|ne|nh|nj|nm|nv|ny|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|va|vt|wa|wi|wv)\b/i.test(
+        q,
+      )
+    ) {
+      const c = (await getJson(
+        `https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address=${encodeURIComponent(q)}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`,
+        12_000,
+      )) as { result?: { addressMatches?: Array<Record<string, unknown>> } };
+      const match = c.result?.addressMatches?.[0] as
+        | { geographies?: Record<string, Array<Record<string, unknown>>>; matchedAddress?: string }
+        | undefined;
+      if (match) {
+        const geo = match.geographies || {};
+        const county = text(geo.Counties?.[0]?.NAME, 60);
+        const tract = text(geo["Census Tracts"]?.[0]?.BASENAME, 24);
+        const place = text(geo["Incorporated Places"]?.[0]?.NAME, 60);
+        census = [match.matchedAddress, county, place, tract ? `tract ${tract}` : ""]
+          .filter(Boolean)
+          .join(" · ")
+          .toLowerCase();
+      }
+    }
+  } catch {
+    census = "census geocoder did not answer";
+  }
+  let wikiNear = "";
+  try {
+    const w = (await getJson(
+      `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${la.toFixed(5)}%7C${lo.toFixed(5)}&gsradius=150&gslimit=6&format=json`,
+      10_000,
+    )) as { query?: { geosearch?: Array<{ title?: string; dist?: number }> } };
+    wikiNear = (w.query?.geosearch ?? [])
+      .map((p) => `${text(p.title, 80)} (${Math.round(Number(p.dist || 0))}m)`)
+      .join(" · ")
+      .toLowerCase();
+  } catch {
+    wikiNear = "";
+  }
+  const owner =
+    text(primary.owner, 80) ||
+    text(extras.owner, 80) ||
+    tagText(extras, "operator", 80) ||
+    "not on the public osm map · not a county deed pull";
+  const occupant =
+    text(primary.occupant, 120) ||
+    text(extras.operator, 80) ||
+    text(hit.name, 80) ||
+    "none mapped on osm · not a skip-trace of who sleeps there";
+  const dossier = {
+    address: text(hit.display_name, 180).toLowerCase() || q.toLowerCase(),
+    quality,
+    owner: String(owner).toLowerCase(),
+    occupant: String(occupant).toLowerCase(),
+    building:
+      [
+        text(primary.building, 24),
+        text(primary.levels, 8) ? `${text(primary.levels, 8)} levels` : "",
+        text(primary.height, 12),
+        text(primary.year, 12) ? `start ${text(primary.year, 12)}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")
+        .toLowerCase() || "no osm building tags",
+    census: census.toLowerCase(),
+    wikipedia: (wikiNear || text(primary.wiki, 80) || "no wikipedia page at this point").toLowerCase(),
+    crime: "no live county court file in this feed · wikipedia nearby is not a rap sheet",
+    honesty: "public index only · osm owner/occupant tags are mapped use, not a deed office and not a household roster",
   };
-}
-
-function blockedHost(host: string) {
-  const h = host.toLowerCase();
-  if (!h || h === "localhost" || h.endsWith(".localhost") || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0")
-    return true;
-  if (/^(10\.|192\.168\.|169\.254\.)/.test(h)) return true;
-  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)) return true;
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
-  return false;
+  const head = {
+    id: text(hit.place_id, 24) || `${la},${lo}`,
+    label: dossier.address.slice(0, 80),
+    lat: la,
+    lon: lo,
+    alt: 0,
+    flyAlt: 420,
+    kind: "property",
+    ring: (primary.ring as Array<{ lat: number; lon: number }>) || [],
+    intel: dossier,
+    note: `${dossier.quality} · ${dossier.honesty}`,
+  };
+  const extra = buildings.slice(0, 24).map((b) => ({
+    id: b.id,
+    label: b.label,
+    lat: b.lat,
+    lon: b.lon,
+    alt: 0,
+    note: b.note,
+  }));
+  return {
+    rows: [head, ...extra],
+    dossier,
+    source: "nominatim · overpass · census (us when it hits) · wikipedia geosearch",
+    note: houseish
+      ? "property command · z19-class fly · public dossier"
+      : "property command · nominatim was not house-level · this is unsure",
+  };
 }
 
 async function webmeta(params: Record<string, unknown>) {
@@ -585,7 +712,8 @@ async function osmweb(params: Record<string, unknown>) {
   if (lat === null || lon === null) throw new Error("no coordinate given");
   const la = clampLat(lat);
   const lo = wrapLon(lon);
-  const q = `[out:json][timeout:18];(node["man_made"="surveillance"](around:40000,${la.toFixed(4)},${lo.toFixed(4)});node["webcam"](around:40000,${la.toFixed(4)},${lo.toFixed(4)}););out 80;`;
+  const around = Math.min(40000, Math.max(200, num(params.around) ?? 40000));
+  const q = `[out:json][timeout:18];(node["man_made"="surveillance"](around:${Math.round(around)},${la.toFixed(4)},${lo.toFixed(4)});node["webcam"](around:${Math.round(around)},${la.toFixed(4)},${lo.toFixed(4)}););out 80;`;
   const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 16_000)) as {
     elements?: Array<Record<string, unknown>>;
   };
