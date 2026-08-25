@@ -263,6 +263,8 @@ const AsherinEyeView = () => {
           <div id="layer-btns"></div>
           <h2 style="margin-top:14px">look</h2>
           <div id="style-btns"></div>
+          <h2 style="margin-top:14px">first look</h2>
+          <div class="grid" id="mission-grid"></div>
           <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
           <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
           <div class="row"><span class="k">3d hangar</span><span>not mit · primitives used</span></div>
@@ -280,13 +282,7 @@ const AsherinEyeView = () => {
           <button type="button" class="ghost" id="btn-share">share</button>
           <button type="button" class="ghost" id="btn-reset">reset globe</button>
         </div>
-        <div id="gate"><div class="glass card">
-          <p style="margin:0 0 8px;font:500 16px inherit;color:var(--ink)">asherin.eye</p>
-          <p>photoreal globe with live public flights, quakes, stations, radio, public cameras. pick a first look — or explore with layers off (no surprise quota).</p>
-          <div class="grid" id="mission-grid"></div>
-          <button type="button" class="ghost" id="btn-explore" style="margin-top:14px;border-radius:999px;padding:10px 16px;background:transparent;border:1px solid var(--line);color:var(--ink);cursor:pointer">explore manually</button>
-          <label style="display:block;margin-top:12px;font-size:12px;color:var(--mute)"><input type="checkbox" id="welcome-off"/> don't show this again</label>
-        </div></div>
+        
       </div>`;
     root.innerHTML = html;
 
@@ -697,28 +693,11 @@ const AsherinEyeView = () => {
         b.style.cssText =
           "border-radius:12px;padding:12px;border:1px solid var(--line);background:hsl(var(--card)/.5);color:var(--ink);cursor:pointer;text-transform:lowercase";
         b.onclick = async () => {
-          if ($("#welcome-off").checked)
-            try {
-              localStorage.setItem("asherin-eye:welcome-off", "1");
-            } catch {}
-          $("#gate").hidden = true;
           flyTo(m.fly.lat, m.fly.lon, m.fly.alt);
           for (const id of m.layers) await enableLayer(id, true);
         };
         grid.appendChild(b);
       });
-      $("#btn-explore").onclick = () => {
-        if ($("#welcome-off").checked)
-          try {
-            localStorage.setItem("asherin-eye:welcome-off", "1");
-          } catch {}
-        $("#gate").hidden = true;
-      };
-      try {
-        if (localStorage.getItem("asherin-eye:welcome-off") === "1" && !/welcome=1/.test(location.search))
-          $("#gate").hidden = true;
-        if (location.hash.includes("lat=")) $("#gate").hidden = true;
-      } catch {}
 
       const share = readShare();
       if (share.lat && share.lon) {
@@ -731,6 +710,7 @@ const AsherinEyeView = () => {
           .forEach((id) => enableLayer(id, true));
       } else {
         viewer.camera.setView({ destination: CesiumG.Cartesian3.fromDegrees(-40, 20, 1.8e7) });
+        void enableLayer("quakes", true);
       }
 
       pollers.push(
