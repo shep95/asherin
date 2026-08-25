@@ -1,8 +1,9 @@
 // @ts-nocheck
 // asherin.eye — 3d globe + live public spatial layers
 // adapted from gods-eye-view (mit, © 2026 bilawal sidhu) for asherin.com glass.
+// asherin.engine is composed here as location detection → globe pins, never a serp dump.
 // never: palantir chrome, public "god's eye" costume, telegeography nc cables,
-// hangar models that are not mit, leftover "paste a google key".
+// leftover "paste a google key", radio hijack, pcap/web tap.
 
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +11,17 @@ import { emitPull } from "@/lib/connect/emitPull";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
+const HANGAR_GLB =
+  "https://cdn.jsdelivr.net/gh/CesiumGS/cesium@1.124.0/Apps/SampleData/models/CesiumAir/Cesium_Air.glb";
+const TRACKED_MODEL_ENTER_M = 150000;
+const TRACKED_MODEL_EXIT_M = 172500;
+const HUB = "http://127.0.0.1:8768/log";
 
 const STYLES = ["normal", "crt", "nvg", "flir", "anime", "noir", "snow"];
+const GLOBES = ["osm", "dark", "sat"];
 
 const LAYER_ROWS = [
-  { id: "flights", label: "flights", honesty: "opensky · asherin.eye feed", keyed: false },
+  { id: "flights", label: "flights", honesty: "opensky · asherin.eye feed · live follow", keyed: false },
   { id: "military", label: "military flights", honesty: "adsb.lol mil · asherin.eye feed", keyed: false },
   { id: "ships", label: "ships", honesty: "aisstream needs a bound key", keyed: true },
   { id: "stations", label: "stations", honesty: "iss + tiangong · asherin.eye feed", keyed: false },
@@ -25,6 +32,14 @@ const LAYER_ROWS = [
   { id: "cameras", label: "public cameras", honesty: "austin + tfl catalogs · no hijack", keyed: false },
   { id: "radio", label: "radio", honesty: "radio browser · asherin.eye feed", keyed: false },
   { id: "spaceweather", label: "space weather", honesty: "noaa kp index · asherin.eye feed", keyed: false },
+  {
+    id: "engine",
+    label: "engine pins",
+    honesty: "asherin.engine places on the globe · not a search results list",
+    keyed: false,
+  },
+  { id: "near", label: "bluetooth near", honesty: "this-box ads · sees ≠ joins · no a2dp", keyed: false },
+  { id: "meta", label: "web metadata", honesty: "public page headers/og/geo tags · not a tap", keyed: false },
 ];
 
 const LAYER_COLOR = {
@@ -36,6 +51,9 @@ const LAYER_COLOR = {
   cameras: "#f472b6",
   radio: "#a78bfa",
   spaceweather: "#fde68a",
+  engine: "#9ec9ff",
+  near: "#e8c56b",
+  meta: "#c4b5fd",
 };
 
 const MISSIONS = [
@@ -88,7 +106,6 @@ const EYE_HUD_CSS = `
   .sheet h2 { margin:0 0 10px; font:400 13px/1.2 inherit; letter-spacing:.02em; text-transform:lowercase; color:var(--mute); }
   .sheet .row { display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:6px 0; border-bottom:1px solid var(--line); }
   .sheet .k { color: var(--mute); }
-  .sheet .list { margin-top:8px; }
   .tog {
     border:1px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer;
     color:var(--mute); font:400 12px/1 inherit; background: hsl(var(--card) / .55);
@@ -109,18 +126,35 @@ const EYE_HUD_CSS = `
   .contacts[hidden] { display:none; }
   .contacts .hit { display:block; width:100%; text-align:left; border:0; background:transparent; color:var(--ink); font:300 12px/1.4 inherit; padding:6px 0; border-bottom:1px solid var(--line); cursor:pointer; }
   .contacts .hit span { color:var(--mute); display:block; font-size:11px; }
-  #gate { position:absolute; inset:0; z-index:20; display:grid; place-items:center; background: hsl(var(--background) / .78); backdrop-filter:blur(18px); }
-  #gate[hidden] { display:none; }
-  #gate .card { padding:28px 32px; max-width:min(520px, calc(100% - 24px)); text-align:center; }
-  #gate p { color:var(--mute); font-size:14px; line-height:1.6; }
-  #gate .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
   #note { position:absolute; left:16px; bottom:110px; z-index:8; padding:10px 14px; font-size:12px; color:var(--mute); max-width:min(320px, calc(100% - 24px)); pointer-events:none; }
   #detect { position:absolute; inset:0; z-index:5; pointer-events:none; }
+  .eye-chat {
+    position:absolute; left:16px; bottom:110px; z-index:11; width:min(268px, 38cqi); pointer-events:auto;
+    display:flex; flex-direction:column; max-height:min(42%, 340px);
+  }
+  .eye-chat.shut { width:auto; max-height:none; }
+  .eye-chat .chat-head {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 12px; cursor:pointer; font:400 12px/1 inherit; color:var(--mute);
+  }
+  .eye-chat .chat-log { overflow:auto; padding:0 12px 8px; font:300 12px/1.45 inherit; flex:1; }
+  .eye-chat .chat-log .me { color: var(--ink); margin:6px 0; }
+  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; }
+  .eye-chat .chat-row { display:flex; gap:6px; padding:8px 10px 10px; }
+  .eye-chat input {
+    flex:1; min-width:0; border-radius:999px; border:1px solid var(--line);
+    background: hsl(var(--background) / .5); color: var(--ink); padding:8px 12px; font:300 12px inherit;
+  }
+  .eye-chat button.go {
+    border:0; border-radius:999px; padding:8px 12px; cursor:pointer;
+    background: hsl(var(--accent)); color: var(--accent-ink); font:500 12px inherit;
+  }
   @container eye (max-width: 780px) {
     .misb { top:8px; left:8px; right:clamp(8px, 4cqi, 16px); max-width:none; }
     .sheet { right:8px; left:8px; top:auto; bottom:calc(72px + env(safe-area-inset-bottom,0px)); width:auto; height:38%; }
     .contacts { left:8px; top:96px; width:auto; right:8px; bottom:auto; height:28%; }
     .talk { bottom:10px; }
+    .eye-chat { left:8px; right:8px; width:auto; }
   }
 `;
 
@@ -146,6 +180,24 @@ function discoverMapsKey() {
   return out;
 }
 
+function keyBound() {
+  const names = [
+    "asherin_venice_key",
+    "venice_api_key",
+    "openai_api_key",
+    "OPENAI_API_KEY",
+    "gemini_api_key",
+    "GEMINI_API_KEY",
+    "anthropic_api_key",
+    "asherin_openai_key",
+    "asherin_gemini_key",
+  ];
+  try {
+    for (const n of names) if (localStorage.getItem(n)) return true;
+  } catch {}
+  return false;
+}
+
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) return resolve();
@@ -166,24 +218,74 @@ function loadCss(href) {
   document.head.appendChild(l);
 }
 
-async function eyeFeed(feed, params = {}) {
+async function authedJson(path, body) {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess?.session?.access_token;
   if (!token) throw new Error("sign in to load live layers");
   const base = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const r = await fetch(`${base}/functions/v1/asherin-eye-feed`, {
+  const r = await fetch(`${base}/functions/v1/${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       Authorization: `Bearer ${token}`,
       apikey: key,
     },
-    body: JSON.stringify({ feed, params }),
+    body: JSON.stringify(body),
   });
-  const j = await r.json();
+  return r.json();
+}
+
+async function eyeFeed(feed, params = {}) {
+  const j = await authedJson("asherin-eye-feed", { feed, params });
   if (j.error && !Array.isArray(j.rows)) throw new Error(j.error);
   return j;
+}
+
+async function eyeTalk(messages) {
+  try {
+    const j = await authedJson("chat", { messages, organ: "eye", surface: "asherin.eye" });
+    return j;
+  } catch (e) {
+    return { error: e.message || String(e) };
+  }
+}
+
+function hangarClass(row) {
+  const t = String(row.origin || row.label || "").toUpperCase();
+  if (/B06|B407|H500|R44|A109|EC3|H60|BELL|HELI/.test(t)) return "helo";
+  if (/MQ9|MQ1|RQ|UAV|Q9|DRONE/.test(t)) return "uav";
+  if (/B78|B77|A38|A35|A33|B74|C17|C130|C5|KC/.test(t)) return "heavy";
+  return "air";
+}
+
+function hangarScale(klass) {
+  return { helo: 1.1, uav: 0.8, heavy: 14, air: 4.2 }[klass] || 4.2;
+}
+
+function reckon(sample, nowMs) {
+  const dt = Math.max(0, Math.min(90, (nowMs - (sample.t || nowMs)) / 1000));
+  const speed = Number(sample.speed || 0);
+  const hdg = Number(sample.heading || 0);
+  if (!speed || dt < 0.05) return { lat: sample.lat, lon: sample.lon, alt: sample.alt || 0, heading: hdg };
+  const dist = speed * dt;
+  const R = 6371000;
+  const lat1 = (sample.lat * Math.PI) / 180;
+  const lon1 = (sample.lon * Math.PI) / 180;
+  const brng = (hdg * Math.PI) / 180;
+  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(dist / R) + Math.cos(lat1) * Math.sin(dist / R) * Math.cos(brng));
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(dist / R) * Math.cos(lat1),
+      Math.cos(dist / R) - Math.sin(lat1) * Math.sin(lat2),
+    );
+  return {
+    lat: (lat2 * 180) / Math.PI,
+    lon: (((lon2 * 180) / Math.PI + 540) % 360) - 180,
+    alt: sample.alt || 0,
+    heading: hdg,
+  };
 }
 
 function shaderFor(style, Cesium) {
@@ -220,14 +322,24 @@ function shaderFor(style, Cesium) {
   };
   const src = stages[style];
   if (!src) return null;
-  return new Cesium.PostProcessStage({
-    fragmentShader: src,
-    uniforms: { time },
-  });
+  return new Cesium.PostProcessStage({ fragmentShader: src, uniforms: { time } });
 }
 
 function kmBetween(Cesium, a, b) {
   return Cesium.Cartesian3.distance(a, b) / 1000;
+}
+
+function extractPlaces(text) {
+  const out = [];
+  const re = /(-?\d{1,2}\.\d{2,})\s*[, ]\s*(-?\d{1,3}\.\d{2,})/g;
+  let m;
+  while ((m = re.exec(text || ""))) {
+    const lat = Number(m[1]);
+    const lon = Number(m[2]);
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180)
+      out.push({ lat, lon, label: `${lat.toFixed(3)}, ${lon.toFixed(3)}` });
+  }
+  return out;
 }
 
 const AsherinEyeView = () => {
@@ -242,10 +354,13 @@ const AsherinEyeView = () => {
     let stage;
     let tracked;
     let trail;
+    let modelOn = false;
     const layerOn = {};
     LAYER_ROWS.forEach((l) => (layerOn[l.id] = false));
     const ds = {};
+    const samples = {};
     const status = { photoreal: "pending", voice: "off", style: "normal", map: "osm" };
+    const chatLog = [];
 
     const html = `
       <style>${EYE_HUD_CSS}</style>
@@ -261,17 +376,30 @@ const AsherinEyeView = () => {
         <div class="glass sheet" id="sheet">
           <h2>layers</h2>
           <div id="layer-btns"></div>
+          <h2 style="margin-top:14px">globe</h2>
+          <div id="globe-btns"></div>
           <h2 style="margin-top:14px">look</h2>
           <div id="style-btns"></div>
           <h2 style="margin-top:14px">first look</h2>
           <div class="grid" id="mission-grid"></div>
           <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
           <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
-          <div class="row"><span class="k">3d hangar</span><span>not mit · primitives used</span></div>
+          <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
+          <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
           <h2 style="margin:0 0 8px;font:400 13px/1.2 inherit;color:var(--mute)">contacts · 250 km</h2>
           <div id="contact-list"></div>
+        </div>
+        <div class="glass eye-chat shut" id="eye-chat">
+          <div class="chat-head" id="chat-toggle"><span>asherin.engine chat</span><span id="chat-key">…</span></div>
+          <div id="chat-body" hidden>
+            <div class="chat-log" id="chat-log"></div>
+            <div class="chat-row">
+              <input id="chat-in" type="text" placeholder="go to a place · property · url" autocomplete="off" />
+              <button type="button" class="go" id="chat-go">go</button>
+            </div>
+          </div>
         </div>
         <div class="glass note" id="note"></div>
         <div class="glass talk">
@@ -282,7 +410,6 @@ const AsherinEyeView = () => {
           <button type="button" class="ghost" id="btn-share">share</button>
           <button type="button" class="ghost" id="btn-reset">reset globe</button>
         </div>
-        
       </div>`;
     root.innerHTML = html;
 
@@ -300,8 +427,9 @@ const AsherinEyeView = () => {
       const lon = C.Math.toDegrees(carto.longitude).toFixed(3);
       const alt = Math.round(carto.height);
       $("#hud-line").textContent = `${lat} · ${lon} · ${alt} m · ${status.style} · ${status.map}`;
+      const hangar = tracked && modelOn ? " · 3d airframe" : "";
       $("#hud-honesty").textContent = tracked
-        ? `tracking ${tracked.label || "contact"}`
+        ? `tracking ${tracked.label || "contact"}${hangar} · camera follows`
         : "click a contact to track. esc releases in place.";
       $("#pr-status").textContent = status.photoreal;
     };
@@ -321,6 +449,48 @@ const AsherinEyeView = () => {
       writeShare();
     }
 
+    function applyGlobe(kind) {
+      const C = window.Cesium;
+      status.map = kind;
+      try {
+        viewer.imageryLayers.removeAll();
+        if (kind === "sat") {
+          viewer.imageryLayers.addImageryProvider(
+            new C.UrlTemplateImageryProvider({
+              url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              credit: "esri world imagery",
+              maximumLevel: 19,
+            }),
+          );
+          viewer.scene.globe.baseColor = C.Color.BLACK;
+          viewer.scene.skyAtmosphere.show = true;
+        } else if (kind === "dark") {
+          viewer.imageryLayers.addImageryProvider(
+            new C.UrlTemplateImageryProvider({
+              url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+              credit: "© carto · © osm",
+            }),
+          );
+          viewer.scene.globe.baseColor = C.Color.fromCssColorString("#07080a");
+          viewer.scene.skyAtmosphere.show = false;
+        } else {
+          viewer.imageryLayers.addImageryProvider(
+            new C.UrlTemplateImageryProvider({
+              url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              credit: "© openstreetmap",
+            }),
+          );
+          viewer.scene.globe.baseColor = C.Color.BLUE;
+          viewer.scene.skyAtmosphere.show = true;
+        }
+      } catch (e) {
+        setNote("globe look failed · " + (e.message || e));
+      }
+      root.querySelectorAll("#globe-btns .tog").forEach((b) => b.classList.toggle("on", b.dataset.globe === kind));
+      writeShare();
+      setHud();
+    }
+
     function writeShare() {
       if (!viewer) return;
       const C = window.Cesium;
@@ -336,16 +506,13 @@ const AsherinEyeView = () => {
     }
 
     function readShare() {
-      const h = new URLSearchParams(location.hash.replace(/^#/, "").replace(/&/g, "&"));
-      // hash is k=v&k=v — URLSearchParams on that works if we use substring
       const raw = location.hash.replace(/^#/, "");
-      const p = Object.fromEntries(
+      return Object.fromEntries(
         raw
           .split("&")
           .filter(Boolean)
           .map((x) => x.split("=")),
       );
-      return p;
     }
 
     function flyTo(lat, lon, alt) {
@@ -365,6 +532,11 @@ const AsherinEyeView = () => {
 
     function clearDs(id) {
       if (ds[id]) ds[id].entities.removeAll();
+      if (id === "flights" || id === "military") {
+        Object.keys(samples).forEach((k) => {
+          if (k.startsWith(id + ":")) delete samples[k];
+        });
+      }
     }
 
     async function enableLayer(id, on) {
@@ -386,22 +558,117 @@ const AsherinEyeView = () => {
       writeShare();
     }
 
+    function flightPositionProperty(eid) {
+      const C = window.Cesium;
+      return new C.CallbackProperty(() => {
+        const s = samples[eid];
+        if (!s) return undefined;
+        const r = reckon(s, Date.now());
+        return C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt);
+      }, false);
+    }
+
+    function flightOrientationProperty(eid) {
+      const C = window.Cesium;
+      return new C.CallbackProperty(() => {
+        const s = samples[eid];
+        if (!s) return undefined;
+        const r = reckon(s, Date.now());
+        const pos = C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt);
+        const hpr = new C.HeadingPitchRoll(C.Math.toRadians(r.heading + 90), 0, 0);
+        return C.Transforms.headingPitchRollQuaternion(pos, hpr);
+      }, false);
+    }
+
+    function upsertFlights(id, rows) {
+      const C = window.Cesium;
+      const src = dsFor(id);
+      const seen = new Set();
+      const color = LAYER_COLOR[id] || "#94a3b8";
+      const now = Date.now();
+      (rows || []).forEach((row, i) => {
+        if (row.lat == null || row.lon == null) return;
+        let alt = Number(row.alt || 0);
+        if (alt > 20000) alt = alt * 0.3048;
+        const eid = `${id}:${row.id || i}`;
+        seen.add(eid);
+        const klass = hangarClass(row);
+        samples[eid] = {
+          lat: Number(row.lat),
+          lon: Number(row.lon),
+          alt,
+          speed: Number(row.speed || 0),
+          heading: Number(row.heading || 0),
+          t: now,
+          label: row.label || id,
+          klass,
+        };
+        let ent = src.entities.getById(eid);
+        if (!ent) {
+          ent = src.entities.add({
+            id: eid,
+            name: row.label || id,
+            position: flightPositionProperty(eid),
+            orientation: flightOrientationProperty(eid),
+            billboard: {
+              image: planePng(),
+              width: 18,
+              height: 18,
+              alignedAxis: C.Cartesian3.UNIT_Z,
+              color: C.Color.fromCssColorString(color),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            model: {
+              uri: HANGAR_GLB,
+              scale: hangarScale(klass),
+              minimumPixelSize: 40,
+              maximumScale: 40000,
+              color: C.Color.fromCssColorString("#e8e4d8"),
+              colorBlendMode: C.ColorBlendMode.HIGHLIGHT,
+              colorBlendAmount: 0.55,
+              show: false,
+            },
+            viewFrom: new C.Cartesian3(-140, -50, 32),
+            asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass },
+          });
+        } else {
+          ent.name = row.label || id;
+          ent.asherin = { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass };
+          if (ent.model) ent.model.scale = hangarScale(klass);
+        }
+      });
+      src.entities.values.slice().forEach((e) => {
+        if (!seen.has(e.id) && tracked?.id !== e.id) src.entities.remove(e);
+      });
+    }
+
     function plotRows(id, rows, note) {
       const C = window.Cesium;
+      if (id === "flights" || id === "military") {
+        upsertFlights(id, rows);
+        if (note) setNote(note);
+        return;
+      }
       const src = dsFor(id);
       src.entities.removeAll();
       const color = LAYER_COLOR[id] || "#94a3b8";
       (rows || []).forEach((row, i) => {
         if (row.lat == null || row.lon == null) return;
-        let alt = Number(row.alt || 0);
-        if ((id === "flights" || id === "military") && alt > 20000) alt = alt * 0.3048;
-        if (id === "quakes" || id === "launches" || id === "cameras" || id === "radio") alt = 0;
+        const alt = Number(row.alt || 0);
         const mag = Number(row.mag || 0);
         const ent = {
           id: `${id}:${row.id || i}`,
           name: row.label || id,
           position: C.Cartesian3.fromDegrees(row.lon, row.lat, alt),
-          asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, url: row.url, image: row.image },
+          asherin: {
+            kind: id,
+            label: row.label || id,
+            lat: row.lat,
+            lon: row.lon,
+            url: row.url,
+            image: row.image,
+            note: row.note,
+          },
         };
         if (id === "quakes") {
           ent.ellipse = {
@@ -410,47 +677,115 @@ const AsherinEyeView = () => {
             material: C.Color.fromCssColorString(color).withAlpha(0.55),
             height: 0,
           };
-        } else if (id === "flights") {
-          ent.billboard = {
-            image: planePng(),
-            width: 18,
-            height: 18,
-            rotation: C.Math.toRadians(-(row.heading || 0)),
-            alignedAxis: C.Cartesian3.UNIT_Z,
-            color: C.Color.fromCssColorString("#fbbf24"),
-          };
         } else {
-          ent.point = { pixelSize: id === "stations" ? 8 : 7, color: C.Color.fromCssColorString(color) };
+          ent.point = { pixelSize: id === "stations" ? 8 : 9, color: C.Color.fromCssColorString(color) };
         }
         src.entities.add(ent);
       });
       if (note) setNote(note);
     }
 
+    function pinEngine(rows, flyFirst) {
+      layerOn.engine = true;
+      root.querySelectorAll("#layer-btns .tog").forEach((b) => {
+        if (b.dataset.layer === "engine") b.classList.add("on");
+      });
+      const src = dsFor("engine");
+      const C = window.Cesium;
+      (rows || []).forEach((row, i) => {
+        if (row.lat == null || row.lon == null) return;
+        const id = `engine:${row.id || row.label || i}:${row.lat}:${row.lon}`;
+        if (src.entities.getById(id)) return;
+        src.entities.add({
+          id,
+          name: row.label || "place",
+          position: C.Cartesian3.fromDegrees(row.lon, row.lat, Number(row.alt || 0)),
+          point: { pixelSize: 11, color: C.Color.fromCssColorString("#9ec9ff") },
+          label: {
+            text: String(row.label || "place").slice(0, 48),
+            font: "12px Inter",
+            fillColor: C.Color.WHITE,
+            pixelOffset: new C.Cartesian2(0, -16),
+            showBackground: true,
+            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+          },
+          asherin: { kind: "engine", label: row.label, lat: row.lat, lon: row.lon, note: row.note },
+        });
+      });
+      if (flyFirst && rows?.[0]) flyTo(rows[0].lat, rows[0].lon, rows[0].alt || 18000);
+    }
+
     async function loadLayer(id) {
       if (id === "ships" || id === "fires" || id === "traffic") {
-        const row = LAYER_ROWS.find((x) => x.id === id);
-        throw new Error(row.honesty);
+        throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
       }
       if (id === "spaceweather") {
         const j = await eyeFeed("spaceweather");
-        const kp = j.rows?.[0]?.kp;
-        const at = j.rows?.[0]?.at || "";
-        setNote(`planetary k-index ${kp} · ${at} · ${j.source || "noaa"}`);
+        setNote(`planetary k-index ${j.rows?.[0]?.kp} · ${j.source || "noaa"}`);
         return;
       }
-      const feed = id === "cameras" ? "cameras" : id;
+      if (id === "engine") {
+        setNote("asherin.engine is the chat + pins. type a place. this is not a search results page.");
+        return;
+      }
+      if (id === "near") {
+        await loadNear();
+        return;
+      }
+      if (id === "meta") {
+        setNote("web metadata: paste an https url in the side chat. public headers/og/geo only — not a tap.");
+        return;
+      }
       const cam = viewer?.camera?.positionCartographic;
       const params = {};
       if (cam && window.Cesium) {
         params.lat = window.Cesium.Math.toDegrees(cam.latitude);
         params.lon = window.Cesium.Math.toDegrees(cam.longitude);
       }
-      const j = await eyeFeed(feed, params);
+      const j = await eyeFeed(id === "cameras" ? "cameras" : id, params);
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
       plotRows(id, j.rows, note);
+    }
+
+    async function loadNear() {
+      try {
+        const r = await fetch(HUB, { signal: AbortSignal.timeout(1800) });
+        const j = await r.json();
+        const last = (j.rows || [])[0] || {};
+        const place = last.place || {};
+        const lat = Number(place.lat);
+        const lon = Number(place.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("companion has no city-scale place");
+        const ble = last.bluetooth?.ble_ads?.devices || last.seen_not_connected || [];
+        const ads = Array.isArray(ble) ? ble : [];
+        const rows = ads.slice(0, 40).map((d, i) => {
+          const rssi = Number(d.rssi || -70);
+          const ring = Math.min(0.018, Math.max(0.002, (Math.abs(rssi) - 40) / 4000));
+          const ang = (i / Math.max(1, ads.length)) * Math.PI * 2;
+          return {
+            id: d.address || d.chat_label || i,
+            label: (d.chat_label || d.name || "ble ad").slice(0, 40),
+            lat: lat + Math.sin(ang) * ring,
+            lon: lon + Math.cos(ang) * ring,
+            note: "city-scale around this box · sees ≠ joins",
+          };
+        });
+        if (!rows.length) {
+          rows.push({
+            id: "box",
+            label: `${place.city || "this box"} · radios heard`,
+            lat,
+            lon,
+            note: "no ble ads this tick",
+          });
+        }
+        plotRows("near", rows, "bluetooth near · this-box ads · not a hijack · ip-city is not a house");
+        flyTo(lat, lon, 28000);
+      } catch (e) {
+        throw new Error("companion not readable from this https tab · sees ≠ joins · " + (e.message || e));
+      }
     }
 
     function planePng() {
@@ -483,11 +818,18 @@ const AsherinEyeView = () => {
           positions: new C.CallbackProperty(() => {
             if (!ent.position) return [];
             const p = ent.position.getValue(viewer.clock.currentTime);
-            const cam = viewer.camera.positionWC;
-            return p ? [p, cam] : [];
+            if (!p) return [];
+            const s = samples[ent.id];
+            if (!s) return [p];
+            const hist = [];
+            for (let i = 8; i >= 0; i--) {
+              const r = reckon({ ...s, t: s.t - i * 4000 }, Date.now());
+              hist.push(C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt));
+            }
+            return hist;
           }, false),
-          width: 1.5,
-          material: C.Color.fromCssColorString("#fbbf24").withAlpha(0.45),
+          width: 2,
+          material: C.Color.fromCssColorString("#fbbf24").withAlpha(0.55),
         },
       });
       setHud();
@@ -495,12 +837,32 @@ const AsherinEyeView = () => {
 
     function releaseTrack() {
       tracked = null;
+      modelOn = false;
       viewer.trackedEntity = undefined;
       if (trail) {
         viewer.entities.remove(trail);
         trail = null;
       }
       setHud();
+    }
+
+    function refreshHangar() {
+      if (!viewer) return;
+      const C = window.Cesium;
+      const h = viewer.camera.positionCartographic?.height ?? Infinity;
+      const want = tracked ? (modelOn ? h < TRACKED_MODEL_EXIT_M : h < TRACKED_MODEL_ENTER_M) : false;
+      modelOn = want;
+      const srcIds = ["flights", "military"];
+      srcIds.forEach((id) => {
+        const src = ds[id];
+        if (!src) return;
+        src.entities.values.forEach((e) => {
+          const isTracked = tracked && e.id === tracked.id;
+          const close = isTracked && modelOn;
+          if (e.model) e.model.show = close;
+          if (e.billboard) e.billboard.show = !close;
+        });
+      });
     }
 
     function refreshContacts() {
@@ -559,6 +921,93 @@ const AsherinEyeView = () => {
       ctx.fillText(tracked.label || "contact", win.x - s, win.y - s - 6);
     }
 
+    function paintChat() {
+      const log = $("#chat-log");
+      if (!log) return;
+      log.innerHTML = chatLog
+        .slice(-12)
+        .map(
+          (m) =>
+            `<div class="${m.role === "user" ? "me" : "bot"}">${m.role === "user" ? "you" : "eye"}: ${String(m.text).slice(0, 420)}</div>`,
+        )
+        .join("");
+      log.scrollTop = log.scrollHeight;
+      $("#chat-key").textContent = keyBound() ? "key bound" : "places still pin";
+    }
+
+    async function handleChat(raw) {
+      const q = String(raw || "").trim();
+      if (!q) return;
+      chatLog.push({ role: "user", text: q });
+      paintChat();
+      setNote("engine looking for places…");
+      try {
+        const url = q.match(/https?:\/\/[^\s]+/i);
+        if (url) {
+          const j = await eyeFeed("webmeta", { url: url[0] });
+          const rows = j.rows || [];
+          plotRows(
+            "meta",
+            rows.filter((r) => r.lat != null),
+            j.note || "public metadata",
+          );
+          layerOn.meta = true;
+          if (rows[0]?.lat) {
+            pinEngine(rows, true);
+            chatLog.push({
+              role: "eye",
+              text: `pinned public metadata for that url. ${rows[0].label || ""}`.toLowerCase(),
+            });
+          } else {
+            chatLog.push({
+              role: "eye",
+              text: `public metadata read. no geo tag on the page. ${j.note || ""}`.toLowerCase(),
+            });
+          }
+          paintChat();
+          setNote("");
+          return;
+        }
+        const property = /propert|parcel|cadastre|building|address|house|lot /i.test(q);
+        const feed = property ? "property" : "places";
+        const j = await eyeFeed(feed, { q });
+        const rows = j.rows || [];
+        pinEngine(rows, true);
+        void emitPull({
+          organ: "eye",
+          capability: "engine-pin",
+          fromSurface: "asherin-eye",
+          status: rows.length ? "ok" : "skip",
+          quote: q.slice(0, 80),
+        });
+        let mouth = rows.length
+          ? `pinned ${rows.length} place${rows.length === 1 ? "" : "s"} on the globe. ${property ? "property is public osm/nominatim, not a deed office." : "asherin.engine finds locations; it does not dump search results here."}`
+          : "no public place matched. this is unsure.";
+        if (keyBound()) {
+          const talk = await eyeTalk([
+            {
+              role: "system",
+              content:
+                "you sit in asherin.eye. reply in lowercase. never dump a search engine results page. if the user wants a place, name it and coords. property research is public-index only.",
+            },
+            { role: "user", content: q },
+          ]);
+          const text = talk.reply || talk.text || talk.message || talk.error || "";
+          if (text && !talk.error) mouth = String(text).slice(0, 500);
+          extractPlaces(String(text)).forEach((p) => pinEngine([{ ...p, id: "talk" }], false));
+        } else {
+          mouth += " connect a model key in connect if you want the mouth. places still pin without it.";
+        }
+        chatLog.push({ role: "eye", text: mouth.toLowerCase() });
+        paintChat();
+        setNote("");
+      } catch (e) {
+        chatLog.push({ role: "eye", text: String(e.message || e).toLowerCase() });
+        paintChat();
+        setNote(String(e.message || e));
+      }
+    }
+
     async function boot() {
       window.CESIUM_BASE_URL = CESIUM_BASE;
       loadCss(CESIUM_BASE + "Widgets/widgets.css");
@@ -600,19 +1049,12 @@ const AsherinEyeView = () => {
           status.photoreal = "google 3d tiles · bound";
           status.map = "photoreal";
         } else {
-          viewer.imageryLayers.removeAll();
-          viewer.imageryLayers.addImageryProvider(
-            new CesiumG.UrlTemplateImageryProvider({
-              url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-              credit: "© openstreetmap",
-            }),
-          );
+          applyGlobe("sat");
           status.photoreal = "unavailable until a maps key is bound in connect";
-          status.map = "osm";
         }
       } catch (e) {
+        applyGlobe("osm");
         status.photoreal = "photoreal failed · osm globe";
-        status.map = "osm";
       }
 
       const layerHost = $("#layer-btns");
@@ -625,6 +1067,16 @@ const AsherinEyeView = () => {
         b.title = row.honesty;
         b.onclick = () => enableLayer(row.id, !layerOn[row.id]);
         layerHost.appendChild(b);
+      });
+      const globeHost = $("#globe-btns");
+      GLOBES.forEach((g) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tog" + (g === "sat" ? " on" : "");
+        b.dataset.globe = g;
+        b.textContent = g === "sat" ? "satellite" : g;
+        b.onclick = () => applyGlobe(g);
+        globeHost.appendChild(b);
       });
       const styleHost = $("#style-btns");
       STYLES.forEach((s, i) => {
@@ -657,8 +1109,13 @@ const AsherinEyeView = () => {
           setNote("click a contact first");
           return;
         }
-        viewer.trackedEntity = viewer.entities.getById(tracked.id) || viewer.trackedEntity;
-        setNote("cockpit · camera follows. esc releases in place.");
+        const ent = viewer.trackedEntity;
+        if (ent) {
+          ent.viewFrom = new CesiumG.Cartesian3(-80, -20, 18);
+          viewer.trackedEntity = undefined;
+          viewer.trackedEntity = ent;
+        }
+        setNote("cockpit · camera rides with the airframe. esc releases in place.");
       };
       $("#btn-contacts").onclick = () => {
         const el = $("#contacts");
@@ -685,6 +1142,28 @@ const AsherinEyeView = () => {
       };
       $("#btn-voice").onclick = startVoice;
 
+      $("#chat-toggle").onclick = () => {
+        const box = $("#eye-chat");
+        const body = $("#chat-body");
+        const shut = body.hidden;
+        body.hidden = !shut;
+        box.classList.toggle("shut", !shut);
+        paintChat();
+      };
+      $("#chat-go").onclick = () => {
+        const v = $("#chat-in").value;
+        $("#chat-in").value = "";
+        handleChat(v);
+      };
+      $("#chat-in").onkeydown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleChat($("#chat-in").value);
+          $("#chat-in").value = "";
+        }
+      };
+      paintChat();
+
       const grid = $("#mission-grid");
       MISSIONS.forEach((m) => {
         const b = document.createElement("button");
@@ -704,6 +1183,7 @@ const AsherinEyeView = () => {
         const alt = Number(share.alt) || 8e5;
         flyTo(Number(share.lat), Number(share.lon), alt);
         if (share.style) applyStyle(STYLES[Number(share.style) - 1 || 0] || "normal");
+        if (share.map && GLOBES.includes(share.map)) applyGlobe(share.map);
         (share.layers || "")
           .split(",")
           .filter(Boolean)
@@ -717,14 +1197,15 @@ const AsherinEyeView = () => {
         setInterval(() => {
           setHud();
           refreshContacts();
+          refreshHangar();
           drawDetect(detectOn);
-        }, 800),
+        }, 250),
       );
       pollers.push(
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
           if (layerOn.military) loadLayer("military").catch(() => {});
-        }, 28000),
+        }, 12000),
       );
 
       void emitPull({ organ: "eye", capability: "open", fromSurface: "asherin-eye", status: "ok" });
@@ -748,9 +1229,12 @@ const AsherinEyeView = () => {
         });
         if (t.includes("reset")) $("#btn-reset").click();
         if (t.includes("cockpit")) $("#btn-cockpit").click();
+        if (t.includes("dark")) applyGlobe("dark");
+        if (t.includes("satellite") || t.includes("sat")) applyGlobe("sat");
         STYLES.forEach((s) => {
           if (t.includes(s)) applyStyle(s);
         });
+        if (/go to |fly to |take me/.test(t)) handleChat(t.replace(/^(go to|fly to|take me to)\s+/i, ""));
       };
       rec.onerror = () => setNote("voice: unavailable");
       rec.start();
