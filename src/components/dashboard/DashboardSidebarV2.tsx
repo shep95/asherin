@@ -8,17 +8,7 @@
 // and the left-edge drag from the current chrome.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Archive,
-  ArchiveRestore,
-  ChevronDown,
-  Menu,
-  Plus,
-  Search,
-  Trash2,
-  Workflow,
-  X,
-} from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, Menu, Plus, Search, Trash2, Workflow, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +41,7 @@ const V2_LABELS: Partial<Record<string, string>> = {
   geospatial: "asherin.maps",
   "asherin-defender": "asherin.defender",
   "asherin-arvision": "asherin.arvision",
+  "asherin-eye": "asherin.eye",
   memory: "Memory",
   subscription: "Subscription",
 };
@@ -61,6 +52,7 @@ const V2_ORDER: DashboardView[] = [
   "geospatial",
   "asherin-defender",
   "asherin-arvision",
+  "asherin-eye",
   "library",
   "projects",
   "memory",
@@ -112,11 +104,7 @@ const DashboardSidebarV2 = ({
     const intent = NAV_INTENTS.find((i) => i.view === view);
     if (!intent) return null;
     const label =
-      view === "subscription"
-        ? subscribed
-          ? "Subscription"
-          : "Subscription"
-        : V2_LABELS[view] ?? intent.label;
+      view === "subscription" ? (subscribed ? "Subscription" : "Subscription") : (V2_LABELS[view] ?? intent.label);
     return { view, label };
   }).filter((r): r is { view: DashboardView; label: string } => r !== null);
 
@@ -183,8 +171,12 @@ const DashboardSidebarV2 = ({
   /* ── drawer gestures (below lg) ───────────────────────────────────── */
   const [dragPx, setDragPx] = useState<number | null>(null);
   const gestureRef = useRef<{
-    startX: number; startY: number; startT: number; lastX: number;
-    axis: "pending" | "x"; from: "edge" | "drawer";
+    startX: number;
+    startY: number;
+    startT: number;
+    lastX: number;
+    axis: "pending" | "x";
+    from: "edge" | "drawer";
   } | null>(null);
 
   const RAIL_WIDTH = 288;
@@ -195,7 +187,14 @@ const DashboardSidebarV2 = ({
     if (!isMobileViewport()) return;
     if (from === "drawer" && (e.target as HTMLElement).closest("[data-convo-row]")) return;
     const t = e.touches[0];
-    gestureRef.current = { startX: t.clientX, startY: t.clientY, startT: Date.now(), lastX: t.clientX, axis: "pending", from };
+    gestureRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      startT: Date.now(),
+      lastX: t.clientX,
+      axis: "pending",
+      from,
+    };
   };
 
   const moveGesture = (e: React.TouchEvent) => {
@@ -206,11 +205,20 @@ const DashboardSidebarV2 = ({
     const dy = t.clientY - g.startY;
     g.lastX = t.clientX;
     if (g.axis === "pending") {
-      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { gestureRef.current = null; return; }
+      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) {
+        gestureRef.current = null;
+        return;
+      }
       if (Math.abs(dx) < 10) return;
       const rightward = dx > 0;
-      if (g.from === "edge" && !rightward) { gestureRef.current = null; return; }
-      if (g.from === "drawer" && rightward) { gestureRef.current = null; return; }
+      if (g.from === "edge" && !rightward) {
+        gestureRef.current = null;
+        return;
+      }
+      if (g.from === "drawer" && rightward) {
+        gestureRef.current = null;
+        return;
+      }
       g.axis = "x";
     }
     const w = drawerWidth();
@@ -220,7 +228,10 @@ const DashboardSidebarV2 = ({
   const endGesture = () => {
     const g = gestureRef.current;
     gestureRef.current = null;
-    if (!g || g.axis !== "x") { setDragPx(null); return; }
+    if (!g || g.axis !== "x") {
+      setDragPx(null);
+      return;
+    }
     const w = drawerWidth();
     const dx = g.lastX - g.startX;
     const velocity = dx / Math.max(1, Date.now() - g.startT);
@@ -237,9 +248,7 @@ const DashboardSidebarV2 = ({
   const q = search.trim().toLowerCase();
   const filtered = q
     ? conversations.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          c.messages.some((m) => m.content.toLowerCase().includes(q)),
+        (c) => c.title.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q)),
       )
     : conversations;
   const groups = groupConversations(filtered);
@@ -280,7 +289,11 @@ const DashboardSidebarV2 = ({
       {(sidebarOpen || dragging) && (
         <div
           className="fixed inset-0 z-30 bg-background/50 lg:hidden"
-          style={dragging ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" } : undefined}
+          style={
+            dragging
+              ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" }
+              : undefined
+          }
           onClick={onToggleSidebar}
         />
       )}
@@ -306,7 +319,12 @@ const DashboardSidebarV2 = ({
           <div className="flex-shrink-0 flex items-center justify-between gap-2 p-4 border-b border-border/20">
             <span className="text-sm font-extralight tracking-[0.06em] text-foreground/90">asherin</span>
             <div className="flex items-center gap-1">
-              <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+              <NotificationInbox
+                onNavigate={(v) => {
+                  onViewChange(v as DashboardView);
+                  onToggleSidebar();
+                }}
+              />
               <button
                 onClick={onNewConversation}
                 title="New chat"
@@ -333,9 +351,7 @@ const DashboardSidebarV2 = ({
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-2 space-y-3">
               {groups.length === 0 && (
-                <p className="px-3 py-6 text-[11px] font-light text-muted-foreground/50">
-                  no conversations yet.
-                </p>
+                <p className="px-3 py-6 text-[11px] font-light text-muted-foreground/50">no conversations yet.</p>
               )}
               {groups.map((group) => (
                 <div key={group.label}>
@@ -353,7 +369,10 @@ const DashboardSidebarV2 = ({
                             onBlur={commitRename}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") commitRename();
-                              if (e.key === "Escape") { setEditingId(null); setEditTitle(""); }
+                              if (e.key === "Escape") {
+                                setEditingId(null);
+                                setEditTitle("");
+                              }
                             }}
                             className="flex-1 bg-transparent text-xs font-light text-foreground outline-none border-b border-foreground/30"
                           />
@@ -367,7 +386,10 @@ const DashboardSidebarV2 = ({
                           onTogglePin={() => onTogglePin(conv.id)}
                           onDelete={() => onDeleteConversation(conv.id)}
                           onArchive={() => onArchiveConversation(conv.id)}
-                          onRename={() => { setEditingId(conv.id); setEditTitle(conv.title); }}
+                          onRename={() => {
+                            setEditingId(conv.id);
+                            setEditTitle(conv.title);
+                          }}
                         />
                       ),
                     )}
@@ -380,11 +402,18 @@ const DashboardSidebarV2 = ({
                 <button
                   onClick={() => setShowArchived((v) => !v)}
                   className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                    showArchived ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    showArchived
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
-                  <span className="flex items-center gap-2.5"><Archive className="h-4 w-4" />Archived</span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`} />
+                  <span className="flex items-center gap-2.5">
+                    <Archive className="h-4 w-4" />
+                    Archived
+                  </span>
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {showArchived && (
                   <div className="mt-1 space-y-0.5">
@@ -394,14 +423,25 @@ const DashboardSidebarV2 = ({
                       <p className="px-3 py-2 text-[10px] text-muted-foreground/50">No archived conversations.</p>
                     ) : (
                       archivedConvos.map((conv) => (
-                        <div key={conv.id} className="group flex items-center gap-2 rounded-xl px-3 py-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
+                        <div
+                          key={conv.id}
+                          className="group flex items-center gap-2 rounded-xl px-3 py-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                        >
                           <Archive className="h-3.5 w-3.5 shrink-0 opacity-50" />
                           <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
                           <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => unarchive(conv.id)} title="Restore" className="p-1 rounded hover:text-foreground">
+                            <button
+                              onClick={() => unarchive(conv.id)}
+                              title="Restore"
+                              className="p-1 rounded hover:text-foreground"
+                            >
                               <ArchiveRestore className="h-3 w-3" />
                             </button>
-                            <button onClick={() => deleteArchived(conv.id)} title="Delete permanently" className="p-1 rounded hover:text-destructive">
+                            <button
+                              onClick={() => deleteArchived(conv.id)}
+                              title="Delete permanently"
+                              className="p-1 rounded hover:text-destructive"
+                            >
                               <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
@@ -417,18 +457,28 @@ const DashboardSidebarV2 = ({
                   <button
                     onClick={() => setShowAgents((v) => !v)}
                     className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                      showAgents ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      showAgents
+                        ? "bg-foreground/10 text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                     }`}
                   >
-                    <span className="flex items-center gap-2.5"><Workflow className="h-4 w-4" />Agents</span>
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showAgents ? "rotate-180" : ""}`} />
+                    <span className="flex items-center gap-2.5">
+                      <Workflow className="h-4 w-4" />
+                      Agents
+                    </span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${showAgents ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {showAgents && (
                     <div className="mt-1 space-y-0.5">
                       {publishedAgents.map((a) => (
                         <button
                           key={a.id}
-                          onClick={() => { onViewChange(`agent:${a.id}` as DashboardView); onToggleSidebar(); }}
+                          onClick={() => {
+                            onViewChange(`agent:${a.id}` as DashboardView);
+                            onToggleSidebar();
+                          }}
                           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
                         >
                           <span className="truncate">{a.name}</span>
@@ -442,11 +492,19 @@ const DashboardSidebarV2 = ({
           </ScrollArea>
 
           {/* keep-stack — short, quiet, at the bottom */}
-          <div data-dashboard-sidebar-nav className="flex-shrink-0 max-h-[45vh] overflow-y-auto border-t border-border/20 p-2 space-y-0.5">
+          <div
+            data-dashboard-sidebar-nav
+            className="flex-shrink-0 max-h-[45vh] overflow-y-auto border-t border-border/20 p-2 space-y-0.5"
+          >
             <button
-              onClick={() => { onViewChange("chat"); onToggleSidebar(); }}
+              onClick={() => {
+                onViewChange("chat");
+                onToggleSidebar();
+              }}
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                activeView === "chat" ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                activeView === "chat"
+                  ? "bg-foreground/10 text-foreground"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
               }`}
             >
               Chat
@@ -454,9 +512,14 @@ const DashboardSidebarV2 = ({
             {keepRows.map((row) => (
               <button
                 key={row.view}
-                onClick={() => { onViewChange(row.view); onToggleSidebar(); }}
+                onClick={() => {
+                  onViewChange(row.view);
+                  onToggleSidebar();
+                }}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                  activeView === row.view ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  activeView === row.view
+                    ? "bg-foreground/10 text-foreground"
+                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                 }`}
               >
                 {row.label}
