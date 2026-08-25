@@ -33,7 +33,12 @@ type FeedName =
   | "property"
   | "webmeta"
   | "hex"
-  | "osmweb";
+  | "osmweb"
+  | "sats"
+  | "airgrid"
+  | "brittle"
+  | "plates"
+  | "route";
 
 interface CacheRow {
   at: number;
@@ -57,6 +62,11 @@ const TTL: Record<FeedName, number> = {
   webmeta: 120_000,
   hex: 20_000,
   osmweb: 90_000,
+  sats: 90_000,
+  airgrid: 60_000,
+  brittle: 90_000,
+  plates: 3600_000,
+  route: 20_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -735,6 +745,195 @@ async function osmweb(params: Record<string, unknown>) {
   return { rows, source: "openstreetmap overpass", note: "mapped surveillance/webcam nodes around the camera" };
 }
 
+async function sats() {
+  const groups = ["stations", "visual"];
+  const rows: Array<Record<string, unknown>> = [];
+  for (const g of groups) {
+    const d = (await getJson(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${g}&FORMAT=json`, 14_000)) as Array<
+      Record<string, unknown>
+    >;
+    (d ?? []).slice(0, g === "stations" ? 40 : 50).forEach((s) => {
+      rows.push({
+        id: text(s.NORAD_CAT_ID, 12) || text(s.OBJECT_ID, 16),
+        label: text(s.OBJECT_NAME, 48).toLowerCase() || "sat",
+        tle1: text(s.TLE_LINE1, 80),
+        tle2: text(s.TLE_LINE2, 80),
+        group: g,
+        note: "celestrak tle · sgp4 on the client · public catalog",
+      });
+    });
+  }
+  if (!rows.length) throw new Error("celestrak catalog empty");
+  return {
+    rows,
+    source: "celestrak gp json",
+    note: "stations + visual · orbit paths drawn in the globe · not a classified catalog",
+  };
+}
+
+async function airgrid(params: Record<string, unknown>) {
+  const lat = num(params.lat) ?? 40.7;
+  const lon = num(params.lon) ?? -74;
+  const la = clampLat(lat);
+  const lo = wrapLon(lon);
+  const rows: Array<Record<string, unknown>> = [];
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const rlat = clampLat(la + dy * 0.55);
+      const rlon = wrapLon(lo + dx * 0.7);
+      try {
+        const d = (await getJson(
+          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${rlat.toFixed(3)}&longitude=${rlon.toFixed(3)}&current=us_aqi,pm2_5`,
+          8_000,
+        )) as { current?: { us_aqi?: number; pm2_5?: number } };
+        const aqi = Number(d.current?.us_aqi);
+        const pm = Number(d.current?.pm2_5);
+        const score = Number.isFinite(aqi) ? aqi : Number.isFinite(pm) ? pm : null;
+        let band = "brown";
+        if (score == null) band = "brown";
+        else if (score <= 50) band = "green";
+        else if (score >= 150) band = "red";
+        rows.push({
+          id: `aqi-${dx}-${dy}`,
+          label: `air ${band}`,
+          lat: rlat,
+          lon: rlon,
+          aqi: score,
+          band,
+          note: "open-meteo us aqi · environmental corridor · not a combat overlay",
+        });
+      } catch {
+        rows.push({
+          id: `aqi-${dx}-${dy}`,
+          label: "air brown",
+          lat: rlat,
+          lon: rlon,
+          band: "brown",
+          note: "air-quality sample missed · brown = no public reading",
+        });
+      }
+    }
+  }
+  return {
+    rows,
+    source: "open-meteo air quality",
+    note: "green good · brown no reading / middling · red unhealthy · not a war map",
+  };
+}
+
+async function brittle(params: Record<string, unknown>) {
+  const lat = num(params.lat);
+  const lon = num(params.lon);
+  if (lat === null || lon === null) throw new Error("no coordinate given");
+  const la = clampLat(lat);
+  const lo = wrapLon(lon);
+  const q = `[out:json][timeout:20];(
+    nwr["power"="substation"](around:45000,${la.toFixed(4)},${lo.toFixed(4)});
+    nwr["landuse"="harbour"](around:45000,${la.toFixed(4)},${lo.toFixed(4)});
+    nwr["aeroway"="aerodrome"](around:45000,${la.toFixed(4)},${lo.toFixed(4)});
+    nwr["amenity"="hospital"](around:45000,${la.toFixed(4)},${lo.toFixed(4)});
+    nwr["man_made"="mast"](around:25000,${la.toFixed(4)},${lo.toFixed(4)});
+  );out center tags 40;`;
+  const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 18_000)) as {
+    elements?: Array<Record<string, unknown>>;
+  };
+  const rows = (d.elements ?? [])
+    .map((el, i) => {
+      const c = (el.center as { lat?: number; lon?: number } | undefined) || el;
+      const ela = num((c as { lat?: unknown }).lat);
+      const elo = num((c as { lon?: unknown }).lon);
+      if (ela === null || elo === null) return null;
+      const tags = (el.tags as Record<string, unknown> | undefined) || {};
+      const kind =
+        tagText(tags, "power") ||
+        tagText(tags, "aeroway") ||
+        tagText(tags, "amenity") ||
+        tagText(tags, "landuse") ||
+        tagText(tags, "man_made") ||
+        "node";
+      return {
+        id: `brittle-${el.id || i}`,
+        label: (tagText(tags, "name", 80) || kind).toLowerCase(),
+        lat: clampLat(ela),
+        lon: wrapLon(elo),
+        kind,
+        note: "osm mapped infrastructure · public map of brittle nodes · not an attack list · not cell-record triangulation",
+      };
+    })
+    .filter(Boolean);
+  return {
+    rows,
+    source: "openstreetmap overpass",
+    note: "substations · harbours · airfields · hospitals · masts around the camera",
+  };
+}
+
+async function plates() {
+  const d = (await getJson(
+    "https://cdn.jsdelivr.net/gh/fraxen/tectonicplates@master/GeoJSON/PB2002_boundaries.json",
+    16_000,
+  )) as { features?: Array<{ geometry?: { coordinates?: unknown }; properties?: Record<string, unknown> }> };
+  const rows: Array<Record<string, unknown>> = [];
+  (d.features ?? []).slice(0, 80).forEach((f, i) => {
+    const geom = f.geometry?.coordinates;
+    const line = Array.isArray(geom) ? geom : [];
+    const mid = (Array.isArray(line[0]) ? line[Math.floor(line.length / 2)] : null) as number[] | null;
+    if (!mid || mid.length < 2) return;
+    rows.push({
+      id: `plate-${i}`,
+      label: (text(f.properties?.Name, 40) || "plate edge").toLowerCase(),
+      lat: clampLat(Number(mid[1])),
+      lon: wrapLon(Number(mid[0])),
+      ring: line
+        .filter((p) => Array.isArray(p) && p.length >= 2)
+        .slice(0, 80)
+        .map((p) => ({ lon: Number((p as number[])[0]), lat: Number((p as number[])[1]) })),
+      note: "pb2002 plate boundary · 50-200yr motion is meters · not a new continent",
+    });
+  });
+  return {
+    rows,
+    source: "pb2002 via jsdelivr",
+    note: "speculative cartography = plate edges + honesty, not invented land",
+  };
+}
+
+async function route(params: Record<string, unknown>) {
+  const aLat = num(params.alat);
+  const aLon = num(params.alon);
+  const bLat = num(params.blat);
+  const bLon = num(params.blon);
+  if (aLat === null || aLon === null || bLat === null || bLon === null) throw new Error("need two public points");
+  const d = (await getJson(
+    `https://router.project-osrm.org/route/v1/driving/${aLon.toFixed(5)},${aLat.toFixed(5)};${bLon.toFixed(5)},${bLat.toFixed(5)}?overview=full&geometries=geojson`,
+    12_000,
+  )) as { routes?: Array<{ distance?: number; duration?: number; geometry?: { coordinates?: number[][] } }> };
+  const r = (d.routes ?? [])[0];
+  if (!r?.geometry?.coordinates?.length) throw new Error("osrm had no public drive path");
+  let wind = "no open-meteo wind this tick";
+  try {
+    const w = (await getJson(
+      `https://api.open-meteo.com/v1/forecast?latitude=${aLat.toFixed(3)}&longitude=${aLon.toFixed(3)}&current=wind_speed_10m,precipitation`,
+      8_000,
+    )) as { current?: { wind_speed_10m?: number; precipitation?: number } };
+    wind = `wind ${Number(w.current?.wind_speed_10m) || 0} m/s · precip ${Number(w.current?.precipitation) || 0} mm · cost hint only`;
+  } catch {}
+  return {
+    rows: [
+      {
+        id: "route-0",
+        label: "unstable route",
+        lat: clampLat(aLat),
+        lon: wrapLon(aLon),
+        ring: r.geometry.coordinates.map((p) => ({ lon: Number(p[0]), lat: Number(p[1]) })),
+        note: `osrm ${Math.round((r.distance || 0) / 1000)} km · ${wind} · sci-fi quantum routing rewritten as public path + weather cost · not a quantum computer`,
+      },
+    ],
+    source: "osrm public router + open-meteo",
+    note: "shifting terrain = weather on a public drive path. elevation/landcover still unsure without a keyed terrain service",
+  };
+}
+
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
   military: () => military(),
@@ -750,6 +949,11 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   webmeta,
   hex,
   osmweb,
+  sats,
+  airgrid,
+  brittle,
+  plates,
+  route,
 };
 
 Deno.serve(async (req) => {
@@ -774,11 +978,21 @@ Deno.serve(async (req) => {
           ? String(params.q ?? "").slice(0, 80)
           : feed === "hex"
             ? String(params.icao ?? "").slice(0, 12)
-            : feed === "osmweb"
-              ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
-              : feed === "webmeta"
-                ? String(params.url ?? "").slice(0, 120)
-                : "";
+            : feed === "sats"
+              ? "sats"
+              : feed === "airgrid"
+                ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
+                : feed === "brittle"
+                  ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
+                  : feed === "plates"
+                    ? "plates"
+                    : feed === "route"
+                      ? `${Number(params.alat)}:${Number(params.blat)}`
+                      : feed === "osmweb"
+                        ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
+                        : feed === "webmeta"
+                          ? String(params.url ?? "").slice(0, 120)
+                          : "";
     const key = `${feed}|${keyBits}`;
     const hit = CACHE.get(key);
     const now = Date.now();
