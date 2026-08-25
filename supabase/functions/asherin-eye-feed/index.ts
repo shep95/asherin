@@ -29,7 +29,10 @@ type FeedName =
   | "cameras"
   | "radio"
   | "spaceweather"
-  | "local";
+  | "local"
+  | "places"
+  | "property"
+  | "webmeta";
 
 interface CacheRow {
   at: number;
@@ -48,6 +51,9 @@ const TTL: Record<FeedName, number> = {
   radio: 45 * 60_000,
   spaceweather: 10 * 60_000,
   local: 5 * 60_000,
+  places: 60_000,
+  property: 90_000,
+  webmeta: 120_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -164,10 +170,9 @@ async function military() {
 }
 
 async function quakes() {
-  const d = (await getJson(
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
-    12_000,
-  )) as { features?: Array<{ geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }> };
+  const d = (await getJson("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson", 12_000)) as {
+    features?: Array<{ geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }>;
+  };
   const rows = (d.features ?? [])
     .map((f) => {
       const c = f.geometry?.coordinates;
@@ -219,10 +224,9 @@ async function stations() {
 }
 
 async function launches() {
-  const d = (await getJson(
-    "https://ll.thespacedevs.com/2.3.0/launches/?limit=40&ordering=-net&mode=list",
-    14_000,
-  )) as { results?: Array<Record<string, unknown>> };
+  const d = (await getJson("https://ll.thespacedevs.com/2.3.0/launches/?limit=40&ordering=-net&mode=list", 14_000)) as {
+    results?: Array<Record<string, unknown>>;
+  };
   const rows = (d.results ?? [])
     .map((l) => {
       const pad = l.pad as Record<string, unknown> | undefined;
@@ -402,6 +406,153 @@ async function local(params: Record<string, unknown>) {
   };
 }
 
+async function places(params: Record<string, unknown>) {
+  const q = text(params.q, 160);
+  if (!q) throw new Error("no place given");
+  const d = (await getJson(
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=12&addressdetails=1&q=${encodeURIComponent(q)}`,
+    10_000,
+  )) as Array<Record<string, unknown>>;
+  const rows = (d ?? [])
+    .map((p) => {
+      const la = Number(p.lat);
+      const lo = Number(p.lon);
+      if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+      return {
+        id: text(p.place_id, 24) || `${la},${lo}`,
+        label: text(p.display_name, 140).toLowerCase() || q,
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        kind: text(p.type, 40),
+        note: "nominatim public index Â· not a search-results page",
+      };
+    })
+    .filter(Boolean);
+  if (!rows.length) throw new Error("no public place matched");
+  return { rows, source: "openstreetmap nominatim", note: "asherin.engine places on the globe" };
+}
+
+async function property(params: Record<string, unknown>) {
+  const found = (await places(params)) as { rows: Array<Record<string, unknown>> };
+  const first = found.rows[0] as { lat: number; lon: number; label: string };
+  const la = first.lat;
+  const lo = first.lon;
+  const q = `[out:json][timeout:20];(way["building"](around:120,${la.toFixed(5)},${lo.toFixed(5)});node["addr:housenumber"](around:120,${la.toFixed(5)},${lo.toFixed(5)}););out center 40;`;
+  let extra: Array<Record<string, unknown>> = [];
+  try {
+    const d = (await getJson(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`, 16_000)) as {
+      elements?: Array<Record<string, unknown>>;
+    };
+    extra = (d.elements ?? [])
+      .map((el, i) => {
+        const c = (el.center as { lat?: number; lon?: number } | undefined) || el;
+        const ela = num((c as { lat?: unknown }).lat);
+        const elo = num((c as { lon?: unknown }).lon);
+        if (ela === null || elo === null) return null;
+        const tags = (el.tags as Record<string, unknown> | undefined) || {};
+        const label =
+          text(tags["addr:housenumber"], 12) && text(tags["addr:street"], 60)
+            ? `${text(tags["addr:housenumber"], 12)} ${text(tags["addr:street"], 60)}`.toLowerCase()
+            : text(tags.name, 80) || "building";
+        return {
+          id: `prop-${el.id || i}`,
+          label,
+          lat: clampLat(ela),
+          lon: wrapLon(elo),
+          note: "osm building/address Â· public tags, not a deed",
+        };
+      })
+      .filter(Boolean) as Array<Record<string, unknown>>;
+  } catch {
+    extra = [];
+  }
+  return {
+    rows: [first, ...extra].slice(0, 48),
+    source: "nominatim Â· overpass",
+    note: extra.length ? "property footprint from public osm" : "place only Â· osm buildings did not answer",
+  };
+}
+
+function blockedHost(host: string) {
+  const h = host.toLowerCase();
+  if (!h || h === "localhost" || h.endsWith(".localhost") || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0")
+    return true;
+  if (/^(10\.|192\.168\.|169\.254\.)/.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)) return true;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+  return false;
+}
+
+async function webmeta(params: Record<string, unknown>) {
+  const raw = text(params.url, 400);
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    throw new Error("not a url");
+  }
+  if (u.protocol !== "https:") throw new Error("https only");
+  if (blockedHost(u.hostname)) throw new Error("that host is not a public page");
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10_000);
+  let html = "";
+  const headers: Record<string, string> = {};
+  try {
+    const res = await fetch(u.toString(), {
+      signal: ctl.signal,
+      redirect: "follow",
+      headers: { accept: "text/html,application/xhtml+xml", "user-agent": "asherin.eye/1.0 (+https://asherin.com)" },
+    });
+    res.headers.forEach((v, k) => {
+      if (/^(content-type|server|x-powered-by|cache-control|content-security-policy|x-frame-options)$/i.test(k)) {
+        headers[k.toLowerCase()] = v.slice(0, 180);
+      }
+    });
+    html = (await res.text()).slice(0, 80_000);
+  } finally {
+    clearTimeout(timer);
+  }
+  const pick = (re: RegExp) => {
+    const m = html.match(re);
+    return m ? text(m[1], 160) : "";
+  };
+  const title = pick(/<title[^>]*>([^<]{1,160})/i);
+  const ogTitle =
+    pick(/property=["']og:title["'][^>]*content=["']([^"']+)/i) ||
+    pick(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+  const ogLat = pick(/property=["']place:location:latitude["'][^>]*content=["']([^"']+)/i);
+  const geo =
+    pick(/name=["']geo.position["'][^>]*content=["']([^"']+)/i) || pick(/name=["']ICBM["'][^>]*content=["']([^"']+)/i);
+  let lat: number | null = num(Number(ogLat));
+  let lon: number | null = num(Number(pick(/property=["']place:location:longitude["'][^>]*content=["']([^"']+)/i)));
+  if (geo.includes(";")) {
+    const [a, b] = geo.split(";");
+    lat = num(Number(a));
+    lon = num(Number(b));
+  } else if (geo.includes(",")) {
+    const [a, b] = geo.split(",");
+    lat = num(Number(a));
+    lon = num(Number(b));
+  }
+  const rows =
+    lat !== null && lon !== null
+      ? [
+          {
+            id: u.hostname,
+            label: (ogTitle || title || u.hostname).toLowerCase(),
+            lat: clampLat(lat),
+            lon: wrapLon(lon),
+            note: "geo tag on the public page",
+          },
+        ]
+      : [{ id: u.hostname, label: (ogTitle || title || u.hostname).toLowerCase(), note: "no geo tag" }];
+  return {
+    rows,
+    source: "public page metadata",
+    note: `headers ${Object.keys(headers).join(" ") || "none"} Â· not a traffic intercept`,
+  };
+}
+
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
   military: () => military(),
@@ -412,6 +563,9 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   radio: () => radio(),
   spaceweather: () => spaceweather(),
   local,
+  places,
+  property,
+  webmeta,
 };
 
 Deno.serve(async (req) => {
@@ -432,7 +586,11 @@ Deno.serve(async (req) => {
     const keyBits =
       feed === "local" || feed === "flights"
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
-        : "";
+        : feed === "places" || feed === "property"
+          ? String(params.q ?? "").slice(0, 80)
+          : feed === "webmeta"
+            ? String(params.url ?? "").slice(0, 120)
+            : "";
     const key = `${feed}|${keyBits}`;
     const hit = CACHE.get(key);
     const now = Date.now();
