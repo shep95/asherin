@@ -6,8 +6,50 @@ import { CONNECTED_ACCOUNT_VIEWS } from "@/hooks/useAccess";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon, Workflow, Wand2, PanelLeftClose, PanelLeftOpen, Ghost, Calculator, Gauge,
+  Plus,
+  Search,
+  LogOut,
+  Zap,
+  FolderOpen,
+  Layers,
+  Brain,
+  BarChart3,
+  Settings,
+  X,
+  Menu,
+  CreditCard,
+  ShieldCheck,
+  Database,
+  Download,
+  MessageSquare,
+  ChevronDown,
+  Crosshair,
+  Newspaper,
+  Code2,
+  Users,
+  FileText,
+  Globe,
+  ScanEye,
+  Puzzle,
+  Activity,
+  ClipboardList,
+  Archive,
+  ArchiveRestore,
+  Trash2 as Trash2Icon,
+  Pencil,
+  MessagesSquare,
+  Terminal,
+  Sparkles,
+  Lock as LockIcon,
+  Shield,
+  Moon,
+  Workflow,
+  Wand2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Ghost,
+  Calculator,
+  Gauge,
 } from "lucide-react";
 import type { Conversation, DashboardView, ChatMode, Message } from "./types";
 import SwipeableConversationItem from "./SwipeableConversationItem";
@@ -49,8 +91,14 @@ interface DashboardSidebarProps {
 }
 
 type NavItem = { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" };
-interface SubGroup { label: string; items: NavItem[] }
-interface NavGroup { label: string; subgroups: SubGroup[] }
+interface SubGroup {
+  label: string;
+  items: NavItem[];
+}
+interface NavGroup {
+  label: string;
+  subgroups: SubGroup[];
+}
 
 const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscribe" };
 
@@ -58,52 +106,53 @@ const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, lab
 import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
 const VIEW_ICON: Record<string, React.ElementType> = {
-  "chat": MessagesSquare,
-  "zali": Zap,
+  chat: MessagesSquare,
+  zali: Zap,
   "pdf-generator": FileText,
-  "whiteboard": Layers,
-  "azplen": Database,
-  "zeeion": Database,
+  whiteboard: Layers,
+  azplen: Database,
+  zeeion: Database,
   "pattern-analysis": Activity,
-  "timeseries": Activity,
-  "geospatial": Globe,
+  timeseries: Activity,
+  geospatial: Globe,
+  "asherin-eye": ScanEye,
   "video-intelligence": Crosshair,
-  "search": Zap,
-  "nomad": Crosshair,
-  "zerlal": Shield,
-  "bulwark": ShieldCheck,
+  search: Zap,
+  nomad: Crosshair,
+  zerlal: Shield,
+  bulwark: ShieldCheck,
   "geo-audit": Gauge,
-  "zaxin": Layers,
-  "zacoon": Ghost,
+  zaxin: Layers,
+  zacoon: Ghost,
   "ghost-engine": Ghost,
-  "google": Globe,
-  
+  google: Globe,
+
   "reverse-engineer": Search,
   "file-scrapper": FileText,
-  "cipher": Shield,
-  "gematria": Calculator,
-  "briefing": Newspaper,
-  "cross": Crosshair,
-  "ide": Terminal,
-  "notebooks": FileText,
-  "agents": Zap,
-  "zahten": Workflow,
-  "plugins": Puzzle,
-  "snippets": Code2,
-  "media2code": Wand2,
-  "library": FolderOpen,
-  "projects": Layers,
-  "memory": Brain,
-  "teams": Users,
-  "community": MessagesSquare,
+  cipher: Shield,
+  gematria: Calculator,
+  briefing: Newspaper,
+  cross: Crosshair,
+  ide: Terminal,
+  notebooks: FileText,
+  agents: Zap,
+  zahten: Workflow,
+  plugins: Puzzle,
+  snippets: Code2,
+  media2code: Wand2,
+  library: FolderOpen,
+  projects: Layers,
+  memory: Brain,
+  teams: Users,
+  community: MessagesSquare,
   "vedic-astrology": Moon,
   "guardian-vault": LockIcon,
-  "settings": Settings,
-  "subscription": CreditCard,
-  "stats": BarChart3,
-  "audit": ClipboardList,
+  settings: Settings,
+  subscription: CreditCard,
+  stats: BarChart3,
+  audit: ClipboardList,
   "bug-reports": ClipboardList,
-  "security": ShieldCheck,
+  security: ShieldCheck,
   "self-access": FileText,
 };
 
@@ -116,30 +165,29 @@ interface IntentNavItem extends NavItem {
 // Build sidebar groups directly from the single source of truth (NAV_INTENTS),
 // using verb-first intent groups (Create / Analyze / Investigate / Build /
 // Workspace / Account). Plain-language label is primary; codename is a subtitle.
-const navGroupsFlat: { label: string; blurb: string; items: IntentNavItem[] }[] =
-  INTENT_GROUPS.map((g) => ({
-    label: g,
-    blurb: INTENT_GROUP_BLURB[g],
-    items: ALL_INTENTS
-      .filter((i: NavIntent) => i.group === g && i.view !== "subscription")
-      .map((i: NavIntent) => ({
-        id: (i.view ?? (i.route as DashboardView)),
-        icon: VIEW_ICON[(i.view ?? i.route) as string] ?? FileText,
-        label: i.label,
-        codename: i.codename,
-        route: i.route,
-        access: i.access,
-        adminOnly: i.adminOnly,
-      })),
-  }));
-
+const navGroupsFlat: { label: string; blurb: string; items: IntentNavItem[] }[] = INTENT_GROUPS.map((g) => ({
+  label: g,
+  blurb: INTENT_GROUP_BLURB[g],
+  items: ALL_INTENTS.filter((i: NavIntent) => i.group === g && i.view !== "subscription").map((i: NavIntent) => ({
+    id: i.view ?? (i.route as DashboardView),
+    icon: VIEW_ICON[(i.view ?? i.route) as string] ?? FileText,
+    label: i.label,
+    codename: i.codename,
+    route: i.route,
+    access: i.access,
+    adminOnly: i.adminOnly,
+  })),
+}));
 
 function groupByDate(convs: Conversation[]) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-  const week = new Date(today); week.setDate(today.getDate() - 7);
-  const month = new Date(today); month.setDate(today.getDate() - 30);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const week = new Date(today);
+  week.setDate(today.getDate() - 7);
+  const month = new Date(today);
+  month.setDate(today.getDate() - 30);
 
   const groups: { label: string; items: Conversation[] }[] = [
     { label: "Pinned", items: [] },
@@ -151,7 +199,10 @@ function groupByDate(convs: Conversation[]) {
   ];
 
   convs.forEach((c) => {
-    if (c.pinned) { groups[0].items.push(c); return; }
+    if (c.pinned) {
+      groups[0].items.push(c);
+      return;
+    }
     const d = new Date(c.createdAt);
     if (d >= today) groups[1].items.push(c);
     else if (d >= yesterday) groups[2].items.push(c);
@@ -164,9 +215,19 @@ function groupByDate(convs: Conversation[]) {
 }
 
 const DashboardSidebar = ({
-  conversations, activeConversationId, activeView, onSelectConversation,
-  onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
-  sidebarOpen, onToggleSidebar, publishedAgents = [],
+  conversations,
+  activeConversationId,
+  activeView,
+  onSelectConversation,
+  onNewConversation,
+  onDeleteConversation,
+  onArchiveConversation,
+  onRenameConversation,
+  onTogglePin,
+  onViewChange,
+  sidebarOpen,
+  onToggleSidebar,
+  publishedAgents = [],
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -180,22 +241,31 @@ const DashboardSidebar = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [collapsed, setCollapsed] = useState<boolean>(() => {
-    try { return localStorage.getItem("aureon_sidebar_collapsed") === "1"; } catch { return false; }
+    try {
+      return localStorage.getItem("aureon_sidebar_collapsed") === "1";
+    } catch {
+      return false;
+    }
   });
-  const toggleCollapsed = () => setCollapsed((c) => {
-    const next = !c;
-    try { localStorage.setItem("aureon_sidebar_collapsed", next ? "1" : "0"); } catch {}
-    return next;
-  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("aureon_sidebar_collapsed", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    navGroupsFlat.forEach((g, i) => { init[g.label] = i < 2; });
+    navGroupsFlat.forEach((g, i) => {
+      init[g.label] = i < 2;
+    });
     return init;
   });
 
   const toggleGroup = (label: string) => {
-    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+    setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
   const itemAllowed = (item: IntentNavItem) => {
@@ -218,22 +288,23 @@ const DashboardSidebar = ({
     return true;
   };
 
-
   const filteredGroups = navGroupsFlat
     .map((group) => ({ ...group, items: group.items.filter(itemAllowed) }))
     .filter((group) => group.items.length > 0);
 
   // Append Zahten-published agents as a dynamic intent group.
   const dynamicGroups = publishedAgents.length
-    ? [{
-        label: "Deployed Agents",
-        blurb: "Your Zahten-deployed agents",
-        items: publishedAgents.map((a) => ({
-          id: `agent:${a.id}` as DashboardView,
-          icon: Workflow,
-          label: a.name,
-        })) as IntentNavItem[],
-      }]
+    ? [
+        {
+          label: "Deployed Agents",
+          blurb: "Your Zahten-deployed agents",
+          items: publishedAgents.map((a) => ({
+            id: `agent:${a.id}` as DashboardView,
+            icon: Workflow,
+            label: a.name,
+          })) as IntentNavItem[],
+        },
+      ]
     : [];
   const allGroupsBase = [...filteredGroups, ...dynamicGroups];
   const swq = softwareSearch.trim().toLowerCase();
@@ -242,14 +313,11 @@ const DashboardSidebar = ({
         .map((g) => ({
           ...g,
           items: g.items.filter(
-            (i) =>
-              i.label.toLowerCase().includes(swq) ||
-              (i.codename ?? "").toLowerCase().includes(swq)
+            (i) => i.label.toLowerCase().includes(swq) || (i.codename ?? "").toLowerCase().includes(swq),
           ),
         }))
         .filter((g) => g.items.length > 0)
     : allGroupsBase;
-
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
@@ -262,7 +330,7 @@ const DashboardSidebar = ({
       .eq("archived", true)
       .order("created_at", { ascending: false })
       .limit(50);
-    
+
     if (convRows) {
       const convs: Conversation[] = convRows.map((c) => ({
         id: c.id,
@@ -329,44 +397,50 @@ const DashboardSidebar = ({
     try {
       const stored = localStorage.getItem("aureon_sidebar_width");
       return stored ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(stored))) : 288;
-    } catch { return 288; }
+    } catch {
+      return 288;
+    }
   });
   const isResizing = useRef(false);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    const startX = e.clientX;
-    const startWidth = sidebarWidth;
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isResizing.current = true;
+      const startX = e.clientX;
+      const startWidth = sidebarWidth;
 
-    const onMouseMove = (ev: MouseEvent) => {
-      if (!isResizing.current) return;
-      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (ev.clientX - startX)));
-      setSidebarWidth(newWidth);
-    };
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!isResizing.current) return;
+        const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (ev.clientX - startX)));
+        setSidebarWidth(newWidth);
+      };
 
-    const onMouseUp = () => {
-      isResizing.current = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
-    };
+      const onMouseUp = () => {
+        isResizing.current = false;
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
+      };
 
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }, [sidebarWidth]);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [sidebarWidth],
+  );
 
   useEffect(() => {
     localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
   }, [sidebarWidth]);
 
-  const filtered = conversations.filter((c) =>
-    c.title.toLowerCase().includes(search.toLowerCase()) ||
-    c.messages.some((m) => m.content.toLowerCase().includes(search.toLowerCase()))
+  const filtered = conversations.filter(
+    (c) =>
+      c.title.toLowerCase().includes(search.toLowerCase()) ||
+      c.messages.some((m) => m.content.toLowerCase().includes(search.toLowerCase())),
   );
   const groups = groupByDate(filtered);
 
@@ -375,8 +449,12 @@ const DashboardSidebar = ({
   // drawer is resting (CSS class drives it) and no finger is on the glass.
   const [dragPx, setDragPx] = useState<number | null>(null);
   const gestureRef = useRef<{
-    startX: number; startY: number; startT: number; lastX: number;
-    axis: "pending" | "x" | "y"; from: "edge" | "drawer";
+    startX: number;
+    startY: number;
+    startT: number;
+    lastX: number;
+    axis: "pending" | "x" | "y";
+    from: "edge" | "drawer";
   } | null>(null);
 
   const drawerWidth = () => Math.min(collapsed ? 68 : sidebarWidth, window.innerWidth - 48);
@@ -387,7 +465,14 @@ const DashboardSidebar = ({
     // The conversation row owns its own horizontal axis (swipe-to-archive).
     if (from === "drawer" && (e.target as HTMLElement).closest("[data-convo-row]")) return;
     const t = e.touches[0];
-    gestureRef.current = { startX: t.clientX, startY: t.clientY, startT: Date.now(), lastX: t.clientX, axis: "pending", from };
+    gestureRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      startT: Date.now(),
+      lastX: t.clientX,
+      axis: "pending",
+      from,
+    };
   };
 
   const moveGesture = (e: React.TouchEvent) => {
@@ -400,11 +485,20 @@ const DashboardSidebar = ({
 
     if (g.axis === "pending") {
       // Vertical intent wins outright — scrolling must never drag the drawer.
-      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { gestureRef.current = null; return; }
+      if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) {
+        gestureRef.current = null;
+        return;
+      }
       if (Math.abs(dx) < 10) return;
       const rightward = dx > 0;
-      if (g.from === "edge" && !rightward) { gestureRef.current = null; return; }
-      if (g.from === "drawer" && rightward) { gestureRef.current = null; return; }
+      if (g.from === "edge" && !rightward) {
+        gestureRef.current = null;
+        return;
+      }
+      if (g.from === "drawer" && rightward) {
+        gestureRef.current = null;
+        return;
+      }
       g.axis = "x";
     }
 
@@ -416,7 +510,10 @@ const DashboardSidebar = ({
   const endGesture = () => {
     const g = gestureRef.current;
     gestureRef.current = null;
-    if (!g || g.axis !== "x") { setDragPx(null); return; }
+    if (!g || g.axis !== "x") {
+      setDragPx(null);
+      return;
+    }
     const w = drawerWidth();
     const dx = g.lastX - g.startX;
     const velocity = dx / Math.max(1, Date.now() - g.startT); // px/ms
@@ -472,7 +569,11 @@ const DashboardSidebar = ({
       {(sidebarOpen || dragging) && (
         <div
           className="fixed inset-0 z-30 bg-background/50 lg:hidden"
-          style={dragging ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" } : undefined}
+          style={
+            dragging
+              ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" }
+              : undefined
+          }
           onClick={onToggleSidebar}
         />
       )}
@@ -486,9 +587,7 @@ const DashboardSidebar = ({
           width: collapsed ? "68px" : `${sidebarWidth}px`,
           paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          ...(dragging
-            ? { transform: `translateX(${(dragPx ?? 0) - drawerWidth()}px)`, transition: "none" }
-            : {}),
+          ...(dragging ? { transform: `translateX(${(dragPx ?? 0) - drawerWidth()}px)`, transition: "none" } : {}),
         }}
         className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 lg:transform-none flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -496,7 +595,10 @@ const DashboardSidebar = ({
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
           {!collapsed && (
-            <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
+            <div
+              onMouseDown={handleMouseDown}
+              className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group"
+            >
               <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
             </div>
           )}
@@ -504,7 +606,9 @@ const DashboardSidebar = ({
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20 gap-2">
             {!collapsed && (
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-extralight tracking-[0.16em] text-foreground whitespace-nowrap shrink-0">ASHERIN</span>
+                <span className="text-sm font-extralight tracking-[0.16em] text-foreground whitespace-nowrap shrink-0">
+                  ASHERIN
+                </span>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70 shrink-0" />
               </div>
             )}
@@ -517,9 +621,18 @@ const DashboardSidebar = ({
                 {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </button>
               {!collapsed && (
-                <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
+                <NotificationInbox
+                  onNavigate={(v) => {
+                    onViewChange(v as DashboardView);
+                    onToggleSidebar();
+                  }}
+                />
               )}
-              <button onClick={onNewConversation} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground" title="New conversation">
+              <button
+                onClick={onNewConversation}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title="New conversation"
+              >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
@@ -555,14 +668,18 @@ const DashboardSidebar = ({
                   <button
                     onClick={() => setShowConvos(!showConvos)}
                     className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                      showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      showConvos
+                        ? "bg-foreground/10 text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <MessageSquare className="h-4 w-4" />
                       Past Convos
                     </div>
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`}
+                    />
                   </button>
                 </div>
               )}
@@ -572,7 +689,12 @@ const DashboardSidebar = ({
                   <div className="flex-shrink-0 px-3 pt-2">
                     <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
                       <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search conversations…"
+                        className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                      />
                     </div>
                   </div>
 
@@ -583,15 +705,24 @@ const DashboardSidebar = ({
                           {group.label === "Pinned" ? "◆ Pinned" : group.label}
                         </p>
                         <div className="space-y-0.5">
-                          {group.items.map((conv) => (
+                          {group.items.map((conv) =>
                             editingId === conv.id ? (
-                              <div key={conv.id} className="flex items-center gap-1.5 rounded-xl px-3 py-2 bg-foreground/10">
+                              <div
+                                key={conv.id}
+                                className="flex items-center gap-1.5 rounded-xl px-3 py-2 bg-foreground/10"
+                              >
                                 <input
                                   autoFocus
                                   value={editTitle}
                                   onChange={(e) => setEditTitle(e.target.value)}
                                   onBlur={commitRename}
-                                  onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setEditingId(null); setEditTitle(""); } }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") commitRename();
+                                    if (e.key === "Escape") {
+                                      setEditingId(null);
+                                      setEditTitle("");
+                                    }
+                                  }}
                                   className="flex-1 bg-transparent text-xs font-light text-foreground outline-none border-b border-foreground/30"
                                 />
                               </div>
@@ -600,14 +731,18 @@ const DashboardSidebar = ({
                                 key={conv.id}
                                 conv={conv}
                                 isActive={activeView === "chat" && conv.id === activeConversationId}
-                                onSelect={() => { onSelectConversation(conv.id); onViewChange("chat"); onToggleSidebar(); }}
+                                onSelect={() => {
+                                  onSelectConversation(conv.id);
+                                  onViewChange("chat");
+                                  onToggleSidebar();
+                                }}
                                 onTogglePin={() => onTogglePin(conv.id)}
                                 onDelete={() => onDeleteConversation(conv.id)}
                                 onArchive={() => onArchiveConversation(conv.id)}
                                 onRename={() => startRename(conv)}
                               />
-                            )
-                          ))}
+                            ),
+                          )}
                         </div>
                       </div>
                     ))}
@@ -618,14 +753,18 @@ const DashboardSidebar = ({
                     <button
                       onClick={() => setShowArchived(!showArchived)}
                       className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                        showArchived ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                        showArchived
+                          ? "bg-foreground/10 text-foreground"
+                          : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <Archive className="h-4 w-4" />
                         Archived
                       </div>
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`}
+                      />
                     </button>
 
                     {showArchived && (
@@ -636,7 +775,10 @@ const DashboardSidebar = ({
                           <p className="px-3 py-2 text-[10px] text-muted-foreground/50">No archived conversations.</p>
                         ) : (
                           archivedConvos.map((conv) => (
-                            <div key={conv.id} className="group flex items-center gap-2 rounded-xl px-3 py-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
+                            <div
+                              key={conv.id}
+                              className="group flex items-center gap-2 rounded-xl px-3 py-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
+                            >
                               <Archive className="h-3.5 w-3.5 shrink-0 opacity-50" />
                               <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
                               <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -664,12 +806,20 @@ const DashboardSidebar = ({
                 </>
               )}
 
-              <div data-dashboard-sidebar-nav className={`py-2 border-t border-border/20 space-y-1 ${collapsed ? "px-1.5" : "px-2"}`}>
+              <div
+                data-dashboard-sidebar-nav
+                className={`py-2 border-t border-border/20 space-y-1 ${collapsed ? "px-1.5" : "px-2"}`}
+              >
                 {!collapsed && itemAllowed(subscriptionNavItem) && (
                   <button
-                    onClick={() => { onViewChange(subscriptionNavItem.id); onToggleSidebar(); }}
+                    onClick={() => {
+                      onViewChange(subscriptionNavItem.id);
+                      onToggleSidebar();
+                    }}
                     className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                      activeView === subscriptionNavItem.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      activeView === subscriptionNavItem.id
+                        ? "bg-foreground/10 text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                     }`}
                   >
                     <subscriptionNavItem.icon className="h-4 w-4" />
@@ -698,7 +848,9 @@ const DashboardSidebar = ({
                             onClick={() => navigate(item)}
                             title={item.label}
                             className={`flex w-full items-center justify-center rounded-xl p-2 transition-colors ${
-                              activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                              activeView === item.id
+                                ? "bg-foreground/10 text-foreground"
+                                : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                             }`}
                           >
                             <item.icon className="h-4 w-4" />
@@ -723,7 +875,9 @@ const DashboardSidebar = ({
                             — {group.blurb}
                           </span>
                         </span>
-                        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown
+                          className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                        />
                       </button>
                       {isOpen && (
                         <div className="mt-0.5 mb-1 space-y-0.5 pl-2 border-l border-border/15 ml-3">
@@ -732,7 +886,9 @@ const DashboardSidebar = ({
                               key={item.id}
                               onClick={() => navigate(item)}
                               className={`flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
-                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                                activeView === item.id
+                                  ? "bg-foreground/10 text-foreground"
+                                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                               }`}
                             >
                               <item.icon className="h-4 w-4 mt-0.5 shrink-0" />
@@ -753,7 +909,9 @@ const DashboardSidebar = ({
                 })}
 
                 {swq && allGroups.length === 0 && (
-                  <p className="px-3 py-4 text-[10px] text-muted-foreground/50 text-center">No software matches "{softwareSearch}".</p>
+                  <p className="px-3 py-4 text-[10px] text-muted-foreground/50 text-center">
+                    No software matches "{softwareSearch}".
+                  </p>
                 )}
               </div>
 
@@ -775,7 +933,10 @@ const InstallBtn = () => {
   const { canInstall, install } = usePwaInstall();
   if (!canInstall) return null;
   return (
-    <button onClick={install} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
+    <button
+      onClick={install}
+      className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+    >
       <Download className="h-4 w-4" />
       Download App
     </button>
@@ -785,7 +946,10 @@ const InstallBtn = () => {
 const LogoutBtn = () => {
   const { signOut } = useAuth();
   return (
-    <button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
+    <button
+      onClick={signOut}
+      className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
+    >
       <LogOut className="h-4 w-4" />
       Log out
     </button>
