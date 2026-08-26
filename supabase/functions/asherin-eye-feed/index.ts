@@ -38,7 +38,11 @@ type FeedName =
   | "airgrid"
   | "brittle"
   | "plates"
-  | "route";
+  | "route"
+  | "incidents"
+  | "disasters"
+  | "notices"
+  | "crime";
 
 interface CacheRow {
   at: number;
@@ -67,6 +71,10 @@ const TTL: Record<FeedName, number> = {
   brittle: 90_000,
   plates: 3600_000,
   route: 20_000,
+  incidents: 5 * 60_000,
+  disasters: 5 * 60_000,
+  notices: 6 * 60 * 60_000,
+  crime: 10 * 60_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -1326,6 +1334,10 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   brittle,
   plates,
   route,
+  incidents,
+  disasters: () => disasters(),
+  notices,
+  crime,
 };
 
 Deno.serve(async (req) => {
@@ -1344,7 +1356,7 @@ Deno.serve(async (req) => {
     // Cache key includes only the coordinates that actually change a result,
     // rounded so small camera drift keeps hitting the same warm body.
     const keyBits =
-      feed === "local" || feed === "flights"
+      feed === "local" || feed === "flights" || feed === "crime"
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
         : feed === "places" || feed === "property"
           ? String(params.q ?? "").slice(0, 80)
@@ -1362,7 +1374,13 @@ Deno.serve(async (req) => {
                       ? `${Number(params.alat)}:${Number(params.blat)}`
                       : feed === "osmweb"
                         ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
-                        : feed === "webmeta"
+                        : feed === "incidents"
+                          ? String(params.q ?? "").slice(0, 80)
+                          : feed === "notices"
+                            ? String(params.kind ?? "all").slice(0, 8)
+                            : feed === "disasters"
+                              ? "disasters"
+                              : feed === "webmeta"
                           ? String(params.url ?? "").slice(0, 120)
                           : "";
     const key = `${feed}|${keyBits}`;
