@@ -1096,13 +1096,9 @@ const AsherinEyeView = () => {
       if (placeBtn) placeBtn.classList.toggle("on", cmdMode === "place");
       if (propBtn) propBtn.classList.toggle("on", cmdMode === "property");
       const input = $("#chat-in");
-      if (input) input.placeholder = cmdMode === "property" ? "property address" : "go to a place";
-      const box = $("#eye-chat");
-      const body = $("#chat-body");
-      if (body && body.hidden) {
-        body.hidden = false;
-        box.classList.remove("shut");
-      }
+      if (input)
+        input.placeholder =
+          cmdMode === "property" ? "property address" : "ask asherin.eye — or name a place";
     }
 
     async function loadWebIndexAt(lat, lon, around) {
