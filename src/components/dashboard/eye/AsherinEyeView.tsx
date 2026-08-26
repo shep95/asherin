@@ -8,6 +8,8 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
+import { aircraftIcon, TRACKED_ICON_PX } from "./aircraftIcons";
+import { classifyAircraft, CLASS_SCALE_2D } from "./aircraftClass";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
@@ -514,11 +516,29 @@ async function eyeTalk(messages) {
   }
 }
 
+// airframe kind for the silhouette: the icao type designator when the feed
+// carries one (adsb.lol `t`), else the opensky/ads-b emitter category. opensky's
+// `origin` is a COUNTRY, never a type code, so it is deliberately not passed in.
+function glyphClass(row) {
+  return classifyAircraft({ typeCode: row?.type || "", category: row?.category });
+}
+
+// base billboard footprint in css px; each class scales against the airliner.
+const FLEET_ICON_PX = 19;
+const TRACKED_ICON_BUMP = 1.35;
+
+function glyphSize(kind, isTracked) {
+  const s = CLASS_SCALE_2D[kind] || 1;
+  return Math.round(FLEET_ICON_PX * s * (isTracked ? TRACKED_ICON_BUMP : 1));
+}
+
+// the single sample airframe glb still stands in for every kind, so the 3d
+// scale is bucketed rather than per-class-truthful.
 function hangarClass(row) {
-  const t = String(row.origin || row.label || "").toUpperCase();
-  if (/B06|B407|H500|R44|A109|EC3|H60|BELL|HELI/.test(t)) return "helo";
-  if (/MQ9|MQ1|RQ|UAV|Q9|DRONE/.test(t)) return "uav";
-  if (/B78|B77|A38|A35|A33|B74|C17|C130|C5|KC/.test(t)) return "heavy";
+  const kind = typeof row === "string" ? row : glyphClass(row);
+  if (kind === "helicopter") return "helo";
+  if (kind === "uav") return "uav";
+  if (kind === "widebody" || kind === "quadjet") return "heavy";
   return "air";
 }
 
@@ -611,6 +631,12 @@ const AsherinEyeView = () => {
     let stage;
     let tracked;
     let trail;
+    // fleet track history: one polyline per contact, only for the contacts
+    // nearest the camera so a 2 500-aircraft snapshot never becomes 2 500 lines.
+    let trailsOn = false;
+    const fleetTrails = {};
+    const FLEET_TRAIL_MAX = 90;
+    const FLEET_TRAIL_KM = 900;
     let modelOn = false;
     let camMode = "chase";
     let orbitHeading = 0;
@@ -672,7 +698,8 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
           <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
           <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic</span></div>
+          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
+          <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
           <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
           <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
           <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
@@ -893,6 +920,18 @@ const AsherinEyeView = () => {
       }, false);
     }
 
+    // screen-space glyph spin: every silhouette is drawn nose-up, so the
+    // billboard is rotated by the dead-reckoned track. cesium measures
+    // rotation counter-clockwise, compass heading clockwise — hence the sign.
+    function flightRotationProperty(eid) {
+      const C = window.Cesium;
+      return new C.CallbackProperty(() => {
+        const s = samples[eid];
+        if (!s) return 0;
+        return -C.Math.toRadians(reckon(s, Date.now()).heading || 0);
+      }, false);
+    }
+
     function upsertFlights(id, rows) {
       const C = window.Cesium;
       const src = dsFor(id);
@@ -905,7 +944,9 @@ const AsherinEyeView = () => {
         if (alt > 20000) alt = alt * 0.3048;
         const eid = `${id}:${row.id || i}`;
         seen.add(eid);
-        const klass = hangarClass(row);
+        const kind = glyphClass(row);
+        const klass = hangarClass(kind);
+        const isTracked = tracked?.id === eid;
         samples[eid] = {
           lat: Number(row.lat),
           lon: Number(row.lon),
@@ -914,6 +955,7 @@ const AsherinEyeView = () => {
           heading: Number(row.heading || 0),
           t: now,
           label: row.label || id,
+          kind,
           klass,
         };
         const hist = pathHist[eid] || (pathHist[eid] = []);
@@ -922,6 +964,7 @@ const AsherinEyeView = () => {
           hist.push({ lat: Number(row.lat), lon: Number(row.lon), alt, t: now });
           if (hist.length > 240) hist.splice(0, hist.length - 240);
         }
+        const px = glyphSize(kind, isTracked);
         let ent = src.entities.getById(eid);
         if (!ent) {
           ent = src.entities.add({
@@ -930,11 +973,17 @@ const AsherinEyeView = () => {
             position: flightPositionProperty(eid),
             orientation: flightOrientationProperty(eid),
             billboard: {
-              image: planePng(),
-              width: 18,
-              height: 18,
-              alignedAxis: C.Cartesian3.UNIT_Z,
+              image: aircraftIcon(kind, isTracked ? TRACKED_ICON_PX : undefined),
+              width: px,
+              height: px,
+              // no alignedAxis: the glyph is spun in screen space by rotation,
+              // so an axis lock would fight the track angle.
+              rotation: flightRotationProperty(eid),
               color: C.Color.fromCssColorString(color),
+              // from orbit a busy corridor collapses into one yellow smear, so
+              // the silhouette shrinks with camera range instead of stacking.
+              scaleByDistance: new C.NearFarScalar(3.0e5, 1.0, 1.4e7, 0.34),
+              translucencyByDistance: new C.NearFarScalar(3.0e5, 1.0, 1.4e7, 0.62),
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             model: {
@@ -948,16 +997,25 @@ const AsherinEyeView = () => {
               show: false,
             },
             viewFrom: new C.Cartesian3(-140, -50, 32),
-            asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass },
+            asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind },
           });
         } else {
           ent.name = row.label || id;
-          ent.asherin = { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass };
+          ent.asherin = { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind };
           if (ent.model) ent.model.scale = hangarScale(klass);
+          if (ent.billboard) {
+            ent.billboard.image = aircraftIcon(kind, isTracked ? TRACKED_ICON_PX : undefined);
+            ent.billboard.width = px;
+            ent.billboard.height = px;
+          }
         }
       });
       src.entities.values.slice().forEach((e) => {
-        if (!seen.has(e.id) && tracked?.id !== e.id) src.entities.remove(e);
+        if (!seen.has(e.id) && tracked?.id !== e.id) {
+          src.entities.remove(e);
+          dropTrail(e.id);
+          delete pathHist[e.id];
+        }
       });
     }
 
@@ -1242,7 +1300,10 @@ const AsherinEyeView = () => {
         return;
       }
       const m = ent.asherin || {};
-      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
+      // airframe is a read of the icao type code / emitter category, so it is
+      // shown as a silhouette guess rather than a confirmed tail record.
+      const frame = m.airframe ? ` · ${String(m.airframe)} silhouette` : "";
+      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
       card.style.display = "block";
       const box = root.querySelector(".eye-root") || root;
       const cw = box.clientWidth || 1;
@@ -1825,24 +1886,99 @@ const AsherinEyeView = () => {
       );
     }
 
-    function planePng() {
-      const c = document.createElement("canvas");
-      c.width = 32;
-      c.height = 32;
-      const g = c.getContext("2d");
-      g.fillStyle = "#fbbf24";
-      g.beginPath();
-      g.moveTo(16, 2);
-      g.lineTo(22, 14);
-      g.lineTo(30, 16);
-      g.lineTo(22, 18);
-      g.lineTo(16, 30);
-      g.lineTo(10, 18);
-      g.lineTo(2, 16);
-      g.lineTo(10, 14);
-      g.closePath();
-      g.fill();
-      return c.toDataURL();
+    // ── track history ───────────────────────────────────────────────────────
+    // history is what this session actually observed (plus the ads-b hex
+    // backfill on the tracked contact) — never a synthesised great circle.
+    function trailPositions(eid) {
+      const C = window.Cesium;
+      const hist = pathHist[eid] || [];
+      const pts = hist.map((p) => C.Cartesian3.fromDegrees(p.lon, p.lat, p.alt || 0));
+      const s = samples[eid];
+      if (s) {
+        const r = reckon(s, Date.now());
+        pts.push(C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt || 0));
+      }
+      return pts;
+    }
+
+    function ensureTrail(eid, cssColor) {
+      if (fleetTrails[eid]) return fleetTrails[eid];
+      const C = window.Cesium;
+      const base = C.Color.fromCssColorString(cssColor || "#fbbf24");
+      const ent = viewer.entities.add({
+        id: `eye-trail:${eid}`,
+        polyline: {
+          positions: new C.CallbackProperty(() => trailPositions(eid), false),
+          width: 1.6,
+          // occluded segments dim instead of vanishing under the terrain mesh.
+          material: base.withAlpha(0.5),
+          depthFailMaterial: base.withAlpha(0.22),
+          arcType: C.ArcType.GEODESIC,
+        },
+      });
+      fleetTrails[eid] = ent;
+      return ent;
+    }
+
+    function dropTrail(eid) {
+      const ent = fleetTrails[eid];
+      if (!ent) return;
+      try {
+        viewer.entities.remove(ent);
+      } catch {}
+      delete fleetTrails[eid];
+    }
+
+    function clearFleetTrails() {
+      Object.keys(fleetTrails).forEach(dropTrail);
+    }
+
+    function syncTrails() {
+      if (!viewer) return;
+      if (!trailsOn) {
+        if (Object.keys(fleetTrails).length) clearFleetTrails();
+        return;
+      }
+      const cam = viewer.camera.positionWC;
+      const near = [];
+      ["flights", "military"].forEach((id) => {
+        const src = ds[id];
+        if (!src || !layerOn[id]) return;
+        src.entities.values.forEach((e) => {
+          const hist = pathHist[e.id];
+          if (!hist || hist.length < 2) return;
+          const p = e.position?.getValue(viewer.clock.currentTime);
+          if (!p) return;
+          const km = kmBetween(window.Cesium, cam, p);
+          if (km <= FLEET_TRAIL_KM) near.push({ id: e.id, km, color: LAYER_COLOR[id] });
+        });
+      });
+      near.sort((a, b) => a.km - b.km);
+      const keep = new Set(near.slice(0, FLEET_TRAIL_MAX).map((n) => n.id));
+      near.slice(0, FLEET_TRAIL_MAX).forEach((n) => ensureTrail(n.id, n.color));
+      Object.keys(fleetTrails).forEach((eid) => {
+        if (!keep.has(eid)) dropTrail(eid);
+      });
+    }
+
+    function setTrails(on) {
+      trailsOn = !!on;
+      const b = root.querySelector('[data-trails="1"]');
+      if (b) b.classList.toggle("on", trailsOn);
+      if (!trailsOn) clearFleetTrails();
+      syncTrails();
+      setNote(
+        trailsOn
+          ? `track history on · nearest ${FLEET_TRAIL_MAX} contacts within ${FLEET_TRAIL_KM} km · fixes this session`
+          : "track history off",
+      );
+      void emitPull({
+        organ: "eye",
+        capability: "trails",
+        fromSurface: "asherin-eye",
+        status: "ok",
+        quote: trailsOn ? "track history on" : "track history off",
+      });
     }
 
     function trackEntity(ent) {
@@ -2288,6 +2424,18 @@ const AsherinEyeView = () => {
         };
         layerHost.appendChild(b);
       });
+      {
+        // track history is a rendering choice over the flight layers, not a
+        // feed of its own — so it sits with the layers but carries no data id.
+        const t = document.createElement("button");
+        t.type = "button";
+        t.className = "tog";
+        t.dataset.trails = "1";
+        t.textContent = "track history";
+        t.title = "draws the path each aircraft has flown while you watched · nearest contacts only";
+        t.onclick = () => setTrails(!trailsOn);
+        layerHost.appendChild(t);
+      }
       const globeHost = $("#globe-btns");
       GLOBES.forEach((g) => {
         const b = document.createElement("button");
@@ -2470,6 +2618,7 @@ const AsherinEyeView = () => {
           pinHoverCard();
         }, 250),
       );
+      pollers.push(setInterval(syncTrails, 1500));
       pollers.push(
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
