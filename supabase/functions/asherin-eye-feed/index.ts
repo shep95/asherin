@@ -98,7 +98,9 @@ async function flights(params: Record<string, unknown>) {
   const lat = num(params.lat);
   const lon = num(params.lon);
   try {
-    const d = (await getJson("https://opensky-network.org/api/states/all", 11_000)) as {
+    // extended=1 adds the aircraft category at states index 17 — the only
+    // airframe hint opensky gives, and what drives the silhouette on the globe.
+    const d = (await getJson("https://opensky-network.org/api/states/all?extended=1", 11_000)) as {
       states?: Array<Array<unknown>>;
       time?: number;
     };
@@ -116,6 +118,8 @@ async function flights(params: Record<string, unknown>) {
           speed: num(s[9]) ?? 0,
           heading: num(s[10]) ?? 0,
           origin: text(s[2], 40),
+          type: "",
+          category: num(s[17]),
           ground: s[8] === true,
         };
       })
