@@ -1539,7 +1539,49 @@ async function buildings(params: Record<string, unknown>) {
       clearTimeout(timer);
     }
   }
-  if (!d) throw new Error(`no overpass mirror answered · ${errs.join(" · ")}`);
+  // Overpass is a volunteer service and it says no often — 429 from the shared
+  // egress ip, 500 from a half-broken mirror. The core openstreetmap api is the
+  // same data from the authoritative host: heavier on the wire (it hands back
+  // every node in the box, not just the ones we asked for), but it answers.
+  // So the fallback is not a degraded mode, it is the same footprints resolved
+  // the slow way, and it only runs when every mirror has already refused.
+  if (!d) {
+    try {
+      const res = await fetch(
+        `https://api.openstreetmap.org/api/0.6/map.json?bbox=${west.toFixed(4)},${south.toFixed(4)},${east.toFixed(4)},${north.toFixed(4)}`,
+        {
+          headers: { accept: "application/json", "user-agent": "asherin.eye/1.0 (+https://asherin.com)" },
+          signal: AbortSignal.timeout(28_000),
+        },
+      );
+      if (!res.ok) throw new Error(`osm core ${res.status}`);
+      const raw = (await res.json()) as { elements?: Array<Record<string, unknown>> };
+      // the core api returns ways as node-id references, so the ring has to be
+      // stitched from the node table before anything can be extruded.
+      const nodes = new Map<number, { lat: number; lon: number }>();
+      for (const el of raw.elements ?? []) {
+        if (el.type === "node") {
+          const nla = num(el.lat);
+          const nlo = num(el.lon);
+          if (nla !== null && nlo !== null) nodes.set(Number(el.id), { lat: nla, lon: nlo });
+        }
+      }
+      const stitched = (raw.elements ?? [])
+        .filter((el) => el.type === "way" && (el.tags as Record<string, unknown> | undefined)?.building)
+        .slice(0, 900)
+        .map((el) => {
+          const geometry = ((el.nodes as number[]) ?? [])
+            .map((nid) => nodes.get(Number(nid)))
+            .filter(Boolean) as Array<{ lat: number; lon: number }>;
+          return { ...el, geometry };
+        });
+      d = { elements: stitched as Array<Record<string, unknown>> };
+      errs.push("fell back to the openstreetmap core api");
+    } catch (e) {
+      errs.push(`openstreetmap core api ${(e as Error).message}`);
+    }
+  }
+  if (!d) throw new Error(`no building source answered · ${errs.join(" · ")}`);
 
   let measured = 0;
   const rows = (d.elements ?? [])
@@ -1597,10 +1639,11 @@ async function buildings(params: Record<string, unknown>) {
 
   return {
     rows,
-    source: "openstreetmap · overpass",
-    note: `${rows.length} footprints · ${measured} carry a surveyed height or storey count, the rest are drawn at a flat 8 m and marked as a guess · a footprint is a map, not a floor plan`,
+    source: "openstreetmap",
+    note: `${rows.length} footprints · ${measured} carry a surveyed height or storey count, the rest are drawn at a flat 8 m and marked as a guess · a footprint is a map, not a floor plan${errs.length ? ` · ${errs.join(" · ")}` : ""}`,
   };
 }
+
 
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
