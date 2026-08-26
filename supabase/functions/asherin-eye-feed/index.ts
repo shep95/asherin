@@ -1091,10 +1091,19 @@ async function incidents(params: Record<string, unknown>) {
     // articles, placed on the publishing country's centroid. a country is not a
     // street and the note says so on every single pin.
     const c = await centroids();
-    const d = (await gdeltJson(
-      `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&format=json&maxrecords=200&sort=datedesc&timespan=${encodeURIComponent(span)}`,
-      18_000,
-    )) as { articles?: Array<Record<string, unknown>> };
+    let d: { articles?: Array<Record<string, unknown>> } = {};
+    try {
+      d = (await gdeltJson(
+        `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&format=json&maxrecords=200&sort=datedesc&timespan=${encodeURIComponent(span)}`,
+        18_000,
+      )) as { articles?: Array<Record<string, unknown>> };
+    } catch {
+      // both gdelt doors shut. say that plainly rather than leaking an abort
+      // string, and never dress an outage up as a quiet world.
+      throw new Error(
+        "gdelt is not answering right now, so worldwide reporting is unavailable this tick. the other layers are unaffected, and an empty incident layer here means the publisher is down, not that nothing happened.",
+      );
+    }
     source = "gdelt 2.0 doc · country-level placement";
     const seen = new Map<string, number>();
     let unplaced = 0;
