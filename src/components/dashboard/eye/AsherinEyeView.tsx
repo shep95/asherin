@@ -2359,29 +2359,25 @@ const AsherinEyeView = () => {
       };
       $("#btn-voice").onclick = startVoice;
 
-      $("#chat-toggle").onclick = () => {
-        const box = $("#eye-chat");
-        const body = $("#chat-body");
-        const shut = body.hidden;
-        body.hidden = !shut;
-        box.classList.toggle("shut", !shut);
-        if (shut) setSheetOpen(false);
-        paintChat();
-      };
       $("#cmd-place").onclick = () => setCmdMode("place");
       $("#cmd-property").onclick = () => setCmdMode("property");
-      $("#chat-go").onclick = () => {
-        const v = $("#chat-in").value;
-        $("#chat-in").value = "";
+      const send = () => {
+        const el = $("#chat-in");
+        const v = el.value;
+        el.value = "";
         handleChat(v);
       };
+      $("#chat-go").onclick = send;
       $("#chat-in").onkeydown = (e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
-          handleChat($("#chat-in").value);
-          $("#chat-in").value = "";
+          send();
         }
       };
+      chatLog.push({
+        role: "eye",
+        text: "asherin.eye is listening. name a place, ask about what is overhead, or say \u201croute to <place>\u201d. the rail below opens layers, camera and contacts.",
+      });
       paintChat();
 
       const grid = $("#mission-grid");
