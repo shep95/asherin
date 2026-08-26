@@ -795,6 +795,9 @@ const AsherinEyeView = () => {
             <button type="button" class="nav" id="btn-nadir">nadir</button>
             <button type="button" class="nav" id="btn-tour">tour</button>
             <button type="button" class="nav" id="btn-detect">detect</button>
+            <button type="button" class="nav" id="btn-draw">draw</button>
+            <button type="button" class="nav" id="btn-clear-board">clear board</button>
+            <button type="button" class="nav" id="btn-record">record</button>
             <button type="button" class="nav" id="btn-voice">voice</button>
             <button type="button" class="nav" id="btn-share">share</button>
             <button type="button" class="nav" id="btn-exif">pin photo</button>
