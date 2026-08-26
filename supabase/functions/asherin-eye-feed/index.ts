@@ -1493,7 +1493,7 @@ async function buildings(params: Record<string, unknown>) {
   const lo = wrapLon(lon);
   // ~1.1 km per 0.01°, so 0.02 is a walkable district — the scale where
   // extruded footprints actually mean something on screen.
-  const span = Math.min(0.03, Math.max(0.004, num(params.span) ?? 0.014));
+  const span = Math.min(0.02, Math.max(0.003, num(params.span) ?? 0.008));
   const south = clampLat(la - span);
   const north = clampLat(la + span);
   const west = wrapLon(lo - span);
