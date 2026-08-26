@@ -17,7 +17,7 @@ const TRACKED_MODEL_ENTER_M = 150000;
 const TRACKED_MODEL_EXIT_M = 172500;
 const HUB = "http://127.0.0.1:8768/log";
 
-const STYLES = ["normal", "crt", "nvg", "flir", "anime", "noir", "snow"];
+const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
 const GLOBES = ["osm", "dark", "sat"];
 
 const LAYER_ROWS = [
@@ -139,166 +139,221 @@ const TOUR_SHOTS = [
 ];
 
 const EYE_HUD_CSS = `
-  /* eye-fit-any-screen — size from the pane, never vw/window */
+  /* eye-fit-any-screen — size from the pane, never vw/window.
+     the globe canvas is transparent: the operator's own dashboard surface is
+     the sky, so no cesium starfield is painted over their wallpaper. */
   .eye-root {
     position:absolute; inset:0; width:100%; height:100%; min-width:0; min-height:0;
-    overflow:hidden; background:#000; color-scheme:dark;
+    overflow:hidden; background:transparent; color-scheme:dark;
     container-type:size; container-name:eye;
-    --bg: hsl(var(--background));
     --ink: hsl(var(--foreground));
     --mute: hsl(var(--muted-foreground));
-    --line: hsl(var(--border));
+    --line: hsl(var(--foreground) / .10);
+    --line-soft: hsl(var(--foreground) / .06);
+    --pane: hsl(var(--background) / .72);
+    --pane-deep: hsl(var(--background) / .86);
     --accent: hsl(var(--accent));
     --accent-ink: hsl(var(--accent-foreground));
-    --r: clamp(0.7rem, 1.6cqi, 1rem);
+    --r: clamp(0.9rem, 1.8cqi, 1.25rem);
     --pad: clamp(6px, 1.4cqi, 16px);
-    --dock-h: clamp(52px, 11cqh, 92px);
+    --dock-h: clamp(168px, 30cqh, 268px);
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     --fs: clamp(11px, 0.9cqi + 0.35cqh, 14px);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
     margin: 0; color: var(--ink);
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-    font-weight: 300; letter-spacing: -.01em; font-size: var(--fs);
+    font-weight: 200; letter-spacing: -.01em; font-size: var(--fs);
   }
   .eye-root, .eye-root * { box-sizing: border-box; }
   .eye-root * { scrollbar-width: thin; overscroll-behavior: contain; }
-  #eye-stage { position:absolute; inset:0; background:#000; width:100%; height:100%; min-width:0; min-height:0; }
+  #eye-stage { position:absolute; inset:0; background:transparent; width:100%; height:100%; min-width:0; min-height:0; }
   .eye-root .cesium-widget, .eye-root .cesium-viewer, .eye-root .cesium-widget canvas, .eye-root .cesium-viewer canvas {
     width:100% !important; height:100% !important; max-width:100%; max-height:100%;
+    background:transparent !important;
   }
-  .eye-root .cesium-viewer-bottom, .eye-root .cesium-viewer-toolbar, .eye-root .cesium-viewer-animationContainer, .eye-root .cesium-viewer-timelineContainer { display:none !important; }
-  #eye-credits {
-    position:absolute; left:calc(var(--pad) + var(--safe-l));
-    bottom:calc(var(--dock-h) + var(--safe-b) + 6px); z-index:6;
-    max-width:min(420px, calc(100cqi - 2 * var(--pad)));
-    font:300 clamp(8px, 0.85cqi, 10px)/1.4 inherit; color:var(--mute); pointer-events:auto;
-  }
-  #eye-credits a { color: var(--accent); }
+  .eye-root .cesium-viewer-bottom, .eye-root .cesium-viewer-toolbar, .eye-root .cesium-viewer-animationContainer,
+  .eye-root .cesium-viewer-timelineContainer, .eye-root .cesium-credit-textContainer,
+  .eye-root .cesium-credit-logoContainer, .eye-root .cesium-widget-credits { display:none !important; }
+  /* no floating watermark over the globe — attribution lives in the layers sheet */
+
   .glass {
-    background: hsl(var(--card) / .62);
-    backdrop-filter: blur(24px) saturate(1.2);
-    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: var(--pane);
+    backdrop-filter: blur(28px) saturate(1.05);
+    -webkit-backdrop-filter: blur(28px) saturate(1.05);
     border: 1px solid var(--line);
     border-radius: var(--r);
-    box-shadow: 0 18px 50px -24px rgba(0,0,0,.9);
+    box-shadow: 0 24px 70px -34px rgba(0,0,0,.95), inset 0 1px 0 hsl(var(--foreground) / .04);
   }
+  .lbl {
+    font: 400 clamp(9px, .92cqi, 10px)/1 inherit; letter-spacing:.22em;
+    text-transform:uppercase; color: hsl(var(--foreground) / .38);
+  }
+
   .misb {
     position:absolute; top:calc(var(--pad) + var(--safe-t)); left:calc(var(--pad) + var(--safe-l)); z-index:8;
-    padding: clamp(8px, 1.3cqi, 14px) clamp(10px, 1.6cqi, 16px); pointer-events:auto; min-width:0;
-    max-width: min(280px, calc(100cqi - 2 * var(--pad) - 72px));
-    font: 300 clamp(11px, 1.15cqi, 13px)/1.45 inherit; color: var(--ink);
+    padding: clamp(9px, 1.3cqi, 14px) clamp(11px, 1.6cqi, 17px); pointer-events:auto; min-width:0;
+    max-width: min(300px, calc(100cqi - 2 * var(--pad) - 72px));
+    font: 200 clamp(11px, 1.15cqi, 13px)/1.5 inherit; color: var(--ink);
   }
-  .misb b { color: var(--accent); font-weight: 500; }
+  .misb b {
+    color: var(--ink); font-weight:300; letter-spacing:.16em; text-transform:uppercase;
+    font-size: clamp(10px, 1cqi, 11px);
+  }
   .misb .m { color: var(--mute); font-size: clamp(10px, 1.05cqi, 12px); overflow-wrap:anywhere; }
+  .misb #hud-line { font-variant-numeric: tabular-nums; color: hsl(var(--foreground) / .62); }
+
   .sheet {
     position:absolute; right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t));
-    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
-    width: min(300px, 32cqi, calc(100% - 2 * var(--pad)));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
+    width: min(304px, 32cqi, calc(100% - 2 * var(--pad)));
     max-height: calc(100cqh - var(--dock-h) - var(--pad) * 2 - var(--safe-t) - var(--safe-b));
-    padding: clamp(10px, 1.5cqi, 16px); overflow:auto; pointer-events:auto;
+    padding: clamp(11px, 1.5cqi, 17px); overflow:auto; pointer-events:auto;
     -webkit-overflow-scrolling: touch;
   }
   .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .sheet-close { display:none; border:0; background:transparent; color:var(--mute); cursor:pointer; font:400 12px/1 inherit; padding:6px 8px; }
-  .sheet h2 { margin:0 0 10px; font:400 clamp(12px, 1.2cqi, 13px)/1.2 inherit; letter-spacing:.02em; text-transform:lowercase; color:var(--mute); }
-  .sheet .row { display:flex; justify-content:space-between; gap:10px; font-size:clamp(11px, 1.1cqi, 12px); padding:6px 0; border-bottom:1px solid var(--line); min-width:0; }
+  .sheet-close { display:none; border:0; background:transparent; color:var(--mute); cursor:pointer; font:300 12px/1 inherit; padding:6px 8px; }
+  .sheet h2 {
+    margin:0 0 10px; font:400 clamp(9px, .95cqi, 10px)/1 inherit; letter-spacing:.22em;
+    text-transform:uppercase; color: hsl(var(--foreground) / .38);
+  }
+  .sheet .row {
+    display:flex; justify-content:space-between; gap:10px; font-size:clamp(10px, 1.05cqi, 11px);
+    padding:7px 0; border-bottom:1px solid var(--line-soft); min-width:0; color: hsl(var(--foreground) / .55);
+  }
+  .sheet .row:last-child { border-bottom:0; }
   .sheet .row span { min-width:0; overflow-wrap:anywhere; }
-  .sheet .k { color: var(--mute); flex:0 0 auto; }
+  .sheet .k { color: hsl(var(--foreground) / .34); flex:0 0 auto; }
   #layer-btns, #globe-btns, #style-btns { display:flex; flex-wrap:wrap; gap:6px; }
   .grid, #mission-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap:8px; }
   #mission-grid button {
     border-radius:12px; padding:clamp(8px, 1.2cqi, 12px); border:1px solid var(--line);
-    background:hsl(var(--card)/.5); color:var(--ink); cursor:pointer; text-transform:lowercase;
-    min-height:40px; width:100%; font:400 clamp(11px, 1.1cqi, 13px)/1 inherit;
+    background: hsl(var(--foreground) / .03); color:var(--ink); cursor:pointer; text-transform:lowercase;
+    min-height:40px; width:100%; font:300 clamp(11px, 1.1cqi, 13px)/1 inherit;
+    transition: background .3s var(--ease), border-color .3s var(--ease);
   }
+  #mission-grid button:hover { background: hsl(var(--foreground) / .07); border-color: hsl(var(--foreground) / .18); }
+
   .tog {
     border:1px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer;
-    color:var(--mute); font:400 clamp(11px, 1.1cqi, 12px)/1 inherit; background: hsl(var(--card) / .55);
+    color: hsl(var(--foreground) / .58); font:300 clamp(10px, 1.05cqi, 11.5px)/1 inherit;
+    background: transparent; transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
   }
-  .tog.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
-  .talk {
-    position:absolute; left:50%; bottom:calc(var(--pad) + var(--safe-b)); transform:translateX(-50%);
-    z-index:9; display:flex; gap:6px; align-items:center; flex-wrap:wrap;
-    padding: clamp(6px, 1cqi, 10px) clamp(8px, 1.2cqi, 12px);
-    width: min(980px, calc(100cqi - var(--pad) * 2 - var(--safe-l) - var(--safe-r)));
-    max-height: min(28cqh, 148px); justify-content:center;
-    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+  .tog:hover { color: var(--ink); border-color: hsl(var(--foreground) / .22); }
+  .tog.on {
+    background: hsl(var(--accent) / .14); color: var(--accent);
+    border-color: hsl(var(--accent) / .42);
   }
-  .talk button {
-    border:1px solid transparent; border-radius:999px;
-    padding: clamp(8px, 1.1cqi, 10px) clamp(10px, 1.5cqi, 16px); cursor:pointer;
-    background: hsl(var(--accent)); color: var(--accent-ink);
-    font:500 clamp(11px, 1.15cqi, 13px)/1 inherit; flex:0 0 auto; white-space:nowrap; min-height:40px;
-  }
-  .talk button.ghost { background: hsl(var(--muted) / .6); color: var(--ink); border-color: var(--line); }
-  .talk button.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
-  #btn-layers { display:none; }
+  .tog.keyed { opacity:.42; }
+
   .contacts {
     position:absolute; left:calc(var(--pad) + var(--safe-l));
     top:calc(var(--pad) + var(--safe-t) + clamp(64px, 14cqh, 116px));
-    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
-    width:min(260px, 28cqi); padding:clamp(10px, 1.4cqi, 14px); overflow:auto; pointer-events:auto;
+    bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
+    width:min(264px, 28cqi); padding:clamp(11px, 1.4cqi, 15px); overflow:auto; pointer-events:auto;
     -webkit-overflow-scrolling: touch;
   }
   .contacts[hidden] { display:none; }
-  .contacts .hit { display:block; width:100%; text-align:left; border:0; background:transparent; color:var(--ink); font:300 clamp(11px, 1.1cqi, 12px)/1.4 inherit; padding:8px 0; border-bottom:1px solid var(--line); cursor:pointer; }
-  .contacts .hit span { color:var(--mute); display:block; font-size:clamp(10px, 1cqi, 11px); }
+  .contacts .hit {
+    display:block; width:100%; text-align:left; border:0; background:transparent; color: hsl(var(--foreground) / .78);
+    font:300 clamp(11px, 1.1cqi, 12px)/1.45 inherit; padding:8px 0; border-bottom:1px solid var(--line-soft); cursor:pointer;
+    transition: color .25s var(--ease);
+  }
+  .contacts .hit:hover { color: var(--accent); }
+  .contacts .hit span { color: hsl(var(--foreground) / .34); display:block; font-size:clamp(10px, 1cqi, 11px); }
+
   #note {
-    position:absolute; left:calc(var(--pad) + var(--safe-l));
-    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:8;
-    padding:clamp(8px, 1.2cqi, 12px) clamp(10px, 1.4cqi, 14px);
-    font-size:clamp(11px, 1.1cqi, 12px); color:var(--mute);
+    position:absolute; right:calc(var(--pad) + var(--safe-r));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
+    padding:clamp(7px, 1.1cqi, 10px) clamp(10px, 1.4cqi, 14px);
+    font:300 clamp(10px, 1.05cqi, 11.5px)/1.4 inherit; color:var(--mute);
     max-width:min(320px, calc(100cqi - 2 * var(--pad))); pointer-events:none;
   }
+  #note:empty { display:none; }
   #detect { position:absolute; inset:0; z-index:5; pointer-events:none; width:100%; height:100%; }
-  .eye-chat {
-    position:absolute; left:calc(var(--pad) + var(--safe-l));
-    bottom:calc(var(--dock-h) + var(--safe-b) + 8px); z-index:11;
-    width:min(268px, 32cqi); pointer-events:auto;
-    display:flex; flex-direction:column; max-height:min(42cqh, 340px); min-width:0;
+
+  /* ── the dock: asherin.eye speaks through a conversation, and the
+     navigation is the quiet rail underneath it ─────────────────────── */
+  .eye-dock {
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:calc(var(--pad) + var(--safe-b)); z-index:11;
+    width:min(720px, calc(100cqi - 2 * var(--pad) - var(--safe-l) - var(--safe-r)));
+    display:flex; flex-direction:column; min-width:0; pointer-events:auto;
+    overflow:hidden;
   }
-  .eye-chat.shut { width:auto; max-height:none; }
-  .eye-chat .chat-head {
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding:clamp(8px, 1.1cqi, 10px) clamp(10px, 1.3cqi, 12px); cursor:pointer;
-    font:400 clamp(11px, 1.1cqi, 12px)/1 inherit; color:var(--mute);
+  .eye-dock .chat-log {
+    overflow-y:auto; padding:12px 14px 4px; flex:1; min-height:0;
+    max-height:min(30cqh, 210px); -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; gap:9px;
   }
-  .eye-chat .chat-log { overflow:auto; padding:0 12px 8px; font:300 clamp(11px, 1.1cqi, 12px)/1.45 inherit; flex:1; min-height:0; -webkit-overflow-scrolling:touch; }
-  .eye-chat .chat-log .me { color: var(--ink); margin:6px 0; overflow-wrap:anywhere; }
-  .eye-chat .chat-log .bot { color: var(--mute); margin:6px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
-  .eye-chat .cmd-row { display:flex; gap:6px; padding:0 10px 6px; flex-wrap:wrap; }
-  .eye-chat .cmd {
-    border:1px solid var(--line); border-radius:999px; padding:6px 10px; cursor:pointer;
-    background: transparent; color: var(--mute); font:400 clamp(10px, 1cqi, 11px)/1 inherit; min-height:36px;
+  .eye-dock .chat-log:empty { display:none; }
+  .eye-dock .chat-log .me, .eye-dock .chat-log .bot {
+    font:300 clamp(11px, 1.1cqi, 12.5px)/1.55 inherit; overflow-wrap:anywhere; max-width:88%;
+    animation: eye-say .35s var(--ease) both;
   }
-  .eye-chat .cmd.on { background: hsl(var(--accent)); color: var(--accent-ink); border-color:transparent; }
-  .eye-chat .chat-row { display:flex; gap:6px; padding:8px 10px 10px; min-width:0; }
-  .eye-chat input {
+  .eye-dock .chat-log .me {
+    align-self:flex-end; color: var(--accent-ink); background: hsl(var(--accent) / .92);
+    border-radius:14px 14px 4px 14px; padding:7px 12px;
+  }
+  .eye-dock .chat-log .bot {
+    align-self:flex-start; color: hsl(var(--foreground) / .82); white-space:pre-wrap;
+    border-left:1px solid hsl(var(--accent) / .35); padding:1px 0 1px 11px;
+  }
+  @keyframes eye-say { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .eye-dock .chat-row { display:flex; gap:8px; align-items:center; padding:10px 12px; min-width:0; }
+  .eye-dock input {
     flex:1; min-width:0; border-radius:999px; border:1px solid var(--line);
-    background: hsl(var(--background) / .5); color: var(--ink);
-    padding:8px 12px; font:300 clamp(11px, 1.1cqi, 12px) inherit;
+    background: hsl(var(--foreground) / .04); color: var(--ink);
+    padding:10px 15px; font:300 clamp(11px, 1.1cqi, 12.5px) inherit; outline:none;
+    transition: border-color .3s var(--ease), background .3s var(--ease);
   }
-  .eye-chat button.go {
-    border:0; border-radius:999px; padding:8px 12px; cursor:pointer;
-    background: hsl(var(--accent)); color: var(--accent-ink); font:500 12px inherit; flex:0 0 auto; min-height:40px;
+  .eye-dock input::placeholder { color: hsl(var(--foreground) / .3); }
+  .eye-dock input:focus { border-color: hsl(var(--accent) / .5); background: hsl(var(--foreground) / .06); }
+  .eye-dock button.go {
+    border:1px solid hsl(var(--accent) / .5); border-radius:999px; padding:9px 17px; cursor:pointer;
+    background: hsl(var(--accent) / .16); color: var(--accent);
+    font:400 clamp(10px, 1cqi, 11px)/1 inherit; letter-spacing:.18em; text-transform:uppercase;
+    flex:0 0 auto; min-height:38px; transition: background .3s var(--ease);
   }
+  .eye-dock button.go:hover { background: hsl(var(--accent) / .28); }
+
+  .dock-nav {
+    /* wraps so no control is ever hidden off the right edge of the dock */
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:0 12px 11px;
+    scrollbar-width:none;
+  }
+  .dock-nav::-webkit-scrollbar { display:none; }
+  .dock-sep { flex:0 0 auto; width:1px; height:16px; background: var(--line); margin:0 3px; }
+  .dock-nav .cmd, .dock-nav .nav {
+    flex:0 0 auto; white-space:nowrap; cursor:pointer;
+    border:1px solid var(--line-soft); border-radius:999px; padding:7px 12px; min-height:34px;
+    background: transparent; color: hsl(var(--foreground) / .48);
+    font:300 clamp(10px, 1cqi, 11px)/1 inherit; letter-spacing:.04em;
+    transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
+  }
+  .dock-nav .cmd:hover, .dock-nav .nav:hover { color: var(--ink); border-color: hsl(var(--foreground) / .2); }
+  .dock-nav .cmd.on, .dock-nav .nav.on {
+    background: hsl(var(--accent) / .14); color: var(--accent); border-color: hsl(var(--accent) / .42);
+  }
+
   #hover-card {
     position:absolute; z-index:12; display:none; pointer-events:none;
     min-width:min(160px, calc(100cqi - 16px)); max-width:min(240px, calc(100cqi - 16px));
     max-height:min(40cqh, 220px); overflow:auto;
-    padding:clamp(8px, 1.2cqi, 12px); font:300 clamp(10px, 1.05cqi, 11px)/1.4 inherit; color:var(--ink);
+    padding:clamp(9px, 1.2cqi, 12px); font:300 clamp(10px, 1.05cqi, 11px)/1.45 inherit; color:var(--ink);
     transform:translate(-50%, calc(-100% - 14px));
   }
   #hover-card.below { transform:translate(-50%, 14px); }
-  #hover-card b { display:block; color:var(--accent); font-weight:500; margin-bottom:4px; overflow-wrap:anywhere; }
+  #hover-card b { display:block; color:var(--accent); font-weight:400; margin-bottom:4px; overflow-wrap:anywhere; }
   #hover-card .m { color:var(--mute); overflow-wrap:anywhere; }
+
   #glitch {
     position:absolute; inset:0; z-index:7; pointer-events:none; display:none;
     background:
-      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(158,201,255,.08) 3px),
-      rgba(7,8,10,.18);
+      repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(var(--accent) / .06) 3px),
+      hsl(var(--background) / .12);
     mix-blend-mode: screen;
     animation: eye-glitch .28s linear;
   }
@@ -308,45 +363,39 @@ const EYE_HUD_CSS = `
     60% { opacity:.7; transform:translateX(5px); }
     100% { opacity:0; transform:translateX(0); }
   }
+
   @container eye (max-width: 900px) {
-    #btn-layers { display:inline-flex; }
     .sheet-close { display:inline-flex; }
-    .misb { max-width: calc(100cqi - 2 * var(--pad)); right:calc(var(--pad) + var(--safe-r)); }
+    .misb { max-width: calc(100cqi - 2 * var(--pad) - 72px); }
     .sheet {
       display:none; left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      top:auto; width:auto; height:min(42cqh, 52%); bottom:calc(var(--dock-h) + var(--safe-b) + 6px);
+      top:auto; width:auto; height:min(40cqh, 48%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
     }
     .sheet.open { display:flex; flex-direction:column; }
     .contacts {
       left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      width:auto; top:calc(var(--pad) + var(--safe-t) + 56px); bottom:auto; height:min(32cqh, 240px);
+      width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(30cqh, 230px);
     }
-    .talk { flex-wrap:nowrap; max-height:none; justify-content:flex-start; }
-    .eye-chat { left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r)); width:auto; }
+    .eye-dock { width:calc(100cqi - 2 * var(--pad) - var(--safe-l) - var(--safe-r)); }
     #note { max-width:calc(100cqi - 2 * var(--pad)); }
-    #eye-credits { max-width:calc(100cqi - 2 * var(--pad)); }
   }
-  @container eye (max-width: 420px) {
-    .misb { padding:8px 10px; }
-    .talk button { padding:8px 10px; min-height:44px; }
-    .eye-chat .cmd { min-height:44px; }
-  }
-  @container eye (max-height: 520px) {
-    .misb { padding:6px 10px; }
-    .talk { padding:4px 8px; }
-    .talk button { min-height:36px; padding:6px 10px; }
+  @container eye (max-height: 560px) {
+    .misb { padding:7px 11px; }
+    .eye-root { --dock-h: clamp(128px, 34cqh, 190px); }
+    .eye-dock .chat-log { max-height:min(24cqh, 120px); }
     .sheet { max-height:calc(100cqh - var(--dock-h) - 12px); }
-    .eye-chat { max-height:min(50cqh, 200px); }
-    .contacts { top:calc(var(--pad) + 44px); }
+    .contacts { top:calc(var(--pad) + 46px); }
   }
   @container eye (min-width: 1600px) {
     .sheet { width: min(340px, 22cqi); }
     .contacts { width: min(280px, 18cqi); }
-    .talk { width: min(1180px, calc(100cqi - 2 * var(--pad))); }
-    .eye-chat { width: min(300px, 20cqi); }
+    .eye-dock { width: min(820px, calc(100cqi - 2 * var(--pad))); }
   }
   @media (pointer: coarse) {
-    .talk button, .tog, .cmd, .go, .hit, .sheet-close, #mission-grid button { min-height:44px; }
+    .tog, .dock-nav .cmd, .dock-nav .nav, .go, .hit, .sheet-close, #mission-grid button { min-height:44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eye-root *, .eye-root *::before, .eye-root *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
   }
 `;
 
@@ -410,22 +459,44 @@ function loadCss(href) {
   document.head.appendChild(l);
 }
 
-async function authedJson(path, body) {
+async function authedJson(path, body, ms = 20000) {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess?.session?.access_token;
   if (!token) throw new Error("sign in to load live layers");
   const base = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const r = await fetch(`${base}/functions/v1/${path}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: key,
-    },
-    body: JSON.stringify(body),
-  });
-  return r.json();
+  // a hung feed must say it timed out, never spin a layer forever.
+  const ctl = new AbortController();
+  const bell = setTimeout(() => ctl.abort(), ms);
+  let r;
+  try {
+    r = await fetch(`${base}/functions/v1/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+        apikey: key,
+      },
+      body: JSON.stringify(body),
+      signal: ctl.signal,
+    });
+  } catch (e) {
+    if (e && e.name === "AbortError") throw new Error("that feed took too long. try again in a moment.");
+    throw new Error("network refused that feed");
+  } finally {
+    clearTimeout(bell);
+  }
+  const text = await r.text();
+  let j = null;
+  try {
+    j = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(`feed replied with ${r.status} and no json`);
+  }
+  if (!r.ok && !(j && Array.isArray(j.rows))) {
+    throw new Error(String(j?.error || `feed failed with ${r.status}`).toLowerCase());
+  }
+  return j || {};
 }
 
 async function eyeFeed(feed, params = {}) {
@@ -485,32 +556,26 @@ function shaderFor(style, Cesium) {
   const stages = {
     crt: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates; uniform float time;
       void main() { vec2 uv=v_textureCoordinates; uv.x += sin(uv.y*80.0+time*6.0)*0.0015;
-        vec3 c=texture(colorTexture,uv).rgb; float scan=0.88+0.12*sin(uv.y*720.0);
-        c*=vec3(0.75,1.05,0.72)*scan; out_FragColor=vec4(c,1.0); }`,
+        vec4 s=texture(colorTexture,uv); vec3 c=s.rgb; float scan=0.88+0.12*sin(uv.y*720.0);
+        c*=vec3(0.75,1.05,0.72)*scan; out_FragColor=vec4(c,s.a); }`,
     nvg: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float l=dot(c,vec3(0.3,0.59,0.11)); vec2 uv=v_textureCoordinates-0.5;
         float vig=smoothstep(0.85,0.15,length(uv));
-        out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,1.0); }`,
+        out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,s.a); }`,
     flir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float t=dot(c,vec3(0.3,0.59,0.11)); vec3 iron=mix(vec3(0.0,0.0,0.12),vec3(1.0,0.85,0.2),t);
-        iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,1.0); }`,
-    anime: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
-        c=mix(vec3(dot(c,vec3(0.3,0.59,0.11))),c,1.35); c=floor(c*5.0)/5.0;
-        out_FragColor=vec4(c,1.0); }`,
+        iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,s.a); }`,
+    saturation: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
+        c=mix(vec3(dot(c,vec3(0.3,0.59,0.11))),c,1.6); c=clamp(c,0.0,1.0);
+        out_FragColor=vec4(c,s.a); }`,
     noir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float l=dot(c,vec3(0.3,0.59,0.11)); l=smoothstep(0.12,0.88,l);
         vec2 uv=v_textureCoordinates-0.5; float vig=smoothstep(0.9,0.2,length(uv));
-        out_FragColor=vec4(vec3(l)*vig,1.0); }`,
-    snow: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates; uniform float time;
-      float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5); }
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
-        c=mix(c,vec3(0.92),0.28); vec2 uv=v_textureCoordinates*vec2(80.0,50.0);
-        float flake=step(0.97,hash(floor(uv+vec2(time*8.0,time*-14.0))));
-        out_FragColor=vec4(mix(c,vec3(1.0),flake),1.0); }`,
+        out_FragColor=vec4(vec3(l)*vig,s.a); }`,
   };
   const src = stages[style];
   if (!src) return null;
@@ -554,6 +619,7 @@ const AsherinEyeView = () => {
     let lastAltBand = "";
     let hoverEnt = null;
     let paneWatch = null;
+    let keyHandler = null;
     const fitGlobe = () => {
       try {
         viewer?.resize();
@@ -584,7 +650,6 @@ const AsherinEyeView = () => {
       <div class="eye-root">
         <div id="eye-stage"></div>
         <canvas id="detect"></canvas>
-        <div id="eye-credits"></div>
         <div class="glass misb">
           <div><b>asherin.eye</b></div>
           <div class="m" id="hud-line">loading globe…</div>
@@ -619,42 +684,41 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
           <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
           <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+          <h2 style="margin-top:14px">attribution</h2>
+          <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
+          <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
-          <h2 style="margin:0 0 8px;font:400 13px/1.2 inherit;color:var(--mute)">contacts · 250 km</h2>
+          <h2>contacts · 250 km</h2>
           <div id="contact-list"></div>
-        </div>
-        <div class="glass eye-chat shut" id="eye-chat">
-          <div class="chat-head" id="chat-toggle"><span>asherin.engine chat</span><span id="chat-key">…</span></div>
-          <div id="chat-body" hidden>
-            <div class="cmd-row">
-              <button type="button" class="cmd on" id="cmd-place">go to a place</button>
-              <button type="button" class="cmd" id="cmd-property">property</button>
-            </div>
-            <div class="chat-log" id="chat-log"></div>
-            <div class="chat-row">
-              <input id="chat-in" type="text" placeholder="go to a place" autocomplete="off" />
-              <button type="button" class="go" id="chat-go">go</button>
-            </div>
-          </div>
         </div>
         <div class="glass hover-card" id="hover-card"></div>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
-        <div class="glass talk">
-          <button type="button" class="ghost" id="btn-layers">layers</button>
-          <button type="button" id="btn-cockpit">cockpit</button>
-          <button type="button" class="ghost" id="btn-chase">chase</button>
-          <button type="button" class="ghost" id="btn-orbit">orbit</button>
-          <button type="button" class="ghost" id="btn-nadir">nadir</button>
-          <button type="button" class="ghost" id="btn-tour">tour</button>
-          <button type="button" class="ghost" id="btn-contacts">contacts</button>
-          <button type="button" class="ghost" id="btn-detect">detect</button>
-          <button type="button" class="ghost" id="btn-voice">voice</button>
-          <button type="button" class="ghost" id="btn-share">share</button>
-          <button type="button" class="ghost" id="btn-exif">pin photo</button>
-          <button type="button" class="ghost" id="btn-reset">reset globe</button>
+        <div class="glass eye-dock" id="eye-dock">
+          <div class="chat-log" id="chat-log"></div>
+          <div class="chat-row">
+            <input id="chat-in" type="text" placeholder="ask asherin.eye — or name a place" autocomplete="off" />
+            <button type="button" class="go" id="chat-go">ask</button>
+          </div>
+          <div class="dock-nav" id="dock-nav">
+            <button type="button" class="cmd on" id="cmd-place">place</button>
+            <button type="button" class="cmd" id="cmd-property">property</button>
+            <span class="dock-sep"></span>
+            <button type="button" class="nav" id="btn-layers">layers</button>
+            <button type="button" class="nav" id="btn-contacts">contacts</button>
+            <button type="button" class="nav" id="btn-cockpit">cockpit</button>
+            <button type="button" class="nav" id="btn-chase">chase</button>
+            <button type="button" class="nav" id="btn-orbit">orbit</button>
+            <button type="button" class="nav" id="btn-nadir">nadir</button>
+            <button type="button" class="nav" id="btn-tour">tour</button>
+            <button type="button" class="nav" id="btn-detect">detect</button>
+            <button type="button" class="nav" id="btn-voice">voice</button>
+            <button type="button" class="nav" id="btn-share">share</button>
+            <button type="button" class="nav" id="btn-exif">pin photo</button>
+            <button type="button" class="nav" id="btn-reset">reset globe</button>
+          </div>
         </div>
       </div>`;
     root.innerHTML = html;
@@ -710,7 +774,7 @@ const AsherinEyeView = () => {
             }),
           );
           viewer.scene.globe.baseColor = C.Color.BLACK;
-          viewer.scene.skyAtmosphere.show = true;
+          viewer.scene.skyAtmosphere.show = false;
         } else if (kind === "dark") {
           viewer.imageryLayers.addImageryProvider(
             new C.UrlTemplateImageryProvider({
@@ -728,7 +792,7 @@ const AsherinEyeView = () => {
             }),
           );
           viewer.scene.globe.baseColor = C.Color.BLUE;
-          viewer.scene.skyAtmosphere.show = true;
+          viewer.scene.skyAtmosphere.show = false;
         }
       } catch (e) {
         setNote("globe look failed · " + (e.message || e));
@@ -960,10 +1024,14 @@ const AsherinEyeView = () => {
           ent.label = {
             text: String(row.label || id).slice(0, 42),
             font: "11px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -18),
-            showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.5),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           };
         }
@@ -994,10 +1062,14 @@ const AsherinEyeView = () => {
           label: {
             text: String(row.label || "place").slice(0, 48),
             font: "12px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
-            showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
           },
           asherin: {
             kind: row.kind || "engine",
@@ -1053,13 +1125,9 @@ const AsherinEyeView = () => {
       if (placeBtn) placeBtn.classList.toggle("on", cmdMode === "place");
       if (propBtn) propBtn.classList.toggle("on", cmdMode === "property");
       const input = $("#chat-in");
-      if (input) input.placeholder = cmdMode === "property" ? "property address" : "go to a place";
-      const box = $("#eye-chat");
-      const body = $("#chat-body");
-      if (body && body.hidden) {
-        body.hidden = false;
-        box.classList.remove("shut");
-      }
+      if (input)
+        input.placeholder =
+          cmdMode === "property" ? "property address" : "ask asherin.eye — or name a place";
     }
 
     async function loadWebIndexAt(lat, lon, around) {
@@ -1352,10 +1420,14 @@ const AsherinEyeView = () => {
           label: {
             text: String(row.label || "sat").slice(0, 28),
             font: "11px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
-            showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           asherin: {
@@ -1957,22 +2029,22 @@ const AsherinEyeView = () => {
       ctx.fillText(tracked.label || "contact", win.x - s, win.y - s - 6);
     }
 
+    function escText(s) {
+      return String(s).replace(
+        /[&<>"']/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+      );
+    }
+
     function paintChat() {
       const log = $("#chat-log");
       if (!log) return;
+      // escaped: model replies and place names are untrusted strings, never markup.
       log.innerHTML = chatLog
-        .slice(-16)
-        .map(
-          (m) =>
-            `<div class="${m.role === "user" ? "me" : "bot"}">${m.role === "user" ? "you" : "eye"}: ${String(m.text).slice(0, 1400)}</div>`,
-        )
+        .slice(-24)
+        .map((m) => `<div class="${m.role === "user" ? "me" : "bot"}">${escText(String(m.text).slice(0, 1400))}</div>`)
         .join("");
       log.scrollTop = log.scrollHeight;
-      $("#chat-key").textContent = keyBound()
-        ? "key bound"
-        : cmdMode === "property"
-          ? "property command"
-          : "places still pin";
     }
 
     async function handleChat(raw) {
@@ -2113,9 +2185,13 @@ const AsherinEyeView = () => {
       if (keys.ion) CesiumG.Ion.defaultAccessToken = keys.ion;
       if (keys.google) CesiumG.GoogleMaps.defaultApiKey = keys.google;
 
+      // cesium insists on a credit container; give it an off-screen sink so no
+      // watermark is stamped over the globe. attribution is listed in the
+      // layers sheet instead, which keeps the imagery licences honoured.
       const credit = document.createElement("div");
       credit.id = "cesium-credit-host";
-      $("#eye-credits").appendChild(credit);
+      credit.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);opacity:0;";
+      root.appendChild(credit);
 
       viewer = new CesiumG.Viewer("eye-stage", {
         timeline: false,
@@ -2131,7 +2207,16 @@ const AsherinEyeView = () => {
         infoBox: false,
         creditContainer: credit,
         terrain: undefined,
+        // alpha buffer so the operator's own dashboard surface is the sky
+        contextOptions: { webgl: { alpha: true, preserveDrawingBuffer: false } },
       });
+      // no painted starfield: the room behind shows through instead.
+      viewer.scene.backgroundColor = CesiumG.Color.TRANSPARENT;
+      viewer.scene.skyBox.show = false;
+      viewer.scene.sun.show = false;
+      viewer.scene.moon.show = false;
+      if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = false;
+      viewer.scene.globe.showGroundAtmosphere = true;
       viewer.scene.globe.depthTestAgainstTerrain = true;
       if (keys.ion) {
         try {
@@ -2188,11 +2273,19 @@ const AsherinEyeView = () => {
       LAYER_ROWS.forEach((row) => {
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "tog";
+        // a layer that needs a bound key is dimmed and says so, rather than
+        // pretending to arm and then throwing at the operator.
+        b.className = "tog" + (row.keyed ? " keyed" : "");
         b.dataset.layer = row.id;
-        b.textContent = row.label;
+        b.textContent = row.keyed ? `${row.label} · needs key` : row.label;
         b.title = row.honesty;
-        b.onclick = () => enableLayer(row.id, !layerOn[row.id]);
+        b.onclick = () => {
+          if (row.keyed) {
+            setNote(row.honesty);
+            return;
+          }
+          void enableLayer(row.id, !layerOn[row.id]);
+        };
         layerHost.appendChild(b);
       });
       const globeHost = $("#globe-btns");
@@ -2242,12 +2335,21 @@ const AsherinEyeView = () => {
         }
       }, CesiumG.ScreenSpaceEventType.MOUSE_MOVE);
 
-      document.addEventListener("keydown", onKey);
       function onKey(e) {
+        // the dock is a text surface now — never steal digits from the composer.
+        const t = e.target;
+        const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+        if (typing) {
+          if (e.key === "Escape") t.blur();
+          return;
+        }
         if (e.key === "Escape") releaseTrack();
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
         const n = Number(e.key);
-        if (n >= 1 && n <= 7) applyStyle(STYLES[n - 1]);
+        if (n >= 1 && n <= STYLES.length) applyStyle(STYLES[n - 1]);
       }
+      keyHandler = onKey;
+      document.addEventListener("keydown", keyHandler);
 
       $("#btn-cockpit").onclick = () => {
         if (!tracked) {
@@ -2309,29 +2411,25 @@ const AsherinEyeView = () => {
       };
       $("#btn-voice").onclick = startVoice;
 
-      $("#chat-toggle").onclick = () => {
-        const box = $("#eye-chat");
-        const body = $("#chat-body");
-        const shut = body.hidden;
-        body.hidden = !shut;
-        box.classList.toggle("shut", !shut);
-        if (shut) setSheetOpen(false);
-        paintChat();
-      };
       $("#cmd-place").onclick = () => setCmdMode("place");
       $("#cmd-property").onclick = () => setCmdMode("property");
-      $("#chat-go").onclick = () => {
-        const v = $("#chat-in").value;
-        $("#chat-in").value = "";
+      const send = () => {
+        const el = $("#chat-in");
+        const v = el.value;
+        el.value = "";
         handleChat(v);
       };
+      $("#chat-go").onclick = send;
       $("#chat-in").onkeydown = (e) => {
-        if (e.key === "Enter") {
+        if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
-          handleChat($("#chat-in").value);
-          $("#chat-in").value = "";
+          send();
         }
       };
+      chatLog.push({
+        role: "eye",
+        text: "asherin.eye is listening. name a place, ask about what is overhead, or say \u201croute to <place>\u201d. the rail below opens layers, camera and contacts.",
+      });
       paintChat();
 
       const grid = $("#mission-grid");
@@ -2433,6 +2531,9 @@ const AsherinEyeView = () => {
     return () => {
       dead = true;
       pollers.forEach(clearInterval);
+      try {
+        if (keyHandler) document.removeEventListener("keydown", keyHandler);
+      } catch {}
       try {
         paneWatch?.disconnect();
       } catch {}
