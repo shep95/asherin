@@ -149,6 +149,8 @@ async function flights(params: Record<string, unknown>) {
           speed: num(a.gs) ?? 0,
           heading: num(a.track) ?? 0,
           origin: text(a.t, 24),
+          type: text(a.t, 8),
+          category: text(a.category, 4),
           ground: a.alt_baro === "ground",
         };
       })
@@ -178,6 +180,8 @@ async function military() {
         speed: num(a.gs) ?? 0,
         heading: num(a.track) ?? 0,
         origin: text(a.t, 24),
+        type: text(a.t, 8),
+        category: text(a.category, 4),
         ground: a.alt_baro === "ground",
       };
     })
