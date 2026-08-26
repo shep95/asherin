@@ -17,7 +17,7 @@ const TRACKED_MODEL_ENTER_M = 150000;
 const TRACKED_MODEL_EXIT_M = 172500;
 const HUB = "http://127.0.0.1:8768/log";
 
-const STYLES = ["normal", "crt", "nvg", "flir", "anime", "noir", "snow"];
+const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
 const GLOBES = ["osm", "dark", "sat"];
 
 const LAYER_ROWS = [
