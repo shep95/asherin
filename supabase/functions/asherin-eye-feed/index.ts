@@ -995,15 +995,78 @@ function scatter(base: { lat: number; lon: number }, seed: string, i: number) {
 
 const INCIDENT_QUERY = "(protest OR unrest OR shooting OR explosion OR arrest OR evacuation OR strike)";
 
+/** gdelt writes country names its own way; centroids come from a different list. */
+const COUNTRY_ALIAS: Record<string, string> = {
+  "united states": "US",
+  usa: "US",
+  "united kingdom": "GB",
+  uk: "GB",
+  russia: "RU",
+  "south korea": "KR",
+  "north korea": "KP",
+  iran: "IR",
+  syria: "SY",
+  vietnam: "VN",
+  bolivia: "BO",
+  venezuela: "VE",
+  tanzania: "TZ",
+  "czech republic": "CZ",
+  czechia: "CZ",
+  moldova: "MD",
+  laos: "LA",
+  brunei: "BN",
+  "cape verde": "CV",
+  "ivory coast": "CI",
+  macedonia: "MK",
+  "north macedonia": "MK",
+  swaziland: "SZ",
+  eswatini: "SZ",
+  burma: "MM",
+  myanmar: "MM",
+  "congo republic": "CG",
+  "democratic republic of the congo": "CD",
+  taiwan: "TW",
+  palestine: "PS",
+  "vatican city": "VA",
+};
+
+function placeCountry(c: Record<string, { lat: number; lon: number; name: string }>, raw: string) {
+  const key = raw.trim().toLowerCase();
+  if (!key) return null;
+  const alias = COUNTRY_ALIAS[key];
+  if (alias && c[alias]) return c[alias];
+  const exact = Object.values(c).find((v) => v.name.toLowerCase() === key);
+  if (exact) return exact;
+  // last resort: a containment match, but only when it is unambiguous.
+  const loose = Object.values(c).filter((v) => v.name.toLowerCase().includes(key) || key.includes(v.name.toLowerCase()));
+  return loose.length === 1 ? loose[0] : null;
+}
+
+/** gdelt throttles per address. one short wait, then give up and say so. */
+async function gdeltJson(url: string, timeoutMs: number): Promise<unknown> {
+  try {
+    return await getJson(url, timeoutMs);
+  } catch (e) {
+    if (!String((e as Error).message).includes("429")) throw e;
+    await new Promise((r) => setTimeout(r, 2200));
+    return await getJson(url, timeoutMs);
+  }
+}
+
 async function incidents(params: Record<string, unknown>) {
   const q = text(params.q, 120) || INCIDENT_QUERY;
   const span = text(params.span, 8) || "1d";
   const rows: Array<Record<string, unknown>> = [];
   let source = "gdelt 2.0 geo";
+  const notes: string[] = [];
+
+  // the geo endpoint gives real street-level clusters but answers slowly and
+  // often not at all from a datacenter. it gets a short budget, never the
+  // whole request, so a slow geo can never starve the article path.
   try {
-    const d = (await getJson(
+    const d = (await gdeltJson(
       `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodeURIComponent(q)}&format=geojson&mode=pointdata&timespan=${encodeURIComponent(span)}`,
-      14_000,
+      9_000,
     )) as { features?: Array<{ geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }> };
     for (const f of d.features ?? []) {
       const lo = num(f.geometry?.coordinates?.[0]);
@@ -1012,7 +1075,7 @@ async function incidents(params: Record<string, unknown>) {
       const p = f.properties ?? {};
       rows.push({
         id: `gdelt:${text(p.name, 60)}:${rows.length}`,
-        label: text(p.name, 60) || "incident cluster",
+        label: (text(p.name, 60) || "incident cluster").toLowerCase(),
         lat: clampLat(la),
         lon: wrapLon(lo),
         count: num(p.count) ?? 1,
@@ -1021,34 +1084,50 @@ async function incidents(params: Record<string, unknown>) {
       if (rows.length >= 400) break;
     }
   } catch {
-    // geo endpoint refuses more often than the article endpoint. fall back to
-    // articles placed on the publishing country's centroid, and say that the
-    // point is a country, not a street.
+    notes.push("gdelt's geocoded endpoint did not answer, so these are placed on the publishing country");
+  }
+
+  if (!rows.length) {
+    // articles, placed on the publishing country's centroid. a country is not a
+    // street and the note says so on every single pin.
     const c = await centroids();
-    const d = (await getJson(
-      `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&format=json&maxrecords=120&sort=datedesc`,
-      14_000,
+    const d = (await gdeltJson(
+      `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&format=json&maxrecords=200&sort=datedesc&timespan=${encodeURIComponent(span)}`,
+      18_000,
     )) as { articles?: Array<Record<string, unknown>> };
-    source = "gdelt 2.0 doc (country-level fallback)";
+    source = "gdelt 2.0 doc · country-level placement";
+    const seen = new Map<string, number>();
+    let unplaced = 0;
     (d.articles ?? []).forEach((a, i) => {
-      const iso = text(a.sourcecountry, 40);
-      const hit = Object.values(c).find((v) => v.name.toLowerCase() === iso.toLowerCase());
-      if (!hit) return;
-      const at = scatter(hit, text(a.url, 120) || String(i), i);
+      const hit = placeCountry(c, text(a.sourcecountry, 60));
+      if (!hit) {
+        unplaced++;
+        return;
+      }
+      const n = seen.get(hit.name) ?? 0;
+      seen.set(hit.name, n + 1);
+      const at = scatter(hit, text(a.url, 120) || String(i), n);
       rows.push({
         id: `gdelt-doc:${i}`,
-        label: text(a.title, 90) || "public report",
+        label: (text(a.title, 90) || "public report").toLowerCase(),
         lat: at.lat,
         lon: at.lon,
         url: text(a.url, 300),
-        note: `${hit.name} · country-level placement, not a street · ${text(a.domain, 60)}`,
+        note: `${hit.name} · country-level placement, not a street · ${text(a.domain, 60)} · ${text(a.seendate, 20)}`,
       });
     });
+    if (unplaced) notes.push(`${unplaced} reports had no resolvable country and were dropped rather than guessed`);
   }
+
+  if (!rows.length) throw new Error("gdelt is rate-limiting or silent right now. nothing was placed.");
   return {
     rows,
     source,
-    note: "worldwide public reporting clusters. every country gdelt indexes, in every language it indexes. a cluster is attention, not truth",
+    note: [
+      "worldwide public reporting. every country gdelt indexes, in every language it indexes",
+      "a cluster is attention, not truth",
+      ...notes,
+    ].join(" · "),
   };
 }
 
@@ -1113,56 +1192,126 @@ async function disasters() {
   };
 }
 
-const NOTICE_KINDS = ["red", "yellow", "un"] as const;
+// interpol's own notices web service sits behind an edge that refuses
+// datacenter addresses outright (403 from every cloud region we can reach), so
+// reading it directly from here is not "sometimes flaky" — it is closed. the
+// same notices are republished, keyless, as an opensanctions dataset. we read
+// that, and we say which door we came through.
+const NOTICES_CSV = "https://data.opensanctions.org/datasets/latest/interpol_red_notices/targets.simple.csv";
+
+/** minimal rfc4180 row reader — quoted fields, doubled quotes, embedded commas */
+function parseCsv(body: string, maxRows: number): string[][] {
+  const out: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (body[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else quoted = false;
+      } else field += ch;
+      continue;
+    }
+    if (ch === '"') quoted = true;
+    else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n") {
+      row.push(field);
+      field = "";
+      out.push(row);
+      row = [];
+      if (out.length >= maxRows) return out;
+    } else if (ch !== "\r") field += ch;
+  }
+  if (field.length || row.length) {
+    row.push(field);
+    out.push(row);
+  }
+  return out;
+}
+
+async function getText(url: string, timeoutMs: number): Promise<string> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctl.signal,
+      headers: { accept: "text/csv,*/*", "user-agent": "asherin.eye/1.0 (+https://asherin.com)" },
+    });
+    if (!res.ok) throw new Error(`upstream ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const NOTICE_CAP = 900;
 
 async function notices(params: Record<string, unknown>) {
   const c = await centroids();
-  const wanted = NOTICE_KINDS.includes(text(params.kind, 8) as (typeof NOTICE_KINDS)[number])
-    ? [text(params.kind, 8) as (typeof NOTICE_KINDS)[number]]
-    : NOTICE_KINDS;
+  const filter = text(params.q, 40).toLowerCase();
+  const body = await getText(NOTICES_CSV, 22_000);
+  const table = parseCsv(body, 8000);
+  const head = (table[0] ?? []).map((h) => h.trim().toLowerCase());
+  const col = (name: string) => head.indexOf(name);
+  const iName = col("name");
+  const iCountries = col("countries");
+  const iBorn = col("birth_date");
+  const iCharge = col("sanctions");
+  const iId = col("id");
+  if (iName < 0 || iCountries < 0) throw new Error("notices publisher changed its columns");
+
   const rows: Array<Record<string, unknown>> = [];
-  const notes: string[] = [];
+  const perCountry = new Map<string, number>();
+  const missing = new Set<string>();
 
-  const jobs = await Promise.allSettled(
-    wanted.map((kind) =>
-      getJson(`https://ws-public.interpol.int/notices/v1/${kind}?resultPerPage=160`, 13_000).then((d) => ({ kind, d })),
-    ),
-  );
-
-  for (const job of jobs) {
-    if (job.status !== "fulfilled") {
-      notes.push("interpol refused one notice class this tick");
+  for (let r = 1; r < table.length && rows.length < NOTICE_CAP; r++) {
+    const rec = table[r];
+    if (!rec || rec.length < head.length - 2) continue;
+    const iso = (rec[iCountries] ?? "").split(";")[0].trim().toUpperCase();
+    if (!iso) continue;
+    const base = c[iso];
+    if (!base) {
+      missing.add(iso);
       continue;
     }
-    const { kind, d } = job.value as { kind: string; d: { _embedded?: { notices?: Array<Record<string, unknown>> } } };
-    const list = d?._embedded?.notices ?? [];
-    list.forEach((n, i) => {
-      const isoList = Array.isArray(n.nationalities) ? (n.nationalities as unknown[]) : [];
-      const iso = text(isoList[0], 2).toUpperCase();
-      const base = c[iso];
-      if (!base) return;
-      const id = text(n.entity_id, 40) || `${kind}-${i}`;
-      const at = scatter(base, id, i);
-      const name = [text(n.forename, 60), text(n.name, 60)].filter(Boolean).join(" ").trim();
-      rows.push({
-        id: `interpol:${id}`,
-        label: (name || "wanted person").toLowerCase(),
-        lat: at.lat,
-        lon: at.lon,
-        kind,
-        note: `interpol ${kind} notice · nationality ${base.name} · born ${text(n.date_of_birth, 12) || "unstated"} · placed on the country, never on an address`,
-      });
+    const name = (rec[iName] ?? "").trim();
+    if (filter && !name.toLowerCase().includes(filter) && !base.name.toLowerCase().includes(filter)) continue;
+    const seen = perCountry.get(iso) ?? 0;
+    // one country must not become a single opaque blob of 400 stacked pins
+    if (seen >= 40) continue;
+    perCountry.set(iso, seen + 1);
+    const id = (rec[iId] ?? `rn-${r}`).trim();
+    const at = scatter(base, id, seen);
+    const charge = (rec[iCharge] ?? "").replace(/\s+/g, " ").trim().slice(0, 140);
+    rows.push({
+      id: `interpol:${id}`,
+      label: name.toLowerCase() || "wanted person",
+      lat: at.lat,
+      lon: at.lon,
+      kind: "red",
+      note: `interpol red notice · ${base.name} · born ${(rec[iBorn] ?? "").trim() || "unstated"}${
+        charge ? ` · ${charge.toLowerCase()}` : ""
+      } · placed on the country of nationality, never on an address`,
     });
   }
 
-  if (!rows.length) throw new Error("interpol notices unreadable from this edge right now");
+  if (!rows.length) throw new Error("no readable notices in this publication");
   return {
     rows,
-    source: "interpol public notices web service",
+    source: "interpol red notices, republished by opensanctions",
     note: [
-      "red / yellow / un notices worldwide. a notice is a request between police forces, not a conviction",
-      ...notes,
-    ].join(" · "),
+      `${rows.length} of ${table.length - 1} published red notices, capped at 40 per country`,
+      "a notice is one police force asking others to locate someone. it is not a conviction, and the pin is a nationality, not a whereabouts",
+      missing.size ? `${missing.size} country codes had no centroid and were dropped rather than guessed` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
   };
 }
 
