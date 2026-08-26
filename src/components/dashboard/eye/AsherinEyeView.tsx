@@ -1952,9 +1952,10 @@ const AsherinEyeView = () => {
       if (!recordOn) return;
       const rows = Object.entries(samples)
         .filter(([k]) => k.startsWith("flights:") || k.startsWith("military:"))
-        .map(([, s]) => ({
-          id: s.icao || s.id,
-          label: s.callsign || null,
+        .map(([k, s]) => ({
+          // the entity key is `<layer>:<feed id>`; the feed id is the icao hex.
+          id: k.slice(k.indexOf(":") + 1),
+          label: s.label || null,
           lat: s.lat,
           lon: s.lon,
           alt: s.alt,
