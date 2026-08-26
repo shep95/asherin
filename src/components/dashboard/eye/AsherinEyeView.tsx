@@ -682,6 +682,7 @@ const AsherinEyeView = () => {
     let dead = false;
     let viewer;
     let pollers = [];
+    const cleanups = [];
     let stage;
     let tracked;
     let trail;
