@@ -178,7 +178,6 @@ const EYE_HUD_CSS = `
   .eye-root .cesium-viewer-timelineContainer, .eye-root .cesium-credit-textContainer,
   .eye-root .cesium-credit-logoContainer, .eye-root .cesium-widget-credits { display:none !important; }
   /* no floating watermark over the globe — attribution lives in the layers sheet */
-  #eye-credits { display:none !important; }
 
   .glass {
     background: var(--pane);
@@ -628,7 +627,6 @@ const AsherinEyeView = () => {
       <div class="eye-root">
         <div id="eye-stage"></div>
         <canvas id="detect"></canvas>
-        <div id="eye-credits"></div>
         <div class="glass misb">
           <div><b>asherin.eye</b></div>
           <div class="m" id="hud-line">loading globe…</div>
@@ -753,7 +751,7 @@ const AsherinEyeView = () => {
             }),
           );
           viewer.scene.globe.baseColor = C.Color.BLACK;
-          viewer.scene.skyAtmosphere.show = true;
+          viewer.scene.skyAtmosphere.show = false;
         } else if (kind === "dark") {
           viewer.imageryLayers.addImageryProvider(
             new C.UrlTemplateImageryProvider({
@@ -771,7 +769,7 @@ const AsherinEyeView = () => {
             }),
           );
           viewer.scene.globe.baseColor = C.Color.BLUE;
-          viewer.scene.skyAtmosphere.show = true;
+          viewer.scene.skyAtmosphere.show = false;
         }
       } catch (e) {
         setNote("globe look failed · " + (e.message || e));
@@ -2298,7 +2296,7 @@ const AsherinEyeView = () => {
       function onKey(e) {
         if (e.key === "Escape") releaseTrack();
         const n = Number(e.key);
-        if (n >= 1 && n <= 7) applyStyle(STYLES[n - 1]);
+        if (n >= 1 && n <= STYLES.length) applyStyle(STYLES[n - 1]);
       }
 
       $("#btn-cockpit").onclick = () => {
