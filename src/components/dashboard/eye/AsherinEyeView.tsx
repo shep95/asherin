@@ -1996,22 +1996,22 @@ const AsherinEyeView = () => {
       ctx.fillText(tracked.label || "contact", win.x - s, win.y - s - 6);
     }
 
+    function escText(s) {
+      return String(s).replace(
+        /[&<>"']/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+      );
+    }
+
     function paintChat() {
       const log = $("#chat-log");
       if (!log) return;
+      // escaped: model replies and place names are untrusted strings, never markup.
       log.innerHTML = chatLog
-        .slice(-16)
-        .map(
-          (m) =>
-            `<div class="${m.role === "user" ? "me" : "bot"}">${m.role === "user" ? "you" : "eye"}: ${String(m.text).slice(0, 1400)}</div>`,
-        )
+        .slice(-24)
+        .map((m) => `<div class="${m.role === "user" ? "me" : "bot"}">${escText(String(m.text).slice(0, 1400))}</div>`)
         .join("");
       log.scrollTop = log.scrollHeight;
-      $("#chat-key").textContent = keyBound()
-        ? "key bound"
-        : cmdMode === "property"
-          ? "property command"
-          : "places still pin";
     }
 
     async function handleChat(raw) {
