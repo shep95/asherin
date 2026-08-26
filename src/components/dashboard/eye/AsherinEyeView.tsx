@@ -663,42 +663,41 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
           <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
           <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+          <h2 style="margin-top:14px">attribution</h2>
+          <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
+          <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
-          <h2 style="margin:0 0 8px;font:400 13px/1.2 inherit;color:var(--mute)">contacts · 250 km</h2>
+          <h2>contacts · 250 km</h2>
           <div id="contact-list"></div>
-        </div>
-        <div class="glass eye-chat shut" id="eye-chat">
-          <div class="chat-head" id="chat-toggle"><span>asherin.engine chat</span><span id="chat-key">…</span></div>
-          <div id="chat-body" hidden>
-            <div class="cmd-row">
-              <button type="button" class="cmd on" id="cmd-place">go to a place</button>
-              <button type="button" class="cmd" id="cmd-property">property</button>
-            </div>
-            <div class="chat-log" id="chat-log"></div>
-            <div class="chat-row">
-              <input id="chat-in" type="text" placeholder="go to a place" autocomplete="off" />
-              <button type="button" class="go" id="chat-go">go</button>
-            </div>
-          </div>
         </div>
         <div class="glass hover-card" id="hover-card"></div>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
-        <div class="glass talk">
-          <button type="button" class="ghost" id="btn-layers">layers</button>
-          <button type="button" id="btn-cockpit">cockpit</button>
-          <button type="button" class="ghost" id="btn-chase">chase</button>
-          <button type="button" class="ghost" id="btn-orbit">orbit</button>
-          <button type="button" class="ghost" id="btn-nadir">nadir</button>
-          <button type="button" class="ghost" id="btn-tour">tour</button>
-          <button type="button" class="ghost" id="btn-contacts">contacts</button>
-          <button type="button" class="ghost" id="btn-detect">detect</button>
-          <button type="button" class="ghost" id="btn-voice">voice</button>
-          <button type="button" class="ghost" id="btn-share">share</button>
-          <button type="button" class="ghost" id="btn-exif">pin photo</button>
-          <button type="button" class="ghost" id="btn-reset">reset globe</button>
+        <div class="glass eye-dock" id="eye-dock">
+          <div class="chat-log" id="chat-log"></div>
+          <div class="chat-row">
+            <input id="chat-in" type="text" placeholder="ask asherin.eye — or name a place" autocomplete="off" />
+            <button type="button" class="go" id="chat-go">ask</button>
+          </div>
+          <div class="dock-nav" id="dock-nav">
+            <button type="button" class="cmd on" id="cmd-place">place</button>
+            <button type="button" class="cmd" id="cmd-property">property</button>
+            <span class="dock-sep"></span>
+            <button type="button" class="nav" id="btn-layers">layers</button>
+            <button type="button" class="nav" id="btn-contacts">contacts</button>
+            <button type="button" class="nav" id="btn-cockpit">cockpit</button>
+            <button type="button" class="nav" id="btn-chase">chase</button>
+            <button type="button" class="nav" id="btn-orbit">orbit</button>
+            <button type="button" class="nav" id="btn-nadir">nadir</button>
+            <button type="button" class="nav" id="btn-tour">tour</button>
+            <button type="button" class="nav" id="btn-detect">detect</button>
+            <button type="button" class="nav" id="btn-voice">voice</button>
+            <button type="button" class="nav" id="btn-share">share</button>
+            <button type="button" class="nav" id="btn-exif">pin photo</button>
+            <button type="button" class="nav" id="btn-reset">reset globe</button>
+          </div>
         </div>
       </div>`;
     root.innerHTML = html;
