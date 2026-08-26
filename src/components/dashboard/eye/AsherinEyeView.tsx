@@ -698,7 +698,8 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
           <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
           <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic</span></div>
+          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
+          <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
           <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
           <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
           <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
