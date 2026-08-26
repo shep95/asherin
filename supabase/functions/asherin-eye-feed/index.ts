@@ -1512,7 +1512,7 @@ async function buildings(params: Record<string, unknown>) {
   const errs: string[] = [];
   for (const m of mirrors) {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 25_000);
+    const timer = setTimeout(() => ctl.abort(), 9_000);
     try {
       // overpass wants the query as a POST form field once it grows past a
       // trivial length; the GET form is what trips the 414/500 path on the
@@ -1607,8 +1607,17 @@ async function buildings(params: Record<string, unknown>) {
       }
       if (ring.length > 400) ring.length = 400;
 
-      const rawH = num(tags.height) ?? num(tags["building:height"]);
-      const levels = num(tags["building:levels"]);
+      // osm tags are strings ("330", "12 m", "4;5"), so they need their own
+      // parse — the strict numeric guard used for api payloads rejects them all
+      // and would silently flatten every city to the 8 m default.
+      const tagNum = (v: unknown): number | null => {
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        if (typeof v !== "string") return null;
+        const n = parseFloat(v.replace(",", ".").trim());
+        return Number.isFinite(n) ? n : null;
+      };
+      const rawH = tagNum(tags.height) ?? tagNum(tags["building:height"]);
+      const levels = tagNum(tags["building:levels"]);
       let height: number;
       let estimated: boolean;
       if (rawH !== null && rawH > 1 && rawH < 900) {
@@ -1624,7 +1633,7 @@ async function buildings(params: Record<string, unknown>) {
       }
       if (!estimated) measured++;
 
-      const min = num(tags.min_height) ?? 0;
+      const min = tagNum(tags.min_height) ?? 0;
       return {
         id: `osmb-${el.id ?? i}`,
         ring,
