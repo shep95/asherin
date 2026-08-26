@@ -278,3 +278,6 @@ verify_jwt = false
 
 [functions.fold-memory-checkout]
 verify_jwt = false
+
+[functions.asherin-eye-feed]
+verify_jwt = true

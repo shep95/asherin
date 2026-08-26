@@ -597,6 +597,7 @@ const AsherinEyeView = () => {
     let lastAltBand = "";
     let hoverEnt = null;
     let paneWatch = null;
+    let keyHandler = null;
     const fitGlobe = () => {
       try {
         viewer?.resize();
@@ -2300,7 +2301,6 @@ const AsherinEyeView = () => {
         }
       }, CesiumG.ScreenSpaceEventType.MOUSE_MOVE);
 
-      document.addEventListener("keydown", onKey);
       function onKey(e) {
         // the dock is a text surface now — never steal digits from the composer.
         const t = e.target;
@@ -2314,6 +2314,8 @@ const AsherinEyeView = () => {
         const n = Number(e.key);
         if (n >= 1 && n <= STYLES.length) applyStyle(STYLES[n - 1]);
       }
+      keyHandler = onKey;
+      document.addEventListener("keydown", keyHandler);
 
       $("#btn-cockpit").onclick = () => {
         if (!tracked) {
@@ -2495,6 +2497,9 @@ const AsherinEyeView = () => {
     return () => {
       dead = true;
       pollers.forEach(clearInterval);
+      try {
+        if (keyHandler) document.removeEventListener("keydown", keyHandler);
+      } catch {}
       try {
         paneWatch?.disconnect();
       } catch {}
