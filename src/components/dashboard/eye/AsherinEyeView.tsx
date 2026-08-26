@@ -2938,6 +2938,33 @@ const AsherinEyeView = () => {
         detectOn = !detectOn;
         $("#btn-detect").classList.toggle("on", detectOn);
       };
+      bindWhiteboard();
+      $("#btn-draw").onclick = () => {
+        drawOn = !drawOn;
+        $("#btn-draw").classList.toggle("on", drawOn);
+        viewer.canvas.style.cursor = drawOn ? "crosshair" : "";
+        setNote(
+          drawOn
+            ? "draw on the ground · the stroke fits to a circle, box, corridor or polygon and then reports what live contacts stand inside it"
+            : "",
+        );
+      };
+      $("#btn-clear-board").onclick = () => {
+        clearDs("board");
+        boardCount = 0;
+        setNote("board cleared");
+      };
+      $("#btn-record").onclick = () => {
+        recordOn = !recordOn;
+        $("#btn-record").classList.toggle("on", recordOn);
+        $("#btn-record").textContent = recordOn ? "recording · 0" : "record";
+        setNote(
+          recordOn
+            ? "recording the contacts already on screen · your raw fixes stay yours, the shared grid keeps counts only · the avoidance layer needs about a week of this"
+            : "recorder off",
+        );
+        if (recordOn) void recordTick();
+      };
       $("#btn-share").onclick = async () => {
         writeShare();
         try {
