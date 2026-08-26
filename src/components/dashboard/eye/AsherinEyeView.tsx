@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 import { aircraftIcon, TRACKED_ICON_PX } from "./aircraftIcons";
 import { classifyAircraft, CLASS_SCALE_2D } from "./aircraftClass";
+import { cellBounds, gridMaturity, scoreAvoidance } from "./gridMath";
+import { evaluate as evaluateShape, fitStroke, fmtArea, fmtM } from "./whiteboard";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
@@ -124,6 +126,20 @@ const LAYER_ROWS = [
     honesty: "osrm + open-meteo wind/precip as cost · sci-fi quantum routing rewritten · not a quantum computer",
     keyed: false,
   },
+  {
+    id: "buildings",
+    label: "city volumes",
+    honesty:
+      "openstreetmap footprints extruded · surveyed height where tagged, flat 8 m guess where not · a footprint is a map, not a floor plan",
+    keyed: false,
+  },
+  {
+    id: "avoid",
+    label: "avoidance grid",
+    honesty:
+      "our own recorded ads-b density folded into 0.25° cells · a hole is only called a void when the ring around it is busy · young grid says unobserved, not avoided",
+    keyed: false,
+  },
 ];
 
 const LAYER_COLOR = {
@@ -146,6 +162,8 @@ const LAYER_COLOR = {
   brittle: "#fb7185",
   future: "#fde68a",
   route: "#67e8f9",
+  buildings: "#cbd5e1",
+  avoid: "#f0abfc",
 };
 
 const MISSIONS = [
@@ -777,6 +795,9 @@ const AsherinEyeView = () => {
             <button type="button" class="nav" id="btn-nadir">nadir</button>
             <button type="button" class="nav" id="btn-tour">tour</button>
             <button type="button" class="nav" id="btn-detect">detect</button>
+            <button type="button" class="nav" id="btn-draw">draw</button>
+            <button type="button" class="nav" id="btn-clear-board">clear board</button>
+            <button type="button" class="nav" id="btn-record">record</button>
             <button type="button" class="nav" id="btn-voice">voice</button>
             <button type="button" class="nav" id="btn-share">share</button>
             <button type="button" class="nav" id="btn-exif">pin photo</button>
@@ -1825,6 +1846,273 @@ const AsherinEyeView = () => {
       paintChat();
     }
 
+    // ── city volumes ────────────────────────────────────────────────────────
+    // footprints are a district-scale thing. asking overpass for a continent
+    // would time out and would draw nothing legible anyway, so the layer says
+    // plainly when the camera is too high instead of returning an empty box.
+    let lastBuildingsKey = "";
+    async function loadBuildings(force) {
+      const C = window.Cesium;
+      const carto = C.Cartographic.fromCartesian(viewer.camera.positionWC);
+      const alt = carto.height;
+      const lat = C.Math.toDegrees(carto.latitude);
+      const lon = C.Math.toDegrees(carto.longitude);
+      if (alt > 26000) {
+        clearDs("buildings");
+        lastBuildingsKey = "";
+        setNote("city volumes want a district, not a continent · drop below ~26 km and they build themselves");
+        return;
+      }
+      const key = `${lat.toFixed(3)}:${lon.toFixed(3)}`;
+      if (!force && key === lastBuildingsKey) return;
+      lastBuildingsKey = key;
+      const span = alt > 12000 ? 0.014 : alt > 5000 ? 0.009 : 0.005;
+      const j = await eyeFeed("buildings", { lat, lon, span });
+      const src = dsFor("buildings");
+      src.entities.removeAll();
+      (j.rows || []).forEach((b) => {
+        if (!Array.isArray(b.ring) || b.ring.length < 8) return;
+        src.entities.add({
+          id: `buildings:${b.id}`,
+          name: b.label || "building",
+          polygon: {
+            hierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(b.ring)),
+            extrudedHeight: Number(b.height) || 8,
+            height: Number(b.base) || 0,
+            perPositionHeight: false,
+            material: b.estimated
+              ? C.Color.fromCssColorString("#94a3b8").withAlpha(0.32)
+              : C.Color.fromCssColorString("#cbd5e1").withAlpha(0.46),
+            outline: true,
+            outlineColor: C.Color.fromCssColorString("#e2e8f0").withAlpha(0.35),
+          },
+          description: `${b.label} · ${b.height} m ${b.estimated ? "(guessed, untagged)" : "(surveyed / storey count)"}`,
+        });
+      });
+      setNote(j.note || `${(j.rows || []).length} footprints`);
+      void emitPull({ organ: "eye", capability: "buildings", fromSurface: "asherin-eye", status: "ok" });
+    }
+
+    // ── avoidance grid ──────────────────────────────────────────────────────
+    // reads back the shared density tally and paints only the cells that carry
+    // a verdict. a young grid still draws, but it says out loud that a hole is
+    // far more likely to be a gap in watching than a gap in flying.
+    async function loadAvoidance() {
+      const C = window.Cesium;
+      const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      const box = rect
+        ? {
+            south: C.Math.toDegrees(rect.south),
+            north: C.Math.toDegrees(rect.north),
+            west: C.Math.toDegrees(rect.west),
+            east: C.Math.toDegrees(rect.east),
+          }
+        : { south: -90, north: 90, west: -180, east: 180 };
+      const j = await authedJson("asherin-eye-record", { op: "grid", ...box, days: 7 });
+      if (j.error) throw new Error(j.error);
+      const cells = j.cells || [];
+      if (!cells.length) {
+        clearDs("avoid");
+        setNote("no recorded grid here yet · turn the recorder on and the cells fill from what this tab actually watches");
+        return;
+      }
+      const scored = scoreAvoidance(cells);
+      const mat = gridMaturity(cells);
+      const src = dsFor("avoid");
+      src.entities.removeAll();
+      let voids = 0;
+      scored.forEach((c) => {
+        if (c.verdict === "normal") return;
+        if (c.verdict === "void") voids++;
+        const b = cellBounds(c.cy, c.cx);
+        const col =
+          c.verdict === "void" ? "#f0abfc" : c.verdict === "thin" ? "#c4b5fd" : "#475569";
+        src.entities.add({
+          id: `avoid:${c.cy}:${c.cx}`,
+          rectangle: {
+            coordinates: C.Rectangle.fromDegrees(b.west, b.south, b.east, b.north),
+            material: C.Color.fromCssColorString(col).withAlpha(c.verdict === "unobserved" ? 0.14 : 0.3),
+            outline: true,
+            outlineColor: C.Color.fromCssColorString(col).withAlpha(0.5),
+            height: 0,
+          },
+          description:
+            `${c.verdict} · ${c.samples} samples vs ring median ${c.ringMedian.toFixed(1)} · ` +
+            `${Math.round(c.deficit * 100)}% below the ring · ${c.hours}h recorded`,
+        });
+      });
+      setNote(`${voids} void cells · ${mat.note}`);
+      void emitPull({ organ: "eye", capability: "avoidance", fromSurface: "asherin-eye", status: "ok" });
+    }
+
+    // ── recorder ────────────────────────────────────────────────────────────
+    // the avoidance layer is worthless until something has been written down,
+    // so the tab offers to contribute the contacts it is already displaying.
+    // opt-in, throttled server-side, and the shared grid keeps counts only.
+    let recordOn = false;
+    let recordedTotal = 0;
+    async function recordTick() {
+      if (!recordOn) return;
+      const rows = Object.entries(samples)
+        .filter(([k]) => k.startsWith("flights:") || k.startsWith("military:"))
+        .map(([k, s]) => ({
+          // the entity key is `<layer>:<feed id>`; the feed id is the icao hex.
+          id: k.slice(k.indexOf(":") + 1),
+          label: s.label || null,
+          lat: s.lat,
+          lon: s.lon,
+          alt: s.alt,
+          speed: s.speed,
+          heading: s.heading,
+          kind: s.kind || null,
+        }))
+        .filter((r) => r.id && Number.isFinite(r.lat) && Number.isFinite(r.lon));
+      if (!rows.length) return;
+      try {
+        const j = await authedJson("asherin-eye-record", { op: "record", rows: rows.slice(0, 600) });
+        if (j.recorded) {
+          recordedTotal += j.recorded;
+          const b = $("#btn-record");
+          if (b) b.textContent = `recording · ${recordedTotal.toLocaleString()}`;
+        }
+      } catch {
+        /* a recorder outage must never break the globe */
+      }
+    }
+
+    // ── whiteboard ──────────────────────────────────────────────────────────
+    // drawing on a globe is only worth anything if the shape becomes a question.
+    // a freehand stroke is fitted to the simplest honest geometry, then asked
+    // what live entities are standing inside it.
+    let drawOn = false;
+    let drawing = false;
+    let strokePts = [];
+    let boardCount = 0;
+
+    function livePool() {
+      const C = window.Cesium;
+      const now = C.JulianDate.now();
+      const pool = [];
+      Object.entries(ds).forEach(([layer, source]) => {
+        if (layer === "buildings" || layer === "avoid" || layer === "board") return;
+        source.entities.values.forEach((ent) => {
+          const p = ent.position?.getValue?.(now);
+          if (!p) return;
+          const carto = C.Cartographic.fromCartesian(p);
+          if (!carto) return;
+          pool.push({
+            layer,
+            id: String(ent.id),
+            label: ent.name || String(ent.id),
+            lat: C.Math.toDegrees(carto.latitude),
+            lon: C.Math.toDegrees(carto.longitude),
+            alt: carto.height,
+          });
+        });
+      });
+      return pool;
+    }
+
+    function screenToLonLat(x, y) {
+      const C = window.Cesium;
+      const cart = viewer.camera.pickEllipsoid(new C.Cartesian2(x, y), viewer.scene.globe.ellipsoid);
+      if (!cart) return null;
+      const carto = C.Cartographic.fromCartesian(cart);
+      return { lat: C.Math.toDegrees(carto.latitude), lon: C.Math.toDegrees(carto.longitude) };
+    }
+
+    function setCameraLocked(locked) {
+      const c = viewer.scene.screenSpaceCameraController;
+      c.enableRotate = !locked;
+      c.enableTranslate = !locked;
+      c.enableTilt = !locked;
+      c.enableLook = !locked;
+    }
+
+    function drawLiveStroke() {
+      const C = window.Cesium;
+      const src = dsFor("board");
+      const id = "board:live";
+      src.entities.removeById(id);
+      if (strokePts.length < 2) return;
+      src.entities.add({
+        id,
+        polyline: {
+          positions: C.Cartesian3.fromDegreesArray(strokePts.flatMap((p) => [p.lon, p.lat])),
+          width: 2,
+          clampToGround: true,
+          material: C.Color.fromCssColorString("#e8c56b").withAlpha(0.9),
+        },
+      });
+    }
+
+    function commitStroke() {
+      const C = window.Cesium;
+      const src = dsFor("board");
+      src.entities.removeById("board:live");
+      const shape = fitStroke(strokePts);
+      strokePts = [];
+      if (!shape) {
+        setNote("that stroke was too short to be a shape · draw across the ground, not a tap");
+        return;
+      }
+      boardCount += 1;
+      const tag = `board:${boardCount}`;
+      const ring = shape.ring.flatMap((p) => [p.lon, p.lat]);
+      src.entities.add({
+        id: tag,
+        name: `${shape.kind} ${boardCount}`,
+        polygon: {
+          hierarchy: new C.PolygonHierarchy(C.Cartesian3.fromDegreesArray(ring)),
+          material: C.Color.fromCssColorString("#e8c56b").withAlpha(0.12),
+          outline: true,
+          outlineColor: C.Color.fromCssColorString("#e8c56b").withAlpha(0.75),
+          classificationType: C.ClassificationType.TERRAIN,
+        },
+      });
+      const verdict = evaluateShape(shape, livePool());
+      const size =
+        shape.kind === "circle" && shape.radiusM != null
+          ? `radius ${fmtM(shape.radiusM)}`
+          : `area ${fmtArea(shape.areaM2 || 0)}`;
+      const line = `${shape.kind} ${boardCount} · ${size} · ${verdict.summary}`;
+      setNote(line);
+      chatLog.push({ role: "eye", text: line });
+      paintChat();
+      void emitPull({ organ: "eye", capability: "whiteboard", fromSurface: "asherin-eye", status: "ok" });
+    }
+
+    function bindWhiteboard() {
+      const cv = viewer.canvas;
+      cv.addEventListener("pointerdown", (e) => {
+        if (!drawOn || e.button !== 0) return;
+        drawing = true;
+        strokePts = [];
+        setCameraLocked(true);
+        cv.setPointerCapture?.(e.pointerId);
+        const p = screenToLonLat(e.offsetX, e.offsetY);
+        if (p) strokePts.push(p);
+      });
+      cv.addEventListener("pointermove", (e) => {
+        if (!drawing) return;
+        const p = screenToLonLat(e.offsetX, e.offsetY);
+        if (!p) return;
+        const last = strokePts[strokePts.length - 1];
+        if (last && Math.abs(last.lat - p.lat) + Math.abs(last.lon - p.lon) < 1e-5) return;
+        strokePts.push(p);
+        drawLiveStroke();
+      });
+      const end = () => {
+        if (!drawing) return;
+        drawing = false;
+        setCameraLocked(false);
+        commitStroke();
+      };
+      cv.addEventListener("pointerup", end);
+      cv.addEventListener("pointercancel", end);
+      cv.addEventListener("pointerleave", end);
+    }
+
     async function loadLayer(id) {
       if (id === "ships" || id === "fires" || id === "traffic") {
         throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
@@ -1868,6 +2156,14 @@ const AsherinEyeView = () => {
       }
       if (id === "route") {
         setNote("type route to <place> in chat · osrm public drive path + weather cost");
+        return;
+      }
+      if (id === "buildings") {
+        await loadBuildings(true);
+        return;
+      }
+      if (id === "avoid") {
+        await loadAvoidance();
         return;
       }
       const cam = viewer?.camera?.positionCartographic;
@@ -2642,6 +2938,33 @@ const AsherinEyeView = () => {
         detectOn = !detectOn;
         $("#btn-detect").classList.toggle("on", detectOn);
       };
+      bindWhiteboard();
+      $("#btn-draw").onclick = () => {
+        drawOn = !drawOn;
+        $("#btn-draw").classList.toggle("on", drawOn);
+        viewer.canvas.style.cursor = drawOn ? "crosshair" : "";
+        setNote(
+          drawOn
+            ? "draw on the ground · the stroke fits to a circle, box, corridor or polygon and then reports what live contacts stand inside it"
+            : "",
+        );
+      };
+      $("#btn-clear-board").onclick = () => {
+        clearDs("board");
+        boardCount = 0;
+        setNote("board cleared");
+      };
+      $("#btn-record").onclick = () => {
+        recordOn = !recordOn;
+        $("#btn-record").classList.toggle("on", recordOn);
+        $("#btn-record").textContent = recordOn ? "recording · 0" : "record";
+        setNote(
+          recordOn
+            ? "recording the contacts already on screen · your raw fixes stay yours, the shared grid keeps counts only · the avoidance layer needs about a week of this"
+            : "recorder off",
+        );
+        if (recordOn) void recordTick();
+      };
       $("#btn-share").onclick = async () => {
         writeShare();
         try {
@@ -2735,6 +3058,24 @@ const AsherinEyeView = () => {
           if (layerOn.meta) loadWebIndex().catch(() => {});
         }, 40000),
       );
+      // the recorder is server-throttled to one write per 20 s per operator, so
+      // the tab offers slightly slower than that and never busies the endpoint.
+      pollers.push(setInterval(() => void recordTick(), 25000));
+      // footprints follow the camera, but only once it has come to rest —
+      // loading overpass on every frame of a fly-to would be a self-ddos.
+      let settleTimer = null;
+      const onSettle = () => {
+        if (!layerOn.buildings) return;
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          loadBuildings(false).catch((e) => setNote(`buildings: ${e.message || e}`));
+        }, 900);
+      };
+      viewer.camera.moveEnd.addEventListener(onSettle);
+      cleanups.push(() => {
+        if (settleTimer) clearTimeout(settleTimer);
+        viewer.camera.moveEnd.removeEventListener(onSettle);
+      });
 
       void emitPull({ organ: "eye", capability: "open", fromSurface: "asherin-eye", status: "ok" });
       setHud();
