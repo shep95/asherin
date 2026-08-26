@@ -485,17 +485,17 @@ function shaderFor(style, Cesium) {
   const stages = {
     crt: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates; uniform float time;
       void main() { vec2 uv=v_textureCoordinates; uv.x += sin(uv.y*80.0+time*6.0)*0.0015;
-        vec3 c=texture(colorTexture,uv).rgb; float scan=0.88+0.12*sin(uv.y*720.0);
-        c*=vec3(0.75,1.05,0.72)*scan; out_FragColor=vec4(c,1.0); }`,
+        vec4 s=texture(colorTexture,uv); vec3 c=s.rgb; float scan=0.88+0.12*sin(uv.y*720.0);
+        c*=vec3(0.75,1.05,0.72)*scan; out_FragColor=vec4(c,s.a); }`,
     nvg: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float l=dot(c,vec3(0.3,0.59,0.11)); vec2 uv=v_textureCoordinates-0.5;
         float vig=smoothstep(0.85,0.15,length(uv));
-        out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,1.0); }`,
+        out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,s.a); }`,
     flir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float t=dot(c,vec3(0.3,0.59,0.11)); vec3 iron=mix(vec3(0.0,0.0,0.12),vec3(1.0,0.85,0.2),t);
-        iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,1.0); }`,
+        iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,s.a); }`,
     saturation: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
       void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         c=mix(vec3(dot(c,vec3(0.3,0.59,0.11))),c,1.6); c=clamp(c,0.0,1.0);
