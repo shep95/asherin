@@ -2350,7 +2350,15 @@ const AsherinEyeView = () => {
           commitMeasure("ring", pts);
           return;
         }
+        // clicking the last turn again closes the route — a double-click is a
+        // pair of clicks in cesium, so this is also what makes dblclick work.
+        const last = measurePts[measurePts.length - 1];
+        if (last && rangeM(last, p) < Math.max(15, viewer.camera.positionCartographic.height / 900)) {
+          finishMeasurePath();
+          return;
+        }
         measurePts.push(p);
+        drawMeasureLive(p);
       });
       cv.addEventListener("dblclick", () => {
         if (measureMode === "path") finishMeasurePath();
