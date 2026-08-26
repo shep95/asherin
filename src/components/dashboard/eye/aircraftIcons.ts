@@ -238,8 +238,11 @@ const BODIES = {
 
 const _iconCache = new Map();
 
-const _b64 = (s) =>
-  typeof btoa === 'function' ? btoa(s) : Buffer.from(s, 'utf8').toString('base64');
+// Browser-only base64: the glyph source is ASCII (paths + hex colours), so the
+// unicode-safe detour is unnecessary, but encodeURIComponent guards a future
+// glyph that sneaks in a non-latin1 character (btoa would throw).
+const _b64 = (s: string) =>
+  btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (_m, h) => String.fromCharCode(parseInt(h, 16))));
 
 /** Fleet raster: billboards render at ~40–58 DEVICE px (width 20–24 CSS ×
  *  Retina × class scale). Cesium's billboard atlas has no mipmaps, so a big
