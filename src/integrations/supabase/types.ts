@@ -4491,6 +4491,84 @@ export type Database = {
         }
         Relationships: []
       }
+      eye_grid_hourly: {
+        Row: {
+          alt_n: number
+          alt_sum: number
+          contacts: number
+          cx: number
+          cy: number
+          hour_utc: string
+          samples: number
+          updated_at: string
+        }
+        Insert: {
+          alt_n?: number
+          alt_sum?: number
+          contacts?: number
+          cx: number
+          cy: number
+          hour_utc: string
+          samples?: number
+          updated_at?: string
+        }
+        Update: {
+          alt_n?: number
+          alt_sum?: number
+          contacts?: number
+          cx?: number
+          cy?: number
+          hour_utc?: string
+          samples?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      eye_track_samples: {
+        Row: {
+          alt_m: number | null
+          callsign: string | null
+          created_at: string
+          gs_kt: number | null
+          icao: string
+          id: number
+          kind: string | null
+          lat: number
+          lon: number
+          observed_at: string
+          track_deg: number | null
+          user_id: string
+        }
+        Insert: {
+          alt_m?: number | null
+          callsign?: string | null
+          created_at?: string
+          gs_kt?: number | null
+          icao: string
+          id?: number
+          kind?: string | null
+          lat: number
+          lon: number
+          observed_at?: string
+          track_deg?: number | null
+          user_id: string
+        }
+        Update: {
+          alt_m?: number | null
+          callsign?: string | null
+          created_at?: string
+          gs_kt?: number | null
+          icao?: string
+          id?: number
+          kind?: string | null
+          lat?: number
+          lon?: number
+          observed_at?: string
+          track_deg?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       forum_post_votes: {
         Row: {
           created_at: string
@@ -13920,6 +13998,10 @@ export type Database = {
       email_sha256: { Args: { _email: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
+      eye_grid_absorb: {
+        Args: { _cells: Json; _hour?: string }
         Returns: number
       }
       fold_memory_tick: { Args: never; Returns: Json }

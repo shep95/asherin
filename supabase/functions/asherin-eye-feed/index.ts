@@ -42,7 +42,8 @@ type FeedName =
   | "incidents"
   | "disasters"
   | "notices"
-  | "crime";
+  | "crime"
+  | "buildings";
 
 interface CacheRow {
   at: number;
@@ -75,6 +76,7 @@ const TTL: Record<FeedName, number> = {
   disasters: 5 * 60_000,
   notices: 6 * 60 * 60_000,
   crime: 10 * 60_000,
+  buildings: 30 * 60_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -1472,6 +1474,134 @@ async function crime(params: Record<string, unknown>) {
   };
 }
 
+
+// ─── buildings ───────────────────────────────────────────────────────────────
+// The globe is a surface until the city stands up on it. OpenStreetMap already
+// holds the footprint of most of the built world, and roughly a fifth of those
+// footprints carry a height or a storey count. So this is not a 3d city model
+// bought from a vendor — it is the public footprint, extruded, and where the
+// height is unknown we SAY it is a guess rather than quietly inventing a tower.
+//
+// The bbox is capped hard. A building query over a continent would take the
+// overpass instance down for everyone, so anything wider than a district is
+// refused with an honest reason instead of being silently trimmed.
+async function buildings(params: Record<string, unknown>) {
+  const lat = num(params.lat);
+  const lon = num(params.lon);
+  if (lat === null || lon === null) throw new Error("no coordinate given");
+  const la = clampLat(lat);
+  const lo = wrapLon(lon);
+  // ~1.1 km per 0.01°, so 0.02 is a walkable district — the scale where
+  // extruded footprints actually mean something on screen.
+  const span = Math.min(0.03, Math.max(0.004, num(params.span) ?? 0.014));
+  const south = clampLat(la - span);
+  const north = clampLat(la + span);
+  const west = wrapLon(lo - span);
+  const east = wrapLon(lo + span);
+  const bbox = `${south.toFixed(4)},${west.toFixed(4)},${north.toFixed(4)},${east.toFixed(4)}`;
+  const q = `[out:json][timeout:20];(way["building"](${bbox});relation["building"]["type"="multipolygon"](${bbox}););out geom 900;`;
+  // the main overpass instance rate-limits and 504s under load. mirrors are
+  // tried in order rather than in parallel, so a healthy first mirror never
+  // costs the others a request.
+  const mirrors = [
+    "https://overpass-api.de/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+  let d: { elements?: Array<Record<string, unknown>> } | null = null;
+  const errs: string[] = [];
+  for (const m of mirrors) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 25_000);
+    try {
+      // overpass wants the query as a POST form field once it grows past a
+      // trivial length; the GET form is what trips the 414/500 path on the
+      // busier mirrors.
+      const res = await fetch(m, {
+        method: "POST",
+        signal: ctl.signal,
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          accept: "application/json",
+          "user-agent": "asherin.eye/1.0 (+https://asherin.com)",
+        },
+        body: new URLSearchParams({ data: q }).toString(),
+      });
+      if (!res.ok) {
+        errs.push(`${new URL(m).hostname} ${res.status} ${(await res.text()).slice(0, 90).replace(/\s+/g, " ")}`);
+        continue;
+      }
+      d = (await res.json()) as { elements?: Array<Record<string, unknown>> };
+      break;
+    } catch (e) {
+      errs.push(`${new URL(m).hostname} ${(e as Error).message}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (!d) throw new Error(`no overpass mirror answered · ${errs.join(" · ")}`);
+
+  let measured = 0;
+  const rows = (d.elements ?? [])
+    .map((el, i) => {
+      const tags = (el.tags as Record<string, unknown> | undefined) || {};
+      // a relation's outer ring is the building; inner rings are courtyards and
+      // are dropped rather than drawn as walls.
+      let geom = el.geometry as Array<Record<string, unknown>> | undefined;
+      if (!geom && Array.isArray(el.members)) {
+        const outer = (el.members as Array<Record<string, unknown>>).find(
+          (m) => m.role === "outer" && Array.isArray(m.geometry),
+        );
+        geom = outer?.geometry as Array<Record<string, unknown>> | undefined;
+      }
+      if (!Array.isArray(geom) || geom.length < 4) return null;
+
+      const ring: number[] = [];
+      for (const g of geom) {
+        const gla = num(g.lat);
+        const glo = num(g.lon);
+        if (gla === null || glo === null) return null;
+        ring.push(wrapLon(glo), clampLat(gla));
+      }
+      if (ring.length > 400) ring.length = 400;
+
+      const rawH = num(tags.height) ?? num(tags["building:height"]);
+      const levels = num(tags["building:levels"]);
+      let height: number;
+      let estimated: boolean;
+      if (rawH !== null && rawH > 1 && rawH < 900) {
+        height = rawH;
+        estimated = false;
+      } else if (levels !== null && levels >= 1 && levels < 200) {
+        // 3.2 m a storey is the ordinary european/north-american floor-to-floor.
+        height = levels * 3.2;
+        estimated = false;
+      } else {
+        height = 8;
+        estimated = true;
+      }
+      if (!estimated) measured++;
+
+      const min = num(tags.min_height) ?? 0;
+      return {
+        id: `osmb-${el.id ?? i}`,
+        ring,
+        height: Math.round(height * 10) / 10,
+        base: Math.max(0, Math.min(height - 1, min)),
+        estimated,
+        label: (text(tags.name, 60) || text(tags.building, 30) || "building").toLowerCase(),
+        kind: text(tags.building, 24) || "yes",
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    rows,
+    source: "openstreetmap · overpass",
+    note: `${rows.length} footprints · ${measured} carry a surveyed height or storey count, the rest are drawn at a flat 8 m and marked as a guess · a footprint is a map, not a floor plan`,
+  };
+}
+
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
   military: () => military(),
@@ -1494,6 +1624,7 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   route,
   incidents,
   disasters: () => disasters(),
+  buildings,
   notices,
   crime,
 };
@@ -1538,6 +1669,8 @@ Deno.serve(async (req) => {
                             ? String(params.kind ?? "all").slice(0, 8)
                             : feed === "disasters"
                               ? "disasters"
+                              : feed === "buildings"
+                                ? `${Math.round(Number(params.lat ?? 0) * 100)}:${Math.round(Number(params.lon ?? 0) * 100)}`
                               : feed === "webmeta"
                           ? String(params.url ?? "").slice(0, 120)
                           : "";
