@@ -2610,6 +2610,7 @@ const AsherinEyeView = () => {
           pinHoverCard();
         }, 250),
       );
+      pollers.push(setInterval(syncTrails, 1500));
       pollers.push(
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
