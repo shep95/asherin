@@ -496,21 +496,15 @@ function shaderFor(style, Cesium) {
       void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
         float t=dot(c,vec3(0.3,0.59,0.11)); vec3 iron=mix(vec3(0.0,0.0,0.12),vec3(1.0,0.85,0.2),t);
         iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,1.0); }`,
-    anime: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
-        c=mix(vec3(dot(c,vec3(0.3,0.59,0.11))),c,1.35); c=floor(c*5.0)/5.0;
-        out_FragColor=vec4(c,1.0); }`,
+    saturation: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
+        c=mix(vec3(dot(c,vec3(0.3,0.59,0.11))),c,1.6); c=clamp(c,0.0,1.0);
+        out_FragColor=vec4(c,s.a); }`,
     noir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
+      void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float l=dot(c,vec3(0.3,0.59,0.11)); l=smoothstep(0.12,0.88,l);
         vec2 uv=v_textureCoordinates-0.5; float vig=smoothstep(0.9,0.2,length(uv));
-        out_FragColor=vec4(vec3(l)*vig,1.0); }`,
-    snow: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates; uniform float time;
-      float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5); }
-      void main() { vec3 c=texture(colorTexture,v_textureCoordinates).rgb;
-        c=mix(c,vec3(0.92),0.28); vec2 uv=v_textureCoordinates*vec2(80.0,50.0);
-        float flake=step(0.97,hash(floor(uv+vec2(time*8.0,time*-14.0))));
-        out_FragColor=vec4(mix(c,vec3(1.0),flake),1.0); }`,
+        out_FragColor=vec4(vec3(l)*vig,s.a); }`,
   };
   const src = stages[style];
   if (!src) return null;
