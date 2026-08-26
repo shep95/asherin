@@ -1878,24 +1878,99 @@ const AsherinEyeView = () => {
       );
     }
 
-    function planePng() {
-      const c = document.createElement("canvas");
-      c.width = 32;
-      c.height = 32;
-      const g = c.getContext("2d");
-      g.fillStyle = "#fbbf24";
-      g.beginPath();
-      g.moveTo(16, 2);
-      g.lineTo(22, 14);
-      g.lineTo(30, 16);
-      g.lineTo(22, 18);
-      g.lineTo(16, 30);
-      g.lineTo(10, 18);
-      g.lineTo(2, 16);
-      g.lineTo(10, 14);
-      g.closePath();
-      g.fill();
-      return c.toDataURL();
+    // ── track history ───────────────────────────────────────────────────────
+    // history is what this session actually observed (plus the ads-b hex
+    // backfill on the tracked contact) — never a synthesised great circle.
+    function trailPositions(eid) {
+      const C = window.Cesium;
+      const hist = pathHist[eid] || [];
+      const pts = hist.map((p) => C.Cartesian3.fromDegrees(p.lon, p.lat, p.alt || 0));
+      const s = samples[eid];
+      if (s) {
+        const r = reckon(s, Date.now());
+        pts.push(C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt || 0));
+      }
+      return pts;
+    }
+
+    function ensureTrail(eid, cssColor) {
+      if (fleetTrails[eid]) return fleetTrails[eid];
+      const C = window.Cesium;
+      const base = C.Color.fromCssColorString(cssColor || "#fbbf24");
+      const ent = viewer.entities.add({
+        id: `eye-trail:${eid}`,
+        polyline: {
+          positions: new C.CallbackProperty(() => trailPositions(eid), false),
+          width: 1.6,
+          // occluded segments dim instead of vanishing under the terrain mesh.
+          material: base.withAlpha(0.5),
+          depthFailMaterial: base.withAlpha(0.22),
+          arcType: C.ArcType.GEODESIC,
+        },
+      });
+      fleetTrails[eid] = ent;
+      return ent;
+    }
+
+    function dropTrail(eid) {
+      const ent = fleetTrails[eid];
+      if (!ent) return;
+      try {
+        viewer.entities.remove(ent);
+      } catch {}
+      delete fleetTrails[eid];
+    }
+
+    function clearFleetTrails() {
+      Object.keys(fleetTrails).forEach(dropTrail);
+    }
+
+    function syncTrails() {
+      if (!viewer) return;
+      if (!trailsOn) {
+        if (Object.keys(fleetTrails).length) clearFleetTrails();
+        return;
+      }
+      const cam = viewer.camera.positionWC;
+      const near = [];
+      ["flights", "military"].forEach((id) => {
+        const src = ds[id];
+        if (!src || !layerOn[id]) return;
+        src.entities.values.forEach((e) => {
+          const hist = pathHist[e.id];
+          if (!hist || hist.length < 2) return;
+          const p = e.position?.getValue(viewer.clock.currentTime);
+          if (!p) return;
+          const km = kmBetween(window.Cesium, cam, p);
+          if (km <= FLEET_TRAIL_KM) near.push({ id: e.id, km, color: LAYER_COLOR[id] });
+        });
+      });
+      near.sort((a, b) => a.km - b.km);
+      const keep = new Set(near.slice(0, FLEET_TRAIL_MAX).map((n) => n.id));
+      near.slice(0, FLEET_TRAIL_MAX).forEach((n) => ensureTrail(n.id, n.color));
+      Object.keys(fleetTrails).forEach((eid) => {
+        if (!keep.has(eid)) dropTrail(eid);
+      });
+    }
+
+    function setTrails(on) {
+      trailsOn = !!on;
+      const b = root.querySelector('[data-trails="1"]');
+      if (b) b.classList.toggle("on", trailsOn);
+      if (!trailsOn) clearFleetTrails();
+      syncTrails();
+      setNote(
+        trailsOn
+          ? `track history on · nearest ${FLEET_TRAIL_MAX} contacts within ${FLEET_TRAIL_KM} km · fixes this session`
+          : "track history off",
+      );
+      void emitPull({
+        organ: "eye",
+        capability: "trails",
+        fromSurface: "asherin-eye",
+        status: "ok",
+        detail: trailsOn ? "on" : "off",
+      });
     }
 
     function trackEntity(ent) {
