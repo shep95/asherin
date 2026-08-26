@@ -813,6 +813,19 @@ const AsherinEyeView = () => {
       const n = $("#note");
       if (n) n.textContent = t || "";
     };
+    // cesium renamed wgs84ToWindowCoordinates → worldToWindowCoordinates; keep both
+    // paths alive so the hover card projects on old and new engine builds alike.
+    const toWindowXY = (cartesian) => {
+      const st = window.Cesium?.SceneTransforms;
+      if (!viewer || !st || !cartesian) return null;
+      const fn = st.worldToWindowCoordinates || st.wgs84ToWindowCoordinates;
+      if (typeof fn !== "function") return null;
+      try {
+        return fn.call(st, viewer.scene, cartesian) || null;
+      } catch {
+        return null;
+      }
+    };
     const setHud = () => {
       if (!viewer) return;
       const C = window.Cesium;
@@ -1440,7 +1453,7 @@ const AsherinEyeView = () => {
       }
       const p = ent.position.getValue(viewer.clock.currentTime);
       if (!p) return;
-      const win = window.Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, p);
+      const win = toWindowXY(p);
       if (win) setHoverCard(ent, win);
     }
 
@@ -2555,7 +2568,7 @@ const AsherinEyeView = () => {
       if (!on || !tracked || !viewer.trackedEntity) return;
       const p = viewer.trackedEntity.position?.getValue(viewer.clock.currentTime);
       if (!p) return;
-      const win = window.Cesium.SceneTransforms.wgs84ToWindowCoordinates(viewer.scene, p);
+      const win = toWindowXY(p);
       if (!win) return;
       ctx.strokeStyle = "hsla(38,92%,50%,0.85)";
       ctx.lineWidth = 1.2;

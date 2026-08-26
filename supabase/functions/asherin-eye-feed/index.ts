@@ -1649,7 +1649,9 @@ async function buildings(params: Record<string, unknown>) {
   return {
     rows,
     source: "openstreetmap",
-    note: `${rows.length} footprints · ${measured} carry a surveyed height or storey count, the rest are drawn at a flat 8 m and marked as a guess · a footprint is a map, not a floor plan${errs.length ? ` · ${errs.join(" · ")}` : ""}`,
+    // a mirror that failed on the way to a mirror that answered is plumbing,
+    // not news: the reader only hears which host finally served the data.
+    note: `${rows.length} footprints · ${measured} carry a surveyed height or storey count, the rest are drawn at a flat 8 m and marked as a guess · a footprint is a map, not a floor plan${errs.length ? ` · ${errs.length} upstream mirror${errs.length === 1 ? "" : "s"} declined first` : ""}`,
   };
 }
 
