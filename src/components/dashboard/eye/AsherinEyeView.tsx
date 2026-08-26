@@ -2127,6 +2127,243 @@ const AsherinEyeView = () => {
       cv.addEventListener("pointerleave", end);
     }
 
+    // ── measure: point · path · ring ────────────────────────────────────────
+    // the overhead-frame look is not decoration. a fix, a route with leg
+    // ranges, a ring with a radius call-out — each one is a question about the
+    // ground answered in metres, and each stays selectable afterwards so the
+    // property card can read it back.
+    const MEASURE_ORDER = ["point", "path", "ring"];
+    const MEASURE_HINT = {
+      point: "measure · point · click the ground to drop a fix with its coordinates and elevation",
+      path: "measure · path · click each turn, right-click or double-click to close · legs carry range and bearing",
+      ring: "measure · ring · click the centre, then click the edge · reports radius, area and live contacts inside",
+    };
+    let measureMode = null;
+    let measurePts = [];
+    let measureCount = 0;
+
+    const measureLabel = (id, at, text, tint) =>
+      dsFor("board").entities.add({
+        id,
+        position: window.Cesium.Cartesian3.fromDegrees(at.lon, at.lat),
+        label: {
+          text,
+          font: "500 12px ui-monospace, SFMono-Regular, monospace",
+          fillColor: window.Cesium.Color.fromCssColorString(tint),
+          showBackground: true,
+          backgroundColor: window.Cesium.Color.fromCssColorString("#06070a").withAlpha(0.72),
+          backgroundPadding: new window.Cesium.Cartesian2(7, 4),
+          pixelOffset: new window.Cesium.Cartesian2(0, -14),
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          scaleByDistance: new window.Cesium.NearFarScalar(1e3, 1.0, 6e6, 0.55),
+        },
+      });
+
+    function clearMeasureLive() {
+      const src = dsFor("board");
+      ["measure:live", "measure:live-label", "measure:live-ring"].forEach((id) => src.entities.removeById(id));
+    }
+
+    function drawMeasureLive(cursor) {
+      const C = window.Cesium;
+      const src = dsFor("board");
+      clearMeasureLive();
+      if (!cursor || !measurePts.length) return;
+      if (measureMode === "path") {
+        const chain = [...measurePts, cursor];
+        src.entities.add({
+          id: "measure:live",
+          polyline: {
+            positions: C.Cartesian3.fromDegreesArray(chain.flatMap((p) => [p.lon, p.lat])),
+            width: 2,
+            clampToGround: true,
+            material: new C.PolylineDashMaterialProperty({
+              color: C.Color.fromCssColorString("#e8c56b").withAlpha(0.9),
+            }),
+          },
+        });
+        const leg = rangeM(measurePts[measurePts.length - 1], cursor);
+        const total = pathLengthM(chain);
+        measureLabel(
+          "measure:live-label",
+          cursor,
+          `${fmtRange(leg)} · ${fmtBearing(bearingDeg(measurePts[measurePts.length - 1], cursor))}\ntotal ${fmtRange(total)}`,
+          "#e8c56b",
+        );
+        return;
+      }
+      if (measureMode === "ring") {
+        const centre = measurePts[0];
+        const radius = rangeM(centre, cursor);
+        if (radius < 1) return;
+        src.entities.add({
+          id: "measure:live-ring",
+          position: C.Cartesian3.fromDegrees(centre.lon, centre.lat),
+          ellipse: {
+            semiMajorAxis: radius,
+            semiMinorAxis: radius,
+            material: C.Color.fromCssColorString("#7fd6c8").withAlpha(0.08),
+            outline: true,
+            outlineColor: C.Color.fromCssColorString("#7fd6c8").withAlpha(0.85),
+            outlineWidth: 2,
+            classificationType: C.ClassificationType.TERRAIN,
+          },
+        });
+        measureLabel("measure:live-label", cursor, `radius ${fmtRange(radius)}`, "#7fd6c8");
+      }
+    }
+
+    function commitMeasure(kind, pts) {
+      const C = window.Cesium;
+      const src = dsFor("board");
+      clearMeasureLive();
+      measureCount += 1;
+      const tag = `measure:${measureCount}`;
+      let line = "";
+
+      if (kind === "point") {
+        const p = pts[0];
+        const ground = viewer.scene.globe.getHeight(C.Cartographic.fromDegrees(p.lon, p.lat));
+        line = `fix ${measureCount} · ${fmtCoord(p)}${Number.isFinite(ground) ? ` · ground ${Math.round(ground)} m` : ""}`;
+        src.entities.add({
+          id: tag,
+          name: `fix ${measureCount}`,
+          description: line,
+          position: C.Cartesian3.fromDegrees(p.lon, p.lat),
+          point: {
+            pixelSize: 9,
+            color: C.Color.fromCssColorString("#e8c56b"),
+            outlineColor: C.Color.fromCssColorString("#06070a"),
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            heightReference: C.HeightReference.CLAMP_TO_GROUND,
+          },
+        });
+        measureLabel(`${tag}:label`, p, line, "#e8c56b");
+      } else if (kind === "path") {
+        const total = pathLengthM(pts);
+        src.entities.add({
+          id: tag,
+          name: `path ${measureCount}`,
+          description: `${pts.length - 1} legs · ${fmtRange(total)}`,
+          polyline: {
+            positions: C.Cartesian3.fromDegreesArray(pts.flatMap((p) => [p.lon, p.lat])),
+            width: 3,
+            clampToGround: true,
+            material: C.Color.fromCssColorString("#e8c56b").withAlpha(0.95),
+          },
+        });
+        for (let i = 1; i < pts.length; i += 1) {
+          const a = pts[i - 1];
+          const b = pts[i];
+          measureLabel(
+            `${tag}:leg${i}`,
+            midpoint(a, b),
+            `${fmtRange(rangeM(a, b))} · ${fmtBearing(bearingDeg(a, b))}`,
+            "#e8c56b",
+          );
+        }
+        measureLabel(`${tag}:label`, pts[pts.length - 1], `path ${measureCount} · total ${fmtRange(total)}`, "#e8c56b");
+        line = `path ${measureCount} · ${pts.length - 1} legs · total ${fmtRange(total)}`;
+      } else {
+        const centre = pts[0];
+        const radius = rangeM(centre, pts[1]);
+        const area = Math.PI * radius * radius;
+        const inside = insideRing(centre, radius, livePool());
+        src.entities.add({
+          id: tag,
+          name: `ring ${measureCount}`,
+          description: `radius ${fmtRange(radius)} · ${inside.length} inside`,
+          position: C.Cartesian3.fromDegrees(centre.lon, centre.lat),
+          ellipse: {
+            semiMajorAxis: radius,
+            semiMinorAxis: radius,
+            material: C.Color.fromCssColorString("#7fd6c8").withAlpha(0.1),
+            outline: true,
+            outlineColor: C.Color.fromCssColorString("#7fd6c8").withAlpha(0.9),
+            outlineWidth: 2,
+            classificationType: C.ClassificationType.TERRAIN,
+          },
+        });
+        const byLayer = inside.reduce((acc, c) => {
+          acc[c.layer] = (acc[c.layer] || 0) + 1;
+          return acc;
+        }, {});
+        const roster = Object.entries(byLayer)
+          .map(([k, n]) => `${n} ${k}`)
+          .join(" · ");
+        line = `ring ${measureCount} · radius ${fmtRange(radius)} · area ${fmtArea(area)} · ${
+          inside.length ? roster : "nothing live inside"
+        }`;
+        measureLabel(`${tag}:label`, pts[1], `radius ${fmtRange(radius)}`, "#7fd6c8");
+      }
+
+      setNote(line);
+      chatLog.push({ role: "eye", text: line });
+      paintChat();
+      void emitPull({ organ: "eye", capability: `measure:${kind}`, fromSurface: "asherin-eye", status: "ok" });
+    }
+
+    function finishMeasurePath() {
+      if (measureMode !== "path" || measurePts.length < 2) {
+        measurePts = [];
+        clearMeasureLive();
+        return;
+      }
+      const pts = measurePts;
+      measurePts = [];
+      commitMeasure("path", pts);
+    }
+
+    function bindMeasure() {
+      const cv = viewer.canvas;
+      cv.addEventListener("click", (e) => {
+        if (!measureMode || drawOn || e.button !== 0) return;
+        const p = screenToLonLat(e.offsetX, e.offsetY);
+        if (!p) {
+          setNote("that click missed the globe · aim at ground, not sky");
+          return;
+        }
+        if (measureMode === "point") {
+          commitMeasure("point", [p]);
+          return;
+        }
+        if (measureMode === "ring") {
+          if (!measurePts.length) {
+            measurePts = [p];
+            setNote("ring centre set · click the edge");
+            return;
+          }
+          const pts = [measurePts[0], p];
+          measurePts = [];
+          commitMeasure("ring", pts);
+          return;
+        }
+        measurePts.push(p);
+      });
+      cv.addEventListener("dblclick", () => {
+        if (measureMode === "path") finishMeasurePath();
+      });
+      cv.addEventListener("contextmenu", (e) => {
+        if (measureMode !== "path" || !measurePts.length) return;
+        e.preventDefault();
+        finishMeasurePath();
+      });
+      cv.addEventListener("pointermove", (e) => {
+        if (!measureMode || drawOn || !measurePts.length) return;
+        const p = screenToLonLat(e.offsetX, e.offsetY);
+        if (p) drawMeasureLive(p);
+      });
+      const onKey = (e) => {
+        if (e.key !== "Escape" || !measureMode) return;
+        measurePts = [];
+        clearMeasureLive();
+        setNote("measure cleared");
+      };
+      window.addEventListener("keydown", onKey);
+      cleanups.push(() => window.removeEventListener("keydown", onKey));
+    }
+
     async function loadLayer(id) {
       if (id === "ships" || id === "fires" || id === "traffic") {
         throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
