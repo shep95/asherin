@@ -130,7 +130,7 @@ export const CLASS_SCALE_3D = {
 
 /** Per-class glTF — all the shared airplane today; drop real assets in here.
  *  NOTE for future models: each asset may need its own heading offset (the
- *  shared GLB uses MODEL_HEADING_OFFSET_DEG = 180 in both layers). */
+ *  shared GLB uses MODEL_HEADING_OFFSET_DEG = 0 (verified by render) in both layers). */
 export const CLASS_MODEL_URL = {
   light: '/models/airplane.glb', glider: '/models/airplane.glb',
   turboprop: '/models/airplane.glb', airliner: '/models/airplane.glb',
@@ -142,7 +142,7 @@ export const CLASS_MODEL_URL = {
 /** Real per-class GLBs (2026-08-15 Hangar fleet, selected assets; CC-BY 4.0 —
  *  provenance in public/models/README.md). Every asset is vertex-baked to the
  *  airplane.glb convention: Y-up, X = length, Z = span, nose −X (so the layers'
- *  MODEL_HEADING_OFFSET_DEG = 180 applies unchanged), origin at bbox centre,
+ *  MODEL_HEADING_OFFSET_DEG = 0 (verified by render) applies unchanged), origin at bbox centre,
  *  REAL-WORLD METERS (render at scale 1 — no MODEL_SCALE, no CLASS_SCALE_3D).
  *  bellyM = origin→lowest-vertex distance (grounded-model lift, replaces the
  *  airplane.glb MODEL_BELLY_OFFSET_NATIVE formula); radiusM = bounding-sphere

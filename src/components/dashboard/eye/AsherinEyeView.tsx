@@ -13,10 +13,33 @@ import { classifyAircraft, CLASS_SCALE_2D } from "./aircraftClass";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
-const HANGAR_GLB =
-  "https://cdn.jsdelivr.net/gh/CesiumGS/cesium@1.124.0/Apps/SampleData/models/CesiumAir/Cesium_Air.glb";
-const TRACKED_MODEL_ENTER_M = 150000;
-const TRACKED_MODEL_EXIT_M = 172500;
+// the hangar is ours and it is local. the previous uri pointed at a cesium
+// sample on a cdn tag that does not exist (404), which is why tracking a
+// contact showed no airframe at all — the entity had a model that could never
+// load. these glbs are authored in real metres, y-up, nose along +x, so they
+// render at scale 1 and a 737 is a 737 next to a bell 206.
+const HANGAR = {
+  airliner: "/models/asherin-airliner.glb",
+  widebody: "/models/asherin-widebody.glb",
+  quadjet: "/models/asherin-widebody.glb",
+  turboprop: "/models/asherin-turboprop.glb",
+  bizjet: "/models/asherin-fastjet.glb",
+  fastjet: "/models/asherin-fastjet.glb",
+  light: "/models/asherin-light.glb",
+  glider: "/models/asherin-glider.glb",
+  uav: "/models/asherin-uav.glb",
+  helicopter: "/models/asherin-helicopter.glb",
+};
+// verified by render, not by assumption: with these glbs a cesium enu heading
+// of 0 puts the nose due north in a nadir view, so the compass track goes in
+// raw. the old +90 was inherited from a sample airframe with a different
+// authoring axis and turned every contact ninety degrees off its own path.
+const MODEL_HEADING_OFFSET_DEG = 0;
+// the airframe swap is a RANGE decision, not an altitude one. the old gate read
+// camera height above the ellipsoid, so chasing a contact at cruise kept the
+// camera 11 km up and the model stayed hidden while the hud claimed otherwise.
+const TRACKED_MODEL_ENTER_M = 9000;
+const TRACKED_MODEL_EXIT_M = 14000;
 const HUB = "http://127.0.0.1:8768/log";
 
 const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
@@ -532,18 +555,31 @@ function glyphSize(kind, isTracked) {
   return Math.round(FLEET_ICON_PX * s * (isTracked ? TRACKED_ICON_BUMP : 1));
 }
 
-// the single sample airframe glb still stands in for every kind, so the 3d
-// scale is bucketed rather than per-class-truthful.
+// every kind now has its own airframe, so the class is the class — no bucket.
 function hangarClass(row) {
-  const kind = typeof row === "string" ? row : glyphClass(row);
-  if (kind === "helicopter") return "helo";
-  if (kind === "uav") return "uav";
-  if (kind === "widebody" || kind === "quadjet") return "heavy";
-  return "air";
+  return typeof row === "string" ? row : glyphClass(row);
 }
 
-function hangarScale(klass) {
-  return { helo: 1.1, uav: 0.8, heavy: 14, air: 4.2 }[klass] || 4.2;
+function hangarModel(kind) {
+  return HANGAR[kind] || HANGAR.airliner;
+}
+
+// the meshes are already life-sized. widebody and quadjet share one hull, so
+// they get the only correction in the table.
+function hangarScale(kind) {
+  return kind === "widebody" ? 1.35 : kind === "quadjet" ? 1.45 : 1;
+}
+
+// chase distance has to follow the airframe. a hundred and forty metres behind
+// a bell 206 is a speck; the same number behind a 787 is inside the wing.
+const HANGAR_LENGTH_M = {
+  widebody: 62, quadjet: 70, airliner: 37, turboprop: 27,
+  bizjet: 16, fastjet: 17, light: 9, glider: 12, uav: 11, helicopter: 14,
+};
+
+function hangarViewFrom(C, kind) {
+  const L = HANGAR_LENGTH_M[kind] || 37;
+  return new C.Cartesian3(-L * 3.2, -L * 3.2, L * 1.2);
 }
 
 function reckon(sample, nowMs) {
@@ -915,20 +951,49 @@ const AsherinEyeView = () => {
         if (!s) return undefined;
         const r = reckon(s, Date.now());
         const pos = C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt);
-        const hpr = new C.HeadingPitchRoll(C.Math.toRadians(r.heading + 90), 0, 0);
+        // roll comes from how fast the track itself is turning, so an aircraft
+        // in a turn banks into it instead of sliding round flat like a decal.
+        const roll = C.Math.toRadians(Math.max(-32, Math.min(32, (s.turnRate || 0) * 3.2)));
+        const hpr = new C.HeadingPitchRoll(
+          C.Math.toRadians(r.heading + MODEL_HEADING_OFFSET_DEG),
+          0,
+          roll,
+        );
         return C.Transforms.headingPitchRollQuaternion(pos, hpr);
       }, false);
     }
 
-    // screen-space glyph spin: every silhouette is drawn nose-up, so the
-    // billboard is rotated by the dead-reckoned track. cesium measures
-    // rotation counter-clockwise, compass heading clockwise — hence the sign.
+    // screen-space glyph spin. rotating by raw compass heading is only correct
+    // looking straight down; the moment the camera tilts, a north-up spin makes
+    // every silhouette read as a card turned toward the viewer instead of an
+    // aircraft on a track. so the nose is aimed along the track AS PROJECTED
+    // ONTO THE SCREEN: take the position, take a point one kilometre ahead on
+    // the same bearing, project both, and point the glyph down that vector.
     function flightRotationProperty(eid) {
       const C = window.Cesium;
+      const scratchA = new C.Cartesian2();
+      const scratchB = new C.Cartesian2();
       return new C.CallbackProperty(() => {
         const s = samples[eid];
         if (!s) return 0;
-        return -C.Math.toRadians(reckon(s, Date.now()).heading || 0);
+        const r = reckon(s, Date.now());
+        const hdg = C.Math.toRadians(r.heading || 0);
+        // one kilometre of "ahead" in degrees, latitude-corrected.
+        const dLat = (Math.cos(hdg) * 1000) / 111320;
+        const dLon = (Math.sin(hdg) * 1000) / (111320 * Math.max(0.08, Math.cos((r.lat * Math.PI) / 180)));
+        const here = C.Cartesian3.fromDegrees(r.lon, r.lat, r.alt);
+        const ahead = C.Cartesian3.fromDegrees(r.lon + dLon, r.lat + dLat, r.alt);
+        const a = C.SceneTransforms.worldToWindowCoordinates(viewer.scene, here, scratchA);
+        const b = C.SceneTransforms.worldToWindowCoordinates(viewer.scene, ahead, scratchB);
+        // behind the horizon or off-projection: fall back to the flat compass
+        // spin rather than snapping the glyph to due north.
+        if (!a || !b) return -hdg;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        if (Math.abs(dx) + Math.abs(dy) < 0.0001) return -hdg;
+        // glyphs are drawn nose-up (screen -y); window y grows downward while
+        // cesium's billboard rotation is counter-clockwise positive.
+        return -Math.atan2(dx, -dy);
       }, false);
     }
 
@@ -947,7 +1012,17 @@ const AsherinEyeView = () => {
         const kind = glyphClass(row);
         const klass = hangarClass(kind);
         const isTracked = tracked?.id === eid;
+        // turn rate in degrees per second, from the previous fix. shortest-arc
+        // so a 359° → 001° crossing is a two degree turn, not a 358 degree one.
+        const prev = samples[eid];
+        let turnRate = 0;
+        if (prev) {
+          const dt = Math.max(0.5, (now - (prev.t || now)) / 1000);
+          const dh = (((Number(row.heading || 0) - Number(prev.heading || 0)) % 360) + 540) % 360 - 180;
+          turnRate = Math.max(-6, Math.min(6, dh / dt));
+        }
         samples[eid] = {
+          turnRate,
           lat: Number(row.lat),
           lon: Number(row.lon),
           alt,
@@ -987,22 +1062,27 @@ const AsherinEyeView = () => {
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             model: {
-              uri: HANGAR_GLB,
-              scale: hangarScale(klass),
-              minimumPixelSize: 40,
-              maximumScale: 40000,
+              uri: hangarModel(kind),
+              scale: hangarScale(kind),
+              // a real airframe at real scale disappears from four kilometres
+              // out, so it keeps a floor in pixels while staying life-sized up
+              // close. no maximumScale: it must never grow past its own size.
+              minimumPixelSize: 56,
               color: C.Color.fromCssColorString("#e8e4d8"),
               colorBlendMode: C.ColorBlendMode.HIGHLIGHT,
               colorBlendAmount: 0.55,
               show: false,
             },
-            viewFrom: new C.Cartesian3(-140, -50, 32),
+            viewFrom: hangarViewFrom(C, kind),
             asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind },
           });
         } else {
           ent.name = row.label || id;
           ent.asherin = { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind };
-          if (ent.model) ent.model.scale = hangarScale(klass);
+          if (ent.model) {
+            ent.model.uri = hangarModel(kind);
+            ent.model.scale = hangarScale(kind);
+          }
           if (ent.billboard) {
             ent.billboard.image = aircraftIcon(kind, isTracked ? TRACKED_ICON_PX : undefined);
             ent.billboard.width = px;
@@ -2003,6 +2083,7 @@ const AsherinEyeView = () => {
         },
       });
       applyCamMode(camMode);
+      refreshHangar();
       const icao = String(ent.id || "").split(":")[1] || "";
       if (/^[a-fA-F0-9]{4,8}$/.test(icao)) {
         eyeFeed("hex", { icao })
@@ -2089,11 +2170,34 @@ const AsherinEyeView = () => {
       setHud();
     }
 
+    // one place that answers "which entity is the tracked one", because three
+    // call sites had each written their own slightly different search.
+    function findTracked() {
+      if (!tracked || !viewer) return null;
+      if (viewer.trackedEntity && viewer.trackedEntity.id === tracked.id) return viewer.trackedEntity;
+      for (let i = 0; i < viewer.dataSources.length; i++) {
+        const e = viewer.dataSources.get(i).entities.getById(tracked.id);
+        if (e) return e;
+      }
+      return viewer.entities.getById(tracked.id) || null;
+    }
+
     function refreshHangar() {
       if (!viewer) return;
       const C = window.Cesium;
-      const h = viewer.camera.positionCartographic?.height ?? Infinity;
-      const want = tracked ? (modelOn ? h < TRACKED_MODEL_EXIT_M : h < TRACKED_MODEL_ENTER_M) : false;
+      // range from the camera to the tracked airframe — not the camera's
+      // height. chasing a contact at cruise puts the camera eleven kilometres
+      // up while sitting a hundred metres off the tail; height said "far",
+      // the eye said "right there", and the model lost that argument.
+      let want = false;
+      if (tracked) {
+        const ent = findTracked();
+        const p = ent?.position?.getValue?.(viewer.clock.currentTime);
+        if (p) {
+          const m = C.Cartesian3.distance(viewer.camera.positionWC, p);
+          want = modelOn ? m < TRACKED_MODEL_EXIT_M : m < TRACKED_MODEL_ENTER_M;
+        }
+      }
       modelOn = want;
       const srcIds = ["flights", "military"];
       srcIds.forEach((id) => {
