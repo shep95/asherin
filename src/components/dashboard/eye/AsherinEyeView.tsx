@@ -12,6 +12,16 @@ import { aircraftIcon, TRACKED_ICON_PX } from "./aircraftIcons";
 import { classifyAircraft, CLASS_SCALE_2D } from "./aircraftClass";
 import { cellBounds, gridMaturity, scoreAvoidance } from "./gridMath";
 import { evaluate as evaluateShape, fitStroke, fmtArea, fmtM } from "./whiteboard";
+import {
+  bearingDeg,
+  fmtBearing,
+  fmtCoord,
+  fmtRange,
+  insideRing,
+  midpoint,
+  pathLengthM,
+  rangeM,
+} from "./measure";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
@@ -797,6 +807,7 @@ const AsherinEyeView = () => {
             <button type="button" class="nav" id="btn-tour">tour</button>
             <button type="button" class="nav" id="btn-detect">detect</button>
             <button type="button" class="nav" id="btn-draw">draw</button>
+            <button type="button" class="nav" id="btn-measure">measure</button>
             <button type="button" class="nav" id="btn-clear-board">clear board</button>
             <button type="button" class="nav" id="btn-record">record</button>
             <button type="button" class="nav" id="btn-voice">voice</button>
@@ -3200,8 +3211,22 @@ const AsherinEyeView = () => {
             : "",
         );
       };
+      bindMeasure();
+      $("#btn-measure").onclick = () => {
+        const at = measureMode ? MEASURE_ORDER.indexOf(measureMode) + 1 : 0;
+        measureMode = at >= MEASURE_ORDER.length ? null : MEASURE_ORDER[at];
+        measurePts = [];
+        clearMeasureLive();
+        const btn = $("#btn-measure");
+        btn.classList.toggle("on", !!measureMode);
+        btn.textContent = measureMode ? `measure · ${measureMode}` : "measure";
+        viewer.canvas.style.cursor = measureMode ? "crosshair" : drawOn ? "crosshair" : "";
+        setNote(measureMode ? MEASURE_HINT[measureMode] : "measure off");
+      };
       $("#btn-clear-board").onclick = () => {
         clearDs("board");
+        measurePts = [];
+        measureCount = 0;
         boardCount = 0;
         setNote("board cleared");
       };
