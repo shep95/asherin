@@ -90,7 +90,9 @@ const EMITTER_CATEGORY = {
   A5: 'widebody', A6: 'fastjet', A7: 'helicopter', B1: 'glider',
 };
 
-export function classifyAircraft({ typeCode, category } = {}) {
+export function classifyAircraft(
+  { typeCode, category }: { typeCode?: string; category?: string | number } = {},
+) {
   const code = String(typeCode || '').trim().toUpperCase();
   if (code) {
     if (FASTJET.has(code)) return 'fastjet';
