@@ -3058,6 +3058,24 @@ const AsherinEyeView = () => {
           if (layerOn.meta) loadWebIndex().catch(() => {});
         }, 40000),
       );
+      // the recorder is server-throttled to one write per 20 s per operator, so
+      // the tab offers slightly slower than that and never busies the endpoint.
+      pollers.push(setInterval(() => void recordTick(), 25000));
+      // footprints follow the camera, but only once it has come to rest —
+      // loading overpass on every frame of a fly-to would be a self-ddos.
+      let settleTimer = null;
+      const onSettle = () => {
+        if (!layerOn.buildings) return;
+        if (settleTimer) clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          loadBuildings(false).catch((e) => setNote(`buildings: ${e.message || e}`));
+        }, 900);
+      };
+      viewer.camera.moveEnd.addEventListener(onSettle);
+      cleanups.push(() => {
+        if (settleTimer) clearTimeout(settleTimer);
+        viewer.camera.moveEnd.removeEventListener(onSettle);
+      });
 
       void emitPull({ organ: "eye", capability: "open", fromSurface: "asherin-eye", status: "ok" });
       setHud();
