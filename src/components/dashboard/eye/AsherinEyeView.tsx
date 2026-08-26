@@ -124,6 +124,20 @@ const LAYER_ROWS = [
     honesty: "osrm + open-meteo wind/precip as cost · sci-fi quantum routing rewritten · not a quantum computer",
     keyed: false,
   },
+  {
+    id: "buildings",
+    label: "city volumes",
+    honesty:
+      "openstreetmap footprints extruded · surveyed height where tagged, flat 8 m guess where not · a footprint is a map, not a floor plan",
+    keyed: false,
+  },
+  {
+    id: "avoid",
+    label: "avoidance grid",
+    honesty:
+      "our own recorded ads-b density folded into 0.25° cells · a hole is only called a void when the ring around it is busy · young grid says unobserved, not avoided",
+    keyed: false,
+  },
 ];
 
 const LAYER_COLOR = {
@@ -146,6 +160,8 @@ const LAYER_COLOR = {
   brittle: "#fb7185",
   future: "#fde68a",
   route: "#67e8f9",
+  buildings: "#cbd5e1",
+  avoid: "#f0abfc",
 };
 
 const MISSIONS = [
