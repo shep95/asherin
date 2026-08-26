@@ -2152,9 +2152,13 @@ const AsherinEyeView = () => {
       if (keys.ion) CesiumG.Ion.defaultAccessToken = keys.ion;
       if (keys.google) CesiumG.GoogleMaps.defaultApiKey = keys.google;
 
+      // cesium insists on a credit container; give it an off-screen sink so no
+      // watermark is stamped over the globe. attribution is listed in the
+      // layers sheet instead, which keeps the imagery licences honoured.
       const credit = document.createElement("div");
       credit.id = "cesium-credit-host";
-      $("#eye-credits").appendChild(credit);
+      credit.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);opacity:0;";
+      root.appendChild(credit);
 
       viewer = new CesiumG.Viewer("eye-stage", {
         timeline: false,
@@ -2170,7 +2174,16 @@ const AsherinEyeView = () => {
         infoBox: false,
         creditContainer: credit,
         terrain: undefined,
+        // alpha buffer so the operator's own dashboard surface is the sky
+        contextOptions: { webgl: { alpha: true, preserveDrawingBuffer: false } },
       });
+      // no painted starfield: the room behind shows through instead.
+      viewer.scene.backgroundColor = CesiumG.Color.TRANSPARENT;
+      viewer.scene.skyBox.show = false;
+      viewer.scene.sun.show = false;
+      viewer.scene.moon.show = false;
+      if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = false;
+      viewer.scene.globe.showGroundAtmosphere = true;
       viewer.scene.globe.depthTestAgainstTerrain = true;
       if (keys.ion) {
         try {
