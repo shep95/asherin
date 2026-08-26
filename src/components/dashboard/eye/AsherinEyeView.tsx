@@ -174,7 +174,24 @@ const LAYER_COLOR = {
   route: "#67e8f9",
   buildings: "#cbd5e1",
   avoid: "#f0abfc",
+  brain: "#f0d08a",
 };
+
+// ── natural language → geospatial intent ─────────────────────────────────────
+// A sentence only reaches the resolver when it reads like an INSTRUCTION about
+// the world rather than a place name. "new delhi" is a place lookup and must
+// stay one — round-tripping it through a model would cost a second and change
+// nothing. "show me every mosque in karnataka" is an intent: a what, a where,
+// and a way of finding it that no button on this rail encodes.
+const INTENT_RE =
+  /\b(show|find|mark|highlight|trace|list|plot|map|pull|where\s+(?:are|is|can)|which|how many|all\s+\w+\s+(?:in|near|around|within)|near|within|inside|owned by|hosted|servers?|databases?|open ports?|ip[s]?\b|asn|running|around this|from here)\b/i;
+
+function looksLikeIntent(s) {
+  const t = String(s || "").trim();
+  if (t.length < 8) return false;
+  if (t.split(/\s+/).length < 3) return false;
+  return INTENT_RE.test(t);
+}
 
 const MISSIONS = [
   { id: "air", title: "air", layers: ["flights", "military"], fly: { lat: 40.64, lon: -73.78, alt: 280000 } },
@@ -557,6 +574,16 @@ async function eyeFeed(feed, params = {}) {
   if (j.error && !Array.isArray(j.rows)) throw new Error(j.error);
   return j;
 }
+
+// the resolver takes minutes-free work but overpass is a volunteer service and
+// the plan can chain up to four sources, so the deadline here is generous and
+// explicit rather than the default feed deadline.
+async function eyeBrain(q, camera) {
+  const j = await authedJson("asherin-eye-brain", { q, camera }, 90000);
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
 
 async function eyeTalk(messages) {
   try {
@@ -2853,6 +2880,81 @@ const AsherinEyeView = () => {
       log.scrollTop = log.scrollHeight;
     }
 
+    // ── natural language → geospatial intent resolution ─────────────────────
+    // The sentence goes out with the camera position; a plan of tool calls
+    // comes back already executed into rows. Nothing here trusts the model for
+    // a coordinate — every pin drawn was returned by a public source, and every
+    // step that refused is spoken as a refusal instead of being swallowed.
+    async function resolveIntent(q) {
+      const cam = viewer?.camera?.positionCartographic;
+      const camera = cam
+        ? {
+            lat: window.Cesium.Math.toDegrees(cam.latitude),
+            lon: window.Cesium.Math.toDegrees(cam.longitude),
+          }
+        : { lat: 0, lon: 0 };
+      setNote("reading the intent · picking sources…");
+      let j;
+      try {
+        j = await eyeBrain(q, camera);
+      } catch (e) {
+        chatLog.push({ role: "eye", text: `intent resolver: ${String(e.message || e).toLowerCase()}` });
+        paintChat();
+        setNote("");
+        return true;
+      }
+      const rows = Array.isArray(j.rows) ? j.rows.filter((r) => r.lat != null && r.lon != null) : [];
+      const steps = Array.isArray(j.steps) ? j.steps : [];
+      const unresolved = Array.isArray(j.unresolved) ? j.unresolved : [];
+      // nothing planned and nothing refused means the resolver had no read on
+      // the sentence at all — hand it back to the place engine rather than
+      // answering with an empty globe.
+      if (!steps.length && !unresolved.length) {
+        setNote("");
+        return false;
+      }
+
+      if (rows.length) {
+        plotRows("brain", rows, `${rows.length} resolved on the globe`);
+        // the camera frames the spread, not the first pin: a nationwide answer
+        // that flies to one mosque has hidden its own result.
+        const focus = j.focus || { lat: rows[0].lat, lon: rows[0].lon };
+        let spreadKm = 0;
+        rows.forEach((r) => {
+          spreadKm = Math.max(spreadKm, kmBetween(focus.lat, focus.lon, r.lat, r.lon));
+        });
+        flyTo(focus.lat, focus.lon, Math.max(6000, Math.min(4.5e6, spreadKm * 3400 + 12000)));
+      } else {
+        clearDs("brain");
+        if (j.focus) flyTo(j.focus.lat, j.focus.lon, 120000);
+      }
+
+      const lines = [];
+      if (j.say) lines.push(String(j.say));
+      else if (j.summary) lines.push(String(j.summary));
+      steps.forEach((s) => {
+        lines.push(
+          s.ok
+            ? `· ${s.label} — ${s.count} · ${s.detail}`
+            : `· ${s.label} — refused · ${s.detail}`,
+        );
+      });
+      if (rows.length) lines.push(`${rows.length} point${rows.length === 1 ? "" : "s"} on the globe.`);
+      unresolved.forEach((u) => lines.push(`· cannot: ${u}`));
+      if ((j.sources || []).length) lines.push(`source: ${(j.sources || []).join(" · ")}`);
+      chatLog.push({ role: "eye", text: lines.join("\n").toLowerCase().slice(0, 1400) });
+      paintChat();
+      setNote(rows.length ? `${rows.length} resolved · ${(j.sources || []).join(" · ")}` : "nothing public matched that");
+      void emitPull({
+        organ: "eye",
+        capability: "intent-resolve",
+        fromSurface: "asherin-eye",
+        status: rows.length ? "ok" : "skip",
+        quote: q.slice(0, 80),
+      });
+      return true;
+    }
+
     async function handleChat(raw) {
       const q0 = String(raw || "").trim();
       if (!q0) return;
@@ -2891,6 +2993,15 @@ const AsherinEyeView = () => {
         wantProperty = false;
         q = q.replace(/^(go to|fly to|take me to)\s+/i, "").trim();
         setCmdMode("place");
+      }
+      // the resolver owns any sentence that describes a thing to find rather
+      // than a place to sit over. a url and the property command keep their
+      // dedicated paths — both are already exact.
+      if (!wantProperty && !url && looksLikeIntent(q)) {
+        const handled = await resolveIntent(q);
+        if (handled) return;
+        // an unresolvable sentence still deserves the old place attempt rather
+        // than a dead end.
       }
       setNote(wantProperty ? "property command · public dossier…" : "engine looking for places…");
       try {
