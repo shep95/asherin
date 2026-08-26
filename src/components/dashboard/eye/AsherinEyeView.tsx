@@ -1004,11 +1004,12 @@ const AsherinEyeView = () => {
             font: "11px Inter",
             fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -18),
-            showBackground: true,
-            // near-opaque ink chip: a half-transparent chip composites badly
-            // against the transparent sky buffer on some gpus and flashes white.
-            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
-            backgroundPadding: new C.Cartesian2(7, 5),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           };
         }
@@ -1041,9 +1042,12 @@ const AsherinEyeView = () => {
             font: "12px Inter",
             fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
-            showBackground: true,
-            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
-            backgroundPadding: new C.Cartesian2(7, 5),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
           },
           asherin: {
             kind: row.kind || "engine",
@@ -1396,9 +1400,12 @@ const AsherinEyeView = () => {
             font: "11px Inter",
             fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
-            showBackground: true,
-            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
-            backgroundPadding: new C.Cartesian2(7, 5),
+            // outlined type instead of a filled chip: chip backgrounds
+            // composite unpredictably against the transparent sky buffer.
+            showBackground: false,
+            style: C.LabelStyle.FILL_AND_OUTLINE,
+            outlineColor: C.Color.fromCssColorString("#07070A").withAlpha(0.9),
+            outlineWidth: 3,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           asherin: {
