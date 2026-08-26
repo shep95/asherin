@@ -2238,11 +2238,19 @@ const AsherinEyeView = () => {
       LAYER_ROWS.forEach((row) => {
         const b = document.createElement("button");
         b.type = "button";
-        b.className = "tog";
+        // a layer that needs a bound key is dimmed and says so, rather than
+        // pretending to arm and then throwing at the operator.
+        b.className = "tog" + (row.keyed ? " keyed" : "");
         b.dataset.layer = row.id;
-        b.textContent = row.label;
+        b.textContent = row.keyed ? `${row.label} · needs key` : row.label;
         b.title = row.honesty;
-        b.onclick = () => enableLayer(row.id, !layerOn[row.id]);
+        b.onclick = () => {
+          if (row.keyed) {
+            setNote(row.honesty);
+            return;
+          }
+          void enableLayer(row.id, !layerOn[row.id]);
+        };
         layerHost.appendChild(b);
       });
       const globeHost = $("#globe-btns");
