@@ -980,6 +980,10 @@ const AsherinEyeView = () => {
               // so an axis lock would fight the track angle.
               rotation: flightRotationProperty(eid),
               color: C.Color.fromCssColorString(color),
+              // from orbit a busy corridor collapses into one yellow smear, so
+              // the silhouette shrinks with camera range instead of stacking.
+              scaleByDistance: new C.NearFarScalar(3.0e5, 1.0, 1.4e7, 0.34),
+              translucencyByDistance: new C.NearFarScalar(3.0e5, 1.0, 1.4e7, 0.62),
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             model: {
