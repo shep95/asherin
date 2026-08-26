@@ -320,8 +320,8 @@ const EYE_HUD_CSS = `
   .eye-dock button.go:hover { background: hsl(var(--accent) / .28); }
 
   .dock-nav {
-    display:flex; gap:6px; align-items:center; padding:0 12px 11px;
-    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+    /* wraps so no control is ever hidden off the right edge of the dock */
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:0 12px 11px;
     scrollbar-width:none;
   }
   .dock-nav::-webkit-scrollbar { display:none; }
@@ -1002,10 +1002,13 @@ const AsherinEyeView = () => {
           ent.label = {
             text: String(row.label || id).slice(0, 42),
             font: "11px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -18),
             showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.5),
+            // near-opaque ink chip: a half-transparent chip composites badly
+            // against the transparent sky buffer on some gpus and flashes white.
+            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
+            backgroundPadding: new C.Cartesian2(7, 5),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           };
         }
@@ -1036,10 +1039,11 @@ const AsherinEyeView = () => {
           label: {
             text: String(row.label || "place").slice(0, 48),
             font: "12px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
             showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
+            backgroundPadding: new C.Cartesian2(7, 5),
           },
           asherin: {
             kind: row.kind || "engine",
@@ -1390,10 +1394,11 @@ const AsherinEyeView = () => {
           label: {
             text: String(row.label || "sat").slice(0, 28),
             font: "11px Inter",
-            fillColor: C.Color.WHITE,
+            fillColor: C.Color.fromCssColorString("#EDEAE4"),
             pixelOffset: new C.Cartesian2(0, -16),
             showBackground: true,
-            backgroundColor: C.Color.BLACK.withAlpha(0.45),
+            backgroundColor: C.Color.fromCssColorString("#0B0B0D").withAlpha(0.82),
+            backgroundPadding: new C.Cartesian2(7, 5),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           asherin: {
