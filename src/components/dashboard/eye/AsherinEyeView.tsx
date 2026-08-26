@@ -2416,6 +2416,18 @@ const AsherinEyeView = () => {
         };
         layerHost.appendChild(b);
       });
+      {
+        // track history is a rendering choice over the flight layers, not a
+        // feed of its own — so it sits with the layers but carries no data id.
+        const t = document.createElement("button");
+        t.type = "button";
+        t.className = "tog";
+        t.dataset.trails = "1";
+        t.textContent = "track history";
+        t.title = "draws the path each aircraft has flown while you watched · nearest contacts only";
+        t.onclick = () => setTrails(!trailsOn);
+        layerHost.appendChild(t);
+      }
       const globeHost = $("#globe-btns");
       GLOBES.forEach((g) => {
         const b = document.createElement("button");
