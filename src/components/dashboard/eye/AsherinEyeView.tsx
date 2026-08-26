@@ -516,11 +516,29 @@ async function eyeTalk(messages) {
   }
 }
 
+// airframe kind for the silhouette: the icao type designator when the feed
+// carries one (adsb.lol `t`), else the opensky/ads-b emitter category. opensky's
+// `origin` is a COUNTRY, never a type code, so it is deliberately not passed in.
+function glyphClass(row) {
+  return classifyAircraft({ typeCode: row?.type || "", category: row?.category });
+}
+
+// base billboard footprint in css px; each class scales against the airliner.
+const FLEET_ICON_PX = 19;
+const TRACKED_ICON_BUMP = 1.35;
+
+function glyphSize(kind, isTracked) {
+  const s = CLASS_SCALE_2D[kind] || 1;
+  return Math.round(FLEET_ICON_PX * s * (isTracked ? TRACKED_ICON_BUMP : 1));
+}
+
+// the single sample airframe glb still stands in for every kind, so the 3d
+// scale is bucketed rather than per-class-truthful.
 function hangarClass(row) {
-  const t = String(row.origin || row.label || "").toUpperCase();
-  if (/B06|B407|H500|R44|A109|EC3|H60|BELL|HELI/.test(t)) return "helo";
-  if (/MQ9|MQ1|RQ|UAV|Q9|DRONE/.test(t)) return "uav";
-  if (/B78|B77|A38|A35|A33|B74|C17|C130|C5|KC/.test(t)) return "heavy";
+  const kind = typeof row === "string" ? row : glyphClass(row);
+  if (kind === "helicopter") return "helo";
+  if (kind === "uav") return "uav";
+  if (kind === "widebody" || kind === "quadjet") return "heavy";
   return "air";
 }
 
