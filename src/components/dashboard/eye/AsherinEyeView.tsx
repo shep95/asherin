@@ -459,22 +459,44 @@ function loadCss(href) {
   document.head.appendChild(l);
 }
 
-async function authedJson(path, body) {
+async function authedJson(path, body, ms = 20000) {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess?.session?.access_token;
   if (!token) throw new Error("sign in to load live layers");
   const base = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const r = await fetch(`${base}/functions/v1/${path}`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: key,
-    },
-    body: JSON.stringify(body),
-  });
-  return r.json();
+  // a hung feed must say it timed out, never spin a layer forever.
+  const ctl = new AbortController();
+  const bell = setTimeout(() => ctl.abort(), ms);
+  let r;
+  try {
+    r = await fetch(`${base}/functions/v1/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+        apikey: key,
+      },
+      body: JSON.stringify(body),
+      signal: ctl.signal,
+    });
+  } catch (e) {
+    if (e && e.name === "AbortError") throw new Error("that feed took too long. try again in a moment.");
+    throw new Error("network refused that feed");
+  } finally {
+    clearTimeout(bell);
+  }
+  const text = await r.text();
+  let j = null;
+  try {
+    j = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(`feed replied with ${r.status} and no json`);
+  }
+  if (!r.ok && !(j && Array.isArray(j.rows))) {
+    throw new Error(String(j?.error || `feed failed with ${r.status}`).toLowerCase());
+  }
+  return j || {};
 }
 
 async function eyeFeed(feed, params = {}) {
