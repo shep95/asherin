@@ -38,7 +38,11 @@ type FeedName =
   | "airgrid"
   | "brittle"
   | "plates"
-  | "route";
+  | "route"
+  | "incidents"
+  | "disasters"
+  | "notices"
+  | "crime";
 
 interface CacheRow {
   at: number;
@@ -67,6 +71,10 @@ const TTL: Record<FeedName, number> = {
   brittle: 90_000,
   plates: 3600_000,
   route: 20_000,
+  incidents: 5 * 60_000,
+  disasters: 5 * 60_000,
+  notices: 6 * 60 * 60_000,
+  crime: 10 * 60_000,
 };
 /** after this a stale body is no longer worth showing at all */
 const MAX_STALE = 6 * 60 * 60_000;
@@ -942,6 +950,370 @@ async function route(params: Record<string, unknown>) {
   };
 }
 
+// ── global civil layer ──────────────────────────────────────────────────────
+// four organs that must answer for EVERY country, not one continent:
+//   incidents  gdelt 2.0        · geocoded world news events, 15-min cadence
+//   disasters  gdacs + eonet    · hazard events, every basin
+//   notices    interpol         · red / yellow / un notices, placed by nationality
+//   crime      federated        · one adapter per publishing jurisdiction, and an
+//                                 explicit "no publisher here" everywhere else.
+//
+// the crime organ is the one that can lie. a map with no dots does not mean a
+// safe city, it means nobody published. so a jurisdiction with no adapter comes
+// back with coverage:"none" and a row-less body that SAYS so.
+
+/** iso2 -> country centroid, fetched once and held for the life of the isolate. */
+let CENTROIDS: Record<string, { lat: number; lon: number; name: string }> | null = null;
+
+async function centroids(): Promise<Record<string, { lat: number; lon: number; name: string }>> {
+  if (CENTROIDS) return CENTROIDS;
+  const d = (await getJson(
+    "https://cdn.jsdelivr.net/gh/eesur/country-codes-lat-long@master/country-codes-lat-long-alpha3.json",
+    12_000,
+  )) as { ref_country_codes?: Array<Record<string, unknown>> };
+  const out: Record<string, { lat: number; lon: number; name: string }> = {};
+  for (const row of d.ref_country_codes ?? []) {
+    const a2 = text(row.alpha2, 2).toUpperCase();
+    const la = num(row.latitude);
+    const lo = num(row.longitude);
+    if (!a2 || la === null || lo === null) continue;
+    out[a2] = { lat: clampLat(la), lon: wrapLon(lo), name: text(row.country, 60) || a2 };
+  }
+  if (!Object.keys(out).length) throw new Error("country centroids came back empty");
+  CENTROIDS = out;
+  return out;
+}
+
+/** deterministic spread so 40 notices for one country do not stack on one pixel */
+function scatter(base: { lat: number; lon: number }, seed: string, i: number) {
+  let h = 2166136261;
+  for (let k = 0; k < seed.length; k++) h = Math.imul(h ^ seed.charCodeAt(k), 16777619);
+  const ang = ((h >>> 0) % 360) * (Math.PI / 180) + i * 0.61;
+  const rad = 0.35 + (((h >>> 9) % 100) / 100) * 1.15;
+  return { lat: clampLat(base.lat + Math.sin(ang) * rad), lon: wrapLon(base.lon + Math.cos(ang) * rad) };
+}
+
+const INCIDENT_QUERY = "(protest OR unrest OR shooting OR explosion OR arrest OR evacuation OR strike)";
+
+async function incidents(params: Record<string, unknown>) {
+  const q = text(params.q, 120) || INCIDENT_QUERY;
+  const span = text(params.span, 8) || "1d";
+  const rows: Array<Record<string, unknown>> = [];
+  let source = "gdelt 2.0 geo";
+  try {
+    const d = (await getJson(
+      `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodeURIComponent(q)}&format=geojson&mode=pointdata&timespan=${encodeURIComponent(span)}`,
+      14_000,
+    )) as { features?: Array<{ geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }> };
+    for (const f of d.features ?? []) {
+      const lo = num(f.geometry?.coordinates?.[0]);
+      const la = num(f.geometry?.coordinates?.[1]);
+      if (la === null || lo === null) continue;
+      const p = f.properties ?? {};
+      rows.push({
+        id: `gdelt:${text(p.name, 60)}:${rows.length}`,
+        label: text(p.name, 60) || "incident cluster",
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        count: num(p.count) ?? 1,
+        note: `${num(p.count) ?? 1} public reports in the last ${span} · gdelt geo · a mention, not a confirmation`,
+      });
+      if (rows.length >= 400) break;
+    }
+  } catch {
+    // geo endpoint refuses more often than the article endpoint. fall back to
+    // articles placed on the publishing country's centroid, and say that the
+    // point is a country, not a street.
+    const c = await centroids();
+    const d = (await getJson(
+      `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=artlist&format=json&maxrecords=120&sort=datedesc`,
+      14_000,
+    )) as { articles?: Array<Record<string, unknown>> };
+    source = "gdelt 2.0 doc (country-level fallback)";
+    (d.articles ?? []).forEach((a, i) => {
+      const iso = text(a.sourcecountry, 40);
+      const hit = Object.values(c).find((v) => v.name.toLowerCase() === iso.toLowerCase());
+      if (!hit) return;
+      const at = scatter(hit, text(a.url, 120) || String(i), i);
+      rows.push({
+        id: `gdelt-doc:${i}`,
+        label: text(a.title, 90) || "public report",
+        lat: at.lat,
+        lon: at.lon,
+        url: text(a.url, 300),
+        note: `${hit.name} · country-level placement, not a street · ${text(a.domain, 60)}`,
+      });
+    });
+  }
+  return {
+    rows,
+    source,
+    note: "worldwide public reporting clusters. every country gdelt indexes, in every language it indexes. a cluster is attention, not truth",
+  };
+}
+
+async function disasters() {
+  const rows: Array<Record<string, unknown>> = [];
+  const notes: string[] = [];
+  const jobs = await Promise.allSettled([
+    getJson("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ,TC,FL,DR,WF,VO", 14_000),
+    getJson("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=200", 12_000),
+  ]);
+
+  if (jobs[0].status === "fulfilled") {
+    const d = jobs[0].value as {
+      features?: Array<{ geometry?: { coordinates?: number[] }; properties?: Record<string, unknown> }>;
+    };
+    for (const f of d.features ?? []) {
+      const lo = num(f.geometry?.coordinates?.[0]);
+      const la = num(f.geometry?.coordinates?.[1]);
+      if (la === null || lo === null) continue;
+      const p = f.properties ?? {};
+      rows.push({
+        id: `gdacs:${text(p.eventid, 24) || rows.length}`,
+        label: text(p.name, 80) || text(p.eventtype, 8) || "hazard",
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        kind: text(p.eventtype, 8),
+        note: `gdacs ${text(p.alertlevel, 10) || "alert"} · ${text(p.country, 60) || "unattributed"} · ${text(p.fromdate, 24)}`,
+      });
+    }
+  } else notes.push("gdacs refused this tick");
+
+  if (jobs[1].status === "fulfilled") {
+    const d = jobs[1].value as { events?: Array<Record<string, unknown>> };
+    for (const e of d.events ?? []) {
+      const geos = (e.geometry as Array<Record<string, unknown>>) ?? [];
+      const last = geos[geos.length - 1];
+      const coords = last?.coordinates as unknown;
+      let la: number | null = null;
+      let lo: number | null = null;
+      if (Array.isArray(coords) && typeof coords[0] === "number") {
+        lo = num(coords[0]);
+        la = num(coords[1]);
+      }
+      if (la === null || lo === null) continue;
+      const cat = ((e.categories as Array<Record<string, unknown>>) ?? [])[0];
+      rows.push({
+        id: `eonet:${text(e.id, 24)}`,
+        label: text(e.title, 80) || "natural event",
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        kind: text(cat?.id, 24),
+        note: `nasa eonet · ${text(cat?.title, 40) || "open event"} · ${text(last?.date, 24)}`,
+      });
+    }
+  } else notes.push("eonet refused this tick");
+
+  if (!rows.length) throw new Error("no hazard publisher answered");
+  return {
+    rows,
+    source: "gdacs + nasa eonet",
+    note: ["global hazard events, every basin", ...notes].join(" · "),
+  };
+}
+
+const NOTICE_KINDS = ["red", "yellow", "un"] as const;
+
+async function notices(params: Record<string, unknown>) {
+  const c = await centroids();
+  const wanted = NOTICE_KINDS.includes(text(params.kind, 8) as (typeof NOTICE_KINDS)[number])
+    ? [text(params.kind, 8) as (typeof NOTICE_KINDS)[number]]
+    : NOTICE_KINDS;
+  const rows: Array<Record<string, unknown>> = [];
+  const notes: string[] = [];
+
+  const jobs = await Promise.allSettled(
+    wanted.map((kind) =>
+      getJson(`https://ws-public.interpol.int/notices/v1/${kind}?resultPerPage=160`, 13_000).then((d) => ({ kind, d })),
+    ),
+  );
+
+  for (const job of jobs) {
+    if (job.status !== "fulfilled") {
+      notes.push("interpol refused one notice class this tick");
+      continue;
+    }
+    const { kind, d } = job.value as { kind: string; d: { _embedded?: { notices?: Array<Record<string, unknown>> } } };
+    const list = d?._embedded?.notices ?? [];
+    list.forEach((n, i) => {
+      const isoList = Array.isArray(n.nationalities) ? (n.nationalities as unknown[]) : [];
+      const iso = text(isoList[0], 2).toUpperCase();
+      const base = c[iso];
+      if (!base) return;
+      const id = text(n.entity_id, 40) || `${kind}-${i}`;
+      const at = scatter(base, id, i);
+      const name = [text(n.forename, 60), text(n.name, 60)].filter(Boolean).join(" ").trim();
+      rows.push({
+        id: `interpol:${id}`,
+        label: (name || "wanted person").toLowerCase(),
+        lat: at.lat,
+        lon: at.lon,
+        kind,
+        note: `interpol ${kind} notice · nationality ${base.name} · born ${text(n.date_of_birth, 12) || "unstated"} · placed on the country, never on an address`,
+      });
+    });
+  }
+
+  if (!rows.length) throw new Error("interpol notices unreadable from this edge right now");
+  return {
+    rows,
+    source: "interpol public notices web service",
+    note: [
+      "red / yellow / un notices worldwide. a notice is a request between police forces, not a conviction",
+      ...notes,
+    ].join(" · "),
+  };
+}
+
+// ── crime: federated, per publishing jurisdiction ───────────────────────────
+type SocrataCity = {
+  key: string;
+  host: string;
+  set: string;
+  latField: string;
+  lonField: string;
+  dateField: string;
+  kindField: string;
+  bbox: [number, number, number, number]; // south, west, north, east
+  label: string;
+};
+
+const SOCRATA_CITIES: SocrataCity[] = [
+  {
+    key: "chicago",
+    host: "data.cityofchicago.org",
+    set: "ijzp-q8t2",
+    latField: "latitude",
+    lonField: "longitude",
+    dateField: "date",
+    kindField: "primary_type",
+    bbox: [41.6, -87.95, 42.05, -87.5],
+    label: "city of chicago open data",
+  },
+  {
+    key: "new york",
+    host: "data.cityofnewyork.us",
+    set: "5uac-w243",
+    latField: "latitude",
+    lonField: "longitude",
+    dateField: "cmplnt_fr_dt",
+    kindField: "ofns_desc",
+    bbox: [40.47, -74.28, 40.93, -73.68],
+    label: "nypd complaint data (current year)",
+  },
+  {
+    key: "los angeles",
+    host: "data.lacity.org",
+    set: "2nrs-mtv8",
+    latField: "lat",
+    lonField: "lon",
+    dateField: "date_occ",
+    kindField: "crm_cd_desc",
+    bbox: [33.68, -118.68, 34.35, -118.14],
+    label: "lapd crime data",
+  },
+  {
+    key: "san francisco",
+    host: "data.sfgov.org",
+    set: "wg3w-h783",
+    latField: "latitude",
+    lonField: "longitude",
+    dateField: "incident_datetime",
+    kindField: "incident_category",
+    bbox: [37.69, -122.55, 37.85, -122.34],
+    label: "sfpd incident reports",
+  },
+];
+
+function inBox(city: SocrataCity, lat: number, lon: number) {
+  const [s, w, n, e] = city.bbox;
+  return lat >= s && lat <= n && lon >= w && lon <= e;
+}
+
+async function socrataCrime(city: SocrataCity, lat: number, lon: number) {
+  const pad = 0.06;
+  const where =
+    `${city.latField} > ${(lat - pad).toFixed(4)} AND ${city.latField} < ${(lat + pad).toFixed(4)} AND ` +
+    `${city.lonField} > ${(lon - pad).toFixed(4)} AND ${city.lonField} < ${(lon + pad).toFixed(4)}`;
+  const url =
+    `https://${city.host}/resource/${city.set}.json?$where=${encodeURIComponent(where)}` +
+    `&$order=${encodeURIComponent(city.dateField)}%20DESC&$limit=200`;
+  const d = (await getJson(url, 13_000)) as Array<Record<string, unknown>>;
+  const rows: Array<Record<string, unknown>> = [];
+  (Array.isArray(d) ? d : []).forEach((r, i) => {
+    const la = num(Number(r[city.latField]));
+    const lo = num(Number(r[city.lonField]));
+    if (la === null || lo === null || (la === 0 && lo === 0)) return;
+    rows.push({
+      id: `${city.key}:${text(r.id ?? r.cmplnt_num ?? r.dr_no ?? r.row_id, 32) || i}`,
+      label: (text(r[city.kindField], 60) || "reported offence").toLowerCase(),
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      when: text(r[city.dateField], 24),
+      note: `${city.label} · reported ${text(r[city.dateField], 10) || "date withheld"} · a report, not a verdict`,
+    });
+  });
+  return { rows, source: city.label, coverage: city.key };
+}
+
+async function policeUkCrime(lat: number, lon: number) {
+  const d = (await getJson(
+    `https://data.police.uk/api/crimes-street/all-crime?lat=${lat.toFixed(5)}&lng=${lon.toFixed(5)}`,
+    15_000,
+  )) as Array<Record<string, unknown>>;
+  const rows: Array<Record<string, unknown>> = [];
+  (Array.isArray(d) ? d : []).slice(0, 400).forEach((r, i) => {
+    const loc = (r.location as Record<string, unknown>) ?? {};
+    const la = num(Number(loc.latitude));
+    const lo = num(Number(loc.longitude));
+    if (la === null || lo === null) return;
+    const street = ((loc.street as Record<string, unknown>) ?? {}).name;
+    rows.push({
+      id: `uk:${text(r.persistent_id, 40) || text(r.id, 24) || i}`,
+      label: text(r.category, 60).replace(/-/g, " ") || "reported crime",
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      when: text(r.month, 8),
+      note: `police.uk street-level · ${text(street, 60) || "anonymised point"} · ${text(r.month, 8)} · point is snapped to a street, never a door`,
+    });
+  });
+  return { rows, source: "police.uk street-level crime", coverage: "united kingdom" };
+}
+
+const UK_BOX: [number, number, number, number] = [49.8, -8.7, 60.9, 1.9];
+
+async function crime(params: Record<string, unknown>) {
+  const lat = num(params.lat);
+  const lon = num(params.lon);
+  if (lat === null || lon === null) throw new Error("point the globe at a place first");
+
+  if (lat >= UK_BOX[0] && lat <= UK_BOX[2] && lon >= UK_BOX[1] && lon <= UK_BOX[3]) {
+    const out = await policeUkCrime(lat, lon);
+    return {
+      ...out,
+      note: `${out.rows.length} street-level reports near this point · police.uk publishes a month behind · a report, not a verdict`,
+    };
+  }
+
+  const city = SOCRATA_CITIES.find((c) => inBox(c, lat, lon));
+  if (city) {
+    const out = await socrataCrime(city, lat, lon);
+    return {
+      ...out,
+      note: `${out.rows.length} reports near this point · ${out.source} · a report, not a verdict`,
+    };
+  }
+
+  // the honest answer, and the important one.
+  return {
+    rows: [],
+    source: "no indexed publisher",
+    coverage: "none",
+    note: "no police force publishes open incident data for this jurisdiction in our index. an empty map here means nobody published — it does not mean nothing happened",
+  };
+}
+
 const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> = {
   flights,
   military: () => military(),
@@ -962,6 +1334,10 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   brittle,
   plates,
   route,
+  incidents,
+  disasters: () => disasters(),
+  notices,
+  crime,
 };
 
 Deno.serve(async (req) => {
@@ -980,7 +1356,7 @@ Deno.serve(async (req) => {
     // Cache key includes only the coordinates that actually change a result,
     // rounded so small camera drift keeps hitting the same warm body.
     const keyBits =
-      feed === "local" || feed === "flights"
+      feed === "local" || feed === "flights" || feed === "crime"
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
         : feed === "places" || feed === "property"
           ? String(params.q ?? "").slice(0, 80)
@@ -998,7 +1374,13 @@ Deno.serve(async (req) => {
                       ? `${Number(params.alat)}:${Number(params.blat)}`
                       : feed === "osmweb"
                         ? `${Math.round(Number(params.lat ?? 0) * 20)}:${Math.round(Number(params.lon ?? 0) * 20)}`
-                        : feed === "webmeta"
+                        : feed === "incidents"
+                          ? String(params.q ?? "").slice(0, 80)
+                          : feed === "notices"
+                            ? String(params.kind ?? "all").slice(0, 8)
+                            : feed === "disasters"
+                              ? "disasters"
+                              : feed === "webmeta"
                           ? String(params.url ?? "").slice(0, 120)
                           : "";
     const key = `${feed}|${keyBits}`;
