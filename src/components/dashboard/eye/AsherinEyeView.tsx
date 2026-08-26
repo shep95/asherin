@@ -1295,7 +1295,10 @@ const AsherinEyeView = () => {
         return;
       }
       const m = ent.asherin || {};
-      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
+      // airframe is a read of the icao type code / emitter category, so it is
+      // shown as a silhouette guess rather than a confirmed tail record.
+      const frame = m.airframe ? ` · ${String(m.airframe)} silhouette` : "";
+      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
       card.style.display = "block";
       const box = root.querySelector(".eye-root") || root;
       const cw = box.clientWidth || 1;
