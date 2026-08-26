@@ -913,7 +913,102 @@ const AsherinEyeView = () => {
       }, false);
     }
 
+    // screen-space glyph spin: every silhouette is drawn nose-up, so the
+    // billboard is rotated by the dead-reckoned track. cesium measures
+    // rotation counter-clockwise, compass heading clockwise — hence the sign.
+    function flightRotationProperty(eid) {
+      const C = window.Cesium;
+      return new C.CallbackProperty(() => {
+        const s = samples[eid];
+        if (!s) return 0;
+        return -C.Math.toRadians(reckon(s, Date.now()).heading || 0);
+      }, false);
+    }
+
     function upsertFlights(id, rows) {
+      const C = window.Cesium;
+      const src = dsFor(id);
+      const seen = new Set();
+      const color = LAYER_COLOR[id] || "#94a3b8";
+      const now = Date.now();
+      (rows || []).forEach((row, i) => {
+        if (row.lat == null || row.lon == null) return;
+        let alt = Number(row.alt || 0);
+        if (alt > 20000) alt = alt * 0.3048;
+        const eid = `${id}:${row.id || i}`;
+        seen.add(eid);
+        const kind = glyphClass(row);
+        const klass = hangarClass(kind);
+        const isTracked = tracked?.id === eid;
+        samples[eid] = {
+          lat: Number(row.lat),
+          lon: Number(row.lon),
+          alt,
+          speed: Number(row.speed || 0),
+          heading: Number(row.heading || 0),
+          t: now,
+          label: row.label || id,
+          kind,
+          klass,
+        };
+        const hist = pathHist[eid] || (pathHist[eid] = []);
+        const last = hist[hist.length - 1];
+        if (!last || Math.abs(last.lat - Number(row.lat)) + Math.abs(last.lon - Number(row.lon)) > 0.00025) {
+          hist.push({ lat: Number(row.lat), lon: Number(row.lon), alt, t: now });
+          if (hist.length > 240) hist.splice(0, hist.length - 240);
+        }
+        const px = glyphSize(kind, isTracked);
+        let ent = src.entities.getById(eid);
+        if (!ent) {
+          ent = src.entities.add({
+            id: eid,
+            name: row.label || id,
+            position: flightPositionProperty(eid),
+            orientation: flightOrientationProperty(eid),
+            billboard: {
+              image: aircraftIcon(kind, isTracked ? TRACKED_ICON_PX : undefined),
+              width: px,
+              height: px,
+              // no alignedAxis: the glyph is spun in screen space by rotation,
+              // so an axis lock would fight the track angle.
+              rotation: flightRotationProperty(eid),
+              color: C.Color.fromCssColorString(color),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            model: {
+              uri: HANGAR_GLB,
+              scale: hangarScale(klass),
+              minimumPixelSize: 40,
+              maximumScale: 40000,
+              color: C.Color.fromCssColorString("#e8e4d8"),
+              colorBlendMode: C.ColorBlendMode.HIGHLIGHT,
+              colorBlendAmount: 0.55,
+              show: false,
+            },
+            viewFrom: new C.Cartesian3(-140, -50, 32),
+            asherin: { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind },
+          });
+        } else {
+          ent.name = row.label || id;
+          ent.asherin = { kind: id, label: row.label || id, lat: row.lat, lon: row.lon, klass, airframe: kind };
+          if (ent.model) ent.model.scale = hangarScale(klass);
+          if (ent.billboard) {
+            ent.billboard.image = aircraftIcon(kind, isTracked ? TRACKED_ICON_PX : undefined);
+            ent.billboard.width = px;
+            ent.billboard.height = px;
+          }
+        }
+      });
+      src.entities.values.slice().forEach((e) => {
+        if (!seen.has(e.id) && tracked?.id !== e.id) {
+          src.entities.remove(e);
+          dropTrail(e.id);
+          delete pathHist[e.id];
+        }
+      });
+    }
+
+    function _unusedUpsertFlights(id, rows) {
       const C = window.Cesium;
       const src = dsFor(id);
       const seen = new Set();
