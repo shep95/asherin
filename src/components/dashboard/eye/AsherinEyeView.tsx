@@ -682,6 +682,7 @@ const AsherinEyeView = () => {
     let dead = false;
     let viewer;
     let pollers = [];
+    const cleanups = [];
     let stage;
     let tracked;
     let trail;
@@ -3125,6 +3126,11 @@ const AsherinEyeView = () => {
     return () => {
       dead = true;
       pollers.forEach(clearInterval);
+      cleanups.forEach((fn) => {
+        try {
+          fn();
+        } catch {}
+      });
       try {
         if (keyHandler) document.removeEventListener("keydown", keyHandler);
       } catch {}
