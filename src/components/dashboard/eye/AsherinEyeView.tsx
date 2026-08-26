@@ -3126,6 +3126,11 @@ const AsherinEyeView = () => {
     return () => {
       dead = true;
       pollers.forEach(clearInterval);
+      cleanups.forEach((fn) => {
+        try {
+          fn();
+        } catch {}
+      });
       try {
         if (keyHandler) document.removeEventListener("keydown", keyHandler);
       } catch {}
