@@ -2294,7 +2294,15 @@ const AsherinEyeView = () => {
 
       document.addEventListener("keydown", onKey);
       function onKey(e) {
+        // the dock is a text surface now — never steal digits from the composer.
+        const t = e.target;
+        const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+        if (typing) {
+          if (e.key === "Escape") t.blur();
+          return;
+        }
         if (e.key === "Escape") releaseTrack();
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
         const n = Number(e.key);
         if (n >= 1 && n <= STYLES.length) applyStyle(STYLES[n - 1]);
       }
