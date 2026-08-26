@@ -2328,7 +2328,6 @@ const AsherinEyeView = () => {
 
     function bindMeasure() {
       const cv = viewer.canvas;
-      window.__eyeMeasure = () => ({ mode: measureMode, pts: measurePts.length, count: measureCount });
       cv.addEventListener("click", (e) => {
         if (!measureMode || drawOn || e.button !== 0) return;
         const p = screenToLonLat(e.offsetX, e.offsetY);
