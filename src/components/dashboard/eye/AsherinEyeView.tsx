@@ -2155,6 +2155,14 @@ const AsherinEyeView = () => {
         setNote("type route to <place> in chat · osrm public drive path + weather cost");
         return;
       }
+      if (id === "buildings") {
+        await loadBuildings(true);
+        return;
+      }
+      if (id === "avoid") {
+        await loadAvoidance();
+        return;
+      }
       const cam = viewer?.camera?.positionCartographic;
       const params = {};
       if (cam && window.Cesium) {
