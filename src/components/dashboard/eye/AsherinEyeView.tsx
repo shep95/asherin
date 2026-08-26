@@ -1969,7 +1969,7 @@ const AsherinEyeView = () => {
         capability: "trails",
         fromSurface: "asherin-eye",
         status: "ok",
-        detail: trailsOn ? "on" : "off",
+        quote: trailsOn ? "track history on" : "track history off",
       });
     }
 
