@@ -631,6 +631,12 @@ const AsherinEyeView = () => {
     let stage;
     let tracked;
     let trail;
+    // fleet track history: one polyline per contact, only for the contacts
+    // nearest the camera so a 2 500-aircraft snapshot never becomes 2 500 lines.
+    let trailsOn = false;
+    const fleetTrails = {};
+    const FLEET_TRAIL_MAX = 90;
+    const FLEET_TRAIL_KM = 900;
     let modelOn = false;
     let camMode = "chase";
     let orbitHeading = 0;
