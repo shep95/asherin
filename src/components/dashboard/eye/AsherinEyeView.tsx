@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { emitPull } from "@/lib/connect/emitPull";
 import { aircraftIcon, TRACKED_ICON_PX } from "./aircraftIcons";
 import { classifyAircraft, CLASS_SCALE_2D } from "./aircraftClass";
+import { cellBounds, gridMaturity, scoreAvoidance } from "./gridMath";
+import { evaluate as evaluateShape, fitStroke, fmtArea, fmtM } from "./whiteboard";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
