@@ -334,6 +334,49 @@ const EYE_HUD_CSS = `
   .contacts .hit:hover { color: var(--accent); }
   .contacts .hit span { color: hsl(var(--foreground) / .34); display:block; font-size:clamp(10px, 1cqi, 11px); }
 
+  /* ── camera wall: agency-published frames, never a hijacked device ──── */
+  .camwall {
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    top:calc(var(--pad) + var(--safe-t) + clamp(64px, 14cqh, 116px));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:9;
+    width:min(392px, 38cqi); padding:clamp(11px, 1.4cqi, 15px);
+    overflow:auto; pointer-events:auto; -webkit-overflow-scrolling:touch;
+  }
+  .camwall[hidden] { display:none; }
+  .camwall-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .camwall h2 {
+    margin:0 0 10px; font:400 clamp(9px, .95cqi, 10px)/1 inherit; letter-spacing:.22em;
+    text-transform:uppercase; color: hsl(var(--foreground) / .38); overflow-wrap:anywhere;
+  }
+  #camwall-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap:8px; }
+  .camcell {
+    border:1px solid var(--line); border-radius:12px; overflow:hidden; background:hsl(var(--foreground) / .03);
+    cursor:pointer; padding:0; text-align:left; color:var(--ink); width:100%; display:block;
+    transition: border-color .3s var(--ease), transform .3s var(--ease);
+  }
+  .camcell:hover { border-color: hsl(var(--accent) / .42); transform: translateY(-1px); }
+  .camcell.on { border-color: hsl(var(--accent) / .6); }
+  .camcell .shot, #camwall-focus .shot {
+    display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:hsl(var(--foreground) / .05);
+  }
+  .camcell .cap {
+    display:block; padding:6px 8px 8px; font:300 clamp(9.5px, 1cqi, 11px)/1.35 inherit;
+    color: hsl(var(--foreground) / .66); overflow-wrap:anywhere;
+  }
+  .camcell .cap i { display:block; font-style:normal; color: hsl(var(--foreground) / .32); }
+  #camwall-focus { margin-bottom:10px; }
+  #camwall-focus:empty { display:none; }
+  #camwall-focus .shot { border-radius:12px; border:1px solid hsl(var(--accent) / .38); aspect-ratio:16/9; }
+  #camwall-focus .meta {
+    padding:7px 2px 0; font:300 clamp(10px, 1.05cqi, 11.5px)/1.45 inherit; color: hsl(var(--foreground) / .6);
+    overflow-wrap:anywhere;
+  }
+  #camwall-focus .meta b { color: var(--accent); font-weight:400; }
+  .camwall-foot {
+    margin-top:10px; padding-top:8px; border-top:1px solid var(--line-soft);
+    font:300 clamp(9.5px, 1cqi, 11px)/1.45 inherit; color: hsl(var(--foreground) / .34); overflow-wrap:anywhere;
+  }
+
   #note {
     position:absolute; right:calc(var(--pad) + var(--safe-r));
     bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
@@ -442,9 +485,9 @@ const EYE_HUD_CSS = `
       top:auto; width:auto; height:min(40cqh, 48%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
     }
     .sheet.open { display:flex; flex-direction:column; }
-    .contacts {
+    .contacts, .camwall {
       left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(30cqh, 230px);
+      width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(40cqh, 300px);
     }
     .eye-dock { width:calc(100cqi - 2 * var(--pad) - var(--safe-l) - var(--safe-r)); }
     #note { max-width:calc(100cqi - 2 * var(--pad)); }
@@ -454,7 +497,7 @@ const EYE_HUD_CSS = `
     .eye-root { --dock-h: clamp(128px, 34cqh, 190px); }
     .eye-dock .chat-log { max-height:min(24cqh, 120px); }
     .sheet { max-height:calc(100cqh - var(--dock-h) - 12px); }
-    .contacts { top:calc(var(--pad) + 46px); }
+    .contacts, .camwall { top:calc(var(--pad) + 46px); }
   }
   @container eye (min-width: 1600px) {
     .sheet { width: min(340px, 22cqi); }
@@ -811,6 +854,15 @@ const AsherinEyeView = () => {
           <h2>contacts · 250 km</h2>
           <div id="contact-list"></div>
         </div>
+        <div class="glass camwall" id="camwall" hidden>
+          <div class="camwall-head">
+            <h2 id="camwall-title">street cameras</h2>
+            <button type="button" class="sheet-close" id="camwall-close" style="display:block">close</button>
+          </div>
+          <div id="camwall-focus"></div>
+          <div id="camwall-grid"></div>
+          <div class="camwall-foot" id="camwall-foot"></div>
+        </div>
         <div class="glass hover-card" id="hover-card"></div>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
@@ -827,6 +879,7 @@ const AsherinEyeView = () => {
             <span class="dock-sep"></span>
             <button type="button" class="nav" id="btn-layers">layers</button>
             <button type="button" class="nav" id="btn-contacts">contacts</button>
+            <button type="button" class="nav" id="btn-camwall">cameras</button>
             <button type="button" class="nav" id="btn-cockpit">cockpit</button>
             <button type="button" class="nav" id="btn-chase">chase</button>
             <button type="button" class="nav" id="btn-orbit">orbit</button>
@@ -1198,6 +1251,12 @@ const AsherinEyeView = () => {
             url: row.url,
             image: row.image,
             note: row.note,
+            video: row.video,
+            credit: row.credit,
+            city: row.city,
+            roadway: row.roadway,
+            direction: row.direction,
+            km: row.km,
           },
         };
         if (id === "quakes") {
@@ -1249,6 +1308,127 @@ const AsherinEyeView = () => {
         src.entities.add(ent);
       });
       if (note) setNote(note);
+    }
+
+    // ── camera wall ─────────────────────────────────────────────────────
+    // a frame is only worth showing if it is the frame the agency is
+    // publishing right now, so every tile re-requests its own still on a
+    // cadence and carries the agency that owns it. nothing is hijacked;
+    // these are open, published catalogues.
+    let camRows = [];
+    let camFocusId = null;
+    let camTimer = null;
+    const CAM_REFRESH_MS = 15_000;
+    const CAM_TILES = 12;
+
+    const camBust = (u) => (u ? u + (u.includes("?") ? "&" : "?") + "_t=" + Date.now() : "");
+
+    function camWallOpen() {
+      const el = $("#camwall");
+      return el && !el.hidden;
+    }
+
+    function renderCamWall() {
+      const grid = $("#camwall-grid");
+      const focus = $("#camwall-focus");
+      const foot = $("#camwall-foot");
+      if (!grid) return;
+      const live = camRows.filter((c) => c.image);
+      if (!live.length) {
+        grid.innerHTML = "";
+        focus.innerHTML = "";
+        foot.textContent = "no agency in this view publishes an open frame · turn on the cameras layer over california, new york, ontario, british columbia, austin, london or finland";
+        return;
+      }
+      const chosen = live.find((c) => c.id === camFocusId) || null;
+      focus.innerHTML = "";
+      if (chosen) {
+        const img = document.createElement("img");
+        img.className = "shot";
+        img.alt = chosen.label || "street camera frame";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.src = camBust(chosen.image);
+        img.dataset.src = chosen.image;
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = "<b></b><span></span>";
+        meta.querySelector("b").textContent = chosen.label || "camera";
+        meta.querySelector("span").textContent =
+          " · " +
+          [chosen.roadway, chosen.direction, chosen.city, chosen.credit, Number.isFinite(chosen.km) ? chosen.km + " km" : ""]
+            .filter(Boolean)
+            .join(" · ");
+        focus.append(img, meta);
+      }
+      grid.innerHTML = "";
+      live.slice(0, CAM_TILES).forEach((c) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "camcell" + (c.id === camFocusId ? " on" : "");
+        const img = document.createElement("img");
+        img.className = "shot";
+        img.alt = c.label || "street camera frame";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.src = camBust(c.image);
+        img.dataset.src = c.image;
+        img.onerror = () => {
+          // an agency frame that will not load is a dead view, not a black
+          // rectangle pretending to be a street.
+          b.remove();
+        };
+        const cap = document.createElement("span");
+        cap.className = "cap";
+        cap.textContent = (c.label || "camera").slice(0, 60);
+        const sub = document.createElement("i");
+        sub.textContent = [c.city, Number.isFinite(c.km) ? c.km + " km" : ""].filter(Boolean).join(" · ");
+        cap.appendChild(sub);
+        b.append(img, cap);
+        b.onclick = () => {
+          camFocusId = c.id;
+          renderCamWall();
+          flyToCamera(c);
+        };
+        grid.appendChild(b);
+      });
+      const credits = Array.from(new Set(live.map((c) => c.credit).filter(Boolean)));
+      foot.textContent =
+        live.length + " cameras with a live frame · refreshing every " + CAM_REFRESH_MS / 1000 + "s · " + credits.join(" · ");
+    }
+
+    function refreshCamFrames() {
+      if (!camWallOpen() || document.hidden) return;
+      root.querySelectorAll("#camwall img.shot").forEach((img) => {
+        if (img.dataset.src) img.src = camBust(img.dataset.src);
+      });
+    }
+
+    function flyToCamera(c) {
+      const C = window.Cesium;
+      if (!viewer || !C || !Number.isFinite(c?.lat) || !Number.isFinite(c?.lon)) return;
+      viewer.camera.flyTo({
+        destination: C.Cartesian3.fromDegrees(c.lon, c.lat, 1200),
+        duration: 1.1,
+      });
+    }
+
+    function setCamWall(on, focusId) {
+      const el = $("#camwall");
+      if (!el) return;
+      el.hidden = !on;
+      $("#btn-camwall")?.classList.toggle("on", on);
+      if (focusId) camFocusId = focusId;
+      if (on) {
+        $("#contacts").hidden = true;
+        renderCamWall();
+        if (!camTimer) camTimer = window.setInterval(refreshCamFrames, CAM_REFRESH_MS);
+      } else if (camTimer) {
+        window.clearInterval(camTimer);
+        camTimer = null;
+      }
     }
 
     function pinEngine(rows, flyFirst) {
@@ -2471,6 +2651,11 @@ const AsherinEyeView = () => {
       }
       const feedName = id === "cameras" ? "cameras" : id === "zones" ? "airgrid" : id;
       const j = await eyeFeed(feedName, params);
+      if (id === "cameras") {
+        camRows = (j.rows || []).filter((r) => r && r.image);
+        if (!camRows.some((c) => c.id === camFocusId)) camFocusId = camRows[0]?.id || null;
+        setCamWall(true);
+      }
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
@@ -3246,6 +3431,17 @@ const AsherinEyeView = () => {
           highlightCountry(ent);
           return;
         }
+        if (ent?.asherin?.kind === "cameras") {
+          const meta = ent.asherin;
+          const key = String(ent.id).slice("cameras:".length);
+          if (!camRows.some((c) => c.id === key) && meta.image) {
+            camRows = [{ ...meta, id: key }, ...camRows];
+          }
+          setCamWall(true, key);
+          hoverEnt = ent;
+          pinHoverCard();
+          return;
+        }
         if (ent && ent.asherin) {
           hoverEnt = ent;
           trackEntity(ent);
@@ -3308,10 +3504,38 @@ const AsherinEyeView = () => {
         if (on) $("#contacts").hidden = true;
       };
       $("#sheet-close").onclick = () => setSheetOpen(false);
+      $("#camwall-close").onclick = () => setCamWall(false);
+      $("#btn-camwall").onclick = async () => {
+        if (camWallOpen()) {
+          setCamWall(false);
+          return;
+        }
+        setCamWall(true);
+        if (!camRows.length) {
+          setNote("pulling open agency camera catalogues in view…");
+          try {
+            await loadLayer("cameras");
+            root.querySelectorAll("#layer-btns .tog").forEach((b) => {
+              if (b.dataset.layer === "cameras") b.classList.add("on");
+            });
+            layerOn.cameras = true;
+          } catch (e) {
+            setNote(String(e?.message || e));
+            renderCamWall();
+          }
+        }
+      };
+      cleanups.push(() => {
+        if (camTimer) window.clearInterval(camTimer);
+        camTimer = null;
+      });
       $("#btn-contacts").onclick = () => {
         const el = $("#contacts");
         el.hidden = !el.hidden;
-        if (!el.hidden) setSheetOpen(false);
+        if (!el.hidden) {
+          setSheetOpen(false);
+          setCamWall(false);
+        }
         refreshContacts();
       };
       let detectOn = false;

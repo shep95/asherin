@@ -58,7 +58,7 @@ const TTL: Record<FeedName, number> = {
   quakes: 60_000,
   stations: 8_000,
   launches: 15 * 60_000,
-  cameras: 6 * 60 * 60_000,
+  cameras: 5 * 60_000,
   radio: 45 * 60_000,
   spaceweather: 10 * 60_000,
   local: 5 * 60_000,
@@ -279,60 +279,354 @@ async function launches() {
   return { rows, source: "launch library 2 — the space devs", note: "pads and event timing, not live ascent" };
 }
 
-async function cameras() {
-  const out: Array<Record<string, unknown>> = [];
-  const notes: string[] = [];
+// ── public street cameras ───────────────────────────────────────────────────
+// A camera catalogue is only honest when the frame it advertises is the frame
+// the agency is publishing right now. So every source below is an OPEN,
+// keyless agency catalogue that carries a still-frame url; nothing is scraped,
+// nothing is hijacked, and nothing is invented where an agency publishes only
+// a position. Catalogues are heavy (Caltrans alone is ~2 MB per district) and
+// they change hourly at most, so each one is cached in module memory and the
+// fan-out is gated by the operator's viewport: standing over London must not
+// pull twelve Caltrans districts.
 
-  const jobs = await Promise.allSettled([
-    getJson("https://data.austintexas.gov/resource/b4k4-adkb.json?$limit=1000", 14_000),
-    getJson("https://api.tfl.gov.uk/Place/Type/JamCam", 20_000),
-  ]);
-
-  if (jobs[0].status === "fulfilled") {
-    const rows = jobs[0].value as Array<Record<string, unknown>>;
-    for (const c of rows) {
-      const loc = c.location as { coordinates?: number[] } | undefined;
-      const lo = num(loc?.coordinates?.[0]);
-      const la = num(loc?.coordinates?.[1]);
-      const img = text(c.screenshot_address, 300);
-      if (la === null || lo === null || !img.startsWith("https://")) continue;
-      if (text(c.camera_status, 30) !== "TURNED_ON") continue;
-      out.push({
-        id: `austin-${text(c.camera_id, 16)}`,
-        label: text(c.location_name, 80).toLowerCase() || "austin camera",
-        lat: clampLat(la),
-        lon: wrapLon(lo),
-        image: img,
-        city: "austin",
-        credit: "city of austin open data",
-      });
-    }
-  } else notes.push("austin catalog did not answer");
-
-  if (jobs[1].status === "fulfilled") {
-    const rows = jobs[1].value as Array<Record<string, unknown>>;
-    for (const p of rows) {
-      const la = num(p.lat);
-      const lo = num(p.lon);
-      const props = (p.additionalProperties ?? []) as Array<Record<string, unknown>>;
-      const img = text(props.find((x) => x.key === "imageUrl")?.value, 300);
-      const available = text(props.find((x) => x.key === "available")?.value, 8);
-      if (la === null || lo === null || !img.startsWith("https://") || available === "false") continue;
-      out.push({
-        id: `london-${text(p.id, 40)}`,
-        label: text(p.commonName, 80).toLowerCase() || "london camera",
-        lat: clampLat(la),
-        lon: wrapLon(lo),
-        image: img,
-        city: "london",
-        credit: "powered by tfl open data",
-      });
-    }
-  } else notes.push("tfl jamcams did not answer");
-
-  if (!out.length) throw new Error("no camera catalog available");
-  return { rows: out, source: "austin open data · tfl open data", note: notes.join(" · ") };
+interface CamRow {
+  id: string;
+  label: string;
+  lat: number;
+  lon: number;
+  image?: string;
+  video?: string;
+  city: string;
+  credit: string;
+  roadway?: string;
+  direction?: string;
 }
+
+interface CamSource {
+  id: string;
+  /** south, west, north, east — the agency's jurisdiction */
+  box: [number, number, number, number];
+  credit: string;
+  load: () => Promise<CamRow[]>;
+}
+
+const CAM_CACHE = new Map<string, { at: number; rows: CamRow[] }>();
+const CAM_TTL_MS = 30 * 60_000;
+
+async function camCached(id: string, load: () => Promise<CamRow[]>): Promise<CamRow[]> {
+  const hit = CAM_CACHE.get(id);
+  if (hit && Date.now() - hit.at < CAM_TTL_MS) return hit.rows;
+  try {
+    const rows = await load();
+    if (rows.length) CAM_CACHE.set(id, { at: Date.now(), rows });
+    return rows;
+  } catch (e) {
+    // a refusing agency serves its last good catalogue rather than an empty
+    // city, which would read as "no cameras here" — a different claim.
+    if (hit) return hit.rows;
+    throw e;
+  }
+}
+
+/** agency frames are sometimes advertised over http; the app is https-only. */
+const https = (u: string) => (u.startsWith("http://") ? "https://" + u.slice(7) : u);
+
+const CALTRANS_D = ["3", "4", "5", "6", "7", "8", "10", "11", "12"];
+
+async function caltransCams(): Promise<CamRow[]> {
+  const lists = await Promise.allSettled(
+    CALTRANS_D.map((d) =>
+      getJson(`https://cwwp2.dot.ca.gov/data/d${d}/cctv/cctvStatusD${d.padStart(2, "0")}.json`, 20_000).then((j) => ({
+        d,
+        j,
+      })),
+    ),
+  );
+  const out: CamRow[] = [];
+  for (const l of lists) {
+    if (l.status !== "fulfilled") continue;
+    const { d, j } = l.value as { d: string; j: { data?: Array<Record<string, unknown>> } };
+    for (const row of j.data ?? []) {
+      const c = row.cctv as Record<string, unknown> | undefined;
+      const loc = c?.location as Record<string, unknown> | undefined;
+      const la = Number(loc?.latitude);
+      const lo = Number(loc?.longitude);
+      if (!Number.isFinite(la) || !Number.isFinite(lo) || (la === 0 && lo === 0)) continue;
+      const imgData = c?.imageData as Record<string, unknown> | undefined;
+      const still = imgData?.static as Record<string, unknown> | undefined;
+      const img = text(still?.currentImageURL, 300);
+      if (!img) continue;
+      out.push({
+        id: `caltrans-${d}-${text(c?.index, 12) || `${la},${lo}`}`,
+        label: (text(loc?.locationName, 70) || "caltrans cctv").toLowerCase(),
+        lat: clampLat(la),
+        lon: wrapLon(lo),
+        image: https(img),
+        video: https(text(imgData?.streamingVideoURL, 300)) || undefined,
+        city: "california",
+        credit: "caltrans cctv · california dot",
+        roadway: text(loc?.route, 24) || undefined,
+        direction: text(loc?.direction, 16) || undefined,
+      });
+    }
+  }
+  if (!out.length) throw new Error("caltrans declined");
+  return out;
+}
+
+async function ny511Cams(): Promise<CamRow[]> {
+  const rows = (await getJson("https://511ny.org/api/getcameras?key=public&format=json", 20_000)) as Array<
+    Record<string, unknown>
+  >;
+  const out: CamRow[] = [];
+  for (const r of rows ?? []) {
+    const la = Number(r.Latitude);
+    const lo = Number(r.Longitude);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) continue;
+    if (r.Disabled === true || r.Blocked === true) continue;
+    const id = text(r.ID, 40);
+    if (!id) continue;
+    out.push({
+      id: `ny511-${id}`,
+      label: (text(r.Name, 70) || "nysdot cctv").toLowerCase(),
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      // the agency serves the current frame from its own map endpoint keyed by
+      // camera id; that is the same image its public map draws.
+      image: `https://511ny.org/map/Cctv/${encodeURIComponent(id)}`,
+      video: text(r.VideoUrl, 300) || undefined,
+      city: "new york state",
+      credit: "511ny · new york state dot",
+      roadway: text(r.RoadwayName, 40) || undefined,
+      direction: text(r.DirectionOfTravel, 16) || undefined,
+    });
+  }
+  if (!out.length) throw new Error("511ny declined");
+  return out;
+}
+
+async function on511Cams(): Promise<CamRow[]> {
+  const rows = (await getJson("https://511on.ca/api/v2/get/cameras?format=json", 20_000)) as Array<
+    Record<string, unknown>
+  >;
+  const out: CamRow[] = [];
+  for (const r of rows ?? []) {
+    const la = Number(r.Latitude);
+    const lo = Number(r.Longitude);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) continue;
+    const views = (r.Views ?? []) as Array<Record<string, unknown>>;
+    const live = views.find((v) => text(v.Status, 16) !== "Disabled" && text(v.Url, 200));
+    if (!live) continue;
+    out.push({
+      id: `on511-${text(r.Id, 16)}`,
+      label: (text(r.Location, 70) || "ontario mto camera").toLowerCase(),
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      image: https(text(live.Url, 200)),
+      city: "ontario",
+      credit: "511 ontario · ministry of transportation",
+      roadway: text(r.Roadway, 24) || undefined,
+      direction: text(r.Direction, 16) || undefined,
+    });
+  }
+  if (!out.length) throw new Error("511 ontario declined");
+  return out;
+}
+
+async function driveBcCams(): Promise<CamRow[]> {
+  const rows = (await getJson("https://www.drivebc.ca/api/webcams/", 20_000)) as Array<Record<string, unknown>>;
+  const out: CamRow[] = [];
+  for (const r of rows ?? []) {
+    const geo = r.location as { coordinates?: number[] } | undefined;
+    const lo = Number(geo?.coordinates?.[0]);
+    const la = Number(geo?.coordinates?.[1]);
+    const links = (r.links ?? {}) as Record<string, unknown>;
+    const rel = text(links.imageDisplay, 200);
+    if (!Number.isFinite(la) || !Number.isFinite(lo) || !rel) continue;
+    out.push({
+      id: `drivebc-${Number(r.id) || text(r.id, 16)}`,
+      label: (text(r.caption, 70) || text(r.name, 70) || "drivebc webcam").toLowerCase(),
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      image: rel.startsWith("http") ? https(rel) : `https://www.drivebc.ca${rel}`,
+      city: "british columbia",
+      credit: "drivebc · bc ministry of transportation",
+      roadway: text(r.highway, 24) || undefined,
+      direction: text(r.orientation, 16) || undefined,
+    });
+  }
+  if (!out.length) throw new Error("drivebc declined");
+  return out;
+}
+
+async function digitrafficCams(): Promise<CamRow[]> {
+  const j = (await getJson("https://tie.digitraffic.fi/api/weathercam/v1/stations", 20_000, {
+    "digitraffic-user": "asherin.eye",
+  })) as { features?: Array<Record<string, unknown>> };
+  const out: CamRow[] = [];
+  for (const f of j.features ?? []) {
+    const geo = f.geometry as { coordinates?: number[] } | undefined;
+    const lo = num(geo?.coordinates?.[0]);
+    const la = num(geo?.coordinates?.[1]);
+    const p = (f.properties ?? {}) as Record<string, unknown>;
+    if (la === null || lo === null) continue;
+    if (text(p.collectionStatus, 20) !== "GATHERING") continue;
+    // the station list is fetched once; each preset is one physical view, and
+    // the first in-collection preset is the one the agency is refreshing.
+    const presets = (p.presets ?? []) as Array<Record<string, unknown>>;
+    const preset = presets.find((x) => x.inCollection === true && text(x.id, 20));
+    if (!preset) continue;
+    const presetId = text(preset.id, 20);
+    const frame = text(preset.imageUrl, 200) || `https://weathercam.digitraffic.fi/${presetId}.jpg`;
+    const names = (p.names ?? {}) as Record<string, unknown>;
+    out.push({
+      id: `fintraffic-${text(p.id, 20)}`,
+      label: (text(names.en, 70) || text(p.name, 70) || "fintraffic camera").toLowerCase(),
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      image: https(frame),
+      city: text(p.municipality, 40).toLowerCase() || "finland",
+      credit: "fintraffic digitraffic · road weather cameras",
+      direction: text(preset.presentationName, 24) || undefined,
+    });
+  }
+  if (!out.length) throw new Error("digitraffic declined");
+  return out;
+}
+
+async function austinCams(): Promise<CamRow[]> {
+  const rows = (await getJson("https://data.austintexas.gov/resource/b4k4-adkb.json?$limit=1000", 14_000)) as Array<
+    Record<string, unknown>
+  >;
+  const out: CamRow[] = [];
+  for (const c of rows ?? []) {
+    const loc = c.location as { coordinates?: number[] } | undefined;
+    const lo = num(loc?.coordinates?.[0]);
+    const la = num(loc?.coordinates?.[1]);
+    const img = text(c.screenshot_address, 300);
+    if (la === null || lo === null || !img.startsWith("https://")) continue;
+    if (text(c.camera_status, 30) !== "TURNED_ON") continue;
+    out.push({
+      id: `austin-${text(c.camera_id, 16)}`,
+      label: text(c.location_name, 70).toLowerCase() || "austin camera",
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      image: img,
+      city: "austin",
+      credit: "city of austin open data",
+    });
+  }
+  if (!out.length) throw new Error("austin declined");
+  return out;
+}
+
+async function tflCams(): Promise<CamRow[]> {
+  const rows = (await getJson("https://api.tfl.gov.uk/Place/Type/JamCam", 20_000)) as Array<Record<string, unknown>>;
+  const out: CamRow[] = [];
+  for (const p of rows ?? []) {
+    const la = num(p.lat);
+    const lo = num(p.lon);
+    const props = (p.additionalProperties ?? []) as Array<Record<string, unknown>>;
+    const img = text(props.find((x) => x.key === "imageUrl")?.value, 300);
+    const vid = text(props.find((x) => x.key === "videoUrl")?.value, 300);
+    const available = text(props.find((x) => x.key === "available")?.value, 8);
+    if (la === null || lo === null || !img.startsWith("https://") || available === "false") continue;
+    out.push({
+      id: `london-${text(p.id, 40)}`,
+      label: text(p.commonName, 70).toLowerCase() || "london camera",
+      lat: clampLat(la),
+      lon: wrapLon(lo),
+      image: img,
+      video: vid || undefined,
+      city: "london",
+      credit: "powered by tfl open data",
+      direction: text(props.find((x) => x.key === "view")?.value, 24) || undefined,
+    });
+  }
+  if (!out.length) throw new Error("tfl declined");
+  return out;
+}
+
+const CAM_SOURCES: CamSource[] = [
+  { id: "caltrans", box: [32.4, -124.6, 42.1, -114.0], credit: "caltrans", load: caltransCams },
+  { id: "ny511", box: [40.4, -79.9, 45.1, -71.8], credit: "511ny", load: ny511Cams },
+  { id: "austin", box: [29.9, -98.3, 30.7, -97.3], credit: "austin", load: austinCams },
+  { id: "tfl", box: [51.2, -0.65, 51.8, 0.4], credit: "tfl", load: tflCams },
+  { id: "on511", box: [41.6, -95.2, 56.9, -74.3], credit: "511 ontario", load: on511Cams },
+  { id: "drivebc", box: [48.2, -139.1, 60.1, -114.0], credit: "drivebc", load: driveBcCams },
+  { id: "digitraffic", box: [59.7, 19.0, 70.1, 31.6], credit: "fintraffic", load: digitrafficCams },
+];
+
+const haversineKm = (aLat: number, aLon: number, bLat: number, bLon: number) => {
+  const r = Math.PI / 180;
+  const dLat = (bLat - aLat) * r;
+  const dLon = (bLon - aLon) * r;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
+/** a jurisdiction counts as reachable when the viewport is inside it or within
+ *  this margin of its edge — flying toward a border should warm the catalogue
+ *  before the border is crossed. */
+const CAM_MARGIN_DEG = 4;
+
+function camSourcesFor(lat: number | null, lon: number | null): CamSource[] {
+  if (lat === null || lon === null) return CAM_SOURCES;
+  const near = CAM_SOURCES.filter(
+    (s) =>
+      lat >= s.box[0] - CAM_MARGIN_DEG &&
+      lat <= s.box[2] + CAM_MARGIN_DEG &&
+      lon >= s.box[1] - CAM_MARGIN_DEG &&
+      lon <= s.box[3] + CAM_MARGIN_DEG,
+  );
+  return near.length ? near : CAM_SOURCES;
+}
+
+async function cameras(params: Record<string, unknown>) {
+  const lat = num(params.lat) ?? (Number.isFinite(Number(params.lat)) ? Number(params.lat) : null);
+  const lon = num(params.lon) ?? (Number.isFinite(Number(params.lon)) ? Number(params.lon) : null);
+  const limit = Math.max(50, Math.min(900, Number(params.limit) || 600));
+
+  const picked = camSourcesFor(lat, lon);
+  const settled = await Promise.allSettled(picked.map((s) => camCached(s.id, s.load)));
+
+  const rows: CamRow[] = [];
+  const served: string[] = [];
+  const refused: string[] = [];
+  settled.forEach((r, i) => {
+    if (r.status === "fulfilled" && r.value.length) {
+      rows.push(...r.value);
+      served.push(picked[i].credit);
+    } else {
+      const why = r.status === "rejected" ? String((r.reason as Error)?.message ?? r.reason).slice(0, 60) : "empty";
+      console.error("[cameras]", picked[i].id, why);
+      refused.push(`${picked[i].credit} (${why})`);
+    }
+  });
+
+  if (!rows.length) throw new Error("no open camera catalogue answered");
+
+  const ordered =
+    lat === null || lon === null
+      ? rows.slice(0, limit)
+      : rows
+          .map((c) => ({ c, km: haversineKm(lat, lon, c.lat, c.lon) }))
+          .sort((a, b) => a.km - b.km)
+          .slice(0, limit)
+          .map(({ c, km }) => ({ ...c, km: Math.round(km) }));
+
+  const withFrame = ordered.filter((c) => c.image).length;
+  return {
+    rows: ordered,
+    source: served.join(" · "),
+    note:
+      `${ordered.length} public cameras in view · ${withFrame} publish a live frame` +
+      (refused.length ? ` · ${refused.join(" · ")} declined right now` : "") +
+      " · agency-published frames only · positions and stills, never a hijacked device",
+  };
+}
+
 
 async function radio() {
   const mirrors = [
@@ -1662,7 +1956,7 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   quakes: () => quakes(),
   stations: () => stations(),
   launches: () => launches(),
-  cameras: () => cameras(),
+  cameras,
   radio: () => radio(),
   spaceweather: () => spaceweather(),
   local,
@@ -1699,7 +1993,9 @@ Deno.serve(async (req) => {
     // Cache key includes only the coordinates that actually change a result,
     // rounded so small camera drift keeps hitting the same warm body.
     const keyBits =
-      feed === "local" || feed === "flights" || feed === "crime"
+      feed === "cameras"
+        ? `${Math.round(Number(params.lat ?? 0))}:${Math.round(Number(params.lon ?? 0))}`
+        : feed === "local" || feed === "flights" || feed === "crime"
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
         : feed === "places" || feed === "property"
           ? String(params.q ?? "").slice(0, 80)
