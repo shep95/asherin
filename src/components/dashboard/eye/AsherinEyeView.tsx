@@ -811,6 +811,15 @@ const AsherinEyeView = () => {
           <h2>contacts · 250 km</h2>
           <div id="contact-list"></div>
         </div>
+        <div class="glass camwall" id="camwall" hidden>
+          <div class="camwall-head">
+            <h2 id="camwall-title">street cameras</h2>
+            <button type="button" class="sheet-close" id="camwall-close" style="display:block">close</button>
+          </div>
+          <div id="camwall-focus"></div>
+          <div id="camwall-grid"></div>
+          <div class="camwall-foot" id="camwall-foot"></div>
+        </div>
         <div class="glass hover-card" id="hover-card"></div>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
