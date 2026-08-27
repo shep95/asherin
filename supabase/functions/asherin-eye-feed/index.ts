@@ -58,7 +58,7 @@ const TTL: Record<FeedName, number> = {
   quakes: 60_000,
   stations: 8_000,
   launches: 15 * 60_000,
-  cameras: 6 * 60 * 60_000,
+  cameras: 5 * 60_000,
   radio: 45 * 60_000,
   spaceweather: 10 * 60_000,
   local: 5 * 60_000,
