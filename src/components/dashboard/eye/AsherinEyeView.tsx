@@ -485,9 +485,9 @@ const EYE_HUD_CSS = `
       top:auto; width:auto; height:min(40cqh, 48%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
     }
     .sheet.open { display:flex; flex-direction:column; }
-    .contacts {
+    .contacts, .camwall {
       left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(30cqh, 230px);
+      width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(40cqh, 300px);
     }
     .eye-dock { width:calc(100cqi - 2 * var(--pad) - var(--safe-l) - var(--safe-r)); }
     #note { max-width:calc(100cqi - 2 * var(--pad)); }
@@ -497,7 +497,7 @@ const EYE_HUD_CSS = `
     .eye-root { --dock-h: clamp(128px, 34cqh, 190px); }
     .eye-dock .chat-log { max-height:min(24cqh, 120px); }
     .sheet { max-height:calc(100cqh - var(--dock-h) - 12px); }
-    .contacts { top:calc(var(--pad) + 46px); }
+    .contacts, .camwall { top:calc(var(--pad) + 46px); }
   }
   @container eye (min-width: 1600px) {
     .sheet { width: min(340px, 22cqi); }
