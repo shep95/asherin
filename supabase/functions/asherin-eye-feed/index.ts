@@ -595,7 +595,11 @@ async function cameras(params: Record<string, unknown>) {
     if (r.status === "fulfilled" && r.value.length) {
       rows.push(...r.value);
       served.push(picked[i].credit);
-    } else refused.push(picked[i].credit);
+    } else {
+      const why = r.status === "rejected" ? String((r.reason as Error)?.message ?? r.reason).slice(0, 60) : "empty";
+      console.error("[cameras]", picked[i].id, why);
+      refused.push(`${picked[i].credit} (${why})`);
+    }
   });
 
   if (!rows.length) throw new Error("no open camera catalogue answered");
