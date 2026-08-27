@@ -836,6 +836,7 @@ const AsherinEyeView = () => {
             <span class="dock-sep"></span>
             <button type="button" class="nav" id="btn-layers">layers</button>
             <button type="button" class="nav" id="btn-contacts">contacts</button>
+            <button type="button" class="nav" id="btn-camwall">cameras</button>
             <button type="button" class="nav" id="btn-cockpit">cockpit</button>
             <button type="button" class="nav" id="btn-chase">chase</button>
             <button type="button" class="nav" id="btn-orbit">orbit</button>
