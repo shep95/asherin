@@ -437,14 +437,15 @@ async function driveBcCams(): Promise<CamRow[]> {
   const rows = (await getJson("https://www.drivebc.ca/api/webcams/", 20_000)) as Array<Record<string, unknown>>;
   const out: CamRow[] = [];
   for (const r of rows ?? []) {
-    const la = Number(r.latitude);
-    const lo = Number(r.longitude);
+    const geo = r.location as { coordinates?: number[] } | undefined;
+    const lo = Number(geo?.coordinates?.[0]);
+    const la = Number(geo?.coordinates?.[1]);
     const links = (r.links ?? {}) as Record<string, unknown>;
     const rel = text(links.imageDisplay, 200);
     if (!Number.isFinite(la) || !Number.isFinite(lo) || !rel) continue;
     out.push({
-      id: `drivebc-${text(r.id, 16) || Number(r.id)}`,
-      label: (text(r.name, 70) || "drivebc webcam").toLowerCase(),
+      id: `drivebc-${Number(r.id) || text(r.id, 16)}`,
+      label: (text(r.caption, 70) || text(r.name, 70) || "drivebc webcam").toLowerCase(),
       lat: clampLat(la),
       lon: wrapLon(lo),
       image: rel.startsWith("http") ? https(rel) : `https://www.drivebc.ca${rel}`,
@@ -473,15 +474,17 @@ async function digitrafficCams(): Promise<CamRow[]> {
     // the station list is fetched once; each preset is one physical view, and
     // the first in-collection preset is the one the agency is refreshing.
     const presets = (p.presets ?? []) as Array<Record<string, unknown>>;
-    const preset = presets.find((x) => x.inCollection === true && text(x.imageUrl, 200));
+    const preset = presets.find((x) => x.inCollection === true && text(x.id, 20));
     if (!preset) continue;
+    const presetId = text(preset.id, 20);
+    const frame = text(preset.imageUrl, 200) || `https://weathercam.digitraffic.fi/${presetId}.jpg`;
     const names = (p.names ?? {}) as Record<string, unknown>;
     out.push({
       id: `fintraffic-${text(p.id, 20)}`,
       label: (text(names.en, 70) || text(p.name, 70) || "fintraffic camera").toLowerCase(),
       lat: clampLat(la),
       lon: wrapLon(lo),
-      image: https(text(preset.imageUrl, 200)),
+      image: https(frame),
       city: text(p.municipality, 40).toLowerCase() || "finland",
       credit: "fintraffic digitraffic · road weather cameras",
       direction: text(preset.presentationName, 24) || undefined,
