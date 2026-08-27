@@ -334,6 +334,49 @@ const EYE_HUD_CSS = `
   .contacts .hit:hover { color: var(--accent); }
   .contacts .hit span { color: hsl(var(--foreground) / .34); display:block; font-size:clamp(10px, 1cqi, 11px); }
 
+  /* ── camera wall: agency-published frames, never a hijacked device ──── */
+  .camwall {
+    position:absolute; left:calc(var(--pad) + var(--safe-l));
+    top:calc(var(--pad) + var(--safe-t) + clamp(64px, 14cqh, 116px));
+    bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:9;
+    width:min(392px, 38cqi); padding:clamp(11px, 1.4cqi, 15px);
+    overflow:auto; pointer-events:auto; -webkit-overflow-scrolling:touch;
+  }
+  .camwall[hidden] { display:none; }
+  .camwall-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .camwall h2 {
+    margin:0 0 10px; font:400 clamp(9px, .95cqi, 10px)/1 inherit; letter-spacing:.22em;
+    text-transform:uppercase; color: hsl(var(--foreground) / .38); overflow-wrap:anywhere;
+  }
+  #camwall-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap:8px; }
+  .camcell {
+    border:1px solid var(--line); border-radius:12px; overflow:hidden; background:hsl(var(--foreground) / .03);
+    cursor:pointer; padding:0; text-align:left; color:var(--ink); width:100%; display:block;
+    transition: border-color .3s var(--ease), transform .3s var(--ease);
+  }
+  .camcell:hover { border-color: hsl(var(--accent) / .42); transform: translateY(-1px); }
+  .camcell.on { border-color: hsl(var(--accent) / .6); }
+  .camcell .shot, #camwall-focus .shot {
+    display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:hsl(var(--foreground) / .05);
+  }
+  .camcell .cap {
+    display:block; padding:6px 8px 8px; font:300 clamp(9.5px, 1cqi, 11px)/1.35 inherit;
+    color: hsl(var(--foreground) / .66); overflow-wrap:anywhere;
+  }
+  .camcell .cap i { display:block; font-style:normal; color: hsl(var(--foreground) / .32); }
+  #camwall-focus { margin-bottom:10px; }
+  #camwall-focus:empty { display:none; }
+  #camwall-focus .shot { border-radius:12px; border:1px solid hsl(var(--accent) / .38); aspect-ratio:16/9; }
+  #camwall-focus .meta {
+    padding:7px 2px 0; font:300 clamp(10px, 1.05cqi, 11.5px)/1.45 inherit; color: hsl(var(--foreground) / .6);
+    overflow-wrap:anywhere;
+  }
+  #camwall-focus .meta b { color: var(--accent); font-weight:400; }
+  .camwall-foot {
+    margin-top:10px; padding-top:8px; border-top:1px solid var(--line-soft);
+    font:300 clamp(9.5px, 1cqi, 11px)/1.45 inherit; color: hsl(var(--foreground) / .34); overflow-wrap:anywhere;
+  }
+
   #note {
     position:absolute; right:calc(var(--pad) + var(--safe-r));
     bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
