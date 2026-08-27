@@ -1950,7 +1950,7 @@ const FEEDS: Record<FeedName, (p: Record<string, unknown>) => Promise<unknown>> 
   quakes: () => quakes(),
   stations: () => stations(),
   launches: () => launches(),
-  cameras: () => cameras(),
+  cameras,
   radio: () => radio(),
   spaceweather: () => spaceweather(),
   local,
