@@ -434,7 +434,7 @@ async function on511Cams(): Promise<CamRow[]> {
 }
 
 async function driveBcCams(): Promise<CamRow[]> {
-  const rows = (await getJson("https://www.drivebc.ca/api/webcams", 20_000)) as Array<Record<string, unknown>>;
+  const rows = (await getJson("https://www.drivebc.ca/api/webcams/", 20_000)) as Array<Record<string, unknown>>;
   const out: CamRow[] = [];
   for (const r of rows ?? []) {
     const la = Number(r.latitude);
@@ -460,7 +460,6 @@ async function driveBcCams(): Promise<CamRow[]> {
 
 async function digitrafficCams(): Promise<CamRow[]> {
   const j = (await getJson("https://tie.digitraffic.fi/api/weathercam/v1/stations", 20_000, {
-    "accept-encoding": "gzip",
     "digitraffic-user": "asherin.eye",
   })) as { features?: Array<Record<string, unknown>> };
   const out: CamRow[] = [];
