@@ -1987,7 +1987,9 @@ Deno.serve(async (req) => {
     // Cache key includes only the coordinates that actually change a result,
     // rounded so small camera drift keeps hitting the same warm body.
     const keyBits =
-      feed === "local" || feed === "flights" || feed === "crime"
+      feed === "cameras"
+        ? `${Math.round(Number(params.lat ?? 0))}:${Math.round(Number(params.lon ?? 0))}`
+        : feed === "local" || feed === "flights" || feed === "crime"
         ? `${Math.round(Number(params.lat ?? 0) / 2)}:${Math.round(Number(params.lon ?? 0) / 2)}`
         : feed === "places" || feed === "property"
           ? String(params.q ?? "").slice(0, 80)
