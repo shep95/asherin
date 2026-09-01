@@ -1050,6 +1050,28 @@ const ChatView = ({
           </div>
         )}
 
+        {/* Active directive profile — the composer states what is in force. */}
+        {activeBrainId && (
+          <div className="px-4 pb-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1">
+              <Brain className="h-3 w-3 text-accent" aria-hidden="true" />
+              <span className="text-[10px] font-light text-accent">
+                directions in force{activeBrainName ? `: ${activeBrainName}` : ""}
+              </span>
+              {onBrainChange && (
+                <button
+                  onClick={() => onBrainChange(null)}
+                  className="text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
+                  aria-label="turn off directive profile"
+                  title="turn off directive profile"
+                >
+                  turn off
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Composer */}
         <SubscriptionGatedInput
           ref={inputBarRef}
