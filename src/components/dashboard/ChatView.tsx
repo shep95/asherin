@@ -655,6 +655,9 @@ const ChatView = ({
               onHighlightMessage={setHighlightedMsgId}
               onSearchActive={() => {}}
             />
+            {onBrainChange && (
+              <BrainsManager activeBrainId={activeBrainId} onBrainChange={onBrainChange} />
+            )}
             {branchMessages.length > 0 && (
               <div className="relative shrink-0">
                 <button
