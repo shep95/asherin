@@ -449,7 +449,12 @@ const ChatView = ({
   focusMode,
   messageStatuses = {},
   queueItems = [],
+  activeBrainId = null,
+  onBrainChange,
 }: ChatViewProps) => {
+  // Directive profiles are optional: when the host doesn't wire a handler the
+  // control stays out of the bar rather than rendering a dead button.
+  const [activeBrainName, setActiveBrainName] = useState<string | null>(null);
   const navigate = useNavigate();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const inputBarRef = useRef<AdaptiveInputBarHandle>(null);
