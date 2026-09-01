@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import BrainsManager from "./BrainsManager";
 import { Link } from "react-router-dom";
 
 import {
@@ -14,6 +16,7 @@ import {
   Pencil,
   Lock,
   LayoutDashboard,
+  Brain,
 } from "lucide-react";
 import { queueBoardDrop } from "@/lib/whiteboard/boardInbox";
 import DiffView from "./DiffView";
@@ -449,7 +452,30 @@ const ChatView = ({
   focusMode,
   messageStatuses = {},
   queueItems = [],
+  activeBrainId = null,
+  onBrainChange,
 }: ChatViewProps) => {
+  // Directive profiles are optional: when the host doesn't wire a handler the
+  // control stays out of the bar rather than rendering a dead button.
+  const [activeBrainName, setActiveBrainName] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeBrainId) {
+      setActiveBrainName(null);
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("brains")
+        .select("name")
+        .eq("id", activeBrainId)
+        .maybeSingle();
+      if (!cancelled) setActiveBrainName((data as { name: string } | null)?.name ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeBrainId]);
   const navigate = useNavigate();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const inputBarRef = useRef<AdaptiveInputBarHandle>(null);
@@ -630,6 +656,9 @@ const ChatView = ({
               onHighlightMessage={setHighlightedMsgId}
               onSearchActive={() => {}}
             />
+            {onBrainChange && (
+              <BrainsManager activeBrainId={activeBrainId} onBrainChange={onBrainChange} />
+            )}
             {branchMessages.length > 0 && (
               <div className="relative shrink-0">
                 <button
@@ -1019,6 +1048,28 @@ const ChatView = ({
         {queuedCount > 0 && (
           <div className="px-4 pb-1 text-[10px] font-light text-muted-foreground/50 shrink-0">
             {queuedCount} message{queuedCount > 1 ? "s" : ""} queued
+          </div>
+        )}
+
+        {/* Active directive profile — the composer states what is in force. */}
+        {activeBrainId && (
+          <div className="px-4 pb-1 shrink-0">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1">
+              <Brain className="h-3 w-3 text-accent" aria-hidden="true" />
+              <span className="text-[10px] font-light text-accent">
+                directions in force{activeBrainName ? `: ${activeBrainName}` : ""}
+              </span>
+              {onBrainChange && (
+                <button
+                  onClick={() => onBrainChange(null)}
+                  className="text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
+                  aria-label="turn off directive profile"
+                  title="turn off directive profile"
+                >
+                  turn off
+                </button>
+              )}
+            </div>
           </div>
         )}
 
