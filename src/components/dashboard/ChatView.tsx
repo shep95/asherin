@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import BrainsManager from "./BrainsManager";
 import { Link } from "react-router-dom";
 
 import {
