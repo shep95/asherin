@@ -455,6 +455,24 @@ const ChatView = ({
   // Directive profiles are optional: when the host doesn't wire a handler the
   // control stays out of the bar rather than rendering a dead button.
   const [activeBrainName, setActiveBrainName] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeBrainId) {
+      setActiveBrainName(null);
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("brains")
+        .select("name")
+        .eq("id", activeBrainId)
+        .maybeSingle();
+      if (!cancelled) setActiveBrainName((data as { name: string } | null)?.name ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeBrainId]);
   const navigate = useNavigate();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const inputBarRef = useRef<AdaptiveInputBarHandle>(null);
