@@ -16,6 +16,7 @@ import {
   Pencil,
   Lock,
   LayoutDashboard,
+  Brain,
 } from "lucide-react";
 import { queueBoardDrop } from "@/lib/whiteboard/boardInbox";
 import DiffView from "./DiffView";
