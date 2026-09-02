@@ -241,7 +241,7 @@ const ConnectView = () => {
   const filtered = useMemo(() => {
     if (!selected) return pulls.slice(0, 60);
     const rows = byOrgan.get(selected) ?? [];
-    if (selected === "maps") {
+    if (selected === "eye") {
       const scoped = rows.filter(r => MAP_CAPABILITIES.includes(r.capability));
       if (scoped.length) return scoped.slice(0, 20);
     }
