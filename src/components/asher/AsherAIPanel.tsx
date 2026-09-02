@@ -154,6 +154,8 @@ const AsherAIPanel = ({ mapContext, onAction, onDockedChange }: Props) => {
   const KERNEL_TOOLS = new Set([
     "zophiel_search", "elite_dorks", "dork", "path_map",
     "search_swarm", "site_cyber_map", "intel_map",
+    "osint_intel", "osint_lookup", "dork_auto", "file_metadata",
+    "social_fetch", "asherinx",
   ]);
 
   /* Geography tools own the canvas: resolving a place surfaces the map tab

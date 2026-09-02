@@ -4,6 +4,9 @@
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /admin
 
 User-agent: GPTBot
 Disallow: /
