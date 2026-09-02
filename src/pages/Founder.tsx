@@ -113,23 +113,6 @@ const Founder = () => {
           </div>
         </div>
 
-        {/* The book */}
-        <div id="book" className="relative z-10 px-6 pb-28 sm:pb-36 scroll-mt-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="text-center mb-10">
-              <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-light tracking-[-0.025em] leading-[1.05] text-foreground">
-                the book of asher aureon elion
-              </h2>
-              <p className="mt-5 max-w-xl mx-auto text-base font-extralight leading-[1.75] text-foreground/70">
-                read it here, page by page. scroll inside the reader, or download
-                a copy.
-              </p>
-            </div>
-
-            <FounderBook />
-          </div>
-        </div>
-
         <div className="relative z-10 h-12" />
       </div>
 
