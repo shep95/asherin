@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { retiredSurfaceResponse } from "../_shared/retiredSurfaces.ts";
 import { nexusPrimeCore, AXRLEN_SPECIFICITY_ADDENDUM } from "../_shared/axrlenSystemPrompt.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
@@ -148,6 +149,8 @@ const REGION_MAP: Record<string, { code: string; lat: number; lon: number }> = {
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const retired = retiredSurfaceResponse(req, "axrlen");
+  if (retired) return retired;
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {

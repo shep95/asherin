@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { retiredSurfaceResponse } from "../_shared/retiredSurfaces.ts";
 import { resolveAxrlenAccess } from "../_shared/proTierGate.ts";
 import { AXRLEN_MARKET_ADDENDUM, AXRLEN_SPECIFICITY_ADDENDUM, detectMarketIntent } from "../_shared/axrlenSystemPrompt.ts";
 
@@ -38,6 +39,8 @@ CORE PHILOSOPHY (applies to TIER 2/3 only):
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const retired = retiredSurfaceResponse(req, "axrlen");
+  if (retired) return retired;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

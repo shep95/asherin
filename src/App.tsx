@@ -234,7 +234,7 @@ const BlogAutonomousIntelligenceLoop = lazy(() => import("./pages/blog/Autonomou
 const BlogEliteCorporationsAlgorithmsVsAxrlen = lazy(() => import("./pages/blog/EliteCorporationsAlgorithmsVsAxrlen"));
 const FeatureZophiel = lazy(() => import("./pages/feature/FeatureZophiel"));
 const FeatureZerlal = lazy(() => import("./pages/feature/FeatureZerlal"));
-const FeatureAxrlen = lazy(() => import("./pages/feature/FeatureAxrlen"));
+
 const FeatureByok = lazy(() => import("./pages/feature/FeatureByok"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const BlogAureonPricingExplained = lazy(() => import("./pages/blog/AureonPricingExplained"));
@@ -480,7 +480,9 @@ const App = () => (
                       <Route path="/glossary/digital-gnostic" element={<GlossaryDigitalGnostic />} />
                       <Route path="/feature/zophiel" element={<FeatureZophiel />} />
                       <Route path="/feature/zerlal" element={<FeatureZerlal />} />
-                      <Route path="/feature/axrlen" element={<FeatureAxrlen />} />
+                      {/* Retired product: the forecasting engine is no longer sold or
+                reachable, so its marketing spine points at the live catalogue. */}
+                      <Route path="/feature/axrlen" element={<Navigate to="/software" replace />} />
                       <Route path="/feature/byok" element={<FeatureByok />} />
                       <Route
                         path="/glossary/zero-day-confidence-scoring"

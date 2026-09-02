@@ -37,23 +37,22 @@ const PLANS = [
           "60 messages per 3-hour window",
         ],
       },
-      {
-        title: "asherinx.eng",
-        items: [
-          "public-index search across eighteen open indexes",
-          "results grouped by the field site that answered",
-        ],
-      },
-      {
-        title: "asherin.maps",
-        items: [
-          "satellite-first globe with the rectangle grid on the imagery",
-          "fly to any named place; imagery / streets / GIBS switch",
-          "public street cameras where the agency publishes them",
-        ],
-      },
-      {
-        title: "asherin.defender",
+       {
+         title: "asherinx.eng",
+         items: [
+           "public-index search across open indexes",
+           "results grouped by the field site that answered",
+         ],
+       },
+       {
+         title: "asherin.cyber",
+         items: [
+           "passive domain, tls and public advisory context",
+           "no authentication, exploitation or host scanning",
+         ],
+       },
+       {
+         title: "asherin.defender",
         items: [
           "live camera, wifi, bluetooth and spy-class status on your own device",
           "covert-camera law — capture with no visible preview reads BLOCKED",
@@ -87,25 +86,25 @@ const PLANS = [
       "everything in the $18 seat, with higher limits on asherin chat tools and a full team workspace.",
     cta: "choose asherin pro — $79 / month",
     highlight: true,
-    groups: [
-      {
-        title: "everything in asherin ($18)",
-        items: ["chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, workspace, BYOK"],
-      },
-      {
-        title: "usage",
+     groups: [
+       {
+         title: "everything in asherin ($18)",
+         items: ["chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, workspace, BYOK"],
+       },
+       {
+         title: "usage",
         items: ["200 messages per 3-hour window", "higher search and map throughput"],
       },
-      {
-        title: "asherinx.eng",
-        items: ["buffer, fold and identifier actions (capture stays off by default)"],
-      },
-      {
-        title: "asherin.maps",
-        items: ["property dossier organs from public indexes", "roof and area grid cells", "the 55-organ live digest"],
-      },
-      {
-        title: "asherin.defender",
+       {
+         title: "asherinx.eng",
+         items: ["buffer, fold and identifier actions (capture stays off by default)"],
+       },
+       {
+         title: "asherin.cyber",
+         items: ["passive domain and infrastructure context", "public advisory matching without exploitation"],
+       },
+       {
+         title: "asherin.defender",
         items: [
           "bunker on/off apply and key-poison via the companion",
           "full hardware and spy scan with recommendations",

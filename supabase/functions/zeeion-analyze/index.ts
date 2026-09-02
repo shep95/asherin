@@ -2,10 +2,13 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { retiredSurfaceResponse } from "../_shared/retiredSurfaces.ts";
 // CORS handled per-request via getCorsHeaders(req) — see supabase/functions/_shared/cors.ts
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const retired = retiredSurfaceResponse(req, "zeeion");
+  if (retired) return retired;
 
   // ── Strict BYOK gate — admin uses platform key, others must BYOK ──
   if (req.method !== 'OPTIONS') {

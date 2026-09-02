@@ -49,13 +49,13 @@ const JOBS: Tool[] = [
       "what you save stays with your account: notes, files, project threads, and long-term memory. the vault holds credentials and documents. data is encrypted at rest with a key scoped to your account and TLS in transit — it is not zero-knowledge end-to-end, and we do not claim it is. export or delete at any time.",
     icon: Database,
   },
-  {
-    name: "look at a place",
-    line: "asherin maps",
-    detail:
-      "satellite imagery and place context, opened from chat when you name a place. it plots what public map and place endpoints return. it does not locate anyone's phone.",
-    icon: Map,
-  },
+   {
+     name: "look at a place",
+     line: "asherin eye",
+     detail:
+       "public geospatial context, flights, earthquakes and other sourced layers opened from chat when you name a place. it does not locate anyone's phone.",
+     icon: Globe,
+   },
 ];
 
 const TOOLS: Tool[] = [
@@ -66,13 +66,13 @@ const TOOLS: Tool[] = [
       "federated public indexes — wayback, nvd, github, wiki, and the rest of the public stack. it does not intercept login ips, sms, dms, or private mail.",
     icon: Globe,
   },
-  {
-    name: "asherin.maps",
-    line: "satellite globe, public cameras, public-index file",
-    detail:
-      "esri/nasa tiles, public-agency traffic stills, and a public-register property file. satellite is a near-daily mosaic, not live seconds. it does not hijack doorbell or flock cameras.",
-    icon: Map,
-  },
+   {
+     name: "asherin.cyber",
+     line: "passive domain context",
+     detail:
+       "reads public dns, tls, headers and advisory indexes. it does not authenticate, exploit or scan hosts.",
+     icon: Shield,
+   },
   {
     name: "asherin.defender",
     line: "owned-device defence",
@@ -111,21 +111,14 @@ const TOOLS: Tool[] = [
     detail:
       "with your consent, asherin reads what google's apis actually give it — mail, calendar, drive — to summarise and draft. it does not locate phones or read anything google does not hand over.",
     icon: Network,
-  },
-  {
-    name: "zerlal — recon",
-    line: "passive domain recon + public cve index",
-    detail:
-      "reads dns, tls, headers and subdomains, then matches disclosed versions against public advisory indexes. it does not authenticate, exploit, or scan hosts.",
-    icon: Shield,
-  },
-  {
-    name: "zanoem — design lab",
-    line: "engineering briefs, no solver",
-    detail:
-      "material choices, assembly layouts and parametric sketches written up as a brief. it reasons about physics in text and geometry; it does not run a solver. no fea, thermal or cfd here — take the brief to a real solver before you build.",
-    icon: Hammer,
-  },
+   },
+   {
+     name: "zanoem — design lab",
+     line: "engineering briefs, no solver",
+     detail:
+       "material choices, assembly layouts and parametric sketches written up as a brief. it reasons about physics in text and geometry; it does not run a solver. no fea, thermal or cfd here — take the brief to a real solver before you build.",
+     icon: Hammer,
+   },
   {
     name: "zaxin — ble scout",
     line: "browser web bluetooth",
@@ -166,8 +159,8 @@ const Software = () => {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       name: "asherin — software",
-      description:
-        "rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, library, projects, memory, vault. $18/mo, $79/mo pro.",
+       description:
+         "rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault. $18/mo, $79/mo pro.",
       url: "https://asherin.com/software",
     });
     document.head.appendChild(el);

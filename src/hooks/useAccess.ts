@@ -3,6 +3,7 @@ import { isAdminEmail } from "@/lib/adminEmail";
 import { useSubscription, hasZophielAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { trialStateFor } from "@/lib/trial";
+import { isRetiredView } from "@/lib/retiredSurfaces";
 import type { DashboardView } from "@/components/dashboard/types";
 
 // Connected-account surfaces (Google Cloud Intelligence mesh). Included with
@@ -16,14 +17,13 @@ export const MAXIMUM_VIEWS: DashboardView[] = [];
 // never opens them, keeping the client gate identical to the server gate
 // (supabase/functions/_shared/proTierGate.ts).
 const PRO_STRICT_VIEWS: DashboardView[] = [];
-// Enterprise / Pro-only views
-const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion"];
+  // Enterprise / Pro-only views. Retired products are intentionally absent.
+const ENTERPRISE_VIEWS: DashboardView[] = [];
 const PRO_VIEWS: DashboardView[] = [
   "community",
   "azplen",
   "teams",
   "plugins",
-  "timeseries",
   "audit",
   "predictive",
   "security",
@@ -36,22 +36,16 @@ const PRO_VIEWS: DashboardView[] = [
   "zaxin",
   "zerlal",
   "knowledge-vault",
-  "zacoon",
   "bulwark",
   "geo-audit",
 ];
-// Asherin ($18/mo, monthly + 6-month) and above. Asherin Maps (`geospatial`)
-// ships with this tier alongside the Cloud Intelligence mesh above.
-// asherin.defender, asherin.arvision and asherin.eye open at core height: a person on the
-// $18 plan sees live status, the covert-camera verdict and the live HUD. The
-// Pro-only pieces (bunker apply, key-poison, packet save, RF lattice) gate
-// INSIDE the room, so the tab is never a locked door.
+// Asherin ($18/mo, monthly + 6-month) and above. Defender, ARVision, Eye and
+// asherinx.eng open at core height; retired products are never granted.
 const AUREON_VIEWS: DashboardView[] = [
   "nomad",
   "briefing",
   "zali",
   "notebooks",
-  "geospatial",
   "ghost-engine",
   "asherin-defender",
   "asherin-arvision",
@@ -121,6 +115,8 @@ export function useAccess() {
 
   const canAccess = useCallback(
     (view: DashboardView): boolean => {
+      // Retirement is a hard product boundary, including for administrators.
+      if (isRetiredView(view)) return false;
       if (!GATING_ENABLED) return true;
       if (isAdmin) return true;
       // Connected-account surfaces are evaluated before the trial and the

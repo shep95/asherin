@@ -2,10 +2,7 @@
 //
 // The left column is a room you can talk in: conversations are always on
 // screen, new chat is one press away, and the short keep-stack sits at the
-// bottom. Folded capabilities (search, maps, zerlal, ide, google, ghost, …)
-// have no row here on purpose — they are reached by asking in chat, and their
-// /dashboard/:view deep links still resolve. Mobile keeps the left hamburger
-// and the left-edge drag from the current chrome.
+// bottom. Retired products have no row and no deep-link route.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Archive, ArchiveRestore, ChevronDown, Menu, Plus, Search, Trash2, Workflow, X } from "lucide-react";
@@ -38,7 +35,6 @@ interface Props {
 /** Quieter labels for the keep-stack. NAV_INTENTS stays the source of truth. */
 const V2_LABELS: Partial<Record<string, string>> = {
   "ghost-engine": "asherinx.eng",
-  geospatial: "asherin.maps",
   "asherin-defender": "asherin.defender",
   "asherin-arvision": "asherin.arvision",
   "asherin-eye": "asherin.eye",
@@ -46,10 +42,9 @@ const V2_LABELS: Partial<Record<string, string>> = {
   subscription: "Subscription",
 };
 
-/** The keep list, in reading order. Anything absent has no v.2 row by design. */
+/** The keep list, in reading order. Retired products have no dashboard row. */
 const V2_ORDER: DashboardView[] = [
   "ghost-engine",
-  "geospatial",
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",

@@ -1,6 +1,5 @@
-// LINK EXTRACT CHAT — Aureon-brain-powered streaming chat assistant scoped to a
-// link extraction session. Loads active brains from public.axrlen_brains and
-// answers questions about the dossier + intel map.
+// LINK EXTRACT CHAT — streaming chat assistant scoped to a link extraction
+// session. Answers questions about the dossier + intel map.
 //
 // Strict BYOK: non-admin callers MUST supply a BYOK config.
 
@@ -14,7 +13,7 @@ import { runYouTubePipeline } from "../_shared/youtubeIntel.ts";
 import { runGhostTracePipeline } from "../_shared/ghostTraceIntel.ts";
 import { runSpecterWeavePipeline } from "../_shared/specterWeaveIntel.ts";
 import { runBusinessRegistryPipeline } from "../_shared/businessRegistryIntel.ts";
-import { runAxrlenBridge } from "../_shared/axrlenBridge.ts";
+
 import { getTemporalContext } from "../_shared/systemContext.ts";
 import { CODE_NARRATIVE_PROTOCOL } from "../_shared/codeNarrativeProtocol.ts";
 import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
@@ -185,63 +184,6 @@ Deno.serve(async (req) => {
     ]);
     const temporal = getTemporalContext({ timezone, locale });
 
-    // ── AXRLEN INLINE FORECASTING ────────────────────────────────────────────
-    // Aureon chat exposes every integrated feature to ALL subscription tiers,
-    // so AXRLEN inline forecasting is open to any signed-in user here. The
-    // standalone AXRLEN endpoint and Asher chat keep the Pro gate.
-    const axrlen = await runAxrlenBridge({
-      req,
-      messages: messages as any,
-      liveEvidence: (osint.context || "") + (property.evidence || "") + (domainPull.evidence || "") + (youtubePull.evidence || "") + (ghostPull.evidence || "") + (specterPull.evidence || "") + (registryPull.evidence || ""),
-      surface: "aureon",
-      fallbackGeminiKey: apiKey,
-      fallbackModel: model,
-      accessMode: "authenticated",
-    }).catch((e) => ({ kind: "denied" as const, access: { granted: false, reason: "denied" as const, email: null, userId: null, tierType: null }, intent: { fired: true, tier: 2 as const, subject: "" }, message: `AXRLEN unavailable: ${String((e as any)?.message || e)}` }));
-
-    if (axrlen.kind === "stream") {
-      const encoder = new TextEncoder();
-      const meta = {
-        osintSources: osint.sources,
-        property: property.fired ? property.attachments : null,
-        domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null,
-        youtube: youtubePull.fired ? youtubePull.attachment : null,
-        ghostTrace: ghostPull.fired ? ghostPull.attachment : null,
-        specterWeave: specterPull.fired ? specterPull.attachment : null, businessRegistry: registryPull.fired ? registryPull.attachment : null,
-        axrlen: { fired: true, tier: axrlen.intent.tier, brainsLoaded: axrlen.brainsLoaded, reason: axrlen.access.reason },
-      };
-      const out = new ReadableStream({
-        async start(controller) {
-          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
-          controller.enqueue(encoder.encode(`> **AXRLEN forecast** — tier ${axrlen.intent.tier} · ${axrlen.brainsLoaded} brains\n\n`));
-          const reader = axrlen.textStream.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              if (value) controller.enqueue(value);
-            }
-          } finally {
-            controller.close();
-          }
-        },
-      });
-      return new Response(out, {
-        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-    if (axrlen.kind === "denied" && axrlen.intent.fired) {
-      const encoder = new TextEncoder();
-      const meta = { osintSources: osint.sources, property: property.fired ? property.attachments : null, domain: domainPull.fired ? { intent: domainPull.intent, attachment: domainPull.attachment } : null, youtube: youtubePull.fired ? youtubePull.attachment : null, ghostTrace: ghostPull.fired ? ghostPull.attachment : null, specterWeave: specterPull.fired ? specterPull.attachment : null, businessRegistry: registryPull.fired ? registryPull.attachment : null, axrlen: { fired: true, denied: true, reason: axrlen.access.reason } };
-      const out = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`[[AUREON_META]]${JSON.stringify(meta)}[[/AUREON_META]]\n`));
-          controller.enqueue(encoder.encode(axrlen.message));
-          controller.close();
-        },
-      });
-      return new Response(out, { headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
-    }
 
 
     // ── SUBJECT ISOLATION when Specter Weave fires ───────────────────────────

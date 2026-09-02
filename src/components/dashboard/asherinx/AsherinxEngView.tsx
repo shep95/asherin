@@ -5,8 +5,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, Loader2, ExternalLink } from "lucide-react";
+import { ArrowRight, ChevronDown, Loader2, ExternalLink, Search, Activity, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useIsV2 } from "@/lib/dashboardUiContext";
 import { emitPull } from "@/lib/connect/emitPull";
@@ -312,20 +313,44 @@ const AsherinxEngView = () => {
   const nowPlace = rows[0]?.place;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-4 py-5 sm:px-6 lg:px-8">
       {!isV2 && (
-        <div className="mb-4">
-          <h1 className="text-lg font-extralight lowercase tracking-wide text-foreground">asherinx.eng</h1>
-          <p className="mt-1 text-xs font-extralight text-muted-foreground/70">
-            area log · public-index search · no tap
-          </p>
-        </div>
+        <header className="mb-5 flex flex-col gap-4 border-b border-border/20 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground">asherin / investigate</p>
+            <h1 className="text-2xl font-extralight tracking-tight text-foreground">asherinx.eng</h1>
+            <p className="mt-1 text-xs font-extralight text-muted-foreground/70">public-index research with a local area journal</p>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-extralight text-muted-foreground/70" aria-live="polite">
+            <span className={`h-1.5 w-1.5 rounded-full ${logging === "on" ? "bg-foreground" : "bg-muted-foreground/40"}`} />
+            {logging === "on" ? "journal recording" : "journal paused"}
+          </div>
+        </header>
       )}
 
-      <div className="mb-4 rounded-2xl border border-border/20 bg-card/30 px-4 py-3">
-        <p className="text-[11px] font-extralight lowercase tracking-wide text-muted-foreground/70">
-          logging · {logging}
-        </p>
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border/20 bg-card/30 p-4">
+          <Activity className="mb-3 h-4 w-4 text-foreground/60" aria-hidden="true" />
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">journal</p>
+          <p className="mt-1 text-xl font-extralight text-foreground">{rows.length}</p>
+          <p className="text-[11px] text-muted-foreground/60">local observations</p>
+        </div>
+        <div className="rounded-xl border border-border/20 bg-card/30 p-4">
+          <Database className="mb-3 h-4 w-4 text-foreground/60" aria-hidden="true" />
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">source</p>
+          <p className="mt-1 truncate text-sm font-light text-foreground">{nowPlace?.address || "locating…"}</p>
+          <p className="text-[11px] text-muted-foreground/60">{boxLive ? "companion connected" : "browser context only"}</p>
+        </div>
+        <div className="rounded-xl border border-border/20 bg-card/30 p-4">
+          <Search className="mb-3 h-4 w-4 text-foreground/60" aria-hidden="true" />
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">research</p>
+          <p className="mt-1 text-sm font-light text-foreground">{result ? `${result.hits.length} results` : "ready"}</p>
+          <p className="text-[11px] text-muted-foreground/60">public indexes only</p>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-xl border border-border/20 bg-card/30 px-4 py-3">
+        <p className="text-[11px] font-extralight lowercase tracking-wide text-muted-foreground/70">current area context</p>
         <p className="mt-1 text-sm font-light text-foreground">{nowPlace?.address || "locating…"}</p>
         <p className="mt-0.5 text-[11px] font-extralight text-muted-foreground/55">
           {nowPlace?.ip ? `ip ${nowPlace.ip}` : "ip …"}
@@ -373,46 +398,45 @@ const AsherinxEngView = () => {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-border/20 bg-card/30 p-2">
+      <div className="rounded-xl border border-border/20 bg-card/30 p-2">
         <textarea
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={onKeyDown}
           rows={2}
+          aria-label="public-index query"
           placeholder={PLACEHOLDER[action]}
           className="w-full resize-none bg-transparent px-3 py-2 text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
         />
         <div className="flex items-center justify-between gap-2 px-2 pb-1">
-          <p className="truncate text-[11px] font-extralight text-muted-foreground/50">
-            {ACTIONS.find((a) => a.id === action)?.hint}
-          </p>
-          <button
+          <p className="truncate text-[11px] font-extralight text-muted-foreground/50">{ACTIONS.find((a) => a.id === action)?.hint}</p>
+          <Button
             onClick={() => void run()}
             disabled={busy || (action !== "buffer" && !q.trim())}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border/25 bg-card/50 px-3 py-1.5 text-xs font-light text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-40"
+            size="sm"
+            variant="outline"
+            className="h-8 px-3 text-xs font-light"
           >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            {busy ? <Loader2 className="animate-spin" /> : <ArrowRight />}
             run
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="research action">
         {ACTIONS.map((a) => (
-          <button
+          <Button
             key={a.id}
             onClick={() => setAction(a.id)}
             title={a.hint}
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-extralight lowercase transition-colors ${
-              action === a.id
-                ? "border-border/40 bg-foreground/10 text-foreground"
-                : "border-border/15 text-muted-foreground/60 hover:text-foreground"
-            }`}
+            aria-pressed={action === a.id}
+            size="sm"
+            variant={action === a.id ? "secondary" : "ghost"}
+            className="h-8 rounded-full px-3 text-[11px] font-extralight lowercase"
           >
-            {a.label}
-            {a.pro ? " ·" : ""}
-          </button>
+            {a.label}{a.pro ? " ·" : ""}
+          </Button>
         ))}
       </div>
 

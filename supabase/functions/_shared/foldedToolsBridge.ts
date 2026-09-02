@@ -78,8 +78,6 @@ export interface FoldedPlan {
   zerlalHost?: string;
   /** Equal-weight subdomain AND path audit for one host. */
   cyberMapHost?: string;
-  /** AXRLEN probabilistic scenario run. */
-  axrlen?: { region: string; predictionType: string };
   /** Daily/ad-hoc briefing subject. */
   briefingSubject?: string;
   /** Notebook cell uuid to execute. */
@@ -258,11 +256,6 @@ function firstHost(text: string): string | undefined {
   return host;
 }
 
-const AXRLEN_REGIONS = [
-  "global", "united states", "usa", "us", "china", "russia", "europe", "middle east",
-  "africa", "asia", "india", "israel", "iran", "ukraine", "taiwan", "latin america",
-];
-
 /**
  * Classifies a turn into concrete tool invocations.
  *
@@ -299,13 +292,6 @@ export function planFoldedTools(text: string, files?: FoldedFile[]): FoldedPlan 
     plan.cyberMapHost = host;
   } else if (host && /\b(recon|reconnaissance|zerlal|attack\s*surface|subdomain|dns\s+audit|security\s+posture\s+of)\b/i.test(raw)) {
     plan.zerlalHost = host;
-  }
-
-  // AXRLEN scenarios.
-  if (/\b(axrlen|scenario\s+(run|forecast)|probabilistic\s+(forecast|scenario)|geopolitical\s+forecast)\b/i.test(raw)) {
-    const region = AXRLEN_REGIONS.find((r) => lc.includes(r)) || "global";
-    const predictionType = /\bmarket|financial|price\b/i.test(raw) ? "market" : "comprehensive";
-    plan.axrlen = { region, predictionType };
   }
 
   // Briefings.
@@ -499,7 +485,6 @@ const ORGAN_OF: Record<string, string> = {
   "zerlal-domain-recon": "zerlal",
   "asherin-live-dork": "zophiel",
   "zophiel-search": "zophiel",
-  "axrlen-analyze": "axrlen",
   "generate-briefing": "briefings",
   "notebook-execute": "notebooks",
   "agent-execute": "zahten",
@@ -676,17 +661,6 @@ export async function runFoldedTools(
           `[Z${i + 1}] ${r.title ?? "(untitled)"} — ${r.url ?? "no url"}\n    ${maskPii(String(r.snippet ?? "")).slice(0, 400)}`,
         ),
       );
-    })()]);
-  }
-
-  // ── AXRLEN ─────────────────────────────────────────────────────────────
-  if (plan.axrlen) {
-    legs.push(["axrlen-analyze", (async () => {
-      const out = await invoke("axrlen-analyze", plan.axrlen, auth, CEILING.heavy);
-      note("axrlen-analyze", out);
-      if (!out.ok) return;
-      parts.push(`AXRLEN SCENARIO RUN (${plan.axrlen!.region} / ${plan.axrlen!.predictionType}):`);
-      parts.push(JSON.stringify(out.body).slice(0, 4000));
     })()]);
   }
 
