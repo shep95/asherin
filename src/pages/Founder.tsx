@@ -3,7 +3,6 @@ import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Instagram, Linkedin, Twitter } from "lucide-react";
-import FounderBook from "@/components/founder/FounderBook";
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -41,8 +40,7 @@ const Founder = () => {
       name: "Asher Newton",
       jobTitle: "Founder of Asherin",
       url: "https://asherin.com/founder",
-      description:
-        "Asher Newton, founder of Asherin, and his book The Book of Asher Aureon Elion.",
+      description: "Asher Newton, founder of Asherin.",
       sameAs: SOCIALS.map((s) => s.href),
     });
     document.head.appendChild(ld);
@@ -93,8 +91,7 @@ const Founder = () => {
 
               <p className="mt-6 max-w-md text-base font-extralight leading-[1.8] text-foreground/75">
                 i build asherin. it is a small project made with care, and it is
-                still learning. below is a book i wrote — you are welcome to read
-                it here, or take it with you.
+                still learning.
               </p>
 
               <div className="mt-10 flex flex-wrap gap-3">
@@ -113,23 +110,6 @@ const Founder = () => {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* The book */}
-        <div id="book" className="relative z-10 px-6 pb-28 sm:pb-36 scroll-mt-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="text-center mb-10">
-              <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-light tracking-[-0.025em] leading-[1.05] text-foreground">
-                the book of asher aureon elion
-              </h2>
-              <p className="mt-5 max-w-xl mx-auto text-base font-extralight leading-[1.75] text-foreground/70">
-                read it here, page by page. scroll inside the reader, or download
-                a copy.
-              </p>
-            </div>
-
-            <FounderBook />
           </div>
         </div>
 
