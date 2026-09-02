@@ -75,22 +75,21 @@ const ORGAN_BY_ID = new Map(ORGANS.map(o => [o.id, o]));
 // Static topology: who can pull from whom. Live status decides whether an
 // edge is lit; the shape itself is the product's honest wiring diagram.
 const EDGES: Array<[string, string]> = [
-  ["chat", "maps"], ["chat", "zophiel"], ["chat", "google"], ["chat", "vault"],
+  ["chat", "eye"], ["chat", "zophiel"], ["chat", "google"], ["chat", "vault"],
   ["chat", "memory"], ["chat", "knowledge-vault"], ["chat", "library"],
   ["chat", "ide"], ["chat", "briefings"], ["chat", "notebooks"],
-  ["chat", "axrlen"], ["chat", "azplen"], ["chat", "zerlal"], ["chat", "zahten"],
+  ["chat", "azplen"], ["chat", "zerlal"], ["chat", "zahten"],
   ["chat", "file-scrapper"], ["chat", "whiteboard"], ["chat", "ghost"],
   ["chat", "pattern"], ["chat", "rad"],
-  ["maps", "zaxin"], ["maps", "google"], ["maps", "zeeion"],
-  ["zophiel", "ghost"], ["zophiel", "zacoon"], ["zophiel", "zali"],
+  ["eye", "zaxin"], ["eye", "google"],
+  ["zophiel", "ghost"], ["zophiel", "zali"],
   ["google", "briefings"], ["google", "notebooks"],
   ["ide", "snippets"], ["ide", "teams"], ["ide", "github"],
-  ["axrlen", "timeseries"], ["axrlen", "pattern"],
   ["gematria", "vedic"], ["chat", "gematria"], ["chat", "vedic"],
   ["document-studio", "notebooks"], ["chat", "document-studio"],
-  ["shield", "vault"], ["chat", "shield"], ["chat", "zeeion"],
-  ["chat", "zaxin"], ["chat", "zacoon"], ["chat", "zali"],
-  ["chat", "snippets"], ["chat", "teams"], ["chat", "timeseries"],
+  ["shield", "vault"], ["chat", "shield"],
+  ["chat", "zaxin"], ["chat", "zali"],
+  ["chat", "snippets"], ["chat", "teams"],
 ];
 
 const MAP_CAPABILITIES = ["take", "property", "nearby", "roofs", "ship", "cameras"];
