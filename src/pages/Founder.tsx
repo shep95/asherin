@@ -91,8 +91,7 @@ const Founder = () => {
 
               <p className="mt-6 max-w-md text-base font-extralight leading-[1.8] text-foreground/75">
                 i build asherin. it is a small project made with care, and it is
-                still learning. below is a book i wrote — you are welcome to read
-                it here, or take it with you.
+                still learning.
               </p>
 
               <div className="mt-10 flex flex-wrap gap-3">
