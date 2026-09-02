@@ -31,7 +31,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
     title: "asherin — look a little closer.",
     description:
-      "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision. $18/mo, $79/mo pro. honest about what it does not know.",
+      "asherin is a sourced research workspace: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision and asherin.eye. $18/mo, $79/mo pro.",
   },
 
   // --- Product / company ---
@@ -43,7 +43,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/software": {
     title: "software | asherin",
     description:
-      "the rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.defender, asherin.arvision, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
+      "the rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
   },
   "/for": {
     title: "who asherin is for",
@@ -343,10 +343,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     title: "ZERLAL | asherin",
     description:
       "zerlal reads dns, tls, headers and subdomains, then matches disclosed versions against public advisory indexes. it does not authenticate or exploit.",
-  },
-  "/feature/axrlen": {
-    title: "AXRLEN | asherin",
-    description: "axrlen writes probabilistic forecasts with a stated verification plan.",
   },
   "/feature/byok": {
     title: "BYOK | asherin",

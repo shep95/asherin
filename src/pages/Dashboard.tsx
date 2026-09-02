@@ -24,6 +24,7 @@ import IntelAlertCenter from "@/components/dashboard/IntelAlertCenter";
 import ChatView from "@/components/dashboard/ChatView";
 import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
 import { useAccess } from "@/hooks/useAccess";
+import { isRetiredView } from "@/lib/retiredSurfaces";
 import { DashboardUiProvider } from "@/lib/dashboardUiContext";
 import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
@@ -48,8 +49,6 @@ const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/Co
 const BriefingView = lazyWithRetry(() => import("@/components/dashboard/BriefingView"));
 const TeamsView = lazyWithRetry(() => import("@/components/dashboard/TeamsView"));
 const NotebooksView = lazyWithRetry(() => import("@/components/dashboard/NotebooksView"));
-const GeospatialView = lazyWithRetry(() => import("@/components/dashboard/IntelligencePropertyMapView"));
-const TimeSeriesView = lazyWithRetry(() => import("@/components/dashboard/TimeSeriesView"));
 const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
 
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
@@ -64,14 +63,11 @@ const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugRep
 const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
-const ZeeionView = lazyWithRetry(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
-const AxrlenView = lazyWithRetry(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/ZaxinView"));
 const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
-const ZacoonPhantomView = lazyWithRetry(() => import("@/components/dashboard/ZacoonPhantomView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 
@@ -202,8 +198,6 @@ const Dashboard = () => {
     "snippets",
     "teams",
     "notebooks",
-    "geospatial",
-    "timeseries",
     "audit",
     "zali",
     "community",
@@ -215,11 +209,8 @@ const Dashboard = () => {
     "bug-reports",
     "ebook",
     "guardian-vault",
-    "zeeion",
     "zerlal",
-    "axrlen",
-    "zaxin",
-    "zacoon",
+    "zaxin", 
     "file-scrapper",
     "vedic-astrology",
     "zahten",
@@ -240,8 +231,6 @@ const Dashboard = () => {
     "ar-vision": "asherin-arvision",
     eye: "asherin-eye",
     "asherin.eye": "asherin-eye",
-    maps: "geospatial",
-    "asherin-maps": "geospatial",
     asherinx: "ghost-engine",
     "asherinx-eng": "ghost-engine",
     pages: "pdf-generator",
@@ -256,21 +245,14 @@ const Dashboard = () => {
   };
   const initialView: DashboardView = resolveView(viewParam) ?? "chat";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
-  const [mapDock, setMapDock] = useState(false);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
   // The code workspace can hand the operator back to the mouth. One chat only —
   // the workspace never hosts a transcript of its own.
   useEffect(() => {
     const back = () => setActiveViewRaw("chat");
     window.addEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
-    const onHand = (e: Event) => {
-      const d = (e as CustomEvent).detail;
-      if (d?.surface === "maps") setMapDock(true);
-    };
-    window.addEventListener("asherin:hand-open", onHand as EventListener);
     return () => {
       window.removeEventListener(IDE_RETURN_TO_CHAT_EVENT, back);
-      window.removeEventListener("asherin:hand-open", onHand as EventListener);
     };
   }, []);
 
@@ -287,8 +269,15 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewParam]);
   const setActiveView = (v: DashboardView) => {
+    // Retired products are unavailable through every client navigation surface.
+    if (isRetiredView(v)) {
+      setActiveViewRaw("chat");
+      if (typeof window !== "undefined" && window.location.pathname !== "/dashboard") {
+        navigate("/dashboard", { replace: true });
+      }
+      return;
+    }
     if (asherEmbed && v !== "chat") return;
-    if (v !== "chat") setMapDock(false);
     setActiveViewRaw(v);
     setSuggestions([]);
     // Push URL: /dashboard for chat, /dashboard/<view> otherwise
@@ -1726,19 +1715,6 @@ const Dashboard = () => {
     const convId = activeConvIdRef.current;
     if (!user || !convId) return;
 
-    /* A geography turn IS a map request. The map surfaces itself on send —
-       the operator never hunts for the Maps tab. Detection only; the map
-       module owns the geocode and the fly. */
-    try {
-      const { detectGeoIntent, requestMapFocus } = await import("@/lib/geoIntent");
-      const geo = detectGeoIntent(content);
-      if (geo) {
-        setMapDock(true);
-        requestMapFocus(geo);
-      }
-    } catch {
-      /* never block a send on the map */
-    }
 
     // F-01 Auto-config: on the FIRST user message of a conversation, infer the
     // best Mode / Depth from intent keywords so users don't have to think about
@@ -2021,20 +1997,6 @@ const Dashboard = () => {
           "Intelligence Notebooks",
           "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.",
         );
-      case "geospatial":
-        return gatedView(
-          "geospatial",
-          GeospatialView,
-          "asherin.maps",
-          "a dark glass map you can talk to — public cameras, coordinates and weather on every move. included with the $18 asherin plan; pro adds the property dossier and the plane and ship layers.",
-        );
-      case "timeseries":
-        return gatedView(
-          "timeseries",
-          TimeSeriesView,
-          "Time-Series Intelligence",
-          "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.",
-        );
       case "audit":
         return gatedView(
           "audit",
@@ -2057,26 +2019,12 @@ const Dashboard = () => {
           "Pattern Analysis Engine",
           "Azplen + Asherin powered data pattern recognition with visual graph forecasting. Available on Pro plans.",
         );
-      case "zeeion":
-        return gatedView(
-          "zeeion",
-          ZeeionView,
-          "Zeeion — Financial Intelligence",
-          "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.",
-        );
-      case "axrlen":
-        return gatedView(
-          "axrlen",
-          AxrlenView,
-          "Axrlen — scenario forecasting",
-          "named-method scenario forecasting with intervals and invalidation conditions. available on the asherin pro plan.",
-        );
       case "zerlal":
         return gatedView(
           "zerlal",
           ZerlalView,
-          "ZERLAL — Cyber Recon",
-          "Domain reconnaissance, exploit intelligence, and infrastructure mapping. Available on Pro plans.",
+          "asherin.cyber",
+          "Passive domain reconnaissance and public advisory context. Available on Pro plans.",
         );
       case "google":
         return gatedView(
@@ -2091,13 +2039,6 @@ const Dashboard = () => {
           ZaxinView,
           "Zaxin — BLE Field Scout",
           "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.",
-        );
-      case "zacoon":
-        return gatedView(
-          "zacoon",
-          ZacoonPhantomView,
-          "Zacoon Phantom Grid v3.0",
-          "Multi-cortex autonomous web operative — adversarial awareness, self-correction, cryptographic audit ledger. Available on the $79/mo Pro plan.",
         );
 
       // case "imagine-intelligence" removed
@@ -2543,28 +2484,6 @@ const Dashboard = () => {
                     );
                   })()}
                 </DashboardUiProvider>
-              ) : mapDock && activeView === "chat" ? (
-                <div className="flex h-full min-h-0 w-full">
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{renderView()}</div>
-                  <aside className="relative hidden h-full w-[46%] min-w-[280px] max-w-[720px] border-l border-border/20 sm:block">
-                    <button
-                      type="button"
-                      onClick={() => setMapDock(false)}
-                      className="absolute right-2 top-2 z-[400] rounded-md border border-border/30 bg-background/70 px-2 py-0.5 text-[10px] font-extralight lowercase text-muted-foreground"
-                    >
-                      close map
-                    </button>
-                    <Suspense
-                      fallback={
-                        <div className="flex h-full items-center justify-center text-[11px] font-extralight text-muted-foreground">
-                          map…
-                        </div>
-                      }
-                    >
-                      <GeospatialView />
-                    </Suspense>
-                  </aside>
-                </div>
               ) : (
                 renderView()
               )}

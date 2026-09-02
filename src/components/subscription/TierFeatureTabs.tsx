@@ -114,21 +114,17 @@ const PRO_FEATURE_GROUPS = [
       { name: "Cross — Live Screen Intelligence", desc: "Real-time screen analysis with 17 analytical modes.", link: "/feature/cross" },
     ],
   },
-  {
-    category: "Data Intelligence",
-    features: [
-      { name: "Azplen Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
-      { name: "Time-Series Intelligence", desc: "Temporal analysis and forecasting across any dataset.", link: null },
-      { name: "Geospatial Analysis", desc: "Location intelligence and geographic data mapping.", link: null },
-      
-    ],
-  },
-  {
-    category: "Specialized Modules",
-    features: [
-      { name: "AXRLEN", desc: "Real-time global event prediction and policy simulation engine.", link: "/feature/axrlen" },
-      { name: "ZEEION FI", desc: "AI forensic financial intelligence and dispute resolution platform.", link: "/feature/zeeion" },
-      { name: "ZERLAL", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence.", link: "/feature/zerlal" },
+   {
+     category: "Data Intelligence",
+     features: [
+       { name: "Azplen Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
+     ],
+   },
+   {
+     category: "Specialized Modules",
+     features: [
+       { name: "Asherin Cyber", desc: "Passive domain context and public advisory intelligence.", link: "/feature/zerlal" },
+
     ],
   },
   {

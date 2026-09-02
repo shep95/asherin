@@ -12,6 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { retiredSurfaceResponse } from "../_shared/retiredSurfaces.ts";
 import { getCallerEmail, isAdminEmail } from "../_shared/adminGate.ts";
 import { requireTier } from "../_shared/tierGate.ts";
 
@@ -229,6 +230,8 @@ async function umRelatedMissions(sb: any, userId: string, hostname: string): Pro
 // ── HANDLER ──────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const retired = retiredSurfaceResponse(req, "zacoon");
+  if (retired) return retired;
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // ── Mass-ban gate: block aureonai.app for non-admins ──────────────────────

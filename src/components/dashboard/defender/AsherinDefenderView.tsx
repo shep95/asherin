@@ -266,9 +266,9 @@ const AsherinDefenderView = () => {
           <section className="mt-5 rounded-2xl border border-foreground/12 bg-foreground/[0.02] p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground/40">◈ arm this tab</p>
             <p className="mt-2 text-sm font-extralight text-foreground/85">
-              this tab can freeze its own tracker beacons and rotate a unique 60-second poison map for in-page
-              observers. pick a bluetooth or hid device you own to grant this origin the rest of the tree. ssid scan,
-              bios, and other-process spy match stay residual — a tab cannot see them.
+              this web room protects this tab and devices you explicitly pair. it cannot monitor every browser tab,
+              search engine, or process on the laptop, and it cannot change a device fingerprint. whole-device coverage
+              would require a separately installed, signed companion with explicit os permissions and an audit trail.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button

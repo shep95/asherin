@@ -7,9 +7,9 @@
 // the parent dashboard.
 
 import { lazy, Suspense, useEffect } from "react";
-import { Loader2, Search, Sparkles, ShieldAlert, Brain, Code2 } from "lucide-react";
+import { Loader2, Search, ShieldAlert, Brain, Code2 } from "lucide-react";
 
-export type SuiteId = "aureon-chat" | "zophiel" | "axrlen" | "zerlal" | "ide";
+export type SuiteId = "aureon-chat" | "zophiel" | "zerlal" | "ide";
 
 export interface SuiteDef {
   id: SuiteId;
@@ -21,20 +21,18 @@ export interface SuiteDef {
 }
 
 export const SUITES: SuiteDef[] = [
-  { id: "aureon-chat", label: "Asherin Chat",       code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain }, // CUI+
-  { id: "zophiel",     label: "Zophiel Search",    code: "ZOP", blurb: "multi-engine OSINT + Ghost Chain live scrape.",                    minClearanceRank: 1, icon: Search }, // CUI+
-  { id: "axrlen",      label: "AXRLEN Forecast",   code: "AXR", blurb: "Probabilistic scenario engine (Nexus Prime).",                  minClearanceRank: 2, icon: Sparkles }, // CONF+
-  { id: "zerlal",      label: "ZERLAL Cyber",      code: "ZRL", blurb: "Vulnerability & kill-chain analysis of sovereign code.",       minClearanceRank: 3, icon: ShieldAlert }, // SECRET+
-  { id: "ide",         label: "Sovereign IDE",     code: "IDE", blurb: "Asherin IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 }, // SECRET+
+  { id: "aureon-chat", label: "Asherin Chat", code: "AUR", blurb: "Sovereign analytical AI. Legal, doctrinal, OSINT reasoning.", minClearanceRank: 1, icon: Brain },
+  { id: "zophiel", label: "Zophiel Search", code: "ZOP", blurb: "multi-engine OSINT + Ghost Chain live scrape.", minClearanceRank: 1, icon: Search },
+  { id: "zerlal", label: "ZERLAL Cyber", code: "ZRL", blurb: "Vulnerability & kill-chain analysis of sovereign code.", minClearanceRank: 3, icon: ShieldAlert },
+  { id: "ide", label: "Sovereign IDE", code: "IDE", blurb: "Asherin IDE. Countries build & run software here, not locally.", minClearanceRank: 3, icon: Code2 },
 ];
 
 // Lazy imports — the deck stays fast until an operator opens a suite.
-const AureonChat  = lazy(() => import("./GovAureonChatPanel"));
-const Zophiel     = lazy(() => import("@/components/asher/AsherZophielModule"));
-const Axrlen      = lazy(() => import("./GovAxrlenPanel"));
+const AureonChat = lazy(() => import("./GovAureonChatPanel"));
+const Zophiel = lazy(() => import("@/components/asher/AsherZophielModule"));
 // IDE requires deck runtime, Zerlal has its own sovereign wrapper below.
 const AsherCodeModule = lazy(() => import("@/components/asher/AsherCodeModule"));
-const GovZerlalPanel  = lazy(() => import("./GovZerlalPanel"));
+const GovZerlalPanel = lazy(() => import("./GovZerlalPanel"));
 
 export interface GovSuiteContext {
   serverId: string | null;
@@ -69,9 +67,8 @@ const GovSuiteMount = ({ suite, operator, onAudit, context }: Props) => {
   return (
     <Suspense fallback={Fallback}>
       {suite === "aureon-chat" && <AureonChat operator={operator} onAudit={onAudit} />}
-      {suite === "zophiel"     && <Zophiel />}
-      {suite === "axrlen"      && <Axrlen operator={operator} serverName={context?.serverName ?? null} onAudit={onAudit} />}
-      {suite === "zerlal"      && (
+      {suite === "zophiel" && <Zophiel />}
+      {suite === "zerlal" && (
         <GovZerlalPanel
           serverId={context?.serverId ?? null}
           serverName={context?.serverName ?? null}

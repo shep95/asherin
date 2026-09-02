@@ -94,10 +94,10 @@ const Index = () => {
         q: "can i cancel?",
         a: "Yes, in one click from the dashboard. No retention flow. Your data can be exported or deleted at any time.",
       },
-      {
-        q: "what does the $18 plan include?",
-        a: "Chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that persists between sessions.",
-      },
+       {
+         q: "what does the $18 plan include?",
+         a: "Chat with sources beside the answer, asherinx.eng, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that persists between sessions.",
+       },
       {
         q: "is my work used to train asherin?",
         a: "No. Your conversations and files are account-scoped and encrypted at rest. They are not sold and are not used as training data.",
@@ -112,8 +112,8 @@ const Index = () => {
           "@type": "WebSite",
           name: "Asherin",
           url: "https://asherin.com",
-          description:
-            "asherin is a sourced research workspace: chat, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages. $18/mo, $79/mo pro. honest about what it does not know.",
+           description:
+             "asherin is a sourced research workspace: chat, asherinx.eng, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision, asherin.pages. $18/mo, $79/mo pro. honest about what it does not know.",
         },
       },
       {
@@ -280,7 +280,7 @@ const Index = () => {
             </Link>
           </div>
           <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
-            rooms on a seat: chat, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision,
+            rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision,
             asherin.pages. $18 / month. $79 / month pro.
           </p>
         </div>
@@ -416,7 +416,7 @@ const Index = () => {
             {[
               {
                 q: "what does the $18 plan include?",
-                a: "chat with sources beside the answer, asherinx.eng, asherin.maps, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that carries between sessions.",
+                a: "chat with sources beside the answer, asherinx.eng, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision, asherin.pages, a private vault, and memory that carries between sessions.",
               },
               {
                 q: "what does pro add?",
