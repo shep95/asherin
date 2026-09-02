@@ -3,7 +3,6 @@ import FounderPhotoCarousel from "@/components/founder/FounderPhotoCarousel";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Instagram, Linkedin, Twitter } from "lucide-react";
-import FounderBook from "@/components/founder/FounderBook";
 import ScrollProgressBar from "@/components/landing/ScrollProgressBar";
 import SiteFooter from "@/components/SiteFooter";
 
