@@ -39,6 +39,7 @@ interface OrganDef {
 // upper, synthesis organs lower. No left rail, no directorate tree.
 const ORGANS: OrganDef[] = [
   { id: "chat", label: "Chat", x: 50, y: 50 },
+  { id: "eye", label: "Eye", x: 27, y: 30 },
   { id: "zophiel", label: "Zophiel", x: 50, y: 20 },
   { id: "google", label: "Google", x: 73, y: 30 },
   { id: "ide", label: "IDE", x: 85, y: 50 },
