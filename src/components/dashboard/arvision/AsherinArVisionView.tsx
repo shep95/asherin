@@ -256,6 +256,7 @@ function bootArvision(wrap, root, emitPull) {
     hfov: null,
     rec: null,
     recChunks: [],
+    flipping: false,
     rf: { tracks: [], wifi: [], engine: "", n: 0 },
     rfPick: 0,
     identity: { enrolled: false, status: "unenrolled", label: null, cosine: null },
@@ -357,22 +358,27 @@ function bootArvision(wrap, root, emitPull) {
     } catch (_) {}
   }
 
-  async function startCam(deviceId, isRetry) {
+  async function startCam(deviceId, isRetry, exactFacing) {
     if (S.halted && !isRetry) {
       note("camera halted — tap cam to retry once");
-      return;
+      return false;
     }
     S.halted = false;
     if (S.stream) S.stream.getTracks().forEach((t) => t.stop());
     S.stream = null;
     const ladders = [];
+    if (exactFacing) {
+      // mobile flip: the facing side is the requirement, not a hint
+      ladders.push({ facingMode: { exact: S.facing }, width: { ideal: 1280 }, height: { ideal: 720 } });
+      ladders.push({ facingMode: { exact: S.facing } });
+    }
     if (deviceId) {
       ladders.push({ deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } });
       ladders.push({ deviceId: { ideal: deviceId } });
     }
     ladders.push({ facingMode: S.facing, width: { ideal: 1280 }, height: { ideal: 720 } });
     ladders.push({ facingMode: S.facing });
-    ladders.push(true);
+    if (!exactFacing) ladders.push(true);
     let lastErr = null;
     for (let i = 0; i < ladders.length; i++) {
       try {
@@ -385,35 +391,42 @@ function bootArvision(wrap, root, emitPull) {
         if (name === "NotAllowedError" || name === "PermissionDeniedError") {
           note("camera permission blocked on this box");
           await haltCam(name);
-          return;
+          return false;
         }
         if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          if (exactFacing) continue;
           note("no camera on this box");
           await haltCam(name);
-          return;
+          return false;
         }
         if (name === "NotReadableError" || name === "TrackStartError") {
           if (!isRetry) {
             await new Promise((r) => setTimeout(r, 300));
-            return startCam(deviceId, true);
+            return startCam(deviceId, true, exactFacing);
           }
+          if (exactFacing) continue;
           note("camera in use on this box — CANNOT_RESOLVE");
           await haltCam(name);
-          return;
+          return false;
         }
       }
     }
     if (!S.stream) {
+      // an exact-facing attempt failing is not a dead box; the caller falls back
+      if (exactFacing) return false;
       await haltCam((lastErr && (lastErr.name || lastErr.message)) || "getUserMedia failed");
-      return;
+      return false;
     }
     cam.srcObject = S.stream;
-    await cam.play();
+    try {
+      await cam.play();
+    } catch (_) {}
     await listCams();
     const _track = S.stream.getVideoTracks()[0];
     S.deviceId = _track.getSettings().deviceId || deviceId;
     const s = _track.getSettings();
     if (s.facingMode) S.facing = s.facingMode;
+    S.torch = false;
     if (s.width && s.focalLength) {
       S.hfov = (2 * Math.atan(s.width / 2 / s.focalLength) * 180) / Math.PI;
     } else if (s.width && s.height) {
@@ -434,20 +447,52 @@ function bootArvision(wrap, root, emitPull) {
         quote: S.facing,
       });
     } catch (_) {}
+    return true;
   }
 
   async function flipCam() {
-    await listCams();
-    if (S.devices.length < 2) {
-      note("only one camera");
-      return;
+    if (S.flipping) return;
+    S.flipping = true;
+    const prevFacing = S.facing;
+    const prevMirror = S.mirror;
+    const prevDevice = S.deviceId;
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    try {
+      await listCams();
+      const ids = S.devices.map((d) => d.deviceId).filter(Boolean);
+      const next = S.facing === "user" ? "environment" : "user";
+      S.facing = next;
+      S.mirror = next === "user";
+      S.halted = false;
+
+      if (isMobile) {
+        // phones commonly hide or recycle device ids; request the opposite side directly
+        if (await startCam(null, false, true)) {
+          applyMirror();
+          return;
+        }
+      }
+      if (ids.length >= 2) {
+        // fall back to the enumerated device when the browser rejects facingMode
+        const i = Math.max(0, ids.indexOf(prevDevice));
+        const nid = ids[(i + 1) % ids.length];
+        if (await startCam(nid, false, false)) {
+          S.mirror = S.facing === "user";
+          applyMirror();
+          return;
+        }
+      }
+
+      // restore the previous camera if the requested side is unavailable
+      S.facing = prevFacing;
+      S.mirror = prevMirror;
+      S.halted = false;
+      note(ids.length < 2 ? "only one camera on this box" : "camera flip refused on this box");
+      await startCam(prevDevice || null, false, false);
+      applyMirror();
+    } finally {
+      S.flipping = false;
     }
-    const ids = S.devices.map((d) => d.deviceId);
-    const i = Math.max(0, ids.indexOf(S.deviceId));
-    const next = ids[(i + 1) % ids.length];
-    S.facing = S.facing === "user" ? "environment" : "user";
-    S.mirror = S.facing === "user";
-    await startCam(next);
   }
 
   async function toggleTorch() {
