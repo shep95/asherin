@@ -40,8 +40,7 @@ const Founder = () => {
       name: "Asher Newton",
       jobTitle: "Founder of Asherin",
       url: "https://asherin.com/founder",
-      description:
-        "Asher Newton, founder of Asherin, and his book The Book of Asher Aureon Elion.",
+      description: "Asher Newton, founder of Asherin.",
       sameAs: SOCIALS.map((s) => s.href),
     });
     document.head.appendChild(ld);
