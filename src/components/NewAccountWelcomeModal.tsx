@@ -17,7 +17,7 @@ const STORAGE_PREFIX = "aureon_welcome_seen_";
 const CAPABILITIES = [
   { k: "01", t: "Asherin Chat", d: "Multi-model intelligence with consensus and BYOK." },
   { k: "02", t: "Zophiel Search", d: "Live public-engine search with credibility ranking and cited hits." },
-  { k: "03", t: "Axrlen Predictions", d: "Real-time global event forecasting + Monte Carlo modeling." },
+  { k: "03", t: "Asherin Eye", d: "Live public spatial layers on a globe — flights, quakes, disasters, public cameras." },
   {
     k: "04",
     t: "Zaxin BLE Scout",
@@ -42,7 +42,7 @@ const PLANS = [
     tier: "Asherin Pro",
     price: "$79",
     per: "/mo",
-    desc: "Full intelligence suite — Azplen, Axrlen, Zaxin, Zerlal, Zeeion, Asherin Engine.",
+    desc: "Full intelligence suite — Azplen, Zaxin, Zerlal Cyber, Asherin Eye, and Asherin Defender.",
   },
   { tier: "Enterprise", price: "Custom", per: "", desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];

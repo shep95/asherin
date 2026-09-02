@@ -39,14 +39,13 @@ interface OrganDef {
 // upper, synthesis organs lower. No left rail, no directorate tree.
 const ORGANS: OrganDef[] = [
   { id: "chat", label: "Chat", x: 50, y: 50 },
-  { id: "maps", label: "Maps", x: 27, y: 30 },
+  { id: "eye", label: "Eye", x: 27, y: 30 },
   { id: "zophiel", label: "Zophiel", x: 50, y: 20 },
   { id: "google", label: "Google", x: 73, y: 30 },
   { id: "ide", label: "IDE", x: 85, y: 50 },
   { id: "vault", label: "Vault", x: 15, y: 50 },
   { id: "zerlal", label: "Zerlal", x: 14, y: 68 },
   { id: "azplen", label: "Azplen", x: 27, y: 78 },
-  { id: "axrlen", label: "Axrlen", x: 42, y: 84 },
   { id: "zahten", label: "Zahten", x: 58, y: 84 },
   { id: "briefings", label: "Briefings", x: 73, y: 78 },
   { id: "notebooks", label: "Notebooks", x: 86, y: 68 },
@@ -56,15 +55,12 @@ const ORGANS: OrganDef[] = [
   { id: "whiteboard", label: "Whiteboard", x: 62, y: 62 },
   { id: "ghost", label: "Ghost", x: 38, y: 38 },
   { id: "file-scrapper", label: "File Scrapper", x: 62, y: 38 },
-  { id: "zeeion", label: "Zeeion", x: 20, y: 15 },
   { id: "zaxin", label: "Zaxin", x: 36, y: 10 },
-  { id: "zacoon", label: "Zacoon", x: 64, y: 10 },
   { id: "zali", label: "ZALI", x: 80, y: 15 },
   { id: "gematria", label: "Gematria", x: 92, y: 24 },
   { id: "vedic", label: "Vedic", x: 92, y: 40 },
   { id: "document-studio", label: "Document Studio", x: 92, y: 58 },
   { id: "pattern", label: "Pattern", x: 78, y: 90 },
-  { id: "timeseries", label: "Time-series", x: 62, y: 94 },
   { id: "teams", label: "Teams", x: 46, y: 96 },
   { id: "snippets", label: "Snippets", x: 30, y: 92 },
   { id: "rad", label: "RAD", x: 16, y: 86 },
@@ -79,22 +75,21 @@ const ORGAN_BY_ID = new Map(ORGANS.map(o => [o.id, o]));
 // Static topology: who can pull from whom. Live status decides whether an
 // edge is lit; the shape itself is the product's honest wiring diagram.
 const EDGES: Array<[string, string]> = [
-  ["chat", "maps"], ["chat", "zophiel"], ["chat", "google"], ["chat", "vault"],
+  ["chat", "eye"], ["chat", "zophiel"], ["chat", "google"], ["chat", "vault"],
   ["chat", "memory"], ["chat", "knowledge-vault"], ["chat", "library"],
   ["chat", "ide"], ["chat", "briefings"], ["chat", "notebooks"],
-  ["chat", "axrlen"], ["chat", "azplen"], ["chat", "zerlal"], ["chat", "zahten"],
+  ["chat", "azplen"], ["chat", "zerlal"], ["chat", "zahten"],
   ["chat", "file-scrapper"], ["chat", "whiteboard"], ["chat", "ghost"],
   ["chat", "pattern"], ["chat", "rad"],
-  ["maps", "zaxin"], ["maps", "google"], ["maps", "zeeion"],
-  ["zophiel", "ghost"], ["zophiel", "zacoon"], ["zophiel", "zali"],
+  ["eye", "zaxin"], ["eye", "google"],
+  ["zophiel", "ghost"], ["zophiel", "zali"],
   ["google", "briefings"], ["google", "notebooks"],
   ["ide", "snippets"], ["ide", "teams"], ["ide", "github"],
-  ["axrlen", "timeseries"], ["axrlen", "pattern"],
   ["gematria", "vedic"], ["chat", "gematria"], ["chat", "vedic"],
   ["document-studio", "notebooks"], ["chat", "document-studio"],
-  ["shield", "vault"], ["chat", "shield"], ["chat", "zeeion"],
-  ["chat", "zaxin"], ["chat", "zacoon"], ["chat", "zali"],
-  ["chat", "snippets"], ["chat", "teams"], ["chat", "timeseries"],
+  ["shield", "vault"], ["chat", "shield"],
+  ["chat", "zaxin"], ["chat", "zali"],
+  ["chat", "snippets"], ["chat", "teams"],
 ];
 
 const MAP_CAPABILITIES = ["take", "property", "nearby", "roofs", "ship", "cameras"];
@@ -246,7 +241,7 @@ const ConnectView = () => {
   const filtered = useMemo(() => {
     if (!selected) return pulls.slice(0, 60);
     const rows = byOrgan.get(selected) ?? [];
-    if (selected === "maps") {
+    if (selected === "eye") {
       const scoped = rows.filter(r => MAP_CAPABILITIES.includes(r.capability));
       if (scoped.length) return scoped.slice(0, 20);
     }
