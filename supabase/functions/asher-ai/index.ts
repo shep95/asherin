@@ -168,12 +168,20 @@ const TOOLS = [
   { type: "function", function: { name: "search_swarm", description: "Kernel swarm run: parallel multi-engine sweep over a question, deduped and ranked.", parameters: { type: "object", properties: { query: { type: "string" }, engines: { type: "array", items: { type: "string" } } }, required: ["query"] } } },
   { type: "function", function: { name: "site_cyber_map", description: "Kernel site cyber-map: outbound domains, embedded scripts, third-party trackers and exposed surface for a given site.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
   { type: "function", function: { name: "intel_map", description: "Kernel intel-map. NOT geography — this maps ENTITIES, IDENTIFIERS and RELATIONSHIPS. Never use for map / cartography tasks; those go to map_search + place_marker.", parameters: { type: "object", properties: { seed: { type: "string" }, hops: { type: "number" } }, required: ["seed"] } } },
+  { type: "function", function: { name: "osint_intel", description: "Kernel public intelligence report for a person, URL, wallet, VIN, handle, IP, organisation, or other public target. Returns only live, attributable signals and stops after the report.", parameters: { type: "object", properties: { target: { type: "string", description: "Public target to classify and research" } }, required: ["target"] } } },
+  { type: "function", function: { name: "osint_lookup", description: "Kernel keyless civilian public lookup for a named identifier class. Never claims private or real-time location.", parameters: { type: "object", properties: { query: { type: "string", description: "Public identifier or lookup query" } }, required: ["query"] } } },
+  { type: "function", function: { name: "dork_auto", description: "Kernel senior public-index dork hunt for a domain or organisation. Defensive and attributable results only.", parameters: { type: "object", properties: { target: { type: "string", description: "Domain or organisation to research" } }, required: ["target"] } } },
+  { type: "function", function: { name: "file_metadata", description: "Kernel metadata analysis for a file explicitly supplied by the operator. Masks secrets and returns no file contents.", parameters: { type: "object", properties: { path: { type: "string", description: "Path to an operator-supplied file" } }, required: ["path"] } } },
+  { type: "function", function: { name: "social_fetch", description: "Kernel keyless public social fetch for a named platform and query. Never asks for credentials or bypasses access controls.", parameters: { type: "object", properties: { platform: { type: "string" }, query: { type: "string" } }, required: ["platform", "query"] } } },
+  { type: "function", function: { name: "asherinx", description: "Kernel federated public-index search across domain packs with strong and soft selectors. Not interception and not private data access.", parameters: { type: "object", properties: { query: { type: "string" }, domain: { type: "string", description: "Optional domain pack such as cyber_security, software_dev, or research_univ" } }, required: ["query"] } } },
 ];
 
 /** Tools the vessel must hand to the kernel rather than run locally. */
 const KERNEL_TOOLS = new Set([
   "zophiel_search", "elite_dorks", "dork", "path_map",
   "search_swarm", "site_cyber_map", "intel_map",
+  "osint_intel", "osint_lookup", "dork_auto", "file_metadata",
+  "social_fetch", "asherinx",
 ]);
 export { KERNEL_TOOLS };
 

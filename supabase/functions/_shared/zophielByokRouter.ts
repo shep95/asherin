@@ -20,7 +20,8 @@ export type ZophielByokProvider =
   | 'deepseek'
   | 'mistral'
   | 'perplexity'
-  | 'venice';
+  | 'venice'
+  | 'openrouter';
 
 export interface ZophielByokConfig {
   provider: ZophielByokProvider;

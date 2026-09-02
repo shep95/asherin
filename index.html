@@ -95,7 +95,7 @@
     <script>
       (function(){var h=(location.hostname||"").toLowerCase();var p=location.pathname||"";var framed=false;try{framed=window.self!==window.top;}catch(e){framed=true;}if(framed&&(h==="asherin.com"||h==="www.asherin.com")){try{window.top.location.replace(location.href);}catch(e){document.documentElement.style.display="none";}return;}if(h.indexOf("id-preview--")===0||h.indexOf("preview--")===0){var m=document.createElement("meta");m.setAttribute("name","robots");m.setAttribute("content","noindex,nofollow,noarchive");document.head.appendChild(m);if(!framed){location.replace("https://asherin.com"+p+location.search+location.hash);return;}}var ok=h==="asherin.com"||h==="www.asherin.com"||h==="localhost"||h==="127.0.0.1"||h==="aureonai.app"||h==="www.aureonai.app";if(!ok&&location.protocol==="https:"&&!framed){location.replace("https://asherin.com"+p+location.search+location.hash);return;}if(p==="/dashboard"||p.indexOf("/dashboard/")===0||p==="/auth"||p.indexOf("/auth/")===0||p==="/asher-dashboard"||p.indexOf("/asher-dashboard/")===0){var m2=document.createElement("meta");m2.setAttribute("name","robots");m2.setAttribute("content","noindex,nofollow,noarchive");document.head.appendChild(m2);document.title="asherin";}})();
     </script>
-    <div id="root"><h1>asherin — look a little closer.</h1></div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -297,13 +297,15 @@ export function detectDorkIntent(userText: string): DorkTrigger {
 
   const hard = HARD_TRIGGERS.some((r) => r.test(text));
   const dorkOps = /\b(inurl:|intitle:|intext:|filetype:|ext:)\b/i.test(text);
-  // operator 2026-08-18: only dork when they ask for a dork.
-  if (!hard && !dorkOps) return none("no_explicit_dork_request");
 
   const hasStrongId = EMAIL_RE.test(text) || PHONE_RE.test(text) || HANDLE_RE.test(text) || !!extractDomain(text);
   const hasProperName = !!looksLikeProperName(text);
   const quotedRaw = text.match(QUOTED_RE)?.[1]?.trim() ?? "";
   const hasQuoted = quotedRaw.length > 0 && isQuotedIntelAnchor(quotedRaw);
+  const implicitReason = !hard && !dorkOps
+    ? detectImplicitIntent(text, { hasStrongId, hasProperName, hasQuoted })
+    : null;
+  if (!hard && !dorkOps && !implicitReason) return none("no_explicit_dork_request");
 
   const selfTarget = SELF_RE.test(text) && !THIRD_PARTY_RE.test(text);
 
