@@ -27,6 +27,15 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
   const [showHouseLogo, setShowHouseLogo] = useState(false);
   const year = new Date().getFullYear();
 
+  useEffect(() => {
+    if (!showHouseLogo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowHouseLogo(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showHouseLogo]);
+
   return (
     <footer className={`relative z-10 px-6 pb-10 ${variant === "compact" ? "pt-6" : "pt-16"}`}>
       <div className="mx-auto max-w-5xl">
