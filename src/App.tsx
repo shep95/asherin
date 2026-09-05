@@ -16,6 +16,7 @@ import LandingBackground from "@/components/LandingBackground";
 import SiteFooter from "@/components/SiteFooter";
 
 const Index = lazy(() => import("./pages/Index"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
