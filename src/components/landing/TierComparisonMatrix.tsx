@@ -185,7 +185,7 @@ const TierComparisonMatrix = () => {
             to={t.href}
             className={`text-center rounded-lg px-3 py-2 text-[10px] tracking-[0.2em] uppercase ${
               t.highlight
-                ? "bg-amber-300/20 text-amber-100 border border-amber-300/30"
+                ? "bg-neutral-800 text-neutral-100 border border-neutral-700"
                 : "bg-foreground/10 text-foreground/90 border border-border/20"
             }`}
           >
