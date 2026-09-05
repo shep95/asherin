@@ -249,7 +249,7 @@ const Index = () => {
       <Section className="flex min-h-[88vh] flex-col justify-center px-6 pt-32 pb-20">
         <div className="mx-auto w-full max-w-5xl">
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[0.94] text-foreground">
-            asherin
+            asherin.
             <br />
             <span className="zophiel-shimmer-text italic font-light">look a little closer.</span>
           </h1>
