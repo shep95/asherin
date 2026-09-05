@@ -284,3 +284,6 @@ verify_jwt = true
 
 [functions.asherin-eye-brain]
 verify_jwt = true
+
+[functions.asherin-ask]
+verify_jwt = false
