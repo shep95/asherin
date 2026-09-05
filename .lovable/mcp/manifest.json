@@ -1,0 +1,322 @@
+{
+  "version": 1,
+  "sdk_version": "2.0.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://xpgxgzqbtrrrbtjcemci.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "asherin",
+      "version": "0.1.0",
+      "title": "asherin"
+    },
+    "tools": [
+      {
+        "name": "list_conversations",
+        "title": "List chat conversations",
+        "description": "List the signed-in user's Asherin chat conversations (title, mode, pinned/archived state, timestamps). Message bodies are not returned.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "Maximum conversations to return."
+            },
+            "include_archived": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include archived conversations."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_directive_profiles",
+        "title": "List directive profiles",
+        "description": "List the signed-in user's directive profiles (saved standing directions applied to Asherin chat turns).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Maximum profiles to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_directive_profile",
+        "title": "Create a directive profile",
+        "description": "Create a directive profile for the signed-in user: a named set of standing directions that Asherin chat applies when the profile is active.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Short profile name."
+            },
+            "directions": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 12000,
+              "description": "The standing directions the assistant should follow."
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 500,
+              "description": "Optional short summary."
+            },
+            "activate": {
+              "type": "boolean",
+              "default": false,
+              "description": "Make this the active profile."
+            }
+          },
+          "required": [
+            "name",
+            "directions"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_saved_targets",
+        "title": "List saved map targets",
+        "description": "List the signed-in user's saved geographic targets (label, coordinates, notes) used by the Asherin Eye map surfaces.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "description": "Maximum targets to return."
+            },
+            "search": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Case-insensitive label filter."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_saved_target",
+        "title": "Save a map target",
+        "description": "Save a geographic target (label, latitude, longitude, optional notes) for the signed-in user so it appears on the Asherin Eye map.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Target label."
+            },
+            "lat": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90,
+              "description": "Latitude in decimal degrees."
+            },
+            "lng": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180,
+              "description": "Longitude in decimal degrees."
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 2000,
+              "description": "Optional notes about the target."
+            }
+          },
+          "required": [
+            "label",
+            "lat",
+            "lng"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_watchlist",
+        "title": "List watchlist entities",
+        "description": "List the signed-in user's monitored entities (type, value, alert frequency, mention count, last check time).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "description": "Maximum entries to return."
+            },
+            "enabled_only": {
+              "type": "boolean",
+              "default": false,
+              "description": "Only return entries with monitoring enabled."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_watchlist_entity",
+        "title": "Add a watchlist entity",
+        "description": "Add an entity (person, organisation, domain, location, or other identifier) to the signed-in user's monitoring watchlist.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "entity_type": {
+              "type": "string",
+              "enum": [
+                "person",
+                "organization",
+                "domain",
+                "location",
+                "keyword",
+                "other"
+              ],
+              "description": "Kind of entity being monitored."
+            },
+            "entity_value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300,
+              "description": "The entity identifier or name."
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 1000,
+              "description": "Why this entity is monitored."
+            },
+            "alert_frequency": {
+              "type": "string",
+              "enum": [
+                "realtime",
+                "hourly",
+                "daily",
+                "weekly"
+              ],
+              "default": "daily",
+              "description": "How often alerts should be evaluated."
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether monitoring is active."
+            }
+          },
+          "required": [
+            "entity_type",
+            "entity_value"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_code_snippets",
+        "title": "Search saved code snippets",
+        "description": "Search the signed-in user's saved code snippets by title or content, optionally filtered by language.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Text to match in title or content."
+            },
+            "language": {
+              "type": "string",
+              "maxLength": 40,
+              "description": "Filter by language, e.g. 'typescript'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Maximum snippets to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
