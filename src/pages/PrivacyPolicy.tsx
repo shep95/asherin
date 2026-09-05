@@ -8,7 +8,7 @@ import { applySeoHead } from "@/lib/seoHead";
 const PrivacyPolicy = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Privacy Policy — Asherin",
+      title: "Privacy Policy, Asherin",
       description:
         "How Asherin collects, encrypts, and protects your data. Account-scoped encryption at rest, zero training on user content, and the operator-grade privacy stance.",
       path: "/privacy",
@@ -41,7 +41,7 @@ const PrivacyPolicy = () => {
                   <li>→ <strong className="text-foreground/80">Uploaded files:</strong> Documents you upload to your Library.</li>
                   <li>→ <strong className="text-foreground/80">Usage metadata:</strong> Prompt counts and session activity (no content).</li>
                   <li>→ <strong className="text-foreground/80">Memory entries:</strong> Facts you save for persistent context.</li>
-                  <li>→ <strong className="text-foreground/80">Payment data:</strong> Processed exclusively by Stripe — we never see or store card numbers.</li>
+                  <li>→ <strong className="text-foreground/80">Payment data:</strong> Processed exclusively by Stripe, we never see or store card numbers.</li>
                 </ul>
               </section>
 
@@ -71,8 +71,8 @@ const PrivacyPolicy = () => {
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">4. Third-Party Processors</h2>
                 <p className="mb-3">We use the following third parties who may process your data under strict agreements:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ <strong className="text-foreground/80">Stripe</strong> — Payment processing.</li>
-                  <li>→ <strong className="text-foreground/80">Cloud infrastructure</strong> — Hosting and database (US-based servers).</li>
+                  <li>→ <strong className="text-foreground/80">Stripe</strong>, Payment processing.</li>
+                  <li>→ <strong className="text-foreground/80">Cloud infrastructure</strong>, Hosting and database (US-based servers).</li>
                 </ul>
                 <p className="mt-3">Each vendor operates under a Data Processing Agreement (DPA). No other third parties receive your data.</p>
               </section>
@@ -92,7 +92,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">6. Encryption & Security</h2>
                 <ul className="space-y-2 ml-4">
-                  <li>→ All conversations are encrypted at rest using AES-256-GCM under a key scoped to your account. The wrapping secret stays server-side, so Asherin can decrypt on your behalf — this is not zero-knowledge end-to-end encryption, and we do not claim it is.</li>
+                  <li>→ All conversations are encrypted at rest using AES-256-GCM under a key scoped to your account. The wrapping secret stays server-side, so Asherin can decrypt on your behalf, this is not zero-knowledge end-to-end encryption, and we do not claim it is.</li>
                   <li>→ Keys are derived per-account via HKDF-SHA-256 and released only to sessions authenticated as the owner.</li>
                   <li>→ Data is encrypted in transit (TLS) and at rest.</li>
                   <li>→ All servers are hosted in the United States.</li>

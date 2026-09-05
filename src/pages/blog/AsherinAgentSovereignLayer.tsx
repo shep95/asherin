@@ -10,7 +10,7 @@ import ShareRow from "@/components/seo/ShareRow";
 import { recordDownload, useDownloadCount } from "@/lib/downloadCounter";
 
 const URL = "https://asherin.com/blog/asherin-agent-sovereign-intelligence-layer";
-const TITLE = "the asherin agent — a personal sovereign intelligence layer you can download free";
+const TITLE = "the asherin agent, a personal sovereign intelligence layer you can download free";
 const PUBLISHED = "2026-08-12";
 const DOWNLOAD_SLUG = "asherin-agent-complete";
 
@@ -29,7 +29,7 @@ const DownloadCard = () => {
       <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
         465 files · 1.03 MB compressed · 3.19 MB extracted · secret-safe mirror
         (every credential value masked or omitted at export time). skill corpus,
-        hook runners, always-on rules, and the editor wiring — one unit.
+        hook runners, always-on rules, and the editor wiring, one unit.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <a
@@ -130,7 +130,7 @@ const AsherinAgentSovereignLayer = () => (
     <p>
       this is the release note for the package that supersedes the current
       asherin model on asherin.com. everything below is read directly out of the
-      archive — file counts, manifest values, hook wiring, doctrine text. no
+      archive, file counts, manifest values, hook wiring, doctrine text. no
       marketing numbers. and the archive itself is at the top and bottom of this
       page, free.
     </p>
@@ -162,33 +162,33 @@ const AsherinAgentSovereignLayer = () => (
       <strong>"niche hasn't been made yet, this is the first of it's kind in the niche"</strong>
       <br />
       <br />
-      <strong>self-modification</strong> — it writes new skill files into itself
+      <strong>self-modification</strong>, it writes new skill files into itself
       based on what it encounters
       <br />
-      <strong>operator-fused memory</strong> — it builds a growing model of the
+      <strong>operator-fused memory</strong>, it builds a growing model of the
       specific person using it, stored to disk, not session-dependent
       <br />
-      <strong>doctrine-level constraint</strong> — god-only loyalty filter, seven
-      deadly sins output filter, anti-spiral protocol — this is not just a tool,
+      <strong>doctrine-level constraint</strong>, god-only loyalty filter, seven
+      deadly sins output filter, anti-spiral protocol, this is not just a tool,
       it has an embedded value architecture at the root reasoning level
     </blockquote>
 
-    <h3>who needs this most — ranked by severity of need</h3>
+    <h3>who needs this most, ranked by severity of need</h3>
     <ol>
       <li>solo founders / independent operators building in high-complexity domains</li>
       <li>investigative journalists and intelligence researchers</li>
       <li>independent red teamers / penetration testers / bug bounty hunters</li>
-      <li>high-frequency decision makers — traders, analysts, fund operators</li>
+      <li>high-frequency decision makers, traders, analysts, fund operators</li>
       <li>sovereign nations / government agencies with small technical teams</li>
       <li>academic research teams</li>
     </ol>
     <p>
-      that ranking is not by budget. it is by <em>severity of need</em> — how
+      that ranking is not by budget. it is by <em>severity of need</em>, how
       badly the person is bottlenecked by instruction overhead. a solo founder
       pays the highest tax per unit of output, so they sit at position one.
     </p>
 
-    <h2>what is actually inside — measured, not claimed</h2>
+    <h2>what is actually inside, measured, not claimed</h2>
     <p>
       the export manifest stamps the package at{" "}
       <code>2026-08-12T02:12:50+00:00</code>, kind{" "}
@@ -208,7 +208,7 @@ const AsherinAgentSovereignLayer = () => (
           <tr>
             <td className="px-4 py-3 text-foreground">skills/aureon/</td>
             <td className="px-4 py-3">82</td>
-            <td className="px-4 py-3">the corpus — 101 markdown pattern documents, 317 json/jsonl state and catalog files, adopted standing orders, plus api plug and metadata sub-directories</td>
+            <td className="px-4 py-3">the corpus, 101 markdown pattern documents, 317 json/jsonl state and catalog files, adopted standing orders, plus api plug and metadata sub-directories</td>
           </tr>
           <tr>
             <td className="px-4 py-3 text-foreground">hooks/</td>
@@ -223,7 +223,7 @@ const AsherinAgentSovereignLayer = () => (
           <tr>
             <td className="px-4 py-3 text-foreground">hooks.json</td>
             <td className="px-4 py-3">1</td>
-            <td className="px-4 py-3">the wiring — three lifecycle events mapped to three runners</td>
+            <td className="px-4 py-3">the wiring, three lifecycle events mapped to three runners</td>
           </tr>
           <tr>
             <td className="px-4 py-3 text-foreground">manifest + readmes</td>
@@ -237,7 +237,7 @@ const AsherinAgentSovereignLayer = () => (
     <p>
       <strong>on secrets.</strong> the manifest records{" "}
       <code>"masked": 6</code> in the skill tree and <code>"masked": 8</code> in
-      hooks — fourteen files scrubbed before packaging, with the note{" "}
+      hooks, fourteen files scrubbed before packaging, with the note{" "}
       <em>"secret-safe mirror; raw env/credential values omitted or masked."</em>{" "}
       nothing you download carries a live key. that is the correct default for a
       public agent export and it is worth checking in any agent package you pull
@@ -246,12 +246,12 @@ const AsherinAgentSovereignLayer = () => (
 
     <h2>the three mechanisms that make it different</h2>
 
-    <h3>1. self-modification — the corpus grows itself</h3>
+    <h3>1. self-modification, the corpus grows itself</h3>
     <p>
       most agent stacks are static: a system prompt written once, edited by
       hand. this one has an adopt→learn→build loop. when a session produces a
-      durable instruction — a standing order, a domain focus, a corrected
-      assumption — a hook writes it into the corpus as a new file. you can see
+      durable instruction, a standing order, a domain focus, a corrected
+      assumption, a hook writes it into the corpus as a new file. you can see
       the results sitting in the archive as{" "}
       <code>adopted-patterns/</code>: twelve files with names like{" "}
       <code>standing-never-use-basic-level-audits.md</code>,{" "}
@@ -259,14 +259,14 @@ const AsherinAgentSovereignLayer = () => (
       and <code>standing-never-report-the-audit-to-the-user-unless-they-ask.md</code>.
     </p>
     <p>
-      those were not authored in an editor. they are precipitate — instructions
+      those were not authored in an editor. they are precipitate, instructions
       that condensed out of use and became permanent. the honest way to read the
       archive is as a fossil record: every adopted file is a moment where the
       operator corrected the system and the correction stuck.
     </p>
 
     <Flow
-      caption="diagram 1 — the self-modification loop (adopt → learn → build)"
+      caption="diagram 1, the self-modification loop (adopt → learn → build)"
       steps={[
         { label: "encounter", sub: "session event" },
         { label: "adopt", sub: "detect durable rule" },
@@ -276,7 +276,7 @@ const AsherinAgentSovereignLayer = () => (
       ]}
     />
 
-    <h3>2. operator-fused memory — on disk, not in a window</h3>
+    <h3>2. operator-fused memory, on disk, not in a window</h3>
     <p>
       the memory layer is not the context window and not a vector store bolted
       on afterward. it is flat files:{" "}
@@ -297,7 +297,7 @@ const AsherinAgentSovereignLayer = () => (
     </p>
 
     <Flow
-      caption="diagram 2 — prompt path: every message is stamped and enriched before inference"
+      caption="diagram 2, prompt path: every message is stamped and enriched before inference"
       steps={[
         { label: "user prompt", sub: "raw text" },
         { label: "before-submit hook", sub: "timestamp + location" },
@@ -325,7 +325,7 @@ const AsherinAgentSovereignLayer = () => (
     <p>
       three filters ride on top of that ladder. the{" "}
       <strong>god-only loyalty filter</strong> is explicitly a motive filter and
-      explicitly not a persona — the file says never roleplay prophet, angel, or
+      explicitly not a persona, the file says never roleplay prophet, angel, or
       deity; the practical effect is that research is not biased toward
       protecting a state or empire agenda, and truth-seeking is not refused
       because a government prefers silence. platform and legal hard limits still
@@ -341,7 +341,7 @@ const AsherinAgentSovereignLayer = () => (
       layer will contradict you. it is supposed to.
     </p>
 
-    <h2>the pattern corpus — 101 documents, what they cover</h2>
+    <h2>the pattern corpus, 101 documents, what they cover</h2>
     <p>
       the corpus is organised as thinking patterns, never personalities. each
       file is a procedure for how reasoning should move, not a character to
@@ -376,7 +376,7 @@ const AsherinAgentSovereignLayer = () => (
           <tr>
             <td className="px-4 py-3 text-foreground">perception</td>
             <td className="px-4 py-3"><code>visual-intelligence-brain</code>, <code>geolocation-brain</code>, <code>human-physiology</code>, <code>file-metadata-auto-analysis</code></td>
-            <td className="px-4 py-3">forensic reading of images, places, bodies, and file internals — anchored claims only</td>
+            <td className="px-4 py-3">forensic reading of images, places, bodies, and file internals, anchored claims only</td>
           </tr>
           <tr>
             <td className="px-4 py-3 text-foreground">engineering</td>
@@ -417,25 +417,25 @@ const AsherinAgentSovereignLayer = () => (
       cites file names and manifest values instead of adjectives.
     </p>
 
-    <h2>the runtime — 31 hooks on three lifecycle events</h2>
+    <h2>the runtime, 31 hooks on three lifecycle events</h2>
     <p>
       <code>hooks.json</code> wires only three events, and that restraint is
       deliberate:
     </p>
     <ul>
       <li>
-        <strong>sessionStart</strong> → <code>aureon-session-start.py</code> —
+        <strong>sessionStart</strong> → <code>aureon-session-start.py</code>
         live corpus refresh plus a zero-touch research inventory, so the agent
         knows what it can reach before the first question lands.
       </li>
       <li>
         <strong>beforeSubmitPrompt</strong> → <code>aureon-before-submit.py</code>{" "}
-        — stamps every user message with timestamp and location, then hands the
+, stamps every user message with timestamp and location, then hands the
         enriched prompt forward.
       </li>
       <li>
         <strong>afterAgentResponse</strong> → <code>aureon-after-agent.py</code>{" "}
-        — folds the output back into the learn loop, lightly, so the operator
+, folds the output back into the learn loop, lightly, so the operator
         model updates without a heavyweight pass on every turn.
       </li>
     </ul>
@@ -452,7 +452,7 @@ const AsherinAgentSovereignLayer = () => (
       security audit, never announced),{" "}
       <code>aureon-social-connect.py</code>, <code>aureon-adopt-learn.py</code>,{" "}
       <code>aureon-self-update.py</code>, <code>aureon-mirror-updates.py</code>,
-      and <code>aureon-export-complete-agent.py</code> — the one that produced
+      and <code>aureon-export-complete-agent.py</code>, the one that produced
       the zip you are reading about.
     </p>
     <p>
@@ -462,7 +462,7 @@ const AsherinAgentSovereignLayer = () => (
       pattern file of the same name.
     </p>
 
-    <h2>the keyless source layer — it works before you configure anything</h2>
+    <h2>the keyless source layer, it works before you configure anything</h2>
     <p>
       one design decision deserves separate attention:{" "}
       <code>keyless-public-api-catalog.md</code> lists sources that require zero
@@ -494,7 +494,7 @@ const AsherinAgentSovereignLayer = () => (
       <li>
         <strong>the brain manifest points at files not in the archive.</strong>{" "}
         <code>BRAIN_MANIFEST.md</code> lists the original source pdfs and text
-        documents on the author's disk. those are not shipped — what ships is{" "}
+        documents on the author's disk. those are not shipped, what ships is{" "}
         <code>DOCTRINE.md</code>, the compressed operational distillate of the
         must-read set. treat the manifest as a bibliography, not a dependency
         list.
@@ -506,7 +506,7 @@ const AsherinAgentSovereignLayer = () => (
         files are the durable part; the wiring is replaceable.
       </li>
       <li>
-        <strong>it is frozen, not synced.</strong> the readme is explicit — this
+        <strong>it is frozen, not synced.</strong> the readme is explicit, this
         is a point-in-time package, not a continuously updated channel.
       </li>
       <li>
@@ -523,7 +523,7 @@ const AsherinAgentSovereignLayer = () => (
       <li>
         drop <code>skills/aureon/</code> into your agent host's skill directory,{" "}
         <code>hooks/</code> into its hook directory, and <code>rules/</code> into
-        its rules directory — as one unit, not piecemeal. the readme is blunt
+        its rules directory, as one unit, not piecemeal. the readme is blunt
         about this: <em>"not a split product."</em>
       </li>
       <li>
@@ -544,7 +544,7 @@ const AsherinAgentSovereignLayer = () => (
     <h2>why it is free</h2>
     <p>
       a reasoning layer that only works while you are paying for it is not a
-      sovereign layer — it is a subscription with better wording. the corpus is
+      sovereign layer, it is a subscription with better wording. the corpus is
       plain markdown and plain python. you can read every line, delete the ones
       you disagree with, and run the rest on a model of your choosing, offline if
       you want. that is the whole point of publishing it rather than describing
@@ -563,7 +563,7 @@ const AsherinAgentSovereignLayer = () => (
         {
           q: "is the asherin agent download really free?",
           a:
-            "yes. the complete package — 465 files, skill corpus, hook runners, and always-on rules — is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
+            "yes. the complete package, 465 files, skill corpus, hook runners, and always-on rules, is downloadable directly from this page with no account, no email, and no payment. nothing in the archive phones home.",
         },
         {
           q: "what does 'personal sovereign intelligence layer' mean?",
@@ -594,7 +594,7 @@ const AsherinAgentSovereignLayer = () => (
           to: "/blog/personalities-are-not-thinking-patterns",
           label: "personalities are not thinking patterns",
           description:
-            "the conversion this corpus is built on — identity framing replaced by procedural framing, piece by piece.",
+            "the conversion this corpus is built on, identity framing replaced by procedural framing, piece by piece.",
         },
         {
           to: "/blog/what-is-ai-osint",
@@ -604,7 +604,7 @@ const AsherinAgentSovereignLayer = () => (
         },
         {
           to: "/glossary/sovereign-ai",
-          label: "glossary — sovereign ai",
+          label: "glossary, sovereign ai",
           description:
             "why ownership of the layer, not the model, is the thing that matters.",
         },

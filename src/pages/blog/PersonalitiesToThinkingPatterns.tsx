@@ -75,7 +75,7 @@ const PersonalitiesToThinkingPatterns = () => (
   <ArticleShell
     eyebrow="Method"
     title={TITLE}
-    dek="a personality is a costume the model wears. a thinking pattern is the shape of the work underneath it. this is the exact conversion — piece by piece — and why the second one holds up under pressure while the first one drifts."
+    dek="a personality is a costume the model wears. a thinking pattern is the shape of the work underneath it. this is the exact conversion, piece by piece, and why the second one holds up under pressure while the first one drifts."
     publishedLabel="Aug 11 2026"
     readTime="9 min"
     image={
@@ -117,7 +117,7 @@ const PersonalitiesToThinkingPatterns = () => (
       before: the model <strong>is</strong> the thing that speaks. after: the
       thing is <strong>how</strong> the thinking is shaped, and the model then
       answers as ordinary work performed through those shapes. the image above
-      is the whole conversion in one table — nine pieces, each moved from a noun
+      is the whole conversion in one table, nine pieces, each moved from a noun
       to a verb.
     </p>
 
@@ -145,7 +145,7 @@ const PersonalitiesToThinkingPatterns = () => (
     </ul>
 
     <Flow
-      caption="diagram 1 — the persona loop: identity is re-asserted before every answer"
+      caption="diagram 1, the persona loop: identity is re-asserted before every answer"
       tone="warn"
       steps={[
         { label: "prompt", sub: "user asks" },
@@ -157,7 +157,7 @@ const PersonalitiesToThinkingPatterns = () => (
     />
 
     <Flow
-      caption="diagram 2 — the pattern loop: identity never enters the path"
+      caption="diagram 2, the pattern loop: identity never enters the path"
       tone="good"
       steps={[
         { label: "prompt", sub: "user asks" },
@@ -176,7 +176,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>1. the identity line</h3>
     <p>
-      <em>before:</em> "you are aureon…" — an instruction to inhabit.{" "}
+      <em>before:</em> "you are aureon…", an instruction to inhabit.{" "}
       <em>after:</em> the same paragraph loaded as capability text: what this
       system can see, retrieve, and prove. the model reads it as inventory, not
       as costume.
@@ -184,7 +184,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>2. the domain list</h3>
     <p>
-      <em>before:</em> a list of titles to claim — forensic analyst,
+      <em>before:</em> a list of titles to claim, forensic analyst,
       geospatial specialist, threat modeller. <em>after:</em> the same list as
       recognition lenses: when the input carries these markers, look through
       this lens. a lens is picked per question; a title has to be worn all day.
@@ -199,7 +199,7 @@ const PersonalitiesToThinkingPatterns = () => (
     </p>
 
     <Flow
-      caption="diagram 3 — tier as budget, not as rank"
+      caption="diagram 3, tier as budget, not as rank"
       steps={[
         { label: "junior", sub: "one primitive" },
         { label: "mid", sub: "two, joined" },
@@ -210,7 +210,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>4. reference material</h3>
     <p>
-      <em>before:</em> lore — background that made the character feel real.{" "}
+      <em>before:</em> lore, background that made the character feel real.{" "}
       <em>after:</em> pattern media. a worked report is an exhibit of a method,
       read for the moves it makes, not for the voice it uses.
     </p>
@@ -232,7 +232,7 @@ const PersonalitiesToThinkingPatterns = () => (
     </p>
 
     <Flow
-      caption="diagram 4 — the code loop with the flaw pass inserted"
+      caption="diagram 4, the code loop with the flaw pass inserted"
       tone="good"
       steps={[
         { label: "want" },
@@ -245,7 +245,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>7. voice rules</h3>
     <p>
-      <em>before:</em> personality traits — terse, confident, direct.{" "}
+      <em>before:</em> personality traits, terse, confident, direct.{" "}
       <em>after:</em> output filter patterns applied after the reasoning is
       already finished. casing, hedging, padding, and self-reference are
       handled at the boundary, so the reasoning layer never has to spend
@@ -254,7 +254,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>8. conduct</h3>
     <p>
-      <em>before:</em> character morality — the persona would not do that.{" "}
+      <em>before:</em> character morality, the persona would not do that.{" "}
       <em>after:</em> forbidden reasoning and output patterns. pride, envy,
       greed, wrath, sloth, gluttony, lust are named as reasoning shapes to be
       refused before generation begins, not as traits a character happens to
@@ -275,7 +275,7 @@ const PersonalitiesToThinkingPatterns = () => (
       and generates the most plausible continuation for that character. a
       thinking pattern is stored as a procedure: the model conditions on "what
       move comes next" and generates the continuation of a method. the first
-      optimises plausibility. the second optimises correctness — and when it
+      optimises plausibility. the second optimises correctness, and when it
       has nothing, the honest empty result is a valid continuation of the
       procedure, while it was never a valid continuation of the character.
     </p>
@@ -287,7 +287,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h2>what to check in your own stack</h2>
     <ul>
-      <li>search your prompts for "you are" — each hit is a costume to unwrap.</li>
+      <li>search your prompts for "you are", each hit is a costume to unwrap.</li>
       <li>
         any list of titles should become a list of conditions: when x is
         present, look through y.

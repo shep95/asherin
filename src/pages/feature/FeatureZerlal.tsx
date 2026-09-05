@@ -14,7 +14,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  */
 
 const URL = "https://asherin.com/feature/zerlal";
-const TITLE = "ZERLAL — AI Vulnerability Scanner with Exploit Chaining | Asherin";
+const TITLE = "ZERLAL, AI Vulnerability Scanner with Exploit Chaining | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const FeatureZerlal = () => (
@@ -48,7 +48,7 @@ const FeatureZerlal = () => (
       eyebrow="Cyber Intelligence · Vulnerability Engine"
       headline={
         <>
-          ZERLAL —
+          ZERLAL
           <br />
           <span className="text-muted-foreground/70">
             AI vulnerability scanner with exploit chaining.
@@ -56,7 +56,7 @@ const FeatureZerlal = () => (
         </>
       }
       subheadline="ZERLAL is Asherin's AI vulnerability scanner. It does what legacy SAST/DAST tools refuse to do: it chains 2-4 medium-severity findings into a single critical-severity exploit path, assigns a zero-day confidence score to every novel pattern, and monitors the target continuously instead of running a one-shot scan."
-      tierLabel="Asherin Pro — $79/mo · Enterprise on request"
+      tierLabel="Asherin Pro, $79/mo · Enterprise on request"
       capabilities={[
         {
           icon: ShieldAlert,
@@ -68,7 +68,7 @@ const FeatureZerlal = () => (
           icon: Crosshair,
           title: "Zero-Day Confidence Scoring",
           description:
-            "Every finding that does not match a known CVE is rated on a calibrated 0-100 zero-day-confidence scale. The score reflects pattern novelty, exploitability, and corroborating signal — not vendor marketing.",
+            "Every finding that does not match a known CVE is rated on a calibrated 0-100 zero-day-confidence scale. The score reflects pattern novelty, exploitability, and corroborating signal, not vendor marketing.",
         },
         {
           icon: Activity,
@@ -92,7 +92,7 @@ const FeatureZerlal = () => (
           icon: Layers,
           title: "BYOK + Sovereign Stack",
           description:
-            "ZERLAL reasoning can run through your own provider key — you can bring a key from Gemini, OpenAI, Anthropic, Mistral, xAI, Groq, DeepSeek, OpenRouter or Venice. Findings never leave the operator's vendor account.",
+            "ZERLAL reasoning can run through your own provider key, you can bring a key from Gemini, OpenAI, Anthropic, Mistral, xAI, Groq, DeepSeek, OpenRouter or Venice. Findings never leave the operator's vendor account.",
         },
       ]}
       useCases={[
@@ -104,7 +104,7 @@ const FeatureZerlal = () => (
         "Internal blue teams correlating runtime telemetry with static findings to surface chains a single-tool scan would miss.",
       ]}
       ctaTitle="Run ZERLAL on a real target"
-      ctaSubtitle="ZERLAL ships inside Asherin Pro. Pair it with a BYOK key — findings stay inside your provider account."
+      ctaSubtitle="ZERLAL ships inside Asherin Pro. Pair it with a BYOK key, findings stay inside your provider account."
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
@@ -115,7 +115,7 @@ const FeatureZerlal = () => (
             Legacy SAST and DAST tools were designed to surface known
             patterns: a regex catalog of CVEs, OWASP categories, and
             taint-analysis rules. They produce long lists of low-severity
-            noise and miss the most dangerous bugs of all — the ones that
+            noise and miss the most dangerous bugs of all, the ones that
             require <em>combining</em> two or three otherwise-harmless
             findings into a working exploit. ZERLAL was built to do the
             combining. It reads the codebase, the dependency graph, the
@@ -134,7 +134,7 @@ const FeatureZerlal = () => (
             medium-severity findings into a single critical-severity
             chain. The most common shape is an information disclosure
             finding + an authentication weakness + an unauthenticated
-            write endpoint — none of which is catastrophic alone, all of
+            write endpoint, none of which is catastrophic alone, all of
             which together produce an account-takeover primitive. The
             longer chains (5+ links) are real but rare; ZERLAL reports
             them as separate categories so they are not confused with
@@ -160,7 +160,7 @@ const FeatureZerlal = () => (
             Scores above 70 are surfaced as candidate zero-days;
             scores between 40 and 70 are flagged for human review. The
             scoring methodology is documented in the dedicated glossary
-            entry — see{" "}
+            entry, see{" "}
             <a href="/glossary/zero-day-confidence-scoring" className="text-accent hover:underline">
               zero-day confidence scoring
             </a>
@@ -172,7 +172,7 @@ const FeatureZerlal = () => (
           </h2>
           <p>
             Honesty is part of the report. ZERLAL's scan depth is bounded
-            by the access permissions granted to the engine — a
+            by the access permissions granted to the engine, a
             repository scanned with read-only access cannot evaluate
             runtime behavior, and a runtime scan without source access
             cannot evaluate code paths that did not execute during the
@@ -220,7 +220,7 @@ const FeatureZerlal = () => (
               },
               {
                 q: "What does the zero-day confidence score actually measure?",
-                a: "It is a calibrated 0-100 score reflecting pattern novelty, exploitability, corroborating signal, and stability across re-scans. Scores above 70 are surfaced as candidate zero-days for human review. The score is a triage signal, not a guarantee — every score above 70 still requires manual confirmation.",
+                a: "It is a calibrated 0-100 score reflecting pattern novelty, exploitability, corroborating signal, and stability across re-scans. Scores above 70 are surfaced as candidate zero-days for human review. The score is a triage signal, not a guarantee, every score above 70 still requires manual confirmation.",
               },
               {
                 q: "Where does my code go when I run a ZERLAL scan?",
@@ -243,18 +243,18 @@ const FeatureZerlal = () => (
               },
               {
                 to: "/blog/vulnerability-chaining-explained",
-                label: "Vulnerability chaining — the mechanism",
+                label: "Vulnerability chaining, the mechanism",
                 description: "Anatomy of a 2-4-link chained exploit and why isolated findings miss it.",
               },
               {
                 to: "/glossary/zero-day-confidence-scoring",
-                label: "Zero-day confidence scoring — definition",
+                label: "Zero-day confidence scoring, definition",
                 description: "The calibrated 0-100 scale ZERLAL uses for novel patterns.",
               },
               {
                 to: "/blog/what-is-ai-osint",
                 label: "What is AI OSINT?",
-                description: "Adjacent intelligence-tooling audience — the four-stage pipeline behind Zophiel.",
+                description: "Adjacent intelligence-tooling audience, the four-stage pipeline behind Zophiel.",
               },
             ]}
           />

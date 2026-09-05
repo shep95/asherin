@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/bulwark-counter-surveillance";
 const TITLE =
-  "BULWARK — Bluetooth stalker detection, Wi-Fi sentinel & account-compromise forensics";
+  "BULWARK, Bluetooth stalker detection, Wi-Fi sentinel & account-compromise forensics";
 const DEK =
-  "BULWARK is the counter-surveillance layer of Asherin: it logs every Bluetooth identifier that travels with you and flags persistent followers, audits the Wi-Fi networks you join and everything else attached to them, and reconstructs exactly how an account credential was changed — method, origin, and infrastructure.";
+  "BULWARK is the counter-surveillance layer of Asherin: it logs every Bluetooth identifier that travels with you and flags persistent followers, audits the Wi-Fi networks you join and everything else attached to them, and reconstructs exactly how an account credential was changed, method, origin, and infrastructure.";
 const PUBLISHED = "2026-08-06T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -70,7 +70,7 @@ const BulwarkCounterSurveillance = () => {
         items={[
           {
             q: "How does BULWARK detect that something is following me?",
-            a: "It logs Bluetooth identifiers with time and coarse position, then looks for persistence across disjoint locations. An identifier seen at your home, then a shop three kilometres away, then a car park later that day is a follower — a single strong reading is not.",
+            a: "It logs Bluetooth identifiers with time and coarse position, then looks for persistence across disjoint locations. An identifier seen at your home, then a shop three kilometres away, then a car park later that day is a follower, a single strong reading is not.",
           },
           {
             q: "What does the Wi-Fi sentinel report contain?",
@@ -89,7 +89,7 @@ const BulwarkCounterSurveillance = () => {
 
       <ArticleShell
         eyebrow="Product Briefing · BULWARK"
-        title="BULWARK — counter-surveillance for people who are actually watched"
+        title="BULWARK, counter-surveillance for people who are actually watched"
         dek={DEK}
         publishedLabel="Aug 6 2026"
         readTime="11 min"
@@ -124,8 +124,8 @@ const BulwarkCounterSurveillance = () => {
   co-travel score      0.86     band  PERSISTENT FOLLOWER
   known-device match   none     ▶ escalate to alert`}</Box>
         <p>
-          Devices you own, and devices you have marked as expected — a
-          partner's watch, a work laptop — are baselined out. What remains
+          Devices you own, and devices you have marked as expected, a
+          partner's watch, a work laptop, are baselined out. What remains
           is the set of unowned identifiers that behave like they are
           attached to you.
         </p>
@@ -147,7 +147,7 @@ const BulwarkCounterSurveillance = () => {
           of times a week with no information at all. The sentinel report
           supplies the information.
         </p>
-        <Box>{`WI-FI SENTINEL — "GuestNet-5G"
+        <Box>{`WI-FI SENTINEL, "GuestNet-5G"
   public address     198.51.100.x
   registered to      <hosting / ISP operator>   ASN 64500
   address class      commercial ISP  (not hosting, not VPN range)
@@ -157,7 +157,7 @@ const BulwarkCounterSurveillance = () => {
                      ├─  9  consumer phones / laptops
                      ├─  3  printers / IoT (2 with open admin ports)
                      └─  2  unidentified
-  baseline match     first join — no prior profile
+  baseline match     first join, no prior profile
   ─────────────────────────────────────────────────────────────
   ASSESSMENT   usable · avoid credential entry · IoT hygiene poor`}</Box>
         <p>
@@ -171,11 +171,11 @@ const BulwarkCounterSurveillance = () => {
         <h2>5. Compromise forensics</h2>
         <p>
           When a password or recovery method changes on a connected
-          account, the interesting question is never "was it changed" — the
+          account, the interesting question is never "was it changed", the
           notification already said so. It is <em>how</em>, and <em>from
           where</em>.
         </p>
-        <Box>{`CREDENTIAL CHANGE — reconstruction
+        <Box>{`CREDENTIAL CHANGE, reconstruction
   event            password reset via recovery email
   origin           203.0.113.x   ASN 64511
   address class    hosting range  ▲ not a consumer ISP
@@ -203,10 +203,10 @@ const BulwarkCounterSurveillance = () => {
         <p>
           The last module answers a question most people never ask: how
           identifiable is my own device right now? The probe enumerates the
-          fingerprint surface your browser and OS actually expose —
+          fingerprint surface your browser and OS actually expose
           rendering characteristics, font and codec sets, timezone and
           locale, hardware concurrency, and the stability of the resulting
-          hash across sessions — and reports how uniquely that combination
+          hash across sessions, and reports how uniquely that combination
           identifies you.
         </p>
 
@@ -215,7 +215,7 @@ const BulwarkCounterSurveillance = () => {
           Findings are useless in a tab you are not looking at. BULWARK
           alerts route through a unified pipeline: email for the record,
           and push notifications to laptop and phone for immediacy.
-          Severity gates the channel — an IoT hygiene note stays in the
+          Severity gates the channel, an IoT hygiene note stays in the
           report, a persistent-follower escalation pushes to every enrolled
           device.
         </p>
@@ -248,7 +248,7 @@ const BulwarkCounterSurveillance = () => {
         <p>
           It tells you that something is, with what confidence, since when,
           and where it was observed. Attribution beyond that is an
-          investigative step you take with that evidence — BULWARK is
+          investigative step you take with that evidence, BULWARK is
           careful not to assert an owner it cannot prove.
         </p>
       </ArticleShell>

@@ -8,7 +8,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/feature/axrlen";
-const TITLE = "AXRLEN — Asherin's Predictive Nexus Prime Engine";
+const TITLE = "AXRLEN, Asherin's Predictive Nexus Prime Engine";
 const PUBLISHED = "2026-06-19";
 
 const FeatureAxrlen = () => (
@@ -17,7 +17,7 @@ const FeatureAxrlen = () => (
       id="feature-axrlen"
       url={URL}
       headline={TITLE}
-      description="AXRLEN is Asherin's predictive intelligence engine. It produces calibrated probabilistic forecasts across regulatory, market, and event-driven domains — every prediction shipped with an explicit verification plan."
+      description="AXRLEN is Asherin's predictive intelligence engine. It produces calibrated probabilistic forecasts across regulatory, market, and event-driven domains, every prediction shipped with an explicit verification plan."
       datePublished={PUBLISHED}
       keywords={[
         "ai predictive intelligence",
@@ -41,21 +41,21 @@ const FeatureAxrlen = () => (
       eyebrow="Predictive Intelligence · Nexus Prime"
       headline={
         <>
-          AXRLEN —
+          AXRLEN
           <br />
           <span className="text-muted-foreground/70">
             calibrated forecasts, with verification plans.
           </span>
         </>
       }
-      subheadline="AXRLEN is Asherin's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains, calibrates every prediction against a verification plan, and tracks its accuracy in public — including the misses."
-      tierLabel="Asherin Pro — $79/mo · Forecast accountability published"
+      subheadline="AXRLEN is Asherin's predictive intelligence engine. It produces probabilistic forecasts across regulatory, market, and event-driven domains, calibrates every prediction against a verification plan, and tracks its accuracy in public, including the misses."
+      tierLabel="Asherin Pro, $79/mo · Forecast accountability published"
       capabilities={[
         {
           icon: Sparkles,
           title: "Probabilistic Forecasts",
           description:
-            "Every AXRLEN forecast is a probability, a window, and a named outcome — never a vague 'likely' or 'soon'. The Q4 2026 AI-regulation forecast is a worked example: 72% probability, Oct 1 – Dec 15 window, defined trigger conditions.",
+            "Every AXRLEN forecast is a probability, a window, and a named outcome, never a vague 'likely' or 'soon'. The Q4 2026 AI-regulation forecast is a worked example: 72% probability, Oct 1, Dec 15 window, defined trigger conditions.",
         },
         {
           icon: GitMerge,
@@ -73,7 +73,7 @@ const FeatureAxrlen = () => (
           icon: Repeat,
           title: "Monte Carlo Re-Sampling",
           description:
-            "Long-horizon forecasts are re-sampled against thousands of synthetic scenarios. The 72% headline figure on a published forecast is the consensus across the re-sampling — not a single-pass guess.",
+            "Long-horizon forecasts are re-sampled against thousands of synthetic scenarios. The 72% headline figure on a published forecast is the consensus across the re-sampling, not a single-pass guess.",
         },
         {
           icon: Telescope,
@@ -97,7 +97,7 @@ const FeatureAxrlen = () => (
         "Risk teams tracking the resolution of long-horizon scenarios against an audited verification plan.",
       ]}
       ctaTitle="Read the live AXRLEN forecast"
-      ctaSubtitle="The Q4 2026 AI-regulation forecast is published with its verification plan — read the methodology before the resolution window closes."
+      ctaSubtitle="The Q4 2026 AI-regulation forecast is published with its verification plan, read the methodology before the resolution window closes."
     >
       <section className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-3xl space-y-8 text-base font-extralight leading-[1.85] text-foreground/85">
@@ -105,16 +105,16 @@ const FeatureAxrlen = () => (
             What AXRLEN is, in one paragraph
           </h2>
           <p>
-            AXRLEN — the &quot;Nexus Prime&quot; predictive engine — is the
+            AXRLEN, the &quot;Nexus Prime&quot; predictive engine, is the
             methodology behind every published Asherin forecast. It does not
             output narratives. It outputs three things, always together: a
             probability, a resolution window, and a named outcome that can
             be checked against reality. The first publicly tracked AXRLEN
             forecast is{" "}
             <a href="/blog/predictions/world-cup-2026-group-matches-0622" className="text-accent hover:underline">
-              the World Cup 2026 — 22 June slate
+              the World Cup 2026, 22 June slate
             </a>{" "}
-            — four group-stage picks (Argentina, France, Norway, Algeria)
+, four group-stage picks (Argentina, France, Norway, Algeria)
             with confidence weights, generated live on 22 June 2026 at
             12:25 PM EST.
           </p>
@@ -131,7 +131,7 @@ const FeatureAxrlen = () => (
             </a>
             's multi-engine pipeline, (4) base-rate priors derived from
             historical frequency of analogous events, and (5) adversarial
-            counter-signals — what would have to be true for the forecast
+            counter-signals, what would have to be true for the forecast
             to fail. The counter-signal step is the single most under-used
             forecasting practice in commercial &quot;AI predictions&quot;
             content, and it is the step AXRLEN refuses to skip.
@@ -144,9 +144,9 @@ const FeatureAxrlen = () => (
             Every AXRLEN forecast ships with a verification plan that
             names the observable conditions which resolve it true or
             false. The Q4 2026 forecast resolves as follows: a major US
-            or EU AI regulatory action — defined as a binding statute,
+            or EU AI regulatory action, defined as a binding statute,
             agency rule with rulemaking authority, or executive order
-            with enforcement provisions — published between October 1
+            with enforcement provisions, published between October 1
             and December 15, 2026. No retroactive goalpost moves. The
             resolution post will be published in January 2027 regardless
             of outcome, and will be linked from the original forecast as
@@ -174,7 +174,7 @@ const FeatureAxrlen = () => (
           </h2>
           <p>
             AXRLEN's accuracy record is being built in public. The
-            track record at this writing is short — Q4 2026 is the first
+            track record at this writing is short, Q4 2026 is the first
             major forecast under formal scoring, and its resolution post
             will land in January 2027. Forecasts about short, well-defined
             events with rich signal histories (regulatory windows, earnings
@@ -199,7 +199,7 @@ const FeatureAxrlen = () => (
               },
               {
                 q: "How accurate is AXRLEN?",
-                a: "The public track record is being built in the open. The first formally tracked AXRLEN forecast — the Q4 2026 AI regulation prediction — resolves in January 2027 and will be documented as either a hit or a miss. Asherin does not publish aspirational accuracy claims.",
+                a: "The public track record is being built in the open. The first formally tracked AXRLEN forecast, the Q4 2026 AI regulation prediction, resolves in January 2027 and will be documented as either a hit or a miss. Asherin does not publish aspirational accuracy claims.",
               },
               {
                 q: "What signals does AXRLEN use?",
@@ -207,11 +207,11 @@ const FeatureAxrlen = () => (
               },
               {
                 q: "Does AXRLEN forecast stock prices or crypto?",
-                a: "AXRLEN forecasts well-defined events with named trigger conditions and rich signal histories. It declines forecasts about long-horizon novel events with no historical analog — including specific multi-year price targets — because those probabilities cannot be honestly calibrated.",
+                a: "AXRLEN forecasts well-defined events with named trigger conditions and rich signal histories. It declines forecasts about long-horizon novel events with no historical analog, including specific multi-year price targets, because those probabilities cannot be honestly calibrated.",
               },
               {
                 q: "Where can I read a live AXRLEN forecast?",
-                a: "The World Cup 2026 — 22 June slate at /blog/predictions/world-cup-2026-group-matches-0622 is the worked example with four picks, confidence weights, and verification plan.",
+                a: "The World Cup 2026, 22 June slate at /blog/predictions/world-cup-2026-group-matches-0622 is the worked example with four picks, confidence weights, and verification plan.",
               },
             ]}
           />
@@ -221,22 +221,22 @@ const FeatureAxrlen = () => (
             links={[
               {
                 to: "/blog/predictions/world-cup-2026-group-matches-0622",
-                label: "AXRLEN forecast — World Cup 22 June slate",
+                label: "AXRLEN forecast, World Cup 22 June slate",
                 description: "Four live group-stage picks with confidence weights and verification plan.",
               },
               {
                 to: "/blog/how-ai-predictive-forecasting-works",
                 label: "How AI predictive forecasting actually works",
-                description: "The four ingredients real forecasts need — and what generic 'AI predictions' miss.",
+                description: "The four ingredients real forecasts need, and what generic 'AI predictions' miss.",
               },
               {
                 to: "/glossary/predictive-intelligence-ai",
-                label: "Predictive intelligence AI — definition",
+                label: "Predictive intelligence AI, definition",
                 description: "The category AXRLEN operates in, written for citation.",
               },
               {
                 to: "/feature/zophiel",
-                label: "Zophiel — the OSINT engine feeding AXRLEN",
+                label: "Zophiel, the OSINT engine feeding AXRLEN",
                 description: "multi-engine OSINT collection is one of AXRLEN's five required signal classes.",
               },
             ]}

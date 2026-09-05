@@ -7,9 +7,9 @@ const CHAT_FEATURE_GROUPS = [
   {
     category: "AI Chat",
     features: [
-      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
-      { name: "Unlimited messages", desc: "Bring your own AI key — message as much as you want.", link: null },
-      { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more — required to use Aureon.", link: "/feature/byok" },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to, Venice mistral-31-24b by default, or your own key.", link: null },
+      { name: "Unlimited messages", desc: "Bring your own AI key, message as much as you want.", link: null },
+      { name: "Bring Your Own AI Key (required)", desc: "Connect your own keys from Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more, required to use Aureon.", link: "/feature/byok" },
     ],
   },
   {
@@ -30,9 +30,9 @@ const CHAT_FEATURE_GROUPS = [
   {
     category: "Agents & Security",
     features: [
-      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", link: null },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder, design, scaffold and harden production-grade automated agents.", link: null },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", link: null },
-      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — part of the Zophiel Engine.", link: "/feature/zerlal" },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence, part of the Zophiel Engine.", link: "/feature/zerlal" },
       { name: "Account-scoped encryption at rest", desc: "Messages are encrypted with a key bound to your account, and are never used as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
     ],
@@ -43,8 +43,8 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "AI Engine",
     features: [
-      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
-      { name: "Unlimited messages", desc: "Bring your own AI key — no throttling.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to, Venice mistral-31-24b by default, or your own key.", link: null },
+      { name: "Unlimited messages", desc: "Bring your own AI key, no throttling.", link: null },
       { name: "Persistent memory", desc: "Asherin remembers your context across every session.", link: null },
     ],
   },
@@ -53,17 +53,17 @@ const AUREON_FEATURE_GROUPS = [
     features: [
       { name: "Asherin IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo and ZIP export.", link: "/feature/ide" },
       { name: "Code Snippets Vault", desc: "Save, tag, and organize reusable code fragments.", link: null },
-      { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask Asherin to design directly on the canvas.", link: "/feature/imagine-to-code" },
+      { name: "Imagine To Code", desc: "AI-powered pixel art & SVG editor, draw, upload images, or ask Asherin to design directly on the canvas.", link: "/feature/imagine-to-code" },
     ],
   },
   {
     category: "Creation & Vision",
     features: [
       
-      { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system — Asherin deconstructs the architecture.", link: "/feature/reverse-engineer" },
-      { name: "File Scrapper", desc: "Extract text from any document — PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
+      { name: "Reverse Engineering Intelligence", desc: "Upload screenshots of any software or hardware system, Asherin deconstructs the architecture.", link: "/feature/reverse-engineer" },
+      { name: "File Scrapper", desc: "Extract text from any document, PDF, DOCX, images and more.", link: "/feature/file-scrapper" },
       { name: "Whiteboard", desc: "Infinite canvas with Photoshop-style layers, dot/square snap grids and freeform sketching.", link: "/feature/whiteboard" },
-      { name: "ZANOEM Design Lab", desc: "Universal design intelligence — first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
+      { name: "ZANOEM Design Lab", desc: "Universal design intelligence, first-principles design with FEA & thermal simulation.", link: "/feature/zali" },
     ],
   },
   {
@@ -76,15 +76,15 @@ const AUREON_FEATURE_GROUPS = [
   {
     category: "Agents & Security",
     features: [
-      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold and harden production-grade automated agents.", link: null },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder, design, scaffold and harden production-grade automated agents.", link: null },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA and credential hygiene.", link: null },
     ],
   },
   {
     category: "Inherited from Chat",
     features: [
-      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
-      { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to, Venice mistral-31-24b by default, or your own key.", link: null },
+      { name: "Unlimited Messages", desc: "Bring your own AI key, message as much as you want.", link: null },
       { name: "Bring Your Own AI Key", desc: "Connect Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", link: "/feature/byok" },
       { name: "Account-scoped encryption at rest", desc: "Messages are encrypted with a key bound to your account, and are never used as training data.", link: null },
       { name: "Zophiel Search Engine", desc: "multi-engine OSINT search with veracity scoring.", link: "/feature/zophiel" },
@@ -92,9 +92,9 @@ const AUREON_FEATURE_GROUPS = [
       { name: "PDF Generator", desc: "Turn any conversation into a polished, paginated PDF.", link: null },
       { name: "Slideshow Generator", desc: "Auto-build editable slide decks from prompts.", link: null },
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
-      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder, design, scaffold, harden and deploy production-grade agents.", link: "/feature/zahten" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
-      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence, included with every paid tier.", link: "/feature/zerlal" },
     ],
   },
 ];
@@ -103,7 +103,7 @@ const PRO_FEATURE_GROUPS = [
   {
     category: "Intelligence Suite",
     features: [
-      { name: "Google Intelligence Suite", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome.", link: "/feature/google-intelligence" },
+      { name: "Google Intelligence Suite", desc: "Multi-account Google data analysis, email, calendar, contacts, YouTube, Chrome.", link: "/feature/google-intelligence" },
       { name: "Pattern Analysis Engine", desc: "Detect hidden patterns and anomalies across datasets.", link: "/feature/pattern-analysis" },
       { name: "Company & Competitor Tracking", desc: "Monitor competitors, track changes, and forecast moves.", link: "/feature/tracker" },
     ],
@@ -111,13 +111,13 @@ const PRO_FEATURE_GROUPS = [
   {
     category: "Live Intelligence & Investigation",
     features: [
-      { name: "Cross — Live Screen Intelligence", desc: "Real-time screen analysis with 17 analytical modes.", link: "/feature/cross" },
+      { name: "Cross, Live Screen Intelligence", desc: "Real-time screen analysis with 17 analytical modes.", link: "/feature/cross" },
     ],
   },
    {
      category: "Data Intelligence",
      features: [
-       { name: "Azplen Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
+       { name: "Azplen Intelligence Platform", desc: "Full data intelligence, ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
      ],
    },
    {
@@ -134,7 +134,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Audit Trail", desc: "Full compliance-grade audit logging of all platform activity.", link: null },
       { name: "Team Workspace", desc: "RBAC, email invites, and collaborative workspaces.", link: null },
       { name: "Automated Agents", desc: "Scheduled tasks with multi-channel webhook delivery.", link: "/feature/automated-agents" },
-      { name: "Zahten Agent Forge", desc: "Autonomous agent builder — design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
+      { name: "Zahten Agent Forge", desc: "Autonomous agent builder, design, scaffold, harden and deploy production-grade agents with scheduled triggers and webhook delivery.", link: "/feature/zahten" },
     ],
   },
   {
@@ -151,7 +151,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Daily Intelligence Briefings", desc: "Personalized morning reports on competitors, industry, markets.", link: "/feature/briefings" },
       { name: "Vedic Strategy", desc: "Astro-temporal forecasting, dasha cycles and timing intelligence.", link: "/feature/vedic" },
       { name: "Code Snippets Vault", desc: "Save, tag and organize reusable code fragments.", link: null },
-      { name: "Memory Center", desc: "Manage long-term recall — edit, prune and calibrate AI memory.", link: null },
+      { name: "Memory Center", desc: "Manage long-term recall, edit, prune and calibrate AI memory.", link: null },
       { name: "Projects Workspace & Library", desc: "Group conversations, files and assets into focused project folders.", link: null },
       { name: "My Stats & Self-Access Learning", desc: "Personal analytics and AI-guided adaptive learning paths.", link: null },
       { name: "Bug Reports", desc: "Private RLS-protected support channel direct to engineering.", link: null },
@@ -160,8 +160,8 @@ const PRO_FEATURE_GROUPS = [
   {
     category: "Inherited from Chat",
     features: [
-      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to — Venice mistral-31-24b by default, or your own key.", link: null },
-      { name: "Unlimited Messages", desc: "Bring your own AI key — message as much as you want.", link: null },
+      { name: "Direct-answer chat", desc: "Analytical answers without corporate hedging. Refusal behaviour follows the provider you route to, Venice mistral-31-24b by default, or your own key.", link: null },
+      { name: "Unlimited Messages", desc: "Bring your own AI key, message as much as you want.", link: null },
       { name: "Bring Your Own AI Key", desc: "Connect Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek and more.", link: "/feature/byok" },
       { name: "Account-scoped encryption at rest", desc: "Messages are encrypted with a key bound to your account, and are never used as training data.", link: null },
       { name: "Zophiel Search Engine", desc: "multi-engine OSINT search with veracity scoring.", link: "/feature/zophiel" },
@@ -170,7 +170,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Slideshow Generator", desc: "Auto-build editable slide decks from prompts.", link: null },
       { name: "E-Book Generator", desc: "Compile multi-chapter books from your text uploads.", link: "/feature/ebook" },
       { name: "Guardian Vault", desc: "Centralized security command center with TOTP MFA.", link: null },
-      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence — included with every paid tier.", link: "/feature/zerlal" },
+      { name: "ZERLAL Cyber Security", desc: "Domain reconnaissance, vulnerability scanning, and exploit intelligence, included with every paid tier.", link: "/feature/zerlal" },
     ],
   },
 ];
@@ -199,7 +199,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          CHAT — $47
+          CHAT, $47
         </button>
         <button
           onClick={() => setActiveTab("aureon")}
@@ -211,7 +211,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          ASHERIN — $199
+          ASHERIN, $199
         </button>
         <button
           onClick={() => setActiveTab("pro")}
@@ -223,7 +223,7 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          PRO — $740
+          PRO, $740
         </button>
       </div>
 

@@ -167,28 +167,32 @@ const Index = () => {
     const timeout = window.setTimeout(() => controller.abort(), 60_000);
 
     try {
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asherin-ask`, {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: query }],
-          mode: "chat",
-          depth: "standard",
-        }),
+        body: JSON.stringify({ question: query }),
       });
 
       if (!resp.ok || !resp.body) {
+        // The endpoint answers with a plain-language reason; prefer it over a guess.
+        const reason = await resp
+          .clone()
+          .json()
+          .then((j) => (typeof j?.error === "string" ? j.error : ""))
+          .catch(() => "");
         setAskError(
-          resp.status === 429
-            ? "too many questions right now. try again in a minute."
-            : "that request did not come back. try again, or create an account for the full workspace.",
+          reason ||
+            (resp.status === 429
+              ? "too many questions right now. try again in a minute."
+              : "that request did not come back. try again, or create an account for the full workspace."),
         );
         return;
       }
+
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -245,13 +249,13 @@ const Index = () => {
       <Section className="flex min-h-[88vh] flex-col justify-center px-6 pt-32 pb-20">
         <div className="mx-auto w-full max-w-5xl">
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[0.94] text-foreground">
-            asherin —
+            asherin.
             <br />
             <span className="zophiel-shimmer-text italic font-light">look a little closer.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-            asherin tries to give you the fuller picture — sourced, and honest about what it does not know.
+            asherin tries to give you the fuller picture, sourced, and honest about what it does not know.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
@@ -382,7 +386,7 @@ const Index = () => {
           <ul className="mt-8 space-y-4 text-sm font-extralight leading-relaxed text-muted-foreground">
             <li>your conversations, files, and vault entries are account-scoped and encrypted at rest.</li>
             <li>
-              answering a question means sending it to a model, so it is not a sealed room — asherin will not claim
+              answering a question means sending it to a model, so it is not a sealed room, asherin will not claim
               otherwise.
             </li>
             <li>your work is not sold, and it is not used to train asherin.</li>

@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/byok-ai";
-const TITLE = "BYOK AI — Bring Your Own Key, Defined";
+const TITLE = "BYOK AI, Bring Your Own Key, Defined";
 const PUBLISHED = "2026-06-19";
 
 const ByokAi = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is BYOK AI?"
-    dek="BYOK AI is a platform model where the operator supplies their own provider key — Gemini, OpenAI, Claude, Mistral, xAI — and pays the model vendor directly. This is the full definition, the economics, and the seven providers Asherin supports natively."
+    dek="BYOK AI is a platform model where the operator supplies their own provider key, Gemini, OpenAI, Claude, Mistral, xAI, and pays the model vendor directly. This is the full definition, the economics, and the seven providers Asherin supports natively."
     publishedLabel="Jun 19 2026"
     readTime="5 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -23,7 +23,7 @@ const ByokAi = () => (
       id="byok-ai"
       url={URL}
       headline={TITLE}
-      description="Definitional guide to BYOK AI — how it works, why operators choose it, and how Asherin implements it across nine providers."
+      description="Definitional guide to BYOK AI, how it works, why operators choose it, and how Asherin implements it across nine providers."
       datePublished={PUBLISHED}
       keywords={["byok ai", "bring your own key ai", "byok intelligence platform"]}
     />
@@ -38,9 +38,9 @@ const ByokAi = () => (
     <h2>How BYOK works in practice</h2>
     <ol>
       <li>The operator creates an account with a model vendor (e.g. OpenAI, Google, Anthropic) and generates an API key.</li>
-      <li>The operator pastes that key into the AI platform's settings — encrypted and stored against their user record only.</li>
+      <li>The operator pastes that key into the AI platform's settings, encrypted and stored against their user record only.</li>
       <li>Every request the operator makes is signed with their key and sent to the vendor's endpoint. Billing flows from the vendor directly to the operator's vendor account.</li>
-      <li>The platform takes zero token margin. The platform's revenue (if any) comes from subscription or one-time licensing for the platform itself — not from arbitrage on model usage.</li>
+      <li>The platform takes zero token margin. The platform's revenue (if any) comes from subscription or one-time licensing for the platform itself, not from arbitrage on model usage.</li>
     </ol>
 
     <h2>Why operators choose BYOK</h2>
@@ -52,7 +52,7 @@ const ByokAi = () => (
       <li>
         <strong>Model choice.</strong> A platform-paid plan typically pins
         operators to one or two models the platform negotiated rates on. BYOK
-        operators can switch to whichever model best fits the task — Gemini
+        operators can switch to whichever model best fits the task, Gemini
         for long context, Claude for agentic code, GPT-4 for general
         reasoning, Mistral for uncensored work.
       </li>
@@ -72,8 +72,8 @@ const ByokAi = () => (
     <p>
       A BYOK platform that adds its own refusal layer on top of the operator's
       vendor traffic is not sovereign. A BYOK platform that proxies the
-      request through a server it controls — and could log, re-encode, or
-      re-route the prompt — is not sovereign. BYOK is the key layer of the
+      request through a server it controls, and could log, re-encode, or
+      re-route the prompt, is not sovereign. BYOK is the key layer of the
       sovereign stack, but{" "}
       <a href="/glossary/sovereign-ai">three more layers</a> are required for
       a platform to be genuinely sovereign.
@@ -86,7 +86,7 @@ const ByokAi = () => (
       encrypted at rest, scoped to a single user, and used as the
       authentication credential on every request to the chosen vendor.
       Operators who do not bring a key fall back to a platform-paid Venice
-      uncensored model so the platform stays usable for everyone — but the
+      uncensored model so the platform stays usable for everyone, but the
       BYOK path is the one operators graduate to once they know which models
       they want to ship.
     </p>
@@ -100,7 +100,7 @@ const ByokAi = () => (
         },
         {
           q: "Is BYOK AI cheaper than subscription AI?",
-          a: "For heavy users, yes — operators pay vendor rates with no platform markup. For light users, a subscription plan with bundled tokens may be cheaper at low volumes. BYOK wins on cost transparency, model choice, and lock-in resistance.",
+          a: "For heavy users, yes, operators pay vendor rates with no platform markup. For light users, a subscription plan with bundled tokens may be cheaper at low volumes. BYOK wins on cost transparency, model choice, and lock-in resistance.",
         },
         {
           q: "Which providers does Asherin support for BYOK?",
@@ -113,7 +113,7 @@ const ByokAi = () => (
       links={[
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — full definition",
+          label: "Sovereign AI, full definition",
           description: "Why BYOK is the first layer of a sovereign stack but only the first.",
         },
         {
@@ -128,7 +128,7 @@ const ByokAi = () => (
         },
         {
           to: "/glossary/uncensored-ai",
-          label: "Uncensored AI — definition",
+          label: "Uncensored AI, definition",
           description: "How BYOK lets operators pick models that don't refuse mid-task.",
         },
       ]}

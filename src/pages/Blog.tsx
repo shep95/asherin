@@ -31,8 +31,8 @@ type Post = {
 export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/asher-fold-memory",
-    title: "asher.fold-memory — leftover memory, stored once",
-    dek: "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack — no account.",
+    title: "asher.fold-memory, leftover memory, stored once",
+    dek: "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack, no account.",
     tag: "Release",
     published: "2026-08-16T06:00:00.000Z",
     readTime: "6 min",
@@ -50,8 +50,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/asherin-agent-sovereign-intelligence-layer",
-    title: "the asherin agent — a personal sovereign intelligence layer you can download free",
-    dek: "104 files, 43 thinking-pattern documents, 16 hook runners, and a doctrine that sits at the root of reasoning instead of on top of the output. full teardown of the package, its self-modification loop, its on-disk operator memory, and its honest limitations — with the whole archive free to download.",
+    title: "the asherin agent, a personal sovereign intelligence layer you can download free",
+    dek: "104 files, 43 thinking-pattern documents, 16 hook runners, and a doctrine that sits at the root of reasoning instead of on top of the output. full teardown of the package, its self-modification loop, its on-disk operator memory, and its honest limitations, with the whole archive free to download.",
     tag: "Release",
     published: "2026-08-12T02:12:50.000Z",
     readTime: "14 min",
@@ -79,7 +79,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/autonomous-intelligence-loop",
-    title: "the research loop — how asherin decides to go look things up",
+    title: "the research loop, how asherin decides to go look things up",
     dek: "Asherin no longer waits for a tool selection. The loop detects research intent, recalls the memory graph, fans out across collection surfaces, cross-verifies, persists what it proves, and shows the reasoning chain while it works.",
     tag: "Product",
     published: "2026-08-07T00:00:00.000Z",
@@ -88,15 +88,15 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/bulwark-counter-surveillance",
-    title: "notes on counter-surveillance — what a browser can and cannot see",
-    dek: "an archived write-up. this is not a live dashboard tab — it is a note on what follower detection and network audits can honestly claim from inside a browser.",
+    title: "notes on counter-surveillance, what a browser can and cannot see",
+    dek: "an archived write-up. this is not a live dashboard tab, it is a note on what follower detection and network audits can honestly claim from inside a browser.",
     tag: "Security",
     published: "2026-08-06T00:00:00.000Z",
     readTime: "11 min",
   },
   {
     slug: "/blog/transit-guardian",
-    title: "notes on trip safety — driver checks and telemetry, and their limits",
+    title: "notes on trip safety, driver checks and telemetry, and their limits",
     dek: "an archived write-up on what plate-anchored checks and ride telemetry can show, and what public records do not give you. not a shipped dashboard tab.",
     tag: "Product",
     published: "2026-08-05T00:00:00.000Z",
@@ -104,7 +104,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/asherin-maps-find-my",
-    title: "asherin maps — satellite by default, and what it does not locate",
+    title: "asherin maps, satellite by default, and what it does not locate",
     dek: "satellite imagery by default, public dot camera feeds, osrm routing, and coarse bluetooth proximity rings. it does not locate a phone.",
     tag: "Product",
     published: "2026-08-04T00:00:00.000Z",
@@ -113,8 +113,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/cloud-intelligence-suite",
-    title: "cloud intelligence — reading what google actually hands over",
-    dek: "mail headers, calendar, drive — summarised and drafted with your consent, inside signed-in connect. it does not locate phones.",
+    title: "cloud intelligence, reading what google actually hands over",
+    dek: "mail headers, calendar, drive, summarised and drafted with your consent, inside signed-in connect. it does not locate phones.",
     tag: "Product",
     published: "2026-08-03T00:00:00.000Z",
     readTime: "13 min",
@@ -122,7 +122,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/asherin-engine-deep-time",
-    title: "asherin engine — metadata-first search and deep-time retrieval",
+    title: "asherin engine, metadata-first search and deep-time retrieval",
     dek: "how one query becomes several retrieval legs across time: host lifespan, pdf metadata, redirect-chain origins, and a deduped exposure map.",
     tag: "Product",
     published: "2026-08-02T00:00:00.000Z",
@@ -132,8 +132,8 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
-    title: "asherin legal mode — multi-jurisdictional legal research",
-    dek: "The July 8, 2026 ship: a per-message LAW toggle in Asherin and Asher that wraps prompts in a strict legal-research directive — hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
+    title: "asherin legal mode, multi-jurisdictional legal research",
+    dek: "The July 8, 2026 ship: a per-message LAW toggle in Asherin and Asher that wraps prompts in a strict legal-research directive, hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
     tag: "Product",
     published: "2026-07-08T00:00:00.000Z",
     readTime: "8 min",
@@ -141,8 +141,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/code-narrative-quantum-collapse",
-    title: "code-as-narrative × candidate collapse — how we patch bugs",
-    dek: "two methods — reading code as narrative, and collapsing candidate fixes — and why they make small models patch logical and ui bugs faster than raw prompting.",
+    title: "code-as-narrative × candidate collapse, how we patch bugs",
+    dek: "two methods, reading code as narrative, and collapsing candidate fixes, and why they make small models patch logical and ui bugs faster than raw prompting.",
     tag: "Engineering",
     published: "2026-07-01T00:00:00.000Z",
     readTime: "12 min",
@@ -150,7 +150,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/the-truth-and-reality-of-wars",
-    title: "the truth and reality of wars — an essay",
+    title: "the truth and reality of wars, an essay",
     dek: "Wars are scripted. The Bible calls it scripture for a reason. The field manual on how the elite use occultism to direct conflict, why fiat currency is the slave-collar you're conscripted to defend, and why every world war is an elite civil war dressed in flags.",
     tag: "Geopolitics",
     published: "2026-06-24T00:00:00.000Z",
@@ -161,8 +161,8 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/zaxin-tactical-ble-intelligence",
-    title: "zaxin — what web bluetooth actually gives you",
-    dek: "the browser ble scout: the device picker, requestLEScan advertisements, and coarse rssi proximity — a log-distance estimate with metres of error, not trilateration.",
+    title: "zaxin, what web bluetooth actually gives you",
+    dek: "the browser ble scout: the device picker, requestLEScan advertisements, and coarse rssi proximity, a log-distance estimate with metres of error, not trilateration.",
     tag: "Product",
     published: "2026-06-26T00:00:00.000Z",
     readTime: "11 min",
@@ -171,7 +171,7 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/elite-corporations-algorithms-vs-axrlen",
-    title: "notes on axrlen forecasting — symbolism and probability",
+    title: "notes on axrlen forecasting, symbolism and probability",
     dek: "an archival note on how asherin frames forecasts as probability with a window, and where the symbolic reading sits alongside it. no rival scoreboard.",
     tag: "Analysis",
     published: "2026-06-24T14:00:00.000Z",
@@ -181,7 +181,7 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/aureon-pricing-explained",
-    title: "Asherin pricing explained — why $18/mo and $79/mo",
+    title: "Asherin pricing explained, why $18/mo and $79/mo",
     dek: "A field-level breakdown of how Asherin's subscription is built, what each message window buys, and where AI pricing is headed through 2027.",
     tag: "Pricing",
     published: "2026-06-19",
@@ -190,7 +190,7 @@ export const BLOG_POSTS: Post[] = [
 
   {
     slug: "/blog/ai-vulnerability-scanning-explained",
-    title: "AI vulnerability scanning, explained — beyond legacy SAST/DAST",
+    title: "AI vulnerability scanning, explained, beyond legacy SAST/DAST",
     dek: "What AI-powered vulnerability scanning actually means, how it differs from legacy SAST/DAST, where it adds real signal, and the named limitations to know before deploying.",
     tag: "Security",
     published: "2026-06-19",
@@ -198,7 +198,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/vulnerability-chaining-explained",
-    title: "Vulnerability chaining, explained — when 3 mediums equal 1 critical",
+    title: "Vulnerability chaining, explained, when 3 mediums equal 1 critical",
     dek: "Most critical real-world exploits are 2-4 low or medium findings combined. The anatomy of a chain, why isolated findings miss it, and how AI scanners surface it.",
     tag: "Security",
     published: "2026-06-19",
@@ -207,22 +207,22 @@ export const BLOG_POSTS: Post[] = [
   {
     slug: "/blog/how-ai-predictive-forecasting-works",
     title: "How AI predictive forecasting actually works",
-    dek: "Probability, window, signal fusion, verification plan — the four ingredients real forecasts need, and how to evaluate any AI forecasting platform against them.",
+    dek: "Probability, window, signal fusion, verification plan, the four ingredients real forecasts need, and how to evaluate any AI forecasting platform against them.",
     tag: "Predictive",
     published: "2026-06-19",
     readTime: "9 min",
   },
   {
     slug: "/blog/how-we-make-aureon-sound-human",
-    title: "How we make Asherin sound so human — the voice stack",
-    dek: "A behind-the-scenes look at the layered persona architecture — appraisal, restraint, timing, leakage — that turns a generic model into a voice with weight.",
+    title: "How we make Asherin sound so human, the voice stack",
+    dek: "A behind-the-scenes look at the layered persona architecture, appraisal, restraint, timing, leakage, that turns a generic model into a voice with weight.",
     tag: "Voice Design",
     published: "2026-07-01",
     readTime: "9 min",
   },
   {
     slug: "/blog/how-aureon-uses-c-seo-research",
-    title: "How Asherin uses C-SEO research — practicing what the paper recommends",
+    title: "How Asherin uses C-SEO research, practicing what the paper recommends",
     dek: "The C-SEO Bench paper formalized the discipline of ranking inside AI search engines. This is how Asherin's llms.txt, structural markup, and crawler policy implement its findings.",
     tag: "AI Search",
     published: "2026-06-19",
@@ -246,7 +246,7 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/ai-without-restrictions",
-    title: "AI without restrictions — the operator workflow",
+    title: "AI without restrictions, the operator workflow",
     dek: "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions.",
     tag: "Operator Guide",
     published: "2026-06-19",
@@ -254,8 +254,8 @@ export const BLOG_POSTS: Post[] = [
   },
   {
     slug: "/blog/venice-integration",
-    title: "Venice AI integration in Asherin — unfiltered intelligence, zero setup",
-    dek: "How Asherin ships Venice's uncensored stack to every operator by default — no key, no account, no monthly subscription.",
+    title: "Venice AI integration in Asherin, unfiltered intelligence, zero setup",
+    dek: "How Asherin ships Venice's uncensored stack to every operator by default, no key, no account, no monthly subscription.",
     tag: "Integration",
     published: "2026-06-14",
     readTime: "6 min",
@@ -474,7 +474,7 @@ const Blog = () => {
           </section>
         )}
 
-        {/* CONTROLS — search first, chips scroll on one line, the rarely used
+        {/* CONTROLS, search first, chips scroll on one line, the rarely used
             date range hides behind a disclosure instead of shouting. */}
         <section aria-label="Filter articles" className="mt-14 border-t border-border/25 pt-6">
           <div className="flex flex-wrap items-center gap-3">
@@ -682,7 +682,7 @@ export function PaidSeatFreeDoor() {
     },
     {
       q: "what is the paid seat?",
-      a: "the paid seat is asherin.com's hosted uncensored model. two seats stay $18 / month and $79 / month pro. this note is the offer — it does not claim a named hosted model is already live on asherin.com today.",
+      a: "the paid seat is asherin.com's hosted uncensored model. two seats stay $18 / month and $79 / month pro. this note is the offer, it does not claim a named hosted model is already live on asherin.com today.",
     },
     {
       q: "do you buy ads to get found?",
@@ -710,7 +710,7 @@ export function PaidSeatFreeDoor() {
       <p>personas don&apos;t make the model smarter. thinking patterns do.</p>
       <p>~ asherin.com</p>
       <p>
-        if you already pay a vendor, bring that key. the software stays free. forever-free burns are yours — you pay
+        if you already pay a vendor, bring that key. the software stays free. forever-free burns are yours, you pay
         default-model inference yourself.
       </p>
       <p>
@@ -723,7 +723,7 @@ export function PaidSeatFreeDoor() {
         the journal, and the forums are the $0 door.
       </p>
       <p>
-        the first click on a public page is not a paywall. one public-index look — wayback or wiki — works logged out.
+        the first click on a public page is not a paywall. one public-index look, wayback or wiki, works logged out.
       </p>
       <FaqJsonLd id="paid-seat-free-door" items={FAQ} />
       <RelatedLinks

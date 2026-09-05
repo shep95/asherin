@@ -17,7 +17,7 @@ const TIERS: Tier[] = [
   { key: "chat", name: "Chat", price: "$47", cadence: "one-time", blurb: "Uncensored core chat & basic tools", cta: "Start Chat", href: "/dashboard" },
   { key: "aureon", name: "Asherin", price: "$199", cadence: "one-time", blurb: "Full creation suite + Zophiel", cta: "Get Asherin", href: "/dashboard" },
   { key: "pro", name: "Pro", price: "$740", cadence: "one-time", blurb: "Pro intelligence, predictive, trading", cta: "Go Pro", href: "/dashboard" },
-  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Asherin ($199) — forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
+  { key: "lifetime", name: "Lifetime", price: "$470", cadence: "once", blurb: "Everything in Asherin ($199), forever, one payment", cta: "Claim Lifetime", href: "/dashboard", highlight: true },
 ];
 
 interface Row {

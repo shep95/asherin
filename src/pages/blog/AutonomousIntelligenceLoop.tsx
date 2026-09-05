@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/autonomous-intelligence-loop";
 const TITLE =
-  "The Autonomous Intelligence Loop — how Asherin researches without being told to";
+  "The Autonomous Intelligence Loop, how Asherin researches without being told to";
 const DEK =
-  "Asherin no longer waits for a tool selection. The Autonomous Intelligence Loop detects research intent, recalls what it already knows, fans out across collection surfaces, cross-verifies, writes the result into a persistent memory graph, and returns a sourced product — with the reasoning chain shown while it works.";
+  "Asherin no longer waits for a tool selection. The Autonomous Intelligence Loop detects research intent, recalls what it already knows, fans out across collection surfaces, cross-verifies, writes the result into a persistent memory graph, and returns a sourced product, with the reasoning chain shown while it works.";
 const PUBLISHED = "2026-08-07T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -81,7 +81,7 @@ const AutonomousIntelligenceLoop = () => {
           },
           {
             q: "Why is the reasoning shown?",
-            a: "Ghost Chain replaces the generic thinking spinner with the actual chain — which surfaces are being queried, what came back, what was rejected. It makes the wait informative and the output auditable.",
+            a: "Ghost Chain replaces the generic thinking spinner with the actual chain, which surfaces are being queried, what came back, what was rejected. It makes the wait informative and the output auditable.",
           },
           {
             q: "Does the loop invent sources?",
@@ -110,8 +110,8 @@ const AutonomousIntelligenceLoop = () => {
         <p>
           Every incoming message is classified before it is answered. Most
           traffic is conversational and routes straight through. A subset
-          carries research shape — a hard identifier, an entity plus a
-          question of fact, a request for provenance, a temporal query —
+          carries research shape, a hard identifier, an entity plus a
+          question of fact, a request for provenance, a temporal query
           and that subset arms the pipeline.
         </p>
         <Box>{`INTENT CLASSIFY
@@ -127,14 +127,14 @@ const AutonomousIntelligenceLoop = () => {
           is tuned to prefer the former.
         </p>
 
-        <h2>3. Stage one — recall</h2>
+        <h2>3. Stage one, recall</h2>
         <p>
           Before anything is collected, the memory graph is queried. If the
           subject has been researched before, the loop starts with the
           entities, identifiers, and verified relationships already on
           record, along with the sources that established them and when.
         </p>
-        <Box>{`MEMORY GRAPH — recall
+        <Box>{`MEMORY GRAPH, recall
   entity   "example-corp.tld"
    ├── identifier  registrant email      verified 2026-06-14  · 3 srcs
    ├── identifier  registered address    verified 2026-06-14  · 2 srcs
@@ -148,7 +148,7 @@ const AutonomousIntelligenceLoop = () => {
           unverified and are re-tested rather than trusted.
         </p>
 
-        <h2>4. Stage two — fan-out</h2>
+        <h2>4. Stage two, fan-out</h2>
         <p>
           What recall could not supply is collected in parallel. The router
           selects surfaces by the shape of the gap: identifier gaps go to
@@ -160,7 +160,7 @@ const AutonomousIntelligenceLoop = () => {
           instead of failing it.
         </p>
 
-        <h2>5. Stage three — verify</h2>
+        <h2>5. Stage three, verify</h2>
         <p>
           This is the stage that separates a research product from a
           confident paragraph. Verification runs after collection and
@@ -175,10 +175,10 @@ const AutonomousIntelligenceLoop = () => {
     ├─ record A  registry snapshot 2024-11   supports
     ├─ record B  filing PDF        2023-06   supports
     └─ record C  directory listing 2026-02   CONFLICTS (<Y>)
-  ▶ emitted as: contested — two historical sources vs one current.
+  ▶ emitted as: contested, two historical sources vs one current.
     Both values reported. Recency does not automatically win.`}</Box>
 
-        <h2>6. Stage four — persist</h2>
+        <h2>6. Stage four, persist</h2>
         <p>
           Everything verified is written back into the memory graph with
           its sources and timestamp. This is what makes the loop compound:
@@ -187,22 +187,22 @@ const AutonomousIntelligenceLoop = () => {
           collection requirements of the next.
         </p>
 
-        <h2>7. Stage five — record</h2>
+        <h2>7. Stage five, record</h2>
         <p>
           The product is written last, from verified material only, in the
-          register the operator asked for. Links are preserved verbatim —
+          register the operator asked for. Links are preserved verbatim
           a rule enforced at the prompt boundary, because an assistant that
           paraphrases a URL out of existence destroys the auditability the
           previous four stages bought.
         </p>
 
-        <h2>8. Ghost Chain — showing the work</h2>
+        <h2>8. Ghost Chain, showing the work</h2>
         <p>
           While the loop runs, the interface renders the chain rather than
           a spinner: which surfaces are open, what has returned, what was
           rejected and why, and which stage is active. Two benefits follow.
           The wait becomes informative, and the output becomes auditable
-          before it is even finished — an operator who watches a leg return
+          before it is even finished, an operator who watches a leg return
           nothing already knows how to read the confidence band that lands
           at the end.
         </p>
@@ -214,12 +214,12 @@ const AutonomousIntelligenceLoop = () => {
   ▸ persist       6 new edges written
   ▸ record        composing product…`}</Box>
 
-        <h2>9. Adaptive routing — register, not just content</h2>
+        <h2>9. Adaptive routing, register, not just content</h2>
         <p>
           A correct answer in the wrong register is a failed answer. The
-          adaptive router reads what the operator is actually doing —
+          adaptive router reads what the operator is actually doing
           quick factual check, deep investigation, legal research, code
-          work, geospatial task — and shapes the response accordingly:
+          work, geospatial task, and shapes the response accordingly:
           terse and direct where speed is the point, structured and cited
           where rigour is the point, and jurisdiction-strict when legal
           mode is engaged. The router also decides how much of the loop to
@@ -247,7 +247,7 @@ const AutonomousIntelligenceLoop = () => {
         </p>
         <h3>Can I still call a tool directly?</h3>
         <p>
-          Yes. Explicit instructions always override the router — the loop
+          Yes. Explicit instructions always override the router, the loop
           is a default, not a cage.
         </p>
         <h3>What happens when every surface fails?</h3>

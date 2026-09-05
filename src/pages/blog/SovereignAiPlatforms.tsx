@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/blog/sovereign-ai-platforms";
-const TITLE = "Sovereign AI Platforms — The 2026 Landscape Map";
+const TITLE = "Sovereign AI Platforms, The 2026 Landscape Map";
 const PUBLISHED = "2026-06-19";
 
 const SovereignAiPlatforms = () => (
   <ArticleShell
     eyebrow="Field Report · Landscape"
     title="The 2026 Sovereign AI Landscape"
-    dek="Sovereign AI is no longer a niche category — it's a coherent tooling layer with at least eight serious platforms, four distinct architecture patterns, and a clear set of evaluation criteria. This is the full landscape map for operators choosing where to commit."
+    dek="Sovereign AI is no longer a niche category, it's a coherent tooling layer with at least eight serious platforms, four distinct architecture patterns, and a clear set of evaluation criteria. This is the full landscape map for operators choosing where to commit."
     publishedLabel="Jun 19 2026"
     readTime="11 min"
   >
@@ -41,7 +41,7 @@ const SovereignAiPlatforms = () => (
       recognizable category descriptor, indexed by Google, defined in
       operator handbooks, and used to filter tooling decisions inside
       newsrooms, research desks, security teams, and independent trading
-      shops. The category exists because consumer AI made it exist —
+      shops. The category exists because consumer AI made it exist
       tightening refusal behavior pushed enough professional work off the
       consumer rails that a parallel ecosystem became inevitable.
     </p>
@@ -51,7 +51,7 @@ const SovereignAiPlatforms = () => (
     <p>
       The platform never pays for tokens. Every operator brings their own
       key or the platform refuses to call any model. Pure on the
-      sovereignty axis, hostile on the onboarding axis — new operators
+      sovereignty axis, hostile on the onboarding axis, new operators
       have to commit to a vendor account before they can evaluate the
       platform.
     </p>
@@ -81,7 +81,7 @@ const SovereignAiPlatforms = () => (
     <h2>The evaluation criteria operators actually use</h2>
     <ul>
       <li>
-        <strong>Four-layer test.</strong> Key, model, refusal, data — all
+        <strong>Four-layer test.</strong> Key, model, refusal, data, all
         four operator-controlled or it doesn&apos;t qualify (
         <a href="/glossary/sovereign-ai">see the definition</a>).
       </li>
@@ -113,9 +113,9 @@ const SovereignAiPlatforms = () => (
       OpenRouter, Venice). Venice mistral-31-24b as the platform-paid
       default for operators who haven&apos;t added a key. Zero platform-side
       refusal layer on either path. End-to-end encrypted operator data with
-      key-revocation guarantees. The intelligence stack on top — Zophiel
+      key-revocation guarantees. The intelligence stack on top, Zophiel
       OSINT, NOMAD dossiers, AXRLEN predictive engine, ZERLAL vulnerability
-      analysis — runs on the sovereign substrate, not as a layer that
+      analysis, runs on the sovereign substrate, not as a layer that
       degrades it.
     </p>
 
@@ -126,7 +126,7 @@ const SovereignAiPlatforms = () => (
       models reach production quality. Second, &ldquo;refusal layer
       transparency statements&rdquo; will become a standard publish-or-be-suspect
       requirement. Third, at least one major consumer-AI vendor will ship a
-      &ldquo;sovereign tier&rdquo; that is sovereign in marketing only — the
+      &ldquo;sovereign tier&rdquo; that is sovereign in marketing only, the
       four-layer test will eliminate it on first inspection.
     </p>
 
@@ -152,12 +152,12 @@ const SovereignAiPlatforms = () => (
       links={[
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — full definition",
+          label: "Sovereign AI, full definition",
           description: "The four-layer test every platform on this map gets evaluated against.",
         },
         {
           to: "/glossary/byok-ai",
-          label: "BYOK AI — definition",
+          label: "BYOK AI, definition",
           description: "The key layer that underpins every sovereign architecture pattern.",
         },
         {

@@ -22,7 +22,7 @@ const PUBLISHED = "2026-07-08";
 const FAQ = [
   {
     q: "What is LAW mode in Asherin and Asher?",
-    a: "LAW mode is a per-message toggle that wraps every prompt in a strict multi-jurisdictional legal-research directive. The model researches every applicable law in the country, state, or province you named — including older statutes and precedent that can supersede newer law — and returns a structured answer with jurisdiction, controlling authority, conflicts, and a mandatory disclaimer.",
+    a: "LAW mode is a per-message toggle that wraps every prompt in a strict multi-jurisdictional legal-research directive. The model researches every applicable law in the country, state, or province you named, including older statutes and precedent that can supersede newer law, and returns a structured answer with jurisdiction, controlling authority, conflicts, and a mandatory disclaimer.",
   },
   {
     q: "Does LAW mode replace a lawyer?",
@@ -42,9 +42,9 @@ const AureonLegalAdvisor = () => {
   useEffect(() => {
     applySeoHead({
       title:
-        "Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research | Asherin",
+        "Asherin Legal Advisor (LAW Mode), Multi-Jurisdictional AI Legal Research | Asherin",
       description:
-        "Asherin and Asher now ship LAW mode: a per-message toggle that runs deep multi-jurisdictional legal research across any country, state, or province — including older statutes that supersede newer law.",
+        "Asherin and Asher now ship LAW mode: a per-message toggle that runs deep multi-jurisdictional legal research across any country, state, or province, including older statutes that supersede newer law.",
       path: "/blog/aureon-legal-advisor-multi-jurisdictional",
     });
   }, []);
@@ -54,8 +54,8 @@ const AureonLegalAdvisor = () => {
       <ArticleJsonLd
         id="legal-advisor"
         url={URL}
-        headline="Asherin Legal Advisor (LAW Mode) — Multi-Jurisdictional AI Legal Research"
-        description="A field report on the July 8, 2026 launch of LAW mode across Asherin and Asher — how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
+        headline="Asherin Legal Advisor (LAW Mode), Multi-Jurisdictional AI Legal Research"
+        description="A field report on the July 8, 2026 launch of LAW mode across Asherin and Asher, how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
         datePublished={PUBLISHED}
         keywords={[
           "aureon legal advisor",
@@ -80,13 +80,13 @@ const AureonLegalAdvisor = () => {
         eyebrow="Field Report"
         publishedLabel="July 8, 2026"
         readTime="8 min read"
-        title="Asherin Legal Advisor — LAW mode ships multi-jurisdictional research to every operator"
-        dek="Asherin and Asher now run a dedicated legal-research reflex on demand. Toggle the LAW pill in the composer and every prompt is wrapped in a strict directive that hunts the entire body of applicable law — modern statutes, colonial-era carryovers, uncodified common law, and binding precedent — across any country, state, or province you name."
+        title="Asherin Legal Advisor, LAW mode ships multi-jurisdictional research to every operator"
+        dek="Asherin and Asher now run a dedicated legal-research reflex on demand. Toggle the LAW pill in the composer and every prompt is wrapped in a strict directive that hunts the entire body of applicable law, modern statutes, colonial-era carryovers, uncodified common law, and binding precedent, across any country, state, or province you name."
       >
         <h2>Why LAW mode exists</h2>
         <p>
           Legal answers fail quietly. A model that quotes the newest
-          statute and stops there is confident, fast, and often wrong —
+          statute and stops there is confident, fast, and often wrong
           because in most legal systems there is an older instrument
           that continues to control. Colonial-era acts still bind former
           Commonwealth jurisdictions. Uncodified common law overrides
@@ -98,8 +98,8 @@ const AureonLegalAdvisor = () => {
 
         <h2>How the reflex works</h2>
         <p>
-          A single toggle in the composer — the <strong>LAW</strong>{" "}
-          pill, sitting next to <strong>NAR</strong> — flips the send
+          A single toggle in the composer, the <strong>LAW</strong>{" "}
+          pill, sitting next to <strong>NAR</strong>, flips the send
           path. When it is on, your prompt is wrapped in a legal-research
           directive before it reaches the model. The directive is
           deterministic and lives in <code>src/lib/legalAdvisor.ts</code>{" "}
@@ -172,7 +172,7 @@ const AureonLegalAdvisor = () => {
           </li>
         </ul>
         <p>
-          Missing one of these is not a rounding error — it is the
+          Missing one of these is not a rounding error, it is the
           difference between the answer being useful and the answer
           being wrong.
         </p>
@@ -183,13 +183,13 @@ const AureonLegalAdvisor = () => {
         </p>
         <ul>
           <li>
-            <strong>NAR</strong> — converts a raw prompt into a
+            <strong>NAR</strong>, converts a raw prompt into a
             structured narrative before sending, so the model sees
             intent, context, and flaw analysis instead of a wall of
             text. Use for planning, briefing, and multi-step reasoning.
           </li>
           <li>
-            <strong>LAW</strong> — wraps a prompt in the
+            <strong>LAW</strong>, wraps a prompt in the
             legal-research directive above. Use whenever you are asking
             a jurisdictional question, running a compliance sweep, or
             trying to understand the enforceable law in a foreign
@@ -199,7 +199,7 @@ const AureonLegalAdvisor = () => {
         <p>
           The two toggles are independent. Turn on both when you want a
           structured narrative frame <em>and</em> full legal enumeration
-          — for example, a due-diligence memo on operating in a new
+, for example, a due-diligence memo on operating in a new
           jurisdiction.
         </p>
 
@@ -224,7 +224,7 @@ const AureonLegalAdvisor = () => {
             glows when active.
           </li>
           <li>
-            Ask a jurisdictional question — for example, <em>"What are
+            Ask a jurisdictional question, for example, <em>"What are
             the current employer notice requirements before terminating
             an at-will employee in Montana, and does any older statute
             override the modern rule?"</em>
@@ -245,7 +245,7 @@ const AureonLegalAdvisor = () => {
           links={[
             {
               to: "/hosrad",
-              label: "HOSRAD — House of Asher Research & Developers",
+              label: "HOSRAD, House of Asher Research & Developers",
               description:
                 "The R&D division that funded the legal reflex, alongside quantum, AI, and defense work.",
             },
@@ -257,7 +257,7 @@ const AureonLegalAdvisor = () => {
             },
             {
               to: "/blog/ai-without-restrictions",
-              label: "AI without restrictions — the operator workflow",
+              label: "AI without restrictions, the operator workflow",
               description:
                 "How Asherin's model-choice, prompt-discipline, and refusal-detection layers keep long sessions honest.",
             },

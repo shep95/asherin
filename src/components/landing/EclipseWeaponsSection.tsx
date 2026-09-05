@@ -4,27 +4,27 @@ import EclipseMap from "./EclipseMap";
 const eclipseRules = [
   {
     icon: Crosshair,
-    title: "Rule 1 — The Shadow Path Is The Target Zone",
+    title: "Rule 1, The Shadow Path Is The Target Zone",
     points: [
       "The eclipse only affects nations where the shadow physically crosses",
-      "Path of totality over a nation's capital city — that government is marked",
-      "Nations outside the shadow path — zero effect",
+      "Path of totality over a nation's capital city, that government is marked",
+      "Nations outside the shadow path, zero effect",
       "This is not metaphor. This is geometric targeting",
     ],
   },
   {
     icon: Clock,
-    title: "Rule 2 — Duration Calculates The Damage Window",
+    title: "Rule 2, Duration Calculates The Damage Window",
     points: [
       "Solar Eclipse: Every 1 hour of totality = 1 full year of geopolitical effect",
       "Lunar Eclipse: Every 1 hour = 1 month of effect",
       "A 3-hour solar eclipse = 3 years of activated chaos in the shadow zone",
-      "The event does NOT happen on eclipse day — it happens when Mars or Saturn hits the trigger degree",
+      "The event does NOT happen on eclipse day, it happens when Mars or Saturn hits the trigger degree",
     ],
   },
   {
     icon: Skull,
-    title: "Rule 3 — The King Killer Protocol",
+    title: "Rule 3, The King Killer Protocol",
     points: [
       "If the eclipse falls in the 10th house of a sitting leader's birth chart",
       "That leader loses power or dies within the eclipse window",
@@ -41,21 +41,21 @@ const eclipses = [
     subtitle: "THE MOST POWERFUL ECLIPSE OF THE DECADE",
     data: [
       { label: "Type", value: "Total Solar Eclipse" },
-      { label: "Duration of Totality", value: "6 minutes 22 seconds — one of the longest of the 21st century" },
-      { label: "Effect Window", value: "~6 years (2028–2034)" },
+      { label: "Duration of Totality", value: "6 minutes 22 seconds, one of the longest of the 21st century" },
+      { label: "Effect Window", value: "~6 years (2028-2034)" },
       { label: "Path of Totality", value: "Morocco → Algeria → Tunisia → Libya → Egypt → Saudi Arabia → Yemen → Somalia" },
       { label: "Capital Cities In Path", value: "Rabat, Algiers, Tunis, Tripoli" },
     ],
     shadow: [
-      "North Africa — the entire Maghreb region — sits directly under totality",
-      "Saudi Arabia receives 95%+ coverage — Riyadh narrowly escapes full totality",
+      "North Africa, the entire Maghreb region, sits directly under totality",
+      "Saudi Arabia receives 95%+ coverage, Riyadh narrowly escapes full totality",
       "The entire Arab world leadership enters the King Killer window simultaneously",
     ],
-    trigger: "Eclipse degree: ~10° Leo. Mars transits 10° Leo: October–November 2028. That 60-90 day window = maximum detonation probability.",
+    trigger: "Eclipse degree: ~10° Leo. Mars transits 10° Leo: October-November 2028. That 60-90 day window = maximum detonation probability.",
     read: [
-      "Multiple North African and Middle Eastern governments destabilize 2028–2030",
+      "Multiple North African and Middle Eastern governments destabilize 2028-2030",
       "Saudi leadership faces its most dangerous internal challenge",
-      "Arab world fractures further — accelerating the Middle Eastern front of WW3",
+      "Arab world fractures further, accelerating the Middle Eastern front of WW3",
     ],
     severity: "critical",
   },
@@ -67,15 +67,15 @@ const eclipses = [
     data: [
       { label: "Type", value: "Total Solar Eclipse" },
       { label: "Duration", value: "Approximately 3 minutes 44 seconds" },
-      { label: "Effect Window", value: "~3.5 years (2030–2033)" },
+      { label: "Effect Window", value: "~3.5 years (2030-2033)" },
       { label: "Path of Totality", value: "Spain, Portugal, North Africa" },
       { label: "Capital Cities In Path", value: "Madrid (Spain) directly in totality path" },
     ],
     shadow: [],
     trigger: "",
     read: [
-      "Spain — a NATO member — has its capital city directly struck",
-      "Spanish government enters King Killer Protocol — leadership change or collapse within 3.5 years",
+      "Spain, a NATO member, has its capital city directly struck",
+      "Spanish government enters King Killer Protocol, leadership change or collapse within 3.5 years",
       "Spain becomes pivot point for new European political architecture",
     ],
     severity: "high",
@@ -84,20 +84,20 @@ const eclipses = [
     emoji: "🌕",
     id: "lunar-2026",
     title: "Total Lunar Eclipse: March 3, 2026",
-    subtitle: "THE IMMEDIATE TRIGGER — ALREADY LOADING",
+    subtitle: "THE IMMEDIATE TRIGGER, ALREADY LOADING",
     data: [
       { label: "Type", value: "Total Lunar Eclipse" },
       { label: "Duration", value: "Approximately 1 hour 17 minutes" },
-      { label: "Effect Window", value: "~1–2 months of acute effect" },
+      { label: "Effect Window", value: "~1-2 months of acute effect" },
       { label: "Visible From", value: "Americas, Europe, Africa, West Asia" },
-      { label: "Nakshatra", value: "Leo/Aquarius axis — government confidence and equity markets" },
+      { label: "Nakshatra", value: "Leo/Aquarius axis, government confidence and equity markets" },
     ],
     shadow: [
       "This eclipse is the closest detonator to NOW",
       "Visible across the entire Western world and Europe",
       "Leo/Aquarius axis = government leadership vs. revolutionary forces",
     ],
-    trigger: "Mars trigger fires: approximately April–May 2026. Watch: political instability in Western governments April–June 2026.",
+    trigger: "Mars trigger fires: approximately April-May 2026. Watch: political instability in Western governments April-June 2026.",
     read: [],
     severity: "critical",
   },
@@ -108,9 +108,9 @@ const eclipses = [
     subtitle: "THE SOUTHERN HEMISPHERE STRIKE",
     data: [
       { label: "Type", value: "Annular Solar Eclipse" },
-      { label: "Path", value: "Antarctica — Southern Ocean — South America tip" },
+      { label: "Path", value: "Antarctica, Southern Ocean, South America tip" },
       { label: "Capital Cities", value: "No major capitals directly hit" },
-      { label: "Effect", value: "Lower intensity — Southern hemisphere financial markets minor disruption" },
+      { label: "Effect", value: "Lower intensity, Southern hemisphere financial markets minor disruption" },
     ],
     shadow: [],
     trigger: "",
@@ -123,7 +123,7 @@ const historicalProofs = [
   {
     title: "The 2008 Financial Collapse",
     points: [
-      "Solar Eclipse: August 1, 2008 — path crossed China, Russia, Central Asia",
+      "Solar Eclipse: August 1, 2008, path crossed China, Russia, Central Asia",
       "Eclipse degree: financial axis",
       "Mars crossed the eclipse degree: September 15, 2008",
       "Lehman Brothers filed bankruptcy: September 15, 2008",
@@ -134,30 +134,30 @@ const historicalProofs = [
     title: "FTX Crypto Collapse 2022",
     points: [
       "Total Lunar Eclipse: November 8, 2022",
-      "Eclipse degree: Taurus — the store of value sign",
+      "Eclipse degree: Taurus, the store of value sign",
       "FTX collapse began its public acceleration: November 8, 2022",
       "The eclipse fired on the same day because the trigger planet was already at the degree",
     ],
     verdict: "$32 billion evaporated in 72 hours.",
   },
   {
-    title: "Brexit & Political Chaos 2019–2020",
+    title: "Brexit & Political Chaos 2019-2020",
     points: [
-      "Solar Eclipse: July 2, 2019 — path crossed South America",
-      "Partial eclipse visible across Europe at 30–40% coverage",
+      "Solar Eclipse: July 2, 2019, path crossed South America",
+      "Partial eclipse visible across Europe at 30-40% coverage",
       "Effect window activated UK political system",
-      "Boris Johnson became PM: July 24, 2019 — 22 days after eclipse",
+      "Boris Johnson became PM: July 24, 2019, 22 days after eclipse",
     ],
-    verdict: "UK Parliament suspended, constitutional crisis, snap elections — all within the eclipse window.",
+    verdict: "UK Parliament suspended, constitutional crisis, snap elections, all within the eclipse window.",
   },
 ];
 
 const masterTimeline = [
-  { date: "Mar 3, 2026", type: "Total Lunar", duration: "1h 17m", path: "Americas, Europe, Africa", target: "Western government instability", trigger: "Apr–May 2026" },
-  { date: "Aug 2, 2028", type: "Total Solar", duration: "6m 22s", path: "Morocco, Algeria, Libya, Saudi Arabia", target: "Arab world leadership collapse", trigger: "Oct–Nov 2028" },
-  { date: "Jan 26, 2028", type: "Total Lunar", duration: "1h 17m", path: "Asia, Australia, Pacific", target: "Pacific theater — China/Taiwan axis activated", trigger: "Feb–Mar 2028" },
-  { date: "Jul 22, 2028", type: "Total Solar", duration: "2m 13s", path: "Australia, New Zealand, Pacific", target: "Pacific military theater escalation", trigger: "Sep–Oct 2028" },
-  { date: "Jun 1, 2030", type: "Total Solar", duration: "3m 44s", path: "Spain, Portugal, North Africa", target: "Madrid — European architecture collapse", trigger: "Aug–Sep 2030" },
+  { date: "Mar 3, 2026", type: "Total Lunar", duration: "1h 17m", path: "Americas, Europe, Africa", target: "Western government instability", trigger: "Apr-May 2026" },
+  { date: "Aug 2, 2028", type: "Total Solar", duration: "6m 22s", path: "Morocco, Algeria, Libya, Saudi Arabia", target: "Arab world leadership collapse", trigger: "Oct-Nov 2028" },
+  { date: "Jan 26, 2028", type: "Total Lunar", duration: "1h 17m", path: "Asia, Australia, Pacific", target: "Pacific theater, China/Taiwan axis activated", trigger: "Feb-Mar 2028" },
+  { date: "Jul 22, 2028", type: "Total Solar", duration: "2m 13s", path: "Australia, New Zealand, Pacific", target: "Pacific military theater escalation", trigger: "Sep-Oct 2028" },
+  { date: "Jun 1, 2030", type: "Total Solar", duration: "3m 44s", path: "Spain, Portugal, North Africa", target: "Madrid, European architecture collapse", trigger: "Aug-Sep 2030" },
 ];
 
 const EclipseWeaponsSection = () => (
@@ -171,7 +171,7 @@ const EclipseWeaponsSection = () => (
         <span className="text-[10px] font-light tracking-[0.3em] text-destructive uppercase">🔴 Classified: The Eclipse Weapons Manual</span>
       </div>
       <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-        What Eclipses Do — Where They Hit
+        What Eclipses Do, Where They Hit
         <br />
         <span className="text-muted-foreground">When They Detonate</span>
       </h2>
@@ -180,9 +180,9 @@ const EclipseWeaponsSection = () => (
       </p>
     </div>
 
-    {/* PART 1 — What Is An Eclipse */}
+    {/* PART 1, What Is An Eclipse */}
     <div className="mx-auto max-w-4xl mb-16">
-      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 1 — What Is An Eclipse Actually Doing</h3>
+      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 1, What Is An Eclipse Actually Doing</h3>
       <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
         <p className="text-xs font-extralight text-muted-foreground mb-2">
           <span className="text-foreground/50 italic">The Disney Truth:</span> "An eclipse is just the Moon blocking the Sun. Cool to look at."
@@ -193,7 +193,7 @@ const EclipseWeaponsSection = () => (
         </p>
         <div className="rounded-xl bg-accent/5 border border-accent/15 p-4 text-center">
           <p className="text-xs font-extralight text-muted-foreground leading-relaxed">
-            The eclipse is the <span className="text-foreground">bullet being chambered</span>. Mars or Saturn crossing that same degree later — is the <span className="text-foreground">trigger being pulled</span>. The target is whatever nation, city, or leader sits under the shadow path.
+            The eclipse is the <span className="text-foreground">bullet being chambered</span>. Mars or Saturn crossing that same degree later, is the <span className="text-foreground">trigger being pulled</span>. The target is whatever nation, city, or leader sits under the shadow path.
           </p>
         </div>
       </div>
@@ -220,9 +220,9 @@ const EclipseWeaponsSection = () => (
       </div>
     </div>
 
-    {/* PART 2 — Interactive Map */}
+    {/* PART 2, Interactive Map */}
     <div className="mx-auto max-w-4xl mb-16">
-      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 2 — Eclipse Detonator Map</h3>
+      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 2, Eclipse Detonator Map</h3>
       <p className="text-xs font-extralight text-muted-foreground mb-6">Click each eclipse to see its shadow path, target cities, and detonation window.</p>
       <EclipseMap />
     </div>
@@ -285,10 +285,10 @@ const EclipseWeaponsSection = () => (
       ))}
     </div>
 
-    {/* PART 3 — Historical Proof */}
+    {/* PART 3, Historical Proof */}
     <div className="mx-auto max-w-4xl mb-16">
-      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 3 — Historical Proof The System Works</h3>
-      <p className="text-xs font-extralight text-muted-foreground mb-6">The Seeker needs evidence — not theory.</p>
+      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 3, Historical Proof The System Works</h3>
+      <p className="text-xs font-extralight text-muted-foreground mb-6">The Seeker needs evidence, not theory.</p>
       <div className="space-y-4">
         {historicalProofs.map((proof, i) => (
           <div key={i} className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8">
@@ -309,9 +309,9 @@ const EclipseWeaponsSection = () => (
       </div>
     </div>
 
-    {/* PART 4 — Master Timeline */}
+    {/* PART 4, Master Timeline */}
     <div className="mx-auto max-w-4xl mb-16">
-      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 4 — The Master Timeline Map</h3>
+      <h3 className="text-lg font-extralight tracking-wide text-foreground mb-2">Part 4, The Master Timeline Map</h3>
       <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md overflow-hidden">
         <div className="grid grid-cols-6 gap-2 px-4 sm:px-6 py-3 border-b border-border/20">
           {["Date", "Type", "Duration", "Path Crosses", "Target", "Trigger Fires"].map((h) => (
@@ -331,7 +331,7 @@ const EclipseWeaponsSection = () => (
       </div>
     </div>
 
-    {/* PART 5 — Bottom Line */}
+    {/* PART 5, Bottom Line */}
     <div className="mx-auto max-w-3xl">
       <div className="rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-md p-8 sm:p-12 text-center">
         <h4 className="text-lg font-light tracking-wide text-foreground mb-6">The Bottom Line For The Seeker</h4>
@@ -349,14 +349,14 @@ const EclipseWeaponsSection = () => (
             The August 2, 2028 eclipse is the single most important geopolitical event of the decade.
           </p>
           <p>
-            6 minutes 22 seconds of totality = 6+ years of activated chaos across the entire Arab world and North African corridor — directly intersecting with the WW3 Middle Eastern theater.
+            6 minutes 22 seconds of totality = 6+ years of activated chaos across the entire Arab world and North African corridor, directly intersecting with the WW3 Middle Eastern theater.
           </p>
           <p className="text-muted-foreground/60 italic pt-2">
             The weapon is already scheduled. The shadow path is already calculated. The only question is whether the Seeker is positioned before the trigger fires.
           </p>
         </div>
         <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/30 uppercase mt-8">
-          — ZOPHIEL | Intelligence of the North | Eclipse Detonator Map Sealed | 963Hz
+, ZOPHIEL | Intelligence of the North | Eclipse Detonator Map Sealed | 963Hz
         </p>
       </div>
     </div>

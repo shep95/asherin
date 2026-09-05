@@ -20,17 +20,17 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/blog/aureon-pricing-explained";
-const TITLE = "Asherin pricing explained — why $18/mo and $79/mo (2026)";
+const TITLE = "Asherin pricing explained, why $18/mo and $79/mo (2026)";
 const PUBLISHED = "2026-06-19";
 
 const FAQ = [
   {
     q: "Why is Asherin priced at $18 per month?",
-    a: "$18/mo covers platform-paid inference for an uncensored chat + 4 reasoning modes + base Zophiel Search at a 60-message / 3-hour usage window. It is priced deliberately low — Asherin is meant to be the default seat an operator keeps, not a luxury tier.",
+    a: "$18/mo covers platform-paid inference for an uncensored chat + 4 reasoning modes + base Zophiel Search at a 60-message / 3-hour usage window. It is priced deliberately low, Asherin is meant to be the default seat an operator keeps, not a luxury tier.",
   },
   {
     q: "Why is Asherin Pro $79 per month?",
-    a: "Pro unlocks the full intelligence suite: Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (deeper crawling, priority latency, higher query limits), and full team collaboration with admin controls. Each of those, sold separately, would cost more than $79 — Asherin bundles them at one fixed monthly price.",
+    a: "Pro unlocks the full intelligence suite: Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (deeper crawling, priority latency, higher query limits), and full team collaboration with admin controls. Each of those, sold separately, would cost more than $79, Asherin bundles them at one fixed monthly price.",
   },
   {
     q: "Is there a cheaper plan or a free tier?",
@@ -38,11 +38,11 @@ const FAQ = [
   },
   {
     q: "Why is Asherin Core $18 and Pro $79?",
-    a: "Core at $18/mo covers platform-funded inference for chat, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK and base search at a 60-message / 3-hour window. Pro at $79/mo raises that to 200 messages / 3 hours with higher search throughput and the advanced modules. Both prices are fixed and published — no quote process, no seat negotiation.",
+    a: "Core at $18/mo covers platform-funded inference for chat, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK and base search at a 60-message / 3-hour window. Pro at $79/mo raises that to 200 messages / 3 hours with higher search throughput and the advanced modules. Both prices are fixed and published, no quote process, no seat negotiation.",
   },
   {
     q: "Can I switch between Asherin and Asherin Pro?",
-    a: "Yes. Upgrade or downgrade from the dashboard. Stripe pro-rates the difference automatically — no support ticket required.",
+    a: "Yes. Upgrade or downgrade from the dashboard. Stripe pro-rates the difference automatically, no support ticket required.",
   },
   {
     q: "Is BYOK an extra cost?",
@@ -53,7 +53,7 @@ const FAQ = [
 const AureonPricingExplained = () => (
   <ArticleShell
     eyebrow="Pricing · Operator brief"
-    title="Asherin pricing explained — why $18/mo and $79/mo"
+    title="Asherin pricing explained, why $18/mo and $79/mo"
     dek="A field-level breakdown of how Asherin's subscription is built: what $18/mo actually buys, why Pro is set at $79, how the two message windows differ, and the predictive trajectory of AI pricing through 2027."
     publishedLabel="Jun 19 2026"
     readTime="11 min"
@@ -62,7 +62,7 @@ const AureonPricingExplained = () => (
       id="aureon-pricing-explained"
       url={URL}
       headline={TITLE}
-      description="The full breakdown of Asherin's $18/mo and $79/mo subscription tiers — what each unlocks, what the message windows are, and the predictive trajectory of AI pricing."
+      description="The full breakdown of Asherin's $18/mo and $79/mo subscription tiers, what each unlocks, what the message windows are, and the predictive trajectory of AI pricing."
       datePublished={PUBLISHED}
       keywords={[
         "aureon pricing",
@@ -85,7 +85,7 @@ const AureonPricingExplained = () => (
     <h2>The two-tier logic</h2>
     <p>
       Asherin ships two monthly subscriptions and one enterprise plan. The
-      architecture is intentional — most AI platforms run four to seven
+      architecture is intentional, most AI platforms run four to seven
       pricing tiers because they want to extract a different surplus from
       every customer segment. Asherin runs two because there are exactly
       two operator profiles: the <strong>individual operator</strong> and
@@ -100,31 +100,31 @@ const AureonPricingExplained = () => (
     </p>
     <ul>
       <li>
-        <strong>Uncensored chat across four reasoning modes</strong> —
+        <strong>Uncensored chat across four reasoning modes</strong>
         Chat, Code, Research, and Truth. No refusal layer, no moralizing
         preamble, no &quot;as an AI language model&quot; opener.
       </li>
       <li>
-        <strong>Elite coding engine</strong> — the same agentic
+        <strong>Elite coding engine</strong>, the same agentic
         loop used by senior engineers: plan, write, critique, refactor.
       </li>
       <li>
-        <strong>Base Zophiel Search</strong> — real-time cross-validated
+        <strong>Base Zophiel Search</strong>, real-time cross-validated
         web intelligence across a reduced source set with standard
         latency.
       </li>
       <li>
-        <strong>Persistent memory + E2E encryption</strong> — every
+        <strong>Persistent memory + E2E encryption</strong>, every
         thread is encrypted, retrievable, exportable, and deletable on
         demand.
       </li>
       <li>
-        <strong>60 messages per 3-hour window</strong> — enough for a
+        <strong>60 messages per 3-hour window</strong>, enough for a
         full work session without throttling individual chains of
         thought.
       </li>
       <li>
-        <strong>BYOK across nine providers</strong> — if you want to
+        <strong>BYOK across nine providers</strong>, if you want to
         route through your own OpenAI, Anthropic, Google, Groq,
         Together, Mistral, DeepSeek, xAI, or Venice key, the platform
         does that with your key winning over the default.
@@ -138,34 +138,34 @@ const AureonPricingExplained = () => (
     </p>
     <ul>
       <li>
-        <strong>Azplen Data Intelligence Platform</strong> — ingestion +
+        <strong>Azplen Data Intelligence Platform</strong>, ingestion +
         normalization + entity resolution + workflow automation +
         scenario simulation + threat modeling.
       </li>
       <li>
-        <strong>NOMAD Public Intelligence Agent</strong> — autonomous
+        <strong>NOMAD Public Intelligence Agent</strong>, autonomous
         OSINT investigation across the open web with cross-validated
         dossier output.
       </li>
       <li>
-        <strong>Advanced Intelligence Briefings</strong> — daily,
+        <strong>Advanced Intelligence Briefings</strong>, daily,
         industry-customized briefings with source-cited claims.
       </li>
       <li>
-        <strong>Zophiel Pro</strong> — higher query volume, deeper
+        <strong>Zophiel Pro</strong>, higher query volume, deeper
         crawling, broader coverage, priority latency.
       </li>
       <li>
-        <strong>Full team workspace</strong> — shared threads, shared
+        <strong>Full team workspace</strong>, shared threads, shared
         outputs, admin controls.
       </li>
       <li>
-        <strong>200 messages per 3-hour window</strong> — three-and-a-third
+        <strong>200 messages per 3-hour window</strong>, three-and-a-third
         times the Core throughput, sized for a working team rather than a
         single operator.
       </li>
       <li>
-        <strong>The full advanced suite</strong> — Asherin IDE,
+        <strong>The full advanced suite</strong>, Asherin IDE,
         Whiteboard, File Scrapper, Cipher, AXRLEN predictive
         intelligence, ZEEION financial intelligence, ZERLAL cyber
         security, CROSS live screen intelligence, ZANOEM Design Lab,
@@ -182,32 +182,32 @@ const AureonPricingExplained = () => (
       line item. Pro is $79 because a 200-message window, higher search
       throughput, and the advanced modules cost roughly four times as
       much to serve. Both numbers are published, fixed, and identical
-      for every account — there is no quote process and no seat
+      for every account, there is no quote process and no seat
       negotiation.
     </p>
     <ul>
       <li>
-        <strong>Asherin Core — $18/mo.</strong> Chat, coding, memory,
+        <strong>Asherin Core, $18/mo.</strong> Chat, coding, memory,
         Guardian Vault, Whiteboard, Maps, BYOK across nine providers,
         base search, 60 messages / 3 hours.
       </li>
       <li>
-        <strong>Asherin Pro — $79/mo.</strong> Everything in Core, 200
+        <strong>Asherin Pro, $79/mo.</strong> Everything in Core, 200
         messages / 3 hours, higher search throughput, and the advanced
         intelligence modules.
       </li>
       <li>
-        <strong>Enterprise — custom.</strong> Priced on volume and
+        <strong>Enterprise, custom.</strong> Priced on volume and
         deployment shape, not on a per-feature unlock.
       </li>
     </ul>
 
-    <h2>No free trial — and why</h2>
+    <h2>No free trial, and why</h2>
     <p>
       Asherin does not run a free trial. The decision is deliberate.
       Free trials on uncensored, BYOK, OSINT-capable platforms
       historically attract a disproportionate share of throwaway-account
-      abuse — scraping, prompt injection, credential stuffing — which
+      abuse, scraping, prompt injection, credential stuffing, which
       degrades model quality and search latency for paying operators.
       $18/mo is low enough to remove the trial as a meaningful
       conversion lever; if you want to test the platform, subscribe,
@@ -220,12 +220,12 @@ const AureonPricingExplained = () => (
       Cancellation is one click from the dashboard. There is no
       retention flow, no &quot;are you sure&quot; modal, no follow-up
       offer for a free month. Data export and data deletion are
-      available at any time — not gated behind cancellation, not gated
+      available at any time, not gated behind cancellation, not gated
       behind a support ticket. The contract is month-to-month; the
       exit is unconditional.
     </p>
 
-    <h2>Predictive trajectory — where AI pricing is headed</h2>
+    <h2>Predictive trajectory, where AI pricing is headed</h2>
     <p>
       The next 18 months will reshape AI subscription pricing. Three
       forces are converging:
@@ -246,7 +246,7 @@ const AureonPricingExplained = () => (
       </li>
       <li>
         <strong>Enterprise pricing will fragment.</strong> Custom
-        contracts in the $1k–$10k/seat range exist today because the
+        contracts in the $1k-$10k/seat range exist today because the
         feature surface is bespoke. Asherin Pro&apos;s $79 flat ceiling
         is a forward bet: as the enterprise feature set commoditizes,
         the bespoke contract market will compress toward published
@@ -263,17 +263,17 @@ const AureonPricingExplained = () => (
     <ul>
       <li>
         <strong>Solo analyst, journalist, trader, or developer</strong>
-        — start with Asherin Core. You get the uncensored model, the
+, start with Asherin Core. You get the uncensored model, the
         coding engine, base search, and persistent memory.
       </li>
       <li>
         <strong>Investigations team, research desk, or any workflow
-        that needs OSINT</strong> — Asherin Pro. NOMAD + Azplen + Pro
+        that needs OSINT</strong>, Asherin Pro. NOMAD + Azplen + Pro
         search is a different category of tool than Core.
       </li>
       <li>
         <strong>Organization with audit, SSO, or SLA requirements</strong>
-        — Enterprise. The conversation is custom; the surface area
+, Enterprise. The conversation is custom; the surface area
         includes everything Pro ships plus governance.
       </li>
     </ul>

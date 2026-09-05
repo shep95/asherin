@@ -18,9 +18,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/cloud-intelligence-suite";
 const TITLE =
-  "Cloud Intelligence — turning your inbox, messages and calls into graded intelligence";
+  "Cloud Intelligence, turning your inbox, messages and calls into graded intelligence";
 const DEK =
-  "Cloud Intelligence connects your Google accounts and converts mail headers, Voice metadata, SMS threads, calendar history, and contact records into structured dossiers graded against professional analytic standards — BLUF, confidence matrix, alternative hypotheses, and ranked collection requirements.";
+  "Cloud Intelligence connects your Google accounts and converts mail headers, Voice metadata, SMS threads, calendar history, and contact records into structured dossiers graded against professional analytic standards, BLUF, confidence matrix, alternative hypotheses, and ranked collection requirements.";
 const PUBLISHED = "2026-08-03T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -72,11 +72,11 @@ const CloudIntelligenceSuite = () => {
         items={[
           {
             q: "What does Cloud Intelligence connect to?",
-            a: "Your own Google accounts — multiple at once. Mail, Contacts, Calendar, Voice, and Drive-linked Meet recordings. Each account is authorised separately by you and can be revoked independently.",
+            a: "Your own Google accounts, multiple at once. Mail, Contacts, Calendar, Voice, and Drive-linked Meet recordings. Each account is authorised separately by you and can be revoked independently.",
           },
           {
             q: "What is POSTMARK?",
-            a: "POSTMARK is the email metadata forensics module. It reads full message headers — Received chains, SPF/DKIM/DMARC verdicts, originating IP and ASN, mailer fingerprints, and timezone offsets — and turns them into an authenticity and origin assessment rather than a spam score.",
+            a: "POSTMARK is the email metadata forensics module. It reads full message headers, Received chains, SPF/DKIM/DMARC verdicts, originating IP and ASN, mailer fingerprints, and timezone offsets, and turns them into an authenticity and origin assessment rather than a spam score.",
           },
           {
             q: "Does it read the content of my messages?",
@@ -84,14 +84,14 @@ const CloudIntelligenceSuite = () => {
           },
           {
             q: "What analytic standards does the report follow?",
-            a: "Reports are structured as BLUF-first products with an explicit analytic confidence matrix, competing hypotheses adjudication, and ranked priority intelligence requirements — the format used in professional intelligence writing.",
+            a: "Reports are structured as BLUF-first products with an explicit analytic confidence matrix, competing hypotheses adjudication, and ranked priority intelligence requirements, the format used in professional intelligence writing.",
           },
         ]}
       />
 
       <ArticleShell
         eyebrow="Product Briefing · Cloud Intelligence"
-        title="Cloud Intelligence — your own accounts, read like an analyst reads them"
+        title="Cloud Intelligence, your own accounts, read like an analyst reads them"
         dek={DEK}
         publishedLabel="Aug 3 2026"
         readTime="13 min"
@@ -106,20 +106,20 @@ const CloudIntelligenceSuite = () => {
           its job is to show you a <em>pattern</em>.
         </p>
         <p>
-          The suite connects to your own Google accounts — as many as you
-          want — and builds five products from them: email forensics, voice
+          The suite connects to your own Google accounts, as many as you
+          want, and builds five products from them: email forensics, voice
           forensics, message comprehension, a recordings vault, and a
           per-contact dossier that fuses all four with open-source
           collection.
         </p>
 
-        <h2>2. POSTMARK — email metadata forensics</h2>
+        <h2>2. POSTMARK, email metadata forensics</h2>
         <p>
           POSTMARK is header-first. A message body can be written to say
           anything; the envelope that carried it cannot easily lie about
           the path it took.
         </p>
-        <Box>{`POSTMARK — message envelope read
+        <Box>{`POSTMARK, message envelope read
  ┌────────────────────────────────────────────────────────────┐
  │ RECEIVED CHAIN     5 hops · 2 continents · 3.4 s total     │
  │   hop 1  mta-out.sender.tld    198.51.100.x   AS64500      │
@@ -131,19 +131,19 @@ const CloudIntelligenceSuite = () => {
  ├────────────────────────────────────────────────────────────┤
  │ MAILER             X-Mailer fingerprint → bulk platform    │
  │ TZ OFFSET          +05:30  (consistent across 41 messages) │
- │ SEND WINDOW        09:12 – 18:44 local · weekday-only      │
+ │ SEND WINDOW        09:12, 18:44 local · weekday-only      │
  └────────────────────────────────────────────────────────────┘
  ASSESSMENT: origin consistent with stated organisation.
              No relay anomaly. No auth downgrade observed.`}</Box>
         <p>
           The value is longitudinal. One header is trivia; forty-one
           headers from the same correspondent produce a send-window
-          profile, a timezone claim, and an infrastructure baseline — and
+          profile, a timezone claim, and an infrastructure baseline, and
           the first message that violates that baseline becomes a finding
           instead of an unread email.
         </p>
 
-        <h2>3. VOICEPRINT — call and voicemail metadata</h2>
+        <h2>3. VOICEPRINT, call and voicemail metadata</h2>
         <p>
           VOICEPRINT does the same work on the voice side: number
           provenance, carrier and line-type, call duration distributions,
@@ -153,16 +153,16 @@ const CloudIntelligenceSuite = () => {
           reportable without ever touching audio.
         </p>
 
-        <h2>4. SIGNAL — unified message comprehension</h2>
+        <h2>4. SIGNAL, unified message comprehension</h2>
         <p>
           Google Voice threads and Android SMS threads are two silos
           describing one relationship. SIGNAL merges them per correspondent
-          — normalising numbers to E.164, resolving aliases, and stitching
-          the thread into a single chronology — then summarises who the
+, normalising numbers to E.164, resolving aliases, and stitching
+          the thread into a single chronology, then summarises who the
           correspondent is, what the recurring topics are, and where the
           tone or frequency shifted.
         </p>
-        <Box>{`SIGNAL — correspondent view
+        <Box>{`SIGNAL, correspondent view
   +1 555 019 8842  ▸ resolved: "M. Rector" (contacts + mail overlap)
   ├─ google voice   118 messages   2024-02 → 2026-07
   ├─ android sms     44 messages   2025-11 → 2026-08
@@ -179,15 +179,15 @@ const CloudIntelligenceSuite = () => {
           downloadable with its participants and duration attached.
         </p>
 
-        <h2>6. The contact dossier — where it all converges</h2>
+        <h2>6. The contact dossier, where it all converges</h2>
         <p>
           The per-contact report is the suite's headline product. It fuses
-          the internal signal above with open-source collection — the
+          the internal signal above with open-source collection, the
           identifier sweep, the domain dork battery, and archival retrieval
-          — and then writes the result the way an analyst is trained to
+, and then writes the result the way an analyst is trained to
           write it.
         </p>
-        <Box>{`CONTACT DOSSIER — structure
+        <Box>{`CONTACT DOSSIER, structure
  1  BLUF                    the judgement, first, in three lines
  2  ANALYTIC CONFIDENCE     source diversity · corroboration ·
                             anchoring · completeness · deception
@@ -203,7 +203,7 @@ const CloudIntelligenceSuite = () => {
  8  PIR                     ranked next collection steps`}</Box>
         <p>
           Two structural rules keep it honest. First, the confidence matrix
-          is computed from the record set, not asserted — four independent
+          is computed from the record set, not asserted, four independent
           authoritative surfaces over seven years reads differently from
           nine hits on one aggregator. Second, competing hypotheses are
           always written out and explicitly rejected or sustained, so a
@@ -225,7 +225,7 @@ const CloudIntelligenceSuite = () => {
           own without disturbing the others. All derived records are bound
           to your user ID with row-level security, so no other operator can
           read your ledger. Metadata modules are deliberately envelope-only
-          — they do not need bodies to do their work, so they do not take
+, they do not need bodies to do their work, so they do not take
           them.
         </p>
 
@@ -238,7 +238,7 @@ const CloudIntelligenceSuite = () => {
         </p>
         <h3>Does it work with more than one Google account?</h3>
         <p>
-          Yes — that is the intended configuration. Personal, work, and
+          Yes, that is the intended configuration. Personal, work, and
           legacy accounts each contribute, and overlap between them is
           itself a corroboration signal.
         </p>

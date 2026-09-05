@@ -22,7 +22,7 @@ const WhatIsAiOsint = () => (
       id="what-is-ai-osint"
       url={URL}
       headline={TITLE}
-      description="Definitional guide to AI OSINT — the four-stage pipeline, the cross-validation requirement, and how to identify a real AI OSINT platform versus a marketing wrapper."
+      description="Definitional guide to AI OSINT, the four-stage pipeline, the cross-validation requirement, and how to identify a real AI OSINT platform versus a marketing wrapper."
       datePublished={PUBLISHED}
       keywords={["ai osint", "what is ai osint", "ai osint tool", "open source intelligence ai"]}
     />
@@ -36,7 +36,7 @@ const WhatIsAiOsint = () => (
     />
     <h2>The working definition</h2>
     <p>
-      OSINT — open-source intelligence — is the discipline of collecting,
+      OSINT, open-source intelligence, is the discipline of collecting,
       verifying, and synthesizing information from publicly available
       sources. AI OSINT applies large-language-model reasoning to the entire
       pipeline: a single query triggers parallel ingestion across dozens of
@@ -82,7 +82,7 @@ const WhatIsAiOsint = () => (
       worse than a system that searches 10 sources and does. More sources
       without validation increases the rate at which a single bad claim
       from one source propagates into the final brief. The metric that
-      matters is the depth of cross-validation per surfaced claim — not the
+      matters is the depth of cross-validation per surfaced claim, not the
       breadth of the source list.
     </p>
 
@@ -110,7 +110,7 @@ const WhatIsAiOsint = () => (
       </li>
     </ul>
 
-    <h2>Asherin's Zophiel engine — AI OSINT in production</h2>
+    <h2>Asherin's Zophiel engine, AI OSINT in production</h2>
     <p>
       Asherin&apos;s{" "}
       <a href="/feature/zophiel">Zophiel OSINT engine</a> implements all four
@@ -118,7 +118,7 @@ const WhatIsAiOsint = () => (
       carries a veracity score, a per-source breakdown, and a contradiction
       flag where sources disagree. Operators can drill from the synthesized
       brief down to the raw document in two clicks. Cross-validation depth
-      is the architecture — not a marketing line.
+      is the architecture, not a marketing line.
     </p>
 
     <FaqJsonLd
@@ -126,11 +126,11 @@ const WhatIsAiOsint = () => (
       items={[
         {
           q: "How is AI OSINT different from regular AI search?",
-          a: "AI search ranks documents that match a query. AI OSINT verifies the claims inside those documents by cross-validating across multiple independent sources, attaches a veracity score, and synthesizes a single intelligence product — not a list of links.",
+          a: "AI search ranks documents that match a query. AI OSINT verifies the claims inside those documents by cross-validating across multiple independent sources, attaches a veracity score, and synthesizes a single intelligence product, not a list of links.",
         },
         {
           q: "Can AI OSINT replace human analysts?",
-          a: "For the collection, normalization, and initial cross-validation stages, yes. For the judgment calls about what the intelligence means for a specific operator's situation, no. The combination — AI OSINT for the pipeline, human analyst for the interpretation — is the working model in 2026.",
+          a: "For the collection, normalization, and initial cross-validation stages, yes. For the judgment calls about what the intelligence means for a specific operator's situation, no. The combination, AI OSINT for the pipeline, human analyst for the interpretation, is the working model in 2026.",
         },
         {
           q: "Is AI OSINT legal?",
@@ -147,17 +147,17 @@ const WhatIsAiOsint = () => (
       links={[
         {
           to: "/feature/zophiel",
-          label: "Zophiel OSINT — multi-engine intelligence engine",
+          label: "Zophiel OSINT, multi-engine intelligence engine",
           description: "The Asherin implementation of the four-stage AI OSINT pipeline.",
         },
         {
           to: "/feature/nomad",
-          label: "NOMAD — persistent dossier intelligence",
+          label: "NOMAD, persistent dossier intelligence",
           description: "Long-running OSINT dossiers with 14-pass deep-analysis trees.",
         },
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — definition",
+          label: "Sovereign AI, definition",
           description: "Why serious OSINT work runs on the sovereign stack, not consumer AI.",
         },
       ]}

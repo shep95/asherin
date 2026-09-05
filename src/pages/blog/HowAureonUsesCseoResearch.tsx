@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/blog/how-aureon-uses-c-seo-research";
-const TITLE = "How Asherin Uses C-SEO Research — Practicing What the Paper Recommends";
+const TITLE = "How Asherin Uses C-SEO Research, Practicing What the Paper Recommends";
 const PUBLISHED = "2026-06-19";
 
 const HowAureonUsesCseoResearch = () => (
   <ArticleShell
     eyebrow="Meta · AI Search"
     title="How Asherin Uses C-SEO Research"
-    dek="C-SEO (conversational SEO) is the academic name for the discipline of ranking inside AI search engines — Perplexity, ChatGPT Search, ClaudeBot. This is the breakdown of how Asherin's llms.txt, structured markup, and AI-crawler policy are built directly on the C-SEO Bench findings."
+    dek="C-SEO (conversational SEO) is the academic name for the discipline of ranking inside AI search engines, Perplexity, ChatGPT Search, ClaudeBot. This is the breakdown of how Asherin's llms.txt, structured markup, and AI-crawler policy are built directly on the C-SEO Bench findings."
     publishedLabel="Jun 19 2026"
     readTime="10 min"
   >
@@ -22,7 +22,7 @@ const HowAureonUsesCseoResearch = () => (
       id="how-aureon-uses-c-seo-research"
       url={URL}
       headline={TITLE}
-      description="A meta-article on how Asherin implements the recommendations of the C-SEO Bench research paper — llms.txt, structural summaries, FAQ schema, AI-crawler allowlist, and verification."
+      description="A meta-article on how Asherin implements the recommendations of the C-SEO Bench research paper, llms.txt, structural summaries, FAQ schema, AI-crawler allowlist, and verification."
       datePublished={PUBLISHED}
       keywords={[
         "c-seo",
@@ -42,7 +42,7 @@ const HowAureonUsesCseoResearch = () => (
     />
     <h2>What C-SEO is, in one paragraph</h2>
     <p>
-      C-SEO — conversational SEO — is the discipline of being cited
+      C-SEO, conversational SEO, is the discipline of being cited
       inside AI-generated answers. Where classical SEO optimizes for a
       ranked link in a search results page, C-SEO optimizes for a
       verbatim citation inside an AI assistant's response. The academic
@@ -59,7 +59,7 @@ const HowAureonUsesCseoResearch = () => (
     <h2>The C-SEO Bench findings, summarized</h2>
     <p>
       The paper identified several techniques that materially shift
-      citation rate inside AI answers — and several that don't.
+      citation rate inside AI answers, and several that don't.
       Techniques that work:
     </p>
     <ul>
@@ -69,16 +69,16 @@ const HowAureonUsesCseoResearch = () => (
         facts).
       </li>
       <li>
-        <strong>FAQ schema</strong> — under-deployed (~4% of sites)
+        <strong>FAQ schema</strong>, under-deployed (~4% of sites)
         and cited at roughly 3x the rate of plain pages in AI answers.
       </li>
       <li>
-        <strong>Explicit confidence calibration</strong> — language
+        <strong>Explicit confidence calibration</strong>, language
         bound to numeric probabilities, named limitations, citation-able
         claims.
       </li>
       <li>
-        <strong>llms.txt</strong> at the well-known path — a
+        <strong>llms.txt</strong> at the well-known path, a
         Markdown-native sitemap for LLM crawlers, distinct from
         sitemap.xml.
       </li>
@@ -99,8 +99,8 @@ const HowAureonUsesCseoResearch = () => (
         digital-gnostic), and points to the cluster spine pages.
       </li>
       <li>
-        <strong>LLM Guidance headers.</strong> Every long-form page —
-        feature spine, blog satellite, glossary entry — renders a
+        <strong>LLM Guidance headers.</strong> Every long-form page
+        feature spine, blog satellite, glossary entry, renders a
         visible{" "}
         <code>LlmGuidanceHeader</code> block at the top: title, claim
         (one sentence), primary topic, 3-6 key facts, relevance
@@ -112,7 +112,7 @@ const HowAureonUsesCseoResearch = () => (
       <li>
         <strong>Triple JSON-LD on every cluster page.</strong>{" "}
         Article + FAQPage + BreadcrumbList. FAQ schema in particular
-        is the highest-leverage piece — it is the lowest-adoption
+        is the highest-leverage piece, it is the lowest-adoption
         well-supported schema and is disproportionately cited.
       </li>
       <li>
@@ -134,7 +134,7 @@ const HowAureonUsesCseoResearch = () => (
       </li>
     </ol>
 
-    <h2>One thing the paper didn't recommend — but we do</h2>
+    <h2>One thing the paper didn't recommend, but we do</h2>
     <p>
       Public verification. The C-SEO Bench paper didn't propose
       publishing a hit-or-miss track record on the platform's own
@@ -183,7 +183,7 @@ const HowAureonUsesCseoResearch = () => (
       links={[
         {
           to: "/glossary/conversational-seo",
-          label: "Conversational SEO — definition",
+          label: "Conversational SEO, definition",
           description: "The academic term and what it covers.",
         },
         {
@@ -193,7 +193,7 @@ const HowAureonUsesCseoResearch = () => (
         },
         {
           to: "/glossary/operator-stack",
-          label: "Operator stack — definition",
+          label: "Operator stack, definition",
           description: "Asherin's internal vocabulary, now publicly defined.",
         },
       ]}

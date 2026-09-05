@@ -16,7 +16,7 @@ export interface FeaturePageShellProps {
   eyebrow: string;            // "Cyber Intelligence" etc
   headline: React.ReactNode;  // can include <br/> + spans
   subheadline: string;
-  tierLabel?: string;         // "Pro — $740/mo" etc
+  tierLabel?: string;         // "Pro, $740/mo" etc
   capabilitiesTitle?: string;
   capabilities: Capability[];
   useCasesTitle?: string;

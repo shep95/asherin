@@ -82,11 +82,11 @@ const SEVERITY_LABEL: Record<string, string> = {
 };
 
 const VERDICT_LABEL: Record<string, string> = {
-  same_person: "CORROBORATED — same individual",
-  likely_same: "PROBABLE — likely the same individual",
-  inconclusive: "INCONCLUSIVE — insufficient corroboration",
-  conflict: "CONFLICT — frames disagree",
-  unavailable: "UNAVAILABLE — comparator did not run",
+  same_person: "CORROBORATED, same individual",
+  likely_same: "PROBABLE, likely the same individual",
+  inconclusive: "INCONCLUSIVE, insufficient corroboration",
+  conflict: "CONFLICT, frames disagree",
+  unavailable: "UNAVAILABLE, comparator did not run",
 };
 
 const fmt = (iso: string) => {
@@ -162,7 +162,7 @@ export default function IntelligenceReport() {
           verdict: "unavailable",
           confidence: 0,
           independentSources: 0,
-          reasoning: "n/a — the corroboration service could not be reached from this session.",
+          reasoning: "n/a, the corroboration service could not be reached from this session.",
           observations: [],
           falsifier: "Retry the cross-match.",
         });
@@ -223,7 +223,7 @@ export default function IntelligenceReport() {
     () =>
       dossier
         ? reportNumber(dossier.kind, dossier.id, new Date(dossier.created_at))
-        : "—",
+        : "-",
     [dossier],
   );
 
@@ -316,7 +316,7 @@ export default function IntelligenceReport() {
               </div>
               <div>
                 <dt className="tracking-[0.15em] text-[10px]">SUBJECT</dt>
-                <dd className="text-foreground">{dossier.subject_name || "—"}</dd>
+                <dd className="text-foreground">{dossier.subject_name || "-"}</dd>
               </div>
               <div>
                 <dt className="tracking-[0.15em] text-[10px]">PRODUCED BY</dt>
@@ -329,7 +329,7 @@ export default function IntelligenceReport() {
             </dl>
           </header>
 
-          {/* BLUF — the answer, before the evidence. */}
+          {/* BLUF, the answer, before the evidence. */}
           <section className="dossier-page mb-8">
             <h2 className="mb-3 text-[11px] font-light tracking-[0.25em] text-muted-foreground">
               BOTTOM LINE UP FRONT
@@ -339,7 +339,7 @@ export default function IntelligenceReport() {
             </p>
           </section>
 
-          {/* Key Judgments — numbered, portion-marked, calibrated where the
+          {/* Key Judgments, numbered, portion-marked, calibrated where the
               producing module calibrated them. An uncalibrated judgment is
               shown as written rather than dressed with an invented band. */}
           {dossier.findings.length > 0 && (
@@ -365,7 +365,7 @@ export default function IntelligenceReport() {
                       <span>{text}</span>
                       {est && (
                         <span className="ml-2 whitespace-nowrap rounded border border-border px-1.5 py-0.5 text-[10px] tracking-[0.1em] text-muted-foreground">
-                          {est.lo}–{est.hi}%
+                          {est.lo}-{est.hi}%
                         </span>
                       )}
                     </li>

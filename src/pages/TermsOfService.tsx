@@ -20,7 +20,7 @@ const TermsOfService = () => {
 
   useEffect(() => {
     applySeoHead({
-      title: "Terms of Service — Asherin",
+      title: "Terms of Service, Asherin",
       description:
         "Asherin Terms of Service: subscription tiers and terms, acceptable use, research and sentinel tooling rules, data handling, and the contract between operators and the platform.",
       path: "/terms",
@@ -100,7 +100,7 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">7. Connected Accounts</h2>
-                <p>Linking a Google account authorises Asherin to read the scopes you approve — which may include mail, calendar, contacts, Drive and Meet artefacts — and to generate dossiers, briefings and alerts from them. Devices signed in under a linked account may join your device mesh so you can see their status in one roster. You may revoke access at any time from your Asherin settings or your provider's account controls; revoking stops future collection but does not retroactively unmake reports already generated.</p>
+                <p>Linking a Google account authorises Asherin to read the scopes you approve, which may include mail, calendar, contacts, Drive and Meet artefacts, and to generate dossiers, briefings and alerts from them. Devices signed in under a linked account may join your device mesh so you can see their status in one roster. You may revoke access at any time from your Asherin settings or your provider's account controls; revoking stops future collection but does not retroactively unmake reports already generated.</p>
               </section>
 
               <section>
@@ -110,7 +110,7 @@ const TermsOfService = () => {
                   <li>→ Read device location to place you on the map, score destination-area risk, and locate your own devices.</li>
                   <li>→ Scan for nearby Bluetooth identifiers to detect repeat-follower patterns, and log sightings to your account.</li>
                   <li>→ Assess the network you are connected to and report operator, egress and integrity findings.</li>
-                  <li>→ Record trip telemetry — speed, route, harsh events — during rideshare journeys.</li>
+                  <li>→ Record trip telemetry, speed, route, harsh events, during rideshare journeys.</li>
                   <li>→ Report battery, link quality and presence in the background, including while the tab is closed, and send email or push alerts.</li>
                 </ul>
                 <p className="mt-3">Every one of these depends on a permission your browser or device asks you for, and each can be withdrawn there or disarmed in Asherin. Sentinels are an assistive layer, not a guarantee of safety, and must never be treated as a substitute for emergency services.</p>
@@ -118,15 +118,15 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">9. Message and Communications Intelligence</h2>
-                <p>Where you connect a message channel — for example a Google Voice number or an Android SMS bridge — Asherin reads those threads to identify senders and summarise intent. You confirm you are a party to those communications or otherwise permitted to process them, and that doing so is lawful where you and your correspondents are located. Recording and interception law differs by jurisdiction; that compliance is yours.</p>
+                <p>Where you connect a message channel, for example a Google Voice number or an Android SMS bridge, Asherin reads those threads to identify senders and summarise intent. You confirm you are a party to those communications or otherwise permitted to process them, and that doing so is lawful where you and your correspondents are located. Recording and interception law differs by jurisdiction; that compliance is yours.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">10. Subscription, Terms and Billing</h2>
                 <ul className="space-y-2 ml-4">
-                  <li>→ Asherin — <strong>$18/month</strong>, or a discounted 6-month term. Core chat (Chat / Code / Research / Truth modes), uncensored AI, coding engine, multi-language output, response-depth control, base Zophiel Search, snippets library, command palette, limited team workspace, persistent memory, Google Cloud Intelligence, Asherin Maps, delete + export anytime. 60 messages per 3-hour window.</li>
-                  <li>→ Asherin Pro — <strong>$79/month</strong>, or a discounted 6-month term. Everything in Asherin plus Azplen Data Intelligence, NOMAD Public Intelligence, advanced briefings, Zophiel Search Pro, full team workspace with admin controls, and the advanced suite (AXRLEN, ZEEION, ZERLAL, CROSS, ZANOEM, Video Intelligence, Plugin Marketplace, Automated Agents). 200 messages per 3-hour window.</li>
-                  <li>→ Enterprise — custom pricing, with SSO / SAML, org policy controls, audit logs and custom terms.</li>
+                  <li>→ Asherin, <strong>$18/month</strong>, or a discounted 6-month term. Core chat (Chat / Code / Research / Truth modes), uncensored AI, coding engine, multi-language output, response-depth control, base Zophiel Search, snippets library, command palette, limited team workspace, persistent memory, Google Cloud Intelligence, Asherin Maps, delete + export anytime. 60 messages per 3-hour window.</li>
+                  <li>→ Asherin Pro, <strong>$79/month</strong>, or a discounted 6-month term. Everything in Asherin plus Azplen Data Intelligence, NOMAD Public Intelligence, advanced briefings, Zophiel Search Pro, full team workspace with admin controls, and the advanced suite (AXRLEN, ZEEION, ZERLAL, CROSS, ZANOEM, Video Intelligence, Plugin Marketplace, Automated Agents). 200 messages per 3-hour window.</li>
+                  <li>→ Enterprise, custom pricing, with SSO / SAML, org policy controls, audit logs and custom terms.</li>
                   <li>→ Regional pricing: some countries are quoted a reduced local price. Eligibility is based on where you actually are. Using a VPN, proxy or other means to obtain a price you do not qualify for is a breach of Section 5, and we may correct the price or close the subscription.</li>
                   <li>→ Subscriptions renew automatically for the term you chose until cancelled. Cancel anytime from the dashboard; access continues to the end of the paid period.</li>
                   <li>→ Prices, tier contents, message limits and which modules sit in which tier may change. Changes apply from your next renewal, and material changes are announced in-platform.</li>

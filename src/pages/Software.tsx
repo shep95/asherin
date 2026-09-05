@@ -39,14 +39,14 @@ const JOBS: Tool[] = [
     name: "ask",
     line: "asherin chat",
     detail:
-      "one place to ask. it answers with sources next to the answer, reads files you attach, and says when it does not know. search, maps and the rest sit behind the chat rather than as separate apps. you pick the model — refusal behaviour is the model's, not a switch we sell.",
+      "one place to ask. it answers with sources next to the answer, reads files you attach, and says when it does not know. search, maps and the rest sit behind the chat rather than as separate apps. you pick the model, refusal behaviour is the model's, not a switch we sell.",
     icon: MessageSquare,
   },
   {
     name: "keep",
     line: "library, projects, memory, guardian vault",
     detail:
-      "what you save stays with your account: notes, files, project threads, and long-term memory. the vault holds credentials and documents. data is encrypted at rest with a key scoped to your account and TLS in transit — it is not zero-knowledge end-to-end, and we do not claim it is. export or delete at any time.",
+      "what you save stays with your account: notes, files, project threads, and long-term memory. the vault holds credentials and documents. data is encrypted at rest with a key scoped to your account and TLS in transit, it is not zero-knowledge end-to-end, and we do not claim it is. export or delete at any time.",
     icon: Database,
   },
    {
@@ -63,7 +63,7 @@ const TOOLS: Tool[] = [
     name: "asherinx.eng",
     line: "public-index search",
     detail:
-      "federated public indexes — wayback, nvd, github, wiki, and the rest of the public stack. it does not intercept login ips, sms, dms, or private mail.",
+      "federated public indexes, wayback, nvd, github, wiki, and the rest of the public stack. it does not intercept login ips, sms, dms, or private mail.",
     icon: Globe,
   },
    {
@@ -87,7 +87,7 @@ const TOOLS: Tool[] = [
     icon: Eye,
   },
   {
-    name: "zophiel — search",
+    name: "zophiel, search",
     line: "public engines, cited",
     detail:
       "queries public search endpoints and open registries, ranks what comes back by source credibility, and cites every hit. coverage is whatever those endpoints return that day, so we do not print a source count. lives at /dashboard/search once you are signed in.",
@@ -102,28 +102,28 @@ const TOOLS: Tool[] = [
   {
     name: "whiteboard",
     line: "infinite canvas, layers",
-    detail: "pan, zoom, layer stack, sketching — for when a thread needs a picture.",
+    detail: "pan, zoom, layer stack, sketching, for when a thread needs a picture.",
     icon: Layers,
   },
   {
     name: "connect (google)",
     line: "signed-in mesh",
     detail:
-      "with your consent, asherin reads what google's apis actually give it — mail, calendar, drive — to summarise and draft. it does not locate phones or read anything google does not hand over.",
+      "with your consent, asherin reads what google's apis actually give it, mail, calendar, drive, to summarise and draft. it does not locate phones or read anything google does not hand over.",
     icon: Network,
    },
    {
-     name: "zanoem — design lab",
+     name: "zanoem, design lab",
      line: "engineering briefs, no solver",
      detail:
-       "material choices, assembly layouts and parametric sketches written up as a brief. it reasons about physics in text and geometry; it does not run a solver. no fea, thermal or cfd here — take the brief to a real solver before you build.",
+       "material choices, assembly layouts and parametric sketches written up as a brief. it reasons about physics in text and geometry; it does not run a solver. no fea, thermal or cfd here, take the brief to a real solver before you build.",
      icon: Hammer,
    },
   {
-    name: "zaxin — ble scout",
+    name: "zaxin, ble scout",
     line: "browser web bluetooth",
     detail:
-      "sees the devices the browser picker and requestLEScan expose and plots coarse rssi proximity. rssi is a log-distance estimate with metres of error, not trilateration, and the tab graph is between your own tabs — not a phone mesh.",
+      "sees the devices the browser picker and requestLEScan expose and plots coarse rssi proximity. rssi is a log-distance estimate with metres of error, not trilateration, and the tab graph is between your own tabs, not a phone mesh.",
     icon: Bluetooth,
   },
   {
@@ -158,7 +158,7 @@ const Software = () => {
     el.textContent = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "asherin — software",
+      name: "asherin, software",
        description:
          "rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault. $18/mo, $79/mo pro.",
       url: "https://asherin.com/software",

@@ -70,7 +70,7 @@ const NotFound = () => {
     applySeoHead({
       title: "not found | asherin",
       description:
-        "This isn't a page on asherin. Click to return — or play the offline space-dino game while you're here.",
+        "This isn't a page on asherin. Click to return, or play the offline space-dino game while you're here.",
       path: location.pathname,
     });
     // Dork-hardening: every 404 must be de-indexable so recon probes for
@@ -457,7 +457,7 @@ const NotFound = () => {
         ctx.font = "600 18px ui-sans-serif, system-ui";
         ctx.textAlign = "center";
         ctx.fillText(
-          stateRef.current.dead ? "MISSION FAILED — your dino bonked an asteroid." : "OFFLINE SPACE-DINO",
+          stateRef.current.dead ? "MISSION FAILED, your dino bonked an asteroid." : "OFFLINE SPACE-DINO",
           W / 2,
           H / 2 - 8,
         );

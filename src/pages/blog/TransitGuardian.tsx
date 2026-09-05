@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/transit-guardian";
 const TITLE =
-  "Transit Guardian — rideshare driver checks, trip telemetry, and multi-modal travel safety";
+  "Transit Guardian, rideshare driver checks, trip telemetry, and multi-modal travel safety";
 const DEK =
-  "Transit Guardian anchors a rideshare trip to a licence plate and a driver name, produces a safety dossier before you get in, records the whole drive as telemetry — speed, swerve, harsh braking, route deviation — and extends the same guarantees from cars to trains, buses, aircraft, and ferries.";
+  "Transit Guardian anchors a rideshare trip to a licence plate and a driver name, produces a safety dossier before you get in, records the whole drive as telemetry, speed, swerve, harsh braking, route deviation, and extends the same guarantees from cars to trains, buses, aircraft, and ferries.";
 const PUBLISHED = "2026-08-05T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -75,7 +75,7 @@ const TransitGuardian = () => {
           },
           {
             q: "What telemetry does it capture during the trip?",
-            a: "Position, speed against the posted limit for the segment, harsh acceleration and braking events, lateral swerve, stop duration, and deviation from the expected route corridor — the same class of signal rideshare platforms collect on their own drivers.",
+            a: "Position, speed against the posted limit for the segment, harsh acceleration and braking events, lateral swerve, stop duration, and deviation from the expected route corridor, the same class of signal rideshare platforms collect on their own drivers.",
           },
           {
             q: "Does it work for anything other than cars?",
@@ -90,7 +90,7 @@ const TransitGuardian = () => {
 
       <ArticleShell
         eyebrow="Product Briefing · Transit Guardian"
-        title="Transit Guardian — the ride is the evidence"
+        title="Transit Guardian, the ride is the evidence"
         dek={DEK}
         publishedLabel="Aug 5 2026"
         readTime="11 min"
@@ -101,12 +101,12 @@ const TransitGuardian = () => {
           rating for about forty seconds, and then that information ceases
           to exist for you. If anything goes wrong, the only record of the
           journey belongs to the platform. Transit Guardian gives the
-          passenger a parallel record — one they own, one that survives the
+          passenger a parallel record, one they own, one that survives the
           trip, and one that is anchored to identifiers a stranger cannot
           casually fake.
         </p>
 
-        <h2>2. Pre-ride — plate-anchored identity</h2>
+        <h2>2. Pre-ride, plate-anchored identity</h2>
         <p>
           Two hard identifiers go in: the plate and the driver name. The
           plate is the stronger of the pair because it is physical,
@@ -121,7 +121,7 @@ const TransitGuardian = () => {
   driver name   "D. K."        ✓ consistent across 2 surfaces
   ─────────────────────────────────────────────────────────
   FLAGS         none
-  CONFIDENCE    moderate — 2 corroborating surfaces
+  CONFIDENCE    moderate, 2 corroborating surfaces
   GUIDANCE      proceed; live trip sharing armed`}</Box>
         <p>
           A mismatch is not a verdict, it is a prompt. A plate that does
@@ -130,18 +130,18 @@ const TransitGuardian = () => {
           you actually have to act on it.
         </p>
 
-        <h2>3. In-trip — the telemetry the platform keeps for itself</h2>
+        <h2>3. In-trip, the telemetry the platform keeps for itself</h2>
         <p>
           Rideshare operators already derive driver-behaviour scores from
           phone sensors. Guardian derives the same class of signal for the
           passenger, on the passenger's device.
         </p>
-        <Box>{`TRIP TELEMETRY — 27 min · 19.4 km
+        <Box>{`TRIP TELEMETRY, 27 min · 19.4 km
  ┌───────────────────────┬───────────────────────────────────┐
  │ speed vs posted limit │ 3 exceedances · max +18 km/h      │
  │ harsh braking         │ 2 events (>0.45 g)                │
  │ harsh acceleration    │ 1 event                           │
- │ lateral swerve        │ 4 events · clustered 11–13 min    │
+ │ lateral swerve        │ 4 events · clustered 11-13 min    │
  │ stop duration         │ 1 unscheduled stop · 2 m 40 s     │
  │ corridor deviation    │ none beyond tolerance             │
  │ night / weather       │ night · wet surface               │
@@ -160,7 +160,7 @@ const TransitGuardian = () => {
         <p>
           Naïve deviation alerts compare the vehicle against a single
           planned polyline and fire constantly on legitimate detours.
-          Guardian compares against an expected <em>corridor</em> — a
+          Guardian compares against an expected <em>corridor</em>, a
           tolerance band derived from the route, widened around
           interchanges and known congestion, narrowed on limited-access
           segments. An alert fires when the vehicle leaves the corridor and
@@ -192,13 +192,13 @@ const TransitGuardian = () => {
           window.
         </p>
 
-        <h2>6. Post-trip — the audit</h2>
+        <h2>6. Post-trip, the audit</h2>
         <p>
           Every journey closes with a written audit: the identity check as
           it stood at departure, the telemetry summary, every anomaly with
           its timestamp, and a behaviour score with the reasoning that
           produced it. Audits accumulate, so a rider building a history
-          across dozens of trips gets a baseline — and an outlier trip
+          across dozens of trips gets a baseline, and an outlier trip
           becomes visible against it rather than judged in isolation.
         </p>
 
@@ -215,7 +215,7 @@ const TransitGuardian = () => {
         <h3>Does it need the rideshare app's data?</h3>
         <p>
           No. It works from what you can see: the plate, the name, and your
-          own device's sensors. That independence is the point — the record
+          own device's sensors. That independence is the point, the record
           is not derived from the platform being audited.
         </p>
         <h3>Will it drain my battery?</h3>

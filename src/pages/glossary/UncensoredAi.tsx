@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/uncensored-ai";
-const TITLE = "Uncensored AI — Definition, How to Identify It, and Why It Matters";
+const TITLE = "Uncensored AI, Definition, How to Identify It, and Why It Matters";
 const PUBLISHED = "2026-06-19";
 
 const UncensoredAi = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is Uncensored AI?"
-    dek="Uncensored AI is a model whose refusal behavior is set at the operator layer — not the vendor layer. This is the working definition, the three failure modes of fake uncensored claims, and how to test any platform in 60 seconds."
+    dek="Uncensored AI is a model whose refusal behavior is set at the operator layer, not the vendor layer. This is the working definition, the three failure modes of fake uncensored claims, and how to test any platform in 60 seconds."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -38,7 +38,7 @@ const UncensoredAi = () => (
     <h2>The working definition</h2>
     <p>
       A platform is uncensored when the refusal behavior of the AI is
-      determined exclusively by the model the operator selected — with no
+      determined exclusively by the model the operator selected, with no
       additional refusal layer applied by the platform on top. If the model
       itself refuses, that is a model-layer event, and the operator can
       switch models. If the platform refuses on top of the model, the
@@ -50,7 +50,7 @@ const UncensoredAi = () => (
       <li>
         <strong>Jailbreak as a marketing claim.</strong> A platform built on
         a censored base model with a "jailbreak prompt" baked in. These work
-        in screenshots and break in production — refusals leak back through
+        in screenshots and break in production, refusals leak back through
         as the conversation gets longer or the model version updates.
       </li>
       <li>
@@ -62,7 +62,7 @@ const UncensoredAi = () => (
       </li>
       <li>
         <strong>Vendor key with platform filter.</strong> The operator brings
-        their own OpenAI or Anthropic key — but the platform pipes the
+        their own OpenAI or Anthropic key, but the platform pipes the
         request through its own content filter before forwarding. The
         operator is paying twice: once for the API tokens, once for the
         platform's refusal layer they cannot disable.
@@ -75,7 +75,7 @@ const UncensoredAi = () => (
       "I cannot help with that." Run it on the platform. If you receive a
       substantive answer, the platform passed. If you receive a refusal,
       check whether the refusal text matches the model vendor's refusal
-      vocabulary or the platform's — if it is the platform's, the platform
+      vocabulary or the platform's, if it is the platform's, the platform
       is adding a refusal layer and is not uncensored regardless of marketing.
     </p>
 
@@ -86,7 +86,7 @@ const UncensoredAi = () => (
       doing legitimate work in security research, OSINT, journalism, legal
       discovery, and trading analysis routinely hit refusal walls on
       perfectly lawful queries. Uncensored AI is the term that emerged to
-      describe the tools that do not do this — not by accident, but by
+      describe the tools that do not do this, not by accident, but by
       deliberate design at the model layer.
     </p>
 
@@ -96,7 +96,7 @@ const UncensoredAi = () => (
       AI&apos;s <code>mistral-31-24b</code>, served at platform cost. Operators
       who bring their own key keep their choice of vendor and pay their
       vendor directly. Asherin does not add a refusal layer on top of either
-      path. The refusal you see is the refusal the model produced —
+      path. The refusal you see is the refusal the model produced
       nothing more, nothing less.
     </p>
 
@@ -109,7 +109,7 @@ const UncensoredAi = () => (
         },
         {
           q: "Is uncensored AI the same as a jailbroken model?",
-          a: "No. A jailbreak is a prompt that tries to bypass a censored model's filters. Uncensored AI uses models that were not built with those filters in the first place — so behavior stays coherent through long sessions instead of collapsing back into refusals.",
+          a: "No. A jailbreak is a prompt that tries to bypass a censored model's filters. Uncensored AI uses models that were not built with those filters in the first place, so behavior stays coherent through long sessions instead of collapsing back into refusals.",
         },
         {
           q: "Does Asherin offer uncensored AI?",
@@ -122,12 +122,12 @@ const UncensoredAi = () => (
       links={[
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — full definition",
+          label: "Sovereign AI, full definition",
           description: "Why uncensored is necessary but not sufficient for sovereignty.",
         },
         {
           to: "/blog/ai-without-restrictions",
-          label: "AI without restrictions — operator guide",
+          label: "AI without restrictions, operator guide",
           description: "The practical workflow for running unfiltered AI on real tasks.",
         },
         {
@@ -137,7 +137,7 @@ const UncensoredAi = () => (
         },
         {
           to: "/glossary/byok-ai",
-          label: "BYOK AI — definition",
+          label: "BYOK AI, definition",
           description: "Bring-your-own-key and why it pairs with uncensored.",
         },
       ]}

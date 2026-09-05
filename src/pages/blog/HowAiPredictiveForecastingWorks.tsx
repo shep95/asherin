@@ -14,7 +14,7 @@ const HowAiPredictiveForecastingWorks = () => (
   <ArticleShell
     eyebrow="Guide · Predictive Intelligence"
     title="How AI Predictive Forecasting Actually Works"
-    dek="Most 'AI prediction' content is vibes with a number bolted on. Real predictive forecasting has four ingredients: probability, window, signal fusion, and a public verification plan. This is how AXRLEN does it — and how to evaluate any AI forecasting platform."
+    dek="Most 'AI prediction' content is vibes with a number bolted on. Real predictive forecasting has four ingredients: probability, window, signal fusion, and a public verification plan. This is how AXRLEN does it, and how to evaluate any AI forecasting platform."
     publishedLabel="Jun 19 2026"
     readTime="9 min"
   >
@@ -22,7 +22,7 @@ const HowAiPredictiveForecastingWorks = () => (
       id="how-ai-predictive-forecasting-works"
       url={URL}
       headline={TITLE}
-      description="The four ingredients of real AI predictive forecasting — probability, resolution window, multi-signal fusion, verification plan. How AXRLEN implements them and how to evaluate competing platforms."
+      description="The four ingredients of real AI predictive forecasting, probability, resolution window, multi-signal fusion, verification plan. How AXRLEN implements them and how to evaluate competing platforms."
       datePublished={PUBLISHED}
       keywords={[
         "ai predictive forecasting",
@@ -51,7 +51,7 @@ const HowAiPredictiveForecastingWorks = () => (
         &quot;Likely&quot; without a number is not a forecast.
       </li>
       <li>
-        <strong>Resolution window.</strong> A specific time bound —
+        <strong>Resolution window.</strong> A specific time bound
         not &quot;soon&quot;, not &quot;in the coming months&quot;.
       </li>
       <li>
@@ -62,7 +62,7 @@ const HowAiPredictiveForecastingWorks = () => (
       <li>
         <strong>Verification plan.</strong> The exact observable
         conditions that resolve the forecast true or false, published
-        with the forecast — not retroactively.
+        with the forecast, not retroactively.
       </li>
     </ol>
 
@@ -90,20 +90,20 @@ const HowAiPredictiveForecastingWorks = () => (
 
     <h2>Multi-signal fusion</h2>
     <p>
-      A single signal — a regulator's speech, a market move, an
-      OSINT data point — is a noisy estimate of the underlying
+      A single signal, a regulator's speech, a market move, an
+      OSINT data point, is a noisy estimate of the underlying
       probability. Fusion across five or more independent signal
       classes is the floor for non-trivial calibration. AXRLEN's
       five required classes are:
     </p>
     <ul>
       <li>
-        <strong>Regulatory and legislative tracking</strong> — bills
+        <strong>Regulatory and legislative tracking</strong>, bills
         in flight, agency rulemaking calendars, comment-period
         closings.
       </li>
       <li>
-        <strong>Market data</strong> — price action on
+        <strong>Market data</strong>, price action on
         prediction-market venues, equity moves in affected sectors.
       </li>
       <li>
@@ -111,14 +111,14 @@ const HowAiPredictiveForecastingWorks = () => (
         <a href="/feature/zophiel" className="text-accent hover:underline">
           Zophiel
         </a>{" "}
-        — multi-engine cross-validation of the underlying claims.
+, multi-engine cross-validation of the underlying claims.
       </li>
       <li>
-        <strong>Base-rate priors</strong> — historical frequency of
+        <strong>Base-rate priors</strong>, historical frequency of
         analogous events on comparable timelines.
       </li>
       <li>
-        <strong>Adversarial counter-signals</strong> — what would have
+        <strong>Adversarial counter-signals</strong>, what would have
         to be true for the forecast to fail, and how strongly the
         evidence supports those failure conditions.
       </li>
@@ -164,10 +164,10 @@ const HowAiPredictiveForecastingWorks = () => (
       <a href="/feature/axrlen" className="text-accent hover:underline">
         AXRLEN
       </a>{" "}
-      — the Nexus Prime engine — is Asherin's implementation. It binds
+, the Nexus Prime engine, is Asherin's implementation. It binds
       probability to language with the calibration bands above, fuses
       five required signal classes per forecast, and ships verification
-      plans with every published prediction. The World Cup 2026 — 22
+      plans with every published prediction. The World Cup 2026, 22
       June slate is the live worked example. Read it at{" "}
       <a href="/blog/predictions/world-cup-2026-group-matches-0622" className="text-accent hover:underline">
         the published forecast
@@ -197,22 +197,22 @@ const HowAiPredictiveForecastingWorks = () => (
       links={[
         {
           to: "/feature/axrlen",
-          label: "AXRLEN — the Nexus Prime engine",
+          label: "AXRLEN, the Nexus Prime engine",
           description: "Asherin's implementation of the four-ingredient forecasting method.",
         },
         {
           to: "/blog/predictions/world-cup-2026-group-matches-0622",
-          label: "AXRLEN forecast — World Cup 22 June slate",
+          label: "AXRLEN forecast, World Cup 22 June slate",
           description: "The live worked example: four picks with confidence weights and verification plan.",
         },
         {
           to: "/glossary/predictive-intelligence-ai",
-          label: "Predictive intelligence AI — definition",
+          label: "Predictive intelligence AI, definition",
           description: "The category, written for citation.",
         },
         {
           to: "/feature/zophiel",
-          label: "Zophiel OSINT — the corroboration layer",
+          label: "Zophiel OSINT, the corroboration layer",
           description: "multi-engine cross-validation feeds AXRLEN's signal fusion.",
         },
       ]}

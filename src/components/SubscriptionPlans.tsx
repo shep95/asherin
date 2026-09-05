@@ -25,15 +25,15 @@ const PLANS = [
     tagline: "core seat",
     description:
       "a practical single-operator seat: chat, code, search, memory, maps and workspace.",
-    cta: "choose asherin — $18 / month",
+    cta: "choose asherin, $18 / month",
     highlight: false,
     groups: [
       {
         title: "asherin chat",
         items: [
-          "every message kind — a greeting stays a greeting, a task runs the tool",
+          "every message kind, a greeting stays a greeting, a task runs the tool",
           "capable coding output across languages",
-          "BYOK — bring your own model key",
+          "BYOK, bring your own model key",
           "60 messages per 3-hour window",
         ],
       },
@@ -55,14 +55,14 @@ const PLANS = [
          title: "asherin.defender",
         items: [
           "live camera, wifi, bluetooth and spy-class status on your own device",
-          "covert-camera law — capture with no visible preview reads BLOCKED",
+          "covert-camera law, capture with no visible preview reads BLOCKED",
         ],
       },
       {
         title: "asherin.arvision",
         items: [
           "live mirrored camera HUD with native frame intel",
-          "freeze, OCR and barcode read — frames stay in your tab",
+          "freeze, OCR and barcode read, frames stay in your tab",
           "honest cannot-resolve instead of an invented answer",
         ],
       },
@@ -84,7 +84,7 @@ const PLANS = [
     tagline: "higher limits + team",
     description:
       "everything in the $18 seat, with higher limits on asherin chat tools and a full team workspace.",
-    cta: "choose asherin pro — $79 / month",
+    cta: "choose asherin pro, $79 / month",
     highlight: true,
      groups: [
        {
@@ -113,7 +113,7 @@ const PLANS = [
       },
       {
         title: "asherin.arvision",
-        items: ["saved A–E packets", "rf lattice", "plate and VIN public-index lookups", "local operator enroll on this device"],
+        items: ["saved A-E packets", "rf lattice", "plate and VIN public-index lookups", "local operator enroll on this device"],
       },
       {
         title: "team",
@@ -171,7 +171,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           Pick the tier that fits the work.
         </h2>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
-          Two personal plans plus an admin-billed team workspace. No trial countdown, no upsell wall. Cancel from the dashboard in one click —
+          Two personal plans plus an admin-billed team workspace. No trial countdown, no upsell wall. Cancel from the dashboard in one click
           your data is exported or deleted on request.
         </p>
 
@@ -199,7 +199,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
         </div>
 
         <p className="mt-5 max-w-2xl mx-auto text-[13px] font-extralight leading-relaxed text-muted-foreground/80">
-          We didn&rsquo;t want anyone living in survival mode over a subscription — liking the work
+          We didn&rsquo;t want anyone living in survival mode over a subscription, liking the work
           but bracing for a charge every thirty days, asking each month whether they can keep the
           tools they build with. So there is a six-month term: pay once, then don&rsquo;t think
           about it for half a year. Same price per month, none of the monthly dread.
@@ -212,9 +212,9 @@ export default function SubscriptionPlans({ compact = false }: Props) {
           {ppp.loading
             ? "Checking regional pricing…"
             : ppp.multiplier < 1
-              ? `Regional pricing applied for ${countryName(ppp.country)} — priced to what the local economy can carry, not the US sticker.`
+              ? `Regional pricing applied for ${countryName(ppp.country)}, priced to what the local economy can carry, not the US sticker.`
               : ppp.vpnSuspected
-                ? "Standard pricing — your connection changed networks in the last hour, so regional pricing is paused."
+                ? "Standard pricing, your connection changed networks in the last hour, so regional pricing is paused."
                 : `Standard pricing${ppp.country ? ` for ${countryName(ppp.country)}` : ""}.`}
         </p>
       </div>
@@ -262,7 +262,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
                   </div>
                   <p className="mt-1 text-[11px] font-extralight text-muted-foreground/60">
                     {isSemi
-                      ? `Paid once — works out to ${formatUsd(perMonth)}/month, then renews every 6 months.`
+                      ? `Paid once, works out to ${formatUsd(perMonth)}/month, then renews every 6 months.`
                       : "Billed every month."}
                   </p>
                   <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
@@ -280,7 +280,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
                   >
                     {checkoutLoading && pendingId === plan.id
                       ? "Loading…"
-                      : `choose plan — ${formatUsd(q.cents)}${isSemi ? " / 6 months" : " / month"}`}
+                      : `choose plan, ${formatUsd(q.cents)}${isSemi ? " / 6 months" : " / month"}`}
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
                 </>
@@ -312,7 +312,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
         ))}
       </div>
 
-      {/* Asherin Team — admin-billed, per-seat */}
+      {/* Asherin Team, admin-billed, per-seat */}
       {(() => {
         const ws = quoteCents(ppp, "team_workspace", term).cents;
         const seat = quoteCents(ppp, "team_seat", term).cents;
@@ -353,7 +353,7 @@ export default function SubscriptionPlans({ compact = false }: Props) {
                 <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
                   {[
                     "Admin console: invite, revoke, roles",
-                    "Four enforced roles — owner, admin, member, viewer",
+                    "Four enforced roles, owner, admin, member, viewer",
                     "Shared Team Projects space",
                     "Membership audit of joins, leaves, role changes",
                     "Seats update on the same invoice, prorated",
@@ -425,12 +425,12 @@ export default function SubscriptionPlans({ compact = false }: Props) {
       </div>
 
       <p className="mt-6 text-center text-xs font-extralight text-muted-foreground/70">
-        All prices in USD. Cancel anytime — no retention flow, no &ldquo;are you sure?&rdquo; loop.
+        All prices in USD. Cancel anytime, no retention flow, no &ldquo;are you sure?&rdquo; loop.
       </p>
       <p className="mt-2 text-center text-[11px] font-extralight leading-relaxed text-muted-foreground/50 max-w-2xl mx-auto">
         Regional pricing is resolved from the network your request actually arrives on and is
         re-checked at checkout. Rotating IPs, hopping countries or routing through a
-        datacenter/VPN network within the hour simply returns you to standard pricing — nothing is
+        datacenter/VPN network within the hour simply returns you to standard pricing, nothing is
         blocked, nothing is punished. It exists so the discount reaches the people it was built for.
       </p>
 

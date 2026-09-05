@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import orbitImage from "@/assets/asherin-fold-memory-orbit.png";
 
 const URL = "https://asherin.com/blog/asher-fold-memory";
-const TITLE = "asher.fold-memory — leftover memory, stored once";
+const TITLE = "asher.fold-memory, leftover memory, stored once";
 const PUBLISHED = "2026-08-16";
 const PRICE_LABEL = "$99";
 
@@ -83,7 +83,7 @@ const ResultsPanel = () => (
   <figure className="my-10 rounded-2xl border border-border/15 bg-card/10 p-6 backdrop-blur-md">
     <figcaption className="mb-4">
       <p className="text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground/60">
-        included selftest — synthetic pile
+        included selftest, synthetic pile
       </p>
       <p className="mt-2 text-[11px] font-extralight leading-relaxed text-muted-foreground/70">
         these are the numbers the bundled selftest printed on the reference runner. they are a measurement of a
@@ -91,13 +91,13 @@ const ResultsPanel = () => (
       </p>
     </figcaption>
     <Bar
-      label="leftover identical text — shared middle stored once"
+      label="leftover identical text, shared middle stored once"
       value={82}
       tone="accent"
       note="the copies alias to one box. only the first copy costs anything."
     />
     <Bar
-      label="unique random bytes — the floor"
+      label="unique random bytes, the floor"
       value={0}
       tone="muted"
       note="a unique original has no twin. it stays the size it is. that is not a bug."
@@ -140,16 +140,16 @@ const Donut = ({ pct, label, sub }: { pct: number; label: string; sub: string })
 const BandsPanel = () => (
   <figure className="my-10 rounded-2xl border border-border/15 bg-card/10 p-6 backdrop-blur-md">
     <figcaption className="mb-5 text-[10px] font-extralight uppercase tracking-[0.35em] text-muted-foreground/60">
-      planning bands — upper edge of each honest range
+      planning bands, upper edge of each honest range
     </figcaption>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Donut
         pct={100}
         label="copy-heavy pile"
-        sub="logs, backups of backups, repeated exports. ~40–100% of the copy slice."
+        sub="logs, backups of backups, repeated exports. ~40-100% of the copy slice."
       />
-      <Donut pct={35} label="mixed office pile" sub="documents, some logs, some photos. ~15–35% of the mixed pile." />
-      <Donut pct={10} label="unique pile" sub="unique rows, original photos, encrypted disks. ~0–10%." />
+      <Donut pct={35} label="mixed office pile" sub="documents, some logs, some photos. ~15-35% of the mixed pile." />
+      <Donut pct={10} label="unique pile" sub="unique rows, original photos, encrypted disks. ~0-10%." />
     </div>
     <p className="mt-4 text-[10px] font-extralight leading-relaxed text-muted-foreground/60">
       every one of these is unsure until you sample your own pile. sample first, then decide.
@@ -198,7 +198,7 @@ const BuyPanel = () => {
   const status = useMemo(() => new URLSearchParams(window.location.search).get("purchase"), []);
 
   useEffect(() => {
-    if (status === "success") toast.success("payment received — check your email for the receipt and the pack.");
+    if (status === "success") toast.success("payment received, check your email for the receipt and the pack.");
     if (status === "cancelled") toast("checkout cancelled. nothing was charged.");
   }, [status]);
 
@@ -228,8 +228,8 @@ const BuyPanel = () => {
 
       <ul className="mt-5 space-y-2">
         {[
-          "fold_memory.py — the laptop / device runner. python 3, no extra packages, no wifi for what is already held.",
-          "add-to-postgres.sql — the starter closet for a company database: unique boxes, pointers, tick log.",
+          "fold_memory.py, the laptop / device runner. python 3, no extra packages, no wifi for what is already held.",
+          "add-to-postgres.sql, the starter closet for a company database: unique boxes, pointers, tick log.",
           "the tested-results graphs, as svg and html.",
           "the readme, written plainly: purpose, the loop, how to add it, and the honest money estimate.",
         ].map((line) => (
@@ -247,7 +247,7 @@ const BuyPanel = () => {
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-[12px] font-light tracking-[0.18em] uppercase text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60 focus-visible:outline focus-visible:outline-1 focus-visible:outline-foreground/40"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {loading ? "opening checkout…" : `buy the pack — ${PRICE_LABEL}`}
+        {loading ? "opening checkout…" : `buy the pack, ${PRICE_LABEL}`}
       </button>
 
       <p className="mt-3 text-[10px] font-extralight leading-relaxed text-muted-foreground/60">
@@ -263,13 +263,13 @@ const AsherFoldMemory = () => (
   <ArticleShell
     eyebrow="Release"
     title={TITLE}
-    dek="identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack — no account."
+    dek="identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack, no account."
     publishedLabel="16 aug 2026"
     readTime="6 min"
     image={
       <img
         src={orbitImage}
-        alt="asher.fold-memory — a triangular satellite in low orbit above earth, captioned leftover memory, stored once"
+        alt="asher.fold-memory, a triangular satellite in low orbit above earth, captioned leftover memory, stored once"
         width={1080}
         height={1080}
         loading="eager"
@@ -287,24 +287,24 @@ const AsherFoldMemory = () => (
     />
 
     <p>
-      most storage bills are not paid for information. they are paid for repetition — the same log line written every
+      most storage bills are not paid for information. they are paid for repetition, the same log line written every
       minute, the backup of a backup, the spreadsheet emailed five times, the json config copied into twenty folders.
       that is leftover: bytes that already exist somewhere else, being paid for again.
     </p>
     <p>
       <strong>asher.fold-memory</strong> is a small piece of software with one law. anything identical is stored once.
       anything unique stays exactly the size it is. and when you ask for a file back, you get the original bits or you
-      get a refusal — never a lookalike.
+      get a refusal, never a lookalike.
     </p>
 
     <h2>what it is for</h2>
     <p>
-      unique things — one photo, one encrypted vault, one original file — are the floor. they do not get smaller, and
+      unique things, one photo, one encrypted vault, one original file, are the floor. they do not get smaller, and
       any tool that says otherwise is selling something. the purpose here is narrower and more honest:
     </p>
     <ul>
       <li>store shared leftover copies once.</li>
-      <li>remember where they were by a cue — a hint — instead of stuffing extra copies.</li>
+      <li>remember where they were by a cue, a hint, instead of stuffing extra copies.</li>
       <li>give the exact original bits back, or refuse.</li>
       <li>run on a laptop with no wifi for what is already held, or inside a company database on a clock.</li>
     </ul>
@@ -313,7 +313,7 @@ const AsherFoldMemory = () => (
     <h2>how it works</h2>
     <p>
       a file is cut into pieces. each piece is named by its exact bits. if that name is already on the shelf, no second
-      box is stored — the new file just points at the first. leftover air is squeezed. a small index is kept so a hint
+      box is stored, the new file just points at the first. leftover air is squeezed. a small index is kept so a hint
       can find the right pieces. on the way out they are glued in order and the whole-file name is checked again. match,
       and you get the exact file. miss, and it refuses.
     </p>
@@ -361,21 +361,21 @@ const AsherFoldMemory = () => (
     <p>keep python 3 on the machine. no extra packages, and no wifi is needed for what is already held.</p>
     <ul>
       <li>
-        <code>python fold_memory.py selftest</code> — prove it before trusting it.
+        <code>python fold_memory.py selftest</code>, prove it before trusting it.
       </li>
       <li>
-        <code>python fold_memory.py ingest "/path/to/your/folder"</code> — put a folder in.
+        <code>python fold_memory.py ingest "/path/to/your/folder"</code>, put a folder in.
       </li>
       <li>
-        <code>python fold_memory.py cue "leftover never deleted"</code> — recall. add <code>--trance</code> to look
+        <code>python fold_memory.py cue "leftover never deleted"</code>, recall. add <code>--trance</code> to look
         harder.
       </li>
       <li>
-        <code>python fold_memory.py unfold &lt;fingerprint&gt; --out "/path/to/restored"</code> — get the exact file
+        <code>python fold_memory.py unfold &lt;fingerprint&gt; --out "/path/to/restored"</code>, get the exact file
         back.
       </li>
       <li>
-        <code>python fold_memory.py stats</code> — see the sizes.
+        <code>python fold_memory.py stats</code>, see the sizes.
       </li>
     </ul>
     <p>
@@ -386,7 +386,7 @@ const AsherFoldMemory = () => (
     <h3>inside your own software</h3>
     <p>
       this is backend leftover memory, not a frontend widget. add the small database closet from{" "}
-      <code>add-to-postgres.sql</code> — tables for unique boxes, pointers, and a tick log — then expose three verbs:{" "}
+      <code>add-to-postgres.sql</code>, tables for unique boxes, pointers, and a tick log, then expose three verbs:{" "}
       <strong>ingest</strong>, <strong>unfold</strong> (fingerprint or refuse), and <strong>cue</strong>. point ingest,
       unfold and delete at leftover logs and duplicate blobs, never at unique customer rows, and run it on a clock.
       never ingest secret columns: passwords, tokens, vaults, or job commands that carry keys.
@@ -395,16 +395,16 @@ const AsherFoldMemory = () => (
     <h2>who this saves money for</h2>
     <ul>
       <li>
-        <strong>people</strong> — phone dumps, email attachments, the <em>final_final_v3</em> folder. the twins fold;
+        <strong>people</strong>, phone dumps, email attachments, the <em>final_final_v3</em> folder. the twins fold;
         the camera originals stay the floor.
       </li>
       <li>
-        <strong>companies</strong> — nightly backups, vm clones, log pipelines, the same contract pdf sitting in ten
+        <strong>companies</strong>, nightly backups, vm clones, log pipelines, the same contract pdf sitting in ten
         shares. the gap this fills over an existing backup appliance is the memory part: cue and trance recall, plus
         fingerprint-or-refuse as a law inside the product, locally, with no wifi needed for held bytes.
       </li>
       <li>
-        <strong>governments</strong> — records systems, place files, repeated xml and pdf packets. same law: copies
+        <strong>governments</strong>, records systems, place files, repeated xml and pdf packets. same law: copies
         fold, unique records stay, unfold must match. no claim is made here about classified networks.
       </li>
     </ul>
@@ -412,13 +412,13 @@ const AsherFoldMemory = () => (
     <h2>what is in the pack</h2>
     <ul>
       <li>
-        <code>fold_memory.py</code> — the laptop / device runner.
+        <code>fold_memory.py</code>, the laptop / device runner.
       </li>
       <li>
-        <code>add-to-postgres.sql</code> — the starter closet for a company database, with no secrets.
+        <code>add-to-postgres.sql</code>, the starter closet for a company database, with no secrets.
       </li>
       <li>
-        <code>TESTED RESULTS GRAPHS</code> — svg and html.
+        <code>TESTED RESULTS GRAPHS</code>, svg and html.
       </li>
       <li>the readme, in the same plain language as this page.</li>
     </ul>
@@ -442,7 +442,7 @@ const AsherFoldMemory = () => (
         {
           to: "/blog",
           label: "notes from asherin",
-          description: "the rest of the writing — releases, teardowns, and the reasoning behind them.",
+          description: "the rest of the writing, releases, teardowns, and the reasoning behind them.",
         },
         {
           to: "/software",

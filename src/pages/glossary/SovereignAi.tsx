@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/sovereign-ai";
-const TITLE = "Sovereign AI — Definition, Origin, and Why It Matters in 2026";
+const TITLE = "Sovereign AI, Definition, Origin, and Why It Matters in 2026";
 const PUBLISHED = "2026-06-19";
 
 const SovereignAi = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is Sovereign AI?"
-    dek="Sovereign AI is an artificial-intelligence stack the operator fully controls — no corporate refusal layer, no opaque safety tuning, no key the vendor can revoke at will. This is the complete definition, the origin of the term, and how to identify a genuinely sovereign platform versus a marketing claim."
+    dek="Sovereign AI is an artificial-intelligence stack the operator fully controls, no corporate refusal layer, no opaque safety tuning, no key the vendor can revoke at will. This is the complete definition, the origin of the term, and how to identify a genuinely sovereign platform versus a marketing claim."
     publishedLabel="Jun 19 2026"
     readTime="7 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -23,7 +23,7 @@ const SovereignAi = () => (
       id="sovereign-ai"
       url={URL}
       headline={TITLE}
-      description="Definitional reference for the term Sovereign AI — what it means, how it differs from BYOK and uncensored AI, and how to identify it in practice."
+      description="Definitional reference for the term Sovereign AI, what it means, how it differs from BYOK and uncensored AI, and how to identify it in practice."
       datePublished={PUBLISHED}
       keywords={[
         "sovereign ai",
@@ -64,7 +64,7 @@ const SovereignAi = () => (
         on top of the model's own behavior. If the operator points a sovereign
         platform at a vendor model that refuses a request, the refusal comes
         from the vendor, not the platform. A platform that injects its own
-        moralizing system prompt is not sovereign — it is a refusal proxy.
+        moralizing system prompt is not sovereign, it is a refusal proxy.
       </li>
       <li>
         <strong>Data layer.</strong> The operator controls what is stored,
@@ -85,13 +85,13 @@ const SovereignAi = () => (
       <li>
         <strong>Uncensored AI</strong> means the model layer does not refuse
         on ideological grounds. A platform can serve an uncensored model
-        through a censored interface — which is a contradiction in
+        through a censored interface, which is a contradiction in
         deployment.
       </li>
       <li>
         <strong>Sovereign AI</strong> means all four layers are operator-controlled.
         A sovereign platform can serve a censored model (the operator's
-        choice) or an uncensored model (also the operator's choice) — the
+        choice) or an uncensored model (also the operator's choice), the
         decision is not the vendor's to make.
       </li>
     </ul>
@@ -112,7 +112,7 @@ const SovereignAi = () => (
       </li>
       <li>
         If you ask the model something the model itself would answer in raw
-        form, do you get that answer — or does the platform interject a
+        form, do you get that answer, or does the platform interject a
         refusal the model did not produce?
       </li>
       <li>
@@ -144,7 +144,7 @@ const SovereignAi = () => (
       key. BYOK traffic flows directly from the operator's machine to the
       chosen provider, with platform-side prompt mutation set to zero.
       Operators without a key are served a Venice-AI uncensored fallback at
-      platform cost — a transitional courtesy, not the sovereign path.
+      platform cost, a transitional courtesy, not the sovereign path.
       Sovereignty is opt-in by adding your own key.
     </p>
 
@@ -153,7 +153,7 @@ const SovereignAi = () => (
       items={[
         {
           q: "Is Sovereign AI the same as open-source AI?",
-          a: "No. Open-source AI refers to the model weights being publicly available. Sovereign AI refers to operator control across the key, model, refusal, and data layers. A sovereign platform can serve closed-weight models (Gemini, GPT-4) — sovereignty is about who controls the deployment, not who wrote the weights.",
+          a: "No. Open-source AI refers to the model weights being publicly available. Sovereign AI refers to operator control across the key, model, refusal, and data layers. A sovereign platform can serve closed-weight models (Gemini, GPT-4), sovereignty is about who controls the deployment, not who wrote the weights.",
         },
         {
           q: "Does Sovereign AI mean uncensored?",
@@ -165,7 +165,7 @@ const SovereignAi = () => (
         },
         {
           q: "What is the difference between Sovereign AI and self-hosted AI?",
-          a: "Self-hosted AI means the model runs on operator hardware. Sovereign AI is a superset — it includes self-hosted deployments and BYOK deployments where the operator controls the key, model, refusal, and data layers even if the inference happens on vendor hardware.",
+          a: "Self-hosted AI means the model runs on operator hardware. Sovereign AI is a superset, it includes self-hosted deployments and BYOK deployments where the operator controls the key, model, refusal, and data layers even if the inference happens on vendor hardware.",
         },
       ]}
     />
@@ -174,22 +174,22 @@ const SovereignAi = () => (
       links={[
         {
           to: "/glossary/byok-ai",
-          label: "BYOK AI — full definition",
+          label: "BYOK AI, full definition",
           description: "The bring-your-own-key model and how it underpins sovereign AI.",
         },
         {
           to: "/glossary/uncensored-ai",
-          label: "Uncensored AI — the precise definition",
+          label: "Uncensored AI, the precise definition",
           description: "Why 'uncensored' is a model-layer property, not a platform claim.",
         },
         {
           to: "/glossary/digital-gnostic",
-          label: "Digital Gnostic — operator profile",
+          label: "Digital Gnostic, operator profile",
           description: "The demographic that drove the sovereign AI vocabulary into the open.",
         },
         {
           to: "/feature/zophiel",
-          label: "Zophiel OSINT — sovereign in practice",
+          label: "Zophiel OSINT, sovereign in practice",
           description: "Asherin's multi-engine intelligence engine, deployed on the sovereign stack.",
         },
       ]}

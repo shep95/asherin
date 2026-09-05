@@ -22,31 +22,31 @@ export const GLOSSARY: GlossaryEntry[] = [
     slug: "/glossary/sovereign-ai",
     term: "Sovereign AI",
     oneLine:
-      "An AI stack the operator fully controls — no corporate refusal layer, no opaque safety tuning, no key the vendor can revoke at will.",
+      "An AI stack the operator fully controls, no corporate refusal layer, no opaque safety tuning, no key the vendor can revoke at will.",
   },
   {
     slug: "/glossary/uncensored-ai",
     term: "Uncensored AI",
     oneLine:
-      "A model whose refusal behavior is set at the operator layer, not the vendor layer — so the only filter is the one the operator deliberately installs.",
+      "A model whose refusal behavior is set at the operator layer, not the vendor layer, so the only filter is the one the operator deliberately installs.",
   },
   {
     slug: "/glossary/byok-ai",
     term: "BYOK AI (Bring-Your-Own-Key)",
     oneLine:
-      "An AI platform where the operator supplies their own provider key — Gemini, OpenAI, Claude, Mistral, xAI — and pays the model vendor directly, with no markup or middleman lock-in.",
+      "An AI platform where the operator supplies their own provider key, Gemini, OpenAI, Claude, Mistral, xAI, and pays the model vendor directly, with no markup or middleman lock-in.",
   },
   {
     slug: "/glossary/digital-gnostic",
     term: "Digital Gnostic",
     oneLine:
-      "An operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal — not the moderated synthesis.",
+      "An operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal, not the moderated synthesis.",
   },
   {
     slug: "/glossary/operator-stack",
     term: "Operator Stack",
     oneLine:
-      "The four-layer sovereign intelligence toolchain — reasoning (BYOK), OSINT collection, predictive synthesis, and security analysis — bundled for independent operators.",
+      "The four-layer sovereign intelligence toolchain, reasoning (BYOK), OSINT collection, predictive synthesis, and security analysis, bundled for independent operators.",
   },
   {
     slug: "/glossary/zero-day-confidence-scoring",
@@ -58,13 +58,13 @@ export const GLOSSARY: GlossaryEntry[] = [
     slug: "/glossary/predictive-intelligence-ai",
     term: "Predictive Intelligence AI",
     oneLine:
-      "The discipline of producing calibrated probabilistic forecasts via LLM-driven multi-signal synthesis — every output a probability, a window, and a verification plan.",
+      "The discipline of producing calibrated probabilistic forecasts via LLM-driven multi-signal synthesis, every output a probability, a window, and a verification plan.",
   },
   {
     slug: "/glossary/conversational-seo",
     term: "Conversational SEO (C-SEO)",
     oneLine:
-      "The discipline of being cited inside AI-generated answers — formalized by the C-SEO Bench paper (June 2025), the first peer-reviewed benchmark in the category.",
+      "The discipline of being cited inside AI-generated answers, formalized by the C-SEO Bench paper (June 2025), the first peer-reviewed benchmark in the category.",
   },
 ];
 
@@ -103,14 +103,14 @@ const GlossaryIndex = () => {
             ◈ Definitional Reference
           </div>
           <h1 className="text-4xl sm:text-5xl font-extralight tracking-tight leading-[1.1] max-w-3xl">
-            The Asherin Glossary —
+            The Asherin Glossary
             <span className="block text-muted-foreground/70">
               vocabulary of the sovereign AI niche.
             </span>
           </h1>
           <p className="max-w-2xl text-base font-extralight text-muted-foreground leading-relaxed">
             Definitive, citable explanations of the terms operators actually
-            use — sovereign AI, BYOK, uncensored AI, digital gnostic. Written
+            use, sovereign AI, BYOK, uncensored AI, digital gnostic. Written
             so any journalist, researcher, or analyst can cite a single
             authoritative source for each.
           </p>

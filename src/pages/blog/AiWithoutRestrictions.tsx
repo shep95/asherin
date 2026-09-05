@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/blog/ai-without-restrictions";
-const TITLE = "AI Without Restrictions — The Operator Workflow Guide";
+const TITLE = "AI Without Restrictions, The Operator Workflow Guide";
 const PUBLISHED = "2026-06-19";
 
 const AiWithoutRestrictions = () => (
   <ArticleShell
     eyebrow="Operator Guide"
-    title="AI Without Restrictions — The Operator Workflow"
-    dek="The practical workflow for running AI without corporate refusal walls on real work. This is the operator playbook — model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions."
+    title="AI Without Restrictions, The Operator Workflow"
+    dek="The practical workflow for running AI without corporate refusal walls on real work. This is the operator playbook, model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions."
     publishedLabel="Jun 19 2026"
     readTime="8 min"
   >
@@ -22,7 +22,7 @@ const AiWithoutRestrictions = () => (
       id="ai-without-restrictions"
       url={URL}
       headline={TITLE}
-      description="Operator playbook for AI without corporate restrictions — model choice, prompt discipline, and the workflow patterns that hold up through long sessions."
+      description="Operator playbook for AI without corporate restrictions, model choice, prompt discipline, and the workflow patterns that hold up through long sessions."
       datePublished={PUBLISHED}
       keywords={[
         "ai without restrictions",
@@ -45,7 +45,7 @@ const AiWithoutRestrictions = () => (
       layer is calibrated for screenshot-resistance, not long-session work.
       The pattern operators consistently report: a session opens well, the
       model answers the first three questions, then around prompt seven or
-      eight the refusal vocabulary leaks back in — and the work that took
+      eight the refusal vocabulary leaks back in, and the work that took
       twenty minutes to set up has to restart on a different platform.
       Operators who do this often enough stop using consumer AI for the
       work that matters.
@@ -79,9 +79,9 @@ const AiWithoutRestrictions = () => (
     <p>
       Even on a platform claiming zero refusal layer, run a sanity check
       every few sessions. Send a prompt the underlying model is known to
-      answer in raw form. If the platform returns a refusal — and the
+      answer in raw form. If the platform returns a refusal, and the
       refusal vocabulary matches the platform&apos;s style guide rather
-      than the vendor&apos;s — the platform has quietly added a refusal
+      than the vendor&apos;s, the platform has quietly added a refusal
       layer and is no longer the sovereign tool the operator chose. Time
       to switch.
     </p>
@@ -115,7 +115,7 @@ const AiWithoutRestrictions = () => (
       Asherin ships Venice <code>mistral-31-24b</code> as the free-tier
       default. No account at venice.ai needed, no key to paste, no monthly
       subscription. Operators who want a different vendor bring their
-      key — Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, or
+      key, Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, or
       OpenRouter. Either path has zero platform-side refusal layer.
       The operator workflow stops being a fight against the tool and goes
       back to being a fight with the actual problem.
@@ -130,7 +130,7 @@ const AiWithoutRestrictions = () => (
         },
         {
           q: "Is there a free uncensored AI?",
-          a: "Yes. Asherin ships Venice mistral-31-24b as the free-tier default — no account, no key, no subscription. Operators who want to use a different vendor bring their own key.",
+          a: "Yes. Asherin ships Venice mistral-31-24b as the free-tier default, no account, no key, no subscription. Operators who want to use a different vendor bring their own key.",
         },
         {
           q: "How do I prompt an uncensored AI?",
@@ -147,7 +147,7 @@ const AiWithoutRestrictions = () => (
       links={[
         {
           to: "/glossary/uncensored-ai",
-          label: "Uncensored AI — full definition",
+          label: "Uncensored AI, full definition",
           description: "The precise definition this workflow is built on.",
         },
         {
@@ -157,12 +157,12 @@ const AiWithoutRestrictions = () => (
         },
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — definition",
+          label: "Sovereign AI, definition",
           description: "Why operator-layer refusal control is non-negotiable.",
         },
         {
           to: "/glossary/digital-gnostic",
-          label: "Digital Gnostic — operator demographic",
+          label: "Digital Gnostic, operator demographic",
           description: "Who this workflow is actually for.",
         },
       ]}
