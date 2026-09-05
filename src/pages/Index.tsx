@@ -262,7 +262,7 @@ const Index = () => {
             {user ? (
               <Link
                 to="/dashboard"
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-neutral-800 px-8 py-4 text-sm font-medium tracking-wide text-neutral-100 border border-neutral-700 transition-colors hover:bg-neutral-700"
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
                 go to dashboard
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -270,7 +270,7 @@ const Index = () => {
             ) : (
               <button
                 onClick={openSignup}
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-neutral-800 px-8 py-4 text-sm font-medium tracking-wide text-neutral-100 border border-neutral-700 transition-colors hover:bg-neutral-700"
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
                 create account
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -458,7 +458,7 @@ const Index = () => {
             {user ? (
               <Link
                 to="/dashboard"
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-neutral-800 px-8 py-4 text-sm font-medium tracking-wide text-neutral-100 border border-neutral-700 transition-colors hover:bg-neutral-700"
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
                 go to dashboard
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -466,7 +466,7 @@ const Index = () => {
             ) : (
               <button
                 onClick={openSignup}
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-neutral-800 px-8 py-4 text-sm font-medium tracking-wide text-neutral-100 border border-neutral-700 transition-colors hover:bg-neutral-700"
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
                 create account
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
