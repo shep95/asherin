@@ -225,13 +225,24 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async github(q) {
-    const tok = (Deno.env.get("GITHUB_TOKEN") || Deno.env.get("GH_TOKEN") || "").trim();
-    const r = await get(
+    const tok = env("GITHUB_TOKEN", "GH_TOKEN");
+    let r = await get(
       `https://api.github.com/search/repositories?per_page=5&q=${encodeURIComponent(q)}`,
       8000,
       "application/vnd.github+json",
       tok ? { Authorization: `Bearer ${tok}` } : {},
     );
+    // A configured token that github rejects must not take the source down —
+    // fall back to the unauthenticated rate and say nothing. That is exactly
+    // what a browser would have got.
+    if (r.status === 401 && tok) {
+      await r.body?.cancel();
+      r = await get(
+        `https://api.github.com/search/repositories?per_page=5&q=${encodeURIComponent(q)}`,
+        8000,
+        "application/vnd.github+json",
+      );
+    }
     if (r.status === 403 || r.status === 429)
       throw new SkipError(tok ? "github rate limited this request" : "github rate limits unauthenticated search — no token configured");
     if (!r.ok) throw new Error(`http ${r.status}`);
