@@ -489,7 +489,7 @@ const Blog = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search the archive"
                 aria-label="Search articles"
-                className="w-full rounded-full border border-border/40 bg-card/20 py-2 pl-9 pr-4 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-foreground/40"
+                className="w-full rounded-full border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl py-2 pl-9 pr-4 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none transition-colors focus:border-foreground/40"
               />
             </div>
             <button
@@ -530,7 +530,7 @@ const Blog = () => {
           </div>
 
           {refineOpen && (
-            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-border/30 bg-card/10 px-4 py-3 text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
+            <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-foreground/10 bg-foreground/[0.03] backdrop-blur-md px-4 py-3 text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">
               <label className="flex items-center gap-2">
                 <span>From</span>
                 <input
