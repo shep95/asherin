@@ -98,6 +98,41 @@ export function classify(q: string): Classification {
 
 const UA = "asherin.eng/1.0 (public-index reader; +https://asherin.com)";
 
+/** A site that intentionally declined. Rendered as a skip with its reason. */
+export class SkipError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = "SkipError";
+  }
+}
+
+/** Tiny in-isolate TTL cache. Bounded, so a warm isolate cannot grow forever. */
+const cache = new Map<string, { at: number; value: unknown }>();
+async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
+  const value = await load();
+  if (cache.size > 200) {
+    for (const k of Array.from(cache.keys()).slice(0, 100)) cache.delete(k);
+  }
+  cache.set(key, { at: Date.now(), value });
+  return value;
+}
+
+/** Throttle and refusal codes are skips, not failures. */
+function guardStatus(r: Response, site: string): void {
+  if (r.status === 429) throw new SkipError(`${site} rate limited this request`);
+  if (r.status === 503 || r.status === 502) throw new SkipError(`${site} index is unavailable right now`);
+}
+
+function env(...names: string[]): string {
+  for (const n of names) {
+    const v = (Deno.env.get(n) || "").trim();
+    if (v) return v;
+  }
+  return "";
+}
+
 async function get(
   url: string,
   ms: number,
@@ -197,7 +232,8 @@ const SITES: Record<string, Fetcher> = {
       "application/vnd.github+json",
       tok ? { Authorization: `Bearer ${tok}` } : {},
     );
-    if (r.status === 403 || r.status === 429) throw new Error(tok ? "rate limited" : "rate limited (unauthenticated)");
+    if (r.status === 403 || r.status === 429)
+      throw new SkipError(tok ? "github rate limited this request" : "github rate limits unauthenticated search — no token configured");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.items ?? []).map((it: Record<string, unknown>) => ({
@@ -217,6 +253,7 @@ const SITES: Record<string, Fetcher> = {
       ? `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=${encodeURIComponent(cve.toUpperCase())}`
       : `https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=5&keywordSearch=${encodeURIComponent(q)}`;
     const r = await get(url, 12000);
+    guardStatus(r, "nvd");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.vulnerabilities ?? []).slice(0, 5).map((v: Record<string, any>) => {
@@ -235,10 +272,13 @@ const SITES: Record<string, Fetcher> = {
 
   async cisa_kev(q) {
     const cve = q.match(CVE_RE)?.[0];
-    if (!cve) throw new Error("kev is queried by cve id only");
-    const r = await get("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 15000);
-    if (!r.ok) throw new Error(`http ${r.status}`);
-    const j = await r.json();
+    if (!cve) throw new SkipError("kev is a cve catalogue — it only answers a cve id");
+    const j = await cached<any>("cisa_kev_catalog", 6 * 60 * 60 * 1000, async () => {
+      const r = await get("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 15000);
+      guardStatus(r, "cisa kev");
+      if (!r.ok) throw new Error(`http ${r.status}`);
+      return await r.json();
+    });
     return (j?.vulnerabilities ?? [])
       .filter((v: any) => String(v.cveID).toUpperCase() === cve.toUpperCase())
       .map((v: any) => ({
@@ -265,7 +305,7 @@ const SITES: Record<string, Fetcher> = {
 
   async arxiv(q) {
     const r = await get(
-      `http://export.arxiv.org/api/query?max_results=5&search_query=all:${encodeURIComponent(q)}`,
+      `https://export.arxiv.org/api/query?max_results=5&search_query=all:${encodeURIComponent(q)}`,
       9000,
       "application/atom+xml",
     );
@@ -306,8 +346,10 @@ const SITES: Record<string, Fetcher> = {
       `https://api.gdeltproject.org/api/v2/doc/doc?format=json&maxrecords=5&mode=artlist&query=${encodeURIComponent(q)}${span}`,
       10000,
     );
+    guardStatus(r, "gdelt");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const text = await r.text();
+    if (/rate limit|too many/i.test(text.slice(0, 200))) throw new SkipError("gdelt rate limited this request");
     let j: any;
     try {
       j = JSON.parse(text);
@@ -324,11 +366,20 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async urlscan(q) {
-    const r = await get(`https://urlscan.io/api/v1/search/?size=5&q=${encodeURIComponent(q)}`, 9000);
-    if (r.status === 401 || r.status === 429) throw new Error("public search throttled");
+    const key = env("URLSCAN_API_KEY", "URLSCAN_KEY");
+    const r = await get(
+      `https://urlscan.io/api/v1/search/?size=5&q=${encodeURIComponent(q)}`,
+      9000,
+      "application/json",
+      key ? { "API-Key": key } : {},
+    );
+    if (r.status === 401 || r.status === 403 || r.status === 429)
+      throw new SkipError(key ? "urlscan throttled this key" : "urlscan needs an api key for search — none configured");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
-    return (j?.results ?? [])
+    const rows = (j?.results ?? []) as any[];
+    if (!rows.length && !key) throw new SkipError("urlscan returns nothing without an api key — none configured");
+    return rows
       .slice(0, 5)
       .map((it: Record<string, any>) => ({
         site: "urlscan",
@@ -357,11 +408,22 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async courtlistener(q) {
-    const r = await get(`https://www.courtlistener.com/api/rest/v4/search/?type=o&q=${encodeURIComponent(q)}`, 10000);
-    if (r.status === 401 || r.status === 403) throw new Error("public api requires a token for this query");
+    const tok = env("COURTLISTENER_TOKEN", "COURTLISTENER_API_KEY", "COURTLISTENER_API_TOKEN");
+    const r = await get(
+      `https://www.courtlistener.com/api/rest/v4/search/?type=o&q=${encodeURIComponent(q)}`,
+      10000,
+      "application/json",
+      tok ? { Authorization: `Token ${tok}` } : {},
+    );
+    if (r.status === 401 || r.status === 403)
+      throw new SkipError(tok ? "courtlistener rejected this token" : "courtlistener requires a token — none configured");
+    if (r.status === 429) throw new SkipError("courtlistener rate limited this request");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
-    return (j?.results ?? [])
+    const rows = (j?.results ?? []) as any[];
+    if (!rows.length && !tok)
+      throw new SkipError("courtlistener search returns nothing without a token — none configured");
+    return rows
       .slice(0, 5)
       .map((it: Record<string, any>) => ({
         site: "courtlistener",
@@ -397,12 +459,31 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async pypi(q) {
-    const name = q.trim().split(/\s+/)[0];
-    const r = await get(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, 7000);
-    if (r.status === 404) return [];
-    if (!r.ok) throw new Error(`http ${r.status}`);
-    const j = await r.json();
+    // pypi has no keyword api. Try the query as a distribution name in the
+    // shapes pypi actually normalises to, then say plainly that it was a
+    // name lookup and nothing matched.
+    const raw = q.trim().toLowerCase();
+    const words = raw.split(/\s+/).filter(Boolean);
+    const candidates = Array.from(
+      new Set(
+        [raw, raw.replace(/\s+/g, "-"), raw.replace(/\s+/g, "_"), raw.replace(/\s+/g, ""), words[0] ?? ""]
+          .map((c) => c.replace(/[^a-z0-9._-]/g, ""))
+          .filter((c) => c.length >= 2),
+      ),
+    ).slice(0, 4);
+
+    let j: any = null;
+    for (const name of candidates) {
+      const r = await get(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, 7000);
+      if (r.status === 404) continue;
+      guardStatus(r, "pypi");
+      if (!r.ok) throw new Error(`http ${r.status}`);
+      j = await r.json();
+      break;
+    }
+    if (!j) throw new SkipError("pypi answers distribution names only — no package by this name");
     const i = j?.info ?? {};
+    const name = String(i.name ?? candidates[0]);
     return [
       {
         site: "pypi",
@@ -455,7 +536,8 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async wayback(q, when) {
-    const host = q.match(HOST_RE)?.[1] ?? q.trim();
+    const host = q.match(HOST_RE)?.[1];
+    if (!host) throw new SkipError("wayback is queried by host or url — this query is free text");
     const from = when ? when.replace(/-/g, "") : "";
     const r = await get(
       `https://web.archive.org/cdx/search/cdx?output=json&limit=5&collapse=timestamp:6&fl=timestamp,original,mimetype,statuscode&url=${encodeURIComponent(host)}${from ? `&from=${from}` : ""}`,
@@ -495,13 +577,16 @@ export async function runQuery(
   const started = Date.now();
   const classification = classify(q);
   const domain = opts.domain ?? classification.domain;
-  const pack = (opts.sites?.length ? opts.sites : DOMAIN_PACKS[domain]).filter((s) => s in SITES);
+  const asked = opts.sites?.length ? opts.sites : DOMAIN_PACKS[domain];
+  const pack = asked.filter((s) => s in SITES);
+  const missing = asked.filter((s) => !(s in SITES));
 
   const outcomes = await Promise.all(
     pack.map(async (site): Promise<SiteOutcome> => {
       const t0 = Date.now();
       try {
-        const hits = await SITES[site](q, opts.when);
+        const key = `${site}::${domain}::${opts.when ?? ""}::${q}`;
+        const hits = await cached<Hit[]>(key, 60_000, () => SITES[site](q, opts.when));
         return {
           site,
           status: hits.length ? "ok" : "empty",
@@ -510,12 +595,14 @@ export async function runQuery(
           reason: hits.length ? undefined : "not in this public index",
         };
       } catch (e) {
-        const msg = String((e as Error)?.message || e);
+        const err = e as Error;
+        const msg = String(err?.message || e);
         const aborted = /abort/i.test(msg);
+        const declined = err?.name === "SkipError" || /rate|throttl|token|api key|unavailable/i.test(msg);
         return {
           site,
-          status: aborted || /rate|throttl|token/i.test(msg) ? "skip" : "fail",
-          reason: aborted ? "timed out" : msg.slice(0, 120),
+          status: aborted || declined ? "skip" : "fail",
+          reason: aborted ? "timed out" : msg.slice(0, 160),
           hits: [],
           took_ms: Date.now() - t0,
         };
@@ -528,6 +615,10 @@ export async function runQuery(
   for (const site of pack) {
     const o = outcomes.find((x) => x.site === site);
     if (o) hits.push(...o.hits);
+  }
+
+  for (const site of missing) {
+    outcomes.push({ site, status: "skip", reason: "not a field site in this engine", hits: [], took_ms: 0 });
   }
 
   const unsure = outcomes.filter((o) => o.status !== "ok").map((o) => `${o.site}: ${o.reason ?? o.status}`);
