@@ -138,6 +138,7 @@ async function getMitreCoverage() {
 }
 
 Deno.serve(async (req) => {
+  return RETIRED();
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const url = new URL(req.url);
