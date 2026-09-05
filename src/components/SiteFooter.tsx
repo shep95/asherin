@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
 
 interface SiteFooterProps {
@@ -26,6 +26,15 @@ const SOCIALS = [
 const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
   const [showHouseLogo, setShowHouseLogo] = useState(false);
   const year = new Date().getFullYear();
+
+  useEffect(() => {
+    if (!showHouseLogo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowHouseLogo(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showHouseLogo]);
 
   return (
     <footer className={`relative z-10 px-6 pb-10 ${variant === "compact" ? "pt-6" : "pt-16"}`}>
@@ -87,50 +96,58 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
 
       {showHouseLogo && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-xl animate-fade-in sm:p-8"
+          className="fixed inset-0 z-[100] animate-fade-in bg-background/70 backdrop-blur-sm"
           onClick={() => setShowHouseLogo(false)}
           role="dialog"
           aria-modal="true"
           aria-label="House of Asher note"
         >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setShowHouseLogo(false); }}
-            className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border/30 bg-card/40 text-muted-foreground backdrop-blur-md transition-all hover:border-foreground/50 hover:text-foreground"
-            aria-label="Close"
+          {/* Half-screen sheet rising from the footer button */}
+          <div
+            className="absolute inset-x-0 bottom-0 flex h-[52vh] min-h-[340px] flex-col overflow-hidden rounded-t-3xl border-t border-foreground/15 bg-neutral-950 shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.9)] animate-sheet-up"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-lg leading-none">×</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowHouseLogo(false)}
+              className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-foreground/15 bg-neutral-900 text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+              aria-label="Close"
+            >
+              <span className="text-lg leading-none">×</span>
+            </button>
 
-          <div className="relative my-auto w-full max-w-3xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={houseOfAsherLogo}
-              alt="House of Asher flag"
-              className="max-h-[55vh] w-full select-none rounded-3xl object-contain shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
-              draggable={false}
-            />
+            <div className="mx-auto grid h-full w-full max-w-5xl grid-cols-1 items-center gap-6 px-6 py-8 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-10 sm:px-10">
+              <div className="hidden h-full items-center justify-center overflow-hidden rounded-2xl border border-foreground/10 bg-black sm:flex">
+                <img
+                  src={houseOfAsherLogo}
+                  alt="House of Asher flag"
+                  className="h-full w-full select-none object-cover"
+                  draggable={false}
+                />
+              </div>
 
-            <div className="mt-8 flex flex-col items-center gap-5 px-2 text-center">
-              <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
-                a small independent project
-              </span>
+              <div className="flex flex-col items-start gap-4 overflow-y-auto pr-2 text-left">
+                <span className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">
+                  a small independent project
+                </span>
 
-              <h2 className="text-2xl font-extralight uppercase tracking-[0.2em] text-foreground sm:text-3xl">
-                #houseofasher
-              </h2>
+                <h2 className="text-2xl font-extralight uppercase tracking-[0.2em] text-foreground sm:text-3xl">
+                  #houseofasher
+                </h2>
 
-              <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
-                founded by <span className="text-foreground">asher newton</span>, #houseofasher is an
-                independent group built around software, research, and shared ideas. our aim is
-                to make useful tools, explain the thinking behind them, and keep learning from
-                the people who use them.
-              </p>
+                <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
+                  founded by <span className="text-foreground">asher newton</span>, #houseofasher is an
+                  independent group built around software, research, and shared ideas. our aim is
+                  to make useful tools, explain the thinking behind them, and keep learning from
+                  the people who use them.
+                </p>
 
-              <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
-                anyone is welcome to follow the work, regardless of origin, status, or
-                background. participation does not require a title, pledge, or symbol, only
-                curiosity and respect for others.
-              </p>
+                <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
+                  anyone is welcome to follow the work, regardless of origin, status, or
+                  background. participation does not require a title, pledge, or symbol, only
+                  curiosity and respect for others.
+                </p>
+              </div>
             </div>
           </div>
         </div>
