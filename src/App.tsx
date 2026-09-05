@@ -318,6 +318,8 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       {/* /auth is the sign-in surface every gated route falls back to. */}
                       <Route path="/auth" element={<Index />} />
+                      {/* OAuth 2.1 consent screen for agent integrations (MCP clients). */}
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                       <Route path="/terms" element={<TermsOfService />} />
                       <Route
                         path="/ziaassets"
