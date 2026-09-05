@@ -104,13 +104,13 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
         >
           {/* Half-screen sheet rising from the footer button */}
           <div
-            className="absolute inset-x-0 bottom-0 flex h-[52vh] min-h-[340px] flex-col overflow-hidden rounded-t-3xl border-t border-foreground/15 bg-neutral-950 shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.9)] animate-sheet-up"
+            className="absolute inset-x-0 bottom-0 flex h-[52vh] min-h-[340px] flex-col overflow-hidden rounded-t-3xl border-t border-foreground/15 bg-background/70 backdrop-blur-2xl shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.9)] animate-sheet-up"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setShowHouseLogo(false)}
-              className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-foreground/15 bg-neutral-900 text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+              className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-foreground/15 bg-foreground/5 backdrop-blur-md text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
               aria-label="Close"
             >
               <span className="text-lg leading-none">×</span>

@@ -86,7 +86,7 @@ const TierComparisonMatrix = () => {
               key={t.key}
               className={`relative flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${
                 t.highlight
-                  ? "border border-foreground/25 bg-neutral-900/70 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
+                  ? "border border-foreground/20 bg-foreground/5 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                   : "border border-border/20 bg-card/30"
               }`}
             >
@@ -110,7 +110,7 @@ const TierComparisonMatrix = () => {
                 to={t.href}
                 className={`mt-1 hidden sm:inline-flex w-full justify-center rounded-lg px-2 py-1 text-[10px] tracking-[0.2em] uppercase transition-colors ${
                   t.highlight
-                    ? "bg-neutral-800 text-neutral-100 hover:bg-neutral-700 border border-neutral-700"
+                    ? "bg-foreground/5 backdrop-blur-md text-foreground hover:bg-foreground/10 border border-foreground/15"
                     : "bg-foreground/10 text-foreground/90 hover:bg-foreground/20 border border-border/20"
                 }`}
               >
@@ -185,7 +185,7 @@ const TierComparisonMatrix = () => {
             to={t.href}
             className={`text-center rounded-lg px-3 py-2 text-[10px] tracking-[0.2em] uppercase ${
               t.highlight
-                ? "bg-neutral-800 text-neutral-100 border border-neutral-700"
+                ? "bg-foreground/5 backdrop-blur-md text-foreground border border-foreground/15"
                 : "bg-foreground/10 text-foreground/90 border border-border/20"
             }`}
           >
