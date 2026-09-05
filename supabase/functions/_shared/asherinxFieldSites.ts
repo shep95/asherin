@@ -475,7 +475,7 @@ const SITES: Record<string, Fetcher> = {
     let j: any = null;
     for (const name of candidates) {
       const r = await get(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, 7000);
-      if (r.status === 404) continue;
+      if (r.status === 404) { await r.body?.cancel(); continue; }
       guardStatus(r, "pypi");
       if (!r.ok) throw new Error(`http ${r.status}`);
       j = await r.json();
