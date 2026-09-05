@@ -55,7 +55,12 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
     } else {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { data: { name: name.trim() }, emailRedirectTo: window.location.origin },
+        options: {
+          data: { name: name.trim() },
+          // Carry the intended destination (e.g. an OAuth consent URL) through
+          // the confirmation link instead of dropping the user on the origin.
+          emailRedirectTo: `${window.location.origin}${getRedirectPath()}`,
+        },
       });
       setLoading(false);
       if (error) {
