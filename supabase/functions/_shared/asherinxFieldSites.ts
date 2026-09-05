@@ -119,8 +119,10 @@ async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Pr
   return value;
 }
 
-/** Throttle and refusal codes are skips, not failures. */
-function guardStatus(r: Response, site: string): void {
+/** Throttle and refusal codes are skips, not failures. Drains the body so the
+ * connection returns to the pool instead of leaking. */
+async function guardStatus(r: Response, site: string): Promise<void> {
+  if (r.status >= 400) await r.body?.cancel();
   if (r.status === 429) throw new SkipError(`${site} rate limited this request`);
   if (r.status === 503 || r.status === 502) throw new SkipError(`${site} index is unavailable right now`);
 }
@@ -264,7 +266,7 @@ const SITES: Record<string, Fetcher> = {
       ? `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=${encodeURIComponent(cve.toUpperCase())}`
       : `https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=5&keywordSearch=${encodeURIComponent(q)}`;
     const r = await get(url, 12000);
-    guardStatus(r, "nvd");
+    await guardStatus(r, "nvd");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.vulnerabilities ?? []).slice(0, 5).map((v: Record<string, any>) => {
@@ -286,7 +288,7 @@ const SITES: Record<string, Fetcher> = {
     if (!cve) throw new SkipError("kev is a cve catalogue — it only answers a cve id");
     const j = await cached<any>("cisa_kev_catalog", 6 * 60 * 60 * 1000, async () => {
       const r = await get("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 15000);
-      guardStatus(r, "cisa kev");
+      await guardStatus(r, "cisa kev");
       if (!r.ok) throw new Error(`http ${r.status}`);
       return await r.json();
     });
@@ -357,7 +359,7 @@ const SITES: Record<string, Fetcher> = {
       `https://api.gdeltproject.org/api/v2/doc/doc?format=json&maxrecords=5&mode=artlist&query=${encodeURIComponent(q)}${span}`,
       10000,
     );
-    guardStatus(r, "gdelt");
+    await guardStatus(r, "gdelt");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const text = await r.text();
     if (/rate limit|too many/i.test(text.slice(0, 200))) throw new SkipError("gdelt rate limited this request");
@@ -487,7 +489,7 @@ const SITES: Record<string, Fetcher> = {
     for (const name of candidates) {
       const r = await get(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, 7000);
       if (r.status === 404) { await r.body?.cancel(); continue; }
-      guardStatus(r, "pypi");
+      await guardStatus(r, "pypi");
       if (!r.ok) throw new Error(`http ${r.status}`);
       j = await r.json();
       break;
