@@ -167,28 +167,32 @@ const Index = () => {
     const timeout = window.setTimeout(() => controller.abort(), 60_000);
 
     try {
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asherin-ask`, {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: query }],
-          mode: "chat",
-          depth: "standard",
-        }),
+        body: JSON.stringify({ question: query }),
       });
 
       if (!resp.ok || !resp.body) {
+        // The endpoint answers with a plain-language reason; prefer it over a guess.
+        const reason = await resp
+          .clone()
+          .json()
+          .then((j) => (typeof j?.error === "string" ? j.error : ""))
+          .catch(() => "");
         setAskError(
-          resp.status === 429
-            ? "too many questions right now. try again in a minute."
-            : "that request did not come back. try again, or create an account for the full workspace.",
+          reason ||
+            (resp.status === 429
+              ? "too many questions right now. try again in a minute."
+              : "that request did not come back. try again, or create an account for the full workspace."),
         );
         return;
       }
+
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
