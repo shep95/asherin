@@ -15,7 +15,7 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
  */
 
 const URL = "https://asherin.com/feature/zophiel";
-const TITLE = "Zophiel OSINT — Multi-Engine AI Intelligence Engine | Asherin";
+const TITLE = "Zophiel OSINT, Multi-Engine AI Intelligence Engine | Asherin";
 const PUBLISHED = "2026-06-19";
 
 const FeatureZophiel = () => {
@@ -54,14 +54,14 @@ const FeatureZophiel = () => {
         eyebrow="Intelligence · Multi-Engine OSINT"
         headline={
           <>
-            Zophiel —
+            Zophiel
             <br />
             <span className="text-muted-foreground/70">
               multi-engine OSINT, cross-validated.
             </span>
           </>
         }
-        subheadline="Zophiel is Asherin's AI OSINT engine. Zophiel fans a query out across the engines your keys actually cover, keeps the sources that returned, marks where they disagree, and writes one brief with citations you can click back to. It reports the engines that answered — not a fixed source count."
+        subheadline="Zophiel is Asherin's AI OSINT engine. Zophiel fans a query out across the engines your keys actually cover, keeps the sources that returned, marks where they disagree, and writes one brief with citations you can click back to. It reports the engines that answered, not a fixed source count."
         tierLabel="Included in every tier · Runs in the signed-in dashboard at /dashboard/search"
         capabilities={[
           {
@@ -74,7 +74,7 @@ const FeatureZophiel = () => {
             icon: ShieldCheck,
             title: "Per-Claim Veracity Scoring",
             description:
-              "Every surfaced claim carries an explicit veracity score derived from cross-validation depth — single-source claims score low, three-corroborator claims score high, contradicted claims get flagged for review.",
+              "Every surfaced claim carries an explicit veracity score derived from cross-validation depth, single-source claims score low, three-corroborator claims score high, contradicted claims get flagged for review.",
           },
           {
             icon: Network,
@@ -86,13 +86,13 @@ const FeatureZophiel = () => {
             icon: Database,
             title: "Live Corpus, Not Training Data",
             description:
-              "Zophiel answers from the live sources hit on this query, not from an LLM's pre-training cutoff. Toggling the source list changes the answer — proof the engine is reading what it claims to read.",
+              "Zophiel answers from the live sources hit on this query, not from an LLM's pre-training cutoff. Toggling the source list changes the answer, proof the engine is reading what it claims to read.",
           },
           {
             icon: FileSearch,
             title: "Citation Drill-Down",
             description:
-              "Every claim in the synthesized brief is two clicks from the raw document it came from. Citation chain stays intact through synthesis — no hallucinated sources, no orphan claims.",
+              "Every claim in the synthesized brief is two clicks from the raw document it came from. Citation chain stays intact through synthesis, no hallucinated sources, no orphan claims.",
           },
           {
             icon: Layers,
@@ -102,12 +102,12 @@ const FeatureZophiel = () => {
           },
         ]}
         useCases={[
-          "Investigative journalism source verification — cross-check a claim against the sources that actually returned before publication.",
-          "OSINT analyst dossier building — assemble a multi-source intelligence brief in seconds instead of working hours.",
-          "Trading desk live-event tracing — verify a market-moving claim across financial, regulatory, and news sources simultaneously.",
-          "Security research threat-actor profiling — pull infrastructure, behavioral, and incident-history signals into one validated brief.",
-          "Regulatory and compliance scanning — track filings, enforcement actions, and policy updates across jurisdictions.",
-          "Due-diligence intelligence — verify counterparty claims against court records, regulatory filings, and news archives.",
+          "Investigative journalism source verification, cross-check a claim against the sources that actually returned before publication.",
+          "OSINT analyst dossier building, assemble a multi-source intelligence brief in seconds instead of working hours.",
+          "Trading desk live-event tracing, verify a market-moving claim across financial, regulatory, and news sources simultaneously.",
+          "Security research threat-actor profiling, pull infrastructure, behavioral, and incident-history signals into one validated brief.",
+          "Regulatory and compliance scanning, track filings, enforcement actions, and policy updates across jurisdictions.",
+          "Due-diligence intelligence, verify counterparty claims against court records, regulatory filings, and news archives.",
         ]}
         ctaTitle="Run Zophiel on your next query"
         ctaSubtitle="Zophiel runs inside the signed-in Asherin dashboard at /dashboard/search. Sign in to your account to open the engine."
@@ -122,7 +122,7 @@ const FeatureZophiel = () => {
               Consumer AI search ranks documents. OSINT verifies claims.
               These are different jobs. A trading analyst tracing a
               market-moving claim does not need the top ten documents matching
-              the query — they need to know whether the claim is true,
+              the query, they need to know whether the claim is true,
               corroborated by whom, contradicted by whom, and how confident
               they should be acting on it. Zophiel was built for that job.
             </p>
@@ -135,7 +135,7 @@ const FeatureZophiel = () => {
               <a href="/blog/what-is-ai-osint" className="text-accent hover:underline">
                 four-stage AI OSINT pipeline
               </a>{" "}
-              — ingestion, normalization, cross-validation, synthesis — across
+, ingestion, normalization, cross-validation, synthesis, across
               whichever engines answered. Ingestion runs in parallel and the
               run states what came back and what timed out. Normalization strips returned documents to
               comparable claim records with timestamp, jurisdiction, and
@@ -172,15 +172,15 @@ const FeatureZophiel = () => {
                 },
                 {
                   q: "Where do I run Zophiel?",
-                  a: "Inside the signed-in Asherin dashboard, under Search Intelligence at /dashboard/search. There is no separate public engine; an Asherin account is required. Zophiel — with persistent history, dossier integration, and BYOK routing — is included in every Asherin paid tier.",
+                  a: "Inside the signed-in Asherin dashboard, under Search Intelligence at /dashboard/search. There is no separate public engine; an Asherin account is required. Zophiel, with persistent history, dossier integration, and BYOK routing, is included in every Asherin paid tier.",
                 },
                 {
                   q: "What sources does Zophiel use?",
-                  a: "A parallel fan-out across news APIs, court records, regulatory filings, archive providers, social platforms and specialty databases. The engine roster varies per query and per key coverage — the run reports the engines that actually returned, and only those are counted.",
+                  a: "A parallel fan-out across news APIs, court records, regulatory filings, archive providers, social platforms and specialty databases. The engine roster varies per query and per key coverage, the run reports the engines that actually returned, and only those are counted.",
                 },
                 {
                   q: "How is Zophiel different from a regular AI search?",
-                  a: "AI search ranks documents that match a query. Zophiel verifies the claims inside those documents — cross-validating across independent sources, attaching a per-source veracity score, and flagging contradictions. Operators get a verified brief, not a ranked link list.",
+                  a: "AI search ranks documents that match a query. Zophiel verifies the claims inside those documents, cross-validating across independent sources, attaching a per-source veracity score, and flagging contradictions. Operators get a verified brief, not a ranked link list.",
                 },
                 {
                   q: "Can I use my own API key with Zophiel?",
@@ -194,7 +194,7 @@ const FeatureZophiel = () => {
               links={[
                 {
                   to: "/blog/what-is-ai-osint",
-                  label: "What Is AI OSINT? — the analyst's complete guide",
+                  label: "What Is AI OSINT?, the analyst's complete guide",
                   description: "The four-stage pipeline, the cross-validation requirement, the failure modes.",
                 },
                 {
@@ -204,7 +204,7 @@ const FeatureZophiel = () => {
                 },
                 {
                   to: "/blog/ai-without-restrictions",
-                  label: "AI without restrictions — operator workflow",
+                  label: "AI without restrictions, operator workflow",
                   description: "The practical workflow Zophiel is designed to slot into.",
                 },
                 {

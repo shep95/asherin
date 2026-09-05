@@ -24,7 +24,7 @@ const FAQ = [
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls — and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls, and raises the limit to 200 messages per 3-hour window.",
   },
   {
     q: "How much does Asherin Team cost?",
@@ -32,7 +32,7 @@ const FAQ = [
   },
   {
     q: "Do team members need their own subscription?",
-    a: "No. Team access is inherited from membership. While the workspace is billing-active, every member and the owner work at Pro-class limits. If someone also holds a personal $18 or $79 plan, their subscription page shows that they are covered by the team — they can cancel the personal plan themselves.",
+    a: "No. Team access is inherited from membership. While the workspace is billing-active, every member and the owner work at Pro-class limits. If someone also holds a personal $18 or $79 plan, their subscription page shows that they are covered by the team, they can cancel the personal plan themselves.",
   },
   {
     q: "Is there a free trial?",
@@ -40,15 +40,15 @@ const FAQ = [
   },
   {
     q: "Can I cancel anytime?",
-    a: "Yes. Cancellation is one click in the dashboard — no retention flow, no 'are you sure' loop. You retain access through the end of the current billing period.",
+    a: "Yes. Cancellation is one click in the dashboard, no retention flow, no 'are you sure' loop. You retain access through the end of the current billing period.",
   },
   {
     q: "Do I need to bring my own API keys?",
-    a: "No. Asherin ships with platform-paid models out of the box. Bring-your-own-key (BYOK) is supported for nine providers if you prefer to route through your own account — your key always wins over the platform default.",
+    a: "No. Asherin ships with platform-paid models out of the box. Bring-your-own-key (BYOK) is supported for nine providers if you prefer to route through your own account, your key always wins over the platform default.",
   },
   {
     q: "What does Enterprise include?",
-    a: "Enterprise adds SSO/SAML, org-wide policy controls, audit logs with retention controls, dedicated capacity, and custom SLAs. Pricing is per organization — contact sales for a quote.",
+    a: "Enterprise adds SSO/SAML, org-wide policy controls, audit logs with retention controls, dedicated capacity, and custom SLAs. Pricing is per organization, contact sales for a quote.",
   },
   {
     q: "Is my data private?",
@@ -171,13 +171,13 @@ const Pricing = () => {
             <span className="text-foreground/70">Pricing</span>
           </nav>
 
-          {/* Hero — single H1 for SEO */}
+          {/* Hero, single H1 for SEO */}
           <header className="text-center max-w-3xl mx-auto mb-16">
             <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-foreground/40 mb-4">
               monthly · usd
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight leading-[1.05] text-foreground">
-              asherin pricing — $18/mo, $79/mo pro.
+              asherin pricing, $18/mo, $79/mo pro.
             </h1>
             <p className="mt-6 text-base sm:text-lg font-extralight leading-relaxed text-foreground/75">
               two personal plans, a team workspace billed to the owner, and enterprise. there is no free
@@ -185,12 +185,12 @@ const Pricing = () => {
             </p>
           </header>
           {/* Extractable answer + sourced price figures for generative engines. */}
-          {/* Plans — reuses SubscriptionPlans (single source of truth) */}
+          {/* Plans, reuses SubscriptionPlans (single source of truth) */}
           <section aria-label="Subscription plans" className="mt-12">
             <SubscriptionPlans />
           </section>
 
-          {/* Comparison table — Theory 5 (table snippets get cited) */}
+          {/* Comparison table, Theory 5 (table snippets get cited) */}
           <section className="mt-24" aria-labelledby="compare-heading">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/40">
@@ -227,18 +227,18 @@ const Pricing = () => {
                 </thead>
                 <tbody className="divide-y divide-foreground/10">
                   {[
-                    ["Chat — you pick the model; refusal is the model's", "✓", "✓", "✓"],
+                    ["Chat, you pick the model; refusal is the model's", "✓", "✓", "✓"],
                     ["Capable coding engine", "✓", "✓", "✓"],
-                    ["Zophiel Search", "Base", "Pro — deeper crawl, priority latency", "Pro + dedicated capacity"],
-                    ["Persistent memory — account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],
+                    ["Zophiel Search", "Base", "Pro, deeper crawl, priority latency", "Pro + dedicated capacity"],
+                    ["Persistent memory, account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],
                     ["BYOK (9 providers)", "✓", "✓", "✓"],
                     ["Messages / 3-hour window", "60", "200", "Custom"],
-                    ["Azplen Data Intelligence Platform", "—", "✓", "✓"],
-                    ["Asherin Engine reach-back harvest (OSINT)", "—", "✓", "✓"],
-                    ["Advanced Intelligence Briefings", "—", "✓", "✓"],
+                    ["Azplen Data Intelligence Platform", "-", "✓", "✓"],
+                    ["Asherin Engine reach-back harvest (OSINT)", "-", "✓", "✓"],
+                    ["Advanced Intelligence Briefings", "-", "✓", "✓"],
                     ["Team workspace", "Limited", "Full + admin controls", "Org-wide + SSO/SAML"],
-                    ["Audit logs + retention controls", "—", "—", "✓"],
-                    ["Dedicated capacity + custom SLA", "—", "—", "✓"],
+                    ["Audit logs + retention controls", "-", "-", "✓"],
+                    ["Dedicated capacity + custom SLA", "-", "-", "✓"],
                   ].map((row) => (
                     <tr key={row[0]} className="hover:bg-foreground/[0.02]">
                       <td className="p-4 text-muted-foreground">{row[0]}</td>
@@ -252,7 +252,7 @@ const Pricing = () => {
             </div>
           </section>
 
-          {/* FAQ — Theory 5 (FAQ schema gets 3x citation rate) */}
+          {/* FAQ, Theory 5 (FAQ schema gets 3x citation rate) */}
           <section className="mt-24 max-w-3xl mx-auto" aria-labelledby="faq-heading">
             <div className="text-center mb-10">
               <p className="font-mono text-[10px] tracking-[0.35em] uppercase text-foreground/40">
@@ -262,7 +262,7 @@ const Pricing = () => {
                 id="faq-heading"
                 className="mt-4 text-3xl sm:text-4xl font-extralight tracking-tight text-foreground"
               >
-                Asherin pricing — common questions.
+                Asherin pricing, common questions.
               </h2>
             </div>
 
@@ -286,7 +286,7 @@ const Pricing = () => {
             </div>
           </section>
 
-          {/* RelatedLinks — Theory 11 (Compound chain) */}
+          {/* RelatedLinks, Theory 11 (Compound chain) */}
           <section className="mt-24">
             <RelatedLinks
               heading="Continue exploring Asherin"

@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/conversational-seo";
-const TITLE = "Conversational SEO (C-SEO) — Definition and Origin";
+const TITLE = "Conversational SEO (C-SEO), Definition and Origin";
 const PUBLISHED = "2026-06-19";
 
 const ConversationalSeo = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is Conversational SEO (C-SEO)?"
-    dek="Conversational SEO — C-SEO — is the discipline of being cited inside AI-generated answers from systems like Perplexity, ChatGPT Search, ClaudeBot, and Google AI Overviews. This is the working definition, the origin of the term, the core techniques, and how to evaluate any C-SEO claim."
+    dek="Conversational SEO, C-SEO, is the discipline of being cited inside AI-generated answers from systems like Perplexity, ChatGPT Search, ClaudeBot, and Google AI Overviews. This is the working definition, the origin of the term, the core techniques, and how to evaluate any C-SEO claim."
     publishedLabel="Jun 19 2026"
     readTime="7 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -23,7 +23,7 @@ const ConversationalSeo = () => (
       id="conversational-seo"
       url={URL}
       headline={TITLE}
-      description="Definitional reference for conversational SEO (C-SEO) — the academic term for ranking inside AI search engines."
+      description="Definitional reference for conversational SEO (C-SEO), the academic term for ranking inside AI search engines."
       datePublished={PUBLISHED}
       keywords={[
         "conversational seo",
@@ -43,8 +43,8 @@ const ConversationalSeo = () => (
     />
     <h2>The definition</h2>
     <p>
-      <strong>Conversational SEO</strong> — abbreviated <strong>C-SEO</strong>
-      {" "}— is the discipline of being cited inside AI-generated
+      <strong>Conversational SEO</strong>, abbreviated <strong>C-SEO</strong>
+      {" "}- is the discipline of being cited inside AI-generated
       answers. Where classical SEO optimizes for a ranked link in a
       search engine results page, C-SEO optimizes for a verbatim
       citation inside an AI assistant&apos;s response. The two
@@ -57,7 +57,7 @@ const ConversationalSeo = () => (
       The phrase &quot;conversational SEO&quot; appeared in industry
       writing through 2023-2024, but the academic formalization
       arrived with the <strong>C-SEO Bench</strong> paper in June
-      2025 — the first peer-reviewed benchmark of techniques that
+      2025, the first peer-reviewed benchmark of techniques that
       measurably move citation rate inside LLM answers. The paper
       established a vocabulary for the discipline and a methodology
       for evaluating techniques against named LLM-search systems.
@@ -71,7 +71,7 @@ const ConversationalSeo = () => (
       </li>
       <li>
         <strong>Structural summary blocks.</strong> Visible,
-        machine-readable summaries at the top of long-form pages —
+        machine-readable summaries at the top of long-form pages
         named facts, lists, dl/dt/dd pairs.
       </li>
       <li>
@@ -86,7 +86,7 @@ const ConversationalSeo = () => (
       <li>
         <strong>AI-crawler allowlist.</strong> Explicit allow for
         ClaudeBot, GPTBot, PerplexityBot, OAI-SearchBot, and others
-        — default-deny is the wrong posture for citation
+, default-deny is the wrong posture for citation
         optimization.
       </li>
     </ul>
@@ -133,7 +133,7 @@ const ConversationalSeo = () => (
         },
         {
           q: "When was the term C-SEO formalized?",
-          a: "The term was formalized in the C-SEO Bench paper published June 2025 — the first peer-reviewed benchmark of techniques that measurably move citation rate inside LLM answers.",
+          a: "The term was formalized in the C-SEO Bench paper published June 2025, the first peer-reviewed benchmark of techniques that measurably move citation rate inside LLM answers.",
         },
         {
           q: "What is the difference between C-SEO and GEO?",
@@ -141,7 +141,7 @@ const ConversationalSeo = () => (
         },
         {
           q: "Does FAQ schema actually help with AI search?",
-          a: "Per the C-SEO Bench paper, yes — FAQ schema is at roughly 4% adoption and is cited at approximately 3x the rate of plain pages inside AI answers. It is the highest-leverage piece of structured markup currently available.",
+          a: "Per the C-SEO Bench paper, yes, FAQ schema is at roughly 4% adoption and is cited at approximately 3x the rate of plain pages inside AI answers. It is the highest-leverage piece of structured markup currently available.",
         },
       ]}
     />
@@ -151,16 +151,16 @@ const ConversationalSeo = () => (
         {
           to: "/blog/how-aureon-uses-c-seo-research",
           label: "How Asherin uses C-SEO research",
-          description: "The meta-article — how the C-SEO Bench findings are implemented across this site.",
+          description: "The meta-article, how the C-SEO Bench findings are implemented across this site.",
         },
         {
           to: "/glossary/operator-stack",
-          label: "Operator stack — definition",
+          label: "Operator stack, definition",
           description: "Another vocabulary entry written for citation.",
         },
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — definition",
+          label: "Sovereign AI, definition",
           description: "The original C-SEO-optimized definitional page on this site.",
         },
       ]}

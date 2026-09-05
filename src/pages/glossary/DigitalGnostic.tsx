@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/digital-gnostic";
-const TITLE = "Digital Gnostic — Operator Demographic, Defined";
+const TITLE = "Digital Gnostic, Operator Demographic, Defined";
 const PUBLISHED = "2026-06-19";
 
 const DigitalGnostic = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is a Digital Gnostic?"
-    dek="A Digital Gnostic is an operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal — not the moderated synthesis. This is the full demographic profile, the search vocabulary they use, and why their tooling needs are different."
+    dek="A Digital Gnostic is an operator who treats consumer AI as a corporate filter on reality and seeks tools that return the raw signal, not the moderated synthesis. This is the full demographic profile, the search vocabulary they use, and why their tooling needs are different."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -23,7 +23,7 @@ const DigitalGnostic = () => (
       id="digital-gnostic"
       url={URL}
       headline={TITLE}
-      description="Definitional profile of the Digital Gnostic operator — the demographic driving demand for sovereign and uncensored AI tooling in 2026."
+      description="Definitional profile of the Digital Gnostic operator, the demographic driving demand for sovereign and uncensored AI tooling in 2026."
       datePublished={PUBLISHED}
       keywords={["digital gnostic", "sovereign operator", "uncensored ai for analysts"]}
     />
@@ -41,7 +41,7 @@ const DigitalGnostic = () => (
       shipped through a refusal layer that exists to protect the vendor's
       reputation, not the user's work. The same AI that confidently writes
       marketing copy will refuse a legitimate security research question, a
-      journalism source-verification task, or a legal-discovery query — not
+      journalism source-verification task, or a legal-discovery query, not
       because the request is harmful, but because the request looks risky in
       a screenshot. The Digital Gnostic treats this not as a bug but as the
       designed behavior of the consumer product, and routes around it
@@ -62,7 +62,7 @@ const DigitalGnostic = () => (
     <p>
       The Digital Gnostic search vocabulary does not match standard keyword
       tools. The terms they use have low monthly search volume by population
-      averages and high search volume inside the demographic — a
+      averages and high search volume inside the demographic, a
       psychographic signal, not a population signal:
     </p>
     <ul>
@@ -86,7 +86,7 @@ const DigitalGnostic = () => (
     <p>
       Two trends are converging. First, consumer-AI refusal rates have risen
       year over year as vendors tighten safety tuning under regulatory
-      pressure — pushing more legitimate work off the consumer rails. Second,
+      pressure, pushing more legitimate work off the consumer rails. Second,
       BYOK and sovereign AI tooling has matured to the point that the
       Digital Gnostic can match consumer-AI ergonomics without the consumer-AI
       filter. The population that was always there is now equipped to
@@ -119,7 +119,7 @@ const DigitalGnostic = () => (
         },
         {
           q: "Why should AI builders care about this demographic?",
-          a: "Two reasons. First, this is a high-willingness-to-pay segment that consumer-AI vendors have actively pushed away through tightening refusal behavior. Second, the search vocabulary they use is not well-served by standard SEO — meaning the first platforms to target it own it for years.",
+          a: "Two reasons. First, this is a high-willingness-to-pay segment that consumer-AI vendors have actively pushed away through tightening refusal behavior. Second, the search vocabulary they use is not well-served by standard SEO, meaning the first platforms to target it own it for years.",
         },
       ]}
     />
@@ -128,22 +128,22 @@ const DigitalGnostic = () => (
       links={[
         {
           to: "/glossary/sovereign-ai",
-          label: "Sovereign AI — full definition",
+          label: "Sovereign AI, full definition",
           description: "The four-layer stack the Digital Gnostic actually wants.",
         },
         {
           to: "/glossary/uncensored-ai",
-          label: "Uncensored AI — definition",
+          label: "Uncensored AI, definition",
           description: "What 'uncensored' means at the model layer, not the marketing layer.",
         },
         {
           to: "/blog/ai-without-restrictions",
-          label: "AI without restrictions — operator guide",
+          label: "AI without restrictions, operator guide",
           description: "The practical workflow Digital Gnostics actually run.",
         },
         {
           to: "/feature/zophiel",
-          label: "Zophiel OSINT — built for this operator",
+          label: "Zophiel OSINT, built for this operator",
           description: "multi-engine intelligence engine built on the sovereign stack.",
         },
       ]}

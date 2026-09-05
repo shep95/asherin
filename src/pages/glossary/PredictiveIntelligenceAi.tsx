@@ -7,14 +7,14 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/predictive-intelligence-ai";
-const TITLE = "Predictive Intelligence AI — Definition and Scope";
+const TITLE = "Predictive Intelligence AI, Definition and Scope";
 const PUBLISHED = "2026-06-19";
 
 const PredictiveIntelligenceAi = () => (
   <ArticleShell
     eyebrow="Glossary · Definition"
     title="What Is Predictive Intelligence AI?"
-    dek="Predictive intelligence AI is the application of language-model reasoning to produce calibrated probabilistic forecasts of future events — with explicit probabilities, resolution windows, and verification plans. This is the working definition, the scope, and the boundary with related categories."
+    dek="Predictive intelligence AI is the application of language-model reasoning to produce calibrated probabilistic forecasts of future events, with explicit probabilities, resolution windows, and verification plans. This is the working definition, the scope, and the boundary with related categories."
     publishedLabel="Jun 19 2026"
     readTime="6 min"
     backTo={{ to: "/glossary", label: "← Asherin Glossary" }}
@@ -23,7 +23,7 @@ const PredictiveIntelligenceAi = () => (
       id="predictive-intelligence-ai"
       url={URL}
       headline={TITLE}
-      description="Definitional reference for predictive intelligence AI — the discipline of calibrated probabilistic forecasting via LLM-driven multi-signal synthesis."
+      description="Definitional reference for predictive intelligence AI, the discipline of calibrated probabilistic forecasting via LLM-driven multi-signal synthesis."
       datePublished={PUBLISHED}
       keywords={[
         "predictive intelligence ai",
@@ -44,7 +44,7 @@ const PredictiveIntelligenceAi = () => (
     <p>
       <strong>Predictive intelligence AI</strong> is the application of
       language-model reasoning to produce calibrated probabilistic
-      forecasts of future events. The output is not narrative — it is
+      forecasts of future events. The output is not narrative, it is
       a probability, a resolution window, and a named outcome
       verifiable against reality. The category requires four
       ingredients (covered at depth in{" "}
@@ -64,7 +64,7 @@ const PredictiveIntelligenceAi = () => (
       <li>
         <strong>Classical statistical forecasting</strong> (ARIMA,
         Prophet, regressions) is a strict subset of the
-        signal-fusion layer — used for the base-rate input, not the
+        signal-fusion layer, used for the base-rate input, not the
         full method.
       </li>
       <li>
@@ -99,8 +99,8 @@ const PredictiveIntelligenceAi = () => (
       is Asherin's predictive intelligence engine. It fuses five
       required signal classes per forecast, binds language to
       calibrated probability bands, and publishes verification plans
-      with every forecast. The Q4 2026 AI regulation forecast — 72%
-      probability between Oct 1 and Dec 15, 2026 — is the live
+      with every forecast. The Q4 2026 AI regulation forecast, 72%
+      probability between Oct 1 and Dec 15, 2026, is the live
       worked example, with the resolution post landing in January
       2027.
     </p>
@@ -112,7 +112,7 @@ const PredictiveIntelligenceAi = () => (
       historical analog cannot be honestly calibrated; the responsible
       output for those is to decline rather than publish a number.
       The track-record discipline only pays off across enough
-      forecasts to evaluate calibration — a single hit or miss is
+      forecasts to evaluate calibration, a single hit or miss is
       anecdote, not evidence.
     </p>
 
@@ -121,7 +121,7 @@ const PredictiveIntelligenceAi = () => (
       items={[
         {
           q: "How is predictive intelligence AI different from generative AI?",
-          a: "Generative AI produces text or media. Predictive intelligence AI produces falsifiable probabilistic forecasts — every output is a probability with a resolution window, scored against reality.",
+          a: "Generative AI produces text or media. Predictive intelligence AI produces falsifiable probabilistic forecasts, every output is a probability with a resolution window, scored against reality.",
         },
         {
           q: "Can predictive intelligence AI replace human forecasters?",
@@ -138,7 +138,7 @@ const PredictiveIntelligenceAi = () => (
       links={[
         {
           to: "/feature/axrlen",
-          label: "AXRLEN — the engine",
+          label: "AXRLEN, the engine",
           description: "Asherin's implementation of predictive intelligence AI in production.",
         },
         {
@@ -148,7 +148,7 @@ const PredictiveIntelligenceAi = () => (
         },
         {
           to: "/blog/predictions/world-cup-2026-group-matches-0622",
-          label: "AXRLEN forecast — World Cup 22 June slate",
+          label: "AXRLEN forecast, World Cup 22 June slate",
           description: "The live worked example.",
         },
       ]}

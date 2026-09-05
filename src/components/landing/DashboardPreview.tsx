@@ -24,7 +24,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "search", icon: Zap, label: "Zophiel Engine", desc: "multi-engine OSINT search engine with Veracity Scores and cross-validation across the open and dark web." },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", desc: "Daily truth-extracted intelligence briefings synthesized from live sources, with triple-fallback parsing." },
-      { id: "reverse", icon: Search, label: "Reverse Engineer", desc: "Architecture deconstruction from images, video, and binaries — see the blueprint behind any system." },
+      { id: "reverse", icon: Search, label: "Reverse Engineer", desc: "Architecture deconstruction from images, video, and binaries, see the blueprint behind any system." },
       { id: "zahten", icon: Workflow, label: "Zahten Agent Forge", desc: "Build hardened autonomous agents with a Mission Console, Scope Assessor, and multi-channel delivery." },
     ],
   },
@@ -75,8 +75,8 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "audit", icon: ClipboardList, label: "Audit Trail", pro: true, desc: "Tamper-evident logs of every action with non-repudiation hashes." },
       { id: "self-access", icon: FileText, label: "Self-Access Learning", desc: "Personal learning hub tracking your usage patterns and skill gaps." },
       { id: "bug-reports", icon: ClipboardList, label: "Bug Reports", desc: "Private RLS portal with AI summarization for the admin." },
-      { id: "stats", icon: BarChart3, label: "My Stats", desc: "Personal analytics — credits, runs, and module-level usage breakdown." },
-      { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology", desc: "Vedic strategy module — chart-based timing analysis for decisions." },
+      { id: "stats", icon: BarChart3, label: "My Stats", desc: "Personal analytics, credits, runs, and module-level usage breakdown." },
+      { id: "vedic-astrology", icon: Moon, label: "Vedic Astrology", desc: "Vedic strategy module, chart-based timing analysis for decisions." },
       { id: "subscription", icon: CreditCard, label: "Subscription", desc: "Manage Chat, Asherin, Pro, or Lifetime tier and billing." },
       { id: "settings", icon: Settings, label: "Settings", desc: "Workspace preferences, BYOK provider keys, and security controls." },
     ],
@@ -85,7 +85,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 
 /* ════════════════════════════════════════════════════════════
-   FAITHFUL MOCK VIEWS — replicating actual dashboard UIs
+   FAITHFUL MOCK VIEWS, replicating actual dashboard UIs
    ════════════════════════════════════════════════════════════ */
 
 function ChatMock() {
@@ -109,10 +109,10 @@ function ChatMock() {
           Analyze the architectural flaws in this React codebase.
         </div>
         <div className="max-w-[92%] rounded-2xl border border-border/10 bg-card/30 px-4 py-3 text-[10px] font-extralight text-foreground/80 space-y-1.5">
-          <p className="font-light text-foreground text-[11px]">Phase 1: Scout — Context Mapping</p>
+          <p className="font-light text-foreground text-[11px]">Phase 1: Scout, Context Mapping</p>
           <p className="text-muted-foreground/70 ml-2">Monolithic state pattern detected in root component. All conversation data, UI state, and streaming logic colocated in 500+ line file.</p>
           <p className="font-light text-foreground text-[11px] mt-2">Phase 2: Bug Hunt</p>
-          <p className="text-muted-foreground/70 ml-2">• <span className="text-red-400/70">BUG</span>: Stale closure in `sendMessage` — references old state</p>
+          <p className="text-muted-foreground/70 ml-2">• <span className="text-red-400/70">BUG</span>: Stale closure in `sendMessage`, references old state</p>
           <p className="text-muted-foreground/70 ml-2">• <span className="text-red-400/70">BUG</span>: Missing cleanup on `AbortController` in unmount</p>
           <p className="text-muted-foreground/70 ml-2">• <span className="text-amber-400/70">WARN</span>: `trackUsage` fires before message is persisted</p>
           <p className="font-light text-foreground text-[11px] mt-2">Phase 3: Structural Audit</p>
@@ -309,9 +309,9 @@ function BriefingMock() {
       </div>
       <div className="flex-1 py-3 space-y-2">
         {[
-          { title: "Morning Intelligence Brief — Mar 8, 2026", critical: 3, sig: 7, mon: 12, time: "6:00 AM" },
-          { title: "Evening Intelligence Brief — Mar 7, 2026", critical: 1, sig: 4, mon: 8, time: "6:00 PM" },
-          { title: "Morning Intelligence Brief — Mar 7, 2026", critical: 2, sig: 5, mon: 10, time: "6:00 AM" },
+          { title: "Morning Intelligence Brief, Mar 8, 2026", critical: 3, sig: 7, mon: 12, time: "6:00 AM" },
+          { title: "Evening Intelligence Brief, Mar 7, 2026", critical: 1, sig: 4, mon: 8, time: "6:00 PM" },
+          { title: "Morning Intelligence Brief, Mar 7, 2026", critical: 2, sig: 5, mon: 10, time: "6:00 AM" },
         ].map(r => (
           <div key={r.title} className="rounded-xl border border-border/10 bg-card/20 p-3 hover:bg-card/30 transition-colors cursor-default">
             <div className="flex items-start justify-between">
@@ -657,7 +657,7 @@ const DashboardPreview = () => {
           <span className="text-muted-foreground">Every Tool. Every Agent. One Interface.</span>
         </h2>
         <p className="mt-6 text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
-          Hover over any tool to preview it live. This is the exact interface you get — no downgrades, no locked panels.
+          Hover over any tool to preview it live. This is the exact interface you get, no downgrades, no locked panels.
         </p>
 
         <div className="mt-16 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md overflow-hidden text-left">

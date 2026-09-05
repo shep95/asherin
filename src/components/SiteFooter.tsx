@@ -36,7 +36,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
           <div className="flex flex-col gap-3">
             <p className="text-sm font-extralight tracking-[0.28em] text-foreground">asherin</p>
             <p className="max-w-xs text-xs font-extralight leading-relaxed text-muted-foreground">
-              a small independent project. chat with sources, files, maps, and a vault — and
+              a small independent project. chat with sources, files, maps, and a vault, and
               honest about what it does not know.
             </p>
             <button
@@ -128,7 +128,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
 
               <p className="max-w-xl text-sm font-light leading-relaxed text-muted-foreground">
                 anyone is welcome to follow the work, regardless of origin, status, or
-                background. participation does not require a title, pledge, or symbol — only
+                background. participation does not require a title, pledge, or symbol, only
                 curiosity and respect for others.
               </p>
             </div>

@@ -13,7 +13,7 @@ import { applySeoHead } from "@/lib/seoHead";
 const SecurityPolicy = () => {
   useEffect(() => {
     applySeoHead({
-      title: "Security & Vulnerability Disclosure Policy — Asherin",
+      title: "Security & Vulnerability Disclosure Policy, Asherin",
       description:
         "How to report a security vulnerability in Asherin: scope, rules of engagement, safe harbour, response targets, and the security@asherin.com reporting channel.",
       path: "/security-policy",
@@ -66,7 +66,7 @@ const SecurityPolicy = () => {
                 Honest limitation, checked 13 August 2026: mail delivery to that address depends on MX records on the
                 asherin.com DNS zone, and that zone currently publishes no MX record. Until the operator adds one, mail
                 sent to any @asherin.com address may bounce or fail silently. The address is the intended channel, not a
-                verified inbox — this page will not claim otherwise. If you get no acknowledgement inside the 3 business
+                verified inbox, this page will not claim otherwise. If you get no acknowledgement inside the 3 business
                 days below, assume delivery failed rather than that the report was dismissed, and reach the operator
                 through a public profile link in the site footer.
               </p>
@@ -95,7 +95,7 @@ const SecurityPolicy = () => {
             <Section title="Rules of engagement">
               <p>
                 Test only against accounts you own or have explicit permission to use. Do not access, modify, exfiltrate,
-                or retain another person's data — if you encounter it, stop, and say so in the report.
+                or retain another person's data, if you encounter it, stop, and say so in the report.
               </p>
               <p>
                 No denial of service, no volumetric or brute-force traffic, no social engineering of staff or users, no

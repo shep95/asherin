@@ -17,7 +17,7 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/asherin-maps-find-my";
 const TITLE =
-  "Asherin Maps — satellite-first mapping, live traffic cameras, Fast Lane routing & Bluetooth recovery";
+  "Asherin Maps, satellite-first mapping, live traffic cameras, Fast Lane routing & Bluetooth recovery";
 const DEK =
   "Asherin Maps replaces the property-map panel with a satellite-default mapping surface: a resizable layer tree, 2,700+ live DOT traffic cameras, OSRM Fast Lane routing, self-reporting device telemetry from the browsers you sign in on, and Bluetooth recovery rings for hardware that cannot report.";
 const PUBLISHED = "2026-08-04T00:00:00.000Z";
@@ -75,11 +75,11 @@ const AsherinMapsFindMy = () => {
           },
           {
             q: "Where do the traffic cameras come from?",
-            a: "Public state and municipal Department of Transportation camera feeds — over 2,700 of them — published by the agencies themselves. They are plotted as map layers and opened in place, with no private or residential camera access.",
+            a: "Public state and municipal Department of Transportation camera feeds, over 2,700 of them, published by the agencies themselves. They are plotted as map layers and opened in place, with no private or residential camera access.",
           },
           {
             q: "How does Bluetooth recovery locate a lost device?",
-            a: "Devices report their own position and battery only from a browser where you signed in and granted permission — there is no remote locating of a phone that never reported. For Bluetooth hardware that cannot self-report, Asherin fuses the last-seen RSSI observations from your own reporting browsers into a probability ring showing where it was last within range.",
+            a: "Devices report their own position and battery only from a browser where you signed in and granted permission, there is no remote locating of a phone that never reported. For Bluetooth hardware that cannot self-report, Asherin fuses the last-seen RSSI observations from your own reporting browsers into a probability ring showing where it was last within range.",
           },
           {
             q: "Can the assistant drive the map?",
@@ -90,7 +90,7 @@ const AsherinMapsFindMy = () => {
 
       <ArticleShell
         eyebrow="Product Briefing · Asherin Maps"
-        title="Asherin Maps — satellite-first, camera-aware, assistant-driven"
+        title="Asherin Maps, satellite-first, camera-aware, assistant-driven"
         dek={DEK}
         publishedLabel="Aug 4 2026"
         readTime="10 min"
@@ -99,9 +99,9 @@ const AsherinMapsFindMy = () => {
         <p>
           A street-line basemap is a diagram; satellite imagery is
           evidence. Asherin Maps opens on imagery because almost every
-          question asked of an operational map — what is actually on that
+          question asked of an operational map, what is actually on that
           lot, how many vehicles fit in that yard, where does that track
-          run — is answered by pixels rather than by labels. Vector overlay
+          run, is answered by pixels rather than by labels. Vector overlay
           remains available on top; it is simply no longer the default
           frame.
         </p>
@@ -112,7 +112,7 @@ const AsherinMapsFindMy = () => {
           and scalable: drag it wider when you are managing twenty layers,
           collapse it to a rail when you want the imagery. Groups nest,
           state persists between sessions, and layer toggles do not force a
-          re-render of the whole canvas — visibility flips are cheap
+          re-render of the whole canvas, visibility flips are cheap
           because the layer objects are memoised and keyed independently.
         </p>
         <Box>{`LAYER TREE
@@ -134,7 +134,7 @@ const AsherinMapsFindMy = () => {
           2,700 of them into a single plotted layer, so a camera nearest a
           point of interest is one click rather than a hunt across a dozen
           agency websites. Feeds open in place beside the map. These are
-          public roadway feeds only — nothing residential, nothing private,
+          public roadway feeds only, nothing residential, nothing private,
           nothing accessed without the publisher's own open endpoint.
         </p>
 
@@ -159,7 +159,7 @@ const AsherinMapsFindMy = () => {
           at before you commit to it.
         </p>
 
-        <h2>5. Device roster — the browsers that report in</h2>
+        <h2>5. Device roster, the browsers that report in</h2>
         <p>
           A device joins the roster when you open Asherin on it, sign in and
           grant location and battery permission in that browser. It then
@@ -172,7 +172,7 @@ const AsherinMapsFindMy = () => {
           at all.
         </p>
 
-        <h2>6. Bluetooth recovery — hardware that cannot speak</h2>
+        <h2>6. Bluetooth recovery, hardware that cannot speak</h2>
         <p>
           A laptop running Asherin can report its own coordinates. A pair of
           earbuds cannot. The recovery view handles the second case by fusing
@@ -183,7 +183,7 @@ const AsherinMapsFindMy = () => {
           scans, not a network of strangers' phones.
         </p>
 
-        <Box>{`BLUETOOTH RECOVERY — "AirPods Pro"
+        <Box>{`BLUETOOTH RECOVERY, "AirPods Pro"
   last self-report      none (passive device)
   observations          3 sightings, 2 devices
     ├─ phone   18:41  RSSI -67  → ~4 m radius
@@ -194,7 +194,7 @@ const AsherinMapsFindMy = () => {
         <p>
           The ring is honest about its uncertainty. RSSI-to-distance is a
           noisy inference, so the output is a radius with a confidence band
-          — never a false pinpoint.
+, never a false pinpoint.
         </p>
 
         <h2>7. Assistant control</h2>

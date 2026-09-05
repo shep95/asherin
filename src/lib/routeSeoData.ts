@@ -29,7 +29,7 @@ export type SeoEntry = {
 
 export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
-    title: "asherin — look a little closer.",
+    title: "asherin, look a little closer.",
     description:
       "asherin is a sourced research workspace: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision and asherin.eye. $18/mo, $79/mo pro.",
   },
@@ -48,12 +48,12 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/for": {
     title: "who asherin is for",
     description:
-      "five desks. same seat: sourced chat, public-index search, a map, a vault, memory. first click is look — wikipedia + wayback — not a paywall. $18 / month. $79 / month pro.",
+      "five desks. same seat: sourced chat, public-index search, a map, a vault, memory. first click is look, wikipedia + wayback, not a paywall. $18 / month. $79 / month pro.",
   },
   "/for/research": {
     title: "asherin for people who already chat with a model",
     description:
-      "if you already talk to a model and need sources beside the answer, a map, files, and a vault — that is this seat. $18/mo, $79/mo pro.",
+      "if you already talk to a model and need sources beside the answer, a map, files, and a vault, that is this seat. $18/mo, $79/mo pro.",
   },
   "/for/journalists": {
     title: "asherin for journalists",
@@ -273,9 +273,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   },
 
   "/blog/asher-fold-memory": {
-    title: "asher.fold-memory — leftover memory, stored once",
+    title: "asher.fold-memory, leftover memory, stored once",
     description:
-      "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack — no account.",
+      "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack, no account.",
     ogType: "article",
     datePublished: "2026-08-16",
   },

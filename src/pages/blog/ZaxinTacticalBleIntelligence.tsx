@@ -6,7 +6,7 @@ import {
 } from "@/components/seo/SeoJsonLd";
 
 const URL = "https://asherin.com/blog/zaxin-tactical-ble-intelligence";
-const TITLE = "Zaxin — Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin";
+const TITLE = "Zaxin, Tactical BLE Intelligence, AR HUD & Satellite Recon Inside Asherin";
 const PUBLISHED = "2026-06-26T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -18,8 +18,8 @@ const Box = ({ children }: { children: React.ReactNode }) => (
 const ZaxinTacticalBleIntelligence = () => (
   <ArticleShell
     eyebrow="Product Briefing · Zaxin · Asherin $79 Tier"
-    title="Zaxin — Tactical BLE Intelligence inside Asherin"
-    dek="Zaxin is the Web-Bluetooth tactical layer bundled with the Asherin $79 subscription: a five-brain stack that pairs nearby devices, plots them on real satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. This is the field briefing — workflows, diagrams, and the seven AI fusion theories that power it."
+    title="Zaxin, Tactical BLE Intelligence inside Asherin"
+    dek="Zaxin is the Web-Bluetooth tactical layer bundled with the Asherin $79 subscription: a five-brain stack that pairs nearby devices, plots them on real satellite imagery, and overlays them on the camera feed as a Ghost-Recon-style HUD. This is the field briefing, workflows, diagrams, and the seven AI fusion theories that power it."
     publishedLabel="Jun 26 2026"
     readTime="11 min"
   >
@@ -46,7 +46,7 @@ const ZaxinTacticalBleIntelligence = () => (
       items={[
         { name: "Asherin", url: "/" },
         { name: "Blog", url: "/blog" },
-        { name: "Zaxin — Tactical BLE Intelligence", url: "/blog/zaxin-tactical-ble-intelligence" },
+        { name: "Zaxin, Tactical BLE Intelligence", url: "/blog/zaxin-tactical-ble-intelligence" },
       ]}
     />
     <FaqJsonLd
@@ -58,7 +58,7 @@ const ZaxinTacticalBleIntelligence = () => (
         },
         {
           q: "Why does Zaxin require a tap to pair each device?",
-          a: "Web Bluetooth mandates an OS-level chooser per device by design — no browser-side app can bypass it. Zaxin runs a rapid-fire loop instead: tap + Add Device once, accept, and the chooser immediately re-opens for the next device until you close it.",
+          a: "Web Bluetooth mandates an OS-level chooser per device by design, no browser-side app can bypass it. Zaxin runs a rapid-fire loop instead: tap + Add Device once, accept, and the chooser immediately re-opens for the next device until you close it.",
         },
         {
           q: "Does Zaxin need a Google Maps API key?",
@@ -83,7 +83,7 @@ const ZaxinTacticalBleIntelligence = () => (
 
     <h2>2. The five-brain architecture</h2>
     <Box>{`┌──────────────────────────────────────────────────────────────┐
-│                ZAXIN — FIVE-BRAIN STACK                      │
+│                ZAXIN, FIVE-BRAIN STACK                      │
 ├──────────────────────────────────────────────────────────────┤
 │  B1  SCANNER    Web Bluetooth requestDevice / GATT pairing   │
 │  B2  NAMING     Manufacturer + UUID → human-readable label   │
@@ -117,17 +117,17 @@ const ZaxinTacticalBleIntelligence = () => (
    │                         │  chooser for next device │
    ▼                         ▼                          ▼`}</Box>
 
-    <h2>4. Satellite recon — why Esri, not Google</h2>
+    <h2>4. Satellite recon, why Esri, not Google</h2>
     <p>
       Esri's World Imagery service serves global high-resolution overhead
       tiles without an API key for non-commercial in-app rendering. That
-      means Zaxin works the moment you load the dashboard — no key dance,
-      no billing risk. Zoom range is z10–z20, contacts are placed by real
+      means Zaxin works the moment you load the dashboard, no key dance,
+      no billing risk. Zoom range is z10-z20, contacts are placed by real
       bearing and RSSI-derived distance, and the compass heading rotates
       the pip ring around the operator dot.
     </p>
 
-    <h2>5. AR HUD — the camera-as-world plane</h2>
+    <h2>5. AR HUD, the camera-as-world plane</h2>
     <Box>{`            ┌─────────────────────────────────┐
             │   FRONT CAMERA (PiP scope)      │
             │  ┌───────────┐                  │
@@ -149,7 +149,7 @@ const ZaxinTacticalBleIntelligence = () => (
       Theory T3 (Visual ↔ BLE Fusion) drives the binding logic.
     </p>
 
-    <h2>6. AXRLEN tactical brief — BYOK only</h2>
+    <h2>6. AXRLEN tactical brief, BYOK only</h2>
     <p>
       Briefs use <strong>your own API key</strong>, configured in{" "}
       <em>Dashboard → Zophiel Engine → BYOK</em>. Google Gemini and OpenAI
@@ -161,10 +161,10 @@ const ZaxinTacticalBleIntelligence = () => (
 
     <h2>7. The seven AI fusion theories</h2>
     <p>
-      The full theory dossier — RSSI→reticle projection, inverse-RSSI
+      The full theory dossier, RSSI→reticle projection, inverse-RSSI
       SLAM, visual-BLE fusion, AXRLEN threat narration, behavior
       fingerprinting, photogrammetric anchoring, and ultrasonic
-      cross-check — lives on the Zaxin theories page:
+      cross-check, lives on the Zaxin theories page:
     </p>
     <p>
       → <a href="/zaxin/theories" className="underline">Read the Zaxin Vision Theories</a>
@@ -184,15 +184,15 @@ const ZaxinTacticalBleIntelligence = () => (
     <h3>Why can't Zaxin auto-pair without a tap?</h3>
     <p>
       Web Bluetooth mandates a per-device OS chooser confirmed by a
-      human gesture. No browser-side app — including Apple's or Google's
-      own — can bypass it. Zaxin's rapid-fire loop is the closest legal
+      human gesture. No browser-side app, including Apple's or Google's
+      own, can bypass it. Zaxin's rapid-fire loop is the closest legal
       approximation: tap once, accept, the chooser immediately re-opens
       for the next device.
     </p>
     <h3>Does Zaxin store my contacts?</h3>
     <p>
       Local-only in browser memory. Hop-mesh sharing is opt-in and
-      ephemeral — peers see contacts only while connected.
+      ephemeral, peers see contacts only while connected.
     </p>
     <h3>Which tier includes Zaxin?</h3>
     <p>

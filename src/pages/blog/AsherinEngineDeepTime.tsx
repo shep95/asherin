@@ -18,7 +18,7 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/asherin-engine-deep-time";
 const TITLE =
-  "Asherin Engine — metadata-first search, DEEP TIME retrieval & identifier sweeps";
+  "Asherin Engine, metadata-first search, DEEP TIME retrieval & identifier sweeps";
 const DEK =
   "The field briefing for the Asherin Engine: a metadata-only search surface that fans a single query into sixteen retrieval legs, walks host lifespans backward through era buckets, extracts document metadata from PDFs, and reduces an email or phone number to a deduplicated 'seen on N surfaces' exposure map.";
 const PUBLISHED = "2026-08-02T00:00:00.000Z";
@@ -64,7 +64,7 @@ const AsherinEngineDeepTime = () => {
         items={[
           { name: "Asherin", url: "/" },
           { name: "Journal", url: "/blog" },
-          { name: "Asherin Engine — DEEP TIME", url: "/blog/asherin-engine-deep-time" },
+          { name: "Asherin Engine, DEEP TIME", url: "/blog/asherin-engine-deep-time" },
         ]}
       />
       <FaqJsonLd
@@ -72,7 +72,7 @@ const AsherinEngineDeepTime = () => {
         items={[
           {
             q: "What is the Asherin Engine?",
-            a: "A metadata-first search surface inside the Asherin dashboard, gated to the $79 Pro tier. Instead of returning ten blue links, it fans one query into sixteen retrieval legs and returns structured exposure records — surface, first-seen, last-seen, snippet, and source link.",
+            a: "A metadata-first search surface inside the Asherin dashboard, gated to the $79 Pro tier. Instead of returning ten blue links, it fans one query into sixteen retrieval legs and returns structured exposure records, surface, first-seen, last-seen, snippet, and source link.",
           },
           {
             q: "What does DEEP TIME do?",
@@ -80,7 +80,7 @@ const AsherinEngineDeepTime = () => {
           },
           {
             q: "What is IDENTIFIER SWEEP?",
-            a: "Paste an email address or phone number and the engine returns a deduplicated 'seen on N surfaces' list with first and last-seen dates plus a context snippet per hit. Surfaces are classified — directory, breach index, corporate filing, academic, social, document.",
+            a: "Paste an email address or phone number and the engine returns a deduplicated 'seen on N surfaces' list with first and last-seen dates plus a context snippet per hit. Surfaces are classified, directory, breach index, corporate filing, academic, social, document.",
           },
           {
             q: "Does the engine store the identities I search?",
@@ -91,7 +91,7 @@ const AsherinEngineDeepTime = () => {
 
       <ArticleShell
         eyebrow="Product Briefing · Asherin Engine · $79 Pro Tier"
-        title="Asherin Engine — metadata-first search and DEEP TIME retrieval"
+        title="Asherin Engine, metadata-first search and DEEP TIME retrieval"
         dek={DEK}
         publishedLabel="Aug 2 2026"
         readTime="12 min"
@@ -113,7 +113,7 @@ const AsherinEngineDeepTime = () => {
           property of the record set, not a replacement for it.
         </p>
 
-        <h2>2. GHOST HARVEST — sixteen-leg fan-out</h2>
+        <h2>2. GHOST HARVEST, sixteen-leg fan-out</h2>
         <Box>{`SINGLE QUERY
      │
      ├─ L01  exact-phrase           ├─ L09  filetype:pdf
@@ -131,11 +131,11 @@ const AsherinEngineDeepTime = () => {
           Legs run under a bounded concurrency cap with a per-leg timeout,
           then fan back in through <code>Promise.allSettled</code> so one
           slow surface cannot stall the batch. A leg that returns nothing
-          is recorded as an explicit zero-hit result — absence of evidence
+          is recorded as an explicit zero-hit result, absence of evidence
           is reported, never silently dropped.
         </p>
 
-        <h2>3. DEEP TIME — reaching material the index aged out</h2>
+        <h2>3. DEEP TIME, reaching material the index aged out</h2>
         <p>
           Current-index search is biased toward recency by construction.
           DEEP TIME counteracts that with era-bucket fan-out: the same
@@ -146,21 +146,21 @@ const AsherinEngineDeepTime = () => {
         <Box>{`ERA BUCKETS                       HOST LIFESPAN TRACK
  ┌──────────────┬──────────┐      host: example-ngo.org
  │ pre-2005     │  n hits  │      ├─ first observed  2004-03
- │ 2005 – 2010  │  n hits  │      ├─ last observed   2019-11
- │ 2010 – 2015  │  n hits  │      ├─ status          dormant
- │ 2015 – 2020  │  n hits  │      └─ successor       udayan-x.org
- │ 2020 – now   │  n hits  │
+ │ 2005, 2010  │  n hits  │      ├─ last observed   2019-11
+ │ 2010, 2015  │  n hits  │      ├─ status          dormant
+ │ 2015, 2020  │  n hits  │      └─ successor       udayan-x.org
+ │ 2020, now   │  n hits  │
  └──────────────┴──────────┘      ▶ dormant hosts still yield records
                                     via snapshot + mirror legs`}</Box>
         <p>
-          Dates are carved in multiple passes — structured metadata first,
-          then in-URL date paths, then in-body datelines — and each carved
+          Dates are carved in multiple passes, structured metadata first,
+          then in-URL date paths, then in-body datelines, and each carved
           date carries the method that produced it so an analyst can weigh
           it. A date carved from a URL path is not the same evidence as a
           date read from a document's creation field.
         </p>
 
-        <h2>4. DOCUMENT INTELLIGENCE — the metadata under the PDF</h2>
+        <h2>4. DOCUMENT INTELLIGENCE, the metadata under the PDF</h2>
         <p>
           Documents are the richest metadata surface on the open web and
           the most consistently ignored. Uploading a PDF to the engine, or
@@ -175,7 +175,7 @@ const AsherinEngineDeepTime = () => {
   producer    : Microsoft® Word 2016
   created     : 2019-06-11T09:14:02Z
   modified    : 2019-06-11T09:41:55Z
-  title       : Annual Report — Programme Outcomes
+  title       : Annual Report, Programme Outcomes
   keywords    : childcare, aftercare, delhi
   ▶ pivots emitted: author-name, org-token, creation-window`}</Box>
         <p>
@@ -184,7 +184,7 @@ const AsherinEngineDeepTime = () => {
           the keyword block seeds a fresh theory batch.
         </p>
 
-        <h2>5. ORIGIN — walking a link back to its publisher</h2>
+        <h2>5. ORIGIN, walking a link back to its publisher</h2>
         <p>
           ORIGIN takes a URL and follows the redirect chain hop by hop,
           recording each intermediate host, its TLS issuer, and the status
@@ -194,20 +194,20 @@ const AsherinEngineDeepTime = () => {
           and timestamp.
         </p>
         <p>
-          Acquisition is bounded — a 2&nbsp;MB body cap and a 15-second
-          wall clock per hop — so a hostile or infinite redirect loop
+          Acquisition is bounded, a 2&nbsp;MB body cap and a 15-second
+          wall clock per hop, so a hostile or infinite redirect loop
           degrades to a partial chain with a recorded reason rather than a
           hung worker.
         </p>
 
-        <h2>6. IDENTIFIER SWEEP — one email, N surfaces</h2>
+        <h2>6. IDENTIFIER SWEEP, one email, N surfaces</h2>
         <p>
           Sweep mode is the engine's most direct workflow. Paste an email
           address or a phone number; the engine anchors every retrieval leg
           on that hard identifier, dedupes by normalized URL, carves dates,
           and classifies each surviving hit into a surface class.
         </p>
-        <Box>{`IDENTIFIER SWEEP — kiran@example.org
+        <Box>{`IDENTIFIER SWEEP, kiran@example.org
  ┌────────────────────┬───────────┬────────────┬────────────┐
  │ SURFACE            │ HITS      │ FIRST SEEN │ LAST SEEN  │
  ├────────────────────┼───────────┼────────────┼────────────┤

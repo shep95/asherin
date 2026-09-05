@@ -21,12 +21,12 @@ type Feature = {
 const features: Feature[] = [
   // Core Chat + Modes
   { name: "Chat Mode", desc: "Conversational AI for general questions, research and synthesis.", aureon: true, pro: true, enterprise: true },
-  { name: "Code Mode", desc: "Elite coding engine — architecture-level reasoning, multi-file edits, no circular debug loops.", aureon: true, pro: true, enterprise: true },
+  { name: "Code Mode", desc: "Elite coding engine, architecture-level reasoning, multi-file edits, no circular debug loops.", aureon: true, pro: true, enterprise: true },
   { name: "Research Mode", desc: "Long-form research workflow with live citations and multi-source synthesis.", aureon: true, pro: true, enterprise: true },
   { name: "Truth Mode", desc: "Adversarial truth-extraction with cross-validation across multiple frontier models.", aureon: true, pro: true, enterprise: true },
 
   // Core Capabilities
-  { name: "Direct answers", desc: "Analytical answers without corporate hedging. Model behaviour depends on the provider you route to — Gemini by default, Venice mistral-31-24b on the platform fallback, or your own key.", aureon: true, pro: true, enterprise: true },
+  { name: "Direct answers", desc: "Analytical answers without corporate hedging. Model behaviour depends on the provider you route to, Gemini by default, Venice mistral-31-24b on the platform fallback, or your own key.", aureon: true, pro: true, enterprise: true },
   { name: "Elite coding engine", desc: "Production-grade code with full repository context, refactoring and verification.", aureon: true, pro: true, enterprise: true },
   { name: "Multi-language output", desc: "Generate output in any major spoken or programming language at identical quality.", aureon: true, pro: true, enterprise: true },
   { name: "Response depth control", desc: "Pick concise, standard or maximum-depth answers per turn.", aureon: true, pro: true, enterprise: true },
@@ -77,7 +77,7 @@ const FeatureLabel = ({ name, desc }: { name: string; desc: string }) => {
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
           className="group inline-flex items-center gap-1.5 text-left text-sm font-extralight text-foreground hover:text-foreground/90 cursor-help focus:outline-none"
-          aria-label={`${name} — tap for details`}
+          aria-label={`${name}, tap for details`}
         >
           <span className="border-b border-dotted border-border/40 group-hover:border-border/70">
             {name}

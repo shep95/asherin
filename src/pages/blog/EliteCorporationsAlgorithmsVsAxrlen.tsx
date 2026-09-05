@@ -8,20 +8,20 @@ import RelatedLinks from "@/components/seo/RelatedLinks";
 import houseOfAsherBanner from "@/assets/house-of-asher-banner.png.asset.json";
 
 const URL = "https://asherin.com/blog/elite-corporations-algorithms-vs-axrlen";
-const TITLE = "notes on axrlen forecasting — symbolism and probability";
+const TITLE = "notes on axrlen forecasting, symbolism and probability";
 const PUBLISHED = "2026-06-24T14:00:00.000Z";
 
 const EliteCorporationsAlgorithmsVsAxrlen = () => (
   <ArticleShell
     eyebrow="note · method"
-    title="notes on axrlen forecasting — symbolism and probability"
+    title="notes on axrlen forecasting, symbolism and probability"
     dek="an archival note on how asherin frames a forecast: a probability, a window, and a way to check it later. no rival scoreboard."
     publishedLabel="Jun 24 2026 · 14:00 UTC"
     readTime="5 min"
     image={
       <img
         src={houseOfAsherBanner.url}
-        alt="House of Asher — cosmic banner with golden planetary rings and the House of Asher signature script"
+        alt="House of Asher, cosmic banner with golden planetary rings and the House of Asher signature script"
         className="w-full rounded-lg shadow-lg"
       />
     }
@@ -62,14 +62,14 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
       forecast.
     </p>
     <ul>
-      <li><strong>probability</strong> — a number, not "likely".</li>
-      <li><strong>window</strong> — a start and an end, in a stated timezone.</li>
-      <li><strong>verification</strong> — the source that will settle it.</li>
+      <li><strong>probability</strong>, a number, not "likely".</li>
+      <li><strong>window</strong>, a start and an end, in a stated timezone.</li>
+      <li><strong>verification</strong>, the source that will settle it.</li>
     </ul>
 
     <h2>where the symbolic reading sits</h2>
     <p>
-      the symbolic layer — numerology, pattern, correspondence — is a way of
+      the symbolic layer, numerology, pattern, correspondence, is a way of
       generating candidates worth checking. it is not evidence. it proposes
       where to look; the probability and the window still have to survive
       ordinary sourcing. when a symbolic read and the data disagree, the data
@@ -81,7 +81,7 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
       it does not claim to see the future, beat institutional models, or read
       markets ahead of them. it claims one narrow thing: a forecast written
       with a probability, a window, and a check can be scored honestly after
-      the fact — including when it was wrong.
+      the fact, including when it was wrong.
     </p>
 
     <FaqJsonLd
@@ -93,7 +93,7 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
         },
         {
           q: "is the symbolic reading evidence?",
-          a: "no. it is a candidate generator — it suggests what to check. probability and window still have to survive ordinary sourcing, and when the data disagrees the data wins.",
+          a: "no. it is a candidate generator, it suggests what to check. probability and window still have to survive ordinary sourcing, and when the data disagrees the data wins.",
         },
         {
           q: "does asherin claim to beat institutional forecasting models?",
@@ -107,7 +107,7 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
       links={[
         {
           to: "/feature/axrlen",
-          label: "axrlen — the forecasting surface",
+          label: "axrlen, the forecasting surface",
           description: "how forecasts are written, scored, and revisited.",
         },
         {

@@ -304,7 +304,7 @@ const GeoBlock = ({ path, className = "" }: Props) => {
                 >
                   {c.label}
                 </a>
-                <span className="text-muted-foreground/70"> — {c.confirms}</span>
+                <span className="text-muted-foreground/70">, {c.confirms}</span>
               </li>
             ))}
           </ul>

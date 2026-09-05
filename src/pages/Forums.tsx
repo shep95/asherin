@@ -49,10 +49,10 @@ interface VoteRow {
 }
 
 const ALL_CATEGORIES: { id: Category; label: string; icon: typeof Lightbulb; desc: string; adminOnly?: boolean }[] = [
-  { id: "idea", label: "Ideas", icon: Lightbulb, desc: "Suggestions — upvote what you want built" },
+  { id: "idea", label: "Ideas", icon: Lightbulb, desc: "Suggestions, upvote what you want built" },
   { id: "theory", label: "Theories", icon: Brain, desc: "Open-source theories to advance AI for humanity" },
   { id: "leak", label: "Leaks", icon: Radio, desc: "Insider intel & disclosures" },
-  { id: "bug", label: "Bugs", icon: Bug, desc: "Report privately — only admins see reports" },
+  { id: "bug", label: "Bugs", icon: Bug, desc: "Report privately, only admins see reports" },
 ];
 
 /** logged-out visible twin of /blog/paid-seat-free-door. not a compose paste. */
@@ -64,7 +64,7 @@ const ForumsWorkLineTwin = () => (
       personas don&apos;t make the model smarter. thinking patterns do. ~ asherin.com
     </p>
     <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-      bring your own api key — asherin is free. you pay that vendor for inference. want our hosted uncensored model?
+      bring your own api key, asherin is free. you pay that vendor for inference. want our hosted uncensored model?
       that is the paid seat. $18 / month. $79 / month pro. this is the offer. it does not claim a named hosted model is
       already live on asherin.com today.
     </p>
@@ -139,11 +139,11 @@ const Forums = () => {
     const t = title.trim(),
       b = body.trim();
     if (t.length < 3 || t.length > 200) {
-      toast({ title: "Title 3–200 chars", variant: "destructive" });
+      toast({ title: "Title 3-200 chars", variant: "destructive" });
       return;
     }
     if (!b || b.length > 8000) {
-      toast({ title: "Body 1–8000 chars", variant: "destructive" });
+      toast({ title: "Body 1-8000 chars", variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -167,7 +167,7 @@ const Forums = () => {
     } else if (tab === "theory") {
       toast({
         title: "Theory submitted",
-        description: "Declared open-source — anyone (incl. other AIs) may read & build on it.",
+        description: "Declared open-source, anyone (incl. other AIs) may read & build on it.",
       });
     }
     loadPosts(tab);
@@ -187,7 +187,7 @@ const Forums = () => {
     if (!user || !activePost) return;
     const b = replyBody.trim();
     if (!b || b.length > 4000) {
-      toast({ title: "Reply 1–4000 chars", variant: "destructive" });
+      toast({ title: "Reply 1-4000 chars", variant: "destructive" });
       return;
     }
     const { error, data } = await supabase
@@ -260,7 +260,7 @@ const Forums = () => {
         </div>
         <h1 className="text-5xl sm:text-6xl font-extralight tracking-[0.1em] zophiel-shimmer-text mb-3">FORUMS</h1>
         <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground/80 mb-10">
-          Share ideas, submit theories, drop leaks. Text only — no file uploads.
+          Share ideas, submit theories, drop leaks. Text only, no file uploads.
         </p>
         <ForumsWorkLineTwin />
 
@@ -292,28 +292,28 @@ const Forums = () => {
         {/* Category-specific disclaimers */}
         {tab === "theory" && (
           <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
-            <span className="tracking-[0.15em] uppercase text-foreground/70">Open Source Notice —</span> Theories
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Open Source Notice -</span> Theories
             submitted here are declared open-source. Anyone, including Asherin and other AI systems, may read, cite, and
             build upon them to advance AI for humanity.
           </div>
         )}
         {tab === "bug" && !isAdmin && (
           <div className="mb-4 rounded-xl border border-foreground/15 bg-foreground/[0.03] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
-            <span className="tracking-[0.15em] uppercase text-foreground/70">Private Report —</span> Bug reports are
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Private Report -</span> Bug reports are
             hidden from other users. Only admins can review them. Include the software name, what happened, and steps to
             reproduce.
           </div>
         )}
         {tab === "bug" && isAdmin && (
           <div className="mb-4 rounded-xl border border-foreground/20 bg-foreground/[0.05] p-3 text-[11px] font-light leading-relaxed text-muted-foreground">
-            <span className="tracking-[0.15em] uppercase text-foreground/70">Admin Queue —</span> Bug reports are hidden
+            <span className="tracking-[0.15em] uppercase text-foreground/70">Admin Queue -</span> Bug reports are hidden
             from users. Daily digest is emailed to the admin mailbox on file at 12:00 UTC.
           </div>
         )}
 
         {!activePost ? (
           <>
-            {/* Compose — bugs visible to any signed-in user for reporting, but visibility is admin-only */}
+            {/* Compose, bugs visible to any signed-in user for reporting, but visibility is admin-only */}
             <div className="rounded-2xl border border-border/20 bg-card/40 backdrop-blur-md mb-6">
               {!composeOpen ? (
                 <button
@@ -351,7 +351,7 @@ const Forums = () => {
                         ? "Which software, what happened, steps to reproduce. Only admins can see this."
                         : tab === "theory"
                           ? "State your theory. Include reasoning, examples, and workflow. Open-source once posted."
-                          : `Describe your ${tab} in detail. Text only — no file uploads.`
+                          : `Describe your ${tab} in detail. Text only, no file uploads.`
                     }
                     className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none resize-none leading-relaxed"
                   />
@@ -399,7 +399,7 @@ const Forums = () => {
                   <ActiveIcon className="h-6 w-6 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1.2} />
                   <p className="text-sm font-light text-muted-foreground/60 tracking-wide">
                     {tab === "bug" && !isAdmin
-                      ? "Reports go directly to admins — you won't see them listed here."
+                      ? "Reports go directly to admins, you won't see them listed here."
                       : `No ${tab}s yet. Be the first.`}
                   </p>
                 </div>
@@ -445,7 +445,7 @@ const Forums = () => {
                           {p.body}
                         </p>
                         <p className="mt-3 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
-                          — {p.author_name ?? "anon"}
+, {p.author_name ?? "anon"}
                         </p>
                       </button>
                     </div>
@@ -484,7 +484,7 @@ const Forums = () => {
                 <div key={r.id} className="rounded-xl border border-border/15 bg-card/30 backdrop-blur-md p-4">
                   <p className="text-sm font-light text-foreground/85 leading-relaxed whitespace-pre-wrap">{r.body}</p>
                   <p className="mt-2 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
-                    — {r.author_name ?? "anon"} · {new Date(r.created_at).toLocaleDateString()}
+, {r.author_name ?? "anon"} · {new Date(r.created_at).toLocaleDateString()}
                   </p>
                 </div>
               ))}

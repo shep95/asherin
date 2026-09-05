@@ -249,13 +249,13 @@ const Index = () => {
       <Section className="flex min-h-[88vh] flex-col justify-center px-6 pt-32 pb-20">
         <div className="mx-auto w-full max-w-5xl">
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-light tracking-[-0.025em] leading-[0.94] text-foreground">
-            asherin —
+            asherin
             <br />
             <span className="zophiel-shimmer-text italic font-light">look a little closer.</span>
           </h1>
 
           <p className="mt-8 max-w-xl text-lg sm:text-xl font-light leading-relaxed text-foreground/85">
-            asherin tries to give you the fuller picture — sourced, and honest about what it does not know.
+            asherin tries to give you the fuller picture, sourced, and honest about what it does not know.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
@@ -386,7 +386,7 @@ const Index = () => {
           <ul className="mt-8 space-y-4 text-sm font-extralight leading-relaxed text-muted-foreground">
             <li>your conversations, files, and vault entries are account-scoped and encrypted at rest.</li>
             <li>
-              answering a question means sending it to a model, so it is not a sealed room — asherin will not claim
+              answering a question means sending it to a model, so it is not a sealed room, asherin will not claim
               otherwise.
             </li>
             <li>your work is not sold, and it is not used to train asherin.</li>

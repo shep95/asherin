@@ -7,7 +7,7 @@ import {
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/glossary/zero-day-confidence-scoring";
-const TITLE = "Zero-Day Confidence Scoring — Definition and Calibration Scale";
+const TITLE = "Zero-Day Confidence Scoring, Definition and Calibration Scale";
 const PUBLISHED = "2026-06-19";
 
 const ZeroDayConfidenceScoring = () => (
@@ -23,7 +23,7 @@ const ZeroDayConfidenceScoring = () => (
       id="zero-day-confidence-scoring"
       url={URL}
       headline={TITLE}
-      description="Definitional reference for zero-day confidence scoring — the calibrated 0-100 triage scale for novel vulnerability findings, with band interpretation and scoring inputs."
+      description="Definitional reference for zero-day confidence scoring, the calibrated 0-100 triage scale for novel vulnerability findings, with band interpretation and scoring inputs."
       datePublished={PUBLISHED}
       keywords={[
         "zero-day confidence scoring",
@@ -47,7 +47,7 @@ const ZeroDayConfidenceScoring = () => (
       match any known CVE. The score answers a single question: how
       confident is the engine that this is a real, exploitable, novel
       issue worth a human's attention? It is a triage signal, not a
-      severity rating — a high-confidence novel finding can still
+      severity rating, a high-confidence novel finding can still
       resolve as low-impact, and a low-confidence finding can still be
       worth investigating when context demands.
     </p>
@@ -68,8 +68,8 @@ const ZeroDayConfidenceScoring = () => (
       </li>
       <li>
         <strong>Corroborating signal.</strong> Do independent signals
-        — runtime telemetry, dependency graph anomalies, related
-        findings in adjacent files — reinforce the finding? Multiple
+, runtime telemetry, dependency graph anomalies, related
+        findings in adjacent files, reinforce the finding? Multiple
         corroborators raise confidence; a single isolated signal
         lowers it.
       </li>
@@ -131,7 +131,7 @@ const ZeroDayConfidenceScoring = () => (
       items={[
         {
           q: "Is zero-day confidence scoring the same as CVSS?",
-          a: "No. CVSS scores severity (how bad the impact is if exploited). Zero-day confidence scoring scores triage confidence (how confident the engine is that this novel finding is real and exploitable). The two are complementary — a high-confidence novel finding can still be triaged for severity using CVSS.",
+          a: "No. CVSS scores severity (how bad the impact is if exploited). Zero-day confidence scoring scores triage confidence (how confident the engine is that this novel finding is real and exploitable). The two are complementary, a high-confidence novel finding can still be triaged for severity using CVSS.",
         },
         {
           q: "What score threshold should I set my alerting on?",
@@ -148,7 +148,7 @@ const ZeroDayConfidenceScoring = () => (
       links={[
         {
           to: "/feature/zerlal",
-          label: "ZERLAL — the scoring in production",
+          label: "ZERLAL, the scoring in production",
           description: "Asherin's AI vulnerability scanner, scoring novel patterns on the 0-100 scale.",
         },
         {

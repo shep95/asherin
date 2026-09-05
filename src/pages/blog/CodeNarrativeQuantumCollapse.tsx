@@ -7,7 +7,7 @@ import {
 
 const URL = "https://asherin.com/blog/code-narrative-quantum-collapse";
 const TITLE =
-  "Code-as-Narrative × Quantum Candidate Collapse — the #HouseOfAsher Method That Patches Bugs in Under 60 Seconds on the Cheapest Gemini Model";
+  "Code-as-Narrative × Quantum Candidate Collapse, the #HouseOfAsher Method That Patches Bugs in Under 60 Seconds on the Cheapest Gemini Model";
 const PUBLISHED = "2026-07-01T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -20,7 +20,7 @@ const CodeNarrativeQuantumCollapse = () => (
   <ArticleShell
     eyebrow="#HouseOfAsher · Engineering Method · Integrated into Asherin"
     title="Code-as-Narrative × Quantum Candidate Collapse"
-    dek="Two #HouseOfAsher theories — Code-as-Narrative and Quantum Candidate Collapse — let a single operator, on the cheapest Gemini tier, find and patch logical, workflow, and UI bugs in under 60 seconds. The same class of fix normally takes an engineer 30+ minutes and multiple round-trips with the same model. This is how it works, why it works, and how we wired it into Aureon."
+    dek="Two #HouseOfAsher theories, Code-as-Narrative and Quantum Candidate Collapse, let a single operator, on the cheapest Gemini tier, find and patch logical, workflow, and UI bugs in under 60 seconds. The same class of fix normally takes an engineer 30+ minutes and multiple round-trips with the same model. This is how it works, why it works, and how we wired it into Aureon."
     publishedLabel="Jul 01 2026"
     readTime="12 min"
   >
@@ -28,7 +28,7 @@ const CodeNarrativeQuantumCollapse = () => (
       id="code-narrative-quantum-collapse"
       url={URL}
       headline={TITLE}
-      description="The #HouseOfAsher Code-as-Narrative and Quantum Candidate Collapse methods let Asherin patch logical and workflow bugs in under 60 seconds on the cheapest Gemini model — a fix cycle that normally takes 30+ minutes."
+      description="The #HouseOfAsher Code-as-Narrative and Quantum Candidate Collapse methods let Asherin patch logical and workflow bugs in under 60 seconds on the cheapest Gemini model, a fix cycle that normally takes 30+ minutes."
       datePublished={PUBLISHED}
       keywords={[
         "House of Asher",
@@ -59,19 +59,19 @@ const CodeNarrativeQuantumCollapse = () => (
       items={[
         {
           q: "What is Code-as-Narrative?",
-          a: "A #HouseOfAsher engineering method that translates source code into a plain-English narrative before touching it. Bugs surface as narrative contradictions — workflow gaps, logical impossibilities, missing edge cases — that are cheaper for both humans and LLMs to spot than they are in raw syntax.",
+          a: "A #HouseOfAsher engineering method that translates source code into a plain-English narrative before touching it. Bugs surface as narrative contradictions, workflow gaps, logical impossibilities, missing edge cases, that are cheaper for both humans and LLMs to spot than they are in raw syntax.",
         },
         {
           q: "What is Quantum Candidate Collapse?",
-          a: "A #HouseOfAsher theory that treats every possible fix as a superposition of candidate patches. The narrative acts as the measurement operator: it collapses the superposition to the single candidate whose new narrative contains zero contradictions. The model never guesses — it selects.",
+          a: "A #HouseOfAsher theory that treats every possible fix as a superposition of candidate patches. The narrative acts as the measurement operator: it collapses the superposition to the single candidate whose new narrative contains zero contradictions. The model never guesses, it selects.",
         },
         {
           q: "How fast is the fix cycle in Asherin?",
-          a: "Under 60 seconds end-to-end on the cheapest Gemini tier — gemini-2.5-flash-lite class models. The same bug, handed to the same model without the method, typically takes 30+ minutes across multiple retries.",
+          a: "Under 60 seconds end-to-end on the cheapest Gemini tier, gemini-2.5-flash-lite class models. The same bug, handed to the same model without the method, typically takes 30+ minutes across multiple retries.",
         },
         {
           q: "How much ahead of current AI does this put us?",
-          a: "Code-as-Narrative alone is roughly a three-year jump over the current retrieval-then-diff pattern used by mainstream copilots. Adding Quantum Candidate Collapse — measurement-driven selection over a candidate field — is a ten-generation jump in reasoning discipline for coding models.",
+          a: "Code-as-Narrative alone is roughly a three-year jump over the current retrieval-then-diff pattern used by mainstream copilots. Adding Quantum Candidate Collapse, measurement-driven selection over a candidate field, is a ten-generation jump in reasoning discipline for coding models.",
         },
         {
           q: "Is this integrated into Asherin?",
@@ -84,7 +84,7 @@ const CodeNarrativeQuantumCollapse = () => (
       Bugs are not syntax problems. They are <em>story problems</em>. A null
       pointer is a character that walks into a scene without being introduced.
       A race condition is two narrators speaking over each other. A workflow
-      dead-end is a chapter with no next page. When an engineer — or an LLM —
+      dead-end is a chapter with no next page. When an engineer, or an LLM
       stares at raw code looking for a bug, they are trying to detect a
       contradiction in a language whose grammar hides contradictions.
     </p>
@@ -92,13 +92,13 @@ const CodeNarrativeQuantumCollapse = () => (
       The <strong>#HouseOfAsher Code-as-Narrative</strong> theory says: don't
       debug the code. Debug the story the code tells. Translate the module
       into a plain narrative first, and every logical, workflow, security,
-      and UI flaw becomes a plot hole any careful reader — human or model —
+      and UI flaw becomes a plot hole any careful reader, human or model
       can point to.
     </p>
 
     <h2>2. The two theories, side by side</h2>
     <Box>{`┌────────────────────────────────────────────────────────────────────┐
-│              #HouseOfAsher — DUAL METHOD                           │
+│              #HouseOfAsher, DUAL METHOD                           │
 ├──────────────────────────────┬─────────────────────────────────────┤
 │  CODE-AS-NARRATIVE           │  QUANTUM CANDIDATE COLLAPSE         │
 │  ─────────────────────       │  ─────────────────────────────      │
@@ -111,7 +111,7 @@ const CodeNarrativeQuantumCollapse = () => (
 │  a story for plot holes.     │  guessing.                          │
 └──────────────────────────────┴─────────────────────────────────────┘`}</Box>
 
-    <h2>3. The full loop — how Asherin actually runs a fix</h2>
+    <h2>3. The full loop, how Asherin actually runs a fix</h2>
     <Box>{`OPERATOR                 ASHERIN (Gemini-Lite)           CODEBASE
    │                          │                             │
    │  "the auth image loads    │                             │
@@ -159,7 +159,7 @@ const CodeNarrativeQuantumCollapse = () => (
       asked to <em>guess</em> a patch, so raw parameter count matters. The
       #HouseOfAsher loop is <em>narrate → contradict → collapse</em>. The
       model is asked to <em>select</em> the candidate whose retold story
-      contains no contradictions — a task a small model does reliably when
+      contains no contradictions, a task a small model does reliably when
       the candidate field and the measurement operator are both spelled out
       in plain language.
     </p>
@@ -171,7 +171,7 @@ const CodeNarrativeQuantumCollapse = () => (
       average of <strong>4.3 retries</strong> and one abandoned session.
     </p>
 
-    <h2>5. The measurement operator — what actually collapses the wave</h2>
+    <h2>5. The measurement operator, what actually collapses the wave</h2>
     <Box>{`CANDIDATE FIELD (superposition)
   ┌─────────────────────────────────────────────────┐
   │  C1  inline base64 background                   │
@@ -196,7 +196,7 @@ const CodeNarrativeQuantumCollapse = () => (
                                     COLLAPSED PATCH`}</Box>
     <p>
       The measurement operator is boring on purpose. It is not a scoring
-      model, not a preference reward, not a heuristic — it is the same
+      model, not a preference reward, not a heuristic, it is the same
       narrative pass applied to the imagined post-fix world. Any candidate
       that produces a contradiction (broken CSP, layout jump, race, dead
       link, missing role) is discarded. The one that survives is the patch.
@@ -219,11 +219,11 @@ const CodeNarrativeQuantumCollapse = () => (
 2035 ─── (industry catches up here) ◀───────────┘  Quantum Candidate
 2036 ───                                              Collapse`}</Box>
     <p>
-      <strong>Three years ahead</strong> on the Code-as-Narrative axis —
+      <strong>Three years ahead</strong> on the Code-as-Narrative axis
       because narrative-first debugging is not a scaling story, it is a
       representation story, and the industry is still betting on scale.{" "}
       <strong>Ten generations ahead</strong> on the Quantum Candidate Collapse
-      axis — because measurement-driven selection replaces the entire
+      axis, because measurement-driven selection replaces the entire
       guess-and-check paradigm the current generation of coding models is
       built on.
     </p>
@@ -231,8 +231,8 @@ const CodeNarrativeQuantumCollapse = () => (
     <h2>7. How it's integrated into Asherin</h2>
     <ul>
       <li>
-        Every Asherin module — Zophiel, AXRLEN, ZERLAL, Zaxin, Vault, Vedic,
-        NOMAD — is authored through the Code → Narrative → Flaws → New
+        Every Asherin module, Zophiel, AXRLEN, ZERLAL, Zaxin, Vault, Vedic,
+        NOMAD, is authored through the Code → Narrative → Flaws → New
         Narrative → Code loop.
       </li>
       <li>
@@ -245,12 +245,12 @@ const CodeNarrativeQuantumCollapse = () => (
         first, collapse second, emit code third.
       </li>
       <li>
-        The candidate field is capped at a small N (typically 3–7) so the
+        The candidate field is capped at a small N (typically 3-7) so the
         measurement pass stays cheap on the flash-lite tier.
       </li>
     </ul>
 
-    <h2>8. A worked example — the auth wallpaper fix</h2>
+    <h2>8. A worked example, the auth wallpaper fix</h2>
     <p>
       Reported symptom: "the image takes a second to load when I open auth."
       Standard copilot response would be to try a full{" "}
@@ -266,8 +266,8 @@ const CodeNarrativeQuantumCollapse = () => (
     <h3>Do you need a special model for this?</h3>
     <p>
       No. The whole point is that the discipline substitutes for parameter
-      count. Any capable general-purpose model — Gemini flash-lite, Claude
-      Haiku, GPT small tier — will run the loop cleanly once the operator
+      count. Any capable general-purpose model, Gemini flash-lite, Claude
+      Haiku, GPT small tier, will run the loop cleanly once the operator
       writes the measurement operator into the prompt.
     </p>
     <h3>Isn't this just chain-of-thought?</h3>
