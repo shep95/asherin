@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     seoPrerenderPlugin(),
+    mcpPlugin(),
   ].filter(Boolean),
   resolve: {
     alias: {
