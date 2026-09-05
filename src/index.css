@@ -1014,3 +1014,15 @@ html[data-scrolling] .zophiel-aurora-pulse {
   min-width: 0 !important;
   min-height: 0 !important;
 }
+
+/* half-screen sheet rising from the footer button */
+@keyframes sheet-up {
+  from { transform: translateY(100%); opacity: 0.4; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up { animation: none; }
+}

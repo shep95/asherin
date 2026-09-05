@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
 
 interface SiteFooterProps {
