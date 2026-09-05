@@ -2,6 +2,14 @@
 // (avoids CORS) and normalizes them for the dashboard.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
+// asherin.zaxin is retired — the room is off sale and off access, and this
+// feed proxy goes with it. 410, not 404: the surface existed and is gone.
+const RETIRED = () =>
+  new Response(JSON.stringify({ error: "asherin.zaxin is retired and no longer served." }), {
+    status: 410,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
