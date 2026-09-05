@@ -86,7 +86,7 @@ const TierComparisonMatrix = () => {
               key={t.key}
               className={`relative flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${
                 t.highlight
-                  ? "border border-amber-300/40 bg-gradient-to-b from-amber-300/10 via-amber-300/[0.04] to-transparent shadow-[0_0_0_1px_rgba(252,211,77,0.15),0_0_40px_-10px_rgba(252,211,77,0.4)]"
+                  ? "border border-foreground/25 bg-neutral-900/70 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                   : "border border-border/20 bg-card/30"
               }`}
             >
@@ -94,14 +94,14 @@ const TierComparisonMatrix = () => {
                 {t.name}
               </span>
               <div className="flex items-baseline gap-0.5">
-                <span className={`text-base sm:text-xl font-extralight tracking-wide ${t.highlight ? "text-amber-200" : "text-foreground"}`}>
+                <span className={`text-base sm:text-xl font-extralight tracking-wide ${t.highlight ? "text-foreground" : "text-foreground"}`}>
                   {t.price}
                 </span>
                 <span className="text-[9px] tracking-wider text-muted-foreground/60">{t.cadence}</span>
               </div>
 
               {t.highlight && (
-                <span className="px-1 text-[9px] tracking-wide text-amber-200/60 normal-case text-center leading-snug">
+                <span className="px-1 text-[9px] tracking-wide text-muted-foreground/70 normal-case text-center leading-snug">
                   Asherin, paid once.
                 </span>
               )}
@@ -110,7 +110,7 @@ const TierComparisonMatrix = () => {
                 to={t.href}
                 className={`mt-1 hidden sm:inline-flex w-full justify-center rounded-lg px-2 py-1 text-[10px] tracking-[0.2em] uppercase transition-colors ${
                   t.highlight
-                    ? "bg-amber-300/20 text-amber-100 hover:bg-amber-300/30 border border-amber-300/30"
+                    ? "bg-neutral-800 text-neutral-100 hover:bg-neutral-700 border border-neutral-700"
                     : "bg-foreground/10 text-foreground/90 hover:bg-foreground/20 border border-border/20"
                 }`}
               >
@@ -161,7 +161,7 @@ const TierComparisonMatrix = () => {
                           <div
                             key={t.key}
                             className={`flex items-center justify-center rounded-lg py-1.5 ${
-                              t.highlight ? "bg-amber-300/[0.04]" : ""
+                              t.highlight ? "bg-foreground/[0.03]" : ""
                             }`}
                           >
                             <Cell value={r.tiers[t.key]} />
