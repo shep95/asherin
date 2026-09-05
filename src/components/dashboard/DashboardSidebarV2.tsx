@@ -38,6 +38,7 @@ const V2_LABELS: Partial<Record<string, string>> = {
   "asherin-defender": "asherin.defender",
   "asherin-arvision": "asherin.arvision",
   "asherin-eye": "asherin.eye",
+  shepherd: "asherin.shepherd",
   memory: "Memory",
   subscription: "Subscription",
 };
@@ -48,6 +49,7 @@ const V2_ORDER: DashboardView[] = [
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",
+  "shepherd",
   "library",
   "projects",
   "memory",
