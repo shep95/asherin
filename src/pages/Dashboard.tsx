@@ -68,6 +68,7 @@ const ZaxinView = lazyWithRetry(() => import("@/components/dashboard/zaxin/Zaxin
 const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
+const ShepherdView = lazyWithRetry(() => import("@/components/dashboard/shepherd/ShepherdView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 
@@ -221,6 +222,7 @@ const Dashboard = () => {
     "asherin-defender",
     "asherin-arvision",
     "asherin-eye",
+    "shepherd",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -235,6 +237,8 @@ const Dashboard = () => {
     "asherinx-eng": "ghost-engine",
     pages: "pdf-generator",
     "asherin-pages": "pdf-generator",
+    "asherin-shepherd": "shepherd",
+    "asherin.shepherd": "shepherd",
   };
   const resolveView = (raw?: string): DashboardView | null => {
     if (!raw) return null;
@@ -1922,6 +1926,13 @@ const Dashboard = () => {
           AsherinDefenderView,
           "asherin.defender",
           "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
+        );
+      case "shepherd":
+        return gatedView(
+          "shepherd",
+          ShepherdView,
+          "asherin.shepherd",
+          "keyword-graph evidence engine — anchor gate before traversal, tier ceilings, dependency chains per finding. included with the $18 asherin plan.",
         );
       case "asherin-eye":
         return (

@@ -116,6 +116,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   timeseries: Activity,
   geospatial: Globe,
   "asherin-eye": ScanEye,
+  shepherd: Crosshair,
   "video-intelligence": Crosshair,
   search: Zap,
   nomad: Crosshair,

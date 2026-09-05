@@ -146,4 +146,5 @@ export type DashboardView =
   | "ghost-engine"
   | "asherin-defender"
   | "asherin-arvision"
-  | "asherin-eye";
+  | "asherin-eye"
+  | "shepherd";
