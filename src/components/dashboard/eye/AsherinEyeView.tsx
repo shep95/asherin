@@ -53,6 +53,8 @@ const MODEL_HEADING_OFFSET_DEG = 0;
 const TRACKED_MODEL_ENTER_M = 9000;
 const TRACKED_MODEL_EXIT_M = 14000;
 const HUB = "http://127.0.0.1:8768/log";
+// loopback http — unreachable (mixed content) from an https page.
+const HUB_REACHABLE = typeof window !== "undefined" && window.location.protocol === "http:";
 
 const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
 const GLOBES = ["osm", "dark", "sat"];
@@ -2664,6 +2666,7 @@ const AsherinEyeView = () => {
 
     async function loadNear() {
       try {
+        if (!HUB_REACHABLE) throw new Error("hub is loopback http — blocked over https");
         const r = await fetch(HUB, { signal: AbortSignal.timeout(1800) });
         const j = await r.json();
         const last = (j.rows || [])[0] || {};
