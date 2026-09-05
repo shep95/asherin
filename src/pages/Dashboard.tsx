@@ -211,7 +211,6 @@ const Dashboard = () => {
     "ebook",
     "guardian-vault",
     "zerlal",
-    "zaxin", 
     "file-scrapper",
     "vedic-astrology",
     "zahten",
@@ -222,7 +221,6 @@ const Dashboard = () => {
     "asherin-defender",
     "asherin-arvision",
     "asherin-eye",
-    "shepherd",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -237,8 +235,6 @@ const Dashboard = () => {
     "asherinx-eng": "ghost-engine",
     pages: "pdf-generator",
     "asherin-pages": "pdf-generator",
-    "asherin-shepherd": "shepherd",
-    "asherin.shepherd": "shepherd",
   };
   const resolveView = (raw?: string): DashboardView | null => {
     if (!raw) return null;
@@ -1927,13 +1923,6 @@ const Dashboard = () => {
           "asherin.defender",
           "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
         );
-      case "shepherd":
-        return gatedView(
-          "shepherd",
-          ShepherdView,
-          "asherin.shepherd",
-          "keyword-graph evidence engine — anchor gate before traversal, tier ceilings, dependency chains per finding. included with the $18 asherin plan.",
-        );
       case "asherin-eye":
         return (
           <div className="asherin-eye-pane relative h-full min-h-0 w-full flex-1 overflow-hidden">
@@ -2044,14 +2033,6 @@ const Dashboard = () => {
           "Cloud Intelligence Mesh — Maximum Tier",
           "Asherin turns your own connected accounts into a collection array: correspondent fusion, place cartography, attention ledger, commitment extraction, exposure and threat chaining. Restricted to Asherin Pro — $79/mo, Maximum Intelligence.",
         );
-      case "zaxin":
-        return gatedView(
-          "zaxin",
-          ZaxinView,
-          "Zaxin — BLE Field Scout",
-          "Browser-native BLE tools. Not a replacement for professional RF test gear or indoor location systems.",
-        );
-
       // case "imagine-intelligence" removed
       case "file-scrapper":
         return gatedView(

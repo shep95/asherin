@@ -33,7 +33,6 @@ const PRO_VIEWS: DashboardView[] = [
   "lavba",
   "cross",
   "zaplen",
-  "zaxin",
   "zerlal",
   "knowledge-vault",
   "bulwark",
@@ -50,7 +49,6 @@ const AUREON_VIEWS: DashboardView[] = [
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",
-  "shepherd",
 ];
 
 // Zophiel Search Intelligence tab and its sibling search surfaces. Included

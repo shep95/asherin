@@ -34,7 +34,6 @@ const TITLES: Partial<Record<string, V2Title>> = {
   "knowledge-vault": { title: "knowledge", subtitle: "private files asherin can cite." },
   azplen: { title: "azplen", subtitle: "datasets, analysis and charts." },
   zerlal: { title: "asherin.cyber", subtitle: "passive domain and infrastructure context." },
-  zaxin: { title: "asherin.zaxin", subtitle: "browser-native ble field tools." },
    zahten: { title: "zahten", subtitle: "build and publish an agent." },
    briefing: { title: "briefings", subtitle: "scheduled reading, sourced." },
    notebooks: { title: "notebooks", subtitle: "saved analysis sessions." },
