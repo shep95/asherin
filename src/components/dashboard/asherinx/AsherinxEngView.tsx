@@ -81,6 +81,10 @@ interface LogRow {
 
 const LOG_KEY = "asherinx.eng.area-log";
 const BOX = "http://127.0.0.1:8768";
+// The walking hub is a plain-http loopback service. A page served over https
+// cannot reach it — the browser blocks it as mixed content before the request
+// leaves. Say so instead of throwing a network error every pulse.
+const BOX_REACHABLE = typeof window !== "undefined" && window.location.protocol === "http:";
 
 const ACTIONS: { id: Action; label: string; hint: string; pro?: boolean }[] = [
   { id: "query", label: "query", hint: "ask the public indexes" },
@@ -198,7 +202,8 @@ const AsherinxEngView = () => {
       }
       let companion: { ok?: boolean; rows?: Array<Record<string, unknown>> } | null = null;
       try {
-        const r = await fetch(`${BOX}/log?n=12`, { mode: "cors" });
+        if (!BOX_REACHABLE) throw new Error("blocked over https");
+        const r = await fetch(`${BOX}/log?n=12`, { mode: "cors", signal: AbortSignal.timeout(1500) });
         if (r.ok) companion = await r.json();
       } catch {
         companion = null;
