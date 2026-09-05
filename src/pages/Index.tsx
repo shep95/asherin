@@ -301,7 +301,7 @@ const Index = () => {
             used. {asksLeft > 0 ? `${asksLeft} left before sign up.` : "sign up to keep going."}
           </p>
 
-          <div className="mt-8 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 sm:p-7">
+          <div className="mt-8 rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_20px_50px_-20px_rgba(0,0,0,0.6)] p-5 sm:p-7">
             {asksLeft === 0 ? (
               <div className="flex flex-col items-start gap-4">
                 <p className="text-sm font-extralight text-muted-foreground">
@@ -318,7 +318,7 @@ const Index = () => {
             ) : (
               <form
                 onSubmit={handleAsk}
-                className="flex items-center gap-3 rounded-xl border border-border/30 bg-background/30 px-4 py-3"
+                className="flex items-center gap-3 rounded-xl border border-foreground/10 bg-background/40 backdrop-blur-md px-4 py-3"
               >
                 <label htmlFor="home-ask" className="sr-only">
                   ask asherin a question
@@ -349,7 +349,7 @@ const Index = () => {
             {askError && <p className="mt-5 text-sm font-extralight text-muted-foreground">{askError}</p>}
 
             {answer && (
-              <div className="mt-6 rounded-xl border border-border/10 bg-background/20 p-5 max-h-[52vh] overflow-y-auto">
+              <div className="mt-6 rounded-xl border border-foreground/[0.07] bg-background/40 backdrop-blur-md p-5 max-h-[52vh] overflow-y-auto">
                 <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_li]:text-sm [&_a]:text-accent [&_a]:underline [&_a]:break-words">
                   <ReactMarkdown>{answer}</ReactMarkdown>
                 </div>
@@ -364,7 +364,7 @@ const Index = () => {
               { k: "keep", d: "files and memory you can return to." },
               { k: "look at a place", d: "a map, when the question is about somewhere." },
             ].map(({ k, d }) => (
-              <div key={k} className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6">
+              <div key={k} className="rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] p-6">
                 <p className="text-sm tracking-[0.18em] uppercase font-light text-foreground/90">{k}</p>
                 <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">{d}</p>
               </div>
@@ -435,7 +435,7 @@ const Index = () => {
                 a: "no. it is account-scoped, encrypted at rest, never sold, and never turned into training data.",
               },
             ].map(({ q, a }) => (
-              <div key={q} className="rounded-xl border border-border/20 bg-card/25 backdrop-blur-md px-6 py-5">
+              <div key={q} className="rounded-xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] px-6 py-5">
                 <p className="text-base font-light tracking-tight text-foreground">{q}</p>
                 <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">{a}</p>
               </div>
