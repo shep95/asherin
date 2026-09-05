@@ -82,7 +82,7 @@ export default function HeroConstellation() {
             const alpha = (1 - d / LINK_DIST) * 0.35;
             const amber = a.hot || b.hot;
             ctx.strokeStyle = amber
-              ? `rgba(251,191,36,${alpha * 0.9})`
+              ? `rgba(163,163,163,${alpha * 0.9})`
               : `rgba(255,255,255,${alpha * 0.55})`;
             ctx.lineWidth = amber ? 0.6 : 0.4;
             ctx.beginPath();
@@ -102,14 +102,14 @@ export default function HeroConstellation() {
         if (n.hot) {
           // amber glow
           const g = ctx.createRadialGradient(px, py, 0, px, py, 14);
-          g.addColorStop(0, `rgba(251,191,36,${0.55 * p})`);
-          g.addColorStop(1, "rgba(251,191,36,0)");
+          g.addColorStop(0, `rgba(163,163,163,${0.55 * p})`);
+          g.addColorStop(1, "rgba(163,163,163,0)");
           ctx.fillStyle = g;
           ctx.beginPath();
           ctx.arc(px, py, 14, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = `rgba(251,191,36,${0.85 * p})`;
+          ctx.fillStyle = `rgba(200,200,200,${0.85 * p})`;
           ctx.beginPath();
           ctx.arc(px, py, n.r + 0.6, 0, Math.PI * 2);
           ctx.fill();
@@ -140,7 +140,7 @@ export default function HeroConstellation() {
         className="absolute inset-0 opacity-40 blur-3xl"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(251,191,36,0.14), rgba(0,0,0,0) 62%)",
+            "hsl(0 0% 100% / 0.04)",
         }}
       />
       <canvas

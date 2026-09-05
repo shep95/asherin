@@ -25,15 +25,15 @@ export const SectionDivider = ({
   if (variant === "plain") {
     return (
       <div aria-hidden className="mx-auto max-w-5xl px-6">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-foreground/15 to-transparent" />
+        <div className="h-px w-full bg-foreground/15" />
       </div>
     );
   }
   return (
     <div aria-hidden className="mx-auto max-w-5xl px-6 flex items-center gap-4">
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-foreground/15" />
+      <div className="h-px flex-1 bg-foreground/15" />
       <span className="text-foreground/35 text-xs tracking-[0.4em]">{glyph}</span>
-      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-foreground/15" />
+      <div className="h-px flex-1 bg-foreground/15" />
     </div>
   );
 };

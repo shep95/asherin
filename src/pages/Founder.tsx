@@ -69,7 +69,7 @@ const Founder = () => {
             <div className="order-2 lg:order-1">
               <div className="relative aspect-[4/5] w-full max-w-[460px] mx-auto rounded-[2rem] overflow-hidden border border-border/30">
                 <FounderPhotoCarousel />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-background/20 pointer-events-none" />
               </div>
             </div>
 
