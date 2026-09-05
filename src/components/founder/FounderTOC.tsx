@@ -58,12 +58,12 @@ const FounderTOC = () => {
               }
             }}
             className={`group flex items-center gap-2.5 py-1 text-[10px] tracking-[0.28em] uppercase font-mono transition-colors ${
-              isActive ? "text-amber-200" : "text-foreground/40 hover:text-foreground/80"
+              isActive ? "text-foreground" : "text-foreground/40 hover:text-foreground/80"
             }`}
           >
             <span
               className={`h-px transition-all duration-300 ${
-                isActive ? "w-6 bg-amber-300" : "w-2.5 bg-foreground/30 group-hover:w-4"
+                isActive ? "w-6 bg-foreground/80" : "w-2.5 bg-foreground/30 group-hover:w-4"
               }`}
             />
             {s.label}

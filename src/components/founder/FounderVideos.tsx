@@ -229,7 +229,7 @@ const FounderVideos = () => {
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-black/40" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/50 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/70">
               <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="currentColor" />
@@ -272,7 +272,7 @@ const FounderVideos = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
               <div className="relative aspect-video lg:aspect-auto overflow-hidden bg-background">
                 <img src={featuredThumb} alt={featuredMeta?.title || "Featured video"} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent lg:bg-gradient-to-l" />
+                <div className="absolute inset-0 bg-black/40" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/60 bg-black/60 backdrop-blur-md transition-all group-hover:scale-110 group-hover:bg-black/80">
                     <Play className="h-7 w-7 text-white ml-1" strokeWidth={1.5} fill="currentColor" />

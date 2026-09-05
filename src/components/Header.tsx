@@ -29,14 +29,14 @@ const Header = () => {
             <div
               aria-hidden
               className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl transition-opacity duration-700 group-hover/nav:opacity-100"
-              style={{ background: "radial-gradient(60% 100% at 20% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }}
+              style={{ background: "hsl(0 0% 100% / 0.04)" }}
             />
 
             <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
               {/* Golden top hairline */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent"
+                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-foreground/25"
               />
 
               <Link to="/" className="group/logo relative flex items-center gap-2.5 pl-5 pr-4 py-2.5 transition-all">
@@ -52,7 +52,7 @@ const Header = () => {
 
               <span
                 aria-hidden
-                className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                className="h-6 w-px bg-foreground/15"
               />
 
               <Link
@@ -64,7 +64,7 @@ const Header = () => {
 
               <span
                 aria-hidden
-                className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                className="h-6 w-px bg-foreground/15"
               />
 
               <Link
@@ -76,7 +76,7 @@ const Header = () => {
 
               <span
                 aria-hidden
-                className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                className="h-6 w-px bg-foreground/15"
               />
 
               <Link
@@ -88,7 +88,7 @@ const Header = () => {
 
               <span
                 aria-hidden
-                className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                className="h-6 w-px bg-foreground/15"
               />
 
               <Link
@@ -100,7 +100,7 @@ const Header = () => {
 
               <span
                 aria-hidden
-                className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                className="h-6 w-px bg-foreground/15"
               />
 
               <div className="relative">
@@ -122,12 +122,12 @@ const Header = () => {
             <div
               aria-hidden
               className="pointer-events-none absolute -inset-x-6 -inset-y-3 opacity-60 blur-2xl"
-              style={{ background: "radial-gradient(60% 100% at 80% 50%, hsl(0 0% 100% / 0.08), transparent 70%)" }}
+              style={{ background: "hsl(0 0% 100% / 0.04)" }}
             />
             <div className="relative flex items-center rounded-full border border-foreground/15 bg-background/40 backdrop-blur-2xl shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden">
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-foreground/40 to-transparent"
+                className="pointer-events-none absolute inset-x-6 top-0 h-px bg-foreground/25"
               />
               {isAsherRoute ? (
                 <Link
@@ -160,7 +160,7 @@ const Header = () => {
                       />
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-foreground/[0.08] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+                        className="pointer-events-none absolute inset-0 bg-foreground/[0.06] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       />
                     </Link>
                   ) : (
@@ -173,7 +173,7 @@ const Header = () => {
                       </button>
                       <span
                         aria-hidden
-                        className="h-6 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent"
+                        className="h-6 w-px bg-foreground/15"
                       />
                       <button
                         onClick={() => openAuth(false)}
@@ -181,7 +181,7 @@ const Header = () => {
                       >
                         <span
                           aria-hidden
-                          className="absolute inset-0 bg-gradient-to-r from-foreground via-foreground to-foreground"
+                          className="absolute inset-0 bg-foreground"
                         />
                         <span className="relative z-10">Sign up</span>
                         <ArrowUpRight

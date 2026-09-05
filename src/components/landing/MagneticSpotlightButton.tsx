@@ -58,19 +58,11 @@ const MagneticSpotlightButton = ({
       ? "px-8 py-4 text-sm min-h-[52px]"
       : "px-7 py-3 text-sm min-h-[44px]";
 
-  const spotlight =
-    variant === "primary"
-      ? "radial-gradient(160px circle at var(--mx) var(--my), rgba(255,255,255,0.22), transparent 60%)"
-      : variant === "ghost"
-      ? "none"
-      : "radial-gradient(140px circle at var(--mx) var(--my), rgba(255,255,255,0.08), transparent 60%)";
-
   const style: React.CSSProperties = {
     transform: `translate3d(${tilt.x}px, ${tilt.y}px, 0)`,
     transition: "transform 200ms cubic-bezier(.2,.7,.3,1), box-shadow 250ms",
     ["--mx" as never]: `${pos.x}%`,
     ["--my" as never]: `${pos.y}%`,
-    backgroundImage: spotlight,
   };
 
   const inner = (

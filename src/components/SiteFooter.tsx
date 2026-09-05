@@ -30,7 +30,7 @@ const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
   return (
     <footer className={`relative z-10 px-6 pb-10 ${variant === "compact" ? "pt-6" : "pt-16"}`}>
       <div className="mx-auto max-w-5xl">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-border/40 to-transparent" />
+        <div className="h-px w-full bg-border/40" />
 
         <div className="flex flex-col gap-6 pt-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-3">

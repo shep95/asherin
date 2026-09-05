@@ -65,6 +65,7 @@ function renderRouteHtml(template: string, path: string, entry: SeoEntry) {
     `<meta property="og:type" content="${entry.ogType ?? "website"}" />`,
   );
   html = upsertTag(html, metaPattern("name", "twitter:title"), `<meta name="twitter:title" content="${title}" />`);
+  html = upsertTag(html, metaPattern("property", "og:image:alt"), `<meta property="og:image:alt" content="${title}" />`);
   html = upsertTag(
     html,
     metaPattern("name", "twitter:description"),

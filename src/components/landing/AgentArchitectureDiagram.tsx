@@ -141,7 +141,7 @@ const AgentArchitectureDiagram = ({
               <span className="text-[9px] text-muted-foreground/40">End-to-end encrypted</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="h-2 w-2 rounded-full bg-amber-500/50" />
+              <div className="h-2 w-2 rounded-full bg-neutral-400/50" />
               <span className="text-[9px] text-muted-foreground/40">Zero data retention</span>
             </div>
           </div>

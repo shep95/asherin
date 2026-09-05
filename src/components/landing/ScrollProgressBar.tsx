@@ -29,7 +29,7 @@ const ScrollProgressBar = () => {
       className="fixed top-0 left-0 right-0 z-[60] h-[2px] bg-transparent pointer-events-none"
     >
       <div
-        className="h-full bg-gradient-to-r from-amber-300/0 via-amber-300 to-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.6)] transition-[width] duration-100 ease-out"
+        className="h-full bg-foreground/80 transition-[width] duration-100 ease-out"
         style={{ width: `${pct}%` }}
       />
     </div>
