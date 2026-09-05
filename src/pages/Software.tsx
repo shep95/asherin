@@ -136,7 +136,7 @@ const TOOLS: Tool[] = [
 ];
 
 const Card = ({ t }: { t: Tool }) => (
-  <div className="flex h-full flex-col gap-3 rounded-2xl border border-border/25 bg-card/20 p-6">
+  <div className="flex h-full flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] p-6">
     <t.icon className="h-4 w-4 text-foreground/60" strokeWidth={1.4} />
     <div>
       <h3 className="text-base font-light text-foreground">{t.name}</h3>
@@ -202,7 +202,7 @@ const Software = () => {
             </div>
           </section>
 
-          <section className="space-y-5 rounded-2xl border border-border/25 bg-card/20 p-8">
+          <section className="space-y-5 rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8">
             <h2 className="text-2xl font-extralight tracking-tight">$18 a month. $79 for pro.</h2>
             <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
               pro raises message limits and opens the heavier research and forecasting work. there is no free trial.
