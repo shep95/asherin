@@ -125,15 +125,67 @@ interface SpeakerRow {
   first_heard_at: string; last_heard_at: string;
 }
 
+// ── desktop companion pairing ────────────────────────────────────────────────
+// A companion process has no browser session, so it cannot carry a supabase
+// JWT. It carries a device token instead: minted once, in exchange for a short
+// lived code the signed-in operator generated inside the room, hashed at rest,
+// revocable from the room, and scoped to a fixed set of write actions. The user
+// id is resolved from the stored hash — never from anything the companion says.
+const DEVICE_HEADER = "x-asherin-device";
+const PAIR_TTL_MS = 10 * 60_000;
+const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings"]);
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0, I/1 — read aloud safely
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function randomFrom(alphabet: string, length: number): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+function newPairingCode(): string {
+  return `${randomFrom(CODE_ALPHABET, 4)}-${randomFrom(CODE_ALPHABET, 4)}`;
+}
+
+function newDeviceToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return "asd_" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Tier for a user id, for callers that arrive without an email-bearing JWT. */
+async function tierAllowsAmbient(userId: string): Promise<boolean> {
+  const { data } = await admin.from("user_subscriptions")
+    .select("product_id,status").eq("user_id", userId).eq("status", "active").maybeSingle();
+  const pid = String(data?.product_id ?? "").toLowerCase();
+  if (!pid) return false;
+  const allowedIds = new Set([
+    "prod_utrnsrxiqgtbqr", "prod_u1rtj8hxsctvqo", "prod_u1puuztkmierre",
+    "prod_ujaqpixvfi3qlr", "prod_ujaqfcakqntom1", "prod_v226j5fq5fsod9",
+    "prod_v2267gysf3srrn", "prod_aureon_algorithm",
+  ]);
+  if (allowedIds.has(pid)) return true;
+  return pid.includes("lifetime") || pid.includes("pro") || pid.includes("aureon");
+}
+
+async function deviceIdentity(req: Request): Promise<{ userId: string; deviceKey: string; rowId: string } | null> {
+  const raw = req.headers.get(DEVICE_HEADER);
+  if (!raw || raw.length < 16 || raw.length > 200) return null;
+  const hash = await sha256Hex(raw.trim());
+  const { data } = await admin.from("asherin_ambient_device_tokens")
+    .select("id,user_id,device_key,revoked_at").eq("token_hash", hash).maybeSingle();
+  if (!data || data.revoked_at) return null;
+  return { userId: data.user_id, deviceKey: data.device_key, rowId: data.id };
+}
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, cors);
-
-  const gate = await requireTier(req, ["aureon", "pro", "lifetime"], cors);
-  if (!gate.ok) return gate.response!;
-  const userId = await callerId(req);
-  if (!userId) return json({ error: "UNAUTHENTICATED", message: "Sign in required." }, 401, cors);
 
   let body: Record<string, unknown>;
   try {
@@ -143,7 +195,62 @@ Deno.serve(async (req) => {
   }
   const action = String(body.action ?? "");
 
+  // The only unauthenticated action: exchanging a code the operator just made
+  // for a device token. One shot — the row is marked claimed in the same write.
+  if (action === "pair-claim") {
+    const code = String(body.code ?? "").trim().toUpperCase().slice(0, 16);
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) {
+      return json({ error: "BAD_REQUEST", message: "That pairing code is not in the right shape." }, 400, cors);
+    }
+    const codeHash = await sha256Hex(code);
+    const { data: pairing } = await admin.from("asherin_ambient_pairings")
+      .select("id,user_id,expires_at,claimed_at").eq("code_hash", codeHash).maybeSingle();
+    if (!pairing || pairing.claimed_at || new Date(pairing.expires_at).getTime() < Date.now()) {
+      return json({ error: "PAIRING_INVALID", message: "That code is unknown, already used, or expired." }, 404, cors);
+    }
+    if (!(await tierAllowsAmbient(pairing.user_id))) {
+      return json({ error: "TIER_REQUIRED", message: "That account no longer holds an Asherin subscription." }, 402, cors);
+    }
+    const label = String(body.label ?? "companion").slice(0, 80);
+    const platform = String(body.platform ?? "desktop").slice(0, 24);
+    const deviceKey = `companion-${randomFrom("abcdefghijklmnopqrstuvwxyz0123456789", 12)}`;
+    const token = newDeviceToken();
+    const { error: tokErr } = await admin.from("asherin_ambient_device_tokens").insert({
+      user_id: pairing.user_id, device_key: deviceKey, token_hash: await sha256Hex(token),
+      label, platform,
+    });
+    if (tokErr) throw tokErr;
+    await admin.from("asherin_ambient_pairings")
+      .update({ claimed_at: new Date().toISOString(), device_key: deviceKey }).eq("id", pairing.id);
+    await admin.from("asherin_ambient_devices").upsert({
+      user_id: pairing.user_id, device_key: deviceKey, label, platform,
+      status: "active", last_seen_at: new Date().toISOString(),
+    }, { onConflict: "user_id,device_key" });
+    return json({ token, deviceKey, label }, 200, cors);
+  }
+
+  const device = await deviceIdentity(req);
+  let userId: string | null = null;
+  if (device) {
+    if (!DEVICE_ACTIONS.has(action)) {
+      return json({ error: "FORBIDDEN", message: "A paired device may only record, not read or change the account." }, 403, cors);
+    }
+    if (!(await tierAllowsAmbient(device.userId))) {
+      return json({ error: "TIER_REQUIRED", message: "This account no longer holds an Asherin subscription." }, 402, cors);
+    }
+    userId = device.userId;
+    body.deviceKey = device.deviceKey; // the token decides the device, not the payload
+    await admin.from("asherin_ambient_device_tokens")
+      .update({ last_used_at: new Date().toISOString() }).eq("id", device.rowId);
+  } else {
+    const gate = await requireTier(req, ["aureon", "pro", "lifetime"], cors);
+    if (!gate.ok) return gate.response!;
+    userId = await callerId(req);
+    if (!userId) return json({ error: "UNAUTHENTICATED", message: "Sign in required." }, 401, cors);
+  }
+
   try {
+
     switch (action) {
       case "register": {
         const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
