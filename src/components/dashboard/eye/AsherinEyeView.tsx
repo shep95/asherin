@@ -327,7 +327,7 @@ const EYE_HUD_CSS = `
     color: hsl(var(--foreground) / .28); margin:0 0 7px; display:flex; align-items:center; gap:8px;
   }
   .lgroup-h::after { content:""; flex:1 1 auto; height:1px; background:var(--line-soft); }
-  .lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.4rem), 1fr)); gap:6px; }
+  .lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 6.6rem), 1fr)); gap:6px; }
   .grid, #mission-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap:8px; }
   #mission-grid button {
     border-radius:12px; padding:clamp(8px, 1.2cqi, 12px); border:1px solid var(--line);
