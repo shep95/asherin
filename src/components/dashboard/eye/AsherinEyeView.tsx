@@ -142,6 +142,15 @@ const LAYER_ROWS = [
   },
 ];
 
+// the sheet reads as four questions rather than one alphabet of chips.
+const LAYER_GROUPS = [
+  { id: "air", label: "air + orbit", ids: ["flights", "military", "stations", "launches", "sats", "traffic"] },
+  { id: "earth", label: "earth", ids: ["quakes", "fires", "zones", "lands", "future", "brittle", "buildings"] },
+  { id: "public", label: "public signals", ids: ["cameras", "radio", "spaceweather", "atmo", "engine", "ships"] },
+  { id: "analysis", label: "analysis", ids: ["dark", "route", "avoid"] },
+];
+
+
 const LAYER_COLOR = {
   flights: "#fbbf24",
   military: "#34d399",
