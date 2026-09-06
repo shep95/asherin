@@ -196,24 +196,45 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? "");
 
   // The only unauthenticated action: exchanging a code the operator just made
-  // for a device token. One shot — the row is marked claimed in the same write.
+  // for a device token.
+  //
+  // The claim is the FIRST write, not the last, and it is a conditional update —
+  // `claimed_at is null` and `expires_at > now` are part of the WHERE clause, so
+  // postgres decides the winner of two racing companions rather than two reads
+  // both seeing an unclaimed row. If anything after the claim fails, the claim is
+  // released again so an honest retry is still possible.
   if (action === "pair-claim") {
     const code = String(body.code ?? "").trim().toUpperCase().slice(0, 16);
     if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) {
       return json({ error: "BAD_REQUEST", message: "That pairing code is not in the right shape." }, 400, cors);
     }
     const codeHash = await sha256Hex(code);
-    const { data: pairing } = await admin.from("asherin_ambient_pairings")
-      .select("id,user_id,expires_at,claimed_at").eq("code_hash", codeHash).maybeSingle();
-    if (!pairing || pairing.claimed_at || new Date(pairing.expires_at).getTime() < Date.now()) {
-      return json({ error: "PAIRING_INVALID", message: "That code is unknown, already used, or expired." }, 404, cors);
-    }
-    if (!(await tierAllowsAmbient(pairing.user_id))) {
-      return json({ error: "TIER_REQUIRED", message: "That account no longer holds an Asherin subscription." }, 402, cors);
-    }
     const label = String(body.label ?? "companion").slice(0, 80);
     const platform = String(body.platform ?? "desktop").slice(0, 24);
     const deviceKey = `companion-${randomFrom("abcdefghijklmnopqrstuvwxyz0123456789", 12)}`;
+
+    const { data: pairing, error: claimErr } = await admin.from("asherin_ambient_pairings")
+      .update({ claimed_at: new Date().toISOString(), device_key: deviceKey })
+      .eq("code_hash", codeHash)
+      .is("claimed_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .select("id,user_id")
+      .maybeSingle();
+    if (claimErr) {
+      console.error("[asherin-sentinel] pair-claim", claimErr.message);
+      return json({ error: "SERVER_ERROR", message: "The pairing could not be completed." }, 500, cors);
+    }
+    if (!pairing) {
+      return json({ error: "PAIRING_INVALID", message: "That code is unknown, already used, or expired." }, 404, cors);
+    }
+
+    const release = () => admin.from("asherin_ambient_pairings")
+      .update({ claimed_at: null, device_key: null }).eq("id", pairing.id);
+
+    if (!(await tierAllowsAmbient(pairing.user_id))) {
+      await release();
+      return json({ error: "TIER_REQUIRED", message: "That account no longer holds an Asherin subscription." }, 402, cors);
+    }
     const token = newDeviceToken();
     const { error: tokErr } = await admin.from("asherin_ambient_device_tokens").insert({
       user_id: pairing.user_id, device_key: deviceKey, token_hash: await sha256Hex(token),
@@ -221,10 +242,9 @@ Deno.serve(async (req) => {
     });
     if (tokErr) {
       console.error("[asherin-sentinel] pair-claim", tokErr.message);
+      await release();
       return json({ error: "SERVER_ERROR", message: "The pairing could not be completed." }, 500, cors);
     }
-    await admin.from("asherin_ambient_pairings")
-      .update({ claimed_at: new Date().toISOString(), device_key: deviceKey }).eq("id", pairing.id);
     await admin.from("asherin_ambient_devices").upsert({
       user_id: pairing.user_id, device_key: deviceKey, label, platform,
       status: "active", last_seen_at: new Date().toISOString(),
