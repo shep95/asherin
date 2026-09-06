@@ -182,8 +182,12 @@ describe("sentinel pickup sensitivity presets", () => {
       return frames;
     };
     const quiet = mk(0.006); // rms ≈ 0.004 — above far floor (0.0012), below near floor (0.005)
+    // Room tone first: the floor seeds from opening frames, so feed silence
+    // before the voice, exactly as a real capture begins.
+    const silence = Array.from({ length: 20 }, () => frameFeatures(new Float32Array(FRAME).map(() => (Math.random() - 0.5) * 0.001), TARGET_RATE));
     const farVad = new Vad(VAD_SENSITIVITY.far);
     const nearVad = new Vad(VAD_SENSITIVITY.near);
+    for (const f of silence) { farVad.push(f); nearVad.push(f); }
     let farOpened = false, nearOpened = false;
     for (const f of quiet) {
       if (farVad.push(f).verdict !== "silence") farOpened = true;
