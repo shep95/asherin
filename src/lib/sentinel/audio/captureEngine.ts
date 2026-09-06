@@ -23,7 +23,7 @@
 // and the timeline is authoritative in the account, not in this tab.
 
 import { FRAME, frameFeatures, type FrameFeatures } from "./dsp";
-import { Vad, VAD_DEFAULTS, type VadSegment } from "./vad";
+import { Vad, VAD_DEFAULTS, VAD_SENSITIVITY, type VadSegment, type VadSensitivity } from "./vad";
 import { classifySounds, type SoundEvent } from "./soundEvents";
 import { embedVoice } from "./voiceprint";
 import { concat, encodeWav, resample, toBase64, tooThinToSend, TARGET_RATE } from "./wav";
