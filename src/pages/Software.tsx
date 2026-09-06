@@ -87,6 +87,14 @@ const TOOLS: Tool[] = [
     icon: Eye,
   },
   {
+    name: "asherin.sentinel",
+    line: "ambient watch",
+    detail:
+      "separates voices on the microphone you grant it, learns each one from its own words, tags the sounds around them, and keeps every turn in one searchable timeline on your account. it listens while the room is open on the device you started it on — a browser hands the microphone back when its tab closes, so it is not a hidden system service and it never records without a visible running state.",
+    icon: Eye,
+  },
+
+  {
     name: "zophiel, search",
     line: "public engines, cited",
     detail:
