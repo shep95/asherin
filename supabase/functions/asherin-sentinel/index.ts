@@ -530,6 +530,43 @@ Deno.serve(async (req) => {
         return json({ deleted: (data ?? []).length }, 200, cors);
       }
 
+      // ── companion pairing, operator side ────────────────────────────────
+      case "pair-code": {
+        // Expire anything stale for this account first, so the room never shows
+        // a code that would be refused on use.
+        await admin.from("asherin_ambient_pairings")
+          .delete().eq("user_id", userId).is("claimed_at", null).lt("expires_at", new Date().toISOString());
+        const code = newPairingCode();
+        const expiresAt = new Date(Date.now() + PAIR_TTL_MS).toISOString();
+        const { error } = await admin.from("asherin_ambient_pairings")
+          .insert({ user_id: userId, code_hash: await sha256Hex(code), expires_at: expiresAt });
+        if (error) throw error;
+        return json({ code, expiresAt }, 200, cors);
+      }
+
+      case "companion-devices": {
+        const { data, error } = await admin.from("asherin_ambient_device_tokens")
+          .select("id,device_key,label,platform,last_used_at,revoked_at,created_at")
+          .eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+        if (error) throw error;
+        return json({ companions: data ?? [] }, 200, cors);
+      }
+
+      case "revoke-companion": {
+        const id = String(body.companionId ?? "");
+        if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "BAD_REQUEST", message: "A companion id is required." }, 400, cors);
+        const { data, error } = await admin.from("asherin_ambient_device_tokens")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("id", id).eq("user_id", userId).is("revoked_at", null).select("device_key").maybeSingle();
+        if (error) throw error;
+        if (data?.device_key) {
+          await admin.from("asherin_ambient_devices")
+            .update({ status: "offline" }).eq("user_id", userId).eq("device_key", data.device_key);
+        }
+        return json({ ok: true, revoked: Boolean(data) }, 200, cors);
+      }
+
+
       default:
         return json({ error: "UNKNOWN_ACTION", message: `No such action: ${action}` }, 400, cors);
     }
