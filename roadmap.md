@@ -7,3 +7,5 @@
 - [x] Run build, tests, static checks, and live preview verification; close every remaining task.
 
 - [x] retire asherin.zaxin and asherin.shepherd (nav, access, catalog, palette, backend 410)
+
+- [x] asherin.sentinel — ambient watch room, $18 tier, live-verified end to end (voice separation, self-claim naming, transcription, sound alerts, search, purge).
