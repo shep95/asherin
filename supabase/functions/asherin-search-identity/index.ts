@@ -139,12 +139,26 @@ Deno.serve(async (req) => {
     identifier: n.identifier.slice(0, 500), kind: n.kind, depth: n.depth,
   })));
 
-  for (let i = 0; i < hitInserts.length; i += 500) {
-    await admin.from("search_hits").insert(hitInserts.slice(i, i + 500));
+  for (const row of hitInserts) {
+    row.meta = row.meta ?? {};
+    row.url = row.url ?? null;
+    row.exposure_class = row.exposure_class ?? null;
+    row.live = null;
+    row.http_status = null;
+    row.content_type = null;
+    row.first_seen_at = null;
   }
+  let stored = 0;
+  const storeErrors: string[] = [];
+  for (let i = 0; i < hitInserts.length; i += 200) {
+    const { error } = await admin.from("search_hits").insert(hitInserts.slice(i, i + 200));
+    if (error) { storeErrors.push(error.message); console.error("search_hits insert failed", error.message); }
+    else stored += Math.min(200, hitInserts.length - i);
+  }
+  meta.storage = { stored, errors: storeErrors.slice(0, 3) };
   await admin.from("search_discover_runs").update({ status: "done", ended_at: new Date().toISOString() }).eq("id", runId);
 
-  return json({ run_id: runId, hits: hitInserts.length, nodes: nodes.length, meta }, 200, cors);
+  return json({ run_id: runId, hits: stored, found: hitInserts.length, nodes: nodes.length, meta }, 200, cors);
 });
 
 function json(x: unknown, status: number, cors: Record<string, string>) {

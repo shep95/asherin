@@ -148,6 +148,19 @@ Deno.serve(async (req) => {
   }
 
   // insert in chunks to keep payload sane
+  // postgrest bulk insert does not apply column defaults for keys that are
+  // absent on some rows, so every row must carry the same shape.
+  for (const row of inserts) {
+    row.meta = row.meta ?? {};
+    row.url = row.url ?? null;
+    row.exposure_class = row.exposure_class ?? null;
+    row.live = row.live ?? null;
+    row.http_status = row.http_status ?? null;
+    row.content_type = row.content_type ?? null;
+    row.first_seen_at = row.first_seen_at ?? null;
+    row.evidence_excerpt = row.evidence_excerpt ?? null;
+  }
+
   let stored = 0;
   const storeErrors: string[] = [];
   for (let i = 0; i < inserts.length; i += 200) {
