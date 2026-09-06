@@ -71,9 +71,16 @@ Deno.serve(async (req) => {
         collect("github", await githubUserByEmail(node.identifier)),
         collect("keys.openpgp.org", await keyserverProfile(node.identifier)),
         collect("xposedornot", await xposedOrNot(node.identifier)),
-        collect("crt.sh", { available: true, rows: (await crtByEmail(node.identifier)).slice(0, 10).map((r) => ({
-          source: "crt.sh", kind: "cert", summary: `s/mime cert for ${node.identifier} on ${r.name}`, discovered: [{ identifier: r.name, kind: "domain" as const }],
-        })) }),
+        collect("crt.sh", await crtByEmail(node.identifier)
+          .then((rows) => ({
+            available: true,
+            rows: rows.slice(0, 10).map((r) => ({
+              source: "crt.sh", kind: "cert",
+              summary: `s/mime cert for ${node.identifier} on ${r.name}`,
+              discovered: [{ identifier: r.name, kind: "domain" as const }],
+            })),
+          }))
+          .catch((e) => ({ available: false, reason: e instanceof Error ? e.message : "crt.sh unavailable", rows: [] }))),
         collect("wayback", {
           available: true,
           rows: (await waybackByIdentifier(node.identifier, 20)).slice(0, 20).map((r) => ({
