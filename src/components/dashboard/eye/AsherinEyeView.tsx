@@ -3196,12 +3196,6 @@ const AsherinEyeView = () => {
         if (url) {
           const j = await eyeFeed("webmeta", { url: url[0] });
           const rows = j.rows || [];
-          plotRows(
-            "meta",
-            rows.filter((r) => r.lat != null),
-            j.note || "public metadata",
-          );
-          layerOn.meta = true;
           if (rows[0]?.lat) {
             pinEngine(rows, true);
             chatLog.push({
