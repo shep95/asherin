@@ -241,7 +241,7 @@ export class SentinelEngine {
     this.ctx = null;
     await this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
-    this.vad = new Vad(VAD_DEFAULTS);
+    this.vad = new Vad(VAD_SENSITIVITY[this.sensitivity]);
     this.preroll = [];
     this.segment = [];
     this.segmentFeatures = [];
