@@ -57,8 +57,9 @@ async function probeOne(base: string, entry: (typeof PATTERNS)[number]): Promise
       signal: c.signal,
       headers: { "user-agent": UA, range: "bytes=0-4095", accept: "*/*" },
     });
-    if (r.status < 200 || r.status >= 400) {
-      // drain
+    // treat 3xx redirects as not-a-hit; a redirect to the canonical page
+    // is not an exposure. only real 2xx bodies count.
+    if (r.status < 200 || r.status >= 300) {
       try { await r.arrayBuffer(); } catch { /* ignore */ }
       return null;
     }
