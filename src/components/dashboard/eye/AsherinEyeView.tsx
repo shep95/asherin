@@ -851,36 +851,50 @@ const AsherinEyeView = () => {
           <div class="m" id="hud-honesty"></div>
         </div>
         <div class="glass sheet" id="sheet">
-          <div class="sheet-head">
-            <h2>layers</h2>
-            <button type="button" class="sheet-close" id="sheet-close">close</button>
+          <div class="sheet-frame">
+            <div class="sheet-spine"><span>asherin.eye</span></div>
+            <div class="sheet-body">
+              <div class="sheet-head">
+                <h2>layers</h2>
+                <button type="button" class="sheet-close" id="sheet-close">close</button>
+              </div>
+              <div class="sheet-card"><div id="layer-btns"></div></div>
+              <div class="sheet-card">
+                <h2>globe</h2>
+                <div id="globe-btns"></div>
+                <h2 style="margin-top:12px">look</h2>
+                <div id="style-btns"></div>
+              </div>
+              <div class="sheet-card">
+                <h2>first look</h2>
+                <div class="grid" id="mission-grid"></div>
+              </div>
+              <div class="sheet-card">
+                <h2>what these are</h2>
+                <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
+                <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
+                <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
+                <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
+                <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
+                <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
+                <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
+                <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
+                <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
+                <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
+                <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
+                <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
+                <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
+                <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
+                <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+              </div>
+              <div class="sheet-card" style="margin-bottom:0">
+                <h2>attribution</h2>
+                <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
+                <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
+              </div>
+            </div>
           </div>
-          <div id="layer-btns"></div>
-          <h2 style="margin-top:14px">globe</h2>
-          <div id="globe-btns"></div>
-          <h2 style="margin-top:14px">look</h2>
-          <div id="style-btns"></div>
-          <h2 style="margin-top:14px">first look</h2>
-          <div class="grid" id="mission-grid"></div>
-          <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
-          <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
-          <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
-          <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
-          <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
-          <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
-          <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
-          <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
-          <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
-          <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
-          <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
-          <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
-          <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
-          <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
-          <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
-          <h2 style="margin-top:14px">attribution</h2>
-          <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
-          <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
           <h2>contacts · 250 km</h2>
