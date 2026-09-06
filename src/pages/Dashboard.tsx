@@ -1792,11 +1792,14 @@ const Dashboard = () => {
     });
   }, [queueItems]);
 
-  const newConversation = async () => {
+  const newConversation = async (projectId?: string | null) => {
     if (!user) return;
+    // A conversation started while a workspace is active belongs to that
+    // workspace, so it inherits its files and standing directions on reload.
+    const boundProjectId = projectId ?? getActiveScope()?.projectId ?? null;
     const { data: newConv, error } = await supabase
       .from("conversations")
-      .insert({ user_id: user.id, title: "New conversation", mode })
+      .insert({ user_id: user.id, title: "New conversation", mode, project_id: boundProjectId })
       .select()
       .single();
     if (error || !newConv) {
@@ -1810,6 +1813,7 @@ const Dashboard = () => {
       createdAt: new Date(newConv.created_at),
       pinned: newConv.pinned,
       mode: newConv.mode as ChatMode,
+      projectId: newConv.project_id ?? undefined,
     };
     // CRITICAL: sync the ref synchronously so any sendMessage fired before
     // React commits the state still routes to the new conversation.
