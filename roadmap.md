@@ -14,4 +14,4 @@
 
 - [x] remove overclaimed layers: bluetooth near, web metadata (front end + poll loops + panel copy).
 - [x] redesign the eye layers panel to the drawn reference: outer rounded frame, hairline spine, inset inner frame, grouped rounded controls.
-- [ ] apply the same framed-window chrome to every dashboard software room: app background visible around a rounded bordered surface holding the room.
+- [x] apply the same framed-window chrome to every dashboard software room: app background visible around a rounded bordered surface holding the room.
