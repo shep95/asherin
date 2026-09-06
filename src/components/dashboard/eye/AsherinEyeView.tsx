@@ -265,20 +265,47 @@ const EYE_HUD_CSS = `
   .misb .m { color: var(--mute); font-size: clamp(10px, 1.05cqi, 12px); overflow-wrap:anywhere; }
   .misb #hud-line { font-variant-numeric: tabular-nums; color: hsl(var(--foreground) / .62); }
 
+  /* ── layers sheet: outer frame, inset inner frame, vertical spine ───────
+     the frame is the drawn reference — an outer rounded rectangle, a hairline
+     rail down the left carrying the panel word, and the controls living inside
+     a second rounded rectangle set in from it. */
   .sheet {
     position:absolute; right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t));
     bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
-    width: min(304px, 32cqi, calc(100% - 2 * var(--pad)));
+    width: min(326px, 34cqi, calc(100% - 2 * var(--pad)));
     max-height: calc(100cqh - var(--dock-h) - var(--pad) * 2 - var(--safe-t) - var(--safe-b));
-    padding: clamp(11px, 1.5cqi, 17px); overflow:auto; pointer-events:auto;
-    -webkit-overflow-scrolling: touch;
+    padding: clamp(8px, 1.1cqi, 12px); overflow:hidden; pointer-events:auto;
+    display:flex; flex-direction:column;
   }
-  .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .sheet-frame {
+    flex:1 1 auto; min-height:0; display:grid; grid-template-columns:22px minmax(0, 1fr);
+    border:1px solid hsl(var(--foreground) / .16); border-radius:calc(var(--r) - 6px); overflow:hidden;
+  }
+  .sheet-spine {
+    border-right:1px solid hsl(var(--foreground) / .16);
+    display:flex; align-items:flex-start; justify-content:center; padding-top:12px;
+    background: hsl(var(--foreground) / .02);
+  }
+  .sheet-spine span {
+    writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
+    font:400 clamp(8px, .85cqi, 9.5px)/1 inherit; letter-spacing:.32em; text-transform:uppercase;
+    color: hsl(var(--foreground) / .32); white-space:nowrap;
+  }
+  .sheet-body {
+    min-width:0; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;
+    padding: clamp(10px, 1.4cqi, 15px);
+  }
+  .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
   .sheet-close { display:none; border:0; background:transparent; color:var(--mute); cursor:pointer; font:300 12px/1 inherit; padding:6px 8px; }
   .sheet h2 {
     margin:0 0 10px; font:400 clamp(9px, .95cqi, 10px)/1 inherit; letter-spacing:.22em;
     text-transform:uppercase; color: hsl(var(--foreground) / .38);
   }
+  .sheet-card {
+    border:1px solid var(--line); border-radius:14px; padding:clamp(9px, 1.2cqi, 12px);
+    background: hsl(var(--foreground) / .022); margin-bottom:10px;
+  }
+  .sheet-card > h2 { margin-bottom:9px; }
   .sheet .row {
     display:flex; justify-content:space-between; gap:10px; font-size:clamp(10px, 1.05cqi, 11px);
     padding:7px 0; border-bottom:1px solid var(--line-soft); min-width:0; color: hsl(var(--foreground) / .55);
@@ -286,7 +313,14 @@ const EYE_HUD_CSS = `
   .sheet .row:last-child { border-bottom:0; }
   .sheet .row span { min-width:0; overflow-wrap:anywhere; }
   .sheet .k { color: hsl(var(--foreground) / .34); flex:0 0 auto; }
-  #layer-btns, #globe-btns, #style-btns { display:flex; flex-wrap:wrap; gap:6px; }
+  #globe-btns, #style-btns { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:6px; }
+  .lgroup + .lgroup { margin-top:11px; }
+  .lgroup-h {
+    font:400 clamp(8px, .85cqi, 9.5px)/1 inherit; letter-spacing:.26em; text-transform:uppercase;
+    color: hsl(var(--foreground) / .28); margin:0 0 7px; display:flex; align-items:center; gap:8px;
+  }
+  .lgroup-h::after { content:""; flex:1 1 auto; height:1px; background:var(--line-soft); }
+  .lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.4rem), 1fr)); gap:6px; }
   .grid, #mission-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap:8px; }
   #mission-grid button {
     border-radius:12px; padding:clamp(8px, 1.2cqi, 12px); border:1px solid var(--line);
@@ -297,16 +331,25 @@ const EYE_HUD_CSS = `
   #mission-grid button:hover { background: hsl(var(--foreground) / .07); border-color: hsl(var(--foreground) / .18); }
 
   .tog {
-    border:1px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer;
-    color: hsl(var(--foreground) / .58); font:300 clamp(10px, 1.05cqi, 11.5px)/1 inherit;
-    background: transparent; transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
+    display:flex; align-items:center; gap:8px; text-align:left; width:100%; min-height:34px;
+    border:1px solid var(--line); border-radius:11px; padding:8px 10px; cursor:pointer;
+    color: hsl(var(--foreground) / .6); font:300 clamp(10px, 1.05cqi, 11.5px)/1.25 inherit;
+    background: hsl(var(--foreground) / .028);
+    transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
   }
-  .tog:hover { color: var(--ink); border-color: hsl(var(--foreground) / .22); }
+  .tog::before {
+    content:""; flex:0 0 auto; width:5px; height:5px; border-radius:2px;
+    background: hsl(var(--foreground) / .22);
+    transition: background .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .tog:hover { color: var(--ink); border-color: hsl(var(--foreground) / .22); background: hsl(var(--foreground) / .055); }
   .tog.on {
-    background: hsl(var(--accent) / .14); color: var(--accent);
-    border-color: hsl(var(--accent) / .42);
+    background: hsl(var(--accent) / .12); color: var(--accent);
+    border-color: hsl(var(--accent) / .4);
   }
-  .tog.keyed { opacity:.42; }
+  .tog.on::before { background: var(--accent); box-shadow: 0 0 8px hsl(var(--accent) / .65); }
+  .tog.keyed { opacity:.44; }
+  .tog.keyed::before { background: hsl(var(--foreground) / .12); }
 
   .contacts {
     position:absolute; left:calc(var(--pad) + var(--safe-l));
