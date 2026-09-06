@@ -2170,7 +2170,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           // project id from the client cannot reach another user's corpus.
           const { data: proj } = await adminP
             .from("projects")
-            .select("id,name,mode")
+            .select("id,name,mode,instructions")
             .eq("id", pid)
             .eq("user_id", pUser.id)
             .maybeSingle();
