@@ -5,3 +5,5 @@
 - [x] Modernize only asherinx.eng using the existing Asherin visual system and preserve its live behavior.
 - [x] Clarify Defender's browser/owned-device boundary without implementing fingerprint spoofing or covert whole-device control.
 - [x] Run build, tests, static checks, and live preview verification; close every remaining task.
+
+- [x] retire asherin.zaxin and asherin.shepherd (nav, access, catalog, palette, backend 410)

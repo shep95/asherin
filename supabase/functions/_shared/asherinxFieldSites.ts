@@ -119,8 +119,10 @@ async function cached<T>(key: string, ttlMs: number, load: () => Promise<T>): Pr
   return value;
 }
 
-/** Throttle and refusal codes are skips, not failures. */
-function guardStatus(r: Response, site: string): void {
+/** Throttle and refusal codes are skips, not failures. Drains the body so the
+ * connection returns to the pool instead of leaking. */
+async function guardStatus(r: Response, site: string): Promise<void> {
+  if (r.status >= 400) await r.body?.cancel();
   if (r.status === 429) throw new SkipError(`${site} rate limited this request`);
   if (r.status === 503 || r.status === 502) throw new SkipError(`${site} index is unavailable right now`);
 }
@@ -225,13 +227,24 @@ const SITES: Record<string, Fetcher> = {
   },
 
   async github(q) {
-    const tok = (Deno.env.get("GITHUB_TOKEN") || Deno.env.get("GH_TOKEN") || "").trim();
-    const r = await get(
+    const tok = env("GITHUB_TOKEN", "GH_TOKEN");
+    let r = await get(
       `https://api.github.com/search/repositories?per_page=5&q=${encodeURIComponent(q)}`,
       8000,
       "application/vnd.github+json",
       tok ? { Authorization: `Bearer ${tok}` } : {},
     );
+    // A configured token that github rejects must not take the source down —
+    // fall back to the unauthenticated rate and say nothing. That is exactly
+    // what a browser would have got.
+    if (r.status === 401 && tok) {
+      await r.body?.cancel();
+      r = await get(
+        `https://api.github.com/search/repositories?per_page=5&q=${encodeURIComponent(q)}`,
+        8000,
+        "application/vnd.github+json",
+      );
+    }
     if (r.status === 403 || r.status === 429)
       throw new SkipError(tok ? "github rate limited this request" : "github rate limits unauthenticated search — no token configured");
     if (!r.ok) throw new Error(`http ${r.status}`);
@@ -253,7 +266,7 @@ const SITES: Record<string, Fetcher> = {
       ? `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=${encodeURIComponent(cve.toUpperCase())}`
       : `https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=5&keywordSearch=${encodeURIComponent(q)}`;
     const r = await get(url, 12000);
-    guardStatus(r, "nvd");
+    await guardStatus(r, "nvd");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const j = await r.json();
     return (j?.vulnerabilities ?? []).slice(0, 5).map((v: Record<string, any>) => {
@@ -275,7 +288,7 @@ const SITES: Record<string, Fetcher> = {
     if (!cve) throw new SkipError("kev is a cve catalogue — it only answers a cve id");
     const j = await cached<any>("cisa_kev_catalog", 6 * 60 * 60 * 1000, async () => {
       const r = await get("https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", 15000);
-      guardStatus(r, "cisa kev");
+      await guardStatus(r, "cisa kev");
       if (!r.ok) throw new Error(`http ${r.status}`);
       return await r.json();
     });
@@ -346,7 +359,7 @@ const SITES: Record<string, Fetcher> = {
       `https://api.gdeltproject.org/api/v2/doc/doc?format=json&maxrecords=5&mode=artlist&query=${encodeURIComponent(q)}${span}`,
       10000,
     );
-    guardStatus(r, "gdelt");
+    await guardStatus(r, "gdelt");
     if (!r.ok) throw new Error(`http ${r.status}`);
     const text = await r.text();
     if (/rate limit|too many/i.test(text.slice(0, 200))) throw new SkipError("gdelt rate limited this request");
@@ -475,8 +488,8 @@ const SITES: Record<string, Fetcher> = {
     let j: any = null;
     for (const name of candidates) {
       const r = await get(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, 7000);
-      if (r.status === 404) continue;
-      guardStatus(r, "pypi");
+      if (r.status === 404) { await r.body?.cancel(); continue; }
+      await guardStatus(r, "pypi");
       if (!r.ok) throw new Error(`http ${r.status}`);
       j = await r.json();
       break;

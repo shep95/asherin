@@ -71,7 +71,6 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     { id: "notebooks", label: "Notebooks", category: "Navigation", icon: FileText, action: wrap("notebooks", () => onViewChange("notebooks")), keywords: ["notebook", "note"] },
     { id: "teams", label: "Team Workspace", category: "Navigation", icon: Users, action: wrap("teams", () => onViewChange("teams")), keywords: ["team", "collaborate"] },
     { id: "cyber", label: "asherin.cyber", category: "Navigation", icon: Shield, action: wrap("cyber", () => onViewChange("zerlal")), keywords: ["cyber", "recon", "domain", "vulnerability"] },
-    { id: "zaxin", label: "asherin.zaxin", category: "Navigation", icon: Activity, action: wrap("zaxin", () => onViewChange("zaxin")), keywords: ["zaxin", "field", "bluetooth"] },
     
     { id: "audit", label: "Audit Trail", category: "Navigation", icon: ClipboardList, action: wrap("audit", () => onViewChange("audit")), keywords: ["log", "compliance"] },
     { id: "library", label: "Library", category: "Navigation", icon: FolderOpen, action: wrap("library", () => onViewChange("library")), keywords: ["files", "uploads"] },

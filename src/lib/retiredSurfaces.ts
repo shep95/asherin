@@ -4,6 +4,8 @@ import type { DashboardView } from "@/components/dashboard/types";
 export const RETIRED_VIEWS: readonly DashboardView[] = [
   "geospatial",
   "zacoon",
+  "zaxin",
+  "shepherd",
   "axrlen",
   "zeeion",
   "timeseries",

@@ -120,13 +120,6 @@ const TOOLS: Tool[] = [
      icon: Hammer,
    },
   {
-    name: "zaxin, ble scout",
-    line: "browser web bluetooth",
-    detail:
-      "sees the devices the browser picker and requestLEScan expose and plots coarse rssi proximity. rssi is a log-distance estimate with metres of error, not trilateration, and the tab graph is between your own tabs, not a phone mesh.",
-    icon: Bluetooth,
-  },
-  {
     name: "team",
     line: "shared workspace, when billed",
     detail:
