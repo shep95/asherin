@@ -1,7 +1,7 @@
 // live re-check for a single stored hit. head request only.
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { requireUser, errorToResponse } from "../_shared/authMiddleware.ts";
+import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 Deno.serve(async (req) => {
@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405, headers: cors });
 
   let user;
-  try { user = await requireUser(req); } catch (e) { return errorToResponse(e, cors); }
+  try { user = await requireUser(req); } catch (e) { return authErrorResponse(e, cors); }
 
   let body: { hit_id?: string };
   try { body = await req.json(); } catch { return json({ error: "invalid json" }, 400, cors); }
