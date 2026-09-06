@@ -8,18 +8,24 @@ import { encodeWav, resample, tooThinToSend, TARGET_RATE } from "@/lib/sentinel/
 
 const RATE = 16000;
 
-/** A voiced tone with harmonics — the acoustic shape of a vowel, not a beep. */
-function voice(seconds: number, f0: number, brightness = 0.35): Float32Array {
+/**
+ * A synthetic vowel: a glottal pitch driving three formants. Real speech puts
+ * most of its energy in the 300-3000hz formant bands, and a bare sine tone does
+ * not — testing the detector against a beep would have proved nothing.
+ */
+function voice(seconds: number, f0: number, formants: [number, number, number] = [520, 1480, 2560]): Float32Array {
   const n = Math.round(seconds * RATE);
   const out = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const t = i / RATE;
+    const glottal = 0.5 + 0.5 * Math.sin(2 * Math.PI * f0 * t);
     out[i] =
-      0.5 * Math.sin(2 * Math.PI * f0 * t) +
-      0.28 * Math.sin(2 * Math.PI * f0 * 2 * t) +
-      brightness * 0.2 * Math.sin(2 * Math.PI * f0 * 3 * t) +
-      brightness * 0.12 * Math.sin(2 * Math.PI * f0 * 5 * t);
-    out[i] *= 0.35 * (0.85 + 0.15 * Math.sin(2 * Math.PI * 4 * t)); // cadence
+      (0.22 * Math.sin(2 * Math.PI * f0 * t) +
+        0.5 * glottal * Math.sin(2 * Math.PI * formants[0] * t) +
+        0.34 * glottal * Math.sin(2 * Math.PI * formants[1] * t) +
+        0.16 * glottal * Math.sin(2 * Math.PI * formants[2] * t)) *
+      0.3 *
+      (0.85 + 0.15 * Math.sin(2 * Math.PI * 4 * t)); // cadence
   }
   return out;
 }
@@ -55,7 +61,7 @@ describe("sentinel dsp", () => {
 
 describe("sentinel vad", () => {
   it("finds two turns separated by silence and ignores the silence", () => {
-    const buffer = join(silence(0.6), voice(1.1, 130), silence(0.9), voice(1.0, 210), silence(0.6));
+    const buffer = join(silence(0.6), voice(1.1, 128), silence(0.9), voice(1.0, 215, [700, 1900, 2900]), silence(0.6));
     const segments = segmentSeries(featureSeries(buffer, RATE));
     expect(segments.length).toBe(2);
     expect(segments.every((s) => s.voiced)).toBe(true);
@@ -68,8 +74,8 @@ describe("sentinel vad", () => {
 
 describe("sentinel voiceprint", () => {
   const frameMs = (FRAME * 1000) / RATE;
-  const printFor = (f0: number, brightness = 0.35) =>
-    embedVoice(featureSeries(voice(1.4, f0, brightness), RATE), frameMs)!;
+  const printFor = (f0: number, formants?: [number, number, number]) =>
+    embedVoice(featureSeries(voice(1.4, f0, formants), RATE), frameMs)!;
 
   it("refuses a sample too short to characterise a person", () => {
     expect(embedVoice(featureSeries(voice(0.3, 140), RATE), frameMs)).toBeNull();
@@ -84,8 +90,8 @@ describe("sentinel voiceprint", () => {
   });
 
   it("does not fold a clearly different voice into a stored one", () => {
-    const low = printFor(105, 0.15);
-    const high = printFor(240, 0.9);
+    const low = printFor(105, [380, 1050, 2200]);
+    const high = printFor(240, [760, 2100, 3100]);
     const m = matchSpeaker(high, [{ id: "1", label: "speaker 1", name: null, embedding: low, sampleCount: 5 }]);
     expect(m.kind).toBe("new");
   });
