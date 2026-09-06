@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   const [crt, dns, wb, cc, gh] = await Promise.allSettled([
     crtSubdomains(domain),
     enumerateSubdomains(domain, 60, 12),
-    waybackByDomain(domain, 200),
+    waybackByDomain(domain, 120),
     commonCrawlByDomain(domain, 100),
     githubCodeSearch(`"${domain}" filename:.env`, 20),
   ]);

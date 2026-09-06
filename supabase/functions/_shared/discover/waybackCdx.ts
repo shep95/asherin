@@ -14,7 +14,7 @@ export interface CdxRow {
 async function cdx(query: string, limit = 200): Promise<CdxRow[]> {
   const url = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(query)}&output=json&limit=${limit}&collapse=urlkey`;
   const c = new AbortController();
-  const t = setTimeout(() => c.abort("timeout"), 15_000);
+  const t = setTimeout(() => c.abort("timeout"), 30_000);
   try {
     const r = await fetch(url, { signal: c.signal, headers: { "user-agent": UA } });
     if (!r.ok) {
