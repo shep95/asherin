@@ -2450,6 +2450,210 @@ export type Database = {
           },
         ]
       }
+      asherin_ambient_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          device_id: string | null
+          event_id: string | null
+          id: string
+          kind: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          event_id?: string | null
+          id?: string
+          kind: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          event_id?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asherin_ambient_alerts_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "asherin_ambient_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asherin_ambient_alerts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "asherin_ambient_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asherin_ambient_devices: {
+        Row: {
+          created_at: string
+          device_key: string
+          id: string
+          label: string
+          last_seen_at: string
+          platform: string
+          push_prefs: Json
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_key: string
+          id?: string
+          label?: string
+          last_seen_at?: string
+          platform?: string
+          push_prefs?: Json
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_key?: string
+          id?: string
+          label?: string
+          last_seen_at?: string
+          platform?: string
+          push_prefs?: Json
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asherin_ambient_events: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          device_id: string | null
+          duration_ms: number | null
+          id: string
+          kind: string
+          meta: Json
+          speaker_id: string | null
+          started_at: string
+          tag: string | null
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          device_id?: string | null
+          duration_ms?: number | null
+          id?: string
+          kind: string
+          meta?: Json
+          speaker_id?: string | null
+          started_at?: string
+          tag?: string | null
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          device_id?: string | null
+          duration_ms?: number | null
+          id?: string
+          kind?: string
+          meta?: Json
+          speaker_id?: string | null
+          started_at?: string
+          tag?: string | null
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asherin_ambient_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "asherin_ambient_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asherin_ambient_events_speaker_id_fkey"
+            columns: ["speaker_id"]
+            isOneToOne: false
+            referencedRelation: "asherin_ambient_speakers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asherin_ambient_settings: {
+        Row: {
+          prefs: Json
+          retention_hours: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          prefs?: Json
+          retention_hours?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          prefs?: Json
+          retention_hours?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asherin_ambient_speakers: {
+        Row: {
+          confidence: number
+          embedding: number[]
+          first_heard_at: string
+          id: string
+          label: string
+          last_heard_at: string
+          name: string | null
+          name_source: string | null
+          sample_count: number
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          embedding?: number[]
+          first_heard_at?: string
+          id?: string
+          label: string
+          last_heard_at?: string
+          name?: string | null
+          name_source?: string | null
+          sample_count?: number
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          embedding?: number[]
+          first_heard_at?: string
+          id?: string
+          label?: string
+          last_heard_at?: string
+          name?: string | null
+          name_source?: string | null
+          sample_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       asherin_connect_pulls: {
         Row: {
           capability: string
