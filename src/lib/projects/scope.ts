@@ -15,9 +15,14 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
+  /** Standing directions applied to every conversation inside this project. */
+  instructions: string;
   mode: ProjectMode;
   created_at: string;
 }
+
+/** Server-side constraint mirror — keep in step with projects_instructions_len_chk. */
+export const MAX_PROJECT_INSTRUCTIONS = 12000;
 
 export interface ProjectScope {
   projectId: string;
