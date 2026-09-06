@@ -367,7 +367,7 @@ const SpatialView = () => {
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-24 pt-2 sm:px-4 sm:pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 sm:px-4">
         {panel === "field" && (
           <div className="flex h-full min-h-[60vh] flex-col gap-3">
             <div className={`relative flex-1 overflow-hidden ${card}`}>
@@ -690,7 +690,7 @@ const SpatialView = () => {
       </div>
 
       {/* panel tabs, bottom on mobile */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-white/10 bg-black/70 px-2 py-2 backdrop-blur-xl sm:hidden">
+      <div className="flex shrink-0 justify-around border-t border-white/10 bg-black/70 px-2 py-2 backdrop-blur-xl sm:hidden">
         {PANELS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
