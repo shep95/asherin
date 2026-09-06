@@ -3672,7 +3672,7 @@ const AsherinEyeView = () => {
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
           if (layerOn.military) loadLayer("military").catch(() => {});
-          if (layerOn.near) loadNear().catch(() => {});
+          
         }, 12000),
       );
       // the recorder is server-throttled to one write per 20 s per operator, so
