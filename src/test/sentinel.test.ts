@@ -163,3 +163,36 @@ describe("sentinel wav container", () => {
     expect(down.length).toBeCloseTo(at48.length / 3, -2);
   });
 });
+
+describe("sentinel pickup sensitivity presets", () => {
+  it("far opens on quieter speech than near, and near rejects what far accepts", async () => {
+    const { Vad, VAD_SENSITIVITY } = await import("@/lib/sentinel/audio/vad");
+    const { frameFeatures, FRAME, TARGET_RATE } = await import("@/lib/sentinel/audio/dsp");
+    // Quiet formant-rich voice: loud enough for "far", below the "near" floor.
+    const mk = (amp: number) => {
+      const frames = [];
+      for (let i = 0; i < 30; i++) {
+        const s = new Float32Array(FRAME);
+        for (let j = 0; j < FRAME; j++) {
+          const t = (i * FRAME + j) / TARGET_RATE;
+          s[j] = amp * (Math.sin(2 * Math.PI * 140 * t) + 0.6 * Math.sin(2 * Math.PI * 700 * t) + 0.3 * Math.sin(2 * Math.PI * 2400 * t)) * (0.6 + 0.4 * Math.sin(2 * Math.PI * 5 * t));
+        }
+        frames.push(frameFeatures(s, TARGET_RATE));
+      }
+      return frames;
+    };
+    const quiet = mk(0.006); // rms ≈ 0.004 — above far floor (0.0012), below near floor (0.005)
+    const farVad = new Vad(VAD_SENSITIVITY.far);
+    const nearVad = new Vad(VAD_SENSITIVITY.near);
+    let farOpened = false, nearOpened = false;
+    for (const f of quiet) {
+      if (farVad.push(f).verdict !== "silence") farOpened = true;
+      if (nearVad.push(f).verdict !== "silence") nearOpened = true;
+    }
+    expect(farOpened).toBe(true);
+    expect(nearOpened).toBe(false);
+    // Ordering invariant: the nearer the preset, the higher the floor.
+    expect(VAD_SENSITIVITY.near.absoluteFloor).toBeGreaterThan(VAD_SENSITIVITY.balanced.absoluteFloor);
+    expect(VAD_SENSITIVITY.balanced.absoluteFloor).toBeGreaterThan(VAD_SENSITIVITY.far.absoluteFloor);
+  });
+});
