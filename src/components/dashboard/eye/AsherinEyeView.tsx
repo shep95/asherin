@@ -2605,14 +2605,6 @@ const AsherinEyeView = () => {
         setNote("asherin.engine is the chat + pins. type a place. this is not a search results page.");
         return;
       }
-      if (id === "near") {
-        await loadNear();
-        return;
-      }
-      if (id === "meta") {
-        await loadWebIndex();
-        return;
-      }
       if (id === "sats") {
         await loadSats();
         return;
