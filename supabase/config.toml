@@ -293,3 +293,6 @@ verify_jwt = false
 
 [functions.asherin-arvision-vps]
 verify_jwt = true
+
+[functions.asherin-defender-agent]
+verify_jwt = false
