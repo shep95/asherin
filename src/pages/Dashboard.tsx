@@ -42,7 +42,7 @@ const SettingsView = lazyWithRetry(() => import("@/components/dashboard/Settings
 const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
 const ConnectView = lazyWithRetry(() => import("@/components/dashboard/connect/ConnectView"));
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
-const ZophielEngineView = lazyWithRetry(() => import("@/components/dashboard/ZophielEngineView"));
+const AsherinSearchView = lazyWithRetry(() => import("@/components/dashboard/search/AsherinSearchView"));
 const AsherinxEngView = lazyWithRetry(() => import("@/components/dashboard/asherinx/AsherinxEngView"));
 const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
 const ZaliView = lazyWithRetry(() => import("@/components/dashboard/zali/ZaliView"));
@@ -1968,9 +1968,9 @@ const Dashboard = () => {
       case "search":
         return gatedView(
           "search",
-          ZophielEngineView,
-          "Zophiel Engine",
-          "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.",
+          AsherinSearchView,
+          "asherin.search",
+          "discovery-first search: cert transparency, dns probes, orphan paths, archived captures, code leaks and identity pivots. free public sources; anything needing a paid key stays unmeasured with the reason.",
         );
       case "zali":
         return gatedView(
