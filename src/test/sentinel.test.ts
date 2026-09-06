@@ -167,7 +167,8 @@ describe("sentinel wav container", () => {
 describe("sentinel pickup sensitivity presets", () => {
   it("far opens on quieter speech than near, and near rejects what far accepts", async () => {
     const { Vad, VAD_SENSITIVITY } = await import("@/lib/sentinel/audio/vad");
-    const { frameFeatures, FRAME, TARGET_RATE } = await import("@/lib/sentinel/audio/dsp");
+    const { frameFeatures, FRAME } = await import("@/lib/sentinel/audio/dsp");
+    const { TARGET_RATE } = await import("@/lib/sentinel/audio/wav");
     // Quiet formant-rich voice: loud enough for "far", below the "near" floor.
     const mk = (amp: number) => {
       const frames = [];
