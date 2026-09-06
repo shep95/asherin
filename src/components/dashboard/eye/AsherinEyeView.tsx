@@ -78,18 +78,6 @@ const LAYER_ROWS = [
     keyed: false,
   },
   {
-    id: "near",
-    label: "bluetooth near",
-    honesty: "this-box ble ads polled live · radio range is meters · sees ≠ joins",
-    keyed: false,
-  },
-  {
-    id: "meta",
-    label: "web metadata",
-    honesty: "public cameras + radio hosts + osm mapped webcams · live poll · not a tap · not a port scan",
-    keyed: false,
-  },
-  {
     id: "sats",
     label: "satellites",
     honesty: "celestrak tle + sgp4 orbit rings · gev class · not a classified catalog",
@@ -777,7 +765,6 @@ const AsherinEyeView = () => {
     let modelOn = false;
     let camMode = "chase";
     let orbitHeading = 0;
-    let nearOnce = false;
     let atmoLayer = null;
     let lastAltBand = "";
     let hoverEnt = null;
@@ -838,8 +825,6 @@ const AsherinEyeView = () => {
           <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
           <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
           <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
-          <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
-          <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
           <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
           <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
           <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
@@ -1047,7 +1032,6 @@ const AsherinEyeView = () => {
         if (b.dataset.layer === id) b.classList.toggle("on", on);
       });
       if (!on) {
-        if (id === "near") nearOnce = false;
         if (id === "atmo") clearAtmo();
         clearDs(id);
         return;
@@ -1523,45 +1507,8 @@ const AsherinEyeView = () => {
           cmdMode === "property" ? "property address" : "ask asherin.eye — or name a place";
     }
 
-    async function loadWebIndexAt(lat, lon, around) {
-      const jobs = await Promise.allSettled([
-        eyeFeed("cameras"),
-        eyeFeed("radio"),
-        eyeFeed("osmweb", { lat, lon, around: around || 900 }),
-      ]);
-      const rows = [];
-      const notes = [];
-      jobs.forEach((job, i) => {
-        const name = ["cameras", "radio", "osm mapped webcams"][i];
-        if (job.status !== "fulfilled") {
-          notes.push(`${name} refused`);
-          return;
-        }
-        const body = job.value || {};
-        if (body.error) {
-          notes.push(`${name}: ${body.error}`);
-          return;
-        }
-        (body.rows || []).forEach((row) => {
-          if (row.lat == null || row.lon == null) return;
-          if (i < 2 && kmBetween(lat, lon, row.lat, row.lon) > 8) return;
-          rows.push({ ...row, id: `${name}:${row.id || rows.length}`, note: row.note || name });
-        });
-      });
-      const sliced = rows.slice(0, 220);
-      plotRows(
-        "meta",
-        sliced,
-        `web metadata on this property · ${sliced.length} public points inside the focus · not a tap · ${notes.join(" · ")}`.trim(),
-      );
-    }
-
     async function focusPropertyLayers(lat, lon) {
       const bits = [];
-      if (layerOn.meta) {
-        await loadWebIndexAt(lat, lon, 900);
-        bits.push("web metadata recentered to ~900m around this address");
-      }
       if (layerOn.cameras) {
         try {
           const j = await eyeFeed("cameras");
@@ -1579,10 +1526,9 @@ const AsherinEyeView = () => {
         }
       }
       if (layerOn.engine) bits.push("engine pin on this property");
-      if (layerOn.near) bits.push("bluetooth near stays this-box radio · it does not jump to that address");
       if (layerOn.flights) bits.push("flights still live around the camera");
       if (layerOn.quakes) bits.push("earthquakes still live");
-      if (!bits.length) bits.push("no extra layers were on · toggle cameras/meta/engine to compose them here");
+      if (!bits.length) bits.push("no extra layers were on · toggle cameras or engine pins to compose them here");
       return bits;
     }
 
