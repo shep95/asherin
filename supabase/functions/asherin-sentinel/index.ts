@@ -93,7 +93,10 @@ async function transcribe(wav: Uint8Array): Promise<{ text: string | null; note:
   if (!LOVABLE_API_KEY) return { text: null, note: "transcription is not configured on this deployment." };
   const form = new FormData();
   form.append("model", STT_MODEL);
-  form.append("file", new Blob([wav], { type: "audio/wav" }), "segment.wav");
+  // Copy into a plain ArrayBuffer: a Uint8Array over a SharedArrayBuffer is not a BlobPart.
+  const bytes = new Uint8Array(wav.length);
+  bytes.set(wav);
+  form.append("file", new Blob([bytes.buffer as ArrayBuffer], { type: "audio/wav" }), "segment.wav");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 45_000);
   try {
