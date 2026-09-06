@@ -101,6 +101,7 @@ export class SentinelEngine {
   private source: MediaStreamAudioSourceNode | null = null;
   private wakeLock: { release: () => Promise<void> } | null = null;
   private vad = new Vad(VAD_DEFAULTS);
+  private sensitivity: VadSensitivity = "balanced";
 
   private preroll: Float32Array[] = [];
   private segment: Float32Array[] = [];
@@ -131,6 +132,16 @@ export class SentinelEngine {
 
   getStatus(): EngineStatus {
     return { ...this.status };
+  }
+
+  /** Live-switch the pickup sensitivity. Safe mid-listen: the open segment
+   * closes at the next natural pause and the fresh floor adapts within a
+   * second of room tone. */
+  setSensitivity(s: VadSensitivity): void {
+    if (s === this.sensitivity) return;
+    this.sensitivity = s;
+    this.vad = new Vad(VAD_SENSITIVITY[s]);
+    this.note(`pickup sensitivity is now ${s}.`);
   }
 
   private emit(patch: Partial<EngineStatus>) {
