@@ -111,7 +111,7 @@ export async function writeSegment(payload: SegmentPayload): Promise<string> {
 export async function readPayload(row: BufferedSegment): Promise<SegmentPayload | null> {
   try {
     const key = await bufferKey();
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv }, key, row.cipher);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv as unknown as BufferSource }, key, row.cipher);
     return JSON.parse(dec.decode(plain)) as SegmentPayload;
   } catch {
     return null; // a row we cannot read is dropped, never guessed at
