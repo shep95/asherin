@@ -41,7 +41,7 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req.headers.get("origin"));
+  const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
