@@ -134,6 +134,23 @@ interface SpeakerRow {
 const DEVICE_HEADER = "x-asherin-device";
 const PAIR_TTL_MS = 10 * 60_000;
 const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings"]);
+
+// pair-claim is the one door without a session on it, so it gets a per-isolate
+// throttle. An eight character code from a 32 symbol alphabet is ~10^12 wide;
+// ten guesses a minute makes brute force pointless within the ten minute life.
+const PAIR_ATTEMPTS = new Map<string, { n: number; resetAt: number }>();
+function pairThrottled(req: Request): boolean {
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+  const now = Date.now();
+  const row = PAIR_ATTEMPTS.get(ip);
+  if (!row || row.resetAt < now) {
+    PAIR_ATTEMPTS.set(ip, { n: 1, resetAt: now + 60_000 });
+    if (PAIR_ATTEMPTS.size > 5000) PAIR_ATTEMPTS.clear(); // bounded memory
+    return false;
+  }
+  row.n += 1;
+  return row.n > 10;
+}
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0, I/1 — read aloud safely
 
 async function sha256Hex(input: string): Promise<string> {
