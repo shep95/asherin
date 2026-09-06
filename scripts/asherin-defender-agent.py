@@ -73,8 +73,8 @@ def run(cmd: list[str]) -> tuple[int, str]:
 
 # ── device and firmware ──────────────────────────────────────────────────────
 def check_device() -> None:
-    emit("dev.os-patch", "pass", f"{platform.system()} {platform.release()} ({platform.machine()})")
-    emit("dev.uptime", "pass", uptime_text())
+    emit("dev.os-patch-level", "pass", f"{platform.system()} {platform.release()} ({platform.machine()})")
+    emit("upd.reboot-pending", "pass", uptime_text())
 
     if SYS == "Darwin":
         rc, out = run(["csrutil", "status"])
@@ -88,11 +88,11 @@ def check_device() -> None:
         rc, out = run(["fdesetup", "status"])
         if rc == 0:
             on = "On" in out
-            emit("disk.full-encryption", "pass" if on else "fail",
+            emit("disk.encryption", "pass" if on else "fail",
                  f"filevault is {'on' if on else 'off'}",
                  None if on else "turn filevault on — without it the disk reads plainly in another machine")
         else:
-            unmeasured("disk.full-encryption", "filevault status needs an interactive session")
+            unmeasured("disk.encryption", "filevault status needs an interactive session")
     elif SYS == "Windows":
         rc, out = run(["powershell", "-NoProfile", "-Command",
                        "(Confirm-SecureBootUEFI) 2>$null"])
@@ -105,27 +105,27 @@ def check_device() -> None:
         rc, out = run(["manage-bde", "-status", "C:"])
         if rc == 0:
             on = "Protection On" in out
-            emit("disk.full-encryption", "pass" if on else "fail",
+            emit("disk.encryption", "pass" if on else "fail",
                  f"bitlocker on C: is {'on' if on else 'off'}",
                  None if on else "turn bitlocker on for the system volume")
         else:
-            unmeasured("disk.full-encryption", "bitlocker status needs an elevated shell")
+            unmeasured("disk.encryption", "bitlocker status needs an elevated shell")
         rc, out = run(["powershell", "-NoProfile", "-Command",
                        "(Get-Tpm).TpmPresent"])
         if rc == 0 and out.strip():
-            emit("dev.tpm-state", "pass" if "True" in out else "warn",
+            emit("dev.tpm", "pass" if "True" in out else "warn",
                  f"tpm present: {out.strip()}")
         else:
-            unmeasured("dev.tpm-state", "tpm query needs an elevated shell")
+            unmeasured("dev.tpm", "tpm query needs an elevated shell")
     else:
         rc, out = run(["lsblk", "-o", "NAME,TYPE"])
         if rc == 0:
             on = "crypt" in out
-            emit("disk.full-encryption", "pass" if on else "fail",
+            emit("disk.encryption", "pass" if on else "fail",
                  "an encrypted block device is mounted" if on else "no luks/crypt device is mounted",
                  None if on else "encrypt the root volume — an unencrypted disk reads plainly elsewhere")
         else:
-            unmeasured("disk.full-encryption", "lsblk is not available here")
+            unmeasured("disk.encryption", "lsblk is not available here")
         if os.path.exists("/sys/firmware/efi"):
             rc, out = run(["mokutil", "--sb-state"])
             if rc == 0:
@@ -187,17 +187,17 @@ def check_disk() -> None:
                         pass
             if scanned > 20000:
                 break
-    emit("files.sensitive-sprawl", "warn" if sensitive > 20 else "pass",
+    emit("file.dotenv-exposure", "warn" if sensitive > 20 else "pass",
          f"{sensitive} key/credential-shaped files under the home folder ({scanned} files walked)",
          "move keys into a keychain or vault rather than loose files" if sensitive > 20 else None)
     if SYS != "Windows":
-        emit("files.permission-drift", "fail" if world_readable else "pass",
+        emit("file.ssh-key-perms", "fail" if world_readable else "pass",
              f"{world_readable} private key file(s) readable by other accounts on this machine",
              "chmod 600 those files" if world_readable else None)
     dl = os.path.join(home, "Downloads")
     if os.path.isdir(dl):
         installers = [p for p in glob.glob(os.path.join(dl, "*")) if p.lower().endswith((".dmg", ".exe", ".msi", ".pkg", ".apk", ".appimage"))]
-        emit("files.stale-installers", "warn" if len(installers) > 5 else "pass",
+        emit("file.suspicious-exec", "warn" if len(installers) > 5 else "pass",
              f"{len(installers)} installer package(s) sitting in downloads",
              "delete old installers — they are a favourite place to hide a swapped binary" if len(installers) > 5 else None)
 
@@ -245,11 +245,11 @@ def check_network() -> None:
         if rc == 0:
             listeners = [l for l in out.splitlines()[1:] if l.strip() and "127.0.0.1" not in l and "[::1]" not in l]
     if listeners:
-        emit("net.open-ports", "warn" if len(listeners) > 3 else "pass",
+        emit("net.listening-ports", "warn" if len(listeners) > 3 else "pass",
              f"{len(listeners)} service(s) listening on a non-loopback address",
              "close what you do not recognise — every listener is a door" if len(listeners) > 3 else None)
     else:
-        emit("net.open-ports", "pass", "nothing is listening outside loopback")
+        emit("net.listening-ports", "pass", "nothing is listening outside loopback")
 
     try:
         resolvers = []
@@ -264,11 +264,11 @@ def check_network() -> None:
             rc, out = run(["scutil", "--dns"])
             resolvers = sorted({l.split(":")[1].strip() for l in out.splitlines() if "nameserver[" in l}) if rc == 0 else []
         if resolvers:
-            emit("net.dns-hijack", "pass", f"resolvers in use: {', '.join(resolvers[:4])}")
+            emit("net.dns-server", "pass", f"resolvers in use: {', '.join(resolvers[:4])}")
         else:
-            unmeasured("net.dns-hijack", "the resolver list could not be read")
+            unmeasured("net.dns-server", "the resolver list could not be read")
     except Exception:
-        unmeasured("net.dns-hijack", "the resolver list could not be read")
+        unmeasured("net.dns-server", "the resolver list could not be read")
 
     proxy_env = [k for k in ("http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY") if os.environ.get(k)]
     emit("net.proxy-config", "warn" if proxy_env else "pass",
@@ -290,9 +290,9 @@ def check_network() -> None:
     try:
         socket.setdefaulttimeout(4)
         socket.getaddrinfo("asherin.com", 443)
-        emit("net.egress-reachable", "pass", "outbound dns and routing are working")
+        emit("net.traffic-volume", "pass", "outbound dns and routing are working")
     except Exception:
-        emit("net.egress-reachable", "warn", "outbound resolution failed from this machine")
+        emit("net.traffic-volume", "warn", "outbound resolution failed from this machine")
 
 
 # ── wireless and bluetooth ───────────────────────────────────────────────────
@@ -304,7 +304,7 @@ def check_wireless() -> None:
             emit("wifi.encryption", "pass" if secure else "warn",
                  "the joined network reports wpa2/wpa3" if secure else "no wpa2/wpa3 network is joined",
                  None if secure else "avoid open wireless; use a tunnel if you must")
-            emit("wifi.known-networks", "pass", f"{out.count('Network Information')} wireless interface record(s) read")
+            emit("wifi.saved-networks", "pass", f"{out.count('Network Information')} wireless interface record(s) read")
         else:
             unmeasured("wifi.encryption", "the wireless profile could not be read")
         rc, out = run(["/usr/sbin/system_profiler", "SPBluetoothDataType"])
@@ -322,7 +322,7 @@ def check_wireless() -> None:
             unmeasured("wifi.encryption", "no wireless interface reported")
         rc, out = run(["netsh", "wlan", "show", "profiles"])
         if rc == 0:
-            emit("wifi.known-networks", "pass", f"{out.count('All User Profile')} saved wireless profile(s)")
+            emit("wifi.saved-networks", "pass", f"{out.count('All User Profile')} saved wireless profile(s)")
     else:
         rc, out = run(["nmcli", "-t", "-f", "ACTIVE,SSID,SECURITY", "dev", "wifi"])
         if rc == 0 and out.strip():
@@ -374,13 +374,13 @@ def check_browsers() -> None:
         emit("ext.inventory", "warn" if total > 15 else "pass",
              f"{total} extension(s) across {profiles} browser profile(s)",
              "remove extensions you do not use — each one reads every page you open" if total > 15 else None)
-        emit("br.profile-count", "pass", f"{profiles} browser profile(s) on this device")
+        emit("br.installed-browsers", "pass", f"{profiles} browser profile(s) on this device")
     else:
         unmeasured("ext.inventory", "no browser profile directory was found for this user")
 
     running = process_names()
     browsers = [p for p in running if any(b in p.lower() for b in ("chrome", "firefox", "safari", "brave", "edge", "opera"))]
-    emit("br.running-browsers", "pass", f"{len(browsers)} browser process(es) running: {', '.join(sorted(set(browsers))[:5]) or 'none'}")
+    emit("br.background-processes", "pass", f"{len(browsers)} browser process(es) running: {', '.join(sorted(set(browsers))[:5]) or 'none'}")
 
 
 def process_names() -> list[str]:
@@ -410,7 +410,7 @@ def check_processes() -> None:
         if rc == 0:
             emit("proc.autostart", "pass", f"{len(out.splitlines()) - 1} launch agents/daemons registered for this user")
         agents = glob.glob(os.path.expanduser("~/Library/LaunchAgents/*.plist"))
-        emit("proc.user-autostart", "warn" if len(agents) > 8 else "pass",
+        emit("proc.launch-agents", "warn" if len(agents) > 8 else "pass",
              f"{len(agents)} user launch agent(s)",
              "review your login items — persistence lives here" if len(agents) > 8 else None)
     elif SYS == "Windows":
@@ -422,7 +422,7 @@ def check_processes() -> None:
             unmeasured("proc.autostart", "startup commands could not be enumerated")
     else:
         units = glob.glob(os.path.expanduser("~/.config/systemd/user/*.service"))
-        emit("proc.user-autostart", "pass", f"{len(units)} user systemd unit(s)")
+        emit("proc.launch-agents", "pass", f"{len(units)} user systemd unit(s)")
 
 
 def check_apps() -> None:
@@ -434,7 +434,7 @@ def check_apps() -> None:
             rc, out = run(["codesign", "-dv", app])
             if rc != 0 or "Authority" not in out:
                 unsigned += 1
-        emit("app.signature", "warn" if unsigned else "pass",
+        emit("app.unsigned", "warn" if unsigned else "pass",
              f"{unsigned} of the first {min(len(apps), 60)} applications have no readable signature",
              "verify unsigned applications before trusting them" if unsigned else None)
     elif SYS == "Windows":
@@ -449,7 +449,7 @@ def check_apps() -> None:
                        "(Get-MpComputerStatus).RealTimeProtectionEnabled"])
         if rc == 0 and out.strip():
             on = "True" in out
-            emit("app.malware-protection", "pass" if on else "fail",
+            emit("upd.antivirus-defs", "pass" if on else "fail",
                  f"defender real-time protection is {'on' if on else 'off'}",
                  None if on else "turn real-time protection back on")
     else:
@@ -468,11 +468,11 @@ def check_updates() -> None:
         rc, out = run(["softwareupdate", "-l"])
         if rc == 0:
             pending = "No new software available" not in out
-            emit("upd.os-pending", "warn" if pending else "pass",
+            emit("upd.pending-critical", "warn" if pending else "pass",
                  "operating system updates are waiting" if pending else "the operating system is current",
                  "install pending updates" if pending else None)
         else:
-            unmeasured("upd.os-pending", "the update service did not answer")
+            unmeasured("upd.pending-critical", "the update service did not answer")
         rc, out = run(["defaults", "read", "/Library/Preferences/com.apple.SoftwareUpdate", "AutomaticCheckEnabled"])
         if rc == 0:
             emit("upd.auto-update", "pass" if out.strip() == "1" else "warn",
@@ -481,18 +481,18 @@ def check_updates() -> None:
         rc, out = run(["powershell", "-NoProfile", "-Command",
                        "(Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 1).InstalledOn"])
         if rc == 0 and out.strip():
-            emit("upd.os-pending", "pass", f"most recent patch installed {out.strip()}")
+            emit("upd.pending-critical", "pass", f"most recent patch installed {out.strip()}")
         else:
-            unmeasured("upd.os-pending", "the patch history could not be read")
+            unmeasured("upd.pending-critical", "the patch history could not be read")
     else:
         rc, out = run(["apt-get", "-s", "upgrade"])
         if rc == 0:
             count = out.count("Inst ")
-            emit("upd.os-pending", "warn" if count else "pass",
+            emit("upd.pending-critical", "warn" if count else "pass",
                  f"{count} package upgrade(s) pending" if count else "packages are current",
                  "run your package upgrade" if count else None)
         else:
-            unmeasured("upd.os-pending", "no supported package manager responded")
+            unmeasured("upd.pending-critical", "no supported package manager responded")
 
 
 def check_accounts() -> None:
@@ -500,7 +500,7 @@ def check_accounts() -> None:
         rc, out = run(["dscl", ".", "-list", "/Users"])
         if rc == 0:
             users = [u for u in out.split() if not u.startswith("_")]
-            emit("acct.local-users", "warn" if len(users) > 4 else "pass",
+            emit("acct.unknown-users", "warn" if len(users) > 4 else "pass",
                  f"{len(users)} local accounts: {', '.join(users[:6])}",
                  "remove accounts nobody uses" if len(users) > 4 else None)
         rc, out = run(["dscl", ".", "-read", f"/Groups/admin", "GroupMembership"])
@@ -522,9 +522,9 @@ def check_accounts() -> None:
         try:
             with open("/etc/passwd", encoding="utf-8") as fh:
                 users = [l.split(":")[0] for l in fh if int(l.split(":")[2]) >= 1000 and "nologin" not in l]
-            emit("acct.local-users", "pass", f"{len(users)} interactive local account(s)")
+            emit("acct.unknown-users", "pass", f"{len(users)} interactive local account(s)")
         except Exception:
-            unmeasured("acct.local-users", "the account list could not be read")
+            unmeasured("acct.unknown-users", "the account list could not be read")
         rc, out = run(["getent", "group", "sudo"])
         if rc == 0:
             emit("acct.admin-count", "pass", f"sudo members: {out.strip().split(':')[-1] or 'none'}")
@@ -532,14 +532,14 @@ def check_accounts() -> None:
     ssh_dir = os.path.expanduser("~/.ssh")
     if os.path.isdir(ssh_dir):
         keys = [k for k in os.listdir(ssh_dir) if k.startswith("id_") and not k.endswith(".pub")]
-        emit("acct.ssh-keys", "warn" if len(keys) > 3 else "pass",
+        emit("data.token-storage", "warn" if len(keys) > 3 else "pass",
              f"{len(keys)} private ssh key(s) on disk",
              "retire keys you no longer use" if len(keys) > 3 else None)
         auth = os.path.join(ssh_dir, "authorized_keys")
         if os.path.exists(auth):
             with open(auth, encoding="utf-8", errors="ignore") as fh:
                 lines = [l for l in fh if l.strip() and not l.startswith("#")]
-            emit("acct.remote-keys", "warn" if lines else "pass",
+            emit("acct.ssh-authorized-keys", "warn" if lines else "pass",
                  f"{len(lines)} key(s) may log into this machine",
                  "remove any authorized key you cannot name" if lines else None)
 
@@ -548,16 +548,16 @@ def check_backups() -> None:
     if SYS == "Darwin":
         rc, out = run(["tmutil", "latestbackup"])
         ok = rc == 0 and out.strip() and "__error__" not in out
-        emit("data.backup-recency", "pass" if ok else "warn",
+        emit("data.backup-recent", "pass" if ok else "warn",
              f"latest time machine backup: {out.strip()[:80]}" if ok else "no time machine backup was found",
              None if ok else "attach a backup destination — ransomware is only survivable with backups")
     elif SYS == "Windows":
         rc, out = run(["wbadmin", "get", "versions"])
-        emit("data.backup-recency", "pass" if rc == 0 and "Backup time" in out else "warn",
+        emit("data.backup-recent", "pass" if rc == 0 and "Backup time" in out else "warn",
              "windows backup history present" if rc == 0 and "Backup time" in out else "no windows backup history was found")
     else:
         candidates = [p for p in ("/var/backups", os.path.expanduser("~/backups")) if os.path.isdir(p)]
-        emit("data.backup-recency", "pass" if candidates else "warn",
+        emit("data.backup-recent", "pass" if candidates else "warn",
              f"backup directories present: {', '.join(candidates)}" if candidates else "no local backup directory was found")
 
 
@@ -567,9 +567,6 @@ def check_power() -> None:
         if rc == 0 and "%" in out:
             pct = out.split("\t")[-1].split("%")[0].split(";")[0].strip()
             emit("pwr.battery-health", "pass", f"battery reads {pct}% · {'charging' if 'AC Power' in out else 'on battery'}")
-        rc, out = run(["pmset", "-g", "custom"])
-        if rc == 0:
-            emit("pwr.sleep-policy", "pass", "power policy read from pmset")
     elif SYS == "Linux" and glob.glob("/sys/class/power_supply/BAT*/capacity"):
         path = glob.glob("/sys/class/power_supply/BAT*/capacity")[0]
         with open(path, encoding="utf-8") as fh:
