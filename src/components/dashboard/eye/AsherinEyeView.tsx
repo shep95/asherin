@@ -3283,6 +3283,23 @@ const AsherinEyeView = () => {
       }
 
       const layerHost = $("#layer-btns");
+      // grouped, not a wall of chips: a layer is easier to find when it sits
+      // under the question it answers.
+      const groupGrid = {};
+      LAYER_GROUPS.forEach((g) => {
+        const block = document.createElement("div");
+        block.className = "lgroup";
+        const h = document.createElement("div");
+        h.className = "lgroup-h";
+        h.textContent = g.label;
+        const grid = document.createElement("div");
+        grid.className = "lgrid";
+        block.appendChild(h);
+        block.appendChild(grid);
+        layerHost.appendChild(block);
+        groupGrid[g.id] = grid;
+      });
+      const gridFor = (id) => groupGrid[LAYER_GROUPS.find((g) => g.ids.includes(id))?.id] || groupGrid.analysis;
       LAYER_ROWS.forEach((row) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -3299,7 +3316,7 @@ const AsherinEyeView = () => {
           }
           void enableLayer(row.id, !layerOn[row.id]);
         };
-        layerHost.appendChild(b);
+        gridFor(row.id).appendChild(b);
       });
       {
         // track history is a rendering choice over the flight layers, not a
@@ -3311,7 +3328,7 @@ const AsherinEyeView = () => {
         t.textContent = "track history";
         t.title = "draws the path each aircraft has flown while you watched · nearest contacts only";
         t.onclick = () => setTrails(!trailsOn);
-        layerHost.appendChild(t);
+        groupGrid.analysis.appendChild(t);
       }
       const globeHost = $("#globe-btns");
       GLOBES.forEach((g) => {
