@@ -26,6 +26,7 @@ import PromptEnhancerPanel from "@/components/dashboard/PromptEnhancerPanel";
 import { useAccess } from "@/hooks/useAccess";
 import { isRetiredView } from "@/lib/retiredSurfaces";
 import { DashboardUiProvider } from "@/lib/dashboardUiContext";
+import { getActiveScope } from "@/lib/projects/scope";
 import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
@@ -2119,7 +2120,17 @@ const Dashboard = () => {
         return (
           <ErrorBoundary>
             <Suspense fallback={<LazyFallback />}>
-              <ProjectsView />
+              <ProjectsView
+                conversations={conversations}
+                onOpenConversation={(id) => {
+                  setActiveConvId(id);
+                  setSuggestions([]);
+                  setActiveView("chat");
+                }}
+                onNewProjectConversation={(projectId) => {
+                  void newConversation(projectId);
+                }}
+              />
             </Suspense>
           </ErrorBoundary>
         );
