@@ -10448,6 +10448,39 @@ export type Database = {
           },
         ]
       }
+      search_discover_runs: {
+        Row: {
+          ended_at: string | null
+          error: string | null
+          id: string
+          kind: string
+          seed: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          kind: string
+          seed: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          kind?: string
+          seed?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           category: string | null
@@ -10491,6 +10524,115 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "research_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_hits: {
+        Row: {
+          content_type: string | null
+          evidence_excerpt: string | null
+          exposure_class: string | null
+          first_seen_at: string | null
+          http_status: number | null
+          id: string
+          kind: string
+          language: string | null
+          last_probed_at: string
+          live: boolean | null
+          meta: Json
+          run_id: string
+          sensitivity: number
+          source: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          content_type?: string | null
+          evidence_excerpt?: string | null
+          exposure_class?: string | null
+          first_seen_at?: string | null
+          http_status?: number | null
+          id?: string
+          kind: string
+          language?: string | null
+          last_probed_at?: string
+          live?: boolean | null
+          meta?: Json
+          run_id: string
+          sensitivity?: number
+          source: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          content_type?: string | null
+          evidence_excerpt?: string | null
+          exposure_class?: string | null
+          first_seen_at?: string | null
+          http_status?: number | null
+          id?: string
+          kind?: string
+          language?: string | null
+          last_probed_at?: string
+          live?: boolean | null
+          meta?: Json
+          run_id?: string
+          sensitivity?: number
+          source?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_hits_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "search_discover_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_identity_pivots: {
+        Row: {
+          created_at: string
+          depth: number
+          id: string
+          identifier: string
+          kind: string
+          node_id: string
+          parent_node: string | null
+          run_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          depth?: number
+          id?: string
+          identifier: string
+          kind: string
+          node_id: string
+          parent_node?: string | null
+          run_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          depth?: number
+          id?: string
+          identifier?: string
+          kind?: string
+          node_id?: string
+          parent_node?: string | null
+          run_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_identity_pivots_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "search_discover_runs"
             referencedColumns: ["id"]
           },
         ]
