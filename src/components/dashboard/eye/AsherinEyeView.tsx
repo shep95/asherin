@@ -78,18 +78,6 @@ const LAYER_ROWS = [
     keyed: false,
   },
   {
-    id: "near",
-    label: "bluetooth near",
-    honesty: "this-box ble ads polled live · radio range is meters · sees ≠ joins",
-    keyed: false,
-  },
-  {
-    id: "meta",
-    label: "web metadata",
-    honesty: "public cameras + radio hosts + osm mapped webcams · live poll · not a tap · not a port scan",
-    keyed: false,
-  },
-  {
     id: "sats",
     label: "satellites",
     honesty: "celestrak tle + sgp4 orbit rings · gev class · not a classified catalog",
@@ -154,6 +142,15 @@ const LAYER_ROWS = [
   },
 ];
 
+// the sheet reads as four questions rather than one alphabet of chips.
+const LAYER_GROUPS = [
+  { id: "air", label: "air + orbit", ids: ["flights", "military", "stations", "launches", "sats", "traffic"] },
+  { id: "earth", label: "earth", ids: ["quakes", "fires", "zones", "lands", "future", "brittle", "buildings"] },
+  { id: "public", label: "public signals", ids: ["cameras", "radio", "spaceweather", "atmo", "engine", "ships"] },
+  { id: "analysis", label: "analysis", ids: ["dark", "route", "avoid"] },
+];
+
+
 const LAYER_COLOR = {
   flights: "#fbbf24",
   military: "#34d399",
@@ -164,8 +161,6 @@ const LAYER_COLOR = {
   radio: "#a78bfa",
   spaceweather: "#fde68a",
   engine: "#9ec9ff",
-  near: "#e8c56b",
-  meta: "#c4b5fd",
   sats: "#7dd3fc",
   atmo: "#a5f3fc",
   lands: "#9ec9ff",
@@ -277,20 +272,47 @@ const EYE_HUD_CSS = `
   .misb .m { color: var(--mute); font-size: clamp(10px, 1.05cqi, 12px); overflow-wrap:anywhere; }
   .misb #hud-line { font-variant-numeric: tabular-nums; color: hsl(var(--foreground) / .62); }
 
+  /* ── layers sheet: outer frame, inset inner frame, vertical spine ───────
+     the frame is the drawn reference — an outer rounded rectangle, a hairline
+     rail down the left carrying the panel word, and the controls living inside
+     a second rounded rectangle set in from it. */
   .sheet {
     position:absolute; right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t));
     bottom:calc(var(--dock-h) + var(--safe-b) + 10px); z-index:8;
-    width: min(304px, 32cqi, calc(100% - 2 * var(--pad)));
+    width: min(326px, 34cqi, calc(100% - 2 * var(--pad)));
     max-height: calc(100cqh - var(--dock-h) - var(--pad) * 2 - var(--safe-t) - var(--safe-b));
-    padding: clamp(11px, 1.5cqi, 17px); overflow:auto; pointer-events:auto;
-    -webkit-overflow-scrolling: touch;
+    padding: clamp(8px, 1.1cqi, 12px); overflow:hidden; pointer-events:auto;
+    display:flex; flex-direction:column;
   }
-  .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .sheet-frame {
+    flex:1 1 auto; min-height:0; display:grid; grid-template-columns:22px minmax(0, 1fr);
+    border:1px solid hsl(var(--foreground) / .16); border-radius:calc(var(--r) - 6px); overflow:hidden;
+  }
+  .sheet-spine {
+    border-right:1px solid hsl(var(--foreground) / .16);
+    display:flex; align-items:flex-start; justify-content:center; padding-top:12px;
+    background: hsl(var(--foreground) / .02);
+  }
+  .sheet-spine span {
+    writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
+    font:400 clamp(8px, .85cqi, 9.5px)/1 inherit; letter-spacing:.32em; text-transform:uppercase;
+    color: hsl(var(--foreground) / .32); white-space:nowrap;
+  }
+  .sheet-body {
+    min-width:0; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch;
+    padding: clamp(10px, 1.4cqi, 15px);
+  }
+  .sheet-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
   .sheet-close { display:none; border:0; background:transparent; color:var(--mute); cursor:pointer; font:300 12px/1 inherit; padding:6px 8px; }
   .sheet h2 {
     margin:0 0 10px; font:400 clamp(9px, .95cqi, 10px)/1 inherit; letter-spacing:.22em;
     text-transform:uppercase; color: hsl(var(--foreground) / .38);
   }
+  .sheet-card {
+    border:1px solid var(--line); border-radius:14px; padding:clamp(9px, 1.2cqi, 12px);
+    background: hsl(var(--foreground) / .022); margin-bottom:10px;
+  }
+  .sheet-card > h2 { margin-bottom:9px; }
   .sheet .row {
     display:flex; justify-content:space-between; gap:10px; font-size:clamp(10px, 1.05cqi, 11px);
     padding:7px 0; border-bottom:1px solid var(--line-soft); min-width:0; color: hsl(var(--foreground) / .55);
@@ -298,7 +320,14 @@ const EYE_HUD_CSS = `
   .sheet .row:last-child { border-bottom:0; }
   .sheet .row span { min-width:0; overflow-wrap:anywhere; }
   .sheet .k { color: hsl(var(--foreground) / .34); flex:0 0 auto; }
-  #layer-btns, #globe-btns, #style-btns { display:flex; flex-wrap:wrap; gap:6px; }
+  #globe-btns, #style-btns { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px, 1fr)); gap:6px; }
+  .lgroup + .lgroup { margin-top:11px; }
+  .lgroup-h {
+    font:400 clamp(8px, .85cqi, 9.5px)/1 inherit; letter-spacing:.26em; text-transform:uppercase;
+    color: hsl(var(--foreground) / .28); margin:0 0 7px; display:flex; align-items:center; gap:8px;
+  }
+  .lgroup-h::after { content:""; flex:1 1 auto; height:1px; background:var(--line-soft); }
+  .lgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.4rem), 1fr)); gap:6px; }
   .grid, #mission-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); gap:8px; }
   #mission-grid button {
     border-radius:12px; padding:clamp(8px, 1.2cqi, 12px); border:1px solid var(--line);
@@ -309,16 +338,25 @@ const EYE_HUD_CSS = `
   #mission-grid button:hover { background: hsl(var(--foreground) / .07); border-color: hsl(var(--foreground) / .18); }
 
   .tog {
-    border:1px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer;
-    color: hsl(var(--foreground) / .58); font:300 clamp(10px, 1.05cqi, 11.5px)/1 inherit;
-    background: transparent; transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
+    display:flex; align-items:center; gap:8px; text-align:left; width:100%; min-height:34px;
+    border:1px solid var(--line); border-radius:11px; padding:8px 10px; cursor:pointer;
+    color: hsl(var(--foreground) / .6); font:300 clamp(10px, 1.05cqi, 11.5px)/1.25 inherit;
+    background: hsl(var(--foreground) / .028);
+    transition: color .3s var(--ease), border-color .3s var(--ease), background .3s var(--ease);
   }
-  .tog:hover { color: var(--ink); border-color: hsl(var(--foreground) / .22); }
+  .tog::before {
+    content:""; flex:0 0 auto; width:5px; height:5px; border-radius:2px;
+    background: hsl(var(--foreground) / .22);
+    transition: background .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .tog:hover { color: var(--ink); border-color: hsl(var(--foreground) / .22); background: hsl(var(--foreground) / .055); }
   .tog.on {
-    background: hsl(var(--accent) / .14); color: var(--accent);
-    border-color: hsl(var(--accent) / .42);
+    background: hsl(var(--accent) / .12); color: var(--accent);
+    border-color: hsl(var(--accent) / .4);
   }
-  .tog.keyed { opacity:.42; }
+  .tog.on::before { background: var(--accent); box-shadow: 0 0 8px hsl(var(--accent) / .65); }
+  .tog.keyed { opacity:.44; }
+  .tog.keyed::before { background: hsl(var(--foreground) / .12); }
 
   .contacts {
     position:absolute; left:calc(var(--pad) + var(--safe-l));
@@ -484,9 +522,11 @@ const EYE_HUD_CSS = `
     .misb { max-width: calc(100cqi - 2 * var(--pad) - 72px); }
     .sheet {
       display:none; left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      top:auto; width:auto; height:min(40cqh, 48%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
+      top:auto; width:auto; height:min(44cqh, 52%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
     }
     .sheet.open { display:flex; flex-direction:column; }
+    .sheet-frame { grid-template-columns: minmax(0, 1fr); }
+    .sheet-spine { display:none; }
     .contacts, .camwall {
       left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
       width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(40cqh, 300px);
@@ -777,7 +817,6 @@ const AsherinEyeView = () => {
     let modelOn = false;
     let camMode = "chase";
     let orbitHeading = 0;
-    let nearOnce = false;
     let atmoLayer = null;
     let lastAltBand = "";
     let hoverEnt = null;
@@ -819,38 +858,50 @@ const AsherinEyeView = () => {
           <div class="m" id="hud-honesty"></div>
         </div>
         <div class="glass sheet" id="sheet">
-          <div class="sheet-head">
-            <h2>layers</h2>
-            <button type="button" class="sheet-close" id="sheet-close">close</button>
+          <div class="sheet-frame">
+            <div class="sheet-spine"><span>asherin.eye</span></div>
+            <div class="sheet-body">
+              <div class="sheet-head">
+                <h2>layers</h2>
+                <button type="button" class="sheet-close" id="sheet-close">close</button>
+              </div>
+              <div class="sheet-card"><div id="layer-btns"></div></div>
+              <div class="sheet-card">
+                <h2>globe</h2>
+                <div id="globe-btns"></div>
+                <h2 style="margin-top:12px">look</h2>
+                <div id="style-btns"></div>
+              </div>
+              <div class="sheet-card">
+                <h2>first look</h2>
+                <div class="grid" id="mission-grid"></div>
+              </div>
+              <div class="sheet-card">
+                <h2>what these are</h2>
+                <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
+                <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
+                <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
+                <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
+                <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
+                <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
+                <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
+                <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
+                <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
+                <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
+                <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
+                <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
+                <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
+                <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
+                <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+              </div>
+              <div class="sheet-card" style="margin-bottom:0">
+                <h2>attribution</h2>
+                <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
+                <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
+              </div>
+            </div>
           </div>
-          <div id="layer-btns"></div>
-          <h2 style="margin-top:14px">globe</h2>
-          <div id="globe-btns"></div>
-          <h2 style="margin-top:14px">look</h2>
-          <div id="style-btns"></div>
-          <h2 style="margin-top:14px">first look</h2>
-          <div class="grid" id="mission-grid"></div>
-          <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
-          <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
-          <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
-          <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
-          <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-          <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
-          <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
-          <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
-          <div class="row"><span class="k">bluetooth</span><span>this radio · meters · not a peninsula scan</span></div>
-          <div class="row"><span class="k">web metadata</span><span>public catalogs + osm mapped webcams · not a tap</span></div>
-          <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
-          <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
-          <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
-          <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
-          <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
-          <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
-          <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
-          <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
-          <h2 style="margin-top:14px">attribution</h2>
-          <div class="row"><span class="k">imagery</span><span>© esri world imagery · © carto · © openstreetmap contributors</span></div>
-          <div class="row"><span class="k">engine</span><span>cesiumjs · satellite.js · public feeds named per layer</span></div>
         </div>
         <div class="glass contacts" id="contacts" hidden>
           <h2>contacts · 250 km</h2>
@@ -1047,7 +1098,6 @@ const AsherinEyeView = () => {
         if (b.dataset.layer === id) b.classList.toggle("on", on);
       });
       if (!on) {
-        if (id === "near") nearOnce = false;
         if (id === "atmo") clearAtmo();
         clearDs(id);
         return;
@@ -1523,45 +1573,8 @@ const AsherinEyeView = () => {
           cmdMode === "property" ? "property address" : "ask asherin.eye — or name a place";
     }
 
-    async function loadWebIndexAt(lat, lon, around) {
-      const jobs = await Promise.allSettled([
-        eyeFeed("cameras"),
-        eyeFeed("radio"),
-        eyeFeed("osmweb", { lat, lon, around: around || 900 }),
-      ]);
-      const rows = [];
-      const notes = [];
-      jobs.forEach((job, i) => {
-        const name = ["cameras", "radio", "osm mapped webcams"][i];
-        if (job.status !== "fulfilled") {
-          notes.push(`${name} refused`);
-          return;
-        }
-        const body = job.value || {};
-        if (body.error) {
-          notes.push(`${name}: ${body.error}`);
-          return;
-        }
-        (body.rows || []).forEach((row) => {
-          if (row.lat == null || row.lon == null) return;
-          if (i < 2 && kmBetween(lat, lon, row.lat, row.lon) > 8) return;
-          rows.push({ ...row, id: `${name}:${row.id || rows.length}`, note: row.note || name });
-        });
-      });
-      const sliced = rows.slice(0, 220);
-      plotRows(
-        "meta",
-        sliced,
-        `web metadata on this property · ${sliced.length} public points inside the focus · not a tap · ${notes.join(" · ")}`.trim(),
-      );
-    }
-
     async function focusPropertyLayers(lat, lon) {
       const bits = [];
-      if (layerOn.meta) {
-        await loadWebIndexAt(lat, lon, 900);
-        bits.push("web metadata recentered to ~900m around this address");
-      }
       if (layerOn.cameras) {
         try {
           const j = await eyeFeed("cameras");
@@ -1579,10 +1592,9 @@ const AsherinEyeView = () => {
         }
       }
       if (layerOn.engine) bits.push("engine pin on this property");
-      if (layerOn.near) bits.push("bluetooth near stays this-box radio · it does not jump to that address");
       if (layerOn.flights) bits.push("flights still live around the camera");
       if (layerOn.quakes) bits.push("earthquakes still live");
-      if (!bits.length) bits.push("no extra layers were on · toggle cameras/meta/engine to compose them here");
+      if (!bits.length) bits.push("no extra layers were on · toggle cameras or engine pins to compose them here");
       return bits;
     }
 
@@ -2605,14 +2617,6 @@ const AsherinEyeView = () => {
         setNote("asherin.engine is the chat + pins. type a place. this is not a search results page.");
         return;
       }
-      if (id === "near") {
-        await loadNear();
-        return;
-      }
-      if (id === "meta") {
-        await loadWebIndex();
-        return;
-      }
       if (id === "sats") {
         await loadSats();
         return;
@@ -2662,89 +2666,6 @@ const AsherinEyeView = () => {
         .filter(Boolean)
         .join(" · ");
       plotRows(id, j.rows, note);
-    }
-
-    async function loadNear() {
-      try {
-        if (!HUB_REACHABLE) throw new Error("hub is loopback http — blocked over https");
-        const r = await fetch(HUB, { signal: AbortSignal.timeout(1800) });
-        const j = await r.json();
-        const last = (j.rows || [])[0] || {};
-        const place = last.place || {};
-        const lat = Number(place.lat);
-        const lon = Number(place.lon);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("companion has no city-scale place");
-        const ble = last.bluetooth?.ble_ads?.devices || last.seen_not_connected || [];
-        const ads = Array.isArray(ble) ? ble : [];
-        const rows = ads.slice(0, 40).map((d, i) => {
-          const rssi = Number(d.rssi || -70);
-          const ring = Math.min(0.004, Math.max(0.0004, (Math.abs(rssi) - 40) / 18000));
-          const ang = (i / Math.max(1, ads.length)) * Math.PI * 2;
-          return {
-            id: d.address || d.chat_label || i,
-            label: (d.chat_label || d.name || "ble ad").slice(0, 40),
-            lat: lat + Math.sin(ang) * ring,
-            lon: lon + Math.cos(ang) * ring,
-            note: "this-box radio · meters · sees ≠ joins",
-          };
-        });
-        if (!rows.length) {
-          rows.push({
-            id: "box",
-            label: `${place.city || "this box"} · radios heard`,
-            lat,
-            lon,
-            note: "no ble ads this tick",
-          });
-        }
-        plotRows(
-          "near",
-          rows,
-          `bluetooth near · ${rows.length} ads this tick · this radio is meters, not a state · not a hijack`,
-        );
-        if (!nearOnce) {
-          nearOnce = true;
-          flyTo(lat, lon, 12000);
-        }
-      } catch (e) {
-        throw new Error("companion not readable from this https tab · sees ≠ joins · " + (e.message || e));
-      }
-    }
-
-    async function loadWebIndex() {
-      const C = window.Cesium;
-      const cam = viewer?.camera?.positionCartographic;
-      const lat = cam ? C.Math.toDegrees(cam.latitude) : 0;
-      const lon = cam ? C.Math.toDegrees(cam.longitude) : 0;
-      const jobs = await Promise.allSettled([eyeFeed("cameras"), eyeFeed("radio"), eyeFeed("osmweb", { lat, lon })]);
-      const rows = [];
-      const notes = [];
-      jobs.forEach((job, i) => {
-        const name = ["cameras", "radio", "osm mapped webcams"][i];
-        if (job.status !== "fulfilled") {
-          notes.push(`${name} refused`);
-          return;
-        }
-        const body = job.value || {};
-        if (body.error) {
-          notes.push(`${name}: ${body.error}`);
-          return;
-        }
-        (body.rows || []).forEach((row) => {
-          if (row.lat == null || row.lon == null) return;
-          rows.push({
-            ...row,
-            id: `${name}:${row.id || rows.length}`,
-            note: row.note || name,
-          });
-        });
-      });
-      const sliced = rows.slice(0, 220);
-      plotRows(
-        "meta",
-        sliced,
-        `web metadata live layer · ${sliced.length} public web-connected points · not a tap · not a port scan · ${notes.join(" · ")}`.trim(),
-      );
     }
 
     // ── track history ───────────────────────────────────────────────────────
@@ -3196,12 +3117,6 @@ const AsherinEyeView = () => {
         if (url) {
           const j = await eyeFeed("webmeta", { url: url[0] });
           const rows = j.rows || [];
-          plotRows(
-            "meta",
-            rows.filter((r) => r.lat != null),
-            j.note || "public metadata",
-          );
-          layerOn.meta = true;
           if (rows[0]?.lat) {
             pinEngine(rows, true);
             chatLog.push({
@@ -3375,6 +3290,23 @@ const AsherinEyeView = () => {
       }
 
       const layerHost = $("#layer-btns");
+      // grouped, not a wall of chips: a layer is easier to find when it sits
+      // under the question it answers.
+      const groupGrid = {};
+      LAYER_GROUPS.forEach((g) => {
+        const block = document.createElement("div");
+        block.className = "lgroup";
+        const h = document.createElement("div");
+        h.className = "lgroup-h";
+        h.textContent = g.label;
+        const grid = document.createElement("div");
+        grid.className = "lgrid";
+        block.appendChild(h);
+        block.appendChild(grid);
+        layerHost.appendChild(block);
+        groupGrid[g.id] = grid;
+      });
+      const gridFor = (id) => groupGrid[LAYER_GROUPS.find((g) => g.ids.includes(id))?.id] || groupGrid.analysis;
       LAYER_ROWS.forEach((row) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -3391,7 +3323,7 @@ const AsherinEyeView = () => {
           }
           void enableLayer(row.id, !layerOn[row.id]);
         };
-        layerHost.appendChild(b);
+        gridFor(row.id).appendChild(b);
       });
       {
         // track history is a rendering choice over the flight layers, not a
@@ -3403,7 +3335,7 @@ const AsherinEyeView = () => {
         t.textContent = "track history";
         t.title = "draws the path each aircraft has flown while you watched · nearest contacts only";
         t.onclick = () => setTrails(!trailsOn);
-        layerHost.appendChild(t);
+        groupGrid.analysis.appendChild(t);
       }
       const globeHost = $("#globe-btns");
       GLOBES.forEach((g) => {
@@ -3672,13 +3604,8 @@ const AsherinEyeView = () => {
         setInterval(() => {
           if (layerOn.flights) loadLayer("flights").catch(() => {});
           if (layerOn.military) loadLayer("military").catch(() => {});
-          if (layerOn.near) loadNear().catch(() => {});
+          
         }, 12000),
-      );
-      pollers.push(
-        setInterval(() => {
-          if (layerOn.meta) loadWebIndex().catch(() => {});
-        }, 40000),
       );
       // the recorder is server-throttled to one write per 20 s per operator, so
       // the tab offers slightly slower than that and never busies the endpoint.
