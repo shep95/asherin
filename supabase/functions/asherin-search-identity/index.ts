@@ -114,14 +114,12 @@ Deno.serve(async (req) => {
       ]);
       for (const r of [sec, wiki, faa, wb]) if (r.status === "fulfilled") for (const row of r.value) for (const d of row.discovered) discovered.push(d);
     } else if (node.kind === "username") {
-      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier))),
-      });
+      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier));
       for (const row of wb) for (const d of row.discovered) discovered.push(d);
     } else if (node.kind === "phone") {
       meta.sources["carrier.numverify"] = { available: false, reason: "requires NUMVERIFY_API_KEY" };
       meta.sources["opencnam"] = { available: false, reason: "requires OPENCNAM credentials" };
-      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier))),
-      });
+      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier));
       for (const row of wb) for (const d of row.discovered) discovered.push(d);
     }
     return discovered;
