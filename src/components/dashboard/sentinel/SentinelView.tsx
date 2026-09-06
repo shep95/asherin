@@ -418,6 +418,8 @@ const SentinelView = () => {
             </div>
           </div>
 
+          <CompanionPanel />
+
           <div className={`${card} space-y-4 p-5`}>
             <h2 className="text-sm font-light tracking-wide text-white/70">watch settings</h2>
             <label className="flex items-center justify-between gap-4">
