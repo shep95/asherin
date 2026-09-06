@@ -14,10 +14,13 @@ async function fetchJson(url: string, timeoutMs = 12_000): Promise<unknown> {
   const t = setTimeout(() => c.abort("timeout"), timeoutMs);
   try {
     const r = await fetch(url, { signal: c.signal, headers: { "user-agent": UA, accept: "application/json" } });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      try { await r.arrayBuffer(); } catch { /* ignore */ }
+      // surface upstream failure so callers can report "unmeasured" rather
+      // than silently reporting zero certificates.
+      throw new Error(`crt.sh upstream ${r.status}`);
+    }
     return await r.json();
-  } catch {
-    return null;
   } finally {
     clearTimeout(t);
   }

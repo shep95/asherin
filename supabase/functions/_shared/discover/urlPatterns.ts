@@ -82,8 +82,21 @@ async function probeOne(base: string, entry: (typeof PATTERNS)[number]): Promise
   }
 }
 
+// ssrf guard: never probe loopback, link-local, private ranges or cloud
+// metadata hosts, whatever the caller supplied.
+const BLOCKED_HOST = /^(localhost|127\.|0\.|10\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?|metadata\.|.*\.internal$|.*\.local$)/i;
+
+export function isProbeableHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (!h || BLOCKED_HOST.test(h)) return false;
+  return /^[a-z0-9.-]{3,253}$/.test(h) && h.includes(".") && !/\.\./.test(h);
+}
+
 export async function probeUrlPatterns(base: string, concurrency = 6): Promise<PatternHit[]> {
   const clean = base.startsWith("http") ? base : `https://${base}`;
+  let host = "";
+  try { host = new URL(clean).hostname; } catch { return []; }
+  if (!isProbeableHost(host)) return [];
   const out: PatternHit[] = [];
   let i = 0;
   async function worker() {
