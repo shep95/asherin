@@ -12,6 +12,7 @@ import {
   ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
   type AmbientAlert, type AmbientDevice, type AmbientEvent, type AmbientSpeaker,
 } from "@/lib/sentinel/audio/sync";
+import CompanionPanel from "./CompanionPanel";
 
 /**
  * asherin.sentinel — the ambient watch, and the truth about its reach.
