@@ -1796,7 +1796,10 @@ const Dashboard = () => {
     if (!user) return;
     // A conversation started while a workspace is active belongs to that
     // workspace, so it inherits its files and standing directions on reload.
-    const boundProjectId = projectId ?? getActiveScope()?.projectId ?? null;
+    // Sidebar buttons pass a click event through this handler — only a real
+    // project id counts, never an event object.
+    const boundProjectId =
+      typeof projectId === "string" && projectId ? projectId : (getActiveScope()?.projectId ?? null);
     const { data: newConv, error } = await supabase
       .from("conversations")
       .insert({ user_id: user.id, title: "New conversation", mode, project_id: boundProjectId })
