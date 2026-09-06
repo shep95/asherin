@@ -8,7 +8,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireUser, authErrorResponse } from "../_shared/authMiddleware.ts";
 import { crtSubdomains } from "../_shared/discover/crtsh.ts";
 import { enumerateSubdomains } from "../_shared/discover/doh.ts";
-import { waybackByDomain, commonCrawlIndexId as _idId } from "../_shared/discover/waybackCdx.ts";
+import { waybackByDomain } from "../_shared/discover/waybackCdx.ts";
 import { commonCrawlByDomain, commonCrawlIndexId } from "../_shared/discover/commonCrawl.ts";
 import { githubCodeSearch } from "../_shared/discover/githubSearch.ts";
 import { probeUrlPatterns } from "../_shared/discover/urlPatterns.ts";

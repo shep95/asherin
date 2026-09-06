@@ -83,8 +83,8 @@ Deno.serve(async (req) => {
         }),
       ]);
       for (const r of results) if (r.status === "fulfilled") for (const row of r.value) for (const d of row.discovered) discovered.push(d);
-      const user = node.identifier.split("@")[0];
-      if (user && node.depth === 0) discovered.push({ identifier: user, kind: "username" });
+      const localPart = node.identifier.split("@")[0];
+      if (localPart && node.depth === 0) discovered.push({ identifier: localPart, kind: "username" });
     } else if (node.kind === "name") {
       const [sec, wiki, faa, wb] = await Promise.allSettled([
         collect("sec.edgar", await secEdgarByName(node.identifier)),

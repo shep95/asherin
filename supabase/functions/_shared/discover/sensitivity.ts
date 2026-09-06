@@ -19,11 +19,10 @@ const BASE: Record<ExposureClass, number> = {
   orphan: 30,
   directory: 45,
   paste: 55,
-  code: 55,
   "code-leak": 65,
   config: 70,
   credential: 90,
-} as unknown as Record<ExposureClass, number>;
+};
 
 const KEY_HINTS = [
   /AKIA[0-9A-Z]{16}/,           // aws access key id
