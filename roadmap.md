@@ -6,4 +6,4 @@
 - [x] Clarify Defender's browser/owned-device boundary without implementing fingerprint spoofing or covert whole-device control.
 - [x] Run build, tests, static checks, and live preview verification; close every remaining task.
 
-- [ ] retire asherin.zaxin and asherin.shepherd (hide from nav, access, catalog, command palette)
+- [x] retire asherin.zaxin and asherin.shepherd (nav, access, catalog, palette, backend 410)
