@@ -3675,11 +3675,6 @@ const AsherinEyeView = () => {
           if (layerOn.near) loadNear().catch(() => {});
         }, 12000),
       );
-      pollers.push(
-        setInterval(() => {
-          if (layerOn.meta) loadWebIndex().catch(() => {});
-        }, 40000),
-      );
       // the recorder is server-throttled to one write per 20 s per operator, so
       // the tab offers slightly slower than that and never busies the endpoint.
       pollers.push(setInterval(() => void recordTick(), 25000));
