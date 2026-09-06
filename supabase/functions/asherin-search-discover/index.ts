@@ -148,15 +148,26 @@ Deno.serve(async (req) => {
   }
 
   // insert in chunks to keep payload sane
-  for (let i = 0; i < inserts.length; i += 500) {
-    await admin.from("search_hits").insert(inserts.slice(i, i + 500));
+  let stored = 0;
+  const storeErrors: string[] = [];
+  for (let i = 0; i < inserts.length; i += 200) {
+    const chunk = inserts.slice(i, i + 200);
+    const { error } = await admin.from("search_hits").insert(chunk);
+    if (error) {
+      storeErrors.push(error.message);
+      console.error("search_hits insert failed", error.message, JSON.stringify(chunk[0]));
+    } else {
+      stored += chunk.length;
+    }
   }
+  meta.stored = stored;
+  if (storeErrors.length) meta.store_errors = storeErrors.slice(0, 3);
   await admin
     .from("search_discover_runs")
     .update({ status: "done", ended_at: new Date().toISOString() })
     .eq("id", runId);
 
-  return json({ run_id: runId, hits: inserts.length, meta }, 200, cors);
+  return json({ run_id: runId, hits: stored, found: inserts.length, meta }, 200, cors);
 });
 
 function json(x: unknown, status: number, cors: Record<string, string>) {
