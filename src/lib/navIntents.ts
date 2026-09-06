@@ -44,7 +44,7 @@ export const NAV_INTENTS: NavIntent[] = [
     view: "asherin-defender",
     label: "asherin.defender",
     codename: "asherin.defender",
-    blurb: "Your own device — covert-camera law, wifi and bluetooth intel, bunker freeze",
+    blurb: "Your whole device — 186 protections, browser readings plus a paired read-only device agent",
     keywords: [
       "defender",
       "bunker",
