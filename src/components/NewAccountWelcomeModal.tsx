@@ -15,20 +15,12 @@ const STORAGE_PREFIX = "aureon_welcome_seen_";
  */
 
 const CAPABILITIES = [
-  { k: "01", t: "Asherin Chat", d: "Multi-model intelligence with consensus and BYOK." },
-  { k: "02", t: "Zophiel Search", d: "Live public-engine search with credibility ranking and cited hits." },
-  { k: "03", t: "Asherin Eye", d: "Live public spatial layers on a globe — flights, quakes, disasters, public cameras." },
-  {
-    k: "04",
-    t: "Zaxin BLE Scout",
-    d: "Browser Web Bluetooth scan with coarse RSSI proximity — a field scout, not a mesh.",
-  },
-  {
-    k: "05",
-    t: "Zerlal Cyber Recon",
-    d: "Passive domain recon plus a public CVE index lookup. Not a credentialed scanner.",
-  },
-  { k: "06", t: "Asher Code IDE", d: "In-dashboard Monaco IDE with 9-provider BYOK code generation." },
+  { k: "01", t: "asherin chat", d: "Multi-model intelligence with consensus and BYOK." },
+  { k: "02", t: "asherin.search", d: "Live public-engine search with credibility ranking and cited hits." },
+  { k: "03", t: "asherin.eye", d: "Live public spatial layers on a globe — flights, quakes, disasters, public cameras." },
+  { k: "04", t: "asherin.cyber", d: "Passive domain recon plus a public CVE index lookup. Not a credentialed scanner." },
+  { k: "05", t: "asherin.defender", d: "Camera, wifi and spy-class status on your own device. Nothing about anyone else's." },
+  { k: "06", t: "asherin.knowledge", d: "Your own documents embedded and cited, passage by passage." },
 ];
 
 const PLANS = [
@@ -36,13 +28,13 @@ const PLANS = [
     tier: "Asherin",
     price: "$18",
     per: "/mo",
-    desc: "Chat, code, research and Zophiel Search. No trial — billing starts when you subscribe.",
+    desc: "Chat, code, research and asherin.search. No trial — billing starts when you subscribe.",
   },
   {
     tier: "Asherin Pro",
     price: "$79",
     per: "/mo",
-    desc: "Full intelligence suite — Azplen, Zaxin, Zerlal Cyber, Asherin Eye, and Asherin Defender.",
+    desc: "Higher limits plus asherin.eye, asherin.defender, asherin.arvision and the team workspace.",
   },
   { tier: "Enterprise", price: "Custom", per: "", desc: "Dedicated capacity, SSO, org controls, SLA." },
 ];
