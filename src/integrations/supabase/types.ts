@@ -9472,6 +9472,7 @@ export type Database = {
           description: string
           files: string[]
           id: string
+          instructions: string
           mode: string
           name: string
           team_id: string | null
@@ -9483,6 +9484,7 @@ export type Database = {
           description?: string
           files?: string[]
           id?: string
+          instructions?: string
           mode?: string
           name: string
           team_id?: string | null
@@ -9494,6 +9496,7 @@ export type Database = {
           description?: string
           files?: string[]
           id?: string
+          instructions?: string
           mode?: string
           name?: string
           team_id?: string | null
