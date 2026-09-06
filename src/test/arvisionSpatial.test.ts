@@ -35,8 +35,11 @@ describe("navigation graph", () => {
   it("falls back to a star when the export has no precomputed route", () => {
     const trimmed: NavigationData = { ...map, paths: [] };
     const bare = new NavigationGraph(trimmed);
-    const poi = map.pois[0];
-    const start = map.waypoints[0];
+    // the export's waypoint graph is fragmented, so start from a waypoint the
+    // precomputed set proves is connected to this destination
+    const sample = map.paths[0];
+    const poi = map.pois.find((p) => p.id === sample.toPoiId) as NonNullable<(typeof map.pois)[number]>;
+    const start = { id: sample.fromWaypointId };
     const path = bare.getPath(start.id, poi.id);
     expect(path).toBeDefined();
     expect(path?.waypointPath[0]).toBe(start.id);
@@ -95,12 +98,13 @@ describe("guidance rules", () => {
   it("refuses to start a route before a position exists, then runs one", () => {
     const spoken: string[] = [];
     const engine = new SpatialGuidance(graph, { onInstruction: (i) => spoken.push(i) });
-    const poi = map.pois[0];
+    const poi = map.pois.find((p) => p.id === map.paths[0].toPoiId) as NonNullable<(typeof map.pois)[number]>;
 
     expect(engine.start(poi.id)).toMatch(/no position/);
 
-    const start = map.waypoints[map.waypoints.length - 1];
-    engine.updatePosition(start.position, yaw(0));
+    const routed = map.paths[0];
+    const startWp = graph.getWaypoint(routed.fromWaypointId) as NonNullable<ReturnType<typeof graph.getWaypoint>>;
+    engine.updatePosition(startWp.position, yaw(0));
     expect(engine.start(poi.id)).toBeNull();
 
     const state = engine.getState();

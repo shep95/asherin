@@ -44,9 +44,9 @@ export class GuidanceVoice {
   play(instruction: NavInstruction, force = false, now = Date.now()): string | null {
     if (!this.enabled) return null;
     if (!force) {
-      const last = this.lastSpokenAt.get(instruction) ?? 0;
-      if (instruction === this.lastInstruction && now - last < this.cooldownMs) return null;
-      if (now - last < this.cooldownMs) return null;
+      const last = this.lastSpokenAt.get(instruction);
+      // never spoken before means say it now; the cooldown only suppresses repeats
+      if (last !== undefined && now - last < this.cooldownMs) return null;
     }
 
     this.lastSpokenAt.set(instruction, now);
