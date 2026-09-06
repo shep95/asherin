@@ -180,8 +180,7 @@ const SentinelView = () => {
             <h1 className="font-light tracking-tight text-2xl text-white/90">asherin.sentinel</h1>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">
               an ambient watch. it separates voices, learns them from their own words, tags the sounds around them, and
-              keeps every turn in one searchable account timeline. it listens only while this page is open — a browser
-              cannot hold a microphone after its tab is gone, and this room will not pretend otherwise.
+              keeps every turn in one searchable account timeline.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -198,6 +197,12 @@ const SentinelView = () => {
               {listening ? "stop listening" : "start listening"}
             </Button>
           </div>
+        </div>
+
+        <div className={`mt-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3`}>
+          <p className="text-xs leading-relaxed text-amber-200/80">
+            <span className="font-medium text-amber-200/95">truth boundary:</span> sentinel listens only while this page is open. it survives the tab being backgrounded and the desktop screen locking, but it cannot survive the tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. it will not pretend to be always-on. the account timeline is the authoritative record of what was captured.
+          </p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
