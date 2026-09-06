@@ -515,9 +515,11 @@ const EYE_HUD_CSS = `
     .misb { max-width: calc(100cqi - 2 * var(--pad) - 72px); }
     .sheet {
       display:none; left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
-      top:auto; width:auto; height:min(40cqh, 48%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
+      top:auto; width:auto; height:min(44cqh, 52%); bottom:calc(var(--dock-h) + var(--safe-b) + 8px);
     }
     .sheet.open { display:flex; flex-direction:column; }
+    .sheet-frame { grid-template-columns: minmax(0, 1fr); }
+    .sheet-spine { display:none; }
     .contacts, .camwall {
       left:calc(var(--pad) + var(--safe-l)); right:calc(var(--pad) + var(--safe-r));
       width:auto; top:calc(var(--pad) + var(--safe-t) + 64px); bottom:auto; height:min(40cqh, 300px);
