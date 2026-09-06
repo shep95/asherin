@@ -138,11 +138,11 @@ export async function secEdgarByName(name: string): Promise<IdResult> {
   return {
     available: true,
     rows: hits.slice(0, 15).map((h) => {
-      const src = (h._source as Record<string, unknown>) ?? {};
-      const accession = String(src.adsh ?? "");
-      const url = accession
-        ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(String(src.ciks?.[0] ?? ""))}`
-        : "https://efts.sec.gov";
+      const src = (h._source as { adsh?: string; form?: string; ciks?: string[] }) ?? {};
+      const cik = Array.isArray(src.ciks) ? String(src.ciks[0] ?? "") : "";
+      const url = cik
+        ? `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${encodeURIComponent(cik)}`
+        : "https://www.sec.gov/cgi-bin/srqsb?text=" + encodeURIComponent(name);
       return {
         source: "sec.edgar",
         kind: "filing",
