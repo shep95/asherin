@@ -11,7 +11,7 @@ import { enumerateSubdomains } from "../_shared/discover/doh.ts";
 import { waybackByDomain } from "../_shared/discover/waybackCdx.ts";
 import { commonCrawlByDomain, commonCrawlIndexId } from "../_shared/discover/commonCrawl.ts";
 import { githubCodeSearch } from "../_shared/discover/githubSearch.ts";
-import { probeUrlPatterns } from "../_shared/discover/urlPatterns.ts";
+import { probeUrlPatterns, isProbeableHost } from "../_shared/discover/urlPatterns.ts";
 import { scoreSensitivity } from "../_shared/discover/sensitivity.ts";
 
 interface Body { seed: string }
@@ -28,7 +28,9 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ error: "invalid json" }, 400, cors); }
   const seed = String(body?.seed ?? "").trim().toLowerCase();
   const domain = seed.replace(/^https?:\/\//, "").split("/")[0];
-  if (!/^[a-z0-9.-]{3,253}$/.test(domain)) return json({ error: "invalid seed" }, 400, cors);
+  if (!/^[a-z0-9.-]{3,253}$/.test(domain) || !isProbeableHost(domain)) {
+    return json({ error: "seed must be a public hostname; loopback, private ranges and metadata hosts are refused" }, 400, cors);
+  }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
@@ -53,7 +55,7 @@ Deno.serve(async (req) => {
   const inserts: Array<Record<string, unknown>> = [];
   const now = new Date().toISOString();
   const why = (r: PromiseSettledResult<unknown>, fallback: string) =>
-    r.status === "rejected" && r.reason instanceof Error ? r.reason.message : fallback;
+    r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : fallback;
   const meta: Record<string, unknown> = {
     sources: {
       "crt.sh": crt.status === "fulfilled" ? { count: crt.value.length, available: true } : { available: false, reason: why(crt, "crt.sh error") },

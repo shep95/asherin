@@ -46,9 +46,17 @@ Deno.serve(async (req) => {
   const meta: Record<string, Record<string, unknown>> = { sources: {} };
 
   async function collect(source: string, res: IdResult) {
-    meta.sources[source] = res.available
-      ? { available: true, count: res.rows.length }
-      : { available: false, reason: res.reason ?? "unmeasured" };
+    // a source is queried once per pivot node; accumulate rather than
+    // letting the last node overwrite the first node's result.
+    const prev = meta.sources[source] as { available?: boolean; count?: number; reason?: string } | undefined;
+    if (res.available) {
+      meta.sources[source] = {
+        available: true,
+        count: (prev?.available ? (prev.count ?? 0) : 0) + res.rows.length,
+      };
+    } else if (!prev?.available) {
+      meta.sources[source] = { available: false, reason: res.reason ?? "unmeasured" };
+    }
     for (const r of res.rows) {
       hitInserts.push({
         run_id: runId, user_id: user!.id,
