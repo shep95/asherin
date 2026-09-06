@@ -50,6 +50,7 @@ const SentinelView = () => {
   const [transcribeOn, setTranscribeOn] = useState(true);
   const [pushNewSpeaker, setPushNewSpeaker] = useState(true);
   const [retention, setRetention] = useState(DEFAULT_RETENTION_HOURS);
+  const [sensitivity, setSensitivity] = useState<VadSensitivity>("balanced");
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -90,10 +91,13 @@ const SentinelView = () => {
       setSpeakers(timeline.speakers);
       setDevices(timeline.devices);
       setAlerts(alertList.alerts);
-      const prefs = settings.prefs as { transcribe?: boolean; pushNewSpeaker?: boolean };
+      const prefs = settings.prefs as { transcribe?: boolean; pushNewSpeaker?: boolean; sensitivity?: unknown };
       setTranscribeOn(prefs.transcribe !== false);
       setPushNewSpeaker(prefs.pushNewSpeaker !== false);
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
+      const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
+      setSensitivity(sens);
+      engineRef.current?.setSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
@@ -131,14 +135,17 @@ const SentinelView = () => {
     }
   };
 
-  const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number }) => {
+  const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number; sensitivity?: VadSensitivity }) => {
     const next = {
       transcribe: patch.transcribe ?? transcribeOn,
       pushNewSpeaker: patch.pushNewSpeaker ?? pushNewSpeaker,
+      sensitivity: patch.sensitivity ?? sensitivity,
       pushTags: DEFAULT_PUSH_TAGS,
     };
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
+    setSensitivity(next.sensitivity);
+    engineRef.current?.setSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
