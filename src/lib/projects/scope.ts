@@ -15,9 +15,14 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
+  /** Standing directions applied to every conversation inside this project. */
+  instructions: string;
   mode: ProjectMode;
   created_at: string;
 }
+
+/** Server-side constraint mirror — keep in step with projects_instructions_len_chk. */
+export const MAX_PROJECT_INSTRUCTIONS = 12000;
 
 export interface ProjectScope {
   projectId: string;
@@ -64,19 +69,49 @@ export function onScopeChange(fn: (s: ProjectScope | null) => void): () => void 
   return () => window.removeEventListener(EVENT, handler);
 }
 
+const PROJECT_COLS = "id,name,description,instructions,mode,created_at";
+
 export async function listProjects(userId: string): Promise<Project[]> {
   const { data } = await supabase
     .from("projects")
-    .select("id,name,description,mode,created_at")
+    .select(PROJECT_COLS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  return (data ?? []) as unknown as Project[];
+  return ((data ?? []) as unknown as Project[]).map((p) => ({ ...p, instructions: p.instructions ?? "" }));
 }
 
 export async function setProjectMode(projectId: string, mode: ProjectMode): Promise<void> {
   await supabase.from("projects").update({ mode } as never).eq("id", projectId);
   const active = getActiveScope();
   if (active?.projectId === projectId) setActiveScope({ ...active, mode });
+}
+
+/**
+ * Standing directions for a project. Stored server-side and read back under the
+ * caller's own session on every turn — the client never ships the text into the
+ * model, so a tampered local copy cannot change how a project behaves.
+ */
+export async function saveProjectInstructions(projectId: string, instructions: string): Promise<void> {
+  const trimmed = instructions.slice(0, MAX_PROJECT_INSTRUCTIONS);
+  const { error } = await supabase
+    .from("projects")
+    .update({ instructions: trimmed } as never)
+    .eq("id", projectId);
+  if (error) throw new Error(error.message);
+  void emitPull({
+    organ: "chat", capability: "project-directions", fromSurface: "projects", status: "ok",
+    meta: { project_id: projectId, chars: trimmed.length },
+  });
+}
+
+export async function renameProject(projectId: string, name: string, description: string): Promise<void> {
+  const { error } = await supabase
+    .from("projects")
+    .update({ name: name.trim(), description: description.trim() } as never)
+    .eq("id", projectId);
+  if (error) throw new Error(error.message);
+  const active = getActiveScope();
+  if (active?.projectId === projectId) setActiveScope({ ...active, name: name.trim() });
 }
 
 export interface ScopeCounts {
