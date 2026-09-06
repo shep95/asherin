@@ -68,13 +68,16 @@ Deno.serve(async (req) => {
 
   const { data: device } = await admin
     .from("defender_devices")
-    .select("id, user_id, revoked")
+    .select("id, user_id, revoked, last_seen_at")
     .eq("token_sha256", digest)
     .maybeSingle();
 
   if (!device || device.revoked) return json({ error: "unauthorized" }, 401);
 
-  const last = lastWrite.get(digest) ?? 0;
+  // throttle on the stored timestamp, not on process memory — every cold start
+  // would otherwise hand an agent loop a fresh write budget.
+  const seen = device.last_seen_at ? new Date(device.last_seen_at).getTime() : 0;
+  const last = Math.max(seen, lastWrite.get(digest) ?? 0);
   if (Date.now() - last < WRITE_EVERY_MS) return json({ ok: true, throttled: true });
   lastWrite.set(digest, Date.now());
 
