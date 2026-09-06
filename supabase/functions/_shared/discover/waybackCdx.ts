@@ -17,7 +17,12 @@ async function cdx(query: string, limit = 200): Promise<CdxRow[]> {
   const t = setTimeout(() => c.abort("timeout"), 15_000);
   try {
     const r = await fetch(url, { signal: c.signal, headers: { "user-agent": UA } });
-    if (!r.ok) return [];
+    if (!r.ok) {
+      try { await r.arrayBuffer(); } catch { /* ignore */ }
+      // an upstream failure is not the same as "no captures"; let the caller
+      // report it as unmeasured instead of an empty archive.
+      throw new Error(`wayback upstream ${r.status}`);
+    }
     const rows = await r.json();
     if (!Array.isArray(rows) || rows.length < 2) return [];
     const [head, ...data] = rows as string[][];
@@ -30,8 +35,6 @@ async function cdx(query: string, limit = 200): Promise<CdxRow[]> {
       statuscode: r[iS] ?? "",
       digest: r[iD] ?? "",
     }));
-  } catch {
-    return [];
   } finally {
     clearTimeout(t);
   }
