@@ -4515,6 +4515,86 @@ export type Database = {
           },
         ]
       }
+      defender_devices: {
+        Row: {
+          agent_version: string | null
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          platform: string | null
+          revoked: boolean
+          token_sha256: string
+          user_id: string
+        }
+        Insert: {
+          agent_version?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name: string
+          platform?: string | null
+          revoked?: boolean
+          token_sha256: string
+          user_id: string
+        }
+        Update: {
+          agent_version?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          platform?: string | null
+          revoked?: boolean
+          token_sha256?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      defender_reports: {
+        Row: {
+          agent_version: string | null
+          coverage: number | null
+          created_at: string
+          device_id: string
+          findings: Json
+          id: string
+          meta: Json
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          agent_version?: string | null
+          coverage?: number | null
+          created_at?: string
+          device_id: string
+          findings?: Json
+          id?: string
+          meta?: Json
+          score?: number | null
+          user_id: string
+        }
+        Update: {
+          agent_version?: string | null
+          coverage?: number | null
+          created_at?: string
+          device_id?: string
+          findings?: Json
+          id?: string
+          meta?: Json
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "defender_reports_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "defender_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       download_counters: {
         Row: {
           count: number
