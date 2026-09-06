@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { SentinelEngine, deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
 import { bufferStats, wipeLocal, DEFAULT_RETENTION_HOURS } from "@/lib/sentinel/audio/localBuffer";
+import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
   ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
@@ -421,6 +422,18 @@ const SentinelView = () => {
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-white/65">alert when a new voice appears</span>
               <Switch checked={pushNewSpeaker} onCheckedChange={(v) => void persistSettings({ pushNewSpeaker: v })} />
+            </label>
+            <label className="flex items-center justify-between gap-4">
+              <span className="text-sm text-white/65">pickup sensitivity</span>
+              <select
+                value={sensitivity}
+                onChange={(e) => void persistSettings({ sensitivity: e.target.value as VadSensitivity })}
+                className="h-9 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-sm text-white/75"
+              >
+                <option value="near">near — speaker beside the device</option>
+                <option value="balanced">balanced — across a desk</option>
+                <option value="far">far — across a room</option>
+              </select>
             </label>
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-white/65">keep on this device for</span>
