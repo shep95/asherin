@@ -23,7 +23,7 @@
 // and the timeline is authoritative in the account, not in this tab.
 
 import { FRAME, frameFeatures, type FrameFeatures } from "./dsp";
-import { Vad, VAD_DEFAULTS, type VadSegment } from "./vad";
+import { Vad, VAD_DEFAULTS, VAD_SENSITIVITY, type VadSegment, type VadSensitivity } from "./vad";
 import { classifySounds, type SoundEvent } from "./soundEvents";
 import { embedVoice } from "./voiceprint";
 import { concat, encodeWav, resample, toBase64, tooThinToSend, TARGET_RATE } from "./wav";
@@ -101,6 +101,7 @@ export class SentinelEngine {
   private source: MediaStreamAudioSourceNode | null = null;
   private wakeLock: { release: () => Promise<void> } | null = null;
   private vad = new Vad(VAD_DEFAULTS);
+  private sensitivity: VadSensitivity = "balanced";
 
   private preroll: Float32Array[] = [];
   private segment: Float32Array[] = [];
@@ -131,6 +132,16 @@ export class SentinelEngine {
 
   getStatus(): EngineStatus {
     return { ...this.status };
+  }
+
+  /** Live-switch the pickup sensitivity. Safe mid-listen: the open segment
+   * closes at the next natural pause and the fresh floor adapts within a
+   * second of room tone. */
+  setSensitivity(s: VadSensitivity): void {
+    if (s === this.sensitivity) return;
+    this.sensitivity = s;
+    this.vad = new Vad(VAD_SENSITIVITY[s]);
+    this.note(`pickup sensitivity is now ${s}.`);
   }
 
   private emit(patch: Partial<EngineStatus>) {
@@ -230,7 +241,7 @@ export class SentinelEngine {
     this.ctx = null;
     await this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
-    this.vad = new Vad(VAD_DEFAULTS);
+    this.vad = new Vad(VAD_SENSITIVITY[this.sensitivity]);
     this.preroll = [];
     this.segment = [];
     this.segmentFeatures = [];

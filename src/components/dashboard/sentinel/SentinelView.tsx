@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { SentinelEngine, deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
 import { bufferStats, wipeLocal, DEFAULT_RETENTION_HOURS } from "@/lib/sentinel/audio/localBuffer";
+import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
   ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
@@ -50,6 +51,7 @@ const SentinelView = () => {
   const [transcribeOn, setTranscribeOn] = useState(true);
   const [pushNewSpeaker, setPushNewSpeaker] = useState(true);
   const [retention, setRetention] = useState(DEFAULT_RETENTION_HOURS);
+  const [sensitivity, setSensitivity] = useState<VadSensitivity>("balanced");
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -90,10 +92,13 @@ const SentinelView = () => {
       setSpeakers(timeline.speakers);
       setDevices(timeline.devices);
       setAlerts(alertList.alerts);
-      const prefs = settings.prefs as { transcribe?: boolean; pushNewSpeaker?: boolean };
+      const prefs = settings.prefs as { transcribe?: boolean; pushNewSpeaker?: boolean; sensitivity?: unknown };
       setTranscribeOn(prefs.transcribe !== false);
       setPushNewSpeaker(prefs.pushNewSpeaker !== false);
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
+      const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
+      setSensitivity(sens);
+      engineRef.current?.setSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
@@ -131,14 +136,17 @@ const SentinelView = () => {
     }
   };
 
-  const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number }) => {
+  const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number; sensitivity?: VadSensitivity }) => {
     const next = {
       transcribe: patch.transcribe ?? transcribeOn,
       pushNewSpeaker: patch.pushNewSpeaker ?? pushNewSpeaker,
+      sensitivity: patch.sensitivity ?? sensitivity,
       pushTags: DEFAULT_PUSH_TAGS,
     };
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
+    setSensitivity(next.sensitivity);
+    engineRef.current?.setSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
@@ -414,6 +422,18 @@ const SentinelView = () => {
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-white/65">alert when a new voice appears</span>
               <Switch checked={pushNewSpeaker} onCheckedChange={(v) => void persistSettings({ pushNewSpeaker: v })} />
+            </label>
+            <label className="flex items-center justify-between gap-4">
+              <span className="text-sm text-white/65">pickup sensitivity</span>
+              <select
+                value={sensitivity}
+                onChange={(e) => void persistSettings({ sensitivity: e.target.value as VadSensitivity })}
+                className="h-9 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-sm text-white/75"
+              >
+                <option value="near">near — speaker beside the device</option>
+                <option value="balanced">balanced — across a desk</option>
+                <option value="far">far — across a room</option>
+              </select>
             </label>
             <label className="flex items-center justify-between gap-4">
               <span className="text-sm text-white/65">keep on this device for</span>

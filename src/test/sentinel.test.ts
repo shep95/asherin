@@ -163,3 +163,25 @@ describe("sentinel wav container", () => {
     expect(down.length).toBeCloseTo(at48.length / 3, -2);
   });
 });
+
+describe("sentinel pickup sensitivity presets", () => {
+  it("far opens on quieter speech than near, and near rejects what far accepts", async () => {
+    const { Vad, VAD_SENSITIVITY } = await import("@/lib/sentinel/audio/vad");
+    // The same synthetic vowel the core vad tests use, played quietly: loud
+    // enough for "far" (floor 0.0012), below the "near" floor (0.005).
+    const quietVoice = voice(1.0, 140).map((v) => v * 0.04);
+    const buffer = join(silence(0.6), quietVoice, silence(0.6));
+    const series = featureSeries(buffer, RATE);
+    const run = (opts: typeof VAD_SENSITIVITY.far) => {
+      const vad = new Vad(opts);
+      let opened = false;
+      for (const f of series) if (vad.push(f).verdict !== "silence") opened = true;
+      return opened;
+    };
+    expect(run(VAD_SENSITIVITY.far)).toBe(true);
+    expect(run(VAD_SENSITIVITY.near)).toBe(false);
+    // Ordering invariant: the nearer the preset, the higher the floor.
+    expect(VAD_SENSITIVITY.near.absoluteFloor).toBeGreaterThan(VAD_SENSITIVITY.balanced.absoluteFloor);
+    expect(VAD_SENSITIVITY.balanced.absoluteFloor).toBeGreaterThan(VAD_SENSITIVITY.far.absoluteFloor);
+  });
+});

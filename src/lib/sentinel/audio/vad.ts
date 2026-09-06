@@ -43,6 +43,20 @@ export const VAD_DEFAULTS: VadOptions = {
   absoluteFloor: 0.0025,
 };
 
+/** Pickup sensitivity presets. "near" rejects distant room noise; "far" opens
+ * on quiet voices across a room at the cost of more false openings. */
+export type VadSensitivity = "near" | "balanced" | "far";
+
+export const VAD_SENSITIVITY: Record<VadSensitivity, VadOptions> = {
+  near: { ratio: 3.4, minOpenFrames: 6, hangoverFrames: 10, maxFrames: 900, absoluteFloor: 0.005 },
+  balanced: VAD_DEFAULTS,
+  far: { ratio: 1.9, minOpenFrames: 3, hangoverFrames: 16, maxFrames: 900, absoluteFloor: 0.0012 },
+};
+
+export function isVadSensitivity(v: unknown): v is VadSensitivity {
+  return v === "near" || v === "balanced" || v === "far";
+}
+
 /** Human speech occupies a narrow shape: voiced energy low-mid, moderate zcr. */
 export function looksLikeSpeech(f: FrameFeatures): boolean {
   if (f.zcr > 0.42) return false; // hiss, cymbal, keyboard
