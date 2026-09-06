@@ -125,7 +125,6 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   bulwark: ShieldCheck,
   "geo-audit": Gauge,
   zacoon: Ghost,
-  "ghost-engine": Ghost,
   google: Globe,
 
   "reverse-engineer": Search,

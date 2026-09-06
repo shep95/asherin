@@ -34,7 +34,6 @@ interface Props {
 
 /** Quieter labels for the keep-stack. NAV_INTENTS stays the source of truth. */
 const V2_LABELS: Partial<Record<string, string>> = {
-  "ghost-engine": "asherinx.eng",
   "asherin-defender": "asherin.defender",
   "asherin-arvision": "asherin.arvision",
   "asherin-eye": "asherin.eye",
@@ -45,7 +44,6 @@ const V2_LABELS: Partial<Record<string, string>> = {
 
 /** The keep list, in reading order. Retired products have no dashboard row. */
 const V2_ORDER: DashboardView[] = [
-  "ghost-engine",
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",

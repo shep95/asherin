@@ -38,14 +38,13 @@ const PRO_VIEWS: DashboardView[] = [
   "bulwark",
   "geo-audit",
 ];
-// Asherin ($18/mo, monthly + 6-month) and above. Defender, ARVision, Eye and
-// asherinx.eng open at core height; retired products are never granted.
+// Asherin ($18/mo, monthly + 6-month) and above. Defender, ARVision and Eye
+// open at core height; retired products are never granted.
 const AUREON_VIEWS: DashboardView[] = [
   "nomad",
   "briefing",
   "zali",
   "notebooks",
-  "ghost-engine",
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",
