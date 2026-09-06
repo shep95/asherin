@@ -93,7 +93,10 @@ async function transcribe(wav: Uint8Array): Promise<{ text: string | null; note:
   if (!LOVABLE_API_KEY) return { text: null, note: "transcription is not configured on this deployment." };
   const form = new FormData();
   form.append("model", STT_MODEL);
-  form.append("file", new Blob([wav], { type: "audio/wav" }), "segment.wav");
+  // Copy into a plain ArrayBuffer: a Uint8Array over a SharedArrayBuffer is not a BlobPart.
+  const bytes = new Uint8Array(wav.length);
+  bytes.set(wav);
+  form.append("file", new Blob([bytes.buffer as ArrayBuffer], { type: "audio/wav" }), "segment.wav");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 45_000);
   try {
@@ -125,15 +128,84 @@ interface SpeakerRow {
   first_heard_at: string; last_heard_at: string;
 }
 
+// ── desktop companion pairing ────────────────────────────────────────────────
+// A companion process has no browser session, so it cannot carry a supabase
+// JWT. It carries a device token instead: minted once, in exchange for a short
+// lived code the signed-in operator generated inside the room, hashed at rest,
+// revocable from the room, and scoped to a fixed set of write actions. The user
+// id is resolved from the stored hash — never from anything the companion says.
+const DEVICE_HEADER = "x-asherin-device";
+const PAIR_TTL_MS = 10 * 60_000;
+const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings"]);
+
+// pair-claim is the one door without a session on it, so it gets a per-isolate
+// throttle. An eight character code from a 32 symbol alphabet is ~10^12 wide;
+// ten guesses a minute makes brute force pointless within the ten minute life.
+const PAIR_ATTEMPTS = new Map<string, { n: number; resetAt: number }>();
+function pairThrottled(req: Request): boolean {
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+  const now = Date.now();
+  const row = PAIR_ATTEMPTS.get(ip);
+  if (!row || row.resetAt < now) {
+    PAIR_ATTEMPTS.set(ip, { n: 1, resetAt: now + 60_000 });
+    if (PAIR_ATTEMPTS.size > 5000) PAIR_ATTEMPTS.clear(); // bounded memory
+    return false;
+  }
+  row.n += 1;
+  return row.n > 10;
+}
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0, I/1 — read aloud safely
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function randomFrom(alphabet: string, length: number): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+}
+
+function newPairingCode(): string {
+  return `${randomFrom(CODE_ALPHABET, 4)}-${randomFrom(CODE_ALPHABET, 4)}`;
+}
+
+function newDeviceToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return "asd_" + [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Tier for a user id, for callers that arrive without an email-bearing JWT. */
+async function tierAllowsAmbient(userId: string): Promise<boolean> {
+  const { data } = await admin.from("user_subscriptions")
+    .select("product_id,status").eq("user_id", userId).eq("status", "active").maybeSingle();
+  const pid = String(data?.product_id ?? "").toLowerCase();
+  if (!pid) return false;
+  const allowedIds = new Set([
+    "prod_utrnsrxiqgtbqr", "prod_u1rtj8hxsctvqo", "prod_u1puuztkmierre",
+    "prod_ujaqpixvfi3qlr", "prod_ujaqfcakqntom1", "prod_v226j5fq5fsod9",
+    "prod_v2267gysf3srrn", "prod_aureon_algorithm",
+  ]);
+  if (allowedIds.has(pid)) return true;
+  return pid.includes("lifetime") || pid.includes("pro") || pid.includes("aureon");
+}
+
+async function deviceIdentity(req: Request): Promise<{ userId: string; deviceKey: string; rowId: string } | null> {
+  const raw = req.headers.get(DEVICE_HEADER);
+  if (!raw || raw.length < 16 || raw.length > 200) return null;
+  const hash = await sha256Hex(raw.trim());
+  const { data } = await admin.from("asherin_ambient_device_tokens")
+    .select("id,user_id,device_key,revoked_at").eq("token_hash", hash).maybeSingle();
+  if (!data || data.revoked_at) return null;
+  return { userId: data.user_id, deviceKey: data.device_key, rowId: data.id };
+}
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, cors);
-
-  const gate = await requireTier(req, ["aureon", "pro", "lifetime"], cors);
-  if (!gate.ok) return gate.response!;
-  const userId = await callerId(req);
-  if (!userId) return json({ error: "UNAUTHENTICATED", message: "Sign in required." }, 401, cors);
 
   let body: Record<string, unknown>;
   try {
@@ -143,7 +215,88 @@ Deno.serve(async (req) => {
   }
   const action = String(body.action ?? "");
 
+  // The only unauthenticated action: exchanging a code the operator just made
+  // for a device token.
+  //
+  // The claim is the FIRST write, not the last, and it is a conditional update —
+  // `claimed_at is null` and `expires_at > now` are part of the WHERE clause, so
+  // postgres decides the winner of two racing companions rather than two reads
+  // both seeing an unclaimed row. If anything after the claim fails, the claim is
+  // released again so an honest retry is still possible.
+  if (action === "pair-claim") {
+    if (pairThrottled(req)) {
+      return json({ error: "RATE_LIMITED", message: "Too many pairing attempts. Wait a minute and try again." }, 429, cors);
+    }
+    const code = String(body.code ?? "").trim().toUpperCase().slice(0, 16);
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) {
+      return json({ error: "BAD_REQUEST", message: "That pairing code is not in the right shape." }, 400, cors);
+    }
+    const codeHash = await sha256Hex(code);
+    const label = String(body.label ?? "companion").slice(0, 80);
+    const platform = String(body.platform ?? "desktop").slice(0, 24);
+    const deviceKey = `companion-${randomFrom("abcdefghijklmnopqrstuvwxyz0123456789", 12)}`;
+
+    const { data: pairing, error: claimErr } = await admin.from("asherin_ambient_pairings")
+      .update({ claimed_at: new Date().toISOString(), device_key: deviceKey })
+      .eq("code_hash", codeHash)
+      .is("claimed_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .select("id,user_id")
+      .maybeSingle();
+    if (claimErr) {
+      console.error("[asherin-sentinel] pair-claim", claimErr.message);
+      return json({ error: "SERVER_ERROR", message: "The pairing could not be completed." }, 500, cors);
+    }
+    if (!pairing) {
+      return json({ error: "PAIRING_INVALID", message: "That code is unknown, already used, or expired." }, 404, cors);
+    }
+
+    const release = () => admin.from("asherin_ambient_pairings")
+      .update({ claimed_at: null, device_key: null }).eq("id", pairing.id);
+
+    if (!(await tierAllowsAmbient(pairing.user_id))) {
+      await release();
+      return json({ error: "TIER_REQUIRED", message: "That account no longer holds an Asherin subscription." }, 402, cors);
+    }
+    const token = newDeviceToken();
+    const { error: tokErr } = await admin.from("asherin_ambient_device_tokens").insert({
+      user_id: pairing.user_id, device_key: deviceKey, token_hash: await sha256Hex(token),
+      label, platform,
+    });
+    if (tokErr) {
+      console.error("[asherin-sentinel] pair-claim", tokErr.message);
+      await release();
+      return json({ error: "SERVER_ERROR", message: "The pairing could not be completed." }, 500, cors);
+    }
+    await admin.from("asherin_ambient_devices").upsert({
+      user_id: pairing.user_id, device_key: deviceKey, label, platform,
+      status: "active", last_seen_at: new Date().toISOString(),
+    }, { onConflict: "user_id,device_key" });
+    return json({ token, deviceKey, label }, 200, cors);
+  }
+
+  const device = await deviceIdentity(req);
+  let userId: string | null = null;
+  if (device) {
+    if (!DEVICE_ACTIONS.has(action)) {
+      return json({ error: "FORBIDDEN", message: "A paired device may only record, not read or change the account." }, 403, cors);
+    }
+    if (!(await tierAllowsAmbient(device.userId))) {
+      return json({ error: "TIER_REQUIRED", message: "This account no longer holds an Asherin subscription." }, 402, cors);
+    }
+    userId = device.userId;
+    body.deviceKey = device.deviceKey; // the token decides the device, not the payload
+    await admin.from("asherin_ambient_device_tokens")
+      .update({ last_used_at: new Date().toISOString() }).eq("id", device.rowId);
+  } else {
+    const gate = await requireTier(req, ["aureon", "pro", "lifetime"], cors);
+    if (!gate.ok) return gate.response!;
+    userId = await callerId(req);
+    if (!userId) return json({ error: "UNAUTHENTICATED", message: "Sign in required." }, 401, cors);
+  }
+
   try {
+
     switch (action) {
       case "register": {
         const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
@@ -419,6 +572,43 @@ Deno.serve(async (req) => {
         if (error) throw error;
         return json({ deleted: (data ?? []).length }, 200, cors);
       }
+
+      // ── companion pairing, operator side ────────────────────────────────
+      case "pair-code": {
+        // Expire anything stale for this account first, so the room never shows
+        // a code that would be refused on use.
+        await admin.from("asherin_ambient_pairings")
+          .delete().eq("user_id", userId).is("claimed_at", null).lt("expires_at", new Date().toISOString());
+        const code = newPairingCode();
+        const expiresAt = new Date(Date.now() + PAIR_TTL_MS).toISOString();
+        const { error } = await admin.from("asherin_ambient_pairings")
+          .insert({ user_id: userId, code_hash: await sha256Hex(code), expires_at: expiresAt });
+        if (error) throw error;
+        return json({ code, expiresAt }, 200, cors);
+      }
+
+      case "companion-devices": {
+        const { data, error } = await admin.from("asherin_ambient_device_tokens")
+          .select("id,device_key,label,platform,last_used_at,revoked_at,created_at")
+          .eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+        if (error) throw error;
+        return json({ companions: data ?? [] }, 200, cors);
+      }
+
+      case "revoke-companion": {
+        const id = String(body.companionId ?? "");
+        if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "BAD_REQUEST", message: "A companion id is required." }, 400, cors);
+        const { data, error } = await admin.from("asherin_ambient_device_tokens")
+          .update({ revoked_at: new Date().toISOString() })
+          .eq("id", id).eq("user_id", userId).is("revoked_at", null).select("device_key").maybeSingle();
+        if (error) throw error;
+        if (data?.device_key) {
+          await admin.from("asherin_ambient_devices")
+            .update({ status: "offline" }).eq("user_id", userId).eq("device_key", data.device_key);
+        }
+        return json({ ok: true, revoked: Boolean(data) }, 200, cors);
+      }
+
 
       default:
         return json({ error: "UNKNOWN_ACTION", message: `No such action: ${action}` }, 400, cors);

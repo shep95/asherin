@@ -287,3 +287,6 @@ verify_jwt = true
 
 [functions.asherin-ask]
 verify_jwt = false
+
+[functions.asherin-sentinel]
+verify_jwt = false

@@ -2498,6 +2498,42 @@ export type Database = {
           },
         ]
       }
+      asherin_ambient_device_tokens: {
+        Row: {
+          created_at: string
+          device_key: string
+          id: string
+          label: string
+          last_used_at: string | null
+          platform: string
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_key: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          platform?: string
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_key?: string
+          id?: string
+          label?: string
+          last_used_at?: string | null
+          platform?: string
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asherin_ambient_devices: {
         Row: {
           created_at: string
@@ -2593,6 +2629,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      asherin_ambient_pairings: {
+        Row: {
+          claimed_at: string | null
+          code_hash: string
+          created_at: string
+          device_key: string | null
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          code_hash: string
+          created_at?: string
+          device_key?: string | null
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          code_hash?: string
+          created_at?: string
+          device_key?: string | null
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       asherin_ambient_settings: {
         Row: {

@@ -100,3 +100,19 @@ export const saveSettings = (prefs: Record<string, unknown>, retentionHours: num
 export const fetchSettings = () =>
   call<{ prefs: Record<string, unknown>; retentionHours: number }>("get-settings");
 export const purgeRemote = (beforeIso: string) => call<{ deleted: number }>("purge", { beforeIso });
+
+// ── desktop companion pairing ────────────────────────────────────────────────
+export interface CompanionRow {
+  id: string;
+  device_key: string;
+  label: string;
+  platform: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export const createPairingCode = () => call<{ code: string; expiresAt: string }>("pair-code");
+export const fetchCompanions = () => call<{ companions: CompanionRow[] }>("companion-devices");
+export const revokeCompanion = (companionId: string) =>
+  call<{ ok: true; revoked: boolean }>("revoke-companion", { companionId });

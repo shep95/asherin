@@ -12,6 +12,7 @@ import {
   ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
   type AmbientAlert, type AmbientDevice, type AmbientEvent, type AmbientSpeaker,
 } from "@/lib/sentinel/audio/sync";
+import CompanionPanel from "./CompanionPanel";
 
 /**
  * asherin.sentinel — the ambient watch, and the truth about its reach.
@@ -201,7 +202,7 @@ const SentinelView = () => {
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-3">
           <p className="text-xs leading-relaxed text-white/70">
-            <span className="font-medium text-white/90">truth boundary:</span> sentinel listens only while this page is open. it survives the tab being backgrounded and the desktop screen locking, but it cannot survive the tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. it will not pretend to be always-on. the account timeline is the authoritative record of what was captured.
+            <span className="font-medium text-white/90">truth boundary:</span> in this page, sentinel listens only while the page is open. it survives the tab being backgrounded and the desktop screen locking, but not the tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
           </p>
         </div>
 
@@ -417,6 +418,8 @@ const SentinelView = () => {
               {!devices.length && <p className="py-6 text-center text-sm text-white/40">no device has registered yet.</p>}
             </div>
           </div>
+
+          <CompanionPanel />
 
           <div className={`${card} space-y-4 p-5`}>
             <h2 className="text-sm font-light tracking-wide text-white/70">watch settings</h2>
