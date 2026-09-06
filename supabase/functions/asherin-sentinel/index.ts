@@ -219,7 +219,10 @@ Deno.serve(async (req) => {
       user_id: pairing.user_id, device_key: deviceKey, token_hash: await sha256Hex(token),
       label, platform,
     });
-    if (tokErr) throw tokErr;
+    if (tokErr) {
+      console.error("[asherin-sentinel] pair-claim", tokErr.message);
+      return json({ error: "SERVER_ERROR", message: "The pairing could not be completed." }, 500, cors);
+    }
     await admin.from("asherin_ambient_pairings")
       .update({ claimed_at: new Date().toISOString(), device_key: deviceKey }).eq("id", pairing.id);
     await admin.from("asherin_ambient_devices").upsert({
