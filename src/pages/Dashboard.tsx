@@ -1931,7 +1931,7 @@ const Dashboard = () => {
           "asherin-defender",
           AsherinDefenderView,
           "asherin.defender",
-          "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
+          "your whole device, read honestly — 186 named protections across disks, files, network, wireless, bluetooth, browsers, extensions, apps, processes, accounts, updates, peripherals and remote sessions. the browser measures what a page can; the read-only device agent you pair measures the machine itself. anything nothing looked at reads unmeasured, never green. included with the $18 asherin plan; pairing, bunker apply and the counter dry-run open on pro.",
         );
       case "asherin-sentinel":
         return gatedView(
