@@ -52,14 +52,16 @@ Deno.serve(async (req) => {
 
   const inserts: Array<Record<string, unknown>> = [];
   const now = new Date().toISOString();
+  const why = (r: PromiseSettledResult<unknown>, fallback: string) =>
+    r.status === "rejected" && r.reason instanceof Error ? r.reason.message : fallback;
   const meta: Record<string, unknown> = {
     sources: {
-      "crt.sh": crt.status === "fulfilled" ? { count: crt.value.length, available: true } : { available: false, reason: "crt.sh error" },
-      "dns.probe": dns.status === "fulfilled" ? { count: dns.value.length, available: true } : { available: false, reason: "dns error" },
-      "wayback": wb.status === "fulfilled" ? { count: wb.value.length, available: true } : { available: false, reason: "wayback error" },
+      "crt.sh": crt.status === "fulfilled" ? { count: crt.value.length, available: true } : { available: false, reason: why(crt, "crt.sh error") },
+      "dns.probe": dns.status === "fulfilled" ? { count: dns.value.length, available: true } : { available: false, reason: why(dns, "dns error") },
+      "wayback": wb.status === "fulfilled" ? { count: wb.value.length, available: true } : { available: false, reason: why(wb, "wayback error") },
       "commoncrawl": cc.status === "fulfilled"
         ? { count: cc.value.length, available: true, index: commonCrawlIndexId() }
-        : { available: false, reason: "commoncrawl error" },
+        : { available: false, reason: why(cc, "commoncrawl error") },
       "github.code": gh.status === "fulfilled"
         ? (gh.value.available ? { count: gh.value.hits.length, available: true } : { available: false, reason: gh.value.reason })
         : { available: false, reason: "github error" },
