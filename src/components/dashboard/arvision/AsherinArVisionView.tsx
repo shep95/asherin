@@ -8,11 +8,15 @@
 // cropped: the switch is a pair of pills that sit above the layer, and each layer
 // owns its own scrolling.
 
-import { Suspense, lazy, useState } from "react";
+import { Suspense, useState } from "react";
 import { Eye, Radar } from "lucide-react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import OpticalHudView from "./OpticalHudView";
 
-const SpatialView = lazy(() => import("./spatial/SpatialView"));
+// Retry-aware so an aborted or stale chunk fetch surfaces or recovers instead
+// of leaving the layer stuck on its loading line forever.
+const SpatialView = lazyWithRetry(() => import("./spatial/SpatialView"), "arvision-spatial");
+
 
 type Layer = "optical" | "spatial";
 
