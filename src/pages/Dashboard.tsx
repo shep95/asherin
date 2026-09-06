@@ -67,6 +67,7 @@ const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/Zer
 const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
+const SentinelView = lazyWithRetry(() => import("@/components/dashboard/sentinel/SentinelView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 
@@ -219,6 +220,7 @@ const Dashboard = () => {
     "asherin-defender",
     "asherin-arvision",
     "asherin-eye",
+    "asherin-sentinel",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -229,6 +231,8 @@ const Dashboard = () => {
     "ar-vision": "asherin-arvision",
     eye: "asherin-eye",
     "asherin.eye": "asherin-eye",
+    sentinel: "asherin-sentinel",
+    "asherin.sentinel": "asherin-sentinel",
     asherinx: "ghost-engine",
     "asherinx-eng": "ghost-engine",
     pages: "pdf-generator",
@@ -1920,6 +1924,13 @@ const Dashboard = () => {
           AsherinDefenderView,
           "asherin.defender",
           "your own device, read honestly — covert-camera law, wifi and bluetooth intel, spy classes. included with the $18 asherin plan; bunker apply, key-poison and the full counter dry-run open on pro.",
+        );
+      case "asherin-sentinel":
+        return gatedView(
+          "asherin-sentinel",
+          SentinelView,
+          "asherin.sentinel",
+          "an ambient watch — voices separated and learned, sounds tagged, every turn in one searchable account timeline. included with the $18 asherin plan. it listens while this page is open; a browser cannot hold a microphone after its tab is gone.",
         );
       case "asherin-eye":
         return (

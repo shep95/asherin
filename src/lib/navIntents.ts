@@ -84,6 +84,14 @@ export const NAV_INTENTS: NavIntent[] = [
     group: "Workspace",
   },
   {
+    view: "asherin-sentinel",
+    label: "asherin.sentinel",
+    codename: "asherin.sentinel",
+    blurb: "Ambient watch — voices separated and named from their own words, sounds tagged, one searchable timeline",
+    keywords: ["sentinel", "ambient", "listen", "audio", "microphone", "transcribe", "speaker", "voice", "diarization", "watch"],
+    group: "Workspace",
+  },
+  {
     view: "pdf-generator",
     label: "pages",
     codename: "asherin.pages",

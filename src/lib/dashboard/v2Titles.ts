@@ -29,6 +29,7 @@ const TITLES: Partial<Record<string, V2Title>> = {
   "asherin-defender": { title: "asherin.defender", subtitle: "your own device, watched honestly." },
   "asherin-arvision": { title: "asherin.arvision", canvas: true },
   "asherin-eye": { title: "asherin.eye", canvas: true },
+  "asherin-sentinel": { title: "asherin.sentinel", subtitle: "an ambient watch, honest about its reach." },
   google: { title: "google", subtitle: "your connected accounts, read on request." },
   search: { title: "search", subtitle: "sourced search with credibility tiers." },
   "knowledge-vault": { title: "knowledge", subtitle: "private files asherin can cite." },
