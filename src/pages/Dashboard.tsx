@@ -2487,25 +2487,38 @@ const Dashboard = () => {
             </Suspense>
           ) : (
             <>
-              {isV2 && activeView !== "chat" ? (
-                <DashboardUiProvider value="v2">
-                  {(() => {
-                    const meta = v2TitleFor(
-                      activeView,
-                      typeof activeView === "string" && activeView.startsWith("agent:")
-                        ? publishedAgents.find((x) => `agent:${x.id}` === activeView)?.name
-                        : undefined,
-                    );
-                    return (
-                      <V2PageShell title={meta.title} subtitle={meta.subtitle} canvas={meta.canvas}>
-                        {renderView()}
-                      </V2PageShell>
-                    );
-                  })()}
-                </DashboardUiProvider>
-              ) : (
+              {activeView === "chat" ? (
                 renderView()
+              ) : (
+                /* every software room is a framed window: the workspace
+                   background stays visible around it, the room itself loads
+                   inside one rounded bordered surface. chat stays full bleed
+                   because it is the surface, not a room on top of it. */
+                <div className="h-full min-h-0 w-full p-2 sm:p-3">
+                  <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/20 bg-background/55 shadow-[0_24px_70px_-40px_hsl(var(--foreground)/0.55)] backdrop-blur-xl">
+                    {isV2 ? (
+                      <DashboardUiProvider value="v2">
+                        {(() => {
+                          const meta = v2TitleFor(
+                            activeView,
+                            typeof activeView === "string" && activeView.startsWith("agent:")
+                              ? publishedAgents.find((x) => `agent:${x.id}` === activeView)?.name
+                              : undefined,
+                          );
+                          return (
+                            <V2PageShell title={meta.title} subtitle={meta.subtitle} canvas={meta.canvas}>
+                              {renderView()}
+                            </V2PageShell>
+                          );
+                        })()}
+                      </DashboardUiProvider>
+                    ) : (
+                      renderView()
+                    )}
+                  </div>
+                </div>
               )}
+
 
               {/* Drop zone overlay when dragging a convo onto chat */}
               {isDraggingConvo && activeView === "chat" && (
