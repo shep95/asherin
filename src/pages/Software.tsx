@@ -59,13 +59,6 @@ const JOBS: Tool[] = [
 ];
 
 const TOOLS: Tool[] = [
-  {
-    name: "asherinx.eng",
-    line: "public-index search",
-    detail:
-      "federated public indexes, wayback, nvd, github, wiki, and the rest of the public stack. it does not intercept login ips, sms, dms, or private mail.",
-    icon: Globe,
-  },
    {
      name: "asherin.cyber",
      line: "passive domain context",
@@ -161,7 +154,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "asherin, software",
        description:
-         "rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault. $18/mo, $79/mo pro.",
+         "rooms on a seat: chat, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault. $18/mo, $79/mo pro.",
       url: "https://asherin.com/software",
     });
     document.head.appendChild(el);
