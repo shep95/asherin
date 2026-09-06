@@ -63,6 +63,25 @@ Deno.serve(async (req) => {
     return res.rows;
   }
 
+  // wayback can fail upstream; convert a throw into an honest unmeasured row
+  // set instead of letting it collapse the whole node.
+  async function safeWayback(needle: string, limit: number, label: string): Promise<IdResult> {
+    try {
+      const rows = await waybackByIdentifier(needle, limit);
+      return {
+        available: true,
+        rows: rows.slice(0, limit).map((r) => ({
+          source: "wayback", kind: "archive",
+          url: `https://web.archive.org/web/${r.timestamp}/${r.original}`,
+          summary: `archive captured a page mentioning ${label}`,
+          discovered: [],
+        })),
+      };
+    } catch (e) {
+      return { available: false, reason: e instanceof Error ? e.message : "wayback unavailable", rows: [] };
+    }
+  }
+
   async function resolveNode(node: PivotNode): Promise<Array<{ identifier: string; kind: IdentifierKind }>> {
     const discovered: Array<{ identifier: string; kind: IdentifierKind }> = [];
     if (node.kind === "email") {
@@ -81,13 +100,7 @@ Deno.serve(async (req) => {
             })),
           }))
           .catch((e) => ({ available: false, reason: e instanceof Error ? e.message : "crt.sh unavailable", rows: [] }))),
-        collect("wayback", {
-          available: true,
-          rows: (await waybackByIdentifier(node.identifier, 20)).slice(0, 20).map((r) => ({
-            source: "wayback", kind: "archive", url: `https://web.archive.org/web/${r.timestamp}/${r.original}`,
-            summary: `archive captured a page mentioning ${node.identifier}`, discovered: [],
-          })),
-        }),
+        collect("wayback", await safeWayback(node.identifier, 20, node.identifier)),
       ]);
       for (const r of results) if (r.status === "fulfilled") for (const row of r.value) for (const d of row.discovered) discovered.push(d);
       const localPart = node.identifier.split("@")[0];
@@ -97,33 +110,17 @@ Deno.serve(async (req) => {
         collect("sec.edgar", await secEdgarByName(node.identifier)),
         collect("wikidata", await wikidataByName(node.identifier)),
         collect("faa.airmen", await faaAirmen(node.identifier)),
-        collect("wayback", {
-          available: true,
-          rows: (await waybackByIdentifier(node.identifier, 20)).slice(0, 20).map((r) => ({
-            source: "wayback", kind: "archive", url: `https://web.archive.org/web/${r.timestamp}/${r.original}`,
-            summary: `archive captured a page mentioning ${node.identifier}`, discovered: [],
-          })),
-        }),
+        collect("wayback", await safeWayback(node.identifier, 20, node.identifier)),
       ]);
       for (const r of [sec, wiki, faa, wb]) if (r.status === "fulfilled") for (const row of r.value) for (const d of row.discovered) discovered.push(d);
     } else if (node.kind === "username") {
-      const wb = await collect("wayback", {
-        available: true,
-        rows: (await waybackByIdentifier(node.identifier, 20)).slice(0, 20).map((r) => ({
-          source: "wayback", kind: "archive", url: `https://web.archive.org/web/${r.timestamp}/${r.original}`,
-          summary: `archive mentions username ${node.identifier}`, discovered: [],
-        })),
+      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier))),
       });
       for (const row of wb) for (const d of row.discovered) discovered.push(d);
     } else if (node.kind === "phone") {
       meta.sources["carrier.numverify"] = { available: false, reason: "requires NUMVERIFY_API_KEY" };
       meta.sources["opencnam"] = { available: false, reason: "requires OPENCNAM credentials" };
-      const wb = await collect("wayback", {
-        available: true,
-        rows: (await waybackByIdentifier(node.identifier, 15)).slice(0, 15).map((r) => ({
-          source: "wayback", kind: "archive", url: `https://web.archive.org/web/${r.timestamp}/${r.original}`,
-          summary: `archive mentions phone ${node.identifier}`, discovered: [],
-        })),
+      const wb = await collect("wayback", await safeWayback(node.identifier, 20, node.identifier))),
       });
       for (const row of wb) for (const d of row.discovered) discovered.push(d);
     }
