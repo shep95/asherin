@@ -161,8 +161,6 @@ const LAYER_COLOR = {
   radio: "#a78bfa",
   spaceweather: "#fde68a",
   engine: "#9ec9ff",
-  near: "#e8c56b",
-  meta: "#c4b5fd",
   sats: "#7dd3fc",
   atmo: "#a5f3fc",
   lands: "#9ec9ff",
