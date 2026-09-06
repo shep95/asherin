@@ -221,6 +221,9 @@ Deno.serve(async (req) => {
   // both seeing an unclaimed row. If anything after the claim fails, the claim is
   // released again so an honest retry is still possible.
   if (action === "pair-claim") {
+    if (pairThrottled(req)) {
+      return json({ error: "RATE_LIMITED", message: "Too many pairing attempts. Wait a minute and try again." }, 429, cors);
+    }
     const code = String(body.code ?? "").trim().toUpperCase().slice(0, 16);
     if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) {
       return json({ error: "BAD_REQUEST", message: "That pairing code is not in the right shape." }, 400, cors);
