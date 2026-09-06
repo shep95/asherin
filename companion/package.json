@@ -1,0 +1,21 @@
+{
+  "name": "asherin-sentinel-companion",
+  "productName": "Asherin Sentinel",
+  "version": "1.0.0",
+  "description": "Desktop companion for asherin.sentinel — keeps the ambient watch running while the machine is awake, with no browser tab open.",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "build:renderer": "vite build",
+    "start": "npm run build:renderer && electron .",
+    "package:mac": "npm run build:renderer && electron-packager . \"Asherin Sentinel\" --platform=darwin --arch=arm64 --out=release --overwrite",
+    "package:win": "npm run build:renderer && electron-packager . \"Asherin Sentinel\" --platform=win32 --arch=x64 --out=release --overwrite",
+    "package:linux": "npm run build:renderer && electron-packager . \"Asherin Sentinel\" --platform=linux --arch=x64 --out=release --overwrite"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "@electron/packager": "^18.3.6",
+    "vite": "^5.4.10",
+    "typescript": "^5.6.3"
+  }
+}
