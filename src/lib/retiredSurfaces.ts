@@ -9,6 +9,7 @@ export const RETIRED_VIEWS: readonly DashboardView[] = [
   "axrlen",
   "zeeion",
   "timeseries",
+  "ghost-engine",
 ];
 
 export function isRetiredView(view: string): boolean {

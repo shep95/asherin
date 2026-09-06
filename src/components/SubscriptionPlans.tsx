@@ -38,13 +38,6 @@ const PLANS = [
         ],
       },
        {
-         title: "asherinx.eng",
-         items: [
-           "public-index search across open indexes",
-           "results grouped by the field site that answered",
-         ],
-       },
-       {
          title: "asherin.cyber",
          items: [
            "passive domain, tls and public advisory context",
@@ -89,16 +82,12 @@ const PLANS = [
      groups: [
        {
          title: "everything in asherin ($18)",
-         items: ["chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, workspace, BYOK"],
+         items: ["chat, asherin.cyber, asherin.defender, asherin.arvision, workspace, BYOK"],
        },
        {
          title: "usage",
         items: ["200 messages per 3-hour window", "higher search and map throughput"],
       },
-       {
-         title: "asherinx.eng",
-         items: ["buffer, fold and identifier actions (capture stays off by default)"],
-       },
        {
          title: "asherin.cyber",
          items: ["passive domain and infrastructure context", "public advisory matching without exploitation"],

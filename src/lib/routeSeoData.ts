@@ -31,7 +31,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/": {
     title: "asherin, look a little closer.",
     description:
-      "asherin is a sourced research workspace: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision and asherin.eye. $18/mo, $79/mo pro.",
+      "asherin is a sourced research workspace: chat, asherin.cyber, asherin.defender, asherin.arvision and asherin.eye. $18/mo, $79/mo pro.",
   },
 
   // --- Product / company ---
@@ -43,7 +43,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/software": {
     title: "software | asherin",
     description:
-      "the rooms on a seat: chat, asherinx.eng, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
+      "the rooms on a seat: chat, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault, whiteboard, connect, team. $18/mo, $79/mo pro.",
   },
   "/for": {
     title: "who asherin is for",

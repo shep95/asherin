@@ -41,14 +41,6 @@ export const NAV_INTENTS: NavIntent[] = [
     group: "Workspace",
   },
   {
-    view: "ghost-engine",
-    label: "asherinx.eng",
-    codename: "asherinx.eng",
-    blurb: "Public-index search — eighteen open indexes asked in parallel, grouped by field site",
-    keywords: ["asherinx", "eng", "engine", "osint", "public index", "wayback", "nvd", "search", "ghost"],
-    group: "Workspace",
-  },
-  {
     view: "asherin-defender",
     label: "asherin.defender",
     codename: "asherin.defender",
