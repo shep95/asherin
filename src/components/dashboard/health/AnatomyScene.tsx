@@ -132,17 +132,88 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
     const paintData = new Float32Array(width * 4);
     const paintTexture = new T.DataTexture(paintData, width, 1, T.RGBAFormat, T.FloatType);
     paintTexture.needsUpdate = true;
+    // per-part affine for the person's own proportions: xyz scale in one row,
+    // the matching shift in another. carrying it per part (rather than per
+    // vertex) keeps picking, explode offsets and the drawn body in exact
+    // agreement — the ray hits what the eye sees.
+    const shapeScaleData = new Float32Array(width * 4).fill(1);
+    const shapeScaleTexture = new T.DataTexture(shapeScaleData, width, 1, T.RGBAFormat, T.FloatType);
+    shapeScaleTexture.needsUpdate = true;
+    const shapeShiftData = new Float32Array(width * 4);
+    const shapeShiftTexture = new T.DataTexture(shapeShiftData, width, 1, T.RGBAFormat, T.FloatType);
+    shapeShiftTexture.needsUpdate = true;
 
     const materials: T.Material[] = [];
     const geometries: T.BufferGeometry[] = [];
     const pickers: (T.Mesh | undefined)[] = [];
-    const centers = atlas.parts.map((p) =>
+    const baseCenters = atlas.parts.map((p) =>
       new T.Vector3().fromArray(p.bounds[0]).add(new T.Vector3().fromArray(p.bounds[1])).multiplyScalar(0.5),
     );
+    const centers = baseCenters.map((c) => c.clone());
     const offsets: T.Vector3[] = [];
-    const bounds = atlas.parts.map(
+    const baseBounds = atlas.parts.map(
       (p) => new T.Box3(new T.Vector3().fromArray(p.bounds[0]), new T.Vector3().fromArray(p.bounds[1])),
     );
+    const bounds = baseBounds.map((b) => b.clone());
+    // the whole body's vertical extent: bands are read as a fraction of it.
+    const bodyBox = new T.Box3();
+    baseBounds.forEach((b) => bodyBox.union(b));
+    const bodyMinY = bodyBox.min.y;
+    const bodyHeight = Math.max(0.001, bodyBox.max.y - bodyBox.min.y);
+
+    /** girth multiplier at a height, interpolated between the shape bands. */
+    const bandScaleAt = (scales: number[], y: number) => {
+      const n = (y - bodyMinY) / bodyHeight;
+      if (n <= SHAPE_BANDS[0].y) return scales[0];
+      for (let i = 1; i < SHAPE_BANDS.length; i++) {
+        if (n <= SHAPE_BANDS[i].y) {
+          const a = SHAPE_BANDS[i - 1];
+          const b = SHAPE_BANDS[i];
+          const t = (n - a.y) / Math.max(1e-6, b.y - a.y);
+          return scales[i - 1] + (scales[i] - scales[i - 1]) * t;
+        }
+      }
+      return scales[SHAPE_BANDS.length - 1];
+    };
+
+    const scratch = new T.Vector3();
+    let appliedShapeKey = "";
+    /**
+     * rewrite the per-part affine, the picking bounds and the projected centres
+     * from the current shape. cheap: one pass over parts, not over vertices.
+     */
+    const applyShape = (s: BodyShape | null | undefined) => {
+      const heightScale = s && Number.isFinite(s.heightScale) ? s.heightScale : 1;
+      const scales = s?.scales?.length === SHAPE_BANDS.length ? s.scales : SHAPE_BANDS.map(() => 1);
+      atlas.parts.forEach((_, i) => {
+        const c = baseCenters[i];
+        const girth = bandScaleAt(scales, c.y);
+        const sy = heightScale;
+        const cx = c.x * girth;
+        const cy = bodyMinY + (c.y - bodyMinY) * sy;
+        const cz = c.z * girth;
+        // scale the part about the origin, then shift it so its own centre
+        // lands where the deformed body wants it.
+        const shift = scratch.set(cx - c.x * girth, cy - c.y * sy, cz - c.z * girth);
+        shapeScaleData.set([girth, sy, girth, 1], i * 4);
+        shapeShiftData.set([shift.x, shift.y, shift.z, 0], i * 4);
+        centers[i].set(cx, cy, cz);
+        bounds[i].min.set(baseBounds[i].min.x * girth + shift.x, bodyMinY + (baseBounds[i].min.y - bodyMinY) * sy, baseBounds[i].min.z * girth + shift.z);
+        bounds[i].max.set(baseBounds[i].max.x * girth + shift.x, bodyMinY + (baseBounds[i].max.y - bodyMinY) * sy, baseBounds[i].max.z * girth + shift.z);
+        const mesh = pickers[i];
+        if (mesh) mesh.scale.set(girth, sy, girth);
+      });
+      shapeScaleTexture.needsUpdate = true;
+      shapeShiftTexture.needsUpdate = true;
+      appliedShapeKey = s ? shapeKey(s) : "";
+      // part placement, the explode layout and the camera fit are all derived
+      // from centres that just moved, so force them to be recomputed.
+      layoutKey = "";
+      lastState = null;
+      lastExtent = -1;
+      dirty = true;
+    };
+
     let packingWidth = 1;
     let packingHeight = 1;
 
