@@ -118,6 +118,13 @@ const SpatialView = () => {
   const sessionRef = useRef<SpatialSession | null>(null);
   const colorRef = useRef(randomVibrantColor());
   const [videoSize, setVideoSize] = useState({ width: 1280, height: 720 });
+  const watchRef = useRef<number | null>(null);
+  const lastFixRef = useRef<Vec3 | null>(null);
+  const headingRef = useRef<"off" | "live" | "unavailable">("off");
+  // the geolocation watcher is registered once and must always see the current
+  // pose handler, so it reads it through a ref instead of capturing a stale one
+  const applyPoseRef = useRef<(p: Vec3, s: Exclude<PoseSource, "none">, r?: Quat) => void>(() => {});
+
 
   // guidance engine, rebuilt whenever the loaded map changes
   useEffect(() => {
