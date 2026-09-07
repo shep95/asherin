@@ -302,6 +302,13 @@ Deno.serve(async (req) => {
 
     return json({ error: "unknown action" }, 400, cors);
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : "the request failed." }, 502, cors);
+    const upstream = (e as { upstreamStatus?: number })?.upstreamStatus ?? 0;
+    const message = e instanceof Error ? e.message : "the request failed.";
+    // A provider rate limit is retryable and the client knows how to wait it
+    // out; anything else is reported as it happened.
+    if (upstream === 429) {
+      return json({ error: "RATE_LIMITED", message, retryAfterMs: 20_000 }, 429, cors);
+    }
+    return json({ error: message, message }, upstream === 401 || upstream === 403 ? 402 : 502, cors);
   }
 });
