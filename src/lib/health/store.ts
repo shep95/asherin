@@ -134,7 +134,11 @@ export function loadRecord(scope: string | null): HealthRecord {
       ...EMPTY_RECORD,
       ...parsed,
       body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+      settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
       observations: parsed.observations ?? [],
+      snapshots: parsed.snapshots ?? [],
+      wearables: parsed.wearables ?? [],
+      sessions: parsed.sessions ?? [],
       version: 1,
     };
   } catch {
@@ -174,7 +178,11 @@ export function importRecord(text: string): { record: HealthRecord | null; error
         ...EMPTY_RECORD,
         ...parsed,
         body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+        settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
         observations: parsed.observations ?? [],
+        snapshots: parsed.snapshots ?? [],
+        wearables: parsed.wearables ?? [],
+        sessions: parsed.sessions ?? [],
         version: 1,
       },
       error: null,
@@ -197,6 +205,9 @@ export function recordCount(record: HealthRecord): number {
     record.symptoms.length +
     record.herbs.length +
     record.observations.length +
+    record.snapshots.length +
+    record.wearables.length +
+    record.sessions.length +
     record.body.solves.length
   );
 }
