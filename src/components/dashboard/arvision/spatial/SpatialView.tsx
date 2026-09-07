@@ -67,9 +67,19 @@ const SpatialView = () => {
   const [mapError, setMapError] = useState<string | null>(null);
 
   const [position, setPosition] = useState<Vec3 | null>(null);
-  const [poseSource, setPoseSource] = useState<"none" | "camera positioning" | "placed by hand">("none");
+  const [poseSource, setPoseSource] = useState<PoseSource>("none");
   const [yawDeg, setYawDeg] = useState(0);
   const [headingSensor, setHeadingSensor] = useState<"off" | "live" | "unavailable">("off");
+
+  // live positioning from the device's own receiver
+  const [liveOn, setLiveOn] = useState(false);
+  const [liveNote, setLiveNote] = useState<string | null>(null);
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [fixAccuracy, setFixAccuracy] = useState<number | null>(null);
+  const [fixAt, setFixAt] = useState<number | null>(null);
+  const [anchor, setAnchor] = useState<GeoAnchor | null>(null);
+  const [speedMs, setSpeedMs] = useState<number | null>(null);
+
 
   const [guidanceState, setGuidanceState] = useState<GuidanceState | null>(null);
   const [voiceOn, setVoiceOn] = useState(true);
