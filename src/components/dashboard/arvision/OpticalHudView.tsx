@@ -2220,7 +2220,10 @@ function bootArvision(wrap, root, emitPull) {
   }
   function sensors() {
     if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
+      // the watch is registered once and must be released with the rest of the
+      // sensors: left running it keeps the receiver awake after the view is
+      // gone and starves any later position request on the same page
+      const watchId = navigator.geolocation.watchPosition(
         (p) => {
           S.lat = p.coords.latitude;
           S.lon = p.coords.longitude;
@@ -2237,7 +2240,13 @@ function bootArvision(wrap, root, emitPull) {
         },
         { enableHighAccuracy: true, maximumAge: 2000 },
       );
+      offs.push(() => {
+        try {
+          navigator.geolocation.clearWatch(watchId);
+        } catch (_) {}
+      });
     }
+
     const onOri = (e) => {
       S.beta = e.beta;
       S.gamma = e.gamma;
