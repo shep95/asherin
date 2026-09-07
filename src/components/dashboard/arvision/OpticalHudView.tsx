@@ -183,9 +183,61 @@ const HUD_CSS = `
     .talk button { padding: 8px 12px; }
   }
 
+  /* spectral filter — the second view of the same frame.
+     the primary view fills the stage. the other one lives in the rounded box in
+     the bottom left corner and can be tapped to take the stage. both carry the
+     same overlay, so nothing is lost in the swap. */
+  .arv-root { --pipW: clamp(112px, 21cqi, 188px); }
+  #spec { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #spec[hidden] { display: none; }
+  #pip {
+    position: absolute; left: 16px; bottom: 108px; z-index: 9;
+    width: var(--pipW); padding: 0; overflow: hidden; cursor: pointer;
+    border-radius: 18px; border: 1px solid var(--line);
+    background: hsl(var(--card) / .62);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 18px 50px -24px rgba(0,0,0,.9);
+    display: block; text-align: left;
+  }
+  #pip:hover { border-color: hsl(var(--accent) / .45); }
+  #pip[hidden] { display: none; }
+  #pip .pipwrap { position: relative; width: 100%; background: #000; overflow: hidden; }
+  #pip canvas { display: block; width: 100%; height: 100%; }
+  #pip .piplab {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 6px 9px; font: 400 10px/1.2 inherit; letter-spacing: .04em;
+    color: var(--mute); text-transform: lowercase;
+  }
+  #pip .piplab b { color: var(--ink); font-weight: 400; }
+  #pip .piplab span { color: hsl(var(--accent)); }
+  #specsw {
+    position: absolute; left: 16px; bottom: 74px; z-index: 9;
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px;
+    border-radius: 999px; border: 1px solid var(--line);
+    background: hsl(var(--card) / .62);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  }
+  #specsw button {
+    border: 0; border-radius: 999px; padding: 5px 10px; cursor: pointer;
+    background: transparent; color: var(--mute); font: 400 11px/1 inherit;
+    text-transform: lowercase; transition: background .15s ease, color .15s ease;
+  }
+  #specsw button.on { background: hsl(var(--accent)); color: var(--accent-ink); }
+  #note { bottom: calc(126px + var(--pipW) * 0.62); }
+
+  @container arv (max-width: 780px) {
+    #pip { left: 8px; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); border-radius: 14px; }
+    #specsw { left: 8px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+    #note { bottom: calc(120px + var(--pipW) * 0.62 + env(safe-area-inset-bottom, 0px)); }
+  }
+  @container arv (max-height: 560px) {
+    .arv-root { --pipW: clamp(92px, 16cqi, 132px); }
+  }
+
 `;
 const HUD_BODY =
-  '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
+  '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="spec" hidden></canvas>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<button type="button" id="pip" title="tap to put this view on the full screen">\n  <div class="pipwrap"><canvas id="pipc"></canvas></div>\n  <div class="piplab"><b id="piplabel">spectral filter</b><span>swap</span></div>\n</button>\n<div id="specsw" role="group" aria-label="primary view">\n  <button type="button" id="swcolor">colorized</button>\n  <button type="button" id="swspec">spectral</button>\n</div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
+
 
 function bootArvision(wrap, root, emitPull) {
   let dead = false;
