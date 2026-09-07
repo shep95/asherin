@@ -44,12 +44,14 @@ export async function expandPivot(
   const queue: PivotNode[] = [root];
   let counter = 1;
   while (queue.length && nodes.length < cfg.maxNodes) {
+    if (cfg.deadlineAt && Date.now() > cfg.deadlineAt) break;
     const node = queue.shift()!;
     if (node.depth >= cfg.maxDepth) continue;
     let discovered: Array<{ identifier: string; kind: IdentifierKind }> = [];
     try {
       discovered = await resolver(node);
-    } catch {
+    } catch (e) {
+      cfg.onResolverError?.(node, e);
       discovered = [];
     }
     let taken = 0;
