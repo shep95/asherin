@@ -506,6 +506,8 @@ export default function EagleEyeView() {
                 quad={quad}
                 running={running}
                 alerted={Boolean(alerted[t.deviceId])}
+                calibration={calibration}
+                onThermal={setThermalRead}
                 onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
                 onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
                 bind={(overlay, mount) => {
@@ -692,13 +694,15 @@ function FilterPane({ mode, getFrame, className, thermalDevice = false, calibrat
 }
 
 function CameraTile({
-  tile, preview, quad, running, alerted, bind, getFrame, onDetach, onAck, onExpand,
+  tile, preview, quad, running, alerted, calibration, onThermal, bind, getFrame, onDetach, onAck, onExpand,
 }: {
   tile: TileState;
   preview: FilterMode;
   quad: boolean;
   running: boolean;
   alerted: boolean;
+  calibration: ThermalCalibration;
+  onThermal: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
   bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
   getFrame: () => HTMLCanvasElement | null;
   onDetach: () => void;
@@ -733,7 +737,7 @@ function CameraTile({
               className="group relative overflow-hidden bg-black/70 text-left"
               title={`${m} — tap for full screen`}
             >
-              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} />}
+              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={m === "thermal" ? onThermal : undefined} />}
               <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] font-light text-white/65">{m}</span>
               <Maximize2 className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 text-white/25 group-hover:text-white/70" />
             </button>
@@ -744,7 +748,7 @@ function CameraTile({
           {preview === "clean" ? cleanPane : (
             <>
               <div ref={mountRef} className="invisible absolute inset-0" />
-              <FilterPane mode={preview} getFrame={getFrame} />
+              <FilterPane mode={preview} getFrame={getFrame} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={preview === "thermal" ? onThermal : undefined} />
               <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
             </>
           )}
@@ -756,6 +760,7 @@ function CameraTile({
         <span className={`h-1.5 w-1.5 rounded-full ${tile.status === "live" ? (running ? "bg-emerald-400" : "bg-white/40") : "bg-rose-400"}`} />
         <span className="max-w-[160px] truncate">{tile.label}</span>
         <span className="text-white/35">{tile.personCount} tracked · {tile.inferenceMs}ms</span>
+        {tile.thermalDevice && <span className="rounded-full bg-amber-400/15 px-1.5 text-[9.5px] text-amber-200/85">thermal sensor</span>}
       </div>
       {alerted && (
         <button onClick={onAck} className="absolute bottom-2 left-2 rounded-full border border-white/25 bg-black/70 px-2.5 py-1 text-[10.5px] font-light text-white/85">
