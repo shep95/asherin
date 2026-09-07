@@ -14,6 +14,10 @@ import { createDeviceRegistry, disconnectAll, type AdapterStatus, type DeviceReg
 import { analyseEegChannel, analyseEeg, analyseTremor, estimateBreathingRate, estimateNoiseDose, computeHrv, type EegChannelResult, type MotionSample, type AudioSample } from "@/lib/health/live/analysis";
 import { LiveSession, type SessionMode, type SessionSnapshot } from "@/lib/health/live/session";
 import type { AtlasHighlight } from "@/lib/health/atlas";
+import { classifyAll, type ContactReading } from "@/lib/health/live/contact";
+import { compareSessionToBaseline, type BaselineComparison } from "@/lib/health/live/baseline";
+import { perModeTrend, dayOfWeekPattern, timeOfDayPattern, driftVsBaseline, type PerModeTrend, type BucketedPatternResult, type DriftResult } from "@/lib/health/live/patterns";
+import { capabilityReadout, type CapabilityEntry } from "@/lib/health/live/capabilities";
 
 const MODES: { id: SessionMode; label: string }[] = [
   { id: "focus", label: "focus" },
@@ -105,6 +109,8 @@ export default function LiveSensingPanel({ record, persist, onEvent, onHighlight
   const [tremorHz, setTremorHz] = useState<number | null>(null);
   const [lastBeatAt, setLastBeatAt] = useState<number | null>(null);
   const [timeline, setTimeline] = useState<{ at: number; label: string }[]>([]);
+  const [lastBaselineComparison, setLastBaselineComparison] = useState<BaselineComparison[] | null>(null);
+  const [lastFinishedMode, setLastFinishedMode] = useState<SessionMode | null>(null);
 
   const motionBufferRef = useRef<MotionSample[]>([]);
   const audioEnvelopeRef = useRef<AudioSample[]>([]);
@@ -214,6 +220,41 @@ export default function LiveSensingPanel({ record, persist, onEvent, onHighlight
   }
 
   const previousSessions = record.sessions;
+
+  const contactReadings: ContactReading[] = useMemo(
+    () => classifyAll([heartStatus, eegStatus, motionStatus, audioStatus]),
+    [heartStatus, eegStatus, motionStatus, audioStatus],
+  );
+
+  const capabilities: CapabilityEntry[] = useMemo(
+    () =>
+      capabilityReadout({
+        heart: registry.heart.getExposure(),
+        eeg: registry.eeg.getExposure(),
+        motion: registry.motion.getExposure(),
+        audio: registry.audio.getExposure(),
+      }),
+    [heartStatus, eegStatus, motionStatus, audioStatus, registry],
+  );
+
+  const PATTERN_METRICS = ["rmssd", "meanBpm", "breathsPerMinute"];
+  const patternMode = lastFinishedMode ?? mode;
+  const trends: PerModeTrend[] = useMemo(
+    () => PATTERN_METRICS.map((m) => perModeTrend(previousSessions, patternMode, m)).filter((t): t is PerModeTrend => t !== null),
+    [previousSessions, patternMode],
+  );
+  const dayPatterns: BucketedPatternResult[] = useMemo(
+    () => PATTERN_METRICS.map((m) => dayOfWeekPattern(previousSessions, patternMode, m)),
+    [previousSessions, patternMode],
+  );
+  const timePatterns: BucketedPatternResult[] = useMemo(
+    () => PATTERN_METRICS.map((m) => timeOfDayPattern(previousSessions, patternMode, m)),
+    [previousSessions, patternMode],
+  );
+  const drifts: DriftResult[] = useMemo(
+    () => PATTERN_METRICS.map((m) => driftVsBaseline(previousSessions, patternMode, m)),
+    [previousSessions, patternMode],
+  );
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-1 text-white/90">
