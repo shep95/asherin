@@ -48,6 +48,32 @@ const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string 
 };
 
 const CAPTURE_TIERS: ThreatTier[] = ["elevated", "high", "critical"];
+
+/** ordering weight for a wall of cameras: the tier a camera last recorded is
+ * worth more than its score, and its score is worth more than how recent it
+ * was. a camera a human has already acknowledged drops out of the flagged
+ * band entirely — attention is not spent twice on the same event. */
+const TIER_WEIGHT: Record<ThreatTier, number> = { observation: 1, elevated: 2, high: 3, critical: 4 };
+
+interface Flag { tier: ThreatTier; score: number; at: number }
+
+export function rankTiles<T extends { deviceId: string; status: string }>(
+  tiles: T[], flags: Record<string, Flag>,
+): T[] {
+  const rank = (t: T) => {
+    const f = flags[t.deviceId];
+    if (!f) return 0;
+    return TIER_WEIGHT[f.tier] * 1e13 + Math.min(999, f.score) * 1e10 + f.at / 1e3;
+  };
+  return [...tiles].sort((a, b) => {
+    const d = rank(b) - rank(a);
+    if (d !== 0) return d;
+    // then live cameras before opening/failed ones, then stable attach order.
+    const live = Number(b.status === "live") - Number(a.status === "live");
+    if (live !== 0) return live;
+    return tiles.indexOf(a) - tiles.indexOf(b);
+  });
+}
 const PER_TRACK_COOLDOWN_MS = 15_000;
 
 interface Runtime {
