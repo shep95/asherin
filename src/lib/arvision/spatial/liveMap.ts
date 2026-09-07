@@ -222,7 +222,7 @@ export async function buildLiveMap(
     const name = tags.name ?? (tags.emergency === "fire_hydrant" ? "fire hydrant" : "");
     if (!name) continue;
     const position = geoToLocal(anchor, el.lat, el.lon);
-    if (Math.hypot(position.x, position.z) > radiusM * 1.2) continue;
+    if (Math.hypot(position.x, position.z) > radius * 1.1) continue;
     pois.push({
       id: pois.length + 1,
       name: name.slice(0, 60).toLowerCase(),
@@ -245,7 +245,7 @@ export async function buildLiveMap(
     minZ = Math.min(minZ, w.position.z);
     maxZ = Math.max(maxZ, w.position.z);
   }
-  const pad = spacing;
+  const pad = step;
   const min: Vec3 = { x: minX - pad, y: -2, z: minZ - pad };
   const max: Vec3 = { x: maxX + pad, y: 2, z: maxZ + pad };
   const bounds: MapBounds = {
@@ -258,7 +258,7 @@ export async function buildLiveMap(
   const data: NavigationData = {
     mapCode: `LIVE_${lat.toFixed(4)}_${lon.toFixed(4)}`,
     exportedAt: new Date().toISOString(),
-    waypointSpacing: spacing,
+    waypointSpacing: step,
     bounds,
     pois,
     waypoints,
@@ -269,7 +269,7 @@ export async function buildLiveMap(
   return {
     data,
     anchor,
-    message: `live map built from openstreetmap · ${waypoints.length} waypoints · ${pois.length} destinations within ${Math.round(radiusM)}m`,
+    message: `live map built from openstreetmap · ${waypoints.length} waypoints · ${pois.length} destinations within ${Math.round(radius)}m`,
     waypointCount: waypoints.length,
     poiCount: pois.length,
   };
