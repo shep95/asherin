@@ -1,3 +1,4 @@
+import { rankTiles } from "../EagleEyeView";
 import { describe, expect, it } from "vitest";
 import { IouTracker, toEngineLandmarks } from "../detector";
 import { applyColorized, applyEdge, applyLowLight, applyThermal, FILTER_MODES } from "../filters";
@@ -265,5 +266,35 @@ describe("thermal path", () => {
     }
     expect(renderSensorThermal(frame, null).maxTemp).toBeNull();
     expect(renderSensorThermal(frame, cal).maxTemp).toBeCloseTo(27, 0);
+  });
+});
+
+describe("camera wall ordering", () => {
+  const tiles = [
+    { deviceId: "a", status: "live" },
+    { deviceId: "b", status: "live" },
+    { deviceId: "c", status: "failed" },
+    { deviceId: "d", status: "live" },
+  ];
+
+  it("floats the worst flagged camera to the top and keeps the rest running below", () => {
+    const out = rankTiles(tiles, {
+      b: { tier: "elevated", score: 40, at: 5 },
+      d: { tier: "critical", score: 10, at: 1 },
+    });
+    expect(out.map((t) => t.deviceId)).toEqual(["d", "b", "a", "c"]);
+  });
+
+  it("breaks a tier tie on score, then on recency", () => {
+    const out = rankTiles(tiles, {
+      a: { tier: "high", score: 50, at: 9 },
+      b: { tier: "high", score: 80, at: 1 },
+      d: { tier: "high", score: 50, at: 99 },
+    });
+    expect(out.map((t) => t.deviceId)).toEqual(["b", "d", "a", "c"]);
+  });
+
+  it("drops an acknowledged camera out of the flagged band", () => {
+    expect(rankTiles(tiles, {}).map((t) => t.deviceId)).toEqual(["a", "b", "d", "c"]);
   });
 });
