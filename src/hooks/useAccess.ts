@@ -49,6 +49,7 @@ const AUREON_VIEWS: DashboardView[] = [
   "asherin-arvision",
   "asherin-eye",
   "asherin-sentinel",
+  "asherin-health",
 ];
 
 // Zophiel Search Intelligence tab and its sibling search surfaces. Included

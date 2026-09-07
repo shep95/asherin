@@ -68,6 +68,7 @@ const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/Zer
 const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/defender/AsherinDefenderView"));
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
+const AsherinHealthView = lazyWithRetry(() => import("@/components/dashboard/health/AsherinHealthView"));
 const SentinelView = lazyWithRetry(() => import("@/components/dashboard/sentinel/SentinelView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
@@ -222,6 +223,7 @@ const Dashboard = () => {
     "asherin-arvision",
     "asherin-eye",
     "asherin-sentinel",
+    "asherin-health",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -232,6 +234,8 @@ const Dashboard = () => {
     "ar-vision": "asherin-arvision",
     eye: "asherin-eye",
     "asherin.eye": "asherin-eye",
+    health: "asherin-health",
+    "asherin.health": "asherin-health",
     sentinel: "asherin-sentinel",
     "asherin.sentinel": "asherin-sentinel",
     asherinx: "ghost-engine",
@@ -1950,6 +1954,13 @@ const Dashboard = () => {
               "photoreal 3d globe with live public flights, sats, quakes, radio and osm sites. included with the $18 asherin plan. maps stays its own room.",
             )}
           </div>
+        );
+      case "asherin-health":
+        return gatedView(
+          "asherin-health",
+          AsherinHealthView,
+          "asherin.health",
+          "your own anatomy in three dimensions, painted from your own record: bloodwork, medication, genetics, exposures, surgery, family history, pain and live sensors. included with the $18 asherin plan. it explains and orients — it does not diagnose, and the record stays on your device.",
         );
       case "asherin-arvision":
         return gatedView(

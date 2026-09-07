@@ -76,6 +76,14 @@ export const NAV_INTENTS: NavIntent[] = [
     group: "Workspace",
   },
   {
+    view: "asherin-health",
+    label: "asherin.health",
+    codename: "asherin.health",
+    blurb: "3d personal anatomy — bloodwork, medication, genes, exposures, pain and live sensors painted onto your own body",
+    keywords: ["health", "anatomy", "body", "pain", "blood", "labs", "medication", "herbs", "genes", "hrv", "atlas", "organ"],
+    group: "Workspace",
+  },
+  {
     view: "asherin-sentinel",
     label: "asherin.sentinel",
     codename: "asherin.sentinel",

@@ -118,6 +118,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   geospatial: Globe,
   "asherin-eye": ScanEye,
   "asherin-sentinel": Ear,
+  "asherin-health": HeartPulse,
   "video-intelligence": Crosshair,
   search: Zap,
   nomad: Crosshair,
