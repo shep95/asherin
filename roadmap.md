@@ -11,3 +11,6 @@ Convert each incoming request into a deep step-by-step plan with human reasoning
 - [ ] D. headphone brain system: real BLE/motion/audio contact only, contact quality, state machine, live + detail views, longitudinal patterns, honest unavailable states
 - [ ] E. pain interview depth (points, radiation, depth, adaptive questions, red flags, output package), herbal traditions depth + safety cross-check, clinical export package, family atlas
 - [ ] integration into AsherinHealthView + live browser verification
+
+## asherin.health parity — done 2026-09-07
+all twelve panels mounted and verified live: layers, anatomy, body model, record, intake, pain, herbs, systems, over time, live, share, read-out. typecheck clean, 51 vitest cases pass, production build ok.
