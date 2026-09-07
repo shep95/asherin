@@ -10,10 +10,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Building2,
   Camera,
   CameraOff,
   Compass,
   Crosshair,
+  Layers,
   Loader2,
   MapPin,
   Navigation,
@@ -42,8 +44,10 @@ import {
 } from "@/lib/arvision/spatial/intrinsics";
 import { isNavigationData, type NavigationData, type PeerState, type Quat, type Vec3 } from "@/lib/arvision/spatial/types";
 import referenceMap from "@/lib/arvision/spatial/referenceMap.json";
-import { bearingFromLocal, geoToLocal, type GeoAnchor } from "@/lib/arvision/spatial/geo";
+import { bearingFromLocal, geoDistance, geoToLocal, type GeoAnchor } from "@/lib/arvision/spatial/geo";
 import { buildLiveMap } from "@/lib/arvision/spatial/liveMap";
+import { resolveBuilding, squareFeet, feet, type BuildingLookup } from "@/lib/arvision/spatial/building";
+
 
 
 type Panel = "field" | "map" | "route" | "session" | "setup";
@@ -86,6 +90,15 @@ const SpatialView = () => {
   const [fixAt, setFixAt] = useState<number | null>(null);
   const [anchor, setAnchor] = useState<GeoAnchor | null>(null);
   const [speedMs, setSpeedMs] = useState<number | null>(null);
+
+  // where the fix actually is, in degrees, so the building read can be resolved
+  const [geoFix, setGeoFix] = useState<{ lat: number; lon: number; accuracy: number | null } | null>(null);
+  const [structure, setStructure] = useState<BuildingLookup | null>(null);
+  const [structureBusy, setStructureBusy] = useState(false);
+  const [structureNote, setStructureNote] = useState<string | null>(null);
+  const [activeLevel, setActiveLevel] = useState(0);
+  const resolvedAtRef = useRef<{ lat: number; lon: number } | null>(null);
+
 
 
   const [guidanceState, setGuidanceState] = useState<GuidanceState | null>(null);
@@ -275,7 +288,13 @@ const SpatialView = () => {
           if (next !== null) setYawDeg(Math.round(next));
         }
         lastFixRef.current = local;
+        setGeoFix({
+          lat: p.coords.latitude,
+          lon: p.coords.longitude,
+          accuracy: typeof p.coords.accuracy === "number" ? p.coords.accuracy : null,
+        });
         applyPoseRef.current(local, "live position");
+
       };
 
       push(fix);
@@ -394,6 +413,39 @@ const SpatialView = () => {
   }, [applyPose]);
 
   useEffect(() => () => stopLive(), [stopLive]);
+
+  // building read. The fix stream fires constantly, so this only re-asks the map
+  // service when the operator has actually moved out of the last answer, which
+  // keeps a shared public service from being hammered once a second.
+  const readStructure = useCallback(
+    async (lat: number, lon: number, accuracy: number | null) => {
+      setStructureBusy(true);
+      setStructureNote(null);
+      try {
+        const lookup = await resolveBuilding(lat, lon, accuracy);
+        resolvedAtRef.current = { lat, lon };
+        setStructure(lookup);
+        setStructureNote(lookup.message);
+        const ground = lookup.building?.levels.find((l) => l.level === 0)?.level;
+        setActiveLevel(ground ?? lookup.building?.levels[lookup.building.levels.length - 1]?.level ?? 0);
+      } catch (error) {
+        setStructureNote(error instanceof Error ? error.message : "the building read failed");
+      } finally {
+        setStructureBusy(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!geoFix) return;
+    const last = resolvedAtRef.current;
+    const moved = last ? geoDistance(last, { lat: geoFix.lat, lon: geoFix.lon }) : Infinity;
+    if (moved < 25) return;
+    resolvedAtRef.current = { lat: geoFix.lat, lon: geoFix.lon };
+    void readStructure(geoFix.lat, geoFix.lon, geoFix.accuracy);
+  }, [geoFix, readStructure]);
+
 
 
   const runLocalize = useCallback(async () => {
@@ -584,7 +636,12 @@ const SpatialView = () => {
                 destinationId={guidanceState?.destination?.id ?? null}
                 peers={peers}
                 onPlace={(next) => applyPose(next, "placed by hand")}
+                building={structure?.building ?? null}
+                neighbours={structure?.neighbours ?? []}
+                activeLevel={activeLevel}
+                accuracyM={liveOn ? fixAccuracy : null}
               />
+
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -619,7 +676,136 @@ const SpatialView = () => {
               {headingSensor === "unavailable" && (
                 <span className="text-[11px] font-light text-white/45">compass not available on this device</span>
               )}
+              <button
+                type="button"
+                className={chip}
+                disabled={!geoFix || structureBusy}
+                onClick={() => geoFix && void readStructure(geoFix.lat, geoFix.lon, geoFix.accuracy)}
+              >
+                <span className="flex items-center gap-1.5">
+                  {structureBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5" />}
+                  {structureBusy ? "reading the building" : "read this building"}
+                </span>
+              </button>
             </div>
+
+            {/* where you are: the structure the fix falls inside, its size, and the level being read */}
+            {structure?.building && (
+              <div className={`${card} p-4`}>
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <Building2 className="h-3.5 w-3.5 text-white/45" />
+                  <span className="text-[15px] font-extralight tracking-tight">
+                    {structure.building.name ?? structure.building.kind}
+                  </span>
+                  <span className="text-[11px] font-light text-white/45">
+                    {structure.building.containment === "inside"
+                      ? `you are inside · ${structure.building.confidence} on a ${
+                          fixAccuracy !== null ? `${fixAccuracy.toFixed(0)}m` : "unreported"
+                        } fix`
+                      : `nearest structure · ${structure.building.distanceM.toFixed(1)}m away, you are outside it`}
+                  </span>
+                </div>
+                {structure.building.address && (
+                  <p className="mt-1 text-[11px] font-light text-white/50">{structure.building.address}</p>
+                )}
+
+                <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+                  <div>
+                    <p className="text-[10px] font-light uppercase tracking-[0.14em] text-white/35">floor area</p>
+                    <p className="text-[13px] font-light">
+                      {Math.round(squareFeet(structure.building.areaM2)).toLocaleString()} ft²
+                    </p>
+                    <p className="text-[10px] font-light text-white/40">{Math.round(structure.building.areaM2)} m² footprint</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-light uppercase tracking-[0.14em] text-white/35">footprint</p>
+                    <p className="text-[13px] font-light">
+                      {Math.round(feet(structure.building.extentM.long))} × {Math.round(feet(structure.building.extentM.short))} ft
+                    </p>
+                    <p className="text-[10px] font-light text-white/40">
+                      {Math.round(structure.building.perimeterM)} m around the outside
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-light uppercase tracking-[0.14em] text-white/35">levels</p>
+                    <p className="text-[13px] font-light">
+                      {structure.building.levelsAbove !== null ? `${structure.building.levelsAbove} above ground` : "not mapped"}
+                    </p>
+                    <p className="text-[10px] font-light text-white/40">
+                      {structure.building.levelsBelow ? `${structure.building.levelsBelow} below ground` : "no basement mapped"}
+                      {structure.building.heightM !== null ? ` · ${Math.round(feet(structure.building.heightM))} ft tall` : ""}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-light uppercase tracking-[0.14em] text-white/35">ground</p>
+                    <p className="text-[13px] font-light">
+                      {structure.building.structureUnderground || activeLevel < 0 ? "below ground" : "above ground"}
+                    </p>
+                    <p className="text-[10px] font-light text-white/40">
+                      {structure.building.entrances.length
+                        ? `${structure.building.entrances.length} mapped entrance${structure.building.entrances.length === 1 ? "" : "s"}`
+                        : "no entrance mapped"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 text-[10px] font-light uppercase tracking-[0.14em] text-white/35">
+                    <Layers className="h-3.5 w-3.5" />
+                    your floor
+                  </span>
+                  {structure.building.levels.map((level) => (
+                    <button
+                      key={level.level}
+                      type="button"
+                      className={activeLevel === level.level ? chipOn : chip}
+                      onClick={() => setActiveLevel(level.level)}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+
+                {(() => {
+                  const onLevel = structure.building.rooms.filter(
+                    (room) => room.levels.length === 0 || room.levels.includes(activeLevel),
+                  );
+                  const here = onLevel.find((room) => room.contains);
+                  const near = onLevel.filter((room) => !room.contains).slice(0, 4);
+                  return (
+                    <div className="mt-3 border-t border-white/8 pt-3">
+                      <p className="text-[10px] font-light uppercase tracking-[0.14em] text-white/35">room</p>
+                      {here ? (
+                        <p className="mt-1 text-[13px] font-light">
+                          {here.name} · {here.kind} · {Math.round(squareFeet(here.areaM2)).toLocaleString()} ft²
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[12px] font-light text-white/55">
+                          {onLevel.length
+                            ? "no mapped room contains this fix on the level you selected"
+                            : "this building has no indoor plan in openstreetmap, so there are no rooms to place you in"}
+                        </p>
+                      )}
+                      {near.length > 0 && (
+                        <p className="mt-1 text-[11px] font-light text-white/45">
+                          nearby on this level: {near.map((room) => `${room.name} ${room.distanceM.toFixed(0)}m`).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <p className="mt-3 text-[11px] font-light leading-relaxed text-white/40">
+                  no browser sensor reports which storey a body is standing on, so the floor is the one you pick here and the
+                  room read follows it. outline, level counts and indoor plans come from openstreetmap, and the ones that are
+                  not mapped are named as missing rather than guessed.
+                </p>
+              </div>
+            )}
+            {!structure?.building && structureNote && (
+              <p className="text-[11px] font-light leading-relaxed text-white/50">{structureNote}</p>
+            )}
+
             {liveOn && (
               <p className="text-[11px] font-light text-white/55">
                 fix accuracy {fixAccuracy !== null ? `${fixAccuracy.toFixed(0)}m` : "unreported"}
