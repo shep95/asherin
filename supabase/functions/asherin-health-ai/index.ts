@@ -107,7 +107,7 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
   const err = new Error(
     lastStatus === 429
       ? "the vision model is at its rate or quota limit right now. wait a moment and try again, or add your own model key in settings so this runs on your key."
-      : lastStatus === 401 || lastStatus === 403
+      : lastStatus === 401 || lastStatus === 403 || /api key not valid|invalid api key|api_key_invalid/i.test(last)
         ? "the vision key was rejected by the model provider. check the key in settings."
         : `the photographs could not be read right now (${last || "no response from the model"}).`,
   ) as Error & { upstreamStatus?: number };
