@@ -91,6 +91,7 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
         const data = await resp.json();
         return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       }
+      lastStatus = resp.status;
       last = `${resp.status} ${(await resp.text()).slice(0, 200)}`;
       if (resp.status !== 429 && resp.status !== 503) break;
       await new Promise((r) => setTimeout(r, 1200 * attempt));
