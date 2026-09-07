@@ -434,7 +434,7 @@ export function painPattern(report: PainReport): PainPatternCandidate[] {
     if (p.depth === "visceral") bump("viscera", 1, "a point described as deep and visceral in character is felt behind, not on, the body wall.");
     if (p.depth === "surface") bump("referred", 0.3, "a surface-only sensation can still represent a referred pattern reaching the skin.");
   }
-  if (primary.tissue !== "unclear") bump(primary.tissue, primary.confidence * 2, ...primary.reasoning);
+  if (primary.tissue !== "unclear") bump(primary.tissue, primary.confidence * 2, primary.reasoning.join(" "));
   const entries = [...score.entries()].sort((a, b) => b[1].score - a[1].score);
   const total = entries.reduce((sum, [, v]) => sum + v.score, 0) || 1;
   const out: PainPatternCandidate[] = entries.slice(0, 3).map(([tissue, v]) => ({
