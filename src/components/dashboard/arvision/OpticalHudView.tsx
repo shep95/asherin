@@ -1747,7 +1747,9 @@ function bootArvision(wrap, root, emitPull) {
       '<button type="button" class="fold" id="sens-cycle">sens · ' +
       (S.sensitivity || "high") +
       "</button>" +
+      row("view", S.primary === "spectral" ? "spectral filter" : "colorized") +
       row("luma", S.luma.toFixed(2)) +
+
       row("contrast", S.contrast.toFixed(2)) +
       row("motion", S.motion.toFixed(3)) +
       row("edges", S.edges.toFixed(3)) +
