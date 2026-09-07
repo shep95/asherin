@@ -321,40 +321,62 @@ export async function archiveOrgByTerm(term: string): Promise<IdResult> {
 // mirrors, paste dumps. we reach them the only lawful way — the public web
 // index — and we label every hit with the platform it came from.
 
-const AGGREGATOR_SURFACES: Array<{ label: string; sites: string[]; kind: string }> = [
-  { label: "people-aggregator", kind: "aggregator-profile", sites: ["thatsthem.com", "fastpeoplesearch.com", "truepeoplesearch.com", "radaris.com", "spokeo.com", "whitepages.com", "cyberbackgroundchecks.com", "clustrmaps.com", "nuwber.com"] },
-  { label: "obituary", kind: "obituary", sites: ["legacy.com", "findagrave.com", "dignitymemorial.com", "echovita.com", "tributearchive.com"] },
-  { label: "genealogy", kind: "genealogy", sites: ["familysearch.org", "wikitree.com", "geni.com", "ancestors.familysearch.org"] },
-  { label: "usenet.groups", kind: "usenet", sites: ["groups.google.com", "narkive.com", "mail-archive.com"] },
-  { label: "paste.web", kind: "paste", sites: ["pastebin.com", "ghostbin.com", "controlc.com", "justpaste.it", "rentry.co", "throwbin.io"] },
-  { label: "professional", kind: "professional-profile", sites: ["linkedin.com/in", "crunchbase.com", "angel.co", "about.me", "muckrack.com"] },
-  { label: "corporate-registry", kind: "corporate-officer", sites: ["opencorporates.com", "bizapedia.com", "sec.gov", "opengovus.com"] },
-  { label: "property.court", kind: "public-record", sites: ["unicourt.com", "trellis.law", "docketbird.com", "county-taxes.net", "propertyshark.com"] },
+const AGGREGATOR_SURFACES: Array<{ label: string; sites: string[]; kind: string; hint: string }> = [
+  { label: "people-aggregator", kind: "aggregator-profile", hint: "address phone public record profile", sites: ["thatsthem.com", "fastpeoplesearch.com", "truepeoplesearch.com", "radaris.com", "spokeo.com", "whitepages.com", "cyberbackgroundchecks.com", "clustrmaps.com", "nuwber.com"] },
+  { label: "obituary", kind: "obituary", hint: "obituary memorial survived by", sites: ["legacy.com", "findagrave.com", "dignitymemorial.com", "echovita.com", "tributearchive.com"] },
+  { label: "genealogy", kind: "genealogy", hint: "genealogy family tree ancestors born", sites: ["familysearch.org", "wikitree.com", "geni.com", "ancestors.familysearch.org"] },
+  { label: "usenet.groups", kind: "usenet", hint: "usenet newsgroup archive post", sites: ["groups.google.com", "narkive.com", "mail-archive.com"] },
+  { label: "paste.web", kind: "paste", hint: "paste dump leak text", sites: ["pastebin.com", "ghostbin.com", "controlc.com", "justpaste.it", "rentry.co", "throwbin.io"] },
+  { label: "professional", kind: "professional-profile", hint: "profile career company role", sites: ["linkedin.com/in", "crunchbase.com", "angel.co", "about.me", "muckrack.com"] },
+  { label: "corporate-registry", kind: "corporate-officer", hint: "company officer director incorporation filing", sites: ["opencorporates.com", "bizapedia.com", "sec.gov", "opengovus.com"] },
+  { label: "property.court", kind: "public-record", hint: "court case docket property deed record", sites: ["unicourt.com", "trellis.law", "docketbird.com", "county-taxes.net", "propertyshark.com"] },
 ];
 
 export async function openWebSurface(term: string, group: typeof AGGREGATOR_SURFACES[number]): Promise<IdResult> {
-  const scoped = `${group.sites.map((s) => `site:${s}`).join(" OR ")} "${term}"`;
-  try {
-    const wave = await runSurfaceWave(scoped, { limit: 8, yieldFloor: 3, providerFloor: 1 });
-    if (wave.hits.length === 0 && wave.liveProviders === 0) {
-      const blocked = wave.telemetry.find((t) => !t.ok)?.reason;
-      return unmeasured(`open web index did not answer for ${group.label}${blocked ? ` (${blocked})` : ""}`);
+  // long `site: OR site:` chains are rejected or scored irrelevant by the
+  // public indexes we are allowed to read. so we ask the question the way a
+  // person would — name plus the vocabulary of that record type — and keep only
+  // the results that actually landed on one of the group's domains. a provider
+  // that answered with nothing on-domain is measured-empty, not unmeasured.
+  const attempts = [
+    `"${term}" ${group.hint}`,
+    `${group.sites.slice(0, 3).map((s) => `site:${s}`).join(" OR ")} "${term}"`,
+  ];
+  let lastReason = "no provider answered";
+  let anyLive = false;
+  const seen = new Set<string>();
+  const rows: IdRow[] = [];
+
+  for (const q of attempts) {
+    let wave;
+    try {
+      wave = await runSurfaceWave(q, { limit: 10, yieldFloor: 3, providerFloor: 1 });
+    } catch (e) {
+      lastReason = e instanceof Error ? e.message : `${group.label} sweep failed`;
+      continue;
     }
-    const rows: IdRow[] = wave.hits
-      .filter((h) => group.sites.some((s) => h.url.includes(s.split("/")[0])))
-      .slice(0, 8)
-      .map((h) => ({
+    if (wave.liveProviders > 0) anyLive = true;
+    else lastReason = wave.telemetry.find((t) => !t.ok)?.reason ?? lastReason;
+    for (const h of wave.hits) {
+      if (!group.sites.some((s) => h.url.includes(s.split("/")[0]))) continue;
+      if (seen.has(h.url)) continue;
+      seen.add(h.url);
+      rows.push({
         source: group.label,
         kind: group.kind,
         url: h.url,
         summary: `${group.label} listing: ${h.title || h.url}`,
         evidence: h.snippet?.slice(0, 300),
         discovered: extractIdentifiers(`${h.title} ${h.snippet}`),
-      }));
-    return { available: true, rows };
-  } catch (e) {
-    return unmeasured(e instanceof Error ? e.message : `${group.label} sweep failed`);
+      });
+    }
+    if (rows.length >= 8) break;
   }
+
+  if (!anyLive && rows.length === 0) {
+    return unmeasured(`open web index did not answer for ${group.label} (${lastReason})`);
+  }
+  return { available: true, rows: rows.slice(0, 8) };
 }
 
 export function surfaceGroups() {
