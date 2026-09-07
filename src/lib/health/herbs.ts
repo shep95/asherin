@@ -1510,7 +1510,6 @@ export const HERBS: HerbDef[] = [
     typicalForm: "oral capsule or effervescent tablet.",
   },
 ];
-];
 
 export function herbInteractionsFor(herbKeys: string[], drugKeys: string[]) {
   const out: { herb: HerbDef; drugKey: string }[] = [];
