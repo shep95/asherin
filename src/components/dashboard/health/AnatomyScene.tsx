@@ -500,7 +500,8 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
       const hasSolid = atlas.parts.some((p, i) => p.system !== "integumentary" && data[i * 4 + 3] > 0.5);
       pickers.forEach((mesh, i) => {
         if (!mesh || data[i * 4 + 3] < 0.5 || (hasSolid && atlas.parts[i].system === "integumentary")) return;
-        worldBox.copy(bounds[i]).translate(mesh.position);
+        // bounds are already in shaped space; only the explode offset is added.
+        worldBox.copy(bounds[i]).translate(new T.Vector3(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]));
         if (!raycaster.ray.intersectBox(worldBox, hitPoint)) return;
         const hits = raycaster.intersectObject(mesh, false);
         if (hits[0] && hits[0].distance < nearest) {
@@ -601,7 +602,9 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
           markerPositions.set(data[i * 4 + 3] > 0.5 ? [c.x + dx, c.y + dy, c.z + dz] : [10000, 10000, 10000], i * 3);
           const mesh = pickers[i];
           if (mesh) {
-            mesh.position.set(dx, dy, dz);
+            // the picker carries the shape shift as well as the explode offset,
+            // so the ray meets the body the eye is looking at.
+            mesh.position.set(dx + shapeShiftData[i * 4], dy + shapeShiftData[i * 4 + 1], dz + shapeShiftData[i * 4 + 2]);
             mesh.updateMatrix();
             mesh.updateMatrixWorld(true);
           }
