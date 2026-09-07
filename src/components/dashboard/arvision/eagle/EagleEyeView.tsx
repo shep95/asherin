@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Bluetooth, Camera, CheckCircle2, CircleSlash, Download,
-  Eye, Grid2X2, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
+  ExternalLink, Eye, Grid2X2, Loader2, Maximize2, PictureInPicture2, Thermometer, Play, ShieldAlert, Square, Trash2, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -26,6 +26,10 @@ import {
 } from "./engine";
 import { IouTracker, detectFrame, loadModels, type ModelStatus } from "./detector";
 import { grabCanvas, filteredCanvas, FILTER_MODES, type FilterMode } from "./filters";
+import {
+  DEFAULT_CALIBRATION, PATH_LABEL, PATH_NOTE, frameStats, looksThermal, renderSensorThermal,
+  resolvePath, calibrationUsable, type ThermalCalibration, type ThermalPath,
+} from "./thermal";
 import { captureContext, cacheFix, contextLine } from "./context";
 import {
   buildEvidence, downloadBlob, exportEvidenceZip, manifestFor,
@@ -56,6 +60,7 @@ interface Runtime {
   config: CameraConfig;
   lastCaptureByTrack: Map<string, number>;
   overlay: HTMLCanvasElement | null;
+  thermalDevice: boolean;
   lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
@@ -68,6 +73,7 @@ interface TileState {
   error: string | null;
   personCount: number;
   inferenceMs: number;
+  thermalDevice: boolean;
 }
 
 export default function EagleEyeView() {
@@ -87,6 +93,10 @@ export default function EagleEyeView() {
   // a camera that just recorded something flashes until a human looks at it.
   const [alerted, setAlerted] = useState<Record<string, number>>({});
   const [full, setFull] = useState<{ deviceId: string; mode: FilterMode } | null>(null);
+  const [calibration, setCalibration] = useState<ThermalCalibration>(DEFAULT_CALIBRATION);
+  const [thermalRead, setThermalRead] = useState<{ path: ThermalPath; min: number | null; max: number | null; centre: number | null } | null>(null);
+  const [gallery, setGallery] = useState(true);
+  const [popped, setPopped] = useState(false);
   const [captureFrom, setCaptureFrom] = useState<ThreatTier>("elevated");
   const [exporting, setExporting] = useState(false);
   const [contextNote, setContextNote] = useState<string>("capture context resolves on the first recorded event");
@@ -134,7 +144,7 @@ export default function EagleEyeView() {
   const attachCamera = useCallback(async (device: MediaDeviceInfo) => {
     if (runtimes.current.has(device.deviceId)) return;
     const label = device.label || `camera ${runtimes.current.size + 1}`;
-    setTiles((t) => [...t, { deviceId: device.deviceId, label, status: "opening", error: null, personCount: 0, inferenceMs: 0 }]);
+    setTiles((t) => [...t, { deviceId: device.deviceId, label, status: "opening", error: null, personCount: 0, inferenceMs: 0, thermalDevice: looksThermal(label) }]);
     try {
       const stream = await openCamera(device.deviceId);
       const video = document.createElement("video");
@@ -154,6 +164,7 @@ export default function EagleEyeView() {
         config: createCameraConfig(device.deviceId.slice(0, 12) || label, label, "pending", 0, 0, Intl.DateTimeFormat().resolvedOptions().timeZone, createDefaultZones(w, h)),
         lastCaptureByTrack: new Map(),
         overlay: null,
+        thermalDevice: looksThermal(label),
         lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
@@ -473,6 +484,41 @@ export default function EagleEyeView() {
             <div className="text-[10.5px] text-white/40">one square per camera split into clean, thermal, spectral and edge — tap any pane for full screen.</div>
           </button>
           <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
+
+          <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">thermal path</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2.5">
+            <div className="flex items-center gap-2 text-[11.5px] font-light text-white/75">
+              <Thermometer className="h-3.5 w-3.5 text-amber-300/70" />
+              {thermalRead ? PATH_LABEL[thermalRead.path] : tiles.some((t) => t.thermalDevice) ? "thermal imager attached" : "no thermal imager detected"}
+            </div>
+            <div className="mt-1 text-[10.5px] font-light leading-relaxed text-white/40">
+              {thermalRead ? PATH_NOTE[thermalRead.path] : "attach a usb or phone thermal imager and it is used as a sensor stream. an ordinary webcam can only ever give an estimate."}
+            </div>
+            {thermalRead?.path === "sensor" && (
+              <>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10.5px] font-light text-white/60">
+                  <label className="flex flex-col gap-1">cold raw
+                    <input type="number" value={calibration.rawLow} onChange={(e) => setCalibration((c) => ({ ...c, rawLow: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">is °c
+                    <input type="number" value={calibration.tempLow} onChange={(e) => setCalibration((c) => ({ ...c, tempLow: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">hot raw
+                    <input type="number" value={calibration.rawHigh} onChange={(e) => setCalibration((c) => ({ ...c, rawHigh: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">is °c
+                    <input type="number" value={calibration.tempHigh} onChange={(e) => setCalibration((c) => ({ ...c, tempHigh: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                </div>
+                <div className="mt-2 text-[10.5px] font-light text-white/55">
+                  {calibrationUsable(calibration) && thermalRead.max !== null
+                    ? `scene ${thermalRead.min}°c – ${thermalRead.max}°c · centre ${thermalRead.centre}°c`
+                    : "give two references — something at a known cool temperature and something known warm — and the scale becomes celsius."}
+                </div>
+                <div className="mt-1 text-[10px] font-light leading-relaxed text-white/30">values follow your two references; they are not a factory-calibrated radiometric reading.</div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* centre: grid */}
@@ -495,6 +541,8 @@ export default function EagleEyeView() {
                 quad={quad}
                 running={running}
                 alerted={Boolean(alerted[t.deviceId])}
+                calibration={calibration}
+                onThermal={setThermalRead}
                 onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
                 onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
                 bind={(overlay, mount) => {
@@ -515,6 +563,25 @@ export default function EagleEyeView() {
               />
             ))}
           </div>
+
+          {gallery && !popped && tiles.length > 0 && (
+            <GalleryRail
+              tiles={tiles}
+              calibration={calibration}
+              alerted={alerted}
+              getFrame={(id) => {
+                const rt = runtimes.current.get(id);
+                if (!rt || !rt.video.videoWidth) return null;
+                return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
+              }}
+              onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+              onPop={() => setPopped(true)}
+              onHide={() => setGallery(false)}
+            />
+          )}
+          {!gallery && (
+            <button onClick={() => setGallery(true)} className="self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-light text-white/55 hover:bg-white/[0.06]">show feed gallery</button>
+          )}
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-light text-white/45">
             <span>{running ? "watching" : "idle"} · {tiles.filter((t) => t.status === "live").length} live camera{tiles.length === 1 ? "" : "s"}</span>
@@ -557,6 +624,21 @@ export default function EagleEyeView() {
         </div>
       </div>
 
+      {popped && tiles.length > 0 && (
+        <FloatingGallery
+          tiles={tiles}
+          calibration={calibration}
+          alerted={alerted}
+          getFrame={(id) => {
+            const rt = runtimes.current.get(id);
+            if (!rt || !rt.video.videoWidth) return null;
+            return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
+          }}
+          onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+          onDock={() => { setPopped(false); setGallery(true); }}
+        />
+      )}
+
       {full && (
         <FullFrame
           label={tiles.find((t) => t.deviceId === full.deviceId)?.label ?? "camera"}
@@ -569,6 +651,9 @@ export default function EagleEyeView() {
             return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 1280);
           }}
           getOverlay={() => runtimes.current.get(full.deviceId)?.overlay ?? null}
+          thermalDevice={Boolean(tiles.find((t) => t.deviceId === full.deviceId)?.thermalDevice)}
+          calibration={calibration}
+          onThermal={setThermalRead}
         />
       )}
 
@@ -613,36 +698,83 @@ const QUAD_MODES: FilterMode[] = ["clean", "thermal", "spectral", "edge"];
 /** paints one filtered rendering of the live frames at a modest cadence. the
  * pixels come from the same grab the detector reads, so what an operator
  * watches is what the evidence package will contain. */
-function FilterPane({ mode, getFrame, className }: { mode: FilterMode; getFrame: () => HTMLCanvasElement | null; className?: string }) {
+function FilterPane({ mode, getFrame, className, thermalDevice = false, calibration = null, onThermal, interval = 140 }: {
+  mode: FilterMode;
+  getFrame: () => HTMLCanvasElement | null;
+  className?: string;
+  thermalDevice?: boolean;
+  calibration?: ThermalCalibration | null;
+  onThermal?: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
+  interval?: number;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const reportRef = useRef(onThermal);
+  reportRef.current = onThermal;
+
   useEffect(() => {
     let alive = true;
     let timer = 0;
+    let lastReport = 0;
     const paint = () => {
       if (!alive) return;
       const frame = getFrame();
       const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, mode);
-        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
-        target.getContext("2d")?.drawImage(out, 0, 0);
+        if (target.width !== frame.width || target.height !== frame.height) { target.width = frame.width; target.height = frame.height; }
+        const ctx = target.getContext("2d");
+        if (ctx) {
+          if (mode === "thermal" && thermalDevice) {
+            // sensor path: the stream itself carries the magnitude, so it is read
+            // and scaled — never re-derived from a visible-light picture.
+            const src = frame.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, frame.width, frame.height);
+            if (src) {
+              const stats = frameStats(src);
+              const path = resolvePath(true, stats);
+              if (path === "palettized") {
+                ctx.drawImage(frame, 0, 0); // the imager already coloured it; leave it alone
+                if (reportRef.current && Date.now() - lastReport > 600) {
+                  lastReport = Date.now();
+                  reportRef.current({ path, min: null, max: null, centre: null });
+                }
+              } else {
+                const r = renderSensorThermal(src, calibration);
+                ctx.putImageData(r.image, 0, 0);
+                if (reportRef.current && Date.now() - lastReport > 600) {
+                  lastReport = Date.now();
+                  reportRef.current({ path, min: r.minTemp, max: r.maxTemp, centre: r.centreTemp });
+                }
+              }
+            }
+          } else {
+            const out = filteredCanvas(frame, mode);
+            if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+            ctx.drawImage(out, 0, 0);
+            if (mode === "thermal" && reportRef.current && Date.now() - lastReport > 1200) {
+              lastReport = Date.now();
+              reportRef.current({ path: "estimate", min: null, max: null, centre: null });
+            }
+          }
+        }
       }
-      timer = window.setTimeout(paint, 140);
+      timer = window.setTimeout(paint, interval);
     };
     paint();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [mode, getFrame]);
+  }, [mode, getFrame, thermalDevice, calibration, interval]);
+
   return <canvas ref={ref} className={className ?? "absolute inset-0 h-full w-full object-contain"} />;
 }
 
 function CameraTile({
-  tile, preview, quad, running, alerted, bind, getFrame, onDetach, onAck, onExpand,
+  tile, preview, quad, running, alerted, calibration, onThermal, bind, getFrame, onDetach, onAck, onExpand,
 }: {
   tile: TileState;
   preview: FilterMode;
   quad: boolean;
   running: boolean;
   alerted: boolean;
+  calibration: ThermalCalibration;
+  onThermal: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
   bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
   getFrame: () => HTMLCanvasElement | null;
   onDetach: () => void;
@@ -677,7 +809,7 @@ function CameraTile({
               className="group relative overflow-hidden bg-black/70 text-left"
               title={`${m} — tap for full screen`}
             >
-              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} />}
+              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={m === "thermal" ? onThermal : undefined} />}
               <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] font-light text-white/65">{m}</span>
               <Maximize2 className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 text-white/25 group-hover:text-white/70" />
             </button>
@@ -688,7 +820,7 @@ function CameraTile({
           {preview === "clean" ? cleanPane : (
             <>
               <div ref={mountRef} className="invisible absolute inset-0" />
-              <FilterPane mode={preview} getFrame={getFrame} />
+              <FilterPane mode={preview} getFrame={getFrame} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={preview === "thermal" ? onThermal : undefined} />
               <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
             </>
           )}
@@ -700,6 +832,7 @@ function CameraTile({
         <span className={`h-1.5 w-1.5 rounded-full ${tile.status === "live" ? (running ? "bg-emerald-400" : "bg-white/40") : "bg-rose-400"}`} />
         <span className="max-w-[160px] truncate">{tile.label}</span>
         <span className="text-white/35">{tile.personCount} tracked · {tile.inferenceMs}ms</span>
+        {tile.thermalDevice && <span className="rounded-full bg-amber-400/15 px-1.5 text-[9.5px] text-amber-200/85">thermal sensor</span>}
       </div>
       {alerted && (
         <button onClick={onAck} className="absolute bottom-2 left-2 rounded-full border border-white/25 bg-black/70 px-2.5 py-1 text-[10.5px] font-light text-white/85">
@@ -717,7 +850,7 @@ function CameraTile({
 /** full-screen read of one camera in one rendering, with the tracking overlay
  * scaled on top and the other renderings one tap away. */
 function FullFrame({
-  label, mode, onMode, onClose, getFrame, getOverlay,
+  label, mode, onMode, onClose, getFrame, getOverlay, thermalDevice, calibration, onThermal,
 }: {
   label: string;
   mode: FilterMode;
@@ -725,6 +858,9 @@ function FullFrame({
   onClose: () => void;
   getFrame: () => HTMLCanvasElement | null;
   getOverlay: () => HTMLCanvasElement | null;
+  thermalDevice: boolean;
+  calibration: ThermalCalibration;
+  onThermal: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -735,11 +871,22 @@ function FullFrame({
       const frame = getFrame();
       const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, mode);
-        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+        const src = mode === "thermal" && thermalDevice
+          ? frame.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, frame.width, frame.height) ?? null
+          : null;
+        const sensor = src ? resolvePath(true, frameStats(src)) : null;
+        const out = sensor === "palettized" ? frame : sensor === "sensor" ? null : filteredCanvas(frame, mode);
+        const w = out ? out.width : frame.width;
+        const h = out ? out.height : frame.height;
+        if (target.width !== w || target.height !== h) { target.width = w; target.height = h; }
         const ctx = target.getContext("2d");
         if (ctx) {
-          ctx.drawImage(out, 0, 0);
+          if (out) ctx.drawImage(out, 0, 0);
+          else if (src) {
+            const r = renderSensorThermal(src, calibration);
+            ctx.putImageData(r.image, 0, 0);
+            onThermal({ path: "sensor", min: r.minTemp, max: r.maxTemp, centre: r.centreTemp });
+          }
           const ov = getOverlay();
           if (ov && ov.width > 0) ctx.drawImage(ov, 0, 0, target.width, target.height);
         }
@@ -748,7 +895,7 @@ function FullFrame({
     };
     paint();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [mode, getFrame, getOverlay]);
+  }, [mode, getFrame, getOverlay, thermalDevice, calibration, onThermal]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -769,6 +916,110 @@ function FullFrame({
         <canvas ref={ref} className="h-full w-full object-contain" />
       </div>
       <div className="text-[10.5px] font-light text-white/35">{FILTER_MODES.find((f) => f.id === mode)?.note}</div>
+    </div>
+  );
+}
+
+
+interface GalleryProps {
+  tiles: TileState[];
+  calibration: ThermalCalibration;
+  alerted: Record<string, number>;
+  getFrame: (deviceId: string) => HTMLCanvasElement | null;
+  onPick: (deviceId: string, mode: FilterMode) => void;
+}
+
+/** one live thumbnail per camera per rendering. every one of them is painting
+ * from the same frames the detector reads, so the gallery is the whole watch at
+ * a glance rather than a menu of things that would run if you picked them. */
+function GalleryThumbs({ tiles, calibration, alerted, getFrame, onPick }: GalleryProps) {
+  return (
+    <>
+      {tiles.map((t) => (
+        <div key={t.deviceId} className="shrink-0">
+          <div className="mb-1 flex items-center gap-1.5 px-0.5 text-[10px] font-light text-white/45">
+            <span className="max-w-[130px] truncate">{t.label}</span>
+            {t.thermalDevice && <span className="rounded-full bg-amber-400/15 px-1.5 text-[9px] text-amber-200/85">thermal</span>}
+          </div>
+          <div className="flex gap-1.5">
+            {FILTER_MODES.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => onPick(t.deviceId, f.id)}
+                title={`${t.label} · ${f.label} — ${f.note}`}
+                className={`relative h-[62px] w-[92px] shrink-0 overflow-hidden rounded-lg bg-black/60 ${alerted[t.deviceId] ? "eagle-alert" : "border border-white/10 hover:border-white/30"}`}
+              >
+                <FilterPane
+                  mode={f.id}
+                  getFrame={() => getFrame(t.deviceId)}
+                  thermalDevice={t.thermalDevice}
+                  calibration={calibration}
+                  interval={320}
+                />
+                <span className="pointer-events-none absolute bottom-0 left-0 right-0 bg-black/55 px-1 py-0.5 text-[9px] font-light text-white/65">{f.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function GalleryRail(props: GalleryProps & { onPop: () => void; onHide: () => void }) {
+  const { onPop, onHide, ...rest } = props;
+  return (
+    <div className="shrink-0 rounded-2xl border border-white/10 bg-white/[0.02] p-2">
+      <div className="mb-1.5 flex items-center gap-2 px-0.5">
+        <span className="text-[10.5px] uppercase tracking-[0.18em] text-white/35">feed gallery</span>
+        <span className="text-[10px] font-light text-white/30">every camera in every rendering, live · tap one for full screen</span>
+        <button onClick={onPop} title="pop the gallery out" className="ml-auto text-white/40 hover:text-white/80"><PictureInPicture2 className="h-3.5 w-3.5" /></button>
+        <button onClick={onHide} title="hide the gallery" className="text-white/40 hover:text-white/80"><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        <GalleryThumbs {...rest} />
+      </div>
+    </div>
+  );
+}
+
+/** the popped-out gallery: a floating panel the operator can drag anywhere over
+ * the room, so the feeds stay visible while a single camera is full screen. */
+function FloatingGallery(props: GalleryProps & { onDock: () => void }) {
+  const { onDock, ...rest } = props;
+  const [pos, setPos] = useState({ x: 24, y: 96 });
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      setPos({
+        x: Math.max(8, Math.min(window.innerWidth - 260, e.clientX - dragRef.current.dx)),
+        y: Math.max(8, Math.min(window.innerHeight - 120, e.clientY - dragRef.current.dy)),
+      });
+    };
+    const up = () => { dragRef.current = null; };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  }, []);
+
+  return (
+    <div
+      className="fixed z-[60] max-h-[70vh] w-[360px] overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0d]/95 shadow-2xl backdrop-blur"
+      style={{ left: pos.x, top: pos.y }}
+    >
+      <div
+        onPointerDown={(e) => { dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; }}
+        className="flex cursor-grab items-center gap-2 border-b border-white/10 px-3 py-2 active:cursor-grabbing"
+      >
+        <ExternalLink className="h-3.5 w-3.5 text-white/40" />
+        <span className="text-[11px] font-light text-white/70">feed gallery</span>
+        <button onClick={onDock} className="ml-auto text-[10.5px] font-light text-white/45 hover:text-white/85">dock</button>
+      </div>
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto p-2">
+        <GalleryThumbs {...rest} />
+      </div>
     </div>
   );
 }

@@ -159,3 +159,47 @@ describe("spectral filter parity with the optical hud", () => {
     expect([out.data[0], out.data[1], out.data[2]]).not.toEqual([200, 90, 70]);
   });
 });
+
+describe("thermal path", () => {
+  it("names a thermal imager from its device label and not an ordinary webcam", async () => {
+    const { looksThermal } = await import("../thermal");
+    expect(looksThermal("FLIR ONE Pro")).toBe(true);
+    expect(looksThermal("InfiRay P2 Pro Thermal")).toBe(true);
+    expect(looksThermal("Integrated RGB Webcam")).toBe(false);
+  });
+
+  it("routes a monochrome sensor stream to the sensor path and a coloured one to the imager palette", async () => {
+    const { frameStats, resolvePath } = await import("../thermal");
+    const mono = new ImageData(8, 8);
+    for (let p = 0; p < mono.data.length; p += 4) {
+      const v = 30 + ((p / 4) % 200);
+      mono.data[p] = v; mono.data[p + 1] = v; mono.data[p + 2] = v; mono.data[p + 3] = 255;
+    }
+    expect(resolvePath(true, frameStats(mono))).toBe("sensor");
+
+    const colour = new ImageData(8, 8);
+    for (let p = 0; p < colour.data.length; p += 4) {
+      colour.data[p] = 240; colour.data[p + 1] = 40; colour.data[p + 2] = 10; colour.data[p + 3] = 255;
+    }
+    expect(resolvePath(true, frameStats(colour))).toBe("palettized");
+    // an ordinary camera can never claim a sensor path
+    expect(resolvePath(false, frameStats(mono))).toBe("estimate");
+  });
+
+  it("turns raw magnitude into celsius through the two references, and withholds numbers without them", async () => {
+    const { rawToTemp, calibrationUsable, renderSensorThermal } = await import("../thermal");
+    const cal = { rawLow: 50, tempLow: 20, rawHigh: 200, tempHigh: 35 };
+    expect(calibrationUsable(cal)).toBe(true);
+    expect(rawToTemp(50, cal)).toBe(20);
+    expect(rawToTemp(200, cal)).toBe(35);
+    expect(rawToTemp(125, cal)).toBe(27.5);
+    expect(calibrationUsable({ rawLow: 100, tempLow: 20, rawHigh: 100, tempHigh: 35 })).toBe(false);
+
+    const frame = new ImageData(4, 4);
+    for (let p = 0; p < frame.data.length; p += 4) {
+      frame.data[p] = 120; frame.data[p + 1] = 120; frame.data[p + 2] = 120; frame.data[p + 3] = 255;
+    }
+    expect(renderSensorThermal(frame, null).maxTemp).toBeNull();
+    expect(renderSensorThermal(frame, cal).maxTemp).toBeCloseTo(27, 0);
+  });
+});
