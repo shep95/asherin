@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Bluetooth, Camera, CheckCircle2, CircleSlash, Download,
-  Eye, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
+  Eye, Grid2X2, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -464,6 +464,14 @@ export default function EagleEyeView() {
               <button key={f.id} onClick={() => setPreview(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${preview === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
             ))}
           </div>
+          <button
+            onClick={() => setQuad((q) => !q)}
+            className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition ${quad ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"}`}
+          >
+            <Grid2X2 className="mb-1 h-3.5 w-3.5" />
+            <div>{quad ? "quad view on" : "quad view"}</div>
+            <div className="text-[10.5px] text-white/40">one square per camera split into clean, thermal, spectral and edge — tap any pane for full screen.</div>
+          </button>
           <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
         </div>
 
@@ -484,7 +492,11 @@ export default function EagleEyeView() {
                 key={t.deviceId}
                 tile={t}
                 preview={preview}
+                quad={quad}
                 running={running}
+                alerted={Boolean(alerted[t.deviceId])}
+                onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
+                onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
                 bind={(overlay, mount) => {
                   const rt = runtimes.current.get(t.deviceId);
                   if (!rt) return;
@@ -544,6 +556,21 @@ export default function EagleEyeView() {
           </div>
         </div>
       </div>
+
+      {full && (
+        <FullFrame
+          label={tiles.find((t) => t.deviceId === full.deviceId)?.label ?? "camera"}
+          mode={full.mode}
+          onMode={(mode) => setFull((f) => (f ? { ...f, mode } : f))}
+          onClose={() => setFull(null)}
+          getFrame={() => {
+            const rt = runtimes.current.get(full.deviceId);
+            if (!rt || !rt.video.videoWidth) return null;
+            return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 1280);
+          }}
+          getOverlay={() => runtimes.current.get(full.deviceId)?.overlay ?? null}
+        />
+      )}
 
       {openRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={() => setOpenRecord(null)}>
