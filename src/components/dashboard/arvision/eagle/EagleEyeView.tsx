@@ -118,6 +118,9 @@ export default function EagleEyeView() {
   const [quad, setQuad] = useState(false);
   // a camera that just recorded something flashes until a human looks at it.
   const [alerted, setAlerted] = useState<Record<string, number>>({});
+  // what each camera last recorded, used to float the cameras that matter to
+  // the top of the wall while the rest keep running underneath.
+  const [flags, setFlags] = useState<Record<string, Flag>>({});
   const [full, setFull] = useState<{ deviceId: string; mode: FilterMode } | null>(null);
   const [calibration, setCalibration] = useState<ThermalCalibration>(DEFAULT_CALIBRATION);
   const [thermalRead, setThermalRead] = useState<{ path: ThermalPath; min: number | null; max: number | null; centre: number | null } | null>(null);
@@ -263,6 +266,7 @@ export default function EagleEyeView() {
     });
     setRecords((r) => [record, ...r].slice(0, 200));
     setAlerted((a) => ({ ...a, [deviceId]: Date.now() }));
+    setFlags((f) => ({ ...f, [deviceId]: { tier: record.tier, score: record.score, at: Date.now() } }));
     toast.warning(`${event.threatTier} pattern on ${rt.config.label}`, {
       description: `${event.patternsTriggered.slice(0, 3).join(", ") || "pattern set recorded"} — captured for human review`,
     });
@@ -445,6 +449,15 @@ export default function EagleEyeView() {
     }
   };
 
+  /** a human looked at it: the camera stops flashing and leaves the flagged band. */
+  const ack = useCallback((deviceId: string) => {
+    setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; });
+    setFlags((f) => { const n = { ...f }; delete n[deviceId]; return n; });
+  }, []);
+
+  // the wall re-orders itself: flagged cameras first, worst tier at the top.
+  const orderedTiles = useMemo(() => rankTiles(tiles, flags), [tiles, flags]);
+
   const attachedIds = useMemo(() => new Set(tiles.map((t) => t.deviceId)), [tiles]);
   const confirmed = records.filter((r) => r.reviewState === "confirmed");
 
@@ -625,7 +638,7 @@ export default function EagleEyeView() {
                 </div>
               </div>
             )}
-            {tiles.map((t) => (
+            {orderedTiles.map((t) => (
               <CameraTile
                 key={t.deviceId}
                 tile={t}
@@ -636,7 +649,7 @@ export default function EagleEyeView() {
                 calibration={calibration}
                 radio={ble}
                 onThermal={setThermalRead}
-                onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
+                onAck={() => ack(t.deviceId)}
                 onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
                 bind={(overlay, mount) => {
                   const rt = runtimes.current.get(t.deviceId);
@@ -660,7 +673,7 @@ export default function EagleEyeView() {
 
           {gallery && !popped && tiles.length > 0 && (
             <GalleryRail
-              tiles={tiles}
+              tiles={orderedTiles}
               calibration={calibration}
               alerted={alerted}
               getFrame={(id) => {
@@ -668,7 +681,7 @@ export default function EagleEyeView() {
                 if (!rt || !rt.video.videoWidth) return null;
                 return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
               }}
-              onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+              onPick={(deviceId, mode) => { setFull({ deviceId, mode }); ack(deviceId); }}
               onPop={() => setPopped(true)}
               onHide={() => setGallery(false)}
             />
@@ -720,7 +733,7 @@ export default function EagleEyeView() {
 
       {popped && tiles.length > 0 && (
         <FloatingGallery
-          tiles={tiles}
+          tiles={orderedTiles}
           calibration={calibration}
           alerted={alerted}
           getFrame={(id) => {
@@ -728,7 +741,7 @@ export default function EagleEyeView() {
             if (!rt || !rt.video.videoWidth) return null;
             return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
           }}
-          onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+          onPick={(deviceId, mode) => { setFull({ deviceId, mode }); ack(deviceId); }}
           onDock={() => { setPopped(false); setGallery(true); }}
         />
       )}
