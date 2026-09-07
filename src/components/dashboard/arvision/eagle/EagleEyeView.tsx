@@ -43,6 +43,8 @@ import {
   SCAN_UNAVAILABLE_NOTE, displayName, mergeSighting, motionLabel, passiveScanSupported,
   proximityBandFor, pruneSightings, startPassiveScan, type RadioSighting,
 } from "./radioScan";
+import RadioIntelPanel from "./RadioIntelPanel";
+import type { LedgerInput } from "./radioLedger";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
   observation: { ring: "#3B82F6", text: "text-sky-300/80", chip: "border-sky-400/25 bg-sky-400/10 text-sky-200/90" },
@@ -145,6 +147,8 @@ export default function EagleEyeView() {
   // the radios around the camera are already broadcasting, the same thing a
   // phone's "nearby devices" list shows.
   const [scanning, setScanning] = useState(false);
+  const [radioRoster, setRadioRoster] = useState<LedgerInput[]>([]);
+  const [radioPanel, setRadioPanel] = useState(false);
   const sightings = useRef<Map<string, RadioSighting>>(new Map());
   const scanStop = useRef<(() => void) | null>(null);
   const loopRef = useRef<number | null>(null);
@@ -185,6 +189,19 @@ export default function EagleEyeView() {
         packets: s.packets,
       }));
     setBle((cur) => [...cur.filter((l) => l.source !== "scan"), ...rows]);
+    // the ledger takes the raw sighting, not the display row: it needs metres
+    // and packet counts, and it does its own naming and distance conversion.
+    setRadioRoster(live.map((s) => ({
+      id: s.id,
+      name: s.name,
+      vendor: s.vendor,
+      companyId: s.companyId,
+      fingerprint: s.fingerprint,
+      rssi: s.rssi,
+      meters: s.meters,
+      lastSeenMs: s.lastSeenMs,
+      packets: s.packets,
+    })));
   }, []);
 
   const toggleScan = useCallback(async () => {
@@ -209,13 +226,14 @@ export default function EagleEyeView() {
     }
   }, []);
 
-  // the roster refreshes on a slow tick rather than per packet: advertisements
-  // arrive several times a second per device and a render per packet would jank
-  // the video without telling the operator anything new.
+  // the roster refreshes on a sub-second tick rather than per packet:
+  // advertisements arrive several times a second per device and a render per
+  // packet would jank the video. 800 ms keeps every one-hertz ledger tick fed
+  // with a reading no older than the second it is stamped into.
   useEffect(() => {
     if (!scanning) return;
     publishSightings();
-    const id = window.setInterval(publishSightings, 1200);
+    const id = window.setInterval(publishSightings, 800);
     return () => window.clearInterval(id);
   }, [scanning, publishSightings]);
 
@@ -227,6 +245,21 @@ export default function EagleEyeView() {
     setDevices(list);
     return list;
   }, []);
+
+  /** the deeper, connected read. the system picker is the browser's own sheet
+   * and cannot be restyled, so our dialog frames it before it opens. */
+  const pickDevice = useCallback(async () => {
+    try {
+      const link = await pairBleDevice();
+      setBle((b) => [...b.filter((x) => x.id !== link.id), link]);
+      const stop = watchRadio(link.id, (patch) => setBle((b) => b.map((x) => (x.id === link.id ? { ...x, ...patch } : x))));
+      radioWatchers.current.set(link.id, stop);
+      await refreshDevices();
+      toast.success(`paired ${link.name}`, { description: link.note });
+    } catch (e) {
+      toast.error("pairing cancelled or unavailable", { description: e instanceof Error ? e.message : "no device was paired" });
+    }
+  }, [refreshDevices]);
 
   useEffect(() => {
     void refreshDevices();
@@ -565,9 +598,9 @@ export default function EagleEyeView() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto xl:flex-row xl:overflow-visible">
         {/* left: cameras */}
-        <div className="flex min-h-0 w-[230px] shrink-0 flex-col gap-2 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+        <div className="flex min-h-0 w-full shrink-0 flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3 xl:w-[230px] xl:overflow-y-auto">
           <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">cameras</div>
           {permission !== "granted" && (
             <button onClick={() => void grantPermission()} className="rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-left text-[12px] font-light text-white/70 hover:bg-white/[0.07]">
@@ -593,40 +626,16 @@ export default function EagleEyeView() {
 
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">bluetooth</div>
           <button
-            disabled={!passiveScanSupported()}
-            onClick={() => void toggleScan()}
-            className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition disabled:opacity-40 ${scanning ? "border-sky-400/30 bg-sky-400/10 text-sky-100/90" : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"}`}
+            onClick={() => setRadioPanel((v) => !v)}
+            className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition ${radioPanel ? "border-sky-400/30 bg-sky-400/10 text-sky-100/90" : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"}`}
           >
             <Bluetooth className="mb-1 h-3.5 w-3.5" />
-            <div>{passiveScanSupported() ? (scanning ? "scanning nearby radios — stop" : "scan nearby radios") : "advertisement scan unavailable here"}</div>
+            <div>{radioPanel ? "hide radio watch" : "open radio watch"}</div>
             <div className="text-[10.5px] text-white/40">
               {passiveScanSupported()
-                ? "reads the name and id every nearby device is already broadcasting — on a person, in a pocket or left behind. nothing is connected to."
+                ? "every nearby radio with its distance in feet, logged once a second with movement, dwell time and group arrivals."
                 : SCAN_UNAVAILABLE_NOTE}
             </div>
-          </button>
-          <button
-            disabled={!bluetoothSupported()}
-            onClick={async () => {
-              try {
-                const link = await pairBleDevice();
-                setBle((b) => [...b.filter((x) => x.id !== link.id), link]);
-                // where the browser implements advertisement watching, signal
-                // strength keeps updating; where it does not, the roster simply
-                // says the range was never reported.
-                const stop = watchRadio(link.id, (patch) => setBle((b) => b.map((x) => (x.id === link.id ? { ...x, ...patch } : x))));
-                radioWatchers.current.set(link.id, stop);
-                await refreshDevices();
-                toast.success(`paired ${link.name}`, { description: link.note });
-              } catch (e) {
-                toast.error("pairing cancelled or unavailable", { description: e instanceof Error ? e.message : "no device was paired" });
-              }
-            }}
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-[12px] font-light text-white/70 disabled:opacity-40 hover:bg-white/[0.06]"
-          >
-            <Bluetooth className="mb-1 h-3.5 w-3.5" />
-            <div>{bluetoothSupported() ? "pick a device for deeper detail" : "web bluetooth unavailable here"}</div>
-            <div className="text-[10.5px] text-white/40">optional. picking a device adds make, model, firmware and battery to what the broadcast already gave. video appears above only when the system also exposes it as a camera input.</div>
           </button>
           {ble.map((l) => (
             <div key={l.id} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11.5px] font-light text-white/65">
@@ -783,6 +792,18 @@ export default function EagleEyeView() {
             <button onClick={() => setGallery(true)} className="self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-light text-white/55 hover:bg-white/[0.06]">show feed gallery</button>
           )}
 
+          {radioPanel && (
+            <RadioIntelPanel
+              roster={radioRoster}
+              scanning={scanning}
+              scanSupported={passiveScanSupported()}
+              scanNote={SCAN_UNAVAILABLE_NOTE}
+              onToggleScan={() => void toggleScan()}
+              onPickDevice={() => void pickDevice()}
+              pickSupported={bluetoothSupported()}
+            />
+          )}
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-light text-white/45">
             <span>{running ? "watching" : "idle"} · {tiles.filter((t) => t.status === "live").length} live camera{tiles.length === 1 ? "" : "s"}</span>
             <span>models {modelStatus}{modelError ? ` — ${modelError}` : ""}</span>
@@ -791,7 +812,7 @@ export default function EagleEyeView() {
         </div>
 
         {/* right: events */}
-        <div className="flex min-h-0 w-[300px] shrink-0 flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+        <div className="flex min-h-0 w-full shrink-0 flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3 xl:w-[300px]">
           <div className="flex items-center justify-between">
             <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">recorded events</div>
             {records.length > 0 && (
