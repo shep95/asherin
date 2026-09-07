@@ -378,6 +378,13 @@ const SpatialView = () => {
 
   useEffect(() => () => stopCam(), [stopCam]);
 
+  useEffect(() => {
+    applyPoseRef.current = applyPose;
+  }, [applyPose]);
+
+  useEffect(() => () => stopLive(), [stopLive]);
+
+
   const runLocalize = useCallback(async () => {
     const video = videoRef.current;
     if (!video || !camOn) {
