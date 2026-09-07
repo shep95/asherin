@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
       anyTruncated = anyTruncated || truncated;
       sampled += rows.length;
       aggregates = computeAggregates(rows, cols);
-      sampleRows = rows.slice(0, 25);
+      sampleRows = stratifiedSample(rows, 25);
     }
     context.push({
       source: s.name,
