@@ -9,20 +9,24 @@
 // owns its own scrolling.
 
 import { Suspense, useState } from "react";
-import { Eye, Radar } from "lucide-react";
+import { Eye, Radar, ScanEye } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import OpticalHudView from "./OpticalHudView";
 
 // Retry-aware so an aborted or stale chunk fetch surfaces or recovers instead
 // of leaving the layer stuck on its loading line forever.
 const SpatialView = lazyWithRetry(() => import("./spatial/SpatialView"), "arvision-spatial");
+// Eagle carries the on-device vision models, so it is loaded only when chosen —
+// the optical layer must never pay for weights it does not use.
+const EagleEyeView = lazyWithRetry(() => import("./eagle/EagleEyeView"), "arvision-eagle");
 
 
-type Layer = "optical" | "spatial";
+type Layer = "optical" | "spatial" | "eagle";
 
 const LAYERS: { id: Layer; label: string; hint: string; icon: typeof Eye }[] = [
   { id: "optical", label: "optical", hint: "camera head up display", icon: Eye },
   { id: "spatial", label: "spatial", hint: "map, route, session, see through", icon: Radar },
+  { id: "eagle", label: "eagle.eye", hint: "multi camera behavioural watch with reviewable evidence", icon: ScanEye },
 ];
 
 const AsherinArVisionView = () => {
@@ -69,10 +73,23 @@ const AsherinArVisionView = () => {
                 </div>
               }
             >
-              <SpatialView />
-            </Suspense>
-          </div>
-        )}
+            <SpatialView />
+          </Suspense>
+        </div>
+      )}
+      {layer === "eagle" && (
+        <div className="absolute inset-0">
+          <Suspense
+            fallback={
+              <div className="flex h-full w-full items-center justify-center text-[12px] font-light text-white/45">
+                loading eagle.eye layer
+              </div>
+            }
+          >
+            <EagleEyeView />
+          </Suspense>
+        </div>
+      )}
       </div>
     </div>
   );
