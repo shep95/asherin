@@ -149,8 +149,13 @@ Deno.serve(async (req) => {
   }
 
   const action = String(body?.action ?? "");
-  const geminiKey = (resolution as { geminiKey?: string }).geminiKey ?? null;
   const byokCfg = (resolution as { byok?: ZophielByokConfig }).byok ?? null;
+  // vision runs on gemini. a staff/platform key arrives directly; a BYOK user
+  // whose own key is a gemini key can use it for the photo actions too. any
+  // other provider simply has no vision path here, and the room says so.
+  const geminiKey =
+    (resolution as { geminiKey?: string }).geminiKey ??
+    (byokCfg && /gemini|google/i.test(byokCfg.provider ?? "") ? byokCfg.apiKey : null);
 
   const images: ImageIn[] = Array.isArray(body?.images)
     ? body.images
