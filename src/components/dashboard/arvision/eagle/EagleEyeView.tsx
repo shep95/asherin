@@ -638,10 +638,12 @@ export default function EagleEyeView() {
                 </div>
               </div>
             )}
-            {orderedTiles.map((t) => (
+            {orderedTiles.map((t, i) => (
               <CameraTile
                 key={t.deviceId}
                 tile={t}
+                flag={flags[t.deviceId]}
+                rank={i}
                 preview={preview}
                 quad={quad}
                 running={running}
@@ -916,7 +918,7 @@ function RadioPane({ radio }: { radio: BleLink[] }) {
 }
 
 function CameraTile({
-  tile, preview, quad, running, alerted, calibration, radio, onThermal, bind, getFrame, getOverlay, onDetach, onAck, onExpand,
+  tile, preview, quad, running, alerted, calibration, radio, onThermal, bind, getFrame, getOverlay, onDetach, onAck, onExpand, flag, rank,
 }: {
   tile: TileState;
   preview: FilterMode;
@@ -932,6 +934,8 @@ function CameraTile({
   onDetach: () => void;
   onAck: () => void;
   onExpand: (mode: FilterMode) => void;
+  flag?: Flag;
+  rank?: number;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -986,6 +990,11 @@ function CameraTile({
         <span className="max-w-[160px] truncate">{tile.label}</span>
         <span className="text-white/35">{tile.personCount} tracked · {tile.inferenceMs}ms</span>
         {tile.thermalDevice && <span className="rounded-full bg-amber-400/15 px-1.5 text-[9.5px] text-amber-200/85">thermal sensor</span>}
+        {flag && (
+          <span className={`rounded-full border px-1.5 py-0.5 text-[9.5px] ${TIER_STYLE[flag.tier].chip}`}>
+            #{(rank ?? 0) + 1} · {flag.tier} · {flag.score}
+          </span>
+        )}
       </div>
       {alerted && (
         <button onClick={onAck} className="absolute bottom-2 left-2 rounded-full border border-white/25 bg-black/70 px-2.5 py-1 text-[10.5px] font-light text-white/85">
