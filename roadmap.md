@@ -55,3 +55,11 @@ Observation not diagnosis. No "you have". Every concern states what was observed
 physiologically, and the next step. Red flags direct to care, never diagnose.
 
 Status: complete (see step list; capability states surfaced in-room).
+
+## asherin.arvision — spectral filter (requested 2026-09-07)
+Full-screen camera stays the primary surface. A rounded picture-in-picture box in the bottom-left
+holds the second view and can be tapped to swap into the full screen. A simple switch toggles the
+primary between colour and spectral. The spectral view is the identifying layer: a band-isolating
+transform that separates materials by how differently they reflect across the channels the camera
+gives us, labelled as spectral filtering rather than as true near-infrared. Detections overlay on
+both views, in the same coordinates, so nothing is lost when swapping.
