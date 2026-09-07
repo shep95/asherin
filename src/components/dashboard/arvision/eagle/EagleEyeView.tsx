@@ -26,6 +26,10 @@ import {
 } from "./engine";
 import { IouTracker, detectFrame, loadModels, type ModelStatus } from "./detector";
 import { grabCanvas, filteredCanvas, FILTER_MODES, type FilterMode } from "./filters";
+import {
+  DEFAULT_CALIBRATION, PATH_LABEL, PATH_NOTE, frameStats, looksThermal, renderSensorThermal,
+  resolvePath, calibrationUsable, type ThermalCalibration, type ThermalPath,
+} from "./thermal";
 import { captureContext, cacheFix, contextLine } from "./context";
 import {
   buildEvidence, downloadBlob, exportEvidenceZip, manifestFor,
@@ -56,6 +60,7 @@ interface Runtime {
   config: CameraConfig;
   lastCaptureByTrack: Map<string, number>;
   overlay: HTMLCanvasElement | null;
+  thermalDevice: boolean;
   lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
@@ -68,6 +73,7 @@ interface TileState {
   error: string | null;
   personCount: number;
   inferenceMs: number;
+  thermalDevice: boolean;
 }
 
 export default function EagleEyeView() {
@@ -87,6 +93,10 @@ export default function EagleEyeView() {
   // a camera that just recorded something flashes until a human looks at it.
   const [alerted, setAlerted] = useState<Record<string, number>>({});
   const [full, setFull] = useState<{ deviceId: string; mode: FilterMode } | null>(null);
+  const [calibration, setCalibration] = useState<ThermalCalibration>(DEFAULT_CALIBRATION);
+  const [thermalRead, setThermalRead] = useState<{ path: ThermalPath; min: number | null; max: number | null; centre: number | null } | null>(null);
+  const [gallery, setGallery] = useState(true);
+  const [popped, setPopped] = useState(false);
   const [captureFrom, setCaptureFrom] = useState<ThreatTier>("elevated");
   const [exporting, setExporting] = useState(false);
   const [contextNote, setContextNote] = useState<string>("capture context resolves on the first recorded event");
@@ -134,7 +144,7 @@ export default function EagleEyeView() {
   const attachCamera = useCallback(async (device: MediaDeviceInfo) => {
     if (runtimes.current.has(device.deviceId)) return;
     const label = device.label || `camera ${runtimes.current.size + 1}`;
-    setTiles((t) => [...t, { deviceId: device.deviceId, label, status: "opening", error: null, personCount: 0, inferenceMs: 0 }]);
+    setTiles((t) => [...t, { deviceId: device.deviceId, label, status: "opening", error: null, personCount: 0, inferenceMs: 0, thermalDevice: looksThermal(label) }]);
     try {
       const stream = await openCamera(device.deviceId);
       const video = document.createElement("video");
@@ -154,6 +164,7 @@ export default function EagleEyeView() {
         config: createCameraConfig(device.deviceId.slice(0, 12) || label, label, "pending", 0, 0, Intl.DateTimeFormat().resolvedOptions().timeZone, createDefaultZones(w, h)),
         lastCaptureByTrack: new Map(),
         overlay: null,
+        thermalDevice: looksThermal(label),
         lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
