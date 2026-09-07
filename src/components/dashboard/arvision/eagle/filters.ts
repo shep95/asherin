@@ -8,10 +8,11 @@
 // the edge variant is a sobel pass used to make posture and carried-object
 // outlines legible in a printed report.
 
-export type FilterMode = "clean" | "thermal" | "lowlight" | "edge";
+export type FilterMode = "clean" | "thermal" | "spectral" | "lowlight" | "edge";
 
 export const FILTER_MODES: Array<{ id: FilterMode; label: string; note: string }> = [
   { id: "clean", label: "clean", note: "unmodified captured frame" },
+  { id: "spectral", label: "spectral", note: "channel-ratio material map — living tissue, coated synthetics and wet surfaces separate; not a calibrated infrared band" },
   { id: "thermal", label: "thermal map", note: "visible-light luminance mapped to an iron palette — not an infrared temperature reading" },
   { id: "lowlight", label: "low light", note: "gain and gamma lift on the captured pixels — no detail is invented" },
   { id: "edge", label: "edge trace", note: "sobel outline pass for posture and carried-object legibility in print" },
@@ -125,9 +126,66 @@ export function applyEdge(src: ImageData): ImageData {
   return out;
 }
 
+/** channel-ratio material map — the same pass the optical hud runs, so the two
+ * rooms read a scene identically. it separates surfaces whose red-to-visible
+ * and green-to-red ratios differ (tissue and foliage run warm, most coated
+ * synthetics run cold, glass and standing water lift the middle). it is derived
+ * from the camera's own three channels — not a calibrated infrared band. */
+export function applySpectral(src: ImageData): ImageData {
+  const { width: w, height: h } = src;
+  const d = src.data;
+  const n = w * h;
+  const lum = new Float32Array(n);
+  const nd = new Float32Array(n);
+  const wd = new Float32Array(n);
+  for (let i = 0, p = 0; i < n; i++, p += 4) {
+    const r = d[p] / 255, g = d[p + 1] / 255, b = d[p + 2] / 255;
+    lum[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+    const vis = (g + b) / 2;
+    nd[i] = (r - vis) / (r + vis + 0.004);
+    wd[i] = (g - r) / (g + r + 0.004);
+  }
+  const out = new ImageData(w, h);
+  const o = out.data;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const p = i * 4;
+      const edge = x > 0 && x < w - 1 && y > 0 && y < h - 1
+        ? Math.min(0.5, (Math.abs(lum[i + 1] - lum[i - 1]) + Math.abs(lum[i + w] - lum[i - w])) * 0.85)
+        : 0;
+      const base = 0.15 + 0.68 * Math.pow(lum[i], 0.85);
+      let cr = base, cg = base, cb = base;
+      const warm = nd[i], cool = -nd[i], wet = wd[i];
+      if (warm > 0.055) {
+        const k = Math.min(1, (warm - 0.055) * 3.4);
+        cr = base + k * (0.94 - base) * 0.85;
+        cg = base + k * (0.64 - base) * 0.6;
+        cb = base * (1 - 0.45 * k);
+      } else if (cool > 0.045) {
+        const k = Math.min(1, (cool - 0.045) * 3.8);
+        cb = base + k * (0.95 - base) * 0.8;
+        cg = base + k * (0.8 - base) * 0.55;
+        cr = base * (1 - 0.4 * k);
+      } else if (wet > 0.05 && lum[i] > 0.3) {
+        const k = Math.min(1, (wet - 0.05) * 3.2);
+        cb = base + k * (1 - base) * 0.55;
+        cg = base + k * (0.92 - base) * 0.45;
+        cr = base + k * (0.72 - base) * 0.25;
+      }
+      o[p] = Math.round(Math.min(1, cr + edge) * 255);
+      o[p + 1] = Math.round(Math.min(1, cg + edge) * 255);
+      o[p + 2] = Math.round(Math.min(1, cb + edge) * 255);
+      o[p + 3] = 255;
+    }
+  }
+  return out;
+}
+
 export function applyFilter(src: ImageData, mode: FilterMode): ImageData {
   switch (mode) {
     case "thermal": return applyThermal(src);
+    case "spectral": return applySpectral(src);
     case "lowlight": return applyLowLight(src);
     case "edge": return applyEdge(src);
     default: return src;
