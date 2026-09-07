@@ -323,7 +323,24 @@ export default function AsherinHealthView({ userId = null }: Props) {
     setVisible((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   const selectPart = (id: string) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+    setSelected((prev) => {
+      const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+      // opening a structure is a question in itself, so the assistant answers it
+      // without the person having to type the name back out.
+      if (!prev.includes(id)) {
+        const part = partById.get(id);
+        if (part) {
+          const related = findingsForPart(id);
+          setAssistantTrigger(
+            `i just opened ${part.name} (${part.system}) on the body.` +
+              (related.length
+                ? ` my record already points here: ${related.map((f) => f.label).join(", ")}. what does that mean together?`
+                : " nothing in my record points here yet — what does this structure do, and what would make it matter?"),
+          );
+        }
+      }
+      return next;
+    });
     setPanel("atlas");
   };
 
@@ -575,9 +592,17 @@ export default function AsherinHealthView({ userId = null }: Props) {
           )}
         </main>
 
-        <aside className="hidden w-[330px] shrink-0 flex-col border-l border-white/[0.06] xl:flex">
-          <ScrollArea className="flex-1">
-            <div className="space-y-4 p-4">
+        <aside className="hidden w-[360px] shrink-0 flex-col gap-3 border-l border-white/[0.06] p-3 xl:flex">
+          <div className="h-[52%] min-h-[260px] shrink-0">
+            <HealthAssistant
+              context={assistantContext}
+              trigger={assistantTrigger}
+              onTriggerHandled={() => setAssistantTrigger(null)}
+              resolveByok={resolveByok}
+            />
+          </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-4 pr-2">
               <SectionTitle>selection</SectionTitle>
               {selectedParts.length === 0 ? (
                 <p className="text-[11px] font-light leading-relaxed text-foreground/45">
