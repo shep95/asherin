@@ -24,8 +24,17 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef(state);
   const select = useRef(onSelect);
+  // progress/error are reported through refs. the parent re-renders on every
+  // percent tick, and if the effect depended on those callbacks the whole
+  // renderer would be torn down and the atlas re-fetched mid-load — that was
+  // the body flickering in and out and never finishing.
+  const progressRef = useRef(onProgress);
+  const errorRef = useRef(onError);
   latest.current = state;
   select.current = onSelect;
+  progressRef.current = onProgress;
+  errorRef.current = onError;
+
 
   useEffect(() => {
     const el = host.current;
