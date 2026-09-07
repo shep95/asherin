@@ -155,6 +155,8 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const [rotate, setRotate] = useState(false);
   const [reset, setReset] = useState(0);
   const [query, setQuery] = useState("");
+  const [assistantTrigger, setAssistantTrigger] = useState<string | null>(null);
+  const painCount = useRef(0);
   const [activeLayers, setActiveLayers] = useState<LayerId[]>([
     "lab",
     "medication",
@@ -412,6 +414,17 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   clearSelection={() => setSelected([])}
                 />
               )}
+              {panel === "body" && (
+                <Suspense
+                  fallback={
+                    <p className="flex items-center gap-2 text-[11px] font-light text-foreground/45">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> opening the body model
+                    </p>
+                  }
+                >
+                  <BodyModelPanel record={record} persist={persist} resolveByok={resolveByok} onEvent={setAssistantTrigger} />
+                </Suspense>
+              )}
               {panel === "record" && <RecordPanel record={record} persist={persist} />}
               {panel === "pain" && (
                 <PainPanel
@@ -492,12 +505,11 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   loading anatomy · {progress}%
                 </div>
               )}
-              <div className="pointer-events-none absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
-                <p className="max-w-[46ch] text-[10px] font-light leading-relaxed text-foreground/35">{ATLAS_ATTRIBUTION}</p>
-                {highlights.length > 0 && (
-                  <p className="text-[10px] font-light text-foreground/45">{highlights.length} territories painted from your record</p>
-                )}
-              </div>
+              {highlights.length > 0 && (
+                <p className="pointer-events-none absolute bottom-3 right-4 text-[10px] font-light text-foreground/40">
+                  {highlights.length} territories painted from your record
+                </p>
+              )}
             </>
           )}
         </main>
