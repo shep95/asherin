@@ -184,3 +184,81 @@ export async function bufferStats(): Promise<{ total: number; pending: number; o
 export async function wipeLocal(): Promise<void> {
   await tx(SEG_STORE, "readwrite", (s) => s.clear());
 }
+
+// ── recording sessions ───────────────────────────────────────────────────────
+// A session row is opened when the watch starts and closed when it stops. It is
+// deliberately tiny: two timestamps, the device, and how much it heard. Nothing
+// here duplicates audio, so a session never outlives the retention window it
+// claims — and history says so rather than offering an empty download.
+
+export async function openSession(deviceKey: string, deviceLabel: string): Promise<string> {
+  const row: RecordingSession = {
+    id: crypto.randomUUID(),
+    startedAt: Date.now(),
+    endedAt: null,
+    deviceKey,
+    deviceLabel,
+    speechSegments: 0,
+    soundSegments: 0,
+  };
+  try {
+    await tx(SESSION_STORE, "readwrite", (s) => s.put(row));
+  } catch {
+    return ""; // no local storage: the watch still runs, history simply cannot
+  }
+  return row.id;
+}
+
+async function patchSession(id: string, patch: (row: RecordingSession) => RecordingSession): Promise<void> {
+  if (!id) return;
+  try {
+    const row = await tx<RecordingSession | undefined>(SESSION_STORE, "readonly", (s) => s.get(id) as IDBRequest<RecordingSession | undefined>);
+    if (!row) return;
+    await tx(SESSION_STORE, "readwrite", (s) => s.put(patch(row)));
+  } catch {
+    /* history is a convenience layer; its failure must never stop capture */
+  }
+}
+
+export const countSessionSegment = (id: string, kind: "speech" | "sound") =>
+  patchSession(id, (row) => ({
+    ...row,
+    speechSegments: row.speechSegments + (kind === "speech" ? 1 : 0),
+    soundSegments: row.soundSegments + (kind === "sound" ? 1 : 0),
+  }));
+
+export const closeSession = (id: string) => patchSession(id, (row) => ({ ...row, endedAt: Date.now() }));
+
+export async function listSessions(): Promise<RecordingSession[]> {
+  try {
+    const all = await tx<RecordingSession[]>(SESSION_STORE, "readonly", (s) => s.getAll() as IDBRequest<RecordingSession[]>);
+    return all.sort((a, b) => b.startedAt - a.startedAt);
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  try {
+    await tx(SESSION_STORE, "readwrite", (s) => s.delete(id));
+  } catch {
+    /* noop */
+  }
+}
+
+/** Decrypted payloads whose capture time falls inside a window, oldest first.
+ *  Rows past the retention window are simply gone; the caller reports that. */
+export async function payloadsBetween(from: number, to: number): Promise<Array<{ at: number; payload: SegmentPayload }>> {
+  try {
+    const all = await tx<BufferedSegment[]>(SEG_STORE, "readonly", (s) => s.getAll() as IDBRequest<BufferedSegment[]>);
+    const rows = all.filter((r) => r.at >= from && r.at <= to).sort((a, b) => a.at - b.at);
+    const out: Array<{ at: number; payload: SegmentPayload }> = [];
+    for (const row of rows) {
+      const payload = await readPayload(row);
+      if (payload) out.push({ at: row.at, payload });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
