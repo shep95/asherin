@@ -79,7 +79,7 @@ describe("Wearables Import", () => {
   });
 
   it("should identify CGM CSV based on name", async () => {
-    const csv = "time,Value\n2023-01-01 10:00:00,100";
+    const csv = "time,Glucose\n2023-01-01 10:00:00,100";
     const result = await parseWearableFile("dexcom_export.csv", csv);
     expect(result.series[0].kind).toBe("glucose");
     expect(result.series[0].source).toBe("dexcom");

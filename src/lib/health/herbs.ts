@@ -1544,3 +1544,54 @@ export function herbFindings(herbKeys: string[]): Finding[] {
   }
   return out;
 }
+
+export function herbsForTerritory(key: string): HerbDef[] {
+  return HERBS.filter((h) => h.territoryKeys.includes(key));
+}
+
+export function herbsForTradition(t: Tradition): HerbDef[] {
+  return HERBS.filter((h) => h.tradition === t);
+}
+
+export interface SafetyWarning {
+  herb: string;
+  severity: "blocking" | "caution";
+  detail: string;
+}
+
+export interface SafetyReviewRecord {
+  medications: { name: string; drugKey?: string }[];
+  pregnant?: boolean;
+  conditions?: string[];
+}
+
+/** cross-checks proposed herbs against medications, pregnancy and named conditions. never diagnostic. */
+export function safetyReview(herbKeys: string[], record: SafetyReviewRecord): { blocking: SafetyWarning[]; cautions: SafetyWarning[] } {
+  const blocking: SafetyWarning[] = [];
+  const cautions: SafetyWarning[] = [];
+  const conditions = (record.conditions ?? []).map((c) => c.toLowerCase());
+  for (const key of herbKeys) {
+    const herb = HERBS.find((h) => h.key === key);
+    if (!herb) continue;
+    for (const med of record.medications) {
+      const drugKey = med.drugKey ?? findDrug(med.name)?.key;
+      if (drugKey && herb.interactsWith.includes(drugKey)) {
+        cautions.push({
+          herb: herb.label,
+          severity: "caution",
+          detail: herb.interactionNote
+            ? `with ${med.name}: ${herb.interactionNote}`
+            : `${herb.label} is listed as interacting with ${med.name}; review with a pharmacist before combining.`,
+        });
+      }
+    }
+    if (record.pregnant && herb.contraindications.some((c) => c.toLowerCase().includes("pregnan"))) {
+      blocking.push({ herb: herb.label, severity: "blocking", detail: `${herb.label} is contraindicated in pregnancy.` });
+    }
+    for (const cond of conditions) {
+      const hit = herb.contraindications.find((c) => c.toLowerCase().includes(cond));
+      if (hit) blocking.push({ herb: herb.label, severity: "blocking", detail: `${herb.label} is contraindicated with ${hit}.` });
+    }
+  }
+  return { blocking, cautions };
+}
