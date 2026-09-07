@@ -51,6 +51,8 @@ import {
   Ghost,
   Calculator,
   Gauge,
+  HeartPulse,
+
 } from "lucide-react";
 import type { Conversation, DashboardView, ChatMode, Message } from "./types";
 import SwipeableConversationItem from "./SwipeableConversationItem";
@@ -118,6 +120,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   geospatial: Globe,
   "asherin-eye": ScanEye,
   "asherin-sentinel": Ear,
+  "asherin-health": HeartPulse,
   "video-intelligence": Crosshair,
   search: Zap,
   nomad: Crosshair,
