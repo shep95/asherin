@@ -1018,21 +1018,55 @@ function FullFrame({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col gap-3 bg-black/92 p-4" onClick={onClose}>
-      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
-        <span className="text-[13px] font-light text-white/75">{label}</span>
-        {FILTER_MODES.map((f) => (
-          <button key={f.id} onClick={() => onMode(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${mode === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
-        ))}
-        <button onClick={onClose} className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-light text-white/70">close</button>
+    // the pop-out sits above the dashboard chrome, not under it, so the frame
+    // is the only thing on screen. anywhere off the picture — the backdrop, the
+    // margins around the canvas — closes it, and so does escape.
+    <div
+      className="fixed inset-0 z-[90] flex flex-col bg-black/95 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${label} — full screen`}
+    >
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+          <Camera className="h-3.5 w-3.5 shrink-0 text-white/45" />
+          <span className="truncate text-[12.5px] font-light text-white/80">{label}</span>
+        </div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          {FILTER_MODES.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => onMode(f.id)}
+              title={f.note}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-light transition-colors ${mode === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55 hover:text-white/80"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="close full screen"
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-light text-white/70 hover:border-white/25 hover:text-white/90"
+        >
+          <X className="h-3.5 w-3.5" /> close
+        </button>
       </div>
-      <div className="min-h-0 flex-1" onClick={(e) => e.stopPropagation()}>
-        <canvas ref={ref} className="h-full w-full object-contain" />
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+        <canvas
+          ref={ref}
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-full max-w-full rounded-xl border border-white/10 object-contain shadow-[0_0_60px_rgba(0,0,0,0.6)]"
+        />
       </div>
-      <div className="text-[10.5px] font-light text-white/35">{FILTER_MODES.find((f) => f.id === mode)?.note}</div>
+      <div className="px-4 pb-4 pt-3 text-center text-[10.5px] font-light text-white/35" onClick={(e) => e.stopPropagation()}>
+        {FILTER_MODES.find((f) => f.id === mode)?.note} · click anywhere outside the frame, or press esc, to close
+      </div>
     </div>
   );
 }
+
 
 
 interface GalleryProps {
