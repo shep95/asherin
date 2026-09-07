@@ -546,6 +546,10 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
       frame = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const s = latest.current;
+      // measurements and sex are picked up here rather than in an effect, so a
+      // typed waist reshapes the body without the atlas being torn down.
+      const wanted = shapeRef.current ? shapeKey(shapeRef.current) : "";
+      if (wanted !== appliedShapeKey) applyShape(shapeRef.current ?? null);
       if (s.highlights !== lastHighlights) {
         applyPaint(s.highlights);
         lastHighlights = s.highlights;
@@ -722,6 +726,8 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
       partTexture.dispose();
       selectionTexture.dispose();
       paintTexture.dispose();
+      shapeScaleTexture.dispose();
+      shapeShiftTexture.dispose();
       markerGeometry.dispose();
       markerMaterial.dispose();
       hover.remove();
