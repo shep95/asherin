@@ -45,9 +45,9 @@ describe("red flags", () => {
   });
 
   it("catches keyword-based flags from free text fields", () => {
-    const report = baseReport({ modifiers: { worse: ["walking uphill, on exertion"], better: [] } });
+    const report = baseReport({ modifiers: { worse: [], better: ["fainted before the pain started"] } });
     const flags = triggeredFlagsExtended(report);
-    expect(flags.some((f) => f.key === "chest-exertional")).toBe(true);
+    expect(flags.some((f) => f.key === "syncope-with-pain")).toBe(true);
   });
 
   it("does not raise a flag when nothing concerning is reported", () => {

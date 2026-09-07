@@ -557,27 +557,74 @@ export default function AsherinHealthView({ userId = null }: Props) {
                 </Suspense>
               )}
               {panel === "record" && <RecordPanel record={record} persist={persist} />}
-              {panel === "pain" && (
-                <PainPanel
-                  record={record}
-                  persist={persist}
-                  selectedParts={selectedParts}
-                  territories={territories}
-                />
-              )}
-              {panel === "herbs" && <HerbPanel record={record} persist={persist} />}
-              {panel === "signals" && (
-                <SignalPanel
-                  capabilities={capabilities}
-                  heart={heart}
-                  motion={motion}
-                  bleName={bleName}
-                  bleBusy={bleBusy}
-                  motionRunning={motionRunning}
-                  startHeart={startHeart}
-                  stopHeart={stopHeart}
-                  startMotion={startMotion}
-                />
+              {panel !== "atlas" && panel !== "body" && panel !== "record" && panel !== "findings" && (
+                <Suspense
+                  fallback={
+                    <p className="flex items-center gap-2 text-[11px] font-light text-foreground/45">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> opening this layer
+                    </p>
+                  }
+                >
+                  {panel === "deep" && (
+                    <DeepAnatomyPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onSelectTerritories={focusTerritories}
+                    />
+                  )}
+                  {panel === "intake" && (
+                    <IntakePanel record={record} persist={persist} onEvent={setAssistantTrigger} resolveByok={resolveByok} />
+                  )}
+                  {panel === "pain" && (
+                    <PainStudioPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onHighlights={setPanelHighlights}
+                    />
+                  )}
+                  {panel === "herbs" && (
+                    <HerbalPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onHighlights={setPanelHighlights}
+                    />
+                  )}
+                  {panel === "functional" && (
+                    <FunctionalPanel
+                      record={record}
+                      persist={persist}
+                      onHighlights={setPanelHighlights}
+                      onSelectTerritories={focusTerritories}
+                    />
+                  )}
+                  {panel === "timeline" && <TimelinePanel record={record} persist={persist} onEvent={setAssistantTrigger} />}
+                  {panel === "signals" && (
+                    <div className="space-y-4">
+                      <LiveSensingPanel
+                        record={record}
+                        persist={persist}
+                        onEvent={setAssistantTrigger}
+                        onHighlights={setPanelHighlights}
+                      />
+                      <Separator className="bg-white/[0.06]" />
+                      <SignalPanel
+                        capabilities={capabilities}
+                        heart={heart}
+                        motion={motion}
+                        bleName={bleName}
+                        bleBusy={bleBusy}
+                        motionRunning={motionRunning}
+                        startHeart={startHeart}
+                        stopHeart={stopHeart}
+                        startMotion={startMotion}
+                      />
+                    </div>
+                  )}
+                  {panel === "share" && <SharePanel record={record} persist={persist} onEvent={setAssistantTrigger} />}
+                </Suspense>
               )}
               {panel === "findings" && (
                 <FindingsPanel
@@ -585,16 +632,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   activeLayers={activeLayers}
                   setActiveLayers={setActiveLayers}
                   territories={territories}
-                  onFocus={(keys) => {
-                    if (!territories) return;
-                    const ids = keys.flatMap((k) => territories.get(k)?.partIds ?? []);
-                    if (ids.length === 0) {
-                      toast.message("that territory is not represented in the reference geometry.");
-                      return;
-                    }
-                    setSelected(ids.slice(0, 60));
-                    setIsolate(true);
-                  }}
+                  onFocus={focusTerritories}
                 />
               )}
             </div>
