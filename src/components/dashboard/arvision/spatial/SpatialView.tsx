@@ -223,21 +223,30 @@ const SpatialView = () => {
     setLiveBusy(true);
     setLiveNote("waiting for a position fix");
     try {
-      const fix = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 0,
+      // A precise fix can take a while to arrive, and a busy render loop can
+      // delay the callback further, so a timeout is not a failure yet: fall
+      // back to a coarse fix before giving up, and only then say so plainly.
+      const ask = (highAccuracy: boolean, timeout: number, maximumAge: number) =>
+        new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: highAccuracy,
+            timeout,
+            maximumAge,
+          });
         });
-      }).catch((error: GeolocationPositionError) => {
-        throw new Error(
-          error?.code === 1
-            ? "location permission was refused, so live positioning stays off"
-            : error?.code === 3
+
+      const fix = await ask(true, 30000, 0).catch(async (first: GeolocationPositionError) => {
+        if (first?.code === 1) throw new Error("location permission was refused, so live positioning stays off");
+        setLiveNote("no precise fix yet — trying a coarse one");
+        return ask(false, 30000, 60000).catch((second: GeolocationPositionError) => {
+          throw new Error(
+            second?.code === 3
               ? "no position fix arrived in time — try again with a clearer view of the sky"
               : "the device could not produce a position fix",
-        );
+          );
+        });
       });
+
 
       setLiveNote("building a map of what is actually around you");
       const built = await buildLiveMap(fix.coords.latitude, fix.coords.longitude);
