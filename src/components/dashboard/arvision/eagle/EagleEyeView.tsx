@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Bluetooth, Camera, CheckCircle2, CircleSlash, Download,
-  Eye, Loader2, Play, ShieldAlert, Square, Trash2, X,
+  Eye, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -56,6 +56,7 @@ interface Runtime {
   config: CameraConfig;
   lastCaptureByTrack: Map<string, number>;
   overlay: HTMLCanvasElement | null;
+  lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
 }
@@ -82,6 +83,10 @@ export default function EagleEyeView() {
   const [openVariant, setOpenVariant] = useState(0);
   const [ble, setBle] = useState<BleLink[]>([]);
   const [preview, setPreview] = useState<FilterMode>("clean");
+  const [quad, setQuad] = useState(false);
+  // a camera that just recorded something flashes until a human looks at it.
+  const [alerted, setAlerted] = useState<Record<string, number>>({});
+  const [full, setFull] = useState<{ deviceId: string; mode: FilterMode } | null>(null);
   const [captureFrom, setCaptureFrom] = useState<ThreatTier>("elevated");
   const [exporting, setExporting] = useState(false);
   const [contextNote, setContextNote] = useState<string>("capture context resolves on the first recorded event");
@@ -149,6 +154,7 @@ export default function EagleEyeView() {
         config: createCameraConfig(device.deviceId.slice(0, 12) || label, label, "pending", 0, 0, Intl.DateTimeFormat().resolvedOptions().timeZone, createDefaultZones(w, h)),
         lastCaptureByTrack: new Map(),
         overlay: null,
+        lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
       });
@@ -179,7 +185,7 @@ export default function EagleEyeView() {
   }, []);
 
   // ---- evidence -----------------------------------------------------------
-  const recordEvent = useCallback(async (rt: Runtime, event: ThreatEvent, entity: TrackedEntity, frame: HTMLCanvasElement) => {
+  const recordEvent = useCallback(async (deviceId: string, rt: Runtime, event: ThreatEvent, entity: TrackedEntity, frame: HTMLCanvasElement) => {
     const ctx = await captureContext();
     setContextNote(contextLine(ctx));
     // the engine's camera config carries whatever the platform actually gave
@@ -204,6 +210,7 @@ export default function EagleEyeView() {
       cameraLabel: rt.config.label,
     });
     setRecords((r) => [record, ...r].slice(0, 200));
+    setAlerted((a) => ({ ...a, [deviceId]: Date.now() }));
     toast.warning(`${event.threatTier} pattern on ${rt.config.label}`, {
       description: `${event.patternsTriggered.slice(0, 3).join(", ") || "pattern set recorded"} — captured for human review`,
     });
@@ -242,6 +249,7 @@ export default function EagleEyeView() {
           rt.entities,
         );
         rt.entities = out.updatedEntities;
+        rt.lastObjects = [...det.objects, ...det.vehicles];
         drawOverlay(rt, det.persons.map((p) => ({ trackId: p.trackId, box: p.boundingBox })), frame.width, frame.height);
 
         if (!capturingRef.current) {
@@ -255,7 +263,7 @@ export default function EagleEyeView() {
             rt.lastCaptureByTrack.set(ev.trackId, Date.now());
             capturingRef.current = true;
             try {
-              await recordEvent(rt, ev, entity, frame);
+              await recordEvent(deviceId, rt, ev, entity, frame);
             } finally {
               capturingRef.current = false;
             }
@@ -293,6 +301,24 @@ export default function EagleEyeView() {
       ctx.fillRect(b.box.x, Math.max(0, b.box.y - 18), tw, 17);
       ctx.fillStyle = TIER_STYLE[tier].ring;
       ctx.fillText(label, b.box.x + 5, Math.max(11, b.box.y - 5));
+    }
+    // the object pass the optical hud draws too: coco-ssd classes with the
+    // engine's abandoned flag. objects are named, never people.
+    for (const obj of rt.lastObjects) {
+      const box = obj.boundingBox;
+      const warn = obj.isAbandoned;
+      ctx.strokeStyle = warn ? "#F59E0B" : "rgba(255,255,255,0.5)";
+      ctx.lineWidth = warn ? 2 : 1.2;
+      ctx.setLineDash(warn ? [] : [5, 4]);
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
+      ctx.setLineDash([]);
+      const label = warn ? `${obj.label} · unattended` : obj.label;
+      ctx.font = "11px ui-monospace, monospace";
+      const tw = ctx.measureText(label).width + 8;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(box.x, box.y + box.height + 2, tw, 15);
+      ctx.fillStyle = warn ? "#FBBF24" : "rgba(255,255,255,0.75)";
+      ctx.fillText(label, box.x + 4, box.y + box.height + 13);
     }
   };
 
