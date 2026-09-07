@@ -280,13 +280,15 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
         shader.uniforms.partState = { value: partTexture };
         shader.uniforms.selectionState = { value: selectionTexture };
         shader.uniforms.paintState = { value: paintTexture };
+        shader.uniforms.shapeScaleState = { value: shapeScaleTexture };
+        shader.uniforms.shapeShiftState = { value: shapeShiftTexture };
         shader.uniforms.stateWidth = { value: width };
         shader.vertexShader =
-          "attribute float partIndex; uniform sampler2D partState; uniform sampler2D selectionState; uniform sampler2D paintState; uniform float stateWidth; varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" +
+          "attribute float partIndex; uniform sampler2D partState; uniform sampler2D selectionState; uniform sampler2D paintState; uniform sampler2D shapeScaleState; uniform sampler2D shapeShiftState; uniform float stateWidth; varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" +
           shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace(
           "#include <begin_vertex>",
-          "#include <begin_vertex>\nvec2 stateUv = vec2((partIndex + 0.5) / stateWidth, 0.5); vec4 state = texture2D(partState, stateUv); transformed += state.xyz; partVisible = state.w; partSelected = texture2D(selectionState, stateUv).r; partPaint = texture2D(paintState, stateUv);",
+          "#include <begin_vertex>\nvec2 stateUv = vec2((partIndex + 0.5) / stateWidth, 0.5); vec4 state = texture2D(partState, stateUv); vec3 shapeScale = texture2D(shapeScaleState, stateUv).xyz; vec3 shapeShift = texture2D(shapeShiftState, stateUv).xyz; transformed = transformed * shapeScale + shapeShift; objectNormal = normalize(objectNormal / max(shapeScale, vec3(0.001))); transformed += state.xyz; partVisible = state.w; partSelected = texture2D(selectionState, stateUv).r; partPaint = texture2D(paintState, stateUv);",
         );
         shader.fragmentShader =
           "varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" + shader.fragmentShader;
@@ -340,6 +342,9 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
         g.boundingBox = bounds[i].clone();
         g.computeBoundingSphere();
         const pick = new T.Mesh(g);
+        // a part that arrives after a measurement was typed must be born with
+        // the same proportions as everything already on screen.
+        pick.scale.set(shapeScaleData[i * 4], shapeScaleData[i * 4 + 1], shapeScaleData[i * 4 + 2]);
         pick.matrixAutoUpdate = false;
         pickers[i] = pick;
         geometries.push(g);
