@@ -109,7 +109,7 @@ describe("reading the read-out", () => {
 });
 
 describe("editing photographs on a stored read-out", () => {
-  const photo = (id: string) => ({ id, label: id, dataUrl: `data:image/png;base64,${id}` });
+  const photo = (id: string) => ({ id, label: id, dataUrl: `data:image/png;base64,${id}`, width: 10, height: 10 });
   const finding = (id: string, photoIndex: number) => ({
     id, title: id, plain: id, detail: "", category: "skin" as const, severity: "routine" as const,
     confidence: 0.5, photoIndex, regions: [] as string[], systems: [] as never[],
