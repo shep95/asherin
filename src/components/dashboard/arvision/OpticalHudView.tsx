@@ -236,7 +236,7 @@ const HUD_CSS = `
 
 `;
 const HUD_BODY =
-  '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="spec" hidden></canvas>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<button type="button" id="pip" title="tap to put this view on the full screen">\n  <div class="pipwrap"><canvas id="pipc"></canvas></div>\n  <div class="piplab"><b id="piplabel">spectral filter</b><span>swap</span></div>\n</button>\n<div id="specsw" role="group" aria-label="primary view">\n  <button type="button" id="swcolor">colorized</button>\n  <button type="button" id="swspec">spectral</button>\n</div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
+  '<div id="stage">\n  <video id="cam" playsinline autoplay muted></video>\n  <canvas id="spec" hidden></canvas>\n  <canvas id="hud"></canvas>\n</div>\n<div class="glass misb" id="misb"></div>\n<button type="button" class="compass dim" id="compass" title="device compass">\n  <svg viewBox="0 0 88 88" aria-hidden="true">\n    <circle cx="44" cy="44" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>\n    <g id="rose" transform="rotate(0 44 44)">\n      <polygon points="44,10 48,44 44,40 40,44" fill="#fff"/>\n      <text x="44" y="22" text-anchor="middle" fill="#9ec9ff" font-size="9" font-family="inherit">N</text>\n    </g>\n    <rect x="42" y="6" width="4" height="10" rx="2" fill="#7ee0c6"/>\n  </svg>\n</button>\n<div class="layers" id="layers"></div>\n<div class="glass sheet" id="sheet"></div>\n<div class="glass inbox" id="inbox" hidden></div>\n<div class="glass talk" id="talk"></div>\n<button type="button" id="pip" title="tap to put this view on the full screen">\n  <div class="pipwrap"><canvas id="pipc"></canvas></div>\n  <div class="piplab"><b id="piplabel">spectral filter</b><span>swap</span></div>\n</button>\n<div id="specsw" role="group" aria-label="primary view">\n  <button type="button" id="swcolor">colorized</button>\n  <button type="button" id="swspec">spectral</button>\n  <button type="button" id="swtherm">thermal</button>\n</div>\n<div id="note"></div>\n<div id="gate">\n  <div class="glass card">\n    <p>allow the camera. you should see yourself with AR overlays.</p>\n    <button type="button" id="allow">open camera</button>\n  </div>\n</div>\n<canvas id="work" hidden></canvas>';
 
 
 function bootArvision(wrap, root, emitPull) {
@@ -264,6 +264,7 @@ function bootArvision(wrap, root, emitPull) {
   const pipLabel = $("piplabel");
   const swColor = $("swcolor");
   const swSpec = $("swspec");
+  const swTherm = $("swtherm");
 
   // the spectral pass runs on a small copy of the frame and is blown back up.
   // reading pixels is the expensive part, so the analysis buffer stays small and
@@ -434,9 +435,12 @@ function bootArvision(wrap, root, emitPull) {
     c2d.restore();
   }
 
-  function buildSpectral(src) {
+  // shared downsample + readback for the filtered views. returns null when the
+  // frame is not drawable yet (camera still warming up) or the readback is
+  // blocked — the callers treat that as "keep last frame", never as an error.
+  function readFrame(src) {
     const [vw, vh] = videoSize(src);
-    if (!vw || !vh) return false;
+    if (!vw || !vh) return null;
     const aw = Math.max(96, Math.round(S.specW));
     const ah = Math.max(72, Math.round((aw * vh) / vw));
     if (specSrc.width !== aw || specSrc.height !== ah) {
@@ -445,13 +449,40 @@ function bootArvision(wrap, root, emitPull) {
       specOut.width = aw;
       specOut.height = ah;
     }
-    let img;
     try {
       specSrcCtx.drawImage(src, 0, 0, aw, ah);
-      img = specSrcCtx.getImageData(0, 0, aw, ah);
+      return { img: specSrcCtx.getImageData(0, 0, aw, ah), aw, ah };
     } catch (_) {
-      return false;
+      return null;
     }
+  }
+
+  // iron palette — the same ramp real thermal imagers use, so anyone who has
+  // used one reads this frame correctly: black cold, through purple and red,
+  // to white hot. precomputed once; the per-pixel pass is then a table lookup.
+  const IRON = (() => {
+    const stops = [
+      [0, 0, 4],
+      [62, 8, 96],
+      [186, 26, 62],
+      [255, 128, 0],
+      [255, 226, 110],
+      [255, 255, 250],
+    ];
+    const lut = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = (i / 255) * (stops.length - 1);
+      const s = Math.min(stops.length - 2, Math.floor(t));
+      const f = t - s;
+      for (let c = 0; c < 3; c++) lut[i * 3 + c] = stops[s][c] + (stops[s + 1][c] - stops[s][c]) * f;
+    }
+    return lut;
+  })();
+
+  function buildSpectral(src) {
+    const fr = readFrame(src);
+    if (!fr) return false;
+    const { img, aw, ah } = fr;
     const d = img.data;
     const n = aw * ah;
     const lum = new Float32Array(n);
@@ -510,18 +541,90 @@ function bootArvision(wrap, root, emitPull) {
     return true;
   }
 
+  // thermal estimate — a phone or laptop camera sees visible light, not the
+  // long-wave infrared a real thermal camera measures. so this maps frame
+  // brightness (with a small lift for surfaces whose long channel runs hot,
+  // the closest a visible sensor gets to a warmth cue) onto the iron palette
+  // above. the frame then reads the way a thermal image does — bright bodies
+  // against a cool ground, hot spots popping out of machinery — and is
+  // labelled an estimate everywhere it appears: it cannot measure temperature,
+  // cannot see through ordinary walls, and common glass is just as much a
+  // barrier here as it is to a real long-wave thermal camera.
+  function buildThermal(src) {
+    const fr = readFrame(src);
+    if (!fr) return false;
+    const { img, aw, ah } = fr;
+    const d = img.data;
+    const n = aw * ah;
+    const t = new Float32Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const r = d[p] / 255;
+      const g = d[p + 1] / 255;
+      const b = d[p + 2] / 255;
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const warm = Math.max(0, r - (g + b) / 2) * 0.22;
+      t[i] = Math.min(1, Math.pow(lum, 0.8) + warm);
+    }
+    const out = specOutCtx.createImageData(aw, ah);
+    const o = out.data;
+    for (let y = 0; y < ah; y++) {
+      for (let x = 0; x < aw; x++) {
+        const i = y * aw + x;
+        const p = i * 4;
+        // thermal frames are soft; a faint edge lift keeps silhouettes legible
+        // without turning the pass back into a photo
+        const edge =
+          x > 0 && x < aw - 1 && y > 0 && y < ah - 1
+            ? Math.min(0.16, (Math.abs(t[i + 1] - t[i - 1]) + Math.abs(t[i + aw] - t[i - aw])) * 0.6)
+            : 0;
+        const v = Math.max(0, Math.min(255, Math.round((t[i] + edge) * 255)));
+        o[p] = IRON[v * 3];
+        o[p + 1] = IRON[v * 3 + 1];
+        o[p + 2] = IRON[v * 3 + 2];
+        o[p + 3] = 255;
+      }
+    }
+    specOutCtx.putImageData(out, 0, 0);
+    // the scale bar a real imager draws: hot at the top, cold at the bottom
+    const barH = Math.round(ah * 0.62);
+    const barW = Math.max(3, Math.round(aw * 0.014));
+    const bx = aw - barW - 3;
+    const by = Math.round((ah - barH) / 2);
+    for (let yy = 0; yy < barH; yy++) {
+      const v = Math.round(255 * (1 - yy / Math.max(1, barH - 1)));
+      specOutCtx.fillStyle = "rgb(" + IRON[v * 3] + "," + IRON[v * 3 + 1] + "," + IRON[v * 3 + 2] + ")";
+      specOutCtx.fillRect(bx, by + yy, barW, 1);
+    }
+    specOutCtx.strokeStyle = "rgba(255,255,255,.35)";
+    specOutCtx.lineWidth = 1;
+    specOutCtx.strokeRect(bx - 0.5, by - 0.5, barW + 1, barH + 1);
+    return true;
+  }
+
+  const MODE_NAMES = { color: "colorized", spectral: "spectral filter", thermal: "thermal estimate" };
+
   function paintSpectral(src, w, h) {
     const live = !!(src && (src.readyState >= 2 || src.width));
-    const specPrimary = S.primary === "spectral";
+    const primary = MODE_NAMES[S.primary] ? S.primary : "color";
+    // the corner box carries the colorized frame unless colorized is already
+    // on the stage — then it shows the spectral filter. it stays a two-view
+    // swap; the thermal estimate takes the stage from the switch, not the pip.
+    const pipMode = primary === "color" ? "spectral" : "color";
     // adaptive cost — the pixel read is the expensive part of the pass
     if (S.fps && S.fps < 20 && S.specW > 256) S.specW = 256;
     else if (S.fps > 40 && S.specW < 384) S.specW = 384;
-    const ok = live ? buildSpectral(src) : false;
+    const filterMode = primary !== "color" ? primary : pipMode;
+    const ok =
+      live && filterMode !== "color"
+        ? filterMode === "thermal"
+          ? buildThermal(src)
+          : buildSpectral(src)
+        : false;
     S.specSeen = ok ? S.specSeen + 1 : 0;
     const dpr = Math.min(devicePixelRatio || 1, 2);
 
-    specEl.hidden = !specPrimary;
-    if (specPrimary) {
+    specEl.hidden = primary === "color";
+    if (primary !== "color") {
       const sw = Math.max(1, Math.round(w * dpr));
       const sh = Math.max(1, Math.round(h * dpr));
       if (specEl.width !== sw || specEl.height !== sh) {
@@ -550,7 +653,7 @@ function bootArvision(wrap, root, emitPull) {
     pipCtx.setTransform(1, 0, 0, 1, 0, 0);
     pipCtx.fillStyle = "#000";
     pipCtx.fillRect(0, 0, cw, ch);
-    if (specPrimary) {
+    if (pipMode === "color") {
       if (live) drawFrameInto(pipCtx, src, cw, ch, selfieMirror());
     } else if (ok) {
       drawFrameInto(pipCtx, specOut, cw, ch, selfieMirror());
@@ -559,21 +662,24 @@ function bootArvision(wrap, root, emitPull) {
       pipCtx.drawImage(hud, 0, 0, cw, ch);
     } catch (_) {}
 
-    pipLabel.textContent = specPrimary ? "colorized" : "spectral filter";
-    swColor.classList.toggle("on", !specPrimary);
-    swSpec.classList.toggle("on", specPrimary);
-    swColor.setAttribute("aria-pressed", String(!specPrimary));
-    swSpec.setAttribute("aria-pressed", String(specPrimary));
+    pipLabel.textContent = MODE_NAMES[pipMode];
+    swColor.classList.toggle("on", primary === "color");
+    swSpec.classList.toggle("on", primary === "spectral");
+    swTherm.classList.toggle("on", primary === "thermal");
+    swColor.setAttribute("aria-pressed", String(primary === "color"));
+    swSpec.setAttribute("aria-pressed", String(primary === "spectral"));
+    swTherm.setAttribute("aria-pressed", String(primary === "thermal"));
   }
 
   function setPrimary(mode) {
-    if (mode !== "color" && mode !== "spectral") return;
+    if (!MODE_NAMES[mode]) return;
     S.primary = mode;
   }
 
-  pipEl.onclick = () => setPrimary(S.primary === "spectral" ? "color" : "spectral");
+  pipEl.onclick = () => setPrimary(S.primary === "color" ? "spectral" : "color");
   swColor.onclick = () => setPrimary("color");
   swSpec.onclick = () => setPrimary("spectral");
+  swTherm.onclick = () => setPrimary("thermal");
 
 
 
@@ -1747,7 +1853,7 @@ function bootArvision(wrap, root, emitPull) {
       '<button type="button" class="fold" id="sens-cycle">sens · ' +
       (S.sensitivity || "high") +
       "</button>" +
-      row("view", S.primary === "spectral" ? "spectral filter" : "colorized") +
+      row("view", MODE_NAMES[S.primary] || "colorized") +
       row("luma", S.luma.toFixed(2)) +
 
       row("contrast", S.contrast.toFixed(2)) +
@@ -1766,6 +1872,7 @@ function bootArvision(wrap, root, emitPull) {
       list(S.obstruction.join(" · ") || "clear") +
       list(S.ocr ? S.ocr.slice(0, 180) : "ocr on freeze / auto on car") +
       list("spectral filter: separates materials by how differently they sit across the camera's own colour channels. it is not a calibrated infrared sensor and does not read heat.") +
+      list("thermal estimate: maps this camera's brightness onto an iron palette — bright reads warm, dark reads cool. a phone camera cannot measure infrared radiation or temperature, so this is a visualization, not a thermometer. it cannot see through ordinary walls, and common glass is opaque to real long-wave thermal too — a true thermal camera pointed at a window reads the glass surface and its reflections, not what is behind it.") +
       list("scene geocode: CANNOT_RESOLVE until ≥3 visual votes") +
 
       list("headphones music: CANNOT_RESOLVE unless MCS GATT · A2DP intercept refused") +
