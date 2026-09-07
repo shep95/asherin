@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   ClipboardList,
+  ImagePlus,
   Layers,
   Leaf,
   PersonStanding,
@@ -89,6 +90,7 @@ const LiveSensingPanel = lazy(() => import("./LiveSensingPanel"));
 const PainStudioPanel = lazy(() => import("./PainStudioPanel"));
 const HerbalPanel = lazy(() => import("./HerbalPanel"));
 const SharePanel = lazy(() => import("./SharePanel"));
+const PhotoReadPanel = lazy(() => import("./PhotoReadPanel"));
 
 /** the room runs on the person's own model key when they have one, exactly like every other asherin surface. */
 async function resolveByok(): Promise<Record<string, string> | undefined> {
@@ -129,6 +131,7 @@ type Panel =
   | "timeline"
   | "signals"
   | "share"
+  | "photos"
   | "findings";
 
 const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
@@ -142,6 +145,7 @@ const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
   { id: "functional", label: "systems", icon: Activity },
   { id: "timeline", label: "over time", icon: RotateCcw },
   { id: "signals", label: "live", icon: Radar },
+  { id: "photos", label: "photos", icon: ImagePlus },
   { id: "share", label: "share", icon: Download },
   { id: "findings", label: "read-out", icon: Eye },
 ];
@@ -633,6 +637,32 @@ export default function AsherinHealthView({ userId = null }: Props) {
                     </div>
                   )}
                   {panel === "share" && <SharePanel record={record} persist={persist} onEvent={setAssistantTrigger} />}
+                </Suspense>
+              )}
+              {panel === "photos" && (
+                <Suspense
+                  fallback={
+                    <p className="flex items-center gap-2 text-[11px] font-light text-foreground/45">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> opening the photo reader
+                    </p>
+                  }
+                >
+                  <PhotoReadPanel
+                    record={record}
+                    persist={persist}
+                    resolveByok={resolveByok}
+                    onAsk={setAssistantTrigger}
+                    onShowSystems={(systems) => {
+                      // a finding asks for a view, it does not take one: existing
+                      // layers stay on, the suggested ones are added.
+                      setVisible((prev) => Array.from(new Set([...prev, ...systems])));
+                      setIsolate(false);
+                    }}
+                    onSearchRegion={(region) => {
+                      setPanel("atlas");
+                      setQuery(region);
+                    }}
+                  />
                 </Suspense>
               )}
               {panel === "findings" && (
