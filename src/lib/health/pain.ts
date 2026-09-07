@@ -368,7 +368,9 @@ function structuredTriggerKeys(report: PainReport): Set<string> {
 export function triggeredFlagsExtended(report: PainReport): RedFlagRule[] {
   const base = triggeredFlags(report);
   const extraKeys = structuredTriggerKeys(report);
-  const extra = RED_FLAGS.filter((r) => r.triggers.some((t) => extraKeys.has(t)));
+  // keyword rules name the flag key directly; structured rules name a trigger token.
+  // both have to resolve, or free-text warnings silently never fire.
+  const extra = RED_FLAGS.filter((r) => extraKeys.has(r.key) || r.triggers.some((t) => extraKeys.has(t)));
   const seen = new Set(base.map((f) => f.key));
   const merged = [...base];
   for (const f of extra) if (!seen.has(f.key)) { merged.push(f); seen.add(f.key); }
