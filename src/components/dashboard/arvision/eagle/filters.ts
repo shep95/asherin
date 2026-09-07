@@ -8,15 +8,17 @@
 // the edge variant is a sobel pass used to make posture and carried-object
 // outlines legible in a printed report.
 
-export type FilterMode = "clean" | "thermal" | "spectral" | "lowlight" | "edge";
+export type FilterMode = "clean" | "colorized" | "thermal" | "spectral" | "lowlight" | "edge";
 
 export const FILTER_MODES: Array<{ id: FilterMode; label: string; note: string }> = [
   { id: "clean", label: "clean", note: "unmodified captured frame" },
+  { id: "colorized", label: "colorized", note: "the optical hud's working view — per-channel auto-levels, saturation and a light unsharp pass on the real pixels, so people, clothing and carried objects stay legible for a reviewer" },
   { id: "spectral", label: "spectral", note: "channel-ratio material map — living tissue, coated synthetics and wet surfaces separate; not a calibrated infrared band" },
   { id: "thermal", label: "thermal map", note: "visible-light luminance mapped to an iron palette — not an infrared temperature reading" },
   { id: "lowlight", label: "low light", note: "gain and gamma lift on the captured pixels — no detail is invented" },
   { id: "edge", label: "edge trace", note: "sobel outline pass for posture and carried-object legibility in print" },
 ];
+
 
 /** 256-entry iron palette, r,g,b triplets. built once. */
 const IRON: Uint8ClampedArray = (() => {
@@ -182,8 +184,73 @@ export function applySpectral(src: ImageData): ImageData {
   return out;
 }
 
+/** colorized — the optical hud's working view.
+ *
+ * this is the same three channels the sensor handed back, made legible: each
+ * channel is stretched between its own 1st and 99th percentile so a dim or
+ * colour-cast room stops hiding clothing and carried objects, saturation is
+ * lifted a little around the pixel's own luminance, and a light unsharp pass
+ * recovers edge definition the jpeg path softens. no pixel is invented and no
+ * spatial detail is synthesised — a reviewer is looking at what the camera saw,
+ * printed properly. */
+export function applyColorized(src: ImageData, saturation = 1.22, sharpen = 0.5): ImageData {
+  const { width: w, height: h } = src;
+  const d = src.data;
+  const n = w * h;
+  // per-channel percentile levels from a histogram (cheap, order-independent).
+  const hist = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  for (let p = 0; p < d.length; p += 4) {
+    hist[0][d[p]]++; hist[1][d[p + 1]]++; hist[2][d[p + 2]]++;
+  }
+  const cut = Math.max(1, Math.round(n * 0.01));
+  const lut: Uint8ClampedArray[] = [];
+  for (let c = 0; c < 3; c++) {
+    let lo = 0, hi = 255, acc = 0;
+    for (let i = 0; i < 256; i++) { acc += hist[c][i]; if (acc >= cut) { lo = i; break; } }
+    acc = 0;
+    for (let i = 255; i >= 0; i--) { acc += hist[c][i]; if (acc >= cut) { hi = i; break; } }
+    if (hi - lo < 8) { lo = 0; hi = 255; }
+    const span = hi - lo || 1;
+    const t = new Uint8ClampedArray(256);
+    for (let i = 0; i < 256; i++) t[i] = ((i - lo) * 255) / span;
+    lut.push(t);
+  }
+
+  const levelled = new Uint8ClampedArray(n * 3);
+  for (let p = 0, i = 0; p < d.length; p += 4, i += 3) {
+    const r = lut[0][d[p]], g = lut[1][d[p + 1]], b = lut[2][d[p + 2]];
+    const l = r * 0.2126 + g * 0.7152 + b * 0.0722;
+    levelled[i] = l + (r - l) * saturation;
+    levelled[i + 1] = l + (g - l) * saturation;
+    levelled[i + 2] = l + (b - l) * saturation;
+  }
+
+  const out = new ImageData(w, h);
+  const o = out.data;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const p = i * 4;
+      const s = i * 3;
+      const inner = x > 0 && y > 0 && x < w - 1 && y < h - 1;
+      for (let c = 0; c < 3; c++) {
+        const v = levelled[s + c];
+        if (!inner || sharpen <= 0) { o[p + c] = v; continue; }
+        const blur = (
+          levelled[(i - w) * 3 + c] + levelled[(i + w) * 3 + c] +
+          levelled[(i - 1) * 3 + c] + levelled[(i + 1) * 3 + c]
+        ) / 4;
+        o[p + c] = v + (v - blur) * sharpen;
+      }
+      o[p + 3] = 255;
+    }
+  }
+  return out;
+}
+
 export function applyFilter(src: ImageData, mode: FilterMode): ImageData {
   switch (mode) {
+    case "colorized": return applyColorized(src);
     case "thermal": return applyThermal(src);
     case "spectral": return applySpectral(src);
     case "lowlight": return applyLowLight(src);
@@ -191,6 +258,7 @@ export function applyFilter(src: ImageData, mode: FilterMode): ImageData {
     default: return src;
   }
 }
+
 
 /** draw a source (video or canvas) into a fresh canvas at a bounded size. */
 export function grabCanvas(

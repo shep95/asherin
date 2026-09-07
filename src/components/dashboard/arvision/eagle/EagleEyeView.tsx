@@ -37,7 +37,7 @@ import {
 } from "./evidence";
 import {
   bluetoothSupported, closeStream, listVideoInputs, openCamera, pairBleDevice,
-  primePermissions, type BleLink,
+  primePermissions, proximityBand, refreshRadio, watchRadio, type BleLink,
 } from "./cameras";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
@@ -88,7 +88,7 @@ export default function EagleEyeView() {
   const [openRecord, setOpenRecord] = useState<EvidenceRecord | null>(null);
   const [openVariant, setOpenVariant] = useState(0);
   const [ble, setBle] = useState<BleLink[]>([]);
-  const [preview, setPreview] = useState<FilterMode>("clean");
+  const [preview, setPreview] = useState<FilterMode>("colorized");
   const [quad, setQuad] = useState(false);
   // a camera that just recorded something flashes until a human looks at it.
   const [alerted, setAlerted] = useState<Record<string, number>>({});
@@ -102,6 +102,12 @@ export default function EagleEyeView() {
   const [contextNote, setContextNote] = useState<string>("capture context resolves on the first recorded event");
 
   const runtimes = useRef<Map<string, Runtime>>(new Map());
+  // the roster is read inside the capture path, which runs from a long-lived
+  // loop closure — a ref keeps that path on the current radios instead of the
+  // ones that existed when the loop was created.
+  const bleRef = useRef<BleLink[]>([]);
+  bleRef.current = ble;
+  const radioWatchers = useRef<Map<string, () => void>>(new Map());
   const loopRef = useRef<number | null>(null);
   const busyRef = useRef(false);
   const runningRef = useRef(false);
@@ -189,6 +195,8 @@ export default function EagleEyeView() {
   }, []);
 
   useEffect(() => () => {
+    radioWatchers.current.forEach((stop) => stop());
+    radioWatchers.current.clear();
     runningRef.current = false;
     if (loopRef.current) window.clearTimeout(loopRef.current);
     runtimes.current.forEach((rt) => { closeStream(rt.stream); rt.video.srcObject = null; });
@@ -213,12 +221,19 @@ export default function EagleEyeView() {
     } catch {
       annotated = undefined;
     }
+    // read the volatile radio fields now, so the package carries the state the
+    // radios were in at capture rather than at pairing. a refresh that fails
+    // leaves the last observed values in place — never a fabricated one.
+    const radio = await Promise.all(bleRef.current.map((l) => refreshRadio(l).catch(() => l)));
+    setBle((cur) => cur.map((l) => radio.find((r) => r.id === l.id) ?? l));
+
     const record = await buildEvidence({
       event: { ...event, locationCoords: rt.config.locationCoords, ipAddress: rt.config.ipAddress, timezone: ctx.timezone },
       frame,
       annotatedDataUrl: annotated,
       context: ctx,
       cameraLabel: rt.config.label,
+      radio,
     });
     setRecords((r) => [record, ...r].slice(0, 200));
     setAlerted((a) => ({ ...a, [deviceId]: Date.now() }));
@@ -331,6 +346,30 @@ export default function EagleEyeView() {
       ctx.fillStyle = warn ? "#FBBF24" : "rgba(255,255,255,0.75)";
       ctx.fillText(label, box.x + 4, box.y + box.height + 13);
     }
+
+    // the radio roster rides in the corner of the same overlay the operator is
+    // watching, so what is on screen and what lands in the package agree. it is
+    // labelled as presence, never as "this person's device".
+    const radios = bleRef.current;
+    const lines = radios.length
+      ? radios.slice(0, 4).map((r) => `${r.name}${r.manufacturer ? ` · ${r.manufacturer}` : ""}${r.rssi !== null ? ` · ${r.rssi}dBm` : ""}${r.proximityMeters !== null ? ` ~${r.proximityMeters}m` : ""}${r.batteryPercent !== null ? ` · ${r.batteryPercent}%` : ""}`)
+      : ["no bluetooth radio observable from this device"];
+    ctx.font = "11px ui-monospace, monospace";
+    const head = radios.length ? `bt in range (${radios.length}) — presence, not attribution` : "bt in range (0)";
+    const all = [head, ...lines];
+    const boxW = Math.min(w - 12, Math.max(...all.map((l) => ctx.measureText(l).width)) + 14);
+    const boxH = all.length * 14 + 10;
+    const bx = w - boxW - 6;
+    const by = h - boxH - 6;
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.strokeStyle = radios.length ? "rgba(56,189,248,0.45)" : "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx + 0.5, by + 0.5, boxW - 1, boxH - 1);
+    all.forEach((l, i) => {
+      ctx.fillStyle = i === 0 ? "rgba(125,211,252,0.9)" : "rgba(255,255,255,0.78)";
+      ctx.fillText(l, bx + 7, by + 16 + i * 14);
+    });
   };
 
   const start = useCallback(async () => {
@@ -443,6 +482,11 @@ export default function EagleEyeView() {
               try {
                 const link = await pairBleDevice();
                 setBle((b) => [...b.filter((x) => x.id !== link.id), link]);
+                // where the browser implements advertisement watching, signal
+                // strength keeps updating; where it does not, the roster simply
+                // says the range was never reported.
+                const stop = watchRadio(link.id, (patch) => setBle((b) => b.map((x) => (x.id === link.id ? { ...x, ...patch } : x))));
+                radioWatchers.current.set(link.id, stop);
                 await refreshDevices();
                 toast.success(`paired ${link.name}`, { description: link.note });
               } catch (e) {
@@ -457,10 +501,32 @@ export default function EagleEyeView() {
           </button>
           {ble.map((l) => (
             <div key={l.id} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11.5px] font-light text-white/65">
-              <div className="truncate">{l.name}</div>
-              <div className="text-[10.5px] text-white/40">{l.connected ? "connected" : "paired, not connected"}{l.batteryPercent !== null ? ` · battery ${l.batteryPercent}%` : ""}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="truncate">{l.name}</span>
+                <button
+                  onClick={() => {
+                    radioWatchers.current.get(l.id)?.();
+                    radioWatchers.current.delete(l.id);
+                    setBle((b) => b.filter((x) => x.id !== l.id));
+                  }}
+                  title="drop this radio from the roster"
+                  className="ml-auto text-white/30 hover:text-white/70"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="text-[10.5px] text-white/40">
+                {l.manufacturer ?? "make not published"}{l.model ? ` · ${l.model}` : ""}{l.batteryPercent !== null ? ` · battery ${l.batteryPercent}%` : ""}
+              </div>
+              <div className="text-[10.5px] text-white/35">
+                {l.connected ? "connected" : "paired, not connected"} · {l.rssi !== null ? `${l.rssi} dBm ~${l.proximityMeters ?? "?"} m` : "range not reported by this browser"}
+              </div>
+              <div className="mt-0.5 text-[10px] text-white/25">{proximityBand(l.proximityMeters)}</div>
             </div>
           ))}
+          <div className="text-[10px] font-light leading-relaxed text-white/30">
+            every recorded event stores this roster: name, make, model, firmware, battery, signal strength and estimated range, in the frame's provenance strip and as its own radio card. presence in range is never attribution to a person in frame.
+          </div>
 
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">capture from</div>
           <div className="flex flex-wrap gap-1.5">
@@ -481,7 +547,7 @@ export default function EagleEyeView() {
           >
             <Grid2X2 className="mb-1 h-3.5 w-3.5" />
             <div>{quad ? "quad view on" : "quad view"}</div>
-            <div className="text-[10.5px] text-white/40">one square per camera split into clean, thermal, spectral and edge — tap any pane for full screen.</div>
+            <div className="text-[10.5px] text-white/40">one square per camera split into clean, colorized, thermal, spectral, edge and the bluetooth roster — tap any pane for full screen.</div>
           </button>
           <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
 
@@ -542,6 +608,7 @@ export default function EagleEyeView() {
                 running={running}
                 alerted={Boolean(alerted[t.deviceId])}
                 calibration={calibration}
+                radio={ble}
                 onThermal={setThermalRead}
                 onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
                 onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
@@ -559,6 +626,7 @@ export default function EagleEyeView() {
                   if (!rt || !rt.video.videoWidth) return null;
                   return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 960);
                 }}
+                getOverlay={() => runtimes.current.get(t.deviceId)?.overlay ?? null}
                 onDetach={() => detachCamera(t.deviceId)}
               />
             ))}
@@ -693,14 +761,15 @@ export default function EagleEyeView() {
   );
 }
 
-const QUAD_MODES: FilterMode[] = ["clean", "thermal", "spectral", "edge"];
+const QUAD_MODES: FilterMode[] = ["clean", "colorized", "thermal", "spectral", "edge"];
 
 /** paints one filtered rendering of the live frames at a modest cadence. the
  * pixels come from the same grab the detector reads, so what an operator
  * watches is what the evidence package will contain. */
-function FilterPane({ mode, getFrame, className, thermalDevice = false, calibration = null, onThermal, interval = 140 }: {
+function FilterPane({ mode, getFrame, getOverlay, className, thermalDevice = false, calibration = null, onThermal, interval = 140 }: {
   mode: FilterMode;
   getFrame: () => HTMLCanvasElement | null;
+  getOverlay?: () => HTMLCanvasElement | null;
   className?: string;
   thermalDevice?: boolean;
   calibration?: ThermalCalibration | null;
@@ -754,19 +823,61 @@ function FilterPane({ mode, getFrame, className, thermalDevice = false, calibrat
               reportRef.current({ path: "estimate", min: null, max: null, centre: null });
             }
           }
+          // the detector reading and the radio roster are drawn from the same
+          // overlay the clean pane uses, so every rendering shows one truth.
+          const ov = getOverlay?.();
+          if (ov && ov.width > 0) {
+            const ctx2 = target.getContext("2d");
+            ctx2?.drawImage(ov, 0, 0, target.width, target.height);
+          }
         }
       }
       timer = window.setTimeout(paint, interval);
     };
     paint();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [mode, getFrame, thermalDevice, calibration, interval]);
+  }, [mode, getFrame, getOverlay, thermalDevice, calibration, interval]);
 
   return <canvas ref={ref} className={className ?? "absolute inset-0 h-full w-full object-contain"} />;
 }
 
+/** the radio pane: every bluetooth radio the recording device can observe right
+ * now. it names what the radio published about itself and stops there — a radio
+ * in range is presence, never proof that a person in frame is carrying it. */
+function RadioPane({ radio }: { radio: BleLink[] }) {
+  return (
+    <div className="relative overflow-y-auto bg-black/75 p-2">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-sky-200/70">
+        <Bluetooth className="h-3 w-3" /> radios in range ({radio.length})
+      </div>
+      {radio.length === 0 ? (
+        <div className="mt-1.5 text-[10px] font-light leading-relaxed text-white/40">
+          pair a radio on the left. nothing observable here means nothing a browser could see — not that no radio is present.
+        </div>
+      ) : (
+        <div className="mt-1.5 space-y-1.5">
+          {radio.map((r) => (
+            <div key={r.id} className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-1">
+              <div className="truncate text-[10.5px] font-light text-white/80">{r.name}</div>
+              <div className="truncate text-[9.5px] font-light text-white/45">
+                {r.manufacturer ?? "make not published"}{r.model ? ` · ${r.model}` : ""}{r.batteryPercent !== null ? ` · ${r.batteryPercent}%` : ""}
+              </div>
+              <div className="truncate text-[9.5px] font-light text-white/35">
+                {r.rssi !== null ? `${r.rssi} dBm · ~${r.proximityMeters ?? "?"} m` : "range not reported"} · {proximityBand(r.proximityMeters)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-1.5 text-[9px] font-light leading-relaxed text-white/25">
+        recorded into every capture. presence in range only, not attribution.
+      </div>
+    </div>
+  );
+}
+
 function CameraTile({
-  tile, preview, quad, running, alerted, calibration, onThermal, bind, getFrame, onDetach, onAck, onExpand,
+  tile, preview, quad, running, alerted, calibration, radio, onThermal, bind, getFrame, getOverlay, onDetach, onAck, onExpand,
 }: {
   tile: TileState;
   preview: FilterMode;
@@ -774,9 +885,11 @@ function CameraTile({
   running: boolean;
   alerted: boolean;
   calibration: ThermalCalibration;
+  radio: BleLink[];
   onThermal: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
   bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
   getFrame: () => HTMLCanvasElement | null;
+  getOverlay: () => HTMLCanvasElement | null;
   onDetach: () => void;
   onAck: () => void;
   onExpand: (mode: FilterMode) => void;
@@ -800,7 +913,7 @@ function CameraTile({
   return (
     <div className={`relative min-h-[180px] overflow-hidden rounded-2xl bg-black/50 ${alertClass}`}>
       {quad ? (
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[2px] bg-white/10">
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-2 gap-[2px] bg-white/10">
           {QUAD_MODES.map((m) => (
             <button
               key={m}
@@ -809,11 +922,12 @@ function CameraTile({
               className="group relative overflow-hidden bg-black/70 text-left"
               title={`${m} — tap for full screen`}
             >
-              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={m === "thermal" ? onThermal : undefined} />}
+              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} getOverlay={getOverlay} thermalDevice={tile.thermalDevice} calibration={calibration} onThermal={m === "thermal" ? onThermal : undefined} />}
               <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] font-light text-white/65">{m}</span>
               <Maximize2 className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 text-white/25 group-hover:text-white/70" />
             </button>
           ))}
+          <RadioPane radio={radio} />
         </div>
       ) : (
         <button type="button" onClick={() => { onAck(); onExpand(preview); }} className="absolute inset-0 block">
