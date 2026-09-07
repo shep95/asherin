@@ -624,25 +624,70 @@ const QUAD_MODES: FilterMode[] = ["clean", "thermal", "spectral", "edge"];
 /** paints one filtered rendering of the live frames at a modest cadence. the
  * pixels come from the same grab the detector reads, so what an operator
  * watches is what the evidence package will contain. */
-function FilterPane({ mode, getFrame, className }: { mode: FilterMode; getFrame: () => HTMLCanvasElement | null; className?: string }) {
+function FilterPane({ mode, getFrame, className, thermalDevice = false, calibration = null, onThermal, interval = 140 }: {
+  mode: FilterMode;
+  getFrame: () => HTMLCanvasElement | null;
+  className?: string;
+  thermalDevice?: boolean;
+  calibration?: ThermalCalibration | null;
+  onThermal?: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
+  interval?: number;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const reportRef = useRef(onThermal);
+  reportRef.current = onThermal;
+
   useEffect(() => {
     let alive = true;
     let timer = 0;
+    let lastReport = 0;
     const paint = () => {
       if (!alive) return;
       const frame = getFrame();
       const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, mode);
-        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
-        target.getContext("2d")?.drawImage(out, 0, 0);
+        if (target.width !== frame.width || target.height !== frame.height) { target.width = frame.width; target.height = frame.height; }
+        const ctx = target.getContext("2d");
+        if (ctx) {
+          if (mode === "thermal" && thermalDevice) {
+            // sensor path: the stream itself carries the magnitude, so it is read
+            // and scaled — never re-derived from a visible-light picture.
+            const src = frame.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, frame.width, frame.height);
+            if (src) {
+              const stats = frameStats(src);
+              const path = resolvePath(true, stats);
+              if (path === "palettized") {
+                ctx.drawImage(frame, 0, 0); // the imager already coloured it; leave it alone
+                if (reportRef.current && Date.now() - lastReport > 600) {
+                  lastReport = Date.now();
+                  reportRef.current({ path, min: null, max: null, centre: null });
+                }
+              } else {
+                const r = renderSensorThermal(src, calibration);
+                ctx.putImageData(r.image, 0, 0);
+                if (reportRef.current && Date.now() - lastReport > 600) {
+                  lastReport = Date.now();
+                  reportRef.current({ path, min: r.minTemp, max: r.maxTemp, centre: r.centreTemp });
+                }
+              }
+            }
+          } else {
+            const out = filteredCanvas(frame, mode);
+            if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+            ctx.drawImage(out, 0, 0);
+            if (mode === "thermal" && reportRef.current && Date.now() - lastReport > 1200) {
+              lastReport = Date.now();
+              reportRef.current({ path: "estimate", min: null, max: null, centre: null });
+            }
+          }
+        }
       }
-      timer = window.setTimeout(paint, 140);
+      timer = window.setTimeout(paint, interval);
     };
     paint();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [mode, getFrame]);
+  }, [mode, getFrame, thermalDevice, calibration, interval]);
+
   return <canvas ref={ref} className={className ?? "absolute inset-0 h-full w-full object-contain"} />;
 }
 
