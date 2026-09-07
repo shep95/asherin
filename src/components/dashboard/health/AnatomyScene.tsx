@@ -503,10 +503,12 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         lastIsolate = isolateKey;
       }
 
-      controls.enableRotate = amount < 0.8;
-      controls.mouseButtons.LEFT = amount < 0.8 ? T.MOUSE.ROTATE : T.MOUSE.PAN;
-      controls.touches.ONE = amount < 0.8 ? T.TOUCH.ROTATE : T.TOUCH.PAN;
-      platform.visible = ring.visible = innerRing.visible = amount < 0.5 && !s.isolate;
+      // rotation stays available at every explosion extent; the flat layout is
+      // still reachable because right-drag pans and the wheel dollies to cursor.
+      controls.enableRotate = true;
+      controls.mouseButtons.LEFT = T.MOUSE.ROTATE;
+      controls.touches.ONE = T.TOUCH.ROTATE;
+
       markers.visible = amount > 0.75;
       controls.autoRotate = s.rotate && !s.isolate && amount < 0.4;
       controls.autoRotateSpeed = 0.6;
