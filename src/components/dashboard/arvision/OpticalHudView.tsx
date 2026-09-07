@@ -1684,7 +1684,10 @@ function bootArvision(wrap, root, emitPull) {
 
     paintMisb();
     paintSheet();
+    // both views last, once the overlay for this frame is complete
+    paintSpectral(src, w, h);
     requestAnimationFrame(loop);
+
   }
 
   function row(k, v) {
