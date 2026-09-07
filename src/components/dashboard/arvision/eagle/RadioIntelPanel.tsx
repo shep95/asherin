@@ -174,13 +174,13 @@ export default function RadioIntelPanel({
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-2.5 sm:p-3">
         <div className="flex items-center gap-2 text-[12.5px] font-light text-white/80">
           <Radar className={`h-4 w-4 ${scanning ? "animate-pulse text-sky-300/80" : "text-white/40"}`} />
-          <span>{scanning ? `watching ${present} radios in range` : "radio watch idle"}</span>
+          <span>{scanning ? `automatic watch · ${present} radios in range` : scanSupported ? "automatic watch waiting for bluetooth permission" : "radio watch unavailable"}</span>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <Button size="sm" disabled={!scanSupported} onClick={onToggleScan}
             className={`h-8 rounded-full text-[12px] font-light ${scanning ? "bg-sky-400/15 text-sky-100 hover:bg-sky-400/25" : ""}`}
             variant={scanning ? "secondary" : "outline"}>
-            <Radar className="mr-1.5 h-3.5 w-3.5" />{scanning ? "stop watch" : "start watch"}
+            <Radar className="mr-1.5 h-3.5 w-3.5" />{scanning ? "pause watch" : "grant & start"}
           </Button>
           <Button size="sm" variant="outline" onClick={() => setPairOpen(true)} className="h-8 rounded-full text-[12px] font-light">
             <Bluetooth className="mr-1.5 h-3.5 w-3.5" />pair a device
@@ -218,7 +218,9 @@ export default function RadioIntelPanel({
           <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/35">live feed · distance in feet</div>
           {tracks.length === 0 && (
             <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3 text-[11.5px] font-light leading-relaxed text-white/40">
-              nothing observed yet. start the watch and every radio broadcasting nearby appears here with its distance, updated every second.
+              {scanning
+                ? "listening now. every observable radio broadcasting nearby appears here with its estimated distance, updated every second."
+                : "bluetooth needs its one-time device permission before automatic monitoring can begin on this browser."}
             </div>
           )}
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">

@@ -151,6 +151,8 @@ export default function EagleEyeView() {
   const [radioPanel, setRadioPanel] = useState(false);
   const sightings = useRef<Map<string, RadioSighting>>(new Map());
   const scanStop = useRef<(() => void) | null>(null);
+  const scanStarting = useRef(false);
+  const scanRetryAfterGesture = useRef(false);
   const loopRef = useRef<number | null>(null);
   const busyRef = useRef(false);
   const runningRef = useRef(false);
@@ -204,27 +206,65 @@ export default function EagleEyeView() {
     })));
   }, []);
 
-  const toggleScan = useCallback(async () => {
-    if (scanStop.current) {
-      scanStop.current();
-      scanStop.current = null;
-      setScanning(false);
-      toast.message("advertisement scan stopped", { description: "the roster keeps its last readings and ages them out." });
-      return;
-    }
+  const ensureRadioScan = useCallback(async (announce = false) => {
+    if (scanStop.current || scanStarting.current || !passiveScanSupported()) return;
+    scanStarting.current = true;
     try {
       const stop = await startPassiveScan((reading) => {
         sightings.current.set(reading.id, mergeSighting(sightings.current.get(reading.id), reading));
       });
       scanStop.current = stop;
+      scanRetryAfterGesture.current = false;
       setScanning(true);
-      toast.success("scanning advertisements", {
-        description: "listening to broadcasts only — no device is connected to, and a radio in range is never attribution to a person.",
-      });
+      if (announce) {
+        toast.success("automatic radio watch active", {
+          description: "arvision is continuously logging nearby broadcasts without connecting to devices.",
+        });
+      }
     } catch (e) {
-      toast.error("advertisement scan unavailable", { description: e instanceof Error ? e.message : SCAN_UNAVAILABLE_NOTE });
+      scanRetryAfterGesture.current = true;
+      if (announce) toast.error("bluetooth permission is still needed", { description: e instanceof Error ? e.message : SCAN_UNAVAILABLE_NOTE });
+    } finally {
+      scanStarting.current = false;
     }
   }, []);
+
+  const toggleScan = useCallback(async () => {
+    if (scanStop.current) {
+      scanStop.current();
+      scanStop.current = null;
+      setScanning(false);
+      toast.message("radio watch paused", { description: "it will resume automatically when arvision is opened again." });
+      return;
+    }
+    await ensureRadioScan(true);
+  }, [ensureRadioScan]);
+
+  // Radio monitoring is an ARVision service, not a panel action. Start as soon
+  // as Eagle Eye mounts, recover after mobile suspension/visibility changes,
+  // and borrow the first ordinary tap only when the browser requires a user
+  // gesture for its one-time Bluetooth grant. Native builds need no picker.
+  useEffect(() => {
+    void ensureRadioScan(false);
+    const resume = () => {
+      if (document.visibilityState === "visible") void ensureRadioScan(false);
+    };
+    const grantOnGesture = () => {
+      if (scanRetryAfterGesture.current) void ensureRadioScan(false);
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("pageshow", resume);
+    window.addEventListener("focus", resume);
+    window.addEventListener("pointerdown", grantOnGesture, true);
+    window.addEventListener("keydown", grantOnGesture, true);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("pageshow", resume);
+      window.removeEventListener("focus", resume);
+      window.removeEventListener("pointerdown", grantOnGesture, true);
+      window.removeEventListener("keydown", grantOnGesture, true);
+    };
+  }, [ensureRadioScan]);
 
   // the roster refreshes on a sub-second tick rather than per packet:
   // advertisements arrive several times a second per device and a render per
@@ -633,7 +673,7 @@ export default function EagleEyeView() {
             <div>{radioPanel ? "hide radio watch" : "open radio watch"}</div>
             <div className="text-[10.5px] text-white/40">
               {passiveScanSupported()
-                ? "every nearby radio with its distance in feet, logged once a second with movement, dwell time and group arrivals."
+                ? "automatic watch active whenever arvision is open: every nearby radio is logged once a second with distance, movement, dwell time and group arrivals."
                 : SCAN_UNAVAILABLE_NOTE}
             </div>
           </button>
