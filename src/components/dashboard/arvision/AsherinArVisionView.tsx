@@ -16,8 +16,9 @@ import OpticalHudView from "./OpticalHudView";
 // Retry-aware so an aborted or stale chunk fetch surfaces or recovers instead
 // of leaving the layer stuck on its loading line forever.
 const SpatialView = lazyWithRetry(() => import("./spatial/SpatialView"), "arvision-spatial");
-// Eagle carries the on-device vision models, so it is loaded only when chosen —
-// the optical layer must never pay for weights it does not use.
+// Eagle owns ARVision's radio ledger. Keep its mounted instance alive across
+// optical/spatial/eagle switches so nearby-radio monitoring and one-second
+// history do not reset merely because the operator changed the visible layer.
 const EagleEyeView = lazyWithRetry(() => import("./eagle/EagleEyeView"), "arvision-eagle");
 
 
@@ -77,8 +78,10 @@ const AsherinArVisionView = () => {
           </Suspense>
         </div>
       )}
-      {layer === "eagle" && (
-        <div className="absolute inset-0">
+        <div
+          className={`absolute inset-0 ${layer === "eagle" ? "" : "pointer-events-none invisible"}`}
+          aria-hidden={layer !== "eagle"}
+        >
           <Suspense
             fallback={
               <div className="flex h-full w-full items-center justify-center text-[12px] font-light text-white/45">
@@ -89,7 +92,6 @@ const AsherinArVisionView = () => {
             <EagleEyeView />
           </Suspense>
         </div>
-      )}
       </div>
     </div>
   );
