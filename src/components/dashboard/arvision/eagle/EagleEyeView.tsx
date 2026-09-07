@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Bluetooth, Camera, CheckCircle2, CircleSlash, Download,
-  Eye, Grid2X2, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
+  ExternalLink, Eye, Grid2X2, Loader2, Maximize2, PictureInPicture2, Thermometer, Play, ShieldAlert, Square, Trash2, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -484,6 +484,41 @@ export default function EagleEyeView() {
             <div className="text-[10.5px] text-white/40">one square per camera split into clean, thermal, spectral and edge — tap any pane for full screen.</div>
           </button>
           <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
+
+          <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">thermal path</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2.5">
+            <div className="flex items-center gap-2 text-[11.5px] font-light text-white/75">
+              <Thermometer className="h-3.5 w-3.5 text-amber-300/70" />
+              {thermalRead ? PATH_LABEL[thermalRead.path] : tiles.some((t) => t.thermalDevice) ? "thermal imager attached" : "no thermal imager detected"}
+            </div>
+            <div className="mt-1 text-[10.5px] font-light leading-relaxed text-white/40">
+              {thermalRead ? PATH_NOTE[thermalRead.path] : "attach a usb or phone thermal imager and it is used as a sensor stream. an ordinary webcam can only ever give an estimate."}
+            </div>
+            {thermalRead?.path === "sensor" && (
+              <>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10.5px] font-light text-white/60">
+                  <label className="flex flex-col gap-1">cold raw
+                    <input type="number" value={calibration.rawLow} onChange={(e) => setCalibration((c) => ({ ...c, rawLow: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">is °c
+                    <input type="number" value={calibration.tempLow} onChange={(e) => setCalibration((c) => ({ ...c, tempLow: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">hot raw
+                    <input type="number" value={calibration.rawHigh} onChange={(e) => setCalibration((c) => ({ ...c, rawHigh: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                  <label className="flex flex-col gap-1">is °c
+                    <input type="number" value={calibration.tempHigh} onChange={(e) => setCalibration((c) => ({ ...c, tempHigh: Number(e.target.value) }))} className="rounded-md border border-white/10 bg-black/40 px-1.5 py-1 text-white/80" />
+                  </label>
+                </div>
+                <div className="mt-2 text-[10.5px] font-light text-white/55">
+                  {calibrationUsable(calibration) && thermalRead.max !== null
+                    ? `scene ${thermalRead.min}°c – ${thermalRead.max}°c · centre ${thermalRead.centre}°c`
+                    : "give two references — something at a known cool temperature and something known warm — and the scale becomes celsius."}
+                </div>
+                <div className="mt-1 text-[10px] font-light leading-relaxed text-white/30">values follow your two references; they are not a factory-calibrated radiometric reading.</div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* centre: grid */}
@@ -529,6 +564,25 @@ export default function EagleEyeView() {
             ))}
           </div>
 
+          {gallery && !popped && tiles.length > 0 && (
+            <GalleryRail
+              tiles={tiles}
+              calibration={calibration}
+              alerted={alerted}
+              getFrame={(id) => {
+                const rt = runtimes.current.get(id);
+                if (!rt || !rt.video.videoWidth) return null;
+                return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
+              }}
+              onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+              onPop={() => setPopped(true)}
+              onHide={() => setGallery(false)}
+            />
+          )}
+          {!gallery && (
+            <button onClick={() => setGallery(true)} className="self-start rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-light text-white/55 hover:bg-white/[0.06]">show feed gallery</button>
+          )}
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-light text-white/45">
             <span>{running ? "watching" : "idle"} · {tiles.filter((t) => t.status === "live").length} live camera{tiles.length === 1 ? "" : "s"}</span>
             <span>models {modelStatus}{modelError ? ` — ${modelError}` : ""}</span>
@@ -570,6 +624,21 @@ export default function EagleEyeView() {
         </div>
       </div>
 
+      {popped && tiles.length > 0 && (
+        <FloatingGallery
+          tiles={tiles}
+          calibration={calibration}
+          alerted={alerted}
+          getFrame={(id) => {
+            const rt = runtimes.current.get(id);
+            if (!rt || !rt.video.videoWidth) return null;
+            return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 480);
+          }}
+          onPick={(deviceId, mode) => { setFull({ deviceId, mode }); setAlerted((a) => { const n = { ...a }; delete n[deviceId]; return n; }); }}
+          onDock={() => { setPopped(false); setGallery(true); }}
+        />
+      )}
+
       {full && (
         <FullFrame
           label={tiles.find((t) => t.deviceId === full.deviceId)?.label ?? "camera"}
@@ -582,6 +651,9 @@ export default function EagleEyeView() {
             return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 1280);
           }}
           getOverlay={() => runtimes.current.get(full.deviceId)?.overlay ?? null}
+          thermalDevice={Boolean(tiles.find((t) => t.deviceId === full.deviceId)?.thermalDevice)}
+          calibration={calibration}
+          onThermal={setThermalRead}
         />
       )}
 
