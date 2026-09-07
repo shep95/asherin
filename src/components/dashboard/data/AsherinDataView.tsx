@@ -737,7 +737,13 @@ export default function AsherinDataView() {
                 versions={versions}
                 onCreate={async (payload) => {
                   const { supabase } = await import("@/integrations/supabase/client");
-                  const { error } = await supabase.from("data_alert_rules").insert({ workspace_id: workspaceId, ...payload });
+                  const { error } = await supabase.from("data_alert_rules").insert({
+                    workspace_id: workspaceId,
+                    source_id: payload.source_id,
+                    name: payload.name,
+                    kind: payload.kind,
+                    spec: payload.spec as never,
+                  });
                   if (error) toast.error(error.message); else { toast.success("watching"); await loadAsync(); }
                 }}
               />

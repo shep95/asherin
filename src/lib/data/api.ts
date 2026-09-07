@@ -56,7 +56,7 @@ export async function createWorkspace(name: string): Promise<Workspace> {
 }
 
 export async function updateWorkspace(id: string, patch: Partial<Pick<Workspace, "name" | "instructions" | "theme" | "memory">>): Promise<void> {
-  const { error } = await supabase.from("data_workspaces").update(patch).eq("id", id);
+  const { error } = await supabase.from("data_workspaces").update(patch as never).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
