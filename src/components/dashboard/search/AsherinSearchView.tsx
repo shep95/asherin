@@ -209,7 +209,18 @@ const AsherinSearchView = () => {
 
       {meta && (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur">
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground/60">sources read</div>
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/60">
+            <span>sources read</span>
+            {meta.coverage && (
+              <span className="normal-case tracking-normal text-muted-foreground/50">
+                {meta.coverage.measured} answered · {meta.coverage.refused} unmeasured · {meta.coverage.nodes} identifiers · {(meta.coverage.elapsed_ms / 1000).toFixed(1)}s
+                {meta.coverage.budget_hit ? " · stopped at the time budget, results are partial" : ""}
+              </span>
+            )}
+            {meta.storage?.errors?.length ? (
+              <span className="normal-case tracking-normal text-amber-300/80">storage error: {meta.storage.errors[0]}</span>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(meta.sources).map(([name, s]) => (
               <button key={name} onClick={() => setFilter(filter === name ? "all" : name)} className={`rounded-lg border px-2 py-1 text-[10px] font-light transition ${filter === name ? "border-white/30 bg-white/10" : "border-white/10 bg-black/20 hover:border-white/20"}`}>
