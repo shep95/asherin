@@ -92,8 +92,74 @@ function computeAggregates(rows: Record<string, unknown>[], columns: ColumnProfi
       }
     }
   }
+
+  // A year column arrives as an integer, not a date, so the date pass above
+  // never sees it. Without this, "since 2000" questions have no time axis and
+  // the answer degrades to "the period is not in the data" even though it is.
+  const periodCols = columns.filter((c) => {
+    if (!["integer", "number"].includes(c.type)) return false;
+    if (!/^(year|yr|fy|fiscal_?year|period)$/i.test(c.name.trim())) return false;
+    const vals = rows.map((r) => num(r[c.name])).filter((n): n is number => n !== null);
+    if (vals.length < 2) return false;
+    return vals.every((v) => Number.isInteger(v) && v >= 1500 && v <= 2200);
+  }).slice(0, 1);
+
+  for (const p of periodCols) {
+    for (const m of measures.slice(0, 2)) {
+      if (m.name === p.name) continue;
+      const acc = new Map<number, number>();
+      for (const r of rows) {
+        const y = num(r[p.name]); const v = num(r[m.name]);
+        if (y === null || v === null) continue;
+        acc.set(y, (acc.get(y) ?? 0) + v);
+      }
+      if (acc.size > 1) {
+        out[`${m.name}__by__${p.name}`] = [...acc.entries()].sort((a, b) => a[0] - b[0]).slice(-80)
+          .map(([period, total]) => ({ period, total: Number(total.toFixed(4)) }));
+      }
+      // dimension x period, so growth-since-a-year questions have per-entity series
+      for (const d of dims.slice(0, 2)) {
+        const series = new Map<string, Map<number, number>>();
+        for (const r of rows) {
+          const k = String(r[d.name] ?? "(blank)");
+          const y = num(r[p.name]); const v = num(r[m.name]);
+          if (y === null || v === null) continue;
+          const inner = series.get(k) ?? new Map<number, number>();
+          inner.set(y, (inner.get(y) ?? 0) + v);
+          series.set(k, inner);
+        }
+        if (series.size > 1 && series.size <= 30) {
+          out[`${m.name}__by__${d.name}__x__${p.name}`] = [...series.entries()].slice(0, 30).map(([key, inner]) => {
+            const pts = [...inner.entries()].sort((a, b) => a[0] - b[0]);
+            const first = pts[0], last = pts[pts.length - 1];
+            return {
+              key,
+              first_period: first[0], first_value: Number(first[1].toFixed(4)),
+              last_period: last[0], last_value: Number(last[1].toFixed(4)),
+              change_pct: first[1] !== 0 ? Number((((last[1] - first[1]) / Math.abs(first[1])) * 100).toFixed(2)) : null,
+              points: pts.slice(-40).map(([period, total]) => ({ period, total: Number(total.toFixed(4)) })),
+            };
+          });
+        }
+      }
+    }
+  }
   return out;
 }
+
+/** Head, evenly spaced middle, and tail — the first 25 rows of a sorted export
+ *  represent one slice of the data and mislead the model about coverage. */
+function stratifiedSample(rows: Record<string, unknown>[], size = 25) {
+  if (rows.length <= size) return rows;
+  const head = Math.ceil(size * 0.3), tail = Math.ceil(size * 0.3);
+  const mid = size - head - tail;
+  const picks = new Set<number>();
+  for (let i = 0; i < head; i++) picks.add(i);
+  for (let i = 0; i < tail; i++) picks.add(rows.length - 1 - i);
+  for (let i = 0; i < mid; i++) picks.add(Math.floor(((i + 1) * rows.length) / (mid + 1)));
+  return [...picks].sort((a, b) => a - b).map((i) => rows[i]);
+}
+
 
 const SYSTEM = `you are the analytical engine inside asherin.data.
 
@@ -166,7 +232,7 @@ Deno.serve(async (req) => {
       anyTruncated = anyTruncated || truncated;
       sampled += rows.length;
       aggregates = computeAggregates(rows, cols);
-      sampleRows = rows.slice(0, 25);
+      sampleRows = stratifiedSample(rows, 25);
     }
     context.push({
       source: s.name,

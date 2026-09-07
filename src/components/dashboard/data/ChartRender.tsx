@@ -43,9 +43,30 @@ function FallbackTable({ spec }: { spec: ChartSpec }) {
   );
 }
 
-function ChartBody({ spec }: { spec: ChartSpec }) {
+function orderContinuousAxis(spec: ChartSpec): ChartSpec {
+  if (!["line", "area", "scatter"].includes(spec.render)) return spec;
+  const x = spec.x ?? Object.keys(spec.data[0] ?? {})[0];
+  if (!x || spec.data.length < 2) return spec;
+  const key = (r: Record<string, unknown>) => {
+    const v = r[x];
+    if (typeof v === "number") return v;
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+    const t = Date.parse(String(v ?? ""));
+    return Number.isFinite(t) ? t : NaN;
+  };
+  if (spec.data.some((r) => Number.isNaN(key(r)))) return spec;
+  return { ...spec, data: [...spec.data].sort((a, b) => key(a) - key(b)) };
+}
+
+
+function ChartBody({ spec: rawSpec }: { spec: ChartSpec }) {
+  // a trend read left-to-right is only honest when the axis runs in order, so
+  // continuous axes (years, periods, dates) are sorted ascending before render.
+  const spec = orderContinuousAxis(rawSpec);
   const x = spec.x ?? Object.keys(spec.data[0] ?? {})[0];
   const ys = spec.y?.length ? spec.y : Object.keys(spec.data[0] ?? {}).filter((k) => k !== x).slice(0, 2);
+
 
   switch (spec.render) {
     case "kpi": {
