@@ -826,9 +826,12 @@ const SpatialView = () => {
               <p className="text-[12px] font-light leading-relaxed text-white/55">
                 there is no scanned wall mesh in a browser, so a peer counts as hidden when the straight line to them leaves the
                 walkable corridor of the loaded map. wearable glasses stream over a native link this page cannot open, so the
-                field view uses this device camera. camera positioning only works once the map service credentials are set,
-                and until then position is placed by hand on the plan.
+                field view uses this device camera. live position comes from this device's own receiver against a map built
+                from openstreetmap, so it is accurate to whatever the fix reports and it is outdoor-honest: indoors it will
+                wander, and you can place yourself by hand instead. camera positioning is a separate refinement that only
+                works once the map service credentials are set.
               </p>
+
             </div>
           </div>
         )}
