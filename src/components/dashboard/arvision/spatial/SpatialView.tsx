@@ -40,6 +40,9 @@ import {
 } from "@/lib/arvision/spatial/intrinsics";
 import { isNavigationData, type NavigationData, type PeerState, type Quat, type Vec3 } from "@/lib/arvision/spatial/types";
 import referenceMap from "@/lib/arvision/spatial/referenceMap.json";
+import { bearingFromLocal, geoToLocal, type GeoAnchor } from "@/lib/arvision/spatial/geo";
+import { buildLiveMap } from "@/lib/arvision/spatial/liveMap";
+
 
 type Panel = "field" | "map" | "route" | "session" | "setup";
 type PoseSource = "none" | "camera positioning" | "placed by hand" | "live position";
