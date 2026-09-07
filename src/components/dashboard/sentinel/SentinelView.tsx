@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Check, Ear, HardDrive, Loader2, Mic, MicOff, Radio, Search, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Activity, AlertTriangle, Check, Download, Ear, HardDrive, History, Loader2, Mic, MicOff, Radio, Search, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { SentinelEngine, deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
-import { bufferStats, wipeLocal, DEFAULT_RETENTION_HOURS } from "@/lib/sentinel/audio/localBuffer";
+import { deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
+import {
+  bufferStats, deleteSession, listSessions, payloadsBetween, wipeLocal,
+  DEFAULT_RETENTION_HOURS, type RecordingSession,
+} from "@/lib/sentinel/audio/localBuffer";
+import { sentinelEngine, sentinelNotes, sentinelStatus, setSentinelSensitivity, subscribeSentinel } from "@/lib/sentinel/audio/engineSingleton";
 import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
-  ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
+  ackAlert, fetchAlerts, fetchEvent, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
   type AmbientAlert, type AmbientDevice, type AmbientEvent, type AmbientSpeaker,
 } from "@/lib/sentinel/audio/sync";
 import CompanionPanel from "./CompanionPanel";
@@ -26,7 +30,7 @@ import CompanionPanel from "./CompanionPanel";
  * record.
  */
 
-type Tab = "live" | "timeline" | "speakers" | "alerts" | "devices";
+type Tab = "live" | "timeline" | "speakers" | "alerts" | "history" | "devices";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 const chip = "rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/55";
@@ -36,14 +40,18 @@ const dayStamp = (iso: string) => new Date(iso).toLocaleDateString([], { month: 
 
 const SentinelView = () => {
   const { toast } = useToast();
-  const engineRef = useRef<SentinelEngine | null>(null);
-  const [status, setStatus] = useState<EngineStatus | null>(null);
+  const engine = sentinelEngine();
+  const [status, setStatus] = useState<EngineStatus | null>(() => sentinelStatus());
   const [tab, setTab] = useState<Tab>("live");
   const [events, setEvents] = useState<AmbientEvent[]>([]);
   const [speakers, setSpeakers] = useState<AmbientSpeaker[]>([]);
   const [devices, setDevices] = useState<AmbientDevice[]>([]);
   const [alerts, setAlerts] = useState<AmbientAlert[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string[]>(() => sentinelNotes());
+  const [sessions, setSessions] = useState<RecordingSession[]>([]);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [openAlert, setOpenAlert] = useState<string | null>(null);
+  const [incident, setIncident] = useState<{ alertId: string; loading: boolean; error: string | null; event: AmbientEvent | null; context: AmbientEvent[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -60,26 +68,24 @@ const SentinelView = () => {
     setNotes((prev) => (prev.includes(note) ? prev : [note, ...prev].slice(0, 6)));
   }, []);
 
-  const engine = useMemo(() => {
-    if (!engineRef.current) {
-      engineRef.current = new SentinelEngine({
-        onStatus: setStatus,
-        onNote: pushNote,
-        onIngest: (result) => {
-          if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
-          if (result.speakers?.length) {
-            setSpeakers((prev) => {
-              const map = new Map(prev.map((s) => [s.id, s]));
-              for (const s of result.speakers) map.set(s.id, s);
-              return [...map.values()].sort((a, b) => a.first_heard_at.localeCompare(b.first_heard_at));
-            });
-          }
-          if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
-        },
-      });
-    }
-    return engineRef.current;
-  }, [pushNote]);
+  // The engine is a module singleton, so leaving this room — or any other
+  // navigation inside the app — no longer ends the watch. This view only
+  // subscribes to it and unsubscribes on unmount.
+  useEffect(() => subscribeSentinel({
+    onStatus: setStatus,
+    onNote: pushNote,
+    onIngest: (result) => {
+      if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
+      if (result.speakers?.length) {
+        setSpeakers((prev) => {
+          const map = new Map(prev.map((s) => [s.id, s]));
+          for (const s of result.speakers) map.set(s.id, s);
+          return [...map.values()].sort((a, b) => a.first_heard_at.localeCompare(b.first_heard_at));
+        });
+      }
+      if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
+    },
+  }), [pushNote]);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -99,7 +105,7 @@ const SentinelView = () => {
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
       const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
       setSensitivity(sens);
-      engineRef.current?.setSensitivity(sens);
+      setSentinelSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
@@ -117,10 +123,11 @@ const SentinelView = () => {
     return () => window.clearInterval(tick);
   }, []);
 
-  // Release the microphone when the operator leaves the room. Holding a live
-  // stream behind a navigated-away view is exactly the behaviour this product
-  // must never exhibit.
-  useEffect(() => () => { void engineRef.current?.stop(); }, []);
+  // The watch is deliberately NOT stopped on unmount. Stopping here was the
+  // bug: opening another room killed a capture the operator had explicitly
+  // started. It now ends only on the stop control or when the tab itself dies,
+  // and the header says which of those is true at any moment.
+  useEffect(() => { void listSessions().then(setSessions); }, [tab]);
 
   const listening = status?.state === "listening";
 
@@ -147,7 +154,7 @@ const SentinelView = () => {
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
     setSensitivity(next.sensitivity);
-    engineRef.current?.setSensitivity(next.sensitivity);
+    setSentinelSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
@@ -168,6 +175,7 @@ const SentinelView = () => {
     { key: "timeline", label: "timeline", icon: Activity },
     { key: "speakers", label: "speakers", icon: Users },
     { key: "alerts", label: "alerts", icon: AlertTriangle },
+    { key: "history", label: "history", icon: History },
     { key: "devices", label: "devices", icon: HardDrive },
   ];
 
