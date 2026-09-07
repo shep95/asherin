@@ -11,8 +11,8 @@
 export type FilterMode = "clean" | "colorized" | "thermal" | "spectral" | "lowlight" | "edge";
 
 export const FILTER_MODES: Array<{ id: FilterMode; label: string; note: string }> = [
-  { id: "clean", label: "clean", note: "unmodified captured frame" },
-  { id: "colorized", label: "colorized", note: "the optical hud's working view — per-channel auto-levels, saturation and a light unsharp pass on the real pixels, so people, clothing and carried objects stay legible for a reviewer" },
+  { id: "clean", label: "optical", note: "unmodified optical frame straight off the sensor" },
+  { id: "colorized", label: "optical colorized", note: "the optical hud's working view — per-channel auto-levels, saturation and a light unsharp pass on the real pixels, so people, clothing and carried objects stay legible for a reviewer" },
   { id: "spectral", label: "spectral", note: "channel-ratio material map — living tissue, coated synthetics and wet surfaces separate; not a calibrated infrared band" },
   { id: "thermal", label: "thermal map", note: "visible-light luminance mapped to an iron palette — not an infrared temperature reading" },
   { id: "lowlight", label: "low light", note: "gain and gamma lift on the captured pixels — no detail is invented" },
