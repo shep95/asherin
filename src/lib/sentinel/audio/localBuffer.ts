@@ -14,10 +14,29 @@
 // and after every write, so a tab left open for a week does not grow forever.
 
 const DB_NAME = "asherin-sentinel-ambient";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const KEY_STORE = "keys";
 const SEG_STORE = "segments";
+const SESSION_STORE = "sessions";
 export const DEFAULT_RETENTION_HOURS = 72;
+
+/**
+ * A recording session: one continuous stretch between "start listening" and
+ * "stop listening". It is a ledger entry, not a copy of the audio — the audio
+ * lives in the segment store under the same retention window, and the account
+ * timeline holds the transcripts. The history list says plainly which of those
+ * two are still available for a given session rather than offering a download
+ * that would silently come back empty.
+ */
+export interface RecordingSession {
+  id: string;
+  startedAt: number;
+  endedAt: number | null;
+  deviceKey: string;
+  deviceLabel: string;
+  speechSegments: number;
+  soundSegments: number;
+}
 
 export interface BufferedSegment {
   id: string;
