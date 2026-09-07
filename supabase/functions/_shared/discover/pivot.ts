@@ -14,6 +14,10 @@ export interface PivotOptions {
   maxDepth: number;
   maxNodes: number;
   maxFanoutPerNode: number;
+  /** wall-clock epoch ms after which no further node is expanded. */
+  deadlineAt?: number;
+  /** surfaced so a resolver failure is reported, never silently absorbed. */
+  onResolverError?: (node: PivotNode, error: unknown) => void;
 }
 
 export const DEFAULT_PIVOT: PivotOptions = { maxDepth: 3, maxNodes: 40, maxFanoutPerNode: 8 };
