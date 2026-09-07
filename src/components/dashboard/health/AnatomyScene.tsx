@@ -109,26 +109,9 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     rim.position.set(2, 2, -3);
     scene.add(rim);
 
-    const platform = new T.Mesh(
-      new T.CylinderGeometry(0.68, 0.7, 0.02, 96),
-      new T.MeshStandardMaterial({ color: 0x14161b, metalness: 0.2, roughness: 0.8 }),
-    );
-    platform.position.y = -0.014;
-    scene.add(platform);
-    const ring = new T.Mesh(
-      new T.RingGeometry(0.63, 0.633, 128),
-      new T.MeshBasicMaterial({ color: 0xc8a96a, transparent: true, opacity: 0.35, side: T.DoubleSide }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.001;
-    scene.add(ring);
-    const innerRing = new T.Mesh(
-      new T.RingGeometry(0.55, 0.551, 128),
-      new T.MeshBasicMaterial({ color: 0x8e97a4, transparent: true, opacity: 0.14, side: T.DoubleSide }),
-    );
-    innerRing.rotation.x = -Math.PI / 2;
-    innerRing.position.y = 0.001;
-    scene.add(innerRing);
+    // no stage, no rings: the body floats in the room's own darkness.
+
+
 
     const width = T.MathUtils.ceilPowerOfTwo(Math.max(2, atlas.parts.length));
     const data = new Float32Array(width * 4);
