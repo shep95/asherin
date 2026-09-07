@@ -214,3 +214,31 @@ export function confidencePhrase(f: PhotoFinding): string {
   if (c >= 0.45) return "visible, but a photograph can only say so much";
   return "faint — this could easily be the light or the angle";
 }
+
+/**
+ * remove one photograph from a stored read-out.
+ *
+ * the findings that came from that photograph go with it — keeping a line whose
+ * evidence has been deleted would leave a claim on the record that nothing on
+ * the device can back up any more. every remaining finding's pointer is shifted
+ * so it still names the photograph it actually came from.
+ */
+export function dropPhotoFromRead(read: PhotoRead, index: number): PhotoRead | null {
+  if (index < 0 || index >= read.photos.length) return read;
+  const photos = read.photos.filter((_, i) => i !== index);
+  if (photos.length === 0) return null; // nothing left to have been read
+  const findings = read.findings
+    .filter((f) => f.photoIndex !== index)
+    .map((f) => (f.photoIndex > index ? { ...f, photoIndex: f.photoIndex - 1 } : f));
+  return { ...read, photos, findings };
+}
+
+/** replace the photograph a stored line was read from, and say the reading is stale. */
+export function replacePhotoInRead(read: PhotoRead, index: number, photo: PhotoInRead): PhotoRead {
+  if (index < 0 || index >= read.photos.length) return read;
+  const photos = read.photos.map((p, i) => (i === index ? { ...photo, id: p.id } : p));
+  // the swapped image was never the one the model looked at, so any line that
+  // pointed at it loses its evidence rather than silently inheriting a new one.
+  const findings = read.findings.filter((f) => f.photoIndex !== index);
+  return { ...read, photos, findings };
+}

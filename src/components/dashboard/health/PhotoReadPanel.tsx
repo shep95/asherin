@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Eye, ImagePlus, Loader2, MessageSquareQuote, Sparkles, Trash2, X } from "lucide-react";
+import { Eye, ImagePlus, Loader2, MessageSquareQuote, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -11,10 +11,12 @@ import {
   CATEGORY_LABEL,
   SEVERITY_LABEL,
   confidencePhrase,
+  dropPhotoFromRead,
   groupFindings,
   needsClinician,
   normaliseRead,
   quoteFinding,
+  replacePhotoInRead,
   suggestedSystems,
   type PhotoInRead,
   type PhotoRead,
@@ -85,6 +87,10 @@ export default function PhotoReadPanel({ record, persist, resolveByok, onAsk, on
   const [openId, setOpenId] = useState<string | null>(null);
   const [askDraft, setAskDraft] = useState<Record<string, string>>({});
   const fileInput = useRef<HTMLInputElement>(null);
+  const swapInput = useRef<HTMLInputElement>(null);
+  // which staged photo, or which photograph inside which stored read-out, the
+  // next file picked should stand in for.
+  const [swapTarget, setSwapTarget] = useState<{ kind: "staged"; id: string } | { kind: "read"; readId: string; index: number } | null>(null);
 
   const reads = record.photoReads ?? [];
   const latest = reads[0];
@@ -148,8 +154,62 @@ export default function PhotoReadPanel({ record, persist, resolveByok, onAsk, on
     }
   };
 
+  const applySwap = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file || !swapTarget) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("that file is not an image. jpeg, png or webp.");
+      return;
+    }
+    try {
+      const next = await fileToPhoto(file);
+      if (swapTarget.kind === "staged") {
+        setPhotos((list) => list.map((x) => (x.id === swapTarget.id ? { ...next, id: x.id } : x)));
+        toast.message("photograph swapped.");
+      } else {
+        const target = reads.find((r) => r.id === swapTarget.readId);
+        if (!target) return;
+        const updated = replacePhotoInRead(target, swapTarget.index, next);
+        persist({ ...record, photoReads: reads.map((r) => (r.id === updated.id ? updated : r)) });
+        toast.message("photograph replaced — the lines read from the old one were removed with it.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "that photograph could not be opened.");
+    } finally {
+      setSwapTarget(null);
+    }
+  };
+
+  const pickSwap = (target: NonNullable<typeof swapTarget>) => {
+    setSwapTarget(target);
+    swapInput.current?.click();
+  };
+
+  const removeReadPhoto = (readId: string, index: number) => {
+    const target = reads.find((r) => r.id === readId);
+    if (!target) return;
+    const updated = dropPhotoFromRead(target, index);
+    persist({
+      ...record,
+      photoReads: updated
+        ? reads.map((r) => (r.id === readId ? updated : r))
+        : reads.filter((r) => r.id !== readId),
+    });
+    toast.message(updated ? "photograph deleted, along with the lines read from it." : "that was the last photograph, so the read-out went with it.");
+  };
+
   return (
     <div className="space-y-4">
+      <input
+        ref={swapInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          void applySwap(e.target.files);
+          e.target.value = "";
+        }}
+      />
       <div>
         <p className="text-[11px] font-light leading-relaxed text-foreground/55">
           hand over photographs and say what you want looked at. the read-out comes back in plain words, every line tied to the
@@ -186,13 +246,24 @@ export default function PhotoReadPanel({ record, persist, resolveByok, onAsk, on
             {photos.map((p) => (
               <div key={p.id} className="group relative overflow-hidden rounded-lg border border-white/10">
                 <img src={p.dataUrl} alt={p.label} className="h-16 w-full object-cover" />
-                <button
-                  onClick={() => setPhotos((list) => list.filter((x) => x.id !== p.id))}
-                  className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-foreground/70 opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label={`remove ${p.label}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                <div className="absolute right-0.5 top-0.5 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                  <button
+                    onClick={() => pickSwap({ kind: "staged", id: p.id })}
+                    className="rounded-full bg-black/70 p-0.5 text-foreground/70 hover:text-foreground"
+                    aria-label={`replace ${p.label}`}
+                    title="replace this photograph"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => setPhotos((list) => list.filter((x) => x.id !== p.id))}
+                    className="rounded-full bg-black/70 p-0.5 text-foreground/70 hover:text-foreground"
+                    aria-label={`remove ${p.label}`}
+                    title="remove this photograph"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -220,6 +291,36 @@ export default function PhotoReadPanel({ record, persist, resolveByok, onAsk, on
           </div>
 
           {latest.summary && <p className="text-[11px] font-light leading-relaxed text-foreground/75">{latest.summary}</p>}
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {latest.photos.map((p, i) => (
+              <div key={p.id} className="group relative overflow-hidden rounded-lg border border-white/10">
+                <img src={p.dataUrl} alt={p.label} className="h-16 w-full object-cover" />
+                <div className="absolute right-0.5 top-0.5 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                  <button
+                    onClick={() => pickSwap({ kind: "read", readId: latest.id, index: i })}
+                    className="rounded-full bg-black/70 p-0.5 text-foreground/70 hover:text-foreground"
+                    aria-label={`replace ${p.label}`}
+                    title="replace this photograph"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => removeReadPhoto(latest.id, i)}
+                    className="rounded-full bg-black/70 p-0.5 text-foreground/70 hover:text-foreground"
+                    aria-label={`delete ${p.label}`}
+                    title="delete this photograph"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] font-light leading-relaxed text-foreground/40">
+            deleting a photograph also removes the lines that were read from it — a finding with no image behind it is a claim
+            nothing can back up.
+          </p>
 
           <div className="flex flex-wrap gap-1.5">
             {suggestedSystems(latest).length > 0 && (
@@ -335,10 +436,20 @@ export default function PhotoReadPanel({ record, persist, resolveByok, onAsk, on
         <div className="space-y-1 border-t border-white/[0.06] pt-3">
           <p className="text-[10px] uppercase tracking-[0.16em] text-foreground/35">earlier read-outs</p>
           {reads.slice(1).map((r) => (
-            <p key={r.id} className="text-[10px] font-light text-foreground/45">
-              {new Date(r.createdAt).toLocaleDateString()} · {r.photos.length} photo{r.photos.length > 1 ? "s" : ""} ·{" "}
-              {r.findings.length} finding{r.findings.length > 1 ? "s" : ""}
-            </p>
+            <div key={r.id} className="flex items-center gap-2">
+              <p className="flex-1 text-[10px] font-light text-foreground/45">
+                {new Date(r.createdAt).toLocaleDateString()} · {r.photos.length} photo{r.photos.length > 1 ? "s" : ""} ·{" "}
+                {r.findings.length} finding{r.findings.length > 1 ? "s" : ""}
+              </p>
+              <button
+                onClick={() => persist({ ...record, photoReads: reads.filter((x) => x.id !== r.id) })}
+                className="rounded-full p-1 text-foreground/40 hover:text-foreground/80"
+                aria-label="delete this read-out"
+                title="delete this read-out"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
           ))}
         </div>
       )}

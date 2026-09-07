@@ -35,3 +35,5 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] tile border flashes white/black 5 times and holds until acknowledged when a pattern is captured
 - [ ] thermal is a sensor path, not a filter: pick a real thermal video stream when the device exposes one, calibrate raw -> temperature -> palette; visible-light version stays labelled an estimate
 - [ ] pop-out gallery rail: every feed/filter/camera live at once, switchable, screenshot on detection
+
+- [x] asherin.health photos: replace or delete an uploaded image and its reading
