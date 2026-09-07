@@ -14,13 +14,12 @@ import type { HealthPanelProps } from "@/lib/health/panel";
 import type { ReferenceSex } from "@/lib/health/store";
 import { DEEP_GROUPS, DEEP_STRUCTURES, type DeepStructure } from "@/lib/health/deepAnatomy";
 import {
-  CEREBRAL_VASCULAR_TERRITORIES,
-  DERMATOMES,
-  LYMPHATIC_DRAINAGE,
-  MYOTOMES,
-  ORGAN_ZONES,
-  searchRegional,
-  type RegionalEntry,
+  FUNCTIONAL_MAPS,
+  MAP_KIND_LABELS,
+  MAP_KIND_ORDER,
+  mapsByKind,
+  searchMaps,
+  type FunctionalMapEntry,
 } from "@/lib/health/maps";
 import { DEVELOPMENTAL_VARIANTS, EMBRYOLOGY } from "@/lib/health/embryology";
 import { MICROBIOME_LIMITS, MICROBIOME_SITES, microbiomeUserNotes } from "@/lib/health/microbiome";
@@ -88,23 +87,25 @@ function RegionalList({
   onOpen,
 }: {
   title: string;
-  entries: RegionalEntry[];
-  onOpen: (e: RegionalEntry) => void;
+  entries: FunctionalMapEntry[];
+  onOpen: (e: FunctionalMapEntry) => void;
 }) {
+  if (entries.length === 0) return null;
   return (
     <div className="space-y-2">
       <p className="text-[10px] uppercase tracking-[0.22em] text-foreground/35">{title}</p>
       <div className="space-y-1.5">
         {entries.map((e) => {
-          const notes = structureNotes(e.territoryKeys);
+          const notes = [...structureNotes(e.territoryKeys), e.geometryNote];
           return (
             <button
-              key={e.id}
+              key={e.key}
               onClick={() => onOpen(e)}
               className="w-full space-y-1 rounded-xl border border-white/[0.06] bg-white/[0.03] p-2.5 text-left transition hover:border-white/[0.12] hover:bg-white/[0.05]"
             >
               <p className="text-[11px] font-light text-foreground/80">{e.label}</p>
-              <p className="text-[10px] font-light leading-relaxed text-foreground/45">{e.detail}</p>
+              <p className="text-[10px] font-light leading-relaxed text-foreground/45">{e.description}</p>
+              <p className="text-[9px] font-light italic text-foreground/30">source: {e.source}</p>
               <GeometryNote notes={notes} />
             </button>
           );
@@ -152,11 +153,11 @@ export default function DeepAnatomyPanel({ record, persist, onEvent, onSelectTer
   }, [referenceSex]);
 
   const mapsQuery = query.trim();
-  const dermatomes = useMemo(() => searchRegional(DERMATOMES, mapsQuery), [mapsQuery]);
-  const myotomes = useMemo(() => searchRegional(MYOTOMES, mapsQuery), [mapsQuery]);
-  const vascular = useMemo(() => searchRegional(CEREBRAL_VASCULAR_TERRITORIES, mapsQuery), [mapsQuery]);
-  const lymphatic = useMemo(() => searchRegional(LYMPHATIC_DRAINAGE, mapsQuery), [mapsQuery]);
-  const zones = useMemo(() => searchRegional(ORGAN_ZONES, mapsQuery), [mapsQuery]);
+  const mapGroups = useMemo(
+    () => MAP_KIND_ORDER.map((kind) => ({ kind, label: MAP_KIND_LABELS[kind], entries: searchMaps(mapsByKind(kind), mapsQuery) })),
+    [mapsQuery],
+  );
+  const totalMapMatches = useMemo(() => searchMaps(FUNCTIONAL_MAPS, mapsQuery).length, [mapsQuery]);
 
   const notes = microbiomeUserNotes(record.exposures, record.nutrition);
 
@@ -256,31 +257,22 @@ export default function DeepAnatomyPanel({ record, persist, onEvent, onSelectTer
         <TabsContent value="maps" className="mt-3">
           <ScrollArea className="h-[420px] pr-2">
             <div className="space-y-5">
-              <RegionalList
-                title="dermatomes — skin sensation by spinal level"
-                entries={dermatomes}
-                onOpen={(e) => openTerritories(e.territoryKeys, `show the ${e.label} dermatome. ${e.detail} what would loss of sensation there suggest?`)}
-              />
-              <RegionalList
-                title="myotomes — muscle groups by spinal level"
-                entries={myotomes}
-                onOpen={(e) => openTerritories(e.territoryKeys, `show the ${e.label} myotome. ${e.detail} what would weakness there suggest?`)}
-              />
-              <RegionalList
-                title="cerebral vascular territories"
-                entries={vascular}
-                onOpen={(e) => openTerritories(e.territoryKeys, `show the ${e.label} territory. ${e.detail}`)}
-              />
-              <RegionalList
-                title="lymphatic drainage"
-                entries={lymphatic}
-                onOpen={(e) => openTerritories(e.territoryKeys, `show lymphatic drainage from the ${e.label}. ${e.detail}`)}
-              />
-              <RegionalList
-                title="organ zones"
-                entries={zones}
-                onOpen={(e) => openTerritories(e.territoryKeys, `show the ${e.label}. ${e.detail}`)}
-              />
+              {totalMapMatches === 0 && (
+                <p className="py-6 text-center text-[11px] font-light text-foreground/35">nothing matches that search.</p>
+              )}
+              {mapGroups.map((group) => (
+                <RegionalList
+                  key={group.kind}
+                  title={group.label}
+                  entries={group.entries}
+                  onOpen={(e) =>
+                    openTerritories(
+                      e.territoryKeys,
+                      `show the ${e.label} (${MAP_KIND_LABELS[e.kind]}). ${e.description} this follows the convention: ${e.source}.`,
+                    )
+                  }
+                />
+              ))}
             </div>
           </ScrollArea>
         </TabsContent>

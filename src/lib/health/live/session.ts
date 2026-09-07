@@ -35,6 +35,8 @@ export interface SessionSnapshot {
   events: SessionEvent[];
   contacts: Record<string, SignalContact>;
   metrics: RollingMetrics;
+  /** metrics frozen from the pre-session baseline window; null until a baseline was captured. */
+  baseline: RollingMetrics | null;
 }
 
 const CONTACT_QUALITY_FLOOR = 0.2;
@@ -50,6 +52,10 @@ export class LiveSession {
   private breathHistory: number[] = [];
   private eegStateHistory: string[] = [];
   private tremorHistory: number[] = [];
+  private baselineBpmHistory: number[] = [];
+  private baselineRrHistory: number[] = [];
+  private baselineBreathHistory: number[] = [];
+  private baselineSnapshot: RollingMetrics | null = null;
 
   getSnapshot(): SessionSnapshot {
     return {
@@ -59,6 +65,18 @@ export class LiveSession {
       events: [...this.events],
       contacts: Object.fromEntries(this.contacts),
       metrics: this.rollingMetrics(),
+      baseline: this.baselineSnapshot,
+    };
+  }
+
+  private captureBaselineSnapshot(): void {
+    if (this.baselineBpmHistory.length === 0 && this.baselineRrHistory.length < 4 && this.baselineBreathHistory.length === 0) return;
+    this.baselineSnapshot = {
+      bpm: this.baselineBpmHistory.length ? this.baselineBpmHistory[this.baselineBpmHistory.length - 1] : null,
+      rmssd: this.baselineRrHistory.length >= 4 ? computeHrv(this.baselineRrHistory).rmssd : null,
+      breathsPerMinute: this.baselineBreathHistory.length ? this.baselineBreathHistory[this.baselineBreathHistory.length - 1] : null,
+      eegState: null,
+      tremorHz: null,
     };
   }
 
@@ -93,6 +111,7 @@ export class LiveSession {
 
   start(): void {
     if (this.state === "ended") return;
+    if (this.state === "baseline") this.captureBaselineSnapshot();
     if (!this.startedAt) this.startedAt = new Date().toISOString();
     this.transition("recording");
   }
@@ -124,6 +143,12 @@ export class LiveSession {
 
   pushHeart(bpm: number, rr: number[]): void {
     if (this.state !== "recording" && this.state !== "baseline") return;
+    if (this.state === "baseline") {
+      this.baselineBpmHistory.push(bpm);
+      if (this.baselineBpmHistory.length > 200) this.baselineBpmHistory.shift();
+      for (const v of rr) this.baselineRrHistory.push(v);
+      if (this.baselineRrHistory.length > 500) this.baselineRrHistory.splice(0, this.baselineRrHistory.length - 500);
+    }
     this.bpmHistory.push(bpm);
     if (this.bpmHistory.length > 500) this.bpmHistory.shift();
     for (const v of rr) this.rrHistory.push(v);
@@ -132,6 +157,10 @@ export class LiveSession {
 
   pushBreath(breathsPerMinute: number): void {
     if (this.state !== "recording" && this.state !== "baseline") return;
+    if (this.state === "baseline") {
+      this.baselineBreathHistory.push(breathsPerMinute);
+      if (this.baselineBreathHistory.length > 200) this.baselineBreathHistory.shift();
+    }
     this.breathHistory.push(breathsPerMinute);
     if (this.breathHistory.length > 200) this.breathHistory.shift();
   }
@@ -185,6 +214,11 @@ export class LiveSession {
     const lostEvents = this.events.filter((e) => e.kind === "contact-lost").length;
     if (lostEvents > 0) summaryParts.push(`contact was lost and regained ${lostEvents} time(s) during the session.`);
 
+    const baseline: Record<string, number> = {};
+    if (this.baselineSnapshot?.bpm !== null && this.baselineSnapshot?.bpm !== undefined) baseline.bpm = this.baselineSnapshot.bpm;
+    if (this.baselineSnapshot?.rmssd !== null && this.baselineSnapshot?.rmssd !== undefined) baseline.rmssd = this.baselineSnapshot.rmssd;
+    if (this.baselineSnapshot?.breathsPerMinute !== null && this.baselineSnapshot?.breathsPerMinute !== undefined) baseline.breathsPerMinute = this.baselineSnapshot.breathsPerMinute;
+
     const record: LiveSessionRecord = {
       id: newId("live"),
       startedAt: this.startedAt ?? endedAt,
@@ -192,6 +226,7 @@ export class LiveSession {
       mode: this.mode,
       sources,
       metrics,
+      baseline,
       events: this.events.map((e) => ({ at: e.at, kind: e.kind, detail: e.detail })),
       summary: summaryParts.join(" "),
     };

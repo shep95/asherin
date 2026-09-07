@@ -66,6 +66,8 @@ export interface LiveSessionRecord {
   /** which signals actually had a device behind them for this session. */
   sources: string[];
   metrics: Record<string, number>;
+  /** metrics captured during the pre-session baseline window, before recording began. */
+  baseline: Record<string, number>;
   events: { at: string; kind: string; detail: string }[];
   summary: string;
 }
