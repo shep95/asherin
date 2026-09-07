@@ -24,8 +24,17 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef(state);
   const select = useRef(onSelect);
+  // progress/error are reported through refs. the parent re-renders on every
+  // percent tick, and if the effect depended on those callbacks the whole
+  // renderer would be torn down and the atlas re-fetched mid-load — that was
+  // the body flickering in and out and never finishing.
+  const progressRef = useRef(onProgress);
+  const errorRef = useRef(onError);
   latest.current = state;
   select.current = onSelect;
+  progressRef.current = onProgress;
+  errorRef.current = onError;
+
 
   useEffect(() => {
     const el = host.current;
@@ -47,7 +56,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     try {
       renderer = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     } catch {
-      onError("this browser could not start the 3d view. try a browser with webgl enabled.");
+      errorRef.current("this browser could not start the 3d view. try a browser with webgl enabled.");
       return;
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 768 ? 1.5 : 2));
@@ -70,10 +79,20 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     controls.dampingFactor = 0.085;
     controls.minDistance = 0.07;
     controls.maxDistance = 40;
-    controls.maxPolarAngle = Math.PI * 0.96;
+    // full freedom: orbit through any direction, pan in screen space, and dolly
+    // toward whatever the pointer is over rather than the scene centre.
+    controls.maxPolarAngle = Math.PI;
+    controls.minPolarAngle = 0;
+    controls.screenSpacePanning = true;
+    controls.zoomToCursor = true;
+    controls.panSpeed = 0.9;
+    controls.zoomSpeed = 0.9;
+    controls.mouseButtons = { LEFT: T.MOUSE.ROTATE, MIDDLE: T.MOUSE.DOLLY, RIGHT: T.MOUSE.PAN };
+    controls.touches = { ONE: T.TOUCH.ROTATE, TWO: T.TOUCH.DOLLY_PAN };
     controls.addEventListener("change", () => {
       dirty = true;
     });
+
 
     const pmrem = new T.PMREMGenerator(renderer);
     const room = new RoomEnvironment();
@@ -90,26 +109,9 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     rim.position.set(2, 2, -3);
     scene.add(rim);
 
-    const platform = new T.Mesh(
-      new T.CylinderGeometry(0.68, 0.7, 0.02, 96),
-      new T.MeshStandardMaterial({ color: 0x14161b, metalness: 0.2, roughness: 0.8 }),
-    );
-    platform.position.y = -0.014;
-    scene.add(platform);
-    const ring = new T.Mesh(
-      new T.RingGeometry(0.63, 0.633, 128),
-      new T.MeshBasicMaterial({ color: 0xc8a96a, transparent: true, opacity: 0.35, side: T.DoubleSide }),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.001;
-    scene.add(ring);
-    const innerRing = new T.Mesh(
-      new T.RingGeometry(0.55, 0.551, 128),
-      new T.MeshBasicMaterial({ color: 0x8e97a4, transparent: true, opacity: 0.14, side: T.DoubleSide }),
-    );
-    innerRing.rotation.x = -Math.PI / 2;
-    innerRing.position.y = 0.001;
-    scene.add(innerRing);
+    // no stage, no rings: the body floats in the room's own darkness.
+
+
 
     const width = T.MathUtils.ceilPowerOfTwo(Math.max(2, atlas.parts.length));
     const data = new Float32Array(width * 4);
@@ -223,11 +225,29 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     const mats = new Map(SYSTEMS.map((s) => [s.id, materialFor(s.id)]));
 
     let loaded = 0;
-    const loadChunk = async (ci: number) => {
+    let failed = 0;
+    const fetchChunk = async (ci: number) => {
       const chunk = atlas.chunks[ci];
       const compressed = !!chunk.gzip && typeof DecompressionStream !== "undefined";
-      const response = await fetch(compressed ? chunk.gzip! : chunk.url, { signal: abort.signal });
-      const buffer = await decodeModelResponse(response, chunk.bytes, compressed);
+      // three attempts: a single dropped chunk used to reject the whole load and
+      // leave a half-built body on screen with no way back.
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await fetch(compressed ? chunk.gzip! : chunk.url, { signal: abort.signal, cache: "force-cache" });
+          if (!response.ok) throw new Error(`chunk ${ci} responded ${response.status}`);
+          return await decodeModelResponse(response, chunk.bytes, compressed);
+        } catch (e) {
+          if (abort.signal.aborted || disposed) throw e;
+          lastErr = e;
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        }
+      }
+      throw lastErr instanceof Error ? lastErr : new Error(`chunk ${ci} could not be read`);
+    };
+
+    const loadChunk = async (ci: number) => {
+      const buffer = await fetchChunk(ci);
       if (disposed) return;
       const groups = new Map<string, T.BufferGeometry[]>();
       atlas.parts.forEach((p, i) => {
@@ -257,30 +277,38 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         scene.add(mesh);
       });
       lastState = null;
-      loaded++;
-      onProgress(Math.round((loaded / atlas.chunks.length) * 100));
       dirty = true;
     };
 
     void (async () => {
-      try {
-        let cursor = 0;
-        await Promise.all(
-          Array.from({ length: 3 }, async () => {
-            while (cursor < atlas.chunks.length) {
-              const i = cursor++;
-              await loadChunk(i);
-            }
-          }),
-        );
-        if (!disposed) {
-          ready = true;
-          dirty = true;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < atlas.chunks.length && !disposed) {
+          const i = cursor++;
+          try {
+            await loadChunk(i);
+            loaded++;
+          } catch (e) {
+            if (disposed || abort.signal.aborted) return;
+            failed++;
+            console.warn("[health] anatomy chunk failed", i, e);
+          }
+          progressRef.current(Math.round(((loaded + failed) / atlas.chunks.length) * 100));
         }
-      } catch (e) {
-        if (!disposed && !abort.signal.aborted) onError(e instanceof Error ? e.message : "the anatomy could not be loaded.");
+      };
+      await Promise.all(Array.from({ length: 3 }, worker));
+      if (disposed || abort.signal.aborted) return;
+      ready = true;
+      dirty = true;
+      if (failed > 0) {
+        errorRef.current(
+          loaded === 0
+            ? "the anatomy could not be loaded. check your connection and reload the room."
+            : `${failed} of ${atlas.chunks.length} sections of the body did not download. what loaded is shown; reload the room to try the rest.`,
+        );
       }
     })();
+
 
     const fit = (view: string, extent = 0) => {
       const mobile = el.clientWidth < 768;
@@ -501,10 +529,12 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         lastIsolate = isolateKey;
       }
 
-      controls.enableRotate = amount < 0.8;
-      controls.mouseButtons.LEFT = amount < 0.8 ? T.MOUSE.ROTATE : T.MOUSE.PAN;
-      controls.touches.ONE = amount < 0.8 ? T.TOUCH.ROTATE : T.TOUCH.PAN;
-      platform.visible = ring.visible = innerRing.visible = amount < 0.5 && !s.isolate;
+      // rotation stays available at every explosion extent; the flat layout is
+      // still reachable because right-drag pans and the wheel dollies to cursor.
+      controls.enableRotate = true;
+      controls.mouseButtons.LEFT = T.MOUSE.ROTATE;
+      controls.touches.ONE = T.TOUCH.ROTATE;
+
       markers.visible = amount > 0.75;
       controls.autoRotate = s.rotate && !s.isolate && amount < 0.4;
       controls.autoRotateSpeed = 0.6;
@@ -557,7 +587,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
 
     const contextLost = (e: Event) => {
       e.preventDefault();
-      onError("the 3d session was paused by your device. reload the room to continue.");
+      errorRef.current("the 3d session was paused by your device. reload the room to continue.");
     };
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
 
@@ -586,7 +616,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [atlas, onError, onProgress]);
+  }, [atlas]);
 
   return <div className="health-scene absolute inset-0" ref={host} />;
 }

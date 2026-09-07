@@ -8,8 +8,10 @@ import {
   Download,
   Eye,
   EyeOff,
+  ClipboardList,
   Layers,
   Leaf,
+  PersonStanding,
   Loader2,
   Pill,
   Radar,
@@ -71,13 +73,46 @@ import {
 } from "@/lib/health/signals";
 import { EMPTY_RECORD, clearRecord, exportRecord, importRecord, loadRecord, newId, recordCount, saveRecord, type HealthRecord } from "@/lib/health/store";
 
-const AnatomyScene = lazy(() => import("./AnatomyScene"));
+import { supabase } from "@/integrations/supabase/client";
+import HealthAssistant from "./HealthAssistant";
+import { describeEstimate } from "@/lib/health/bodyModel";
 
-type Panel = "atlas" | "record" | "pain" | "herbs" | "signals" | "findings";
+const AnatomyScene = lazy(() => import("./AnatomyScene"));
+const BodyModelPanel = lazy(() => import("./BodyModelPanel"));
+
+/** the room runs on the person's own model key when they have one, exactly like every other asherin surface. */
+async function resolveByok(): Promise<Record<string, string> | undefined> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return undefined;
+    const { data: pref } = await supabase
+      .from("user_model_preferences" as never)
+      .select("active_provider, active_model")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const provider = (pref as { active_provider?: string } | null)?.active_provider;
+    const model = (pref as { active_model?: string } | null)?.active_model;
+    if (!provider || provider === "default" || !model || model === "default") return undefined;
+    const { data: keyRow } = await supabase
+      .from("user_api_keys" as never)
+      .select("api_key")
+      .eq("user_id", user.id)
+      .eq("provider", provider)
+      .eq("is_active", true)
+      .maybeSingle();
+    const apiKey = (keyRow as { api_key?: string } | null)?.api_key;
+    return apiKey ? { provider, model, apiKey } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+type Panel = "atlas" | "body" | "record" | "pain" | "herbs" | "signals" | "findings";
 
 const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
-  { id: "atlas", label: "atlas", icon: Boxes },
-  { id: "record", label: "record", icon: Layers },
+  { id: "atlas", label: "layers", icon: Layers },
+  { id: "body", label: "body model", icon: PersonStanding },
+  { id: "record", label: "record", icon: ClipboardList },
   { id: "pain", label: "pain", icon: Crosshair },
   { id: "herbs", label: "herbs", icon: Leaf },
   { id: "signals", label: "live", icon: Radar },
@@ -120,6 +155,8 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const [rotate, setRotate] = useState(false);
   const [reset, setReset] = useState(0);
   const [query, setQuery] = useState("");
+  const [assistantTrigger, setAssistantTrigger] = useState<string | null>(null);
+  const painCount = useRef<number | null>(null);
   const [activeLayers, setActiveLayers] = useState<LayerId[]>([
     "lab",
     "medication",
@@ -221,11 +258,89 @@ export default function AsherinHealthView({ userId = null }: Props) {
 
   const redFlags = useMemo(() => findings.filter((f) => f.redFlag), [findings]);
 
+  // the assistant sees a compact reading of the same record the room is drawing
+  // from — nothing else, so it can never answer from something invented.
+  const assistantContext = useMemo(() => {
+    const lines: string[] = [];
+    const solve = record.body.solves.length ? record.body.solves[record.body.solves.length - 1] : null;
+    if (solve) {
+      lines.push(
+        `body model: chest ${describeEstimate(solve.vector.chestCm, "cm")}, waist ${describeEstimate(solve.vector.waistCm, "cm")}, ` +
+          `hips ${describeEstimate(solve.vector.hipCm, "cm")}, bmi ${describeEstimate(solve.vector.bmi, "")}, ` +
+          `body fat ${describeEstimate(solve.vector.bodyFatPercent, "%")} (photo estimates carry a range; measured values do not).`,
+      );
+    }
+    if (record.pain.length) {
+      lines.push(
+        "pain reports: " +
+          record.pain
+            .slice(-6)
+            .map((p) => `${p.partName ?? "unspecified region"} — ${Object.entries(p.answers).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join("/") : v}`).join(", ")}`)
+            .join("; "),
+      );
+    }
+    if (record.labs.length) lines.push("bloodwork: " + record.labs.map((l) => `${l.key} ${l.value}`).join(", "));
+    if (record.medications.length) lines.push("medications: " + record.medications.map((m) => m.name).join(", "));
+    if (record.symptoms.length) lines.push("symptoms: " + record.symptoms.map((x) => `${x.symptomKey} ${x.severity}/10`).join(", "));
+    if (record.herbs.length) lines.push("herbs in use: " + record.herbs.join(", "));
+    if (record.observations.length) {
+      lines.push(
+        "visible readings: " +
+          record.observations
+            .slice(-8)
+            .map((o) => `${o.region}/${o.feature} — ${o.detail} (${o.clinicalRelevance})`)
+            .join("; "),
+      );
+    }
+    if (heart) lines.push(`live heart: ${Math.round(heart.bpm)} bpm`);
+    if (findings.length) lines.push("current read-out: " + findings.slice(0, 12).map((f) => `${f.label} — ${f.detail}`).join("; "));
+    if (selectedParts.length) lines.push("currently looking at: " + selectedParts.map((p) => p.name).join(", "));
+    return lines.join("\n");
+  }, [record, heart, findings, selectedParts]);
+
+  // a new pain report speaks for itself: the assistant is raised without asking.
+  useEffect(() => {
+    // the first pass only takes a reading of what was already saved: loading a
+    // stored record is not the person reporting something new.
+    if (painCount.current === null) {
+      painCount.current = record.pain.length;
+      return;
+    }
+    if (record.pain.length > painCount.current) {
+      const latest = record.pain[record.pain.length - 1];
+      const answers = Object.entries(latest?.answers ?? {})
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join("/") : v}`)
+        .join(", ");
+      setAssistantTrigger(
+        `i just recorded pain in ${latest?.partName ?? "an unspecified region"}${answers ? ` — ${answers}` : ""}. ` +
+          "tell me what that region carries, what tends to make it worse or better, and what would make this urgent.",
+      );
+    }
+    painCount.current = record.pain.length;
+  }, [record.pain]);
+
   const toggleSystem = (id: SystemId) =>
     setVisible((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
   const selectPart = (id: string) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+    setSelected((prev) => {
+      const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+      // opening a structure is a question in itself, so the assistant answers it
+      // without the person having to type the name back out.
+      if (!prev.includes(id)) {
+        const part = partById.get(id);
+        if (part) {
+          const related = findingsForPart(id);
+          setAssistantTrigger(
+            `i just opened ${part.name} (${part.system}) on the body.` +
+              (related.length
+                ? ` my record already points here: ${related.map((f) => f.label).join(", ")}. what does that mean together?`
+                : " nothing in my record points here yet — what does this structure do, and what would make it matter?"),
+          );
+        }
+      }
+      return next;
+    });
     setPanel("atlas");
   };
 
@@ -377,6 +492,17 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   clearSelection={() => setSelected([])}
                 />
               )}
+              {panel === "body" && (
+                <Suspense
+                  fallback={
+                    <p className="flex items-center gap-2 text-[11px] font-light text-foreground/45">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> opening the body model
+                    </p>
+                  }
+                >
+                  <BodyModelPanel record={record} persist={persist} resolveByok={resolveByok} onEvent={setAssistantTrigger} />
+                </Suspense>
+              )}
               {panel === "record" && <RecordPanel record={record} persist={persist} />}
               {panel === "pain" && (
                 <PainPanel
@@ -457,19 +583,26 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   loading anatomy · {progress}%
                 </div>
               )}
-              <div className="pointer-events-none absolute bottom-3 left-4 right-4 flex items-end justify-between gap-4">
-                <p className="max-w-[46ch] text-[10px] font-light leading-relaxed text-foreground/35">{ATLAS_ATTRIBUTION}</p>
-                {highlights.length > 0 && (
-                  <p className="text-[10px] font-light text-foreground/45">{highlights.length} territories painted from your record</p>
-                )}
-              </div>
+              {highlights.length > 0 && (
+                <p className="pointer-events-none absolute bottom-3 right-4 text-[10px] font-light text-foreground/40">
+                  {highlights.length} territories painted from your record
+                </p>
+              )}
             </>
           )}
         </main>
 
-        <aside className="hidden w-[330px] shrink-0 flex-col border-l border-white/[0.06] xl:flex">
-          <ScrollArea className="flex-1">
-            <div className="space-y-4 p-4">
+        <aside className="hidden w-[360px] shrink-0 flex-col gap-3 border-l border-white/[0.06] p-3 xl:flex">
+          <div className="h-[52%] min-h-[260px] shrink-0">
+            <HealthAssistant
+              context={assistantContext}
+              trigger={assistantTrigger}
+              onTriggerHandled={() => setAssistantTrigger(null)}
+              resolveByok={resolveByok}
+            />
+          </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-4 pr-2">
               <SectionTitle>selection</SectionTitle>
               {selectedParts.length === 0 ? (
                 <p className="text-[11px] font-light leading-relaxed text-foreground/45">
@@ -624,9 +757,12 @@ function AtlasPanel(props: {
       )}
 
       {props.atlas && (
-        <p className="text-[10px] font-light leading-relaxed text-foreground/30">
-          {props.atlas.parts.length.toLocaleString()} structures · {props.atlas.triangles.toLocaleString()} triangles
-        </p>
+        <div className="space-y-1 border-t border-white/[0.06] pt-3">
+          <p className="text-[10px] font-light leading-relaxed text-foreground/30">
+            {props.atlas.parts.length.toLocaleString()} structures · {props.atlas.triangles.toLocaleString()} triangles
+          </p>
+          <p className="text-[9px] font-light leading-relaxed text-foreground/25">{ATLAS_ATTRIBUTION}</p>
+        </div>
       )}
     </div>
   );
