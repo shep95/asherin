@@ -264,6 +264,7 @@ function bootArvision(wrap, root, emitPull) {
   const pipLabel = $("piplabel");
   const swColor = $("swcolor");
   const swSpec = $("swspec");
+  const swTherm = $("swtherm");
 
   // the spectral pass runs on a small copy of the frame and is blown back up.
   // reading pixels is the expensive part, so the analysis buffer stays small and
@@ -434,9 +435,12 @@ function bootArvision(wrap, root, emitPull) {
     c2d.restore();
   }
 
-  function buildSpectral(src) {
+  // shared downsample + readback for the filtered views. returns null when the
+  // frame is not drawable yet (camera still warming up) or the readback is
+  // blocked — the callers treat that as "keep last frame", never as an error.
+  function readFrame(src) {
     const [vw, vh] = videoSize(src);
-    if (!vw || !vh) return false;
+    if (!vw || !vh) return null;
     const aw = Math.max(96, Math.round(S.specW));
     const ah = Math.max(72, Math.round((aw * vh) / vw));
     if (specSrc.width !== aw || specSrc.height !== ah) {
@@ -445,13 +449,40 @@ function bootArvision(wrap, root, emitPull) {
       specOut.width = aw;
       specOut.height = ah;
     }
-    let img;
     try {
       specSrcCtx.drawImage(src, 0, 0, aw, ah);
-      img = specSrcCtx.getImageData(0, 0, aw, ah);
+      return { img: specSrcCtx.getImageData(0, 0, aw, ah), aw, ah };
     } catch (_) {
-      return false;
+      return null;
     }
+  }
+
+  // iron palette — the same ramp real thermal imagers use, so anyone who has
+  // used one reads this frame correctly: black cold, through purple and red,
+  // to white hot. precomputed once; the per-pixel pass is then a table lookup.
+  const IRON = (() => {
+    const stops = [
+      [0, 0, 4],
+      [62, 8, 96],
+      [186, 26, 62],
+      [255, 128, 0],
+      [255, 226, 110],
+      [255, 255, 250],
+    ];
+    const lut = new Uint8ClampedArray(256 * 3);
+    for (let i = 0; i < 256; i++) {
+      const t = (i / 255) * (stops.length - 1);
+      const s = Math.min(stops.length - 2, Math.floor(t));
+      const f = t - s;
+      for (let c = 0; c < 3; c++) lut[i * 3 + c] = stops[s][c] + (stops[s + 1][c] - stops[s][c]) * f;
+    }
+    return lut;
+  })();
+
+  function buildSpectral(src) {
+    const fr = readFrame(src);
+    if (!fr) return false;
+    const { img, aw, ah } = fr;
     const d = img.data;
     const n = aw * ah;
     const lum = new Float32Array(n);
