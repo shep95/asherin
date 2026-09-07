@@ -1,16 +1,13 @@
-import AzplenView from "@/components/dashboard/azplen/AzplenView";
+import AsherinDataView from "@/components/dashboard/data/AsherinDataView";
 
 /**
- * Asher's mount of the Azplen Intelligence Suite.
- * Reuses the live Azplen system (ingest, ontology, AIP, workflows, etc.)
- * unchanged — the same 'asha_' database backend powers it here.
+ * Asher's mount of asherin.data — the same data intelligence room the main
+ * dashboard serves, so both surfaces stay in step.
  */
-const AsherAzplenModule = () => {
-  return (
-    <div className="h-full w-full bg-background">
-      <AzplenView />
-    </div>
-  );
-};
+const AsherAzplenModule = () => (
+  <div className="h-full w-full bg-background">
+    <AsherinDataView />
+  </div>
+);
 
 export default AsherAzplenModule;
