@@ -79,8 +79,23 @@ export default function BodyModelPanel({ record, persist, resolveByok, onEvent }
   const deltas = useMemo(() => surfaceDeltas(record.observations), [record.observations]);
   const lesions = useMemo(() => lesionTracks(record.observations), [record.observations]);
 
+  // fields are controlled and committed as they are typed: saving only on blur
+  // left a person staring at a number that had visibly changed nothing.
   const setMeasurement = (patch: Partial<BodyMeasurements>) =>
     persist({ ...record, body: { ...body, measurements: { ...measurements, ...patch } } });
+
+  // the room carried two separate ideas of sex — this panel's, and the deep
+  // anatomy reference. changing one and not the other meant a person set
+  // "female" here and kept a male reference body everywhere else.
+  const setSex = (sex: Sex) =>
+    persist({
+      ...record,
+      body: { ...body, measurements: { ...measurements, sex } },
+      settings:
+        sex === "unspecified"
+          ? record.settings
+          : { ...record.settings, referenceSex: sex },
+    });
 
   const capture = async (view: BodyView, file: File | null) => {
     if (!file) return;
@@ -248,9 +263,6 @@ export default function BodyModelPanel({ record, persist, resolveByok, onEvent }
             ["chestCm", "chest cm"],
             ["neckCm", "neck cm"],
           ] as [keyof BodyMeasurements, string][]).map(([key, label]) => (
-            // controlled, and committed as it is typed: an uncontrolled field
-            // that only saved on blur made the figure look inert while a person
-            // watched their own number sit there doing nothing.
             <Input
               key={key}
               type="number"
