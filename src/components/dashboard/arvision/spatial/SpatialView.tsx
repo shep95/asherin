@@ -791,8 +791,12 @@ const SpatialView = () => {
               {mapError && <p className="text-[11px] font-light text-white/70">{mapError}</p>}
               <p className="text-[11px] font-light text-white/40">
                 {graph.data.waypoints.length} waypoints · {graph.getPOIs().length} destinations ·{" "}
-                {graph.data.paths.length} precomputed routes · spacing {graph.data.waypointSpacing}m
+                {graph.data.paths.length > 0
+                  ? `${graph.data.paths.length} precomputed routes`
+                  : "routes solved on demand"}{" "}
+                · spacing {graph.data.waypointSpacing}m
               </p>
+
             </div>
 
             <div className={`${card} space-y-3 p-4`}>
