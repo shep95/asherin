@@ -576,6 +576,17 @@ const SpatialView = () => {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={liveOn ? chipOn : chip}
+                onClick={() => (liveOn ? stopLive() : void startLive())}
+                disabled={liveBusy}
+              >
+                <span className="flex items-center gap-1.5">
+                  {liveBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Satellite className="h-3.5 w-3.5" />}
+                  {liveBusy ? "getting a fix" : liveOn ? "live position on" : "go live here"}
+                </span>
+              </button>
               <button type="button" className={chip} onClick={() => void enableHeading()}>
                 <span className="flex items-center gap-1.5">
                   <Compass className="h-3.5 w-3.5" />
@@ -598,10 +609,21 @@ const SpatialView = () => {
                 <span className="text-[11px] font-light text-white/45">compass not available on this device</span>
               )}
             </div>
+            {liveOn && (
+              <p className="text-[11px] font-light text-white/55">
+                fix accuracy {fixAccuracy !== null ? `${fixAccuracy.toFixed(0)}m` : "unreported"}
+                {fixAt ? ` · updated ${new Date(fixAt).toLocaleTimeString()}` : ""}
+                {speedMs !== null ? ` · ${(speedMs * 3.6).toFixed(1)} km/h` : ""}
+                {anchor ? ` · anchor ${anchor.lat.toFixed(5)}, ${anchor.lon.toFixed(5)}` : ""}
+              </p>
+            )}
+            {liveNote && <p className="text-[11px] font-light leading-relaxed text-white/50">{liveNote}</p>}
             <p className="text-[11px] font-light leading-relaxed text-white/45">
-              tap the plan to place yourself on the nearest walkable point. camera positioning replaces this the moment the
-              map service is configured.
+              go live builds the walkable map around wherever you actually are and tracks you on it from the device
+              receiver. tap the plan to place yourself by hand instead. camera positioning refines the fix once the map
+              service is configured.
             </p>
+
           </div>
         )}
 
