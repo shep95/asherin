@@ -298,3 +298,67 @@ describe("camera wall ordering", () => {
     expect(rankTiles(tiles, {}).map((t) => t.deviceId)).toEqual(["a", "b", "d", "c"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// passive radio observation — advertisements only, no connection anywhere
+// ---------------------------------------------------------------------------
+import {
+  mergeSighting, motionFromHistory, radioFingerprint, readAdvertisement,
+  pruneSightings, vendorForCompanyId, displayName, metersFromRssi,
+} from "../radioScan";
+
+describe("passive radio scan", () => {
+  const adv = (over: Record<string, unknown> = {}) =>
+    readAdvertisement({
+      device: { id: "abc123", name: "Pixel 8" },
+      rssi: -55,
+      txPower: -12,
+      uuids: ["0000180f-0000-1000-8000-00805f9b34fb"],
+      manufacturerData: new Map([[0x00e0, new DataView(new ArrayBuffer(2))]]),
+      ...over,
+    } as never, 1_000);
+
+  it("reads a name, id and vendor straight off the advertisement", () => {
+    const r = adv();
+    expect(r.id).toBe("abc123");
+    expect(r.name).toBe("Pixel 8");
+    expect(vendorForCompanyId(r.companyId)).toBe("Google");
+  });
+
+  it("names an unnamed radio by vendor rather than inventing one", () => {
+    const s = mergeSighting(undefined, { ...adv({ device: { id: "x" }, name: null }), name: null });
+    expect(displayName(s)).toContain("Google");
+  });
+
+  it("estimates a distance band from signal strength, never a fix", () => {
+    expect(metersFromRssi(-59, -59)).toBe(1);
+    expect(metersFromRssi(null, null)).toBeNull();
+  });
+
+  it("keeps one entry per radio and counts its packets", () => {
+    let s = mergeSighting(undefined, adv());
+    s = mergeSighting(s, adv({ rssi: -57 }));
+    expect(s.packets).toBe(2);
+    expect(s.firstSeenMs).toBe(1_000);
+  });
+
+  it("calls a flat signal set down, and a rising one closing", () => {
+    expect(motionFromHistory([-60, -60, -61, -60, -60, -60])).toBe("stationary");
+    expect(motionFromHistory([-80, -78, -70, -62, -58, -55])).toBe("approaching");
+    expect(motionFromHistory([-55])).toBe("unknown");
+  });
+
+  it("gives matching published traits the same hint and different traits a different one", () => {
+    const a = radioFingerprint({ name: "Pixel 8", companyId: 0x00e0, services: ["a", "b"], appearance: 1 });
+    const b = radioFingerprint({ name: "Pixel 8", companyId: 0x00e0, services: ["b", "a"], appearance: 1 });
+    const c = radioFingerprint({ name: "Tile", companyId: 0x01d7, services: [], appearance: null });
+    expect(a).toBe(b);
+    expect(a).not.toBe(c);
+  });
+
+  it("ages a radio out when it stops advertising instead of holding it on screen", () => {
+    const s = mergeSighting(undefined, adv());
+    expect(pruneSightings([s], 1_000 + 10_000)).toHaveLength(1);
+    expect(pruneSightings([s], 1_000 + 60_000)).toHaveLength(0);
+  });
+});
