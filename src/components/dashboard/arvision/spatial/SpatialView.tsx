@@ -159,6 +159,11 @@ const SpatialView = () => {
   }, [voiceOn]);
 
   useEffect(() => {
+    headingRef.current = headingSensor;
+  }, [headingSensor]);
+
+
+  useEffect(() => {
     let cancelled = false;
     getVpsStatus()
       .then((status) => {
