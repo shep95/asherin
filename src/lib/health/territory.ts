@@ -112,10 +112,10 @@ export interface ResolvedTerritory {
 
 export type TerritoryIndex = Map<string, ResolvedTerritory>;
 
-export function resolveTerritories(atlas: Atlas): TerritoryIndex {
+export function resolveTerritories(atlas: Atlas, extra: TerritoryDef[] = []): TerritoryIndex {
   const index: TerritoryIndex = new Map();
   const parts = atlas.parts.map((p) => ({ id: p.id, name: p.name.toLowerCase(), system: p.system }));
-  for (const def of TERRITORIES) {
+  for (const def of [...TERRITORIES, ...extra]) {
     const matchers = def.match.filter((m) => m.length > 0);
     const partIds = parts
       .filter((p) => {
@@ -147,6 +147,13 @@ export function missingTerritories(index: TerritoryIndex | null, keys: string[])
   return keys.filter((k) => index.get(k)?.missing !== false).map((k) => index.get(k)?.label ?? k);
 }
 
+let labelExtra: TerritoryDef[] = [];
+
+/** the room registers the extended catalogue once so labels resolve everywhere. */
+export function registerTerritoryDefs(defs: TerritoryDef[]): void {
+  labelExtra = defs;
+}
+
 export function territoryLabel(key: string): string {
-  return TERRITORIES.find((t) => t.key === key)?.label ?? key;
+  return TERRITORIES.find((t) => t.key === key)?.label ?? labelExtra.find((t) => t.key === key)?.label ?? key;
 }

@@ -25,6 +25,7 @@ import { callByokJson, type ZophielByokConfig } from "../_shared/zophielByokRout
 
 const MAX_IMAGE_BYTES = 6_000_000;
 const MAX_IMAGES = 4;
+const MAX_LABS_DOC_BYTES = 8_000_000;
 
 interface ImageIn {
   view?: string;
@@ -94,6 +95,24 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
   }
   throw new Error(`vision unavailable: ${last}`);
 }
+
+
+const LABS_PROMPT = `you are reading a photograph or pdf page of a laboratory report to extract structured values only.
+
+return every analyte you can read clearly. for each one:
+key    — a short lowercase snake_case identifier for the analyte (e.g. "hemoglobin", "ldl_cholesterol", "vitamin_d")
+label  — the analyte name as printed on the report
+value  — the numeric result as printed (do not convert units)
+unit   — the unit exactly as printed, if present
+refLow, refHigh — the printed reference range bounds, if present
+collectedAt — the collection or report date in ISO 8601 if printed, otherwise omit
+
+list anything you could not read confidently (blurry, cut off, ambiguous) in "unreadable" as short plain descriptions, rather than guessing a value.
+
+never infer a value that is not printed. never diagnose.
+
+STRICT JSON:
+{"values":[{"key":"hemoglobin","label":"Hemoglobin","value":13.2,"unit":"g/dL","refLow":13.5,"refHigh":17.5,"collectedAt":"2024-03-01"}],"unreadable":["bottom row of the metabolic panel was cut off"]}`;
 
 const BODY_PROMPT = `you are reading guided body photographs to extract silhouette geometry. you are not judging the person and you are not diagnosing.
 
@@ -203,6 +222,45 @@ Deno.serve(async (req) => {
       const parsed = extractJson(raw);
       if (!parsed?.observations) return json({ error: "that photograph could not be read. move closer, in even light." }, 502, cors);
       return json({ observations: parsed.observations, summary: parsed.summary ?? "", limits: parsed.limits ?? "" }, 200, cors);
+    }
+
+    if (action === "labs.read") {
+      const doc = body?.document;
+      const mime = typeof doc?.mime === "string" ? doc.mime : "";
+      const b64 = typeof doc?.b64 === "string" ? doc.b64 : "";
+      if (!b64 || b64.length < 64) return json({ error: "no image or pdf was supplied." }, 400, cors);
+      if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(mime)) {
+        return json({ error: "that file type is not supported — send a jpeg, png, webp or pdf." }, 400, cors);
+      }
+      if (b64.length * 0.75 > MAX_LABS_DOC_BYTES) {
+        return json({ error: "that file is too large. the room shrinks images before sending — try a smaller export or a single page." }, 413, cors);
+      }
+      if (!geminiKey) {
+        return json(
+          { error: "reading a lab document needs a vision key. add your own model key in settings, and this runs on your key alone." },
+          402,
+          cors,
+        );
+      }
+      const raw = await callGemini(geminiKey, LABS_PROMPT, [{ mime, b64 }], 3072);
+      const parsed = extractJson(raw);
+      if (!parsed?.values) return json({ error: "that document could not be read into values. try a clearer photo or a single page." }, 502, cors);
+      const values = Array.isArray(parsed.values)
+        ? parsed.values
+            .slice(0, 60)
+            .map((v: any) => ({
+              key: typeof v?.key === "string" ? v.key.slice(0, 60) : "",
+              label: typeof v?.label === "string" ? v.label.slice(0, 120) : "",
+              value: Number(v?.value),
+              unit: typeof v?.unit === "string" ? v.unit.slice(0, 20) : undefined,
+              refLow: Number.isFinite(Number(v?.refLow)) ? Number(v.refLow) : undefined,
+              refHigh: Number.isFinite(Number(v?.refHigh)) ? Number(v.refHigh) : undefined,
+              collectedAt: typeof v?.collectedAt === "string" ? v.collectedAt.slice(0, 40) : undefined,
+            }))
+            .filter((v: any) => v.key && Number.isFinite(v.value))
+        : [];
+      const unreadable = Array.isArray(parsed.unreadable) ? parsed.unreadable.slice(0, 20).map((u: any) => String(u).slice(0, 200)) : [];
+      return json({ values, unreadable }, 200, cors);
     }
 
     if (action === "assist") {

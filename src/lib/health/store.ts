@@ -9,10 +9,71 @@ import type { SymptomEntry } from "./symptoms";
 import type { BodyModelState } from "./bodyModel";
 import { EMPTY_BODY_MODEL } from "./bodyModel";
 import type { SurfaceObservation } from "./surface";
+import type { Finding } from "./model";
+
+/** which reference body the room draws and reasons against. */
+export type ReferenceSex = "male" | "female";
+
+export interface HealthSettings {
+  referenceSex: ReferenceSex;
+  /** plain language by default; anatomical shows the formal terms alongside. */
+  detailLevel: "plain" | "anatomical";
+  /** life phase used by the aging layer. null means "use my age if it is known". */
+  lifePhase: string | null;
+}
+
+export const DEFAULT_SETTINGS: HealthSettings = {
+  referenceSex: "male",
+  detailLevel: "plain",
+  lifePhase: null,
+};
+
+/** a saved reading of the whole record at a moment, so change can be shown over time. */
+export interface TimelineSnapshot {
+  id: string;
+  at: string;
+  label: string;
+  note?: string;
+  findings: Finding[];
+  metrics: Record<string, number>;
+}
+
+/** an imported wearable/continuous series. every point carries the source it came from. */
+export interface WearableSeries {
+  id: string;
+  kind:
+    | "hrv"
+    | "resting-heart-rate"
+    | "sleep"
+    | "spo2"
+    | "glucose"
+    | "steps"
+    | "temperature"
+    | "respiration"
+    | "weight";
+  source: string;
+  unit: string;
+  points: { t: string; v: number; tag?: string }[];
+  importedAt: string;
+}
+
+/** one recorded live-sensor session (device contact only — never synthesised). */
+export interface LiveSessionRecord {
+  id: string;
+  startedAt: string;
+  endedAt: string;
+  mode: "focus" | "rest" | "meditation" | "sleep" | "open";
+  /** which signals actually had a device behind them for this session. */
+  sources: string[];
+  metrics: Record<string, number>;
+  events: { at: string; kind: string; detail: string }[];
+  summary: string;
+}
 
 export interface HealthRecord {
   version: 1;
   updatedAt: string;
+  settings: HealthSettings;
   labs: LabValue[];
   medications: MedicationEntry[];
   genes: GeneEntry[];
@@ -27,11 +88,15 @@ export interface HealthRecord {
   body: BodyModelState;
   /** visible-surface readings tracked against the person's own baseline. */
   observations: SurfaceObservation[];
+  snapshots: TimelineSnapshot[];
+  wearables: WearableSeries[];
+  sessions: LiveSessionRecord[];
 }
 
 export const EMPTY_RECORD: HealthRecord = {
   version: 1,
   updatedAt: new Date(0).toISOString(),
+  settings: DEFAULT_SETTINGS,
   labs: [],
   medications: [],
   genes: [],
@@ -44,7 +109,11 @@ export const EMPTY_RECORD: HealthRecord = {
   herbs: [],
   body: EMPTY_BODY_MODEL,
   observations: [],
+  snapshots: [],
+  wearables: [],
+  sessions: [],
 };
+
 
 const KEY_PREFIX = "asherin.health.record";
 
@@ -65,7 +134,11 @@ export function loadRecord(scope: string | null): HealthRecord {
       ...EMPTY_RECORD,
       ...parsed,
       body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+      settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
       observations: parsed.observations ?? [],
+      snapshots: parsed.snapshots ?? [],
+      wearables: parsed.wearables ?? [],
+      sessions: parsed.sessions ?? [],
       version: 1,
     };
   } catch {
@@ -105,7 +178,11 @@ export function importRecord(text: string): { record: HealthRecord | null; error
         ...EMPTY_RECORD,
         ...parsed,
         body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+        settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
         observations: parsed.observations ?? [],
+        snapshots: parsed.snapshots ?? [],
+        wearables: parsed.wearables ?? [],
+        sessions: parsed.sessions ?? [],
         version: 1,
       },
       error: null,
@@ -128,6 +205,9 @@ export function recordCount(record: HealthRecord): number {
     record.symptoms.length +
     record.herbs.length +
     record.observations.length +
+    record.snapshots.length +
+    record.wearables.length +
+    record.sessions.length +
     record.body.solves.length
   );
 }

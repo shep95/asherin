@@ -42,7 +42,8 @@ import {
   type SystemId,
   type View,
 } from "@/lib/health/atlas";
-import { resolveTerritories, TERRITORIES, type TerritoryIndex } from "@/lib/health/territory";
+import { registerTerritoryDefs, resolveTerritories, TERRITORIES, type TerritoryIndex } from "@/lib/health/territory";
+import { EXTRA_TERRITORIES } from "@/lib/health/territoryExtra";
 import { findingHighlights, sortFindings, type Finding, type LayerId } from "@/lib/health/model";
 import { LAB_DEFS, labDef, labFindings, parseLabText } from "@/lib/health/labs";
 import { DRUG_DEFS, drugInteractions, findDrug, medicationFindings } from "@/lib/health/medications";
@@ -79,6 +80,14 @@ import { describeEstimate } from "@/lib/health/bodyModel";
 
 const AnatomyScene = lazy(() => import("./AnatomyScene"));
 const BodyModelPanel = lazy(() => import("./BodyModelPanel"));
+const DeepAnatomyPanel = lazy(() => import("./DeepAnatomyPanel"));
+const IntakePanel = lazy(() => import("./IntakePanel"));
+const FunctionalPanel = lazy(() => import("./FunctionalPanel"));
+const TimelinePanel = lazy(() => import("./TimelinePanel"));
+const LiveSensingPanel = lazy(() => import("./LiveSensingPanel"));
+const PainStudioPanel = lazy(() => import("./PainStudioPanel"));
+const HerbalPanel = lazy(() => import("./HerbalPanel"));
+const SharePanel = lazy(() => import("./SharePanel"));
 
 /** the room runs on the person's own model key when they have one, exactly like every other asherin surface. */
 async function resolveByok(): Promise<Record<string, string> | undefined> {
@@ -107,16 +116,33 @@ async function resolveByok(): Promise<Record<string, string> | undefined> {
   }
 }
 
-type Panel = "atlas" | "body" | "record" | "pain" | "herbs" | "signals" | "findings";
+type Panel =
+  | "atlas"
+  | "deep"
+  | "body"
+  | "record"
+  | "intake"
+  | "pain"
+  | "herbs"
+  | "functional"
+  | "timeline"
+  | "signals"
+  | "share"
+  | "findings";
 
 const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
   { id: "atlas", label: "layers", icon: Layers },
+  { id: "deep", label: "anatomy", icon: Boxes },
   { id: "body", label: "body model", icon: PersonStanding },
   { id: "record", label: "record", icon: ClipboardList },
+  { id: "intake", label: "intake", icon: Upload },
   { id: "pain", label: "pain", icon: Crosshair },
   { id: "herbs", label: "herbs", icon: Leaf },
+  { id: "functional", label: "systems", icon: Activity },
+  { id: "timeline", label: "over time", icon: RotateCcw },
   { id: "signals", label: "live", icon: Radar },
-  { id: "findings", label: "read-out", icon: Activity },
+  { id: "share", label: "share", icon: Download },
+  { id: "findings", label: "read-out", icon: Eye },
 ];
 
 const LAYER_LABEL: Record<LayerId, string> = {
@@ -156,6 +182,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const [reset, setReset] = useState(0);
   const [query, setQuery] = useState("");
   const [assistantTrigger, setAssistantTrigger] = useState<string | null>(null);
+  const [panelHighlights, setPanelHighlights] = useState<AtlasHighlight[]>([]);
   const painCount = useRef<number | null>(null);
   const [activeLayers, setActiveLayers] = useState<LayerId[]>([
     "lab",
@@ -212,7 +239,15 @@ export default function AsherinHealthView({ userId = null }: Props) {
     [],
   );
 
-  const territories: TerritoryIndex | null = useMemo(() => (atlas ? resolveTerritories(atlas) : null), [atlas]);
+  useEffect(() => {
+    // the extended catalogue has to be registered before any panel asks for a label.
+    registerTerritoryDefs(EXTRA_TERRITORIES);
+  }, []);
+
+  const territories: TerritoryIndex | null = useMemo(
+    () => (atlas ? resolveTerritories(atlas, EXTRA_TERRITORIES) : null),
+    [atlas],
+  );
   const partById = useMemo(() => new Map((atlas?.parts ?? []).map((p) => [p.id, p])), [atlas]);
 
   const findings: Finding[] = useMemo(() => {
@@ -232,7 +267,25 @@ export default function AsherinHealthView({ userId = null }: Props) {
     return sortFindings(all.filter((f) => activeLayers.includes(f.layer)));
   }, [record, heart, motion, activeLayers]);
 
-  const highlights: AtlasHighlight[] = useMemo(() => findingHighlights(findings, territories), [findings, territories]);
+  const highlights: AtlasHighlight[] = useMemo(
+    () => [...findingHighlights(findings, territories), ...panelHighlights],
+    [findings, territories, panelHighlights],
+  );
+
+  /** one way for any panel to ask the body to look somewhere, with an honest miss. */
+  const focusTerritories = useCallback(
+    (keys: string[]) => {
+      if (!territories) return;
+      const ids = keys.flatMap((k) => territories.get(k)?.partIds ?? []);
+      if (ids.length === 0) {
+        toast.message("that territory is not represented in the reference geometry.");
+        return;
+      }
+      setSelected(ids.slice(0, 60));
+      setIsolate(true);
+    },
+    [territories],
+  );
 
   const sceneState: SceneState = useMemo(
     () => ({ explode, visible, selected, isolate, view, rotate, reset, highlights }),
@@ -504,27 +557,74 @@ export default function AsherinHealthView({ userId = null }: Props) {
                 </Suspense>
               )}
               {panel === "record" && <RecordPanel record={record} persist={persist} />}
-              {panel === "pain" && (
-                <PainPanel
-                  record={record}
-                  persist={persist}
-                  selectedParts={selectedParts}
-                  territories={territories}
-                />
-              )}
-              {panel === "herbs" && <HerbPanel record={record} persist={persist} />}
-              {panel === "signals" && (
-                <SignalPanel
-                  capabilities={capabilities}
-                  heart={heart}
-                  motion={motion}
-                  bleName={bleName}
-                  bleBusy={bleBusy}
-                  motionRunning={motionRunning}
-                  startHeart={startHeart}
-                  stopHeart={stopHeart}
-                  startMotion={startMotion}
-                />
+              {panel !== "atlas" && panel !== "body" && panel !== "record" && panel !== "findings" && (
+                <Suspense
+                  fallback={
+                    <p className="flex items-center gap-2 text-[11px] font-light text-foreground/45">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> opening this layer
+                    </p>
+                  }
+                >
+                  {panel === "deep" && (
+                    <DeepAnatomyPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onSelectTerritories={focusTerritories}
+                    />
+                  )}
+                  {panel === "intake" && (
+                    <IntakePanel record={record} persist={persist} onEvent={setAssistantTrigger} resolveByok={resolveByok} />
+                  )}
+                  {panel === "pain" && (
+                    <PainStudioPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onHighlights={setPanelHighlights}
+                    />
+                  )}
+                  {panel === "herbs" && (
+                    <HerbalPanel
+                      record={record}
+                      persist={persist}
+                      onEvent={setAssistantTrigger}
+                      onHighlights={setPanelHighlights}
+                    />
+                  )}
+                  {panel === "functional" && (
+                    <FunctionalPanel
+                      record={record}
+                      persist={persist}
+                      onHighlights={setPanelHighlights}
+                      onSelectTerritories={focusTerritories}
+                    />
+                  )}
+                  {panel === "timeline" && <TimelinePanel record={record} persist={persist} onEvent={setAssistantTrigger} />}
+                  {panel === "signals" && (
+                    <div className="space-y-4">
+                      <LiveSensingPanel
+                        record={record}
+                        persist={persist}
+                        onEvent={setAssistantTrigger}
+                        onHighlights={setPanelHighlights}
+                      />
+                      <Separator className="bg-white/[0.06]" />
+                      <SignalPanel
+                        capabilities={capabilities}
+                        heart={heart}
+                        motion={motion}
+                        bleName={bleName}
+                        bleBusy={bleBusy}
+                        motionRunning={motionRunning}
+                        startHeart={startHeart}
+                        stopHeart={stopHeart}
+                        startMotion={startMotion}
+                      />
+                    </div>
+                  )}
+                  {panel === "share" && <SharePanel record={record} persist={persist} onEvent={setAssistantTrigger} />}
+                </Suspense>
               )}
               {panel === "findings" && (
                 <FindingsPanel
@@ -532,16 +632,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
                   activeLayers={activeLayers}
                   setActiveLayers={setActiveLayers}
                   territories={territories}
-                  onFocus={(keys) => {
-                    if (!territories) return;
-                    const ids = keys.flatMap((k) => territories.get(k)?.partIds ?? []);
-                    if (ids.length === 0) {
-                      toast.message("that territory is not represented in the reference geometry.");
-                      return;
-                    }
-                    setSelected(ids.slice(0, 60));
-                    setIsolate(true);
-                  }}
+                  onFocus={focusTerritories}
                 />
               )}
             </div>
