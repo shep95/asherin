@@ -11,7 +11,9 @@
 import type { CaptureContext } from "./context";
 import { contextLine } from "./context";
 import { FILTER_MODES, filteredCanvas, type FilterMode } from "./filters";
+import { proximityBand, type BleLink } from "./cameras";
 import type { PatternCategory, ThreatEvent, ThreatTier } from "./engine";
+
 
 export interface EvidenceVariant {
   key: string;
@@ -33,6 +35,7 @@ export interface EvidenceRecord {
   reason: string;
   context: CaptureContext;
   variants: EvidenceVariant[];
+  radio: BleLink[];
   reviewState: "unreviewed" | "confirmed" | "dismissed";
   reviewNote: string;
   reviewedAtMs: number | null;
@@ -44,8 +47,65 @@ export const EVIDENCE_DISCLAIMER = [
   "it does not identify people, does not read faces or biometrics, and does not establish intent, wrongdoing, or guilt.",
   "a pattern score is a prompt for a human to look — never a conclusion, and never a substitute for one.",
   "the thermal variant is a luminance mapping of visible light, not an infrared temperature measurement.",
+  "bluetooth radios listed in this package were in range of the recording device at capture time. presence in range is not proof that any person in frame is carrying that radio, and any distance figure is a coarse signal-strength estimate, not a measurement.",
   "fields recorded as unavailable or denied were genuinely not obtainable at capture time and were not estimated.",
 ].join(" ");
+
+/** a printable card of the radios in range at capture time. it is rendered as
+ * an image so it travels in the same package, hashes like the frames, and is
+ * legible on paper. it prints what the radio said about itself and nothing
+ * more — no owner, no attribution, no inference about the person in frame. */
+export function renderRadioCanvas(radio: BleLink[], width: number, headerLines: string[]): HTMLCanvasElement {
+  const w = Math.max(560, Math.min(1280, Math.round(width)));
+  const scale = w / 900;
+  const pad = Math.round(28 * scale);
+  const line = Math.round(21 * scale);
+  const rowLines = 4;
+  const rows = Math.max(1, radio.length);
+  const h = Math.round(pad * 2 + headerLines.length * line + line * 1.6 + rows * (rowLines * line + line * 0.9));
+
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  if (!ctx) return c;
+  ctx.fillStyle = "#08080a";
+  ctx.fillRect(0, 0, w, h);
+  let y = pad + line;
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.font = `${Math.round(17 * scale)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  ctx.fillText("bluetooth radios in range at capture", pad, y);
+  y += line * 1.4;
+  ctx.font = `${Math.round(13 * scale)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  for (const l of headerLines) { ctx.fillText(l, pad, y); y += line; }
+  y += line * 0.5;
+
+  if (radio.length === 0) {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("no bluetooth radio was paired or observable from this device at capture time.", pad, y);
+    y += line;
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillText("absence here means nothing was observable to a browser — not that no radio was present.", pad, y);
+    return c;
+  }
+
+  for (const r of radio) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillText(`• ${r.name}`, pad, y);
+    y += line;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText(`  make ${r.manufacturer ?? "not published"} · model ${r.model ?? "not published"} · firmware ${r.firmware ?? "not published"}`, pad, y);
+    y += line;
+    ctx.fillText(`  battery ${r.batteryPercent !== null ? `${r.batteryPercent}%` : "not published"} · rssi ${r.rssi !== null ? `${r.rssi} dBm` : "not reported"} · ${r.proximityMeters !== null ? `~${r.proximityMeters} m — ${proximityBand(r.proximityMeters)}` : proximityBand(null)}`, pad, y);
+    y += line;
+    ctx.fillStyle = "rgba(255,255,255,0.42)";
+    ctx.fillText(`  handle ${r.id.slice(0, 24)} · last seen ${new Date(r.lastSeenMs).toISOString()} · presence only, not attribution`, pad, y);
+    y += line * 1.9;
+  }
+  return c;
+}
+
 
 export async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
@@ -80,15 +140,21 @@ export interface BuildEvidenceInput {
   context: CaptureContext;
   cameraLabel: string;
   filters?: FilterMode[];
+  radio?: BleLink[];
 }
 
 export async function buildEvidence(input: BuildEvidenceInput): Promise<EvidenceRecord> {
   const { event, frame, context, cameraLabel } = input;
-  const filters = input.filters ?? ["thermal", "lowlight", "edge"];
+  const filters = input.filters ?? ["colorized", "thermal", "spectral", "lowlight", "edge"];
+  const radio = input.radio ?? [];
+  const radioLine = radio.length
+    ? `radios in range: ${radio.map((r) => `${r.name}${r.manufacturer ? ` (${r.manufacturer})` : ""}${r.rssi !== null ? ` ${r.rssi}dBm` : ""}`).join(" · ")} — presence only, not attribution`
+    : "radios in range: none observable to this device at capture";
   const stampLines = [
     `eagle.eye · ${cameraLabel} · event ${event.eventId} · track ${event.trackId}`,
     contextLine(context),
     `pattern tier ${event.threatTier} score ${event.threatScore} · observable patterns only, not an identification or a finding of intent`,
+    radioLine,
   ];
 
   const variants: EvidenceVariant[] = [];
@@ -104,7 +170,7 @@ export async function buildEvidence(input: BuildEvidenceInput): Promise<Evidence
     variants.push({
       key: "annotated",
       label: "annotated frame",
-      note: "bounding box, track id, tier and triggered patterns drawn over the captured frame",
+      note: "bounding box, track id, tier and triggered patterns drawn over the captured frame; the radios in range are printed in the provenance strip and in the radio card",
       dataUrl: input.annotatedDataUrl,
       sha256: await sha256Hex(input.annotatedDataUrl),
     });
@@ -114,6 +180,16 @@ export async function buildEvidence(input: BuildEvidenceInput): Promise<Evidence
     const meta = FILTER_MODES.find((m) => m.id === mode);
     await push(mode, meta?.label ?? mode, meta?.note ?? "", stampCanvas(filteredCanvas(frame, mode), stampLines));
   }
+
+  await push(
+    "radio",
+    "bluetooth radios in range",
+    "every bluetooth radio this device could observe at capture time, with whatever the radio published about itself. presence in range is not proof that a person in frame is carrying it.",
+    renderRadioCanvas(radio, frame.width, [
+      `${cameraLabel} · event ${event.eventId}`,
+      contextLine(context),
+    ]),
+  );
 
   return {
     recordId: `evd_${event.eventId}`,
@@ -127,12 +203,14 @@ export async function buildEvidence(input: BuildEvidenceInput): Promise<Evidence
     reason: event.naturalLanguageReason,
     context,
     variants,
+    radio,
     reviewState: "unreviewed",
     reviewNote: "",
     reviewedAtMs: null,
     createdAtMs: Date.now(),
   };
 }
+
 
 export function manifestFor(record: EvidenceRecord) {
   return {
@@ -159,7 +237,29 @@ export function manifestFor(record: EvidenceRecord) {
       ipStatus: record.context.ipStatus,
       ipSource: record.context.ipSource,
     },
+    radioContacts: {
+      observationBasis: "web bluetooth on the recording device — paired and advertising radios only",
+      attribution: "none. a radio observed in range is not evidence that any person in frame owns or carries it.",
+      distanceBasis: "coarse log-distance estimate from signal strength; attenuation by bodies, bags and walls changes it by metres.",
+      devices: (record.radio ?? []).map((r) => ({
+        handle: r.id,
+        name: r.name,
+        manufacturer: r.manufacturer,
+        model: r.model,
+        firmware: r.firmware,
+        serial: r.serial,
+        batteryPercent: r.batteryPercent,
+        rssiDbm: r.rssi,
+        txPowerDbm: r.txPower,
+        estimatedMeters: r.proximityMeters,
+        proximityBand: proximityBand(r.proximityMeters),
+        gattServices: r.services,
+        firstSeenUtc: new Date(r.firstSeenMs).toISOString(),
+        lastSeenUtc: new Date(r.lastSeenMs).toISOString(),
+      })),
+    },
     files: record.variants.map((v) => ({ file: `${v.key}.jpg`, label: v.label, note: v.note, sha256: v.sha256 })),
+
     humanReview: {
       state: record.reviewState,
       note: record.reviewNote,
@@ -192,7 +292,7 @@ export async function exportEvidenceZip(records: EvidenceRecord[]): Promise<Blob
   }
 
   zip.file("index.json", JSON.stringify({ schema: "asherin.eagle.eye/evidence-index@1", exportedAtUtc: new Date().toISOString(), records: index }, null, 2));
-  zip.file("READ-ME-FIRST.txt", `${EVIDENCE_DISCLAIMER}\n\neach folder holds one recorded event: the clean frame, a stamped copy, the annotated reading, filter renderings, a manifest with sha-256 hashes of every image, and a printable report.\nverify an image by hashing the exact file bytes and comparing with the manifest entry.\n`);
+  zip.file("READ-ME-FIRST.txt", `${EVIDENCE_DISCLAIMER}\n\neach folder holds one recorded event: the clean frame, a stamped copy, the annotated reading, filter renderings, a card of the bluetooth radios in range, a manifest with sha-256 hashes of every image, and a printable report.\nverify an image by hashing the exact file bytes and comparing with the manifest entry.\n`);
   return await zip.generateAsync({ type: "blob" });
 }
 
@@ -223,7 +323,11 @@ export async function buildReportPdf(record: EvidenceRecord, Ctor: JsPdfCtor): P
     ["pattern tier", `${record.tier} · score ${record.score}`],
     ["patterns observed", record.patterns.join(", ") || "none recorded"],
     ["machine reading", record.reason],
+    ["radios in range", (record.radio ?? []).length
+      ? (record.radio ?? []).map((r) => `${r.name}${r.manufacturer ? ` / ${r.manufacturer}` : ""}${r.model ? ` ${r.model}` : ""}${r.batteryPercent !== null ? ` · battery ${r.batteryPercent}%` : ""}${r.rssi !== null ? ` · ${r.rssi} dBm (~${r.proximityMeters ?? "?"} m)` : " · range not reported"}`).join("; ") + " — presence in range only, not attribution to any person in frame"
+      : "none observable to the recording device at capture time"],
     ["human review", record.reviewState + (record.reviewNote ? ` — ${record.reviewNote}` : "")],
+
   ];
 
   doc.setFontSize(10);

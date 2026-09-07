@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { IouTracker, toEngineLandmarks } from "../detector";
-import { applyEdge, applyLowLight, applyThermal } from "../filters";
+import { applyColorized, applyEdge, applyLowLight, applyThermal, FILTER_MODES } from "../filters";
+import { estimateProximityMeters, proximityBand, type BleLink } from "../cameras";
 import { manifestFor, EVIDENCE_DISCLAIMER, type EvidenceRecord } from "../evidence";
 import { ARVisionUtils } from "../engine";
 
@@ -117,6 +118,12 @@ describe("evidence manifest", () => {
       ipAddress: null, ipStatus: "unavailable", ipSource: "unavailable",
     },
     variants: [{ key: "clean", label: "clean frame", note: "unmodified", dataUrl: "data:,", sha256: "abc" }],
+    radio: [{
+      id: "radio-1", name: "phone", connected: true, batteryPercent: 71, services: ["180f"],
+      note: "presence only", manufacturer: "acme", model: "x1", firmware: "1.2", serial: null,
+      appearance: null, rssi: -62, txPower: -59, proximityMeters: 1.4, advertising: true,
+      firstSeenMs: 0, lastSeenMs: 1000,
+    }],
     reviewState: "unreviewed", reviewNote: "", reviewedAtMs: null, createdAtMs: 0,
   };
 
@@ -135,6 +142,63 @@ describe("evidence manifest", () => {
 
   it("carries a hash for every file", () => {
     expect(manifestFor(record).files.every((f) => f.sha256.length > 0)).toBe(true);
+  });
+
+  it("prints the bluetooth radios in range without attributing them to a person", () => {
+    const m = manifestFor(record);
+    expect(m.radioContacts.devices).toHaveLength(1);
+    expect(m.radioContacts.devices[0].manufacturer).toBe("acme");
+    expect(m.radioContacts.devices[0].batteryPercent).toBe(71);
+    expect(m.radioContacts.attribution).toMatch(/not evidence/);
+    expect(m.limitations).toMatch(/presence in range is not proof/i);
+  });
+});
+
+describe("bluetooth presence", () => {
+  it("turns signal strength into a coarse distance and says so", () => {
+    const near = estimateProximityMeters(-45, -59);
+    const far = estimateProximityMeters(-90, -59);
+    expect(near).not.toBeNull();
+    expect(far).not.toBeNull();
+    expect(far as number).toBeGreaterThan(near as number);
+    expect(proximityBand(near)).toMatch(/arm's reach|same room/);
+  });
+
+  it("reports an unknown range instead of guessing one", () => {
+    expect(estimateProximityMeters(null, null)).toBeNull();
+    expect(proximityBand(null)).toMatch(/not reported/);
+  });
+
+  it("keeps the roster shape a caller can render", () => {
+    const link: Partial<BleLink> = { id: "a", name: "b", rssi: null };
+    expect(link.rssi).toBeNull();
+  });
+});
+
+describe("colorized rendering", () => {
+  it("is offered as its own view alongside clean", () => {
+    expect(FILTER_MODES.map((f) => f.id)).toContain("colorized");
+  });
+
+  it("stretches a flat, dark frame into a legible range without inventing pixels", () => {
+    const w = 4, h = 4;
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      const v = 40 + (i % 4) * 3;
+      data[i * 4] = v; data[i * 4 + 1] = v; data[i * 4 + 2] = v; data[i * 4 + 3] = 255;
+    }
+    const out = applyColorized(new ImageData(data, w, h));
+    const before = Math.max(...Array.from({ length: w * h }, (_, i) => data[i * 4])) - Math.min(...Array.from({ length: w * h }, (_, i) => data[i * 4]));
+    const after = Math.max(...Array.from({ length: w * h }, (_, i) => out.data[i * 4])) - Math.min(...Array.from({ length: w * h }, (_, i) => out.data[i * 4]));
+    expect(after).toBeGreaterThan(before);
+    expect(out.data.length).toBe(data.length);
+  });
+
+  it("leaves an already well-exposed neutral frame roughly where it was", () => {
+    const src = new ImageData(new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255]), 2, 1);
+    const out = applyColorized(src);
+    expect(out.data[0]).toBeLessThan(20);
+    expect(out.data[4]).toBeGreaterThan(235);
   });
 });
 
