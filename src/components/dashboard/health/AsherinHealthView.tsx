@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   ClipboardList,
+  ImagePlus,
   Layers,
   Leaf,
   PersonStanding,
