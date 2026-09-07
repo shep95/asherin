@@ -6,10 +6,13 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { createExplosionLayout } from "@/lib/health/explosionLayout";
 import { PointerTap } from "@/lib/health/pointerTap";
 import { decodeModelResponse, SYSTEMS, type Atlas, type SceneState } from "@/lib/health/atlas";
+import { SHAPE_BANDS, shapeKey, type BodyShape } from "@/lib/health/bodyShape";
 
 interface Props {
   atlas: Atlas;
   state: SceneState;
+  /** the person's own proportions, applied to the reference mesh. */
+  shape?: BodyShape | null;
   onSelect: (id: string) => void;
   onProgress: (n: number) => void;
   onError: (s: string) => void;
@@ -20,7 +23,7 @@ interface Props {
  * and intelligence paint are all written into that texture rather than into the scene graph,
  * so 2,000+ structures stay interactive on a laptop.
  */
-export default function AnatomyScene({ atlas, state, onSelect, onProgress, onError }: Props) {
+export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress, onError }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef(state);
   const select = useRef(onSelect);
@@ -30,10 +33,16 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
   // the body flickering in and out and never finishing.
   const progressRef = useRef(onProgress);
   const errorRef = useRef(onError);
+  // the shape rides a ref for the same reason: measurements change while the
+  // atlas is on screen, and re-mounting the renderer to apply a waist reading
+  // would be a full reload of the body.
+  const shapeRef = useRef<BodyShape | null | undefined>(shape);
   latest.current = state;
   select.current = onSelect;
   progressRef.current = onProgress;
   errorRef.current = onError;
+  shapeRef.current = shape;
+
 
 
   useEffect(() => {
@@ -123,17 +132,88 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     const paintData = new Float32Array(width * 4);
     const paintTexture = new T.DataTexture(paintData, width, 1, T.RGBAFormat, T.FloatType);
     paintTexture.needsUpdate = true;
+    // per-part affine for the person's own proportions: xyz scale in one row,
+    // the matching shift in another. carrying it per part (rather than per
+    // vertex) keeps picking, explode offsets and the drawn body in exact
+    // agreement — the ray hits what the eye sees.
+    const shapeScaleData = new Float32Array(width * 4).fill(1);
+    const shapeScaleTexture = new T.DataTexture(shapeScaleData, width, 1, T.RGBAFormat, T.FloatType);
+    shapeScaleTexture.needsUpdate = true;
+    const shapeShiftData = new Float32Array(width * 4);
+    const shapeShiftTexture = new T.DataTexture(shapeShiftData, width, 1, T.RGBAFormat, T.FloatType);
+    shapeShiftTexture.needsUpdate = true;
 
     const materials: T.Material[] = [];
     const geometries: T.BufferGeometry[] = [];
     const pickers: (T.Mesh | undefined)[] = [];
-    const centers = atlas.parts.map((p) =>
+    const baseCenters = atlas.parts.map((p) =>
       new T.Vector3().fromArray(p.bounds[0]).add(new T.Vector3().fromArray(p.bounds[1])).multiplyScalar(0.5),
     );
+    const centers = baseCenters.map((c) => c.clone());
     const offsets: T.Vector3[] = [];
-    const bounds = atlas.parts.map(
+    const baseBounds = atlas.parts.map(
       (p) => new T.Box3(new T.Vector3().fromArray(p.bounds[0]), new T.Vector3().fromArray(p.bounds[1])),
     );
+    const bounds = baseBounds.map((b) => b.clone());
+    // the whole body's vertical extent: bands are read as a fraction of it.
+    const bodyBox = new T.Box3();
+    baseBounds.forEach((b) => bodyBox.union(b));
+    const bodyMinY = bodyBox.min.y;
+    const bodyHeight = Math.max(0.001, bodyBox.max.y - bodyBox.min.y);
+
+    /** girth multiplier at a height, interpolated between the shape bands. */
+    const bandScaleAt = (scales: number[], y: number) => {
+      const n = (y - bodyMinY) / bodyHeight;
+      if (n <= SHAPE_BANDS[0].y) return scales[0];
+      for (let i = 1; i < SHAPE_BANDS.length; i++) {
+        if (n <= SHAPE_BANDS[i].y) {
+          const a = SHAPE_BANDS[i - 1];
+          const b = SHAPE_BANDS[i];
+          const t = (n - a.y) / Math.max(1e-6, b.y - a.y);
+          return scales[i - 1] + (scales[i] - scales[i - 1]) * t;
+        }
+      }
+      return scales[SHAPE_BANDS.length - 1];
+    };
+
+    const scratch = new T.Vector3();
+    let appliedShapeKey = "";
+    /**
+     * rewrite the per-part affine, the picking bounds and the projected centres
+     * from the current shape. cheap: one pass over parts, not over vertices.
+     */
+    const applyShape = (s: BodyShape | null | undefined) => {
+      const heightScale = s && Number.isFinite(s.heightScale) ? s.heightScale : 1;
+      const scales = s?.scales?.length === SHAPE_BANDS.length ? s.scales : SHAPE_BANDS.map(() => 1);
+      atlas.parts.forEach((_, i) => {
+        const c = baseCenters[i];
+        const girth = bandScaleAt(scales, c.y);
+        const sy = heightScale;
+        const cx = c.x * girth;
+        const cy = bodyMinY + (c.y - bodyMinY) * sy;
+        const cz = c.z * girth;
+        // scale the part about the origin, then shift it so its own centre
+        // lands where the deformed body wants it.
+        const shift = scratch.set(cx - c.x * girth, cy - c.y * sy, cz - c.z * girth);
+        shapeScaleData.set([girth, sy, girth, 1], i * 4);
+        shapeShiftData.set([shift.x, shift.y, shift.z, 0], i * 4);
+        centers[i].set(cx, cy, cz);
+        bounds[i].min.set(baseBounds[i].min.x * girth + shift.x, bodyMinY + (baseBounds[i].min.y - bodyMinY) * sy, baseBounds[i].min.z * girth + shift.z);
+        bounds[i].max.set(baseBounds[i].max.x * girth + shift.x, bodyMinY + (baseBounds[i].max.y - bodyMinY) * sy, baseBounds[i].max.z * girth + shift.z);
+        const mesh = pickers[i];
+        if (mesh) mesh.scale.set(girth, sy, girth);
+      });
+      shapeScaleTexture.needsUpdate = true;
+      shapeShiftTexture.needsUpdate = true;
+      appliedShapeKey = s ? shapeKey(s) : "";
+      // part placement, the explode layout and the camera fit are all derived
+      // from centres that just moved, so force them to be recomputed.
+      layoutKey = "";
+      lastState = null;
+      lastExtent = -1;
+      dirty = true;
+    };
+
     let packingWidth = 1;
     let packingHeight = 1;
 
@@ -200,13 +280,22 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         shader.uniforms.partState = { value: partTexture };
         shader.uniforms.selectionState = { value: selectionTexture };
         shader.uniforms.paintState = { value: paintTexture };
+        shader.uniforms.shapeScaleState = { value: shapeScaleTexture };
+        shader.uniforms.shapeShiftState = { value: shapeShiftTexture };
         shader.uniforms.stateWidth = { value: width };
         shader.vertexShader =
-          "attribute float partIndex; uniform sampler2D partState; uniform sampler2D selectionState; uniform sampler2D paintState; uniform float stateWidth; varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" +
+          "attribute float partIndex; uniform sampler2D partState; uniform sampler2D selectionState; uniform sampler2D paintState; uniform sampler2D shapeScaleState; uniform sampler2D shapeShiftState; uniform float stateWidth; varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" +
           shader.vertexShader;
+        // lighting has to follow the new proportions. the normal is corrected at
+        // beginnormal_vertex because three builds its transformed normal before
+        // begin_vertex runs — correcting it later would light the old body.
+        shader.vertexShader = shader.vertexShader.replace(
+          "#include <beginnormal_vertex>",
+          "#include <beginnormal_vertex>\nvec3 shapeN = texture2D(shapeScaleState, vec2((partIndex + 0.5) / stateWidth, 0.5)).xyz; objectNormal = normalize(objectNormal / max(shapeN, vec3(0.001)));",
+        );
         shader.vertexShader = shader.vertexShader.replace(
           "#include <begin_vertex>",
-          "#include <begin_vertex>\nvec2 stateUv = vec2((partIndex + 0.5) / stateWidth, 0.5); vec4 state = texture2D(partState, stateUv); transformed += state.xyz; partVisible = state.w; partSelected = texture2D(selectionState, stateUv).r; partPaint = texture2D(paintState, stateUv);",
+          "#include <begin_vertex>\nvec2 stateUv = vec2((partIndex + 0.5) / stateWidth, 0.5); vec4 state = texture2D(partState, stateUv); vec3 shapeScale = texture2D(shapeScaleState, stateUv).xyz; vec3 shapeShift = texture2D(shapeShiftState, stateUv).xyz; transformed = transformed * shapeScale + shapeShift; transformed += state.xyz; partVisible = state.w; partSelected = texture2D(selectionState, stateUv).r; partPaint = texture2D(paintState, stateUv);",
         );
         shader.fragmentShader =
           "varying float partVisible; varying float partSelected; varying vec4 partPaint;\n" + shader.fragmentShader;
@@ -260,6 +349,9 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         g.boundingBox = bounds[i].clone();
         g.computeBoundingSphere();
         const pick = new T.Mesh(g);
+        // a part that arrives after a measurement was typed must be born with
+        // the same proportions as everything already on screen.
+        pick.scale.set(shapeScaleData[i * 4], shapeScaleData[i * 4 + 1], shapeScaleData[i * 4 + 2]);
         pick.matrixAutoUpdate = false;
         pickers[i] = pick;
         geometries.push(g);
@@ -408,7 +500,8 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       const hasSolid = atlas.parts.some((p, i) => p.system !== "integumentary" && data[i * 4 + 3] > 0.5);
       pickers.forEach((mesh, i) => {
         if (!mesh || data[i * 4 + 3] < 0.5 || (hasSolid && atlas.parts[i].system === "integumentary")) return;
-        worldBox.copy(bounds[i]).translate(mesh.position);
+        // bounds are already in shaped space; only the explode offset is added.
+        worldBox.copy(bounds[i]).translate(new T.Vector3(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]));
         if (!raycaster.ray.intersectBox(worldBox, hitPoint)) return;
         const hits = raycaster.intersectObject(mesh, false);
         if (hits[0] && hits[0].distance < nearest) {
@@ -454,6 +547,10 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       frame = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
       const s = latest.current;
+      // measurements and sex are picked up here rather than in an effect, so a
+      // typed waist reshapes the body without the atlas being torn down.
+      const wanted = shapeRef.current ? shapeKey(shapeRef.current) : "";
+      if (wanted !== appliedShapeKey) applyShape(shapeRef.current ?? null);
       if (s.highlights !== lastHighlights) {
         applyPaint(s.highlights);
         lastHighlights = s.highlights;
@@ -505,7 +602,9 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
           markerPositions.set(data[i * 4 + 3] > 0.5 ? [c.x + dx, c.y + dy, c.z + dz] : [10000, 10000, 10000], i * 3);
           const mesh = pickers[i];
           if (mesh) {
-            mesh.position.set(dx, dy, dz);
+            // the picker carries the shape shift as well as the explode offset,
+            // so the ray meets the body the eye is looking at.
+            mesh.position.set(dx + shapeShiftData[i * 4], dy + shapeShiftData[i * 4 + 1], dz + shapeShiftData[i * 4 + 2]);
             mesh.updateMatrix();
             mesh.updateMatrixWorld(true);
           }
@@ -573,11 +672,12 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
             let top = Infinity;
             let bottom = -Infinity;
             for (let corner = 0; corner < 8; corner++) {
+              const bb = bounds[i];
               projected
                 .set(
-                  p.bounds[corner & 1 ? 1 : 0][0] + data[i * 4],
-                  p.bounds[corner & 2 ? 1 : 0][1] + data[i * 4 + 1],
-                  p.bounds[corner & 4 ? 1 : 0][2] + data[i * 4 + 2],
+                  (corner & 1 ? bb.max.x : bb.min.x) + data[i * 4],
+                  (corner & 2 ? bb.max.y : bb.min.y) + data[i * 4 + 1],
+                  (corner & 4 ? bb.max.z : bb.min.z) + data[i * 4 + 2],
                 )
                 .project(camera);
               const x = ((projected.x + 1) * el.clientWidth) / 2;
@@ -630,6 +730,8 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       partTexture.dispose();
       selectionTexture.dispose();
       paintTexture.dispose();
+      shapeScaleTexture.dispose();
+      shapeShiftTexture.dispose();
       markerGeometry.dispose();
       markerMaterial.dispose();
       hover.remove();

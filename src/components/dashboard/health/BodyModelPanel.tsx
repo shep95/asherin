@@ -79,8 +79,23 @@ export default function BodyModelPanel({ record, persist, resolveByok, onEvent }
   const deltas = useMemo(() => surfaceDeltas(record.observations), [record.observations]);
   const lesions = useMemo(() => lesionTracks(record.observations), [record.observations]);
 
+  // fields are controlled and committed as they are typed: saving only on blur
+  // left a person staring at a number that had visibly changed nothing.
   const setMeasurement = (patch: Partial<BodyMeasurements>) =>
     persist({ ...record, body: { ...body, measurements: { ...measurements, ...patch } } });
+
+  // the room carried two separate ideas of sex — this panel's, and the deep
+  // anatomy reference. changing one and not the other meant a person set
+  // "female" here and kept a male reference body everywhere else.
+  const setSex = (sex: Sex) =>
+    persist({
+      ...record,
+      body: { ...body, measurements: { ...measurements, sex } },
+      settings:
+        sex === "unspecified"
+          ? record.settings
+          : { ...record.settings, referenceSex: sex },
+    });
 
   const capture = async (view: BodyView, file: File | null) => {
     if (!file) return;
@@ -253,14 +268,14 @@ export default function BodyModelPanel({ record, persist, resolveByok, onEvent }
               type="number"
               inputMode="decimal"
               placeholder={label}
-              defaultValue={measurements[key] as number | undefined}
-              onBlur={(e) => setMeasurement({ [key]: num(e.target.value) } as Partial<BodyMeasurements>)}
+              value={(measurements[key] as number | undefined) ?? ""}
+              onChange={(e) => setMeasurement({ [key]: num(e.target.value) } as Partial<BodyMeasurements>)}
               className="h-8 rounded-lg border-white/[0.08] bg-white/[0.03] text-[11px]"
             />
           ))}
           <select
             value={measurements.sex ?? "unspecified"}
-            onChange={(e) => setMeasurement({ sex: e.target.value as Sex })}
+            onChange={(e) => setSex(e.target.value as Sex)}
             className="h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 text-[11px] text-foreground/80"
           >
             <option value="unspecified">sex — unspecified</option>
