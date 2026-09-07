@@ -208,9 +208,12 @@ export default function LiveSensingPanel({ record, persist, onEvent, onHighlight
   }
   function endSession(): void {
     const finished: LiveSessionRecord = sessionRef.current.finaliseSession();
-    const next: HealthRecord = { ...record, sessions: [...record.sessions, finished] };
+    const priorSessions = record.sessions;
+    const next: HealthRecord = { ...record, sessions: [...priorSessions, finished] };
     persist(next);
     onEvent?.(`a ${finished.mode} live-sensing session just ended. ${finished.summary} what should i watch for next time?`);
+    setLastBaselineComparison(compareSessionToBaseline(finished, priorSessions));
+    setLastFinishedMode(finished.mode);
     sessionRef.current = new LiveSession();
     setSnapshot(sessionRef.current.getSnapshot());
     setRrAll([]);
@@ -287,6 +290,8 @@ export default function LiveSensingPanel({ record, persist, onEvent, onHighlight
             <RailRow status={motionStatus} icon={<Activity size={14} />} onConnect={() => void registry.motion.connect()} onDisconnect={() => registry.motion.disconnect()} />
             <RailRow status={audioStatus} icon={<Mic size={14} />} onConnect={() => void registry.audio.connect()} onDisconnect={() => registry.audio.disconnect()} />
           </div>
+
+          <ContactBadgeRow readings={contactReadings} />
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -367,6 +372,12 @@ export default function LiveSensingPanel({ record, persist, onEvent, onHighlight
               </ul>
             )}
           </div>
+
+          <BaselineComparisonCard comparisons={lastBaselineComparison} mode={lastFinishedMode} />
+
+          <PatternSummaryCard mode={patternMode} trends={trends} dayPatterns={dayPatterns} timePatterns={timePatterns} drifts={drifts} />
+
+          <CapabilityReadoutCard entries={capabilities} anyConnected={heartStatus.state === "connected" || eegStatus.state === "connected" || motionStatus.state === "connected" || audioStatus.state === "connected"} />
         </>
       ) : (
         <ImmersiveView
