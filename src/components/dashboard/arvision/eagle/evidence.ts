@@ -100,6 +100,8 @@ export function renderRadioCanvas(radio: BleLink[], width: number, headerLines: 
     ctx.fillText(`  battery ${r.batteryPercent !== null ? `${r.batteryPercent}%` : "not published"} · rssi ${r.rssi !== null ? `${r.rssi} dBm` : "not reported"} · ${r.proximityMeters !== null ? `~${r.proximityMeters} m — ${proximityBand(r.proximityMeters)}` : proximityBand(null)}`, pad, y);
     y += line;
     ctx.fillStyle = "rgba(255,255,255,0.42)";
+    ctx.fillText(`  ${r.source === "scan" ? "observed from its own broadcast, never connected to" : "operator-picked device"}${r.observation ? ` · ${r.observation}` : ""}${r.fingerprint ? ` · trait hint ${r.fingerprint}` : ""}${r.packets ? ` · ${r.packets} packets` : ""}`, pad, y);
+    y += line;
     ctx.fillText(`  handle ${r.id.slice(0, 24)} · last seen ${new Date(r.lastSeenMs).toISOString()} · presence only, not attribution`, pad, y);
     y += line * 1.9;
   }
@@ -238,7 +240,8 @@ export function manifestFor(record: EvidenceRecord) {
       ipSource: record.context.ipSource,
     },
     radioContacts: {
-      observationBasis: "web bluetooth on the recording device — paired and advertising radios only",
+      observationBasis: "web bluetooth on the recording device — broadcast advertisements observed passively, plus any device the operator explicitly picked. no device was connected to in order to be listed.",
+      identifierCaveat: "a bluetooth handle is session-scoped and modern phones rotate their address roughly every fifteen minutes, so an id links packets within a session and nothing beyond it. the trait hint is a similarity heuristic, never an identity claim.",
       attribution: "none. a radio observed in range is not evidence that any person in frame owns or carries it.",
       distanceBasis: "coarse log-distance estimate from signal strength; attenuation by bodies, bags and walls changes it by metres.",
       devices: (record.radio ?? []).map((r) => ({
@@ -253,6 +256,10 @@ export function manifestFor(record: EvidenceRecord) {
         txPowerDbm: r.txPower,
         estimatedMeters: r.proximityMeters,
         proximityBand: proximityBand(r.proximityMeters),
+        source: r.source ?? "paired",
+        signalObservation: r.observation ?? null,
+        traitHint: r.fingerprint ?? null,
+        advertisementPackets: r.packets ?? null,
         gattServices: r.services,
         firstSeenUtc: new Date(r.firstSeenMs).toISOString(),
         lastSeenUtc: new Date(r.lastSeenMs).toISOString(),
@@ -324,7 +331,7 @@ export async function buildReportPdf(record: EvidenceRecord, Ctor: JsPdfCtor): P
     ["patterns observed", record.patterns.join(", ") || "none recorded"],
     ["machine reading", record.reason],
     ["radios in range", (record.radio ?? []).length
-      ? (record.radio ?? []).map((r) => `${r.name}${r.manufacturer ? ` / ${r.manufacturer}` : ""}${r.model ? ` ${r.model}` : ""}${r.batteryPercent !== null ? ` · battery ${r.batteryPercent}%` : ""}${r.rssi !== null ? ` · ${r.rssi} dBm (~${r.proximityMeters ?? "?"} m)` : " · range not reported"}`).join("; ") + " — presence in range only, not attribution to any person in frame"
+      ? (record.radio ?? []).map((r) => `${r.name}${r.manufacturer ? ` / ${r.manufacturer}` : ""}${r.model ? ` ${r.model}` : ""}${r.batteryPercent !== null ? ` · battery ${r.batteryPercent}%` : ""}${r.rssi !== null ? ` · ${r.rssi} dBm (~${r.proximityMeters ?? "?"} m)` : " · range not reported"}${r.observation ? ` · ${r.observation}` : ""}`).join("; ") + " — presence in range only, not attribution to any person in frame"
       : "none observable to the recording device at capture time"],
     ["human review", record.reviewState + (record.reviewNote ? ` — ${record.reviewNote}` : "")],
 

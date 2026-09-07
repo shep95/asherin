@@ -85,6 +85,15 @@ export interface BleLink {
   advertising: boolean;
   firstSeenMs: number;
   lastSeenMs: number;
+  /** how this radio came to be on the roster: a passive advertisement scan (no
+   * connection at any point) or a device the operator explicitly picked. */
+  source?: "scan" | "paired";
+  /** plain reading of the signal trend — flat means set down or unattended. */
+  observation?: string;
+  /** similarity hint across an address rotation. never an identity claim. */
+  fingerprint?: string;
+  /** advertisement packets seen this session. */
+  packets?: number;
 }
 
 interface BleAdvertisementEvent {
