@@ -49,16 +49,22 @@ export const DIRECTION_COLOR: Record<Direction, string> = {
   neutral: "#8b9099",
 };
 
+export const PAIN_SEVERE = "#e0402a";
+export const PAIN_MILD = "#e78a2e";
+
 export function findingHighlights(findings: Finding[], index: TerritoryIndex | null): AtlasHighlight[] {
   if (!index) return [];
   const out: AtlasHighlight[] = [];
   for (const f of findings) {
     const partIds = territoryParts(index, f.territoryKeys);
     if (partIds.length === 0) continue;
+    // pain reads in red and orange and nothing else: a person scanning their own
+    // body should be able to find where it hurts without decoding a legend.
+    const color = f.layer === "pain" ? (f.weight >= 0.6 ? PAIN_SEVERE : PAIN_MILD) : DIRECTION_COLOR[f.direction];
     out.push({
       partIds,
-      color: DIRECTION_COLOR[f.direction],
-      intensity: Math.max(0.15, Math.min(1, f.weight)),
+      color,
+      intensity: f.layer === "pain" ? Math.max(0.45, Math.min(1, f.weight)) : Math.max(0.15, Math.min(1, f.weight)),
       label: f.label,
       reason: f.mechanism,
       source: f.source,

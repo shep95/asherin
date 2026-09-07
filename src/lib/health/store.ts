@@ -6,6 +6,9 @@ import type { GeneEntry } from "./genetics";
 import type { ExposureEntry, FamilyEntry, NutritionEntry, SurgeryEntry } from "./records";
 import type { PainReport } from "./pain";
 import type { SymptomEntry } from "./symptoms";
+import type { BodyModelState } from "./bodyModel";
+import { EMPTY_BODY_MODEL } from "./bodyModel";
+import type { SurfaceObservation } from "./surface";
 
 export interface HealthRecord {
   version: 1;
@@ -20,6 +23,10 @@ export interface HealthRecord {
   pain: PainReport[];
   symptoms: SymptomEntry[];
   herbs: string[];
+  /** guided four-view body modelling: captures, measurements, solves. device-local. */
+  body: BodyModelState;
+  /** visible-surface readings tracked against the person's own baseline. */
+  observations: SurfaceObservation[];
 }
 
 export const EMPTY_RECORD: HealthRecord = {
@@ -35,6 +42,8 @@ export const EMPTY_RECORD: HealthRecord = {
   pain: [],
   symptoms: [],
   herbs: [],
+  body: EMPTY_BODY_MODEL,
+  observations: [],
 };
 
 const KEY_PREFIX = "asherin.health.record";
@@ -50,7 +59,15 @@ export function loadRecord(scope: string | null): HealthRecord {
     if (!raw) return EMPTY_RECORD;
     const parsed = JSON.parse(raw) as Partial<HealthRecord>;
     if (parsed.version !== 1) return EMPTY_RECORD;
-    return { ...EMPTY_RECORD, ...parsed, version: 1 };
+    // older records predate the body model and surface log; merge defaults so a
+    // saved record from an earlier build still opens instead of resetting.
+    return {
+      ...EMPTY_RECORD,
+      ...parsed,
+      body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+      observations: parsed.observations ?? [],
+      version: 1,
+    };
   } catch {
     return EMPTY_RECORD;
   }
@@ -83,7 +100,16 @@ export function importRecord(text: string): { record: HealthRecord | null; error
   try {
     const parsed = JSON.parse(text) as Partial<HealthRecord>;
     if (parsed.version !== 1) return { record: null, error: "that file is not an asherin.health export." };
-    return { record: { ...EMPTY_RECORD, ...parsed, version: 1 }, error: null };
+    return {
+      record: {
+        ...EMPTY_RECORD,
+        ...parsed,
+        body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
+        observations: parsed.observations ?? [],
+        version: 1,
+      },
+      error: null,
+    };
   } catch {
     return { record: null, error: "that file could not be read as json." };
   }
@@ -100,7 +126,9 @@ export function recordCount(record: HealthRecord): number {
     record.family.length +
     record.pain.length +
     record.symptoms.length +
-    record.herbs.length
+    record.herbs.length +
+    record.observations.length +
+    record.body.solves.length
   );
 }
 
