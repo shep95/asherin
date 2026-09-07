@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Eye, ImagePlus, Loader2, MessageSquareQuote, Sparkles, Trash2, X } from "lucide-react";
+import { Eye, ImagePlus, Loader2, MessageSquareQuote, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -11,10 +11,12 @@ import {
   CATEGORY_LABEL,
   SEVERITY_LABEL,
   confidencePhrase,
+  dropPhotoFromRead,
   groupFindings,
   needsClinician,
   normaliseRead,
   quoteFinding,
+  replacePhotoInRead,
   suggestedSystems,
   type PhotoInRead,
   type PhotoRead,
