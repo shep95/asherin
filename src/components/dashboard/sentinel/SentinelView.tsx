@@ -164,6 +164,107 @@ const SentinelView = () => {
     }
   };
 
+  /** Opens the turn an alert was raised about. An alert without an event id
+   *  refers to a device or account condition, not a recorded turn — that is
+   *  said plainly instead of spinning on an empty fetch. */
+  const openIncident = async (alert: AmbientAlert) => {
+    if (openAlert === alert.id) { setOpenAlert(null); return; }
+    setOpenAlert(alert.id);
+    if (!alert.event_id) {
+      setIncident({ alertId: alert.id, loading: false, error: "this alert was raised about the watch itself, not about a recorded turn.", event: null, context: [] });
+      return;
+    }
+    setIncident({ alertId: alert.id, loading: true, error: null, event: null, context: [] });
+    try {
+      const res = await fetchEvent(alert.event_id);
+      if (res.speakers?.length) {
+        setSpeakers((prev) => {
+          const map = new Map(prev.map((x) => [x.id, x]));
+          for (const sp of res.speakers) map.set(sp.id, sp);
+          return [...map.values()];
+        });
+      }
+      setIncident({
+        alertId: alert.id,
+        loading: false,
+        error: res.event ? null : "that turn is no longer in the account timeline — it was purged or aged out.",
+        event: res.event,
+        context: res.context ?? [],
+      });
+    } catch (e) {
+      setIncident({ alertId: alert.id, loading: false, error: e instanceof Error ? e.message : "the transcript could not be read.", event: null, context: [] });
+    }
+  };
+
+  /** A session download is assembled from two independent records: the account
+   *  timeline (transcripts) and this device's still-retained encrypted audio.
+   *  Either can legitimately be empty by the time it is asked for, and the
+   *  archive says which rather than pretending to be complete. */
+  const exportSession = async (session: RecordingSession) => {
+    setExporting(session.id);
+    try {
+      const endedAt = session.endedAt ?? Date.now();
+      const [{ default: JSZip }, timeline, clips] = await Promise.all([
+        import("jszip"),
+        fetchTimeline({
+          sinceIso: new Date(session.startedAt - 1000).toISOString(),
+          untilIso: new Date(endedAt + 1000).toISOString(),
+          limit: 500,
+        }).catch(() => ({ events: [] as AmbientEvent[], speakers: [] as AmbientSpeaker[], devices: [] as AmbientDevice[] })),
+        payloadsBetween(session.startedAt - 1000, endedAt + 1000),
+      ]);
+      const ordered = [...timeline.events].sort((a, b) => a.started_at.localeCompare(b.started_at));
+      const nameOf = (id: string | null) => {
+        const sp = timeline.speakers.find((x) => x.id === id);
+        return sp?.name || sp?.label || (id ? "unknown voice" : "unattributed voice");
+      };
+      const lines = ordered.map((ev) =>
+        ev.kind === "sound"
+          ? `[${clock(ev.started_at)}] (sound: ${ev.tag ?? "unclassified"})`
+          : `[${clock(ev.started_at)}] ${nameOf(ev.speaker_id)}: ${ev.transcript || "(no transcript)"}`,
+      );
+      const zip = new JSZip();
+      zip.file(
+        "transcript.txt",
+        [
+          `asherin.sentinel session`,
+          `device: ${session.deviceLabel}`,
+          `started: ${new Date(session.startedAt).toLocaleString()}`,
+          `ended: ${session.endedAt ? new Date(session.endedAt).toLocaleString() : "still running"}`,
+          `turns in the account timeline for this window: ${ordered.length}`,
+          `audio clips still held on this device: ${clips.length}`,
+          "",
+          ...(lines.length ? lines : ["no turn was recorded in this window, or the timeline for it has been purged."]),
+        ].join("\n"),
+      );
+      zip.file("timeline.json", JSON.stringify({ session, events: ordered, speakers: timeline.speakers }, null, 2));
+      let written = 0;
+      for (const clip of clips) {
+        if (!clip.payload.audio) continue;
+        const stamp = new Date(clip.at).toISOString().replace(/[:.]/g, "-");
+        zip.file(`audio/${stamp}-${clip.payload.kind}.wav`, clip.payload.audio, { base64: true });
+        written += 1;
+      }
+      if (!written) {
+        zip.file("audio/README.txt", "no audio from this session is still on this device: it passed the retention window set in watch settings, or it was wiped.");
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `asherin-sentinel-${new Date(session.startedAt).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.zip`;
+      a.click();
+      // Revoked on the next frame: revoking synchronously can cancel the
+      // download in some browsers before it has read the blob.
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast({ title: "session downloaded", description: `${ordered.length} turns · ${written} audio clips` });
+    } catch (e) {
+      pushNote(e instanceof Error ? e.message : "the session could not be packaged.");
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const speakerName = (id: string | null) => {
     if (!id) return "unattributed voice";
     const s = speakers.find((x) => x.id === id);
@@ -210,7 +311,7 @@ const SentinelView = () => {
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-3">
           <p className="text-xs leading-relaxed text-white/70">
-            <span className="font-medium text-white/90">truth boundary:</span> in this page, sentinel listens only while the page is open. it survives the tab being backgrounded and the desktop screen locking, but not the tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
+            <span className="font-medium text-white/90">truth boundary:</span> once started, the watch keeps running while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
           </p>
         </div>
 
