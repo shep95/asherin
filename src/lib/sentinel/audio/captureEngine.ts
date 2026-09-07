@@ -27,7 +27,7 @@ import { Vad, VAD_DEFAULTS, VAD_SENSITIVITY, type VadSegment, type VadSensitivit
 import { classifySounds, type SoundEvent } from "./soundEvents";
 import { embedVoice } from "./voiceprint";
 import { concat, encodeWav, resample, toBase64, tooThinToSend, TARGET_RATE } from "./wav";
-import { markAttempt, markSynced, pendingSegments, purge, readPayload, writeSegment, type SegmentPayload } from "./localBuffer";
+import { closeSession, countSessionSegment, markAttempt, markSynced, openSession, pendingSegments, purge, readPayload, writeSegment, type SegmentPayload } from "./localBuffer";
 import { heartbeat, ingest, registerDevice, type IngestResult } from "./sync";
 
 const DEVICE_KEY_STORAGE = "asherin.sentinel.ambient.deviceKey";
@@ -114,6 +114,8 @@ export class SentinelEngine {
   private timer: number | null = null;
   private heartbeatTimer: number | null = null;
   private registered = false;
+  private sessionId = "";
+  private onVisible: (() => void) | null = null;
 
   private status: EngineStatus = {
     state: "idle",
@@ -206,7 +208,16 @@ export class SentinelEngine {
     mute.connect(this.ctx.destination);
 
     this.emit({ state: "listening", message: null, sampleRate: this.ctx.sampleRate });
+    this.sessionId = await openSession(this.status.deviceKey, deviceLabel());
     void this.requestWakeLock();
+    // A screen wake lock is dropped by the browser whenever the page is hidden.
+    // Without re-acquiring it on return, a phone that was backgrounded once
+    // silently loses the protection the operator asked for.
+    this.onVisible = () => {
+      if (document.visibilityState === "visible" && this.status.state === "listening" && !this.wakeLock) void this.requestWakeLock();
+      if (this.ctx?.state === "suspended") void this.ctx.resume().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", this.onVisible);
     void purge();
 
     this.timer = window.setInterval(() => void this.drain(), 6000);
@@ -246,6 +257,9 @@ export class SentinelEngine {
     this.segment = [];
     this.segmentFeatures = [];
     this.soundWindow = [];
+    if (this.onVisible) document.removeEventListener("visibilitychange", this.onVisible);
+    this.onVisible = null;
+    if (this.sessionId) { void closeSession(this.sessionId); this.sessionId = ""; }
     if (this.registered) void heartbeat(this.status.deviceKey, "offline").catch(() => {});
     this.emit({ state: "stopped", speaking: false, level: 0, message: null });
     void this.drain();
@@ -324,6 +338,7 @@ export class SentinelEngine {
     };
     try {
       await writeSegment(payload);
+      void countSessionSegment(this.sessionId, "sound");
       this.emit({ segmentsCaptured: this.status.segmentsCaptured + 1 });
       void this.drain();
     } catch {
@@ -356,6 +371,7 @@ export class SentinelEngine {
     };
     try {
       await writeSegment(payload);
+      void countSessionSegment(this.sessionId, "speech");
       this.emit({ segmentsCaptured: this.status.segmentsCaptured + 1 });
       void this.drain();
     } catch {
