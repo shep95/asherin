@@ -337,14 +337,34 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       dirty = true;
     };
 
+    // a resize must never feel like a refresh. scrollbars opening, the mobile
+    // url bar collapsing, or a side panel ticking by a pixel all fire this
+    // observer — and refitting the camera on every one of those snapped the
+    // body back to its default pose mid-orbit, which read as the model
+    // "refreshing" over and over. only a genuine size-class change (panel
+    // opened, device rotated) earns a refit; everything else keeps the
+    // person's exact camera and just updates the drawing surface.
+    let lastW = 0;
+    let lastH = 0;
     const resize = () => {
-      layoutKey = "";
-      lastState = null;
-      renderer.setPixelRatio(Math.min(devicePixelRatio, el.clientWidth < 768 || el.clientHeight < 600 ? 1.5 : 2));
-      camera.aspect = Math.max(0.2, el.clientWidth / Math.max(1, el.clientHeight));
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+      const firstRun = lastW === 0 && lastH === 0;
+      const sizeClassChange = Math.abs(w - lastW) > 64 || Math.abs(h - lastH) > 96;
+      lastW = w;
+      lastH = h;
+      renderer.setPixelRatio(Math.min(devicePixelRatio, w < 768 || h < 600 ? 1.5 : 2));
+      camera.aspect = Math.max(0.2, w / Math.max(1, h));
       camera.updateProjectionMatrix();
-      renderer.setSize(el.clientWidth, el.clientHeight);
-      fit(latest.current.view, amount);
+      renderer.setSize(w, h);
+      if (firstRun || sizeClassChange) {
+        layoutKey = "";
+        lastState = null;
+        fit(latest.current.view, amount);
+      } else {
+        dirty = true;
+      }
     };
     const observer = new ResizeObserver(resize);
     observer.observe(el);
