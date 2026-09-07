@@ -36,4 +36,4 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] thermal is a sensor path, not a filter: pick a real thermal video stream when the device exposes one, calibrate raw -> temperature -> palette; visible-light version stays labelled an estimate
 - [ ] pop-out gallery rail: every feed/filter/camera live at once, switchable, screenshot on detection
 
-- [ ] asherin.health photos: let the user replace or delete an uploaded image and its reading
+- [x] asherin.health photos: replace or delete an uploaded image and its reading
