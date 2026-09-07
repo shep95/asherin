@@ -20,6 +20,8 @@ import {
   RefreshCw,
   Repeat,
   Route,
+  Satellite,
+
   Settings2,
   Users,
   Volume2,
