@@ -27,3 +27,11 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] body model reacts to measurements + sex (bodyShape.ts, AnatomyScene shape affine)
 - [x] upload photos in the health room and have the assistant read them, adjust the view/filters from what it reads (photos tab + photo.read action)
 - [x] read-out organised by category/severity, quotable into the room assistant
+
+## asherin.arvision / eagle.eye (requested 2026-09-07)
+- [x] eagle.eye gets every filter the optical hud has (spectral added alongside thermal/lowlight/edge)
+- [x] object detector boxes drawn in eagle.eye (coco-ssd classes + unattended flag)
+- [x] quad view: one square per camera, four renderings at once, any pane taps to full screen
+- [x] tile border flashes white/black 5 times and holds until acknowledged when a pattern is captured
+- [ ] thermal is a sensor path, not a filter: pick a real thermal video stream when the device exposes one, calibrate raw -> temperature -> palette; visible-light version stays labelled an estimate
+- [ ] pop-out gallery rail: every feed/filter/camera live at once, switchable, screenshot on detection
