@@ -22,3 +22,8 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] asherin.arvision thermal camera view: infrared-style heat visualization from camera, honest RGB-derived labeling (not true LWIR; no through-wall/through-glass claims)
 
 - [ ] asherin.arvision: add third mode "eagle.eye" — full behavioral detection engine from arvision-engine-v2.ts (all patterns, no picking), plug-and-play on any device camera
+
+## asherin.health — photo reading + findings tab (requested 2026-09-07)
+- [x] body model reacts to measurements + sex (bodyShape.ts, AnatomyScene shape affine)
+- [ ] upload photos in the health room and have the assistant read them, adjust the view/filters from what it reads
+- [ ] a "findings" tab: plain-language, organised output of what the reading found, quotable back to the assistant for follow-up questions

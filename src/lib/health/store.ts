@@ -10,6 +10,7 @@ import type { BodyModelState } from "./bodyModel";
 import { EMPTY_BODY_MODEL } from "./bodyModel";
 import type { SurfaceObservation } from "./surface";
 import type { Finding } from "./model";
+import type { PhotoRead } from "./photoRead";
 
 /** which reference body the room draws and reasons against. */
 export type ReferenceSex = "male" | "female";
@@ -90,6 +91,8 @@ export interface HealthRecord {
   body: BodyModelState;
   /** visible-surface readings tracked against the person's own baseline. */
   observations: SurfaceObservation[];
+  /** free-form photograph read-outs: what the person handed over and what came back. */
+  photoReads: PhotoRead[];
   snapshots: TimelineSnapshot[];
   wearables: WearableSeries[];
   sessions: LiveSessionRecord[];
@@ -111,6 +114,7 @@ export const EMPTY_RECORD: HealthRecord = {
   herbs: [],
   body: EMPTY_BODY_MODEL,
   observations: [],
+  photoReads: [],
   snapshots: [],
   wearables: [],
   sessions: [],
@@ -138,6 +142,7 @@ export function loadRecord(scope: string | null): HealthRecord {
       body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
       settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
       observations: parsed.observations ?? [],
+      photoReads: parsed.photoReads ?? [],
       snapshots: parsed.snapshots ?? [],
       wearables: parsed.wearables ?? [],
       sessions: parsed.sessions ?? [],
@@ -182,6 +187,7 @@ export function importRecord(text: string): { record: HealthRecord | null; error
         body: { ...EMPTY_BODY_MODEL, ...(parsed.body ?? {}) },
         settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
         observations: parsed.observations ?? [],
+      photoReads: parsed.photoReads ?? [],
         snapshots: parsed.snapshots ?? [],
         wearables: parsed.wearables ?? [],
         sessions: parsed.sessions ?? [],

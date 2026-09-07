@@ -167,6 +167,35 @@ lesionMm     — longest dimension in millimetres ONLY if a scale reference (rul
 STRICT JSON:
 {"observations":[{"feature":"colour","value":0.4,"detail":"...","imageConfidence":0.7,"interpretationConfidence":0.5,"clinicalRelevance":"routine"}],"summary":"two sentences, plain, no diagnosis","limits":"what this photo could not show"}`;
 
+const PHOTO_PROMPT = `you are reading photographs a person handed over themselves, with their own request attached. they may be photographs of a body, of skin, of posture, of a swollen limb, of a printed page, of a device screen, or of their surroundings.
+
+hard rules:
+- you describe what is visible. you never name a disease as fact and you never diagnose.
+- every finding must be attributable to one of the supplied photographs by its zero-based index.
+- if a photograph does not support a finding, do not invent one. fewer, honest findings beat a full page.
+- if something visible would need urgent clinical care (bleeding, ulceration, a lesion with irregular border or uneven colour, marked one-sided swelling, obvious deformity), that finding gets severity "clinician" and is said plainly.
+- all prose lowercase, plain words, no jargon unless you immediately explain it.
+
+for each finding:
+title   — five or six words, the headline
+plain   — one or two sentences a person with no training understands on the first read
+detail  — the fuller reading for someone who wants it
+category — one of: posture, surface, swelling, symmetry, document, device, environment, other
+severity — one of: routine, watch, clinician
+imageConfidence   — 0..1, how well the camera could see it
+meaningConfidence — 0..1, how much it actually means
+photoIndex — zero-based index of the photograph it came from
+systems — anatomy systems worth showing, from: skeletal, muscular, arterial, venous, nervous, digestive, respiratory, urinary, reproductive, lymphatic, endocrine, integumentary, connective, sensory, cardiac
+regions — plain region words, e.g. ["left shoulder","lower back"]
+
+also return:
+summary   — two or three sentences, the whole read-out in plain language
+limits    — what these photographs could not show
+questions — what you would need to know or see next
+
+STRICT JSON:
+{"summary":"...","findings":[{"title":"...","plain":"...","detail":"...","category":"posture","severity":"routine","imageConfidence":0.7,"meaningConfidence":0.5,"photoIndex":0,"systems":["muscular"],"regions":["left shoulder"]}],"limits":["..."],"questions":["..."]}`;
+
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -224,6 +253,39 @@ Deno.serve(async (req) => {
       const parsed = extractJson(raw);
       if (!parsed?.views) return json({ error: "the photographs could not be read into geometry. try again in even light." }, 502, cors);
       return json({ views: parsed.views, note: parsed.note ?? "" }, 200, cors);
+    }
+
+    if (action === "photo.read") {
+      if (images.length === 0) return json({ error: "no photographs were supplied." }, 400, cors);
+      if (!geminiKey) {
+        return json(
+          { error: "reading photographs needs a vision key. add your own model key in settings, and this runs on your key alone." },
+          402,
+          cors,
+        );
+      }
+      const ask = String(body?.prompt ?? "").slice(0, 2000).trim();
+      const labels = images.map((i, n) => `${n}. ${i.view ?? "unlabelled"}`).join("\n");
+      const raw = await callGemini(
+        geminiKey,
+        `${PHOTO_PROMPT}\n\nphotographs, by index:\n${labels}\n\nwhat the person asked to have looked at:\n${ask || "(they did not say — read what is plainly visible and useful)"}`,
+        images,
+        4096,
+      );
+      const parsed = extractJson(raw);
+      if (!parsed?.findings) {
+        return json({ error: "those photographs could not be read into findings. try fewer photos, closer, in even light." }, 502, cors);
+      }
+      return json(
+        {
+          summary: parsed.summary ?? "",
+          findings: parsed.findings,
+          limits: parsed.limits ?? [],
+          questions: parsed.questions ?? [],
+        },
+        200,
+        cors,
+      );
     }
 
     if (action === "surface.scan") {
