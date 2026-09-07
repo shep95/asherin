@@ -55,32 +55,53 @@ function query(lat: number, lon: number, radius: number): string {
 out geom tags;`;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// The public map service is shared and rate limits hard, so a 429 or 504 is a
+// normal event rather than a failure: rotate to the next mirror, honour any
+// Retry-After it hands back, and only then wait a growing pause before trying
+// again. A 400 is our own bad query and never worth retrying.
 async function callOverpass(body: string): Promise<OverpassElement[]> {
-  let lastError = "overpass unreachable";
-  for (const endpoint of ENDPOINTS) {
+  let lastError = "the map service is unreachable right now";
+  for (let attempt = 0; attempt < ENDPOINTS.length * 2; attempt += 1) {
+    const endpoint = ENDPOINTS[attempt % ENDPOINTS.length];
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
         body: `data=${encodeURIComponent(body)}`,
         signal: controller.signal,
       });
+      if (res.status === 400) throw new Error("the map query was rejected as malformed");
       if (!res.ok) {
-        lastError = `map service answered ${res.status}`;
+        lastError =
+          res.status === 429 || res.status === 504
+            ? "the public map service is busy and asked us to slow down"
+            : `the map service answered ${res.status}`;
+        const retryAfter = Number(res.headers.get("retry-after"));
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 8) * 1000 : 800 * 2 ** Math.floor(attempt / ENDPOINTS.length);
+        await sleep(Math.min(wait, 6000));
+        continue;
+      }
+      const type = res.headers.get("content-type") ?? "";
+      if (!type.includes("json")) {
+        lastError = "the map service returned something that was not map data";
         continue;
       }
       const json = (await res.json()) as { elements?: OverpassElement[] };
       return Array.isArray(json.elements) ? json.elements : [];
     } catch (error) {
-      lastError = error instanceof Error && error.name === "AbortError" ? "map request timed out" : "map request failed";
+      if (error instanceof Error && error.message.startsWith("the map query")) throw error;
+      lastError = error instanceof Error && error.name === "AbortError" ? "the map request timed out" : "the map request failed";
     } finally {
       clearTimeout(timer);
     }
   }
   throw new Error(lastError);
 }
+
 
 /** Grid key used to weld nearby samples so ways that meet share a waypoint. */
 function cellKey(p: Vec3, cell: number): string {
