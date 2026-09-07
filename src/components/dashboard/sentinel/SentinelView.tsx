@@ -481,11 +481,14 @@ const SentinelView = () => {
           <h2 className="mb-4 text-sm font-light tracking-wide text-white/70">alerts</h2>
           <div className="space-y-2">
             {alerts.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="min-w-0">
+              <div key={a.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <button className="min-w-0 flex-1 text-left" onClick={() => void openIncident(a)}>
                   <div className="truncate text-sm text-white/80">{a.message}</div>
-                  <div className="text-[11px] text-white/40">{dayStamp(a.created_at)} {clock(a.created_at)} · {a.kind}</div>
-                </div>
+                  <div className="text-[11px] text-white/40">
+                    {dayStamp(a.created_at)} {clock(a.created_at)} · {a.kind} · {openAlert === a.id ? "hide the transcript" : "read the transcript"}
+                  </div>
+                </button>
                 {a.acknowledged_at ? (
                   <Check className="h-4 w-4 shrink-0 text-white/35" />
                 ) : (
@@ -503,8 +506,75 @@ const SentinelView = () => {
                   </Button>
                 )}
               </div>
+              {openAlert === a.id && (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  {incident?.alertId !== a.id || incident.loading ? (
+                    <div className="flex items-center gap-2 text-xs text-white/45"><Loader2 className="h-3.5 w-3.5 animate-spin" /> reading the turn behind this alert</div>
+                  ) : incident.error ? (
+                    <p className="text-xs text-white/45">{incident.error}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {(incident.context.length ? incident.context : incident.event ? [incident.event] : []).map((ev) => (
+                        <div key={ev.id} className={ev.id === incident.event?.id ? "rounded-xl border border-white/20 bg-white/[0.05]" : ""}>
+                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} />
+                        </div>
+                      ))}
+                      <p className="text-[11px] text-white/35">the highlighted turn is the one that raised this alert; the rest is what was said around it.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              </div>
             ))}
             {!alerts.length && <p className="py-8 text-center text-sm text-white/40">nothing has met an alert threshold.</p>}
+          </div>
+        </section>
+      ) : tab === "history" ? (
+        <section className={`${card} p-5`}>
+          <h2 className="mb-1 text-sm font-light tracking-wide text-white/70">recording history</h2>
+          <p className="mb-4 max-w-3xl text-xs leading-relaxed text-white/45">
+            every stretch between start and stop on this device. a download packages the transcripts for that window from
+            your account timeline together with whatever audio is still held here — audio ages out on the retention you
+            set under devices, so an older session may come back as transcript only, and the archive says so on its face.
+          </p>
+          <div className="space-y-2">
+            {sessions.map((sess) => {
+              const running = sess.endedAt === null;
+              const mins = Math.max(1, Math.round(((sess.endedAt ?? Date.now()) - sess.startedAt) / 60_000));
+              return (
+                <div key={sess.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm text-white/80">
+                      {new Date(sess.startedAt).toLocaleString()} {running && <span className={`${chip} ml-2`}>running</span>}
+                    </div>
+                    <div className="text-[11px] text-white/40">
+                      {mins} min · {sess.speechSegments} speech · {sess.soundSegments} sound · {sess.deviceLabel}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      disabled={exporting === sess.id}
+                      className="h-8 rounded-lg border border-white/10 text-[11px] text-white/65"
+                      onClick={() => void exportSession(sess)}
+                    >
+                      {exporting === sess.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                      download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-8 rounded-lg text-[11px] text-white/40"
+                      onClick={async () => { await deleteSession(sess.id); setSessions((prev) => prev.filter((x) => x.id !== sess.id)); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {!sessions.length && (
+              <p className="py-8 text-center text-sm text-white/40">no session yet. history begins with the first time you start the watch on this device.</p>
+            )}
           </div>
         </section>
       ) : (
