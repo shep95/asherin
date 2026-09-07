@@ -42,6 +42,8 @@ import { isNavigationData, type NavigationData, type PeerState, type Quat, type 
 import referenceMap from "@/lib/arvision/spatial/referenceMap.json";
 
 type Panel = "field" | "map" | "route" | "session" | "setup";
+type PoseSource = "none" | "camera positioning" | "placed by hand" | "live position";
+
 
 const PANELS: { id: Panel; label: string; icon: typeof Camera }[] = [
   { id: "field", label: "field", icon: Camera },
