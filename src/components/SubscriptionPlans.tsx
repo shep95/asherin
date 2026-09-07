@@ -24,7 +24,7 @@ const PLANS = [
     period: "/month",
     tagline: "core seat",
     description:
-      "a practical single-operator seat: chat, code, search, memory, maps and workspace.",
+      "a practical single-operator seat: chat, the rooms behind it, and a workspace that keeps what you make.",
     cta: "choose asherin, $18 / month",
     highlight: false,
     groups: [
@@ -33,37 +33,41 @@ const PLANS = [
         items: [
           "every message kind, a greeting stays a greeting, a task runs the tool",
           "capable coding output across languages",
+          "directive profiles, your own written instructions and attached files",
           "BYOK, bring your own model key",
           "60 messages per 3-hour window",
         ],
       },
-       {
-         title: "asherin.cyber",
-         items: [
-           "passive domain, tls and public advisory context",
-           "no authentication, exploitation or host scanning",
-         ],
-       },
-       {
-         title: "asherin.defender",
+      {
+        title: "look and find",
         items: [
-          "live camera, wifi, bluetooth and spy-class status on your own device",
-          "covert-camera law, capture with no visible preview reads BLOCKED",
+          "asherin.search, discovery-first public search with every hit cited",
+          "asherin.eye, sourced world layers, flights, quakes, incidents, public cameras",
+          "asherin.google, your own connected mail, calendar and drive",
+          "asherin.extract and asherin.briefings",
         ],
       },
       {
-        title: "asherin.arvision",
+        title: "camera and device",
         items: [
-          "live mirrored camera HUD with native frame intel",
-          "freeze, OCR and barcode read, frames stay in your tab",
-          "honest cannot-resolve instead of an invented answer",
+          "asherin.arvision, optical, spatial and eagle.eye behavioural watch",
+          "eagle.eye, multi-camera wall, reviewable evidence, flagged cameras float to the top",
+          "asherin.defender, camera, wifi, bluetooth and spy-class status on your own device",
+          "asherin.sentinel, ambient watch with a visible running state, never hidden",
+        ],
+      },
+      {
+        title: "read and build",
+        items: [
+          "asherin.health, your own anatomy and records, read locally, never a diagnosis",
+          "asherin.ide, asherin.agents, asherin.snippets, asherin.design",
+          "asherin.pages, asherin.slides, asherin.ebook, whiteboard",
         ],
       },
       {
         title: "workspace",
         items: [
           "library, projects, memory, guardian vault, whiteboard, connect",
-          "google mesh on your own connected accounts",
           "account-synced encryption, export and delete anytime",
         ],
       },
@@ -79,21 +83,33 @@ const PLANS = [
       "everything in the $18 seat, with higher limits on asherin chat tools and a full team workspace.",
     cta: "choose asherin pro, $79 / month",
     highlight: true,
-     groups: [
-       {
-         title: "everything in asherin ($18)",
-         items: ["chat, asherin.cyber, asherin.defender, asherin.arvision, workspace, BYOK"],
-       },
-       {
-         title: "usage",
-        items: ["200 messages per 3-hour window", "higher search and map throughput"],
+    groups: [
+      {
+        title: "everything in asherin ($18)",
+        items: ["every room in the seat above, same tools, same rules, BYOK included"],
       },
-       {
-         title: "asherin.cyber",
-         items: ["passive domain and infrastructure context", "public advisory matching without exploitation"],
-       },
-       {
-         title: "asherin.defender",
+      {
+        title: "usage",
+        items: [
+          "200 messages per 3-hour window",
+          "higher search, discovery and map throughput, priority when the queue is busy",
+        ],
+      },
+      {
+        title: "rooms only pro opens",
+        items: [
+          "asherin.data, upload a file or connect a source and ask in plain english",
+          "asherin.cyber, passive domain, tls and public advisory context, no scanning",
+          "asherin.knowledge, your own ingested sources",
+          "asherin.community, pattern analysis, predictive and audit surfaces",
+        ],
+      },
+      {
+        title: "asherin.search",
+        items: ["deeper recursive identity pivots", "larger discovery budgets per run"],
+      },
+      {
+        title: "asherin.defender",
         items: [
           "bunker on/off apply and key-poison via the companion",
           "full hardware and spy scan with recommendations",
@@ -102,7 +118,11 @@ const PLANS = [
       },
       {
         title: "asherin.arvision",
-        items: ["saved A-E packets", "rf lattice", "plate and VIN public-index lookups", "local operator enroll on this device"],
+        items: [
+          "saved A-E packets",
+          "more simultaneous eagle.eye cameras and longer evidence retention",
+          "local operator enroll on this device",
+        ],
       },
       {
         title: "team",

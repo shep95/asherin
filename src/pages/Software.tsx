@@ -25,6 +25,7 @@ import {
   Eye,
   ShieldCheck,
   Globe,
+  Activity,
 } from "lucide-react";
 
 type Tool = {
@@ -63,7 +64,7 @@ const TOOLS: Tool[] = [
      name: "asherin.cyber",
      line: "passive domain context",
      detail:
-       "reads public dns, tls, headers and advisory indexes. it does not authenticate, exploit or scan hosts.",
+       "reads public dns, tls, headers and advisory indexes. it does not authenticate, exploit or scan hosts. included with asherin pro.",
      icon: Shield,
    },
   {
@@ -76,7 +77,8 @@ const TOOLS: Tool[] = [
   {
     name: "asherin.arvision",
     line: "camera intelligence hud",
-    detail: "live user-facing camera overlays on this device. visual-intel labels, not a face database.",
+    detail:
+      "live camera overlays on this device in three modes: optical, spatial, and eagle.eye — a multi-camera wall that labels observable patterns, flashes the tile until a person acknowledges it, and writes reviewable evidence with the overlays composited onto the camera frame. it labels behaviour, never intent, guilt or a person, and it is not a face database.",
     icon: Eye,
   },
   {
@@ -88,11 +90,38 @@ const TOOLS: Tool[] = [
   },
 
   {
-    name: "zophiel, search",
-    line: "public engines, cited",
+    name: "asherin.search",
+    line: "discovery-first, cited",
     detail:
-      "queries public search endpoints and open registries, ranks what comes back by source credibility, and cites every hit. coverage is whatever those endpoints return that day, so we do not print a source count. lives at /dashboard/search once you are signed in.",
+      "queries public search endpoints, certificate logs, archives and open registries, then pivots on a name, email, phone or username through what those sources return. every hit is cited, and a source that is unavailable or key-gated says so instead of guessing. coverage is whatever those endpoints return that day, so we do not print a source count. pro runs deeper pivots and larger discovery budgets.",
     icon: Search,
+  },
+  {
+    name: "asherin.health",
+    line: "your own body and records",
+    detail:
+      "a reshaped reference body, your own records, pain interviews, labs, wearables and herbal context, held on your device. it reads photos you upload as observations. it is not a scan and it is not a diagnosis.",
+    icon: Activity,
+  },
+  {
+    name: "asherin.data",
+    line: "ask your own files, pro",
+    detail:
+      "upload a csv, json or sql dump, or connect a source, then ask in plain english and get charts with the numbers' provenance attached. included with asherin pro.",
+    icon: Database,
+  },
+  {
+    name: "asherin.knowledge",
+    line: "your own ingested sources, pro",
+    detail: "ingest documents and links, keep them searchable next to the chat. included with asherin pro.",
+    icon: Layers,
+  },
+  {
+    name: "asherin.ide + agents",
+    line: "edit, review, then land",
+    detail:
+      "repository-aware editing with diff approval, plus agent runs you review before anything is written. nothing lands without your yes.",
+    icon: Hammer,
   },
   {
     name: "guardian vault",
@@ -154,7 +183,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "asherin, software",
        description:
-         "rooms on a seat: chat, asherin.cyber, asherin.defender, asherin.arvision, asherin.eye, library, projects, memory, vault. $18/mo, $79/mo pro.",
+         "rooms on a seat: chat, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.ide, library, projects, memory, vault. $18/mo. pro at $79/mo adds asherin.data, asherin.cyber and asherin.knowledge.",
       url: "https://asherin.com/software",
     });
     document.head.appendChild(el);
@@ -199,7 +228,7 @@ const Software = () => {
           <section className="space-y-5 rounded-2xl border border-foreground/10 bg-foreground/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)] p-8">
             <h2 className="text-2xl font-extralight tracking-tight">$18 a month. $79 for pro.</h2>
             <p className="max-w-xl text-sm font-extralight leading-relaxed text-muted-foreground">
-              pro raises message limits and opens the heavier research and forecasting work. there is no free trial.
+              the $18 seat opens chat and its rooms: search, eye, arvision with eagle.eye, defender, sentinel, health, ide and the workspace. pro raises message limits and search depth and adds asherin.data, asherin.cyber and asherin.knowledge. there is no free trial.
               cancel in one click.
             </p>
             <div className="flex flex-wrap gap-3">

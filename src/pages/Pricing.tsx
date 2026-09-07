@@ -20,11 +20,11 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month for the core platform. Asherin Pro is $79 per month and unlocks the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.ide and the workspace. Asherin Pro is $79 per month, raises the limits on all of it, and adds asherin.data, asherin.cyber and asherin.knowledge. Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls, and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) is the whole room set at standard limits: direct-answer chat with four reasoning modes and directive profiles, a capable coding engine, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, persistent memory and a 60-message / 3-hour window. Asherin Pro ($79/mo) adds asherin.data, asherin.cyber and asherin.knowledge, and raises the ceilings: deeper search discovery and identity pivots, higher throughput with queue priority, more simultaneous eagle.eye cameras with longer evidence retention, the defender companion apply path, admin controls, and 200 messages per 3-hour window.",
   },
   {
     q: "How much does Asherin Team cost?",
@@ -229,13 +229,20 @@ const Pricing = () => {
                   {[
                     ["Chat, you pick the model; refusal is the model's", "✓", "✓", "✓"],
                     ["Capable coding engine", "✓", "✓", "✓"],
-                    ["Zophiel Search", "Base", "Pro, deeper crawl, priority latency", "Pro + dedicated capacity"],
+                    ["asherin.search, discovery-first and cited", "Standard", "Deeper pivots, priority latency", "Custom + dedicated capacity"],
+                    ["asherin.eye, sourced world layers", "✓", "✓", "✓"],
+                    ["asherin.arvision, optical, spatial, eagle.eye", "Standard", "More cameras, longer evidence retention", "Custom"],
+                    ["asherin.defender, your own device", "Read + status", "Companion apply + full scan", "Custom"],
+                    ["asherin.sentinel, ambient watch", "✓", "✓", "✓"],
+                    ["asherin.health, your own records", "✓", "✓", "✓"],
+                    ["asherin.data, ask your own files", "-", "✓", "✓"],
+                    ["asherin.cyber, passive domain context", "-", "✓", "✓"],
+                    ["asherin.knowledge, your own ingested sources", "-", "✓", "✓"],
+                    ["asherin.ide, agents and snippets", "✓", "✓", "✓"],
+                    ["Directive profiles, your own instructions", "✓", "✓", "✓"],
                     ["Persistent memory, account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],
                     ["BYOK (9 providers)", "✓", "✓", "✓"],
                     ["Messages / 3-hour window", "60", "200", "Custom"],
-                    ["Azplen Data Intelligence Platform", "-", "✓", "✓"],
-                    ["Asherin Engine reach-back harvest (OSINT)", "-", "✓", "✓"],
-                    ["Advanced Intelligence Briefings", "-", "✓", "✓"],
                     ["Team workspace", "Limited", "Full + admin controls", "Org-wide + SSO/SAML"],
                     ["Audit logs + retention controls", "-", "-", "✓"],
                     ["Dedicated capacity + custom SLA", "-", "-", "✓"],
