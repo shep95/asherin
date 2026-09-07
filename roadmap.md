@@ -7,3 +7,6 @@
 - [ ] ui: sources, dataset detail (quality/dictionary/versions/lineage/table/join), ask, dashboards, alerts, reports, theme, access/audit, api/embed
 - [ ] route asherin.data to the new room, retire unused azplen panels
 - [ ] tests + live verification (upload, ask, alert, report, theme, embed)
+
+## incoming
+- [ ] next user message: convert into a deep step-by-step build plan (human logic + reasoning patterns, filled-in context) and build it without asking questions
