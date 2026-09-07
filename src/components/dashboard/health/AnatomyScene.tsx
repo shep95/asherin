@@ -672,11 +672,12 @@ export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress
             let top = Infinity;
             let bottom = -Infinity;
             for (let corner = 0; corner < 8; corner++) {
+              const bb = bounds[i];
               projected
                 .set(
-                  p.bounds[corner & 1 ? 1 : 0][0] + data[i * 4],
-                  p.bounds[corner & 2 ? 1 : 0][1] + data[i * 4 + 1],
-                  p.bounds[corner & 4 ? 1 : 0][2] + data[i * 4 + 2],
+                  (corner & 1 ? bb.max.x : bb.min.x) + data[i * 4],
+                  (corner & 2 ? bb.max.y : bb.min.y) + data[i * 4 + 1],
+                  (corner & 4 ? bb.max.z : bb.min.z) + data[i * 4 + 2],
                 )
                 .project(camera);
               const x = ((projected.x + 1) * el.clientWidth) / 2;
