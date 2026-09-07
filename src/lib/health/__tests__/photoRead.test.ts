@@ -98,7 +98,7 @@ describe("reading the read-out", () => {
 
   it("quotes a finding with its photograph and the person's own question", () => {
     const q = quoteFinding(read, read.findings[0], "should i see someone?");
-    expect(q).toContain('"left arm"');
+    expect(q).toContain('"back"');
     expect(q).toContain("should i see someone?");
   });
 
