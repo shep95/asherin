@@ -12,7 +12,12 @@
 import { geoToLocal, type GeoAnchor } from "./geo";
 import type { MapBounds, NavigationData, NavigationPOI, NavigationWaypoint, Vec3 } from "./types";
 
-const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+const ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.osm.ch/api/interpreter",
+];
+
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /** Ways a person can actually walk. Motorways and their links are left out. */
