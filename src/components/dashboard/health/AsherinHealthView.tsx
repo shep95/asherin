@@ -156,7 +156,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const [reset, setReset] = useState(0);
   const [query, setQuery] = useState("");
   const [assistantTrigger, setAssistantTrigger] = useState<string | null>(null);
-  const painCount = useRef(0);
+  const painCount = useRef<number | null>(null);
   const [activeLayers, setActiveLayers] = useState<LayerId[]>([
     "lab",
     "medication",
@@ -275,13 +275,13 @@ export default function AsherinHealthView({ userId = null }: Props) {
         "pain reports: " +
           record.pain
             .slice(-6)
-            .map((p) => `${p.region ?? "unspecified region"} severity ${p.severity ?? "?"}/10 ${p.quality ?? ""}`.trim())
+            .map((p) => `${p.partName ?? "unspecified region"} — ${Object.entries(p.answers).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join("/") : v}`).join(", ")}`)
             .join("; "),
       );
     }
     if (record.labs.length) lines.push("bloodwork: " + record.labs.map((l) => `${l.key} ${l.value}`).join(", "));
     if (record.medications.length) lines.push("medications: " + record.medications.map((m) => m.name).join(", "));
-    if (record.symptoms.length) lines.push("symptoms: " + record.symptoms.map((x) => x.key).join(", "));
+    if (record.symptoms.length) lines.push("symptoms: " + record.symptoms.map((x) => `${x.symptomKey} ${x.severity}/10`).join(", "));
     if (record.herbs.length) lines.push("herbs in use: " + record.herbs.join(", "));
     if (record.observations.length) {
       lines.push(
@@ -300,14 +300,21 @@ export default function AsherinHealthView({ userId = null }: Props) {
 
   // a new pain report speaks for itself: the assistant is raised without asking.
   useEffect(() => {
-    if (record.pain.length > painCount.current && painCount.current >= 0) {
+    // the first pass only takes a reading of what was already saved: loading a
+    // stored record is not the person reporting something new.
+    if (painCount.current === null) {
+      painCount.current = record.pain.length;
+      return;
+    }
+    if (record.pain.length > painCount.current) {
       const latest = record.pain[record.pain.length - 1];
-      if (painCount.current > 0 || record.pain.length === 1) {
-        setAssistantTrigger(
-          `i just recorded pain in ${latest?.region ?? "an unspecified region"} at severity ${latest?.severity ?? "unstated"} out of ten. ` +
-            "tell me what that region carries, what would make it worse or better, and what would make this urgent.",
-        );
-      }
+      const answers = Object.entries(latest?.answers ?? {})
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join("/") : v}`)
+        .join(", ");
+      setAssistantTrigger(
+        `i just recorded pain in ${latest?.partName ?? "an unspecified region"}${answers ? ` — ${answers}` : ""}. ` +
+          "tell me what that region carries, what tends to make it worse or better, and what would make this urgent.",
+      );
     }
     painCount.current = record.pain.length;
   }, [record.pain]);
