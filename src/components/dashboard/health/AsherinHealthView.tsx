@@ -258,6 +258,60 @@ export default function AsherinHealthView({ userId = null }: Props) {
 
   const redFlags = useMemo(() => findings.filter((f) => f.redFlag), [findings]);
 
+  // the assistant sees a compact reading of the same record the room is drawing
+  // from — nothing else, so it can never answer from something invented.
+  const assistantContext = useMemo(() => {
+    const lines: string[] = [];
+    const solve = record.body.solves.length ? record.body.solves[record.body.solves.length - 1] : null;
+    if (solve) {
+      lines.push(
+        `body model: chest ${describeEstimate(solve.vector.chestCm, "cm")}, waist ${describeEstimate(solve.vector.waistCm, "cm")}, ` +
+          `hips ${describeEstimate(solve.vector.hipCm, "cm")}, bmi ${describeEstimate(solve.vector.bmi, "")}, ` +
+          `body fat ${describeEstimate(solve.vector.bodyFatPercent, "%")} (photo estimates carry a range; measured values do not).`,
+      );
+    }
+    if (record.pain.length) {
+      lines.push(
+        "pain reports: " +
+          record.pain
+            .slice(-6)
+            .map((p) => `${p.region ?? "unspecified region"} severity ${p.severity ?? "?"}/10 ${p.quality ?? ""}`.trim())
+            .join("; "),
+      );
+    }
+    if (record.labs.length) lines.push("bloodwork: " + record.labs.map((l) => `${l.key} ${l.value}`).join(", "));
+    if (record.medications.length) lines.push("medications: " + record.medications.map((m) => m.name).join(", "));
+    if (record.symptoms.length) lines.push("symptoms: " + record.symptoms.map((x) => x.key).join(", "));
+    if (record.herbs.length) lines.push("herbs in use: " + record.herbs.join(", "));
+    if (record.observations.length) {
+      lines.push(
+        "visible readings: " +
+          record.observations
+            .slice(-8)
+            .map((o) => `${o.region}/${o.feature} — ${o.detail} (${o.clinicalRelevance})`)
+            .join("; "),
+      );
+    }
+    if (heart) lines.push(`live heart: ${Math.round(heart.bpm)} bpm`);
+    if (findings.length) lines.push("current read-out: " + findings.slice(0, 12).map((f) => `${f.label} — ${f.detail}`).join("; "));
+    if (selectedParts.length) lines.push("currently looking at: " + selectedParts.map((p) => p.name).join(", "));
+    return lines.join("\n");
+  }, [record, heart, findings, selectedParts]);
+
+  // a new pain report speaks for itself: the assistant is raised without asking.
+  useEffect(() => {
+    if (record.pain.length > painCount.current && painCount.current >= 0) {
+      const latest = record.pain[record.pain.length - 1];
+      if (painCount.current > 0 || record.pain.length === 1) {
+        setAssistantTrigger(
+          `i just recorded pain in ${latest?.region ?? "an unspecified region"} at severity ${latest?.severity ?? "unstated"} out of ten. ` +
+            "tell me what that region carries, what would make it worse or better, and what would make this urgent.",
+        );
+      }
+    }
+    painCount.current = record.pain.length;
+  }, [record.pain]);
+
   const toggleSystem = (id: SystemId) =>
     setVisible((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
@@ -671,9 +725,12 @@ function AtlasPanel(props: {
       )}
 
       {props.atlas && (
-        <p className="text-[10px] font-light leading-relaxed text-foreground/30">
-          {props.atlas.parts.length.toLocaleString()} structures · {props.atlas.triangles.toLocaleString()} triangles
-        </p>
+        <div className="space-y-1 border-t border-white/[0.06] pt-3">
+          <p className="text-[10px] font-light leading-relaxed text-foreground/30">
+            {props.atlas.parts.length.toLocaleString()} structures · {props.atlas.triangles.toLocaleString()} triangles
+          </p>
+          <p className="text-[9px] font-light leading-relaxed text-foreground/25">{ATLAS_ATTRIBUTION}</p>
+        </div>
       )}
     </div>
   );
