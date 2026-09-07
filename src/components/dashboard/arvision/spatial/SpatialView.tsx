@@ -20,6 +20,8 @@ import {
   RefreshCw,
   Repeat,
   Route,
+  Satellite,
+
   Settings2,
   Users,
   Volume2,
@@ -40,8 +42,13 @@ import {
 } from "@/lib/arvision/spatial/intrinsics";
 import { isNavigationData, type NavigationData, type PeerState, type Quat, type Vec3 } from "@/lib/arvision/spatial/types";
 import referenceMap from "@/lib/arvision/spatial/referenceMap.json";
+import { bearingFromLocal, geoToLocal, type GeoAnchor } from "@/lib/arvision/spatial/geo";
+import { buildLiveMap } from "@/lib/arvision/spatial/liveMap";
+
 
 type Panel = "field" | "map" | "route" | "session" | "setup";
+type PoseSource = "none" | "camera positioning" | "placed by hand" | "live position";
+
 
 const PANELS: { id: Panel; label: string; icon: typeof Camera }[] = [
   { id: "field", label: "field", icon: Camera },
@@ -67,9 +74,19 @@ const SpatialView = () => {
   const [mapError, setMapError] = useState<string | null>(null);
 
   const [position, setPosition] = useState<Vec3 | null>(null);
-  const [poseSource, setPoseSource] = useState<"none" | "camera positioning" | "placed by hand">("none");
+  const [poseSource, setPoseSource] = useState<PoseSource>("none");
   const [yawDeg, setYawDeg] = useState(0);
   const [headingSensor, setHeadingSensor] = useState<"off" | "live" | "unavailable">("off");
+
+  // live positioning from the device's own receiver
+  const [liveOn, setLiveOn] = useState(false);
+  const [liveNote, setLiveNote] = useState<string | null>(null);
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [fixAccuracy, setFixAccuracy] = useState<number | null>(null);
+  const [fixAt, setFixAt] = useState<number | null>(null);
+  const [anchor, setAnchor] = useState<GeoAnchor | null>(null);
+  const [speedMs, setSpeedMs] = useState<number | null>(null);
+
 
   const [guidanceState, setGuidanceState] = useState<GuidanceState | null>(null);
   const [voiceOn, setVoiceOn] = useState(true);
@@ -103,6 +120,13 @@ const SpatialView = () => {
   const sessionRef = useRef<SpatialSession | null>(null);
   const colorRef = useRef(randomVibrantColor());
   const [videoSize, setVideoSize] = useState({ width: 1280, height: 720 });
+  const watchRef = useRef<number | null>(null);
+  const lastFixRef = useRef<Vec3 | null>(null);
+  const headingRef = useRef<"off" | "live" | "unavailable">("off");
+  // the geolocation watcher is registered once and must always see the current
+  // pose handler, so it reads it through a ref instead of capturing a stale one
+  const applyPoseRef = useRef<(p: Vec3, s: Exclude<PoseSource, "none">, r?: Quat) => void>(() => {});
+
 
   // guidance engine, rebuilt whenever the loaded map changes
   useEffect(() => {
@@ -137,6 +161,11 @@ const SpatialView = () => {
   }, [voiceOn]);
 
   useEffect(() => {
+    headingRef.current = headingSensor;
+  }, [headingSensor]);
+
+
+  useEffect(() => {
     let cancelled = false;
     getVpsStatus()
       .then((status) => {
@@ -160,15 +189,111 @@ const SpatialView = () => {
 
   // push pose into guidance and out to the session
   const applyPose = useCallback(
-    (next: Vec3, source: "camera positioning" | "placed by hand", nextRotation?: Quat) => {
+    (next: Vec3, source: Exclude<PoseSource, "none">, nextRotation?: Quat) => {
       setPosition(next);
       setPoseSource(source);
       const rot = nextRotation ?? quatFromYaw((yawDeg * Math.PI) / 180);
       guidanceRef.current?.updatePosition(next, rot);
-      sessionRef.current?.sendPose({ position: next, rotation: rot, isLocalized: source === "camera positioning" });
+      sessionRef.current?.sendPose({
+        position: next,
+        rotation: rot,
+        isLocalized: source === "camera positioning" || source === "live position",
+      });
     },
     [yawDeg],
   );
+
+  // live position from the device receiver, plotted on an earth-anchored map.
+  // the fix is real or it is absent — a stale or rejected fix says so and the
+  // room falls back to placing yourself by hand rather than drifting a guess.
+  const stopLive = useCallback(() => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    }
+    setLiveOn(false);
+  }, []);
+
+  const startLive = useCallback(async () => {
+    if (liveBusy) return;
+    if (!("geolocation" in navigator)) {
+      setLiveNote("this device does not expose a position receiver to the browser");
+      return;
+    }
+    setLiveBusy(true);
+    setLiveNote("waiting for a position fix");
+    try {
+      // A precise fix can take a while to arrive, and a busy render loop can
+      // delay the callback further, so a timeout is not a failure yet: fall
+      // back to a coarse fix before giving up, and only then say so plainly.
+      const ask = (highAccuracy: boolean, timeout: number, maximumAge: number) =>
+        new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: highAccuracy,
+            timeout,
+            maximumAge,
+          });
+        });
+
+      const fix = await ask(true, 30000, 10000).catch(async (first: GeolocationPositionError) => {
+        if (first?.code === 1) throw new Error("location permission was refused, so live positioning stays off");
+        setLiveNote("no precise fix yet — trying a coarse one");
+        return ask(false, 30000, 60000).catch((second: GeolocationPositionError) => {
+          throw new Error(
+            second?.code === 3
+              ? "no position fix arrived in time — try again with a clearer view of the sky"
+              : "the device could not produce a position fix",
+          );
+        });
+      });
+
+
+      setLiveNote("building a map of what is actually around you");
+      const built = await buildLiveMap(fix.coords.latitude, fix.coords.longitude);
+      if (!built.data) {
+        setLiveNote(built.message);
+        return;
+      }
+      const nextAnchor = built.anchor;
+      setAnchor(nextAnchor);
+      setGraph(new NavigationGraph(built.data));
+      setMapCode(built.data.mapCode);
+      setMapLabel(`live map · ${nextAnchor.lat.toFixed(5)}, ${nextAnchor.lon.toFixed(5)}`);
+      setLiveNote(built.message);
+
+      const push = (p: GeolocationPosition) => {
+        const local = geoToLocal(nextAnchor, p.coords.latitude, p.coords.longitude);
+        setFixAccuracy(typeof p.coords.accuracy === "number" ? p.coords.accuracy : null);
+        setFixAt(p.timestamp);
+        setSpeedMs(typeof p.coords.speed === "number" && p.coords.speed >= 0 ? p.coords.speed : null);
+        // heading: the device compass wins, otherwise the receiver's own course,
+        // otherwise the bearing of the last real movement
+        const course = typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null;
+        if (headingRef.current !== "live") {
+          const moved = lastFixRef.current ? bearingFromLocal(lastFixRef.current, local) : null;
+          const next = course ?? moved;
+          if (next !== null) setYawDeg(Math.round(next));
+        }
+        lastFixRef.current = local;
+        applyPoseRef.current(local, "live position");
+      };
+
+      push(fix);
+      watchRef.current = navigator.geolocation.watchPosition(
+        push,
+        () => setLiveNote("the position stream dropped — the last real fix is still shown"),
+        { enableHighAccuracy: true, timeout: 25000, maximumAge: 1000 },
+      );
+      setLiveOn(true);
+    } catch (error) {
+      setLiveNote(error instanceof Error ? error.message : "live positioning failed");
+      setLiveOn(false);
+    } finally {
+      setLiveBusy(false);
+    }
+  }, [liveBusy]);
+
+
 
   // heading from the device compass when the user grants it
   const enableHeading = useCallback(async () => {
@@ -263,6 +388,13 @@ const SpatialView = () => {
   }, [camFacing, startCam, switching]);
 
   useEffect(() => () => stopCam(), [stopCam]);
+
+  useEffect(() => {
+    applyPoseRef.current = applyPose;
+  }, [applyPose]);
+
+  useEffect(() => () => stopLive(), [stopLive]);
+
 
   const runLocalize = useCallback(async () => {
     const video = videoRef.current;
@@ -455,6 +587,17 @@ const SpatialView = () => {
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={liveOn ? chipOn : chip}
+                onClick={() => (liveOn ? stopLive() : void startLive())}
+                disabled={liveBusy}
+              >
+                <span className="flex items-center gap-1.5">
+                  {liveBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Satellite className="h-3.5 w-3.5" />}
+                  {liveBusy ? "getting a fix" : liveOn ? "live position on" : "go live here"}
+                </span>
+              </button>
               <button type="button" className={chip} onClick={() => void enableHeading()}>
                 <span className="flex items-center gap-1.5">
                   <Compass className="h-3.5 w-3.5" />
@@ -477,10 +620,21 @@ const SpatialView = () => {
                 <span className="text-[11px] font-light text-white/45">compass not available on this device</span>
               )}
             </div>
+            {liveOn && (
+              <p className="text-[11px] font-light text-white/55">
+                fix accuracy {fixAccuracy !== null ? `${fixAccuracy.toFixed(0)}m` : "unreported"}
+                {fixAt ? ` · updated ${new Date(fixAt).toLocaleTimeString()}` : ""}
+                {speedMs !== null ? ` · ${(speedMs * 3.6).toFixed(1)} km/h` : ""}
+                {anchor ? ` · anchor ${anchor.lat.toFixed(5)}, ${anchor.lon.toFixed(5)}` : ""}
+              </p>
+            )}
+            {liveNote && <p className="text-[11px] font-light leading-relaxed text-white/50">{liveNote}</p>}
             <p className="text-[11px] font-light leading-relaxed text-white/45">
-              tap the plan to place yourself on the nearest walkable point. camera positioning replaces this the moment the
-              map service is configured.
+              go live builds the walkable map around wherever you actually are and tracks you on it from the device
+              receiver. tap the plan to place yourself by hand instead. camera positioning refines the fix once the map
+              service is configured.
             </p>
+
           </div>
         )}
 
@@ -637,8 +791,12 @@ const SpatialView = () => {
               {mapError && <p className="text-[11px] font-light text-white/70">{mapError}</p>}
               <p className="text-[11px] font-light text-white/40">
                 {graph.data.waypoints.length} waypoints · {graph.getPOIs().length} destinations ·{" "}
-                {graph.data.paths.length} precomputed routes · spacing {graph.data.waypointSpacing}m
+                {graph.data.paths.length > 0
+                  ? `${graph.data.paths.length} precomputed routes`
+                  : "routes solved on demand"}{" "}
+                · spacing {graph.data.waypointSpacing}m
               </p>
+
             </div>
 
             <div className={`${card} space-y-3 p-4`}>
@@ -681,9 +839,12 @@ const SpatialView = () => {
               <p className="text-[12px] font-light leading-relaxed text-white/55">
                 there is no scanned wall mesh in a browser, so a peer counts as hidden when the straight line to them leaves the
                 walkable corridor of the loaded map. wearable glasses stream over a native link this page cannot open, so the
-                field view uses this device camera. camera positioning only works once the map service credentials are set,
-                and until then position is placed by hand on the plan.
+                field view uses this device camera. live position comes from this device's own receiver against a map built
+                from openstreetmap, so it is accurate to whatever the fix reports and it is outdoor-honest: indoors it will
+                wander, and you can place yourself by hand instead. camera positioning is a separate refinement that only
+                works once the map service credentials are set.
               </p>
+
             </div>
           </div>
         )}

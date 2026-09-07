@@ -56,6 +56,9 @@ export interface NavigationData {
   pois: NavigationPOI[];
   waypoints: NavigationWaypoint[];
   paths: NavigationPath[];
+  /** Present when the map is anchored to earth, so a live GPS fix can be plotted on it. */
+  origin?: { lat: number; lon: number };
+
 }
 
 /** Instruction set ported from NavigationInstruction.swift. */
