@@ -56,7 +56,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     try {
       renderer = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     } catch {
-      onError("this browser could not start the 3d view. try a browser with webgl enabled.");
+      errorRef.current("this browser could not start the 3d view. try a browser with webgl enabled.");
       return;
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, innerWidth < 768 ? 1.5 : 2));
@@ -267,7 +267,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       });
       lastState = null;
       loaded++;
-      onProgress(Math.round((loaded / atlas.chunks.length) * 100));
+      progressRef.current(Math.round((loaded / atlas.chunks.length) * 100));
       dirty = true;
     };
 
@@ -287,7 +287,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
           dirty = true;
         }
       } catch (e) {
-        if (!disposed && !abort.signal.aborted) onError(e instanceof Error ? e.message : "the anatomy could not be loaded.");
+        if (!disposed && !abort.signal.aborted) errorRef.current(e instanceof Error ? e.message : "the anatomy could not be loaded.");
       }
     })();
 
@@ -566,7 +566,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
 
     const contextLost = (e: Event) => {
       e.preventDefault();
-      onError("the 3d session was paused by your device. reload the room to continue.");
+      errorRef.current("the 3d session was paused by your device. reload the room to continue.");
     };
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
 
@@ -595,7 +595,7 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [atlas, onError, onProgress]);
+  }, [atlas]);
 
   return <div className="health-scene absolute inset-0" ref={host} />;
 }
