@@ -850,7 +850,7 @@ function CameraTile({
 /** full-screen read of one camera in one rendering, with the tracking overlay
  * scaled on top and the other renderings one tap away. */
 function FullFrame({
-  label, mode, onMode, onClose, getFrame, getOverlay,
+  label, mode, onMode, onClose, getFrame, getOverlay, thermalDevice, calibration, onThermal,
 }: {
   label: string;
   mode: FilterMode;
@@ -858,6 +858,9 @@ function FullFrame({
   onClose: () => void;
   getFrame: () => HTMLCanvasElement | null;
   getOverlay: () => HTMLCanvasElement | null;
+  thermalDevice: boolean;
+  calibration: ThermalCalibration;
+  onThermal: (r: { path: ThermalPath; min: number | null; max: number | null; centre: number | null }) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -868,11 +871,22 @@ function FullFrame({
       const frame = getFrame();
       const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, mode);
-        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+        const src = mode === "thermal" && thermalDevice
+          ? frame.getContext("2d", { willReadFrequently: true })?.getImageData(0, 0, frame.width, frame.height) ?? null
+          : null;
+        const sensor = src ? resolvePath(true, frameStats(src)) : null;
+        const out = sensor === "palettized" ? frame : sensor === "sensor" ? null : filteredCanvas(frame, mode);
+        const w = out ? out.width : frame.width;
+        const h = out ? out.height : frame.height;
+        if (target.width !== w || target.height !== h) { target.width = w; target.height = h; }
         const ctx = target.getContext("2d");
         if (ctx) {
-          ctx.drawImage(out, 0, 0);
+          if (out) ctx.drawImage(out, 0, 0);
+          else if (src) {
+            const r = renderSensorThermal(src, calibration);
+            ctx.putImageData(r.image, 0, 0);
+            onThermal({ path: "sensor", min: r.minTemp, max: r.maxTemp, centre: r.centreTemp });
+          }
           const ov = getOverlay();
           if (ov && ov.width > 0) ctx.drawImage(ov, 0, 0, target.width, target.height);
         }
@@ -881,7 +895,7 @@ function FullFrame({
     };
     paint();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [mode, getFrame, getOverlay]);
+  }, [mode, getFrame, getOverlay, thermalDevice, calibration, onThermal]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -902,6 +916,110 @@ function FullFrame({
         <canvas ref={ref} className="h-full w-full object-contain" />
       </div>
       <div className="text-[10.5px] font-light text-white/35">{FILTER_MODES.find((f) => f.id === mode)?.note}</div>
+    </div>
+  );
+}
+
+
+interface GalleryProps {
+  tiles: TileState[];
+  calibration: ThermalCalibration;
+  alerted: Record<string, number>;
+  getFrame: (deviceId: string) => HTMLCanvasElement | null;
+  onPick: (deviceId: string, mode: FilterMode) => void;
+}
+
+/** one live thumbnail per camera per rendering. every one of them is painting
+ * from the same frames the detector reads, so the gallery is the whole watch at
+ * a glance rather than a menu of things that would run if you picked them. */
+function GalleryThumbs({ tiles, calibration, alerted, getFrame, onPick }: GalleryProps) {
+  return (
+    <>
+      {tiles.map((t) => (
+        <div key={t.deviceId} className="shrink-0">
+          <div className="mb-1 flex items-center gap-1.5 px-0.5 text-[10px] font-light text-white/45">
+            <span className="max-w-[130px] truncate">{t.label}</span>
+            {t.thermalDevice && <span className="rounded-full bg-amber-400/15 px-1.5 text-[9px] text-amber-200/85">thermal</span>}
+          </div>
+          <div className="flex gap-1.5">
+            {FILTER_MODES.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => onPick(t.deviceId, f.id)}
+                title={`${t.label} · ${f.label} — ${f.note}`}
+                className={`relative h-[62px] w-[92px] shrink-0 overflow-hidden rounded-lg bg-black/60 ${alerted[t.deviceId] ? "eagle-alert" : "border border-white/10 hover:border-white/30"}`}
+              >
+                <FilterPane
+                  mode={f.id}
+                  getFrame={() => getFrame(t.deviceId)}
+                  thermalDevice={t.thermalDevice}
+                  calibration={calibration}
+                  interval={320}
+                />
+                <span className="pointer-events-none absolute bottom-0 left-0 right-0 bg-black/55 px-1 py-0.5 text-[9px] font-light text-white/65">{f.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function GalleryRail(props: GalleryProps & { onPop: () => void; onHide: () => void }) {
+  const { onPop, onHide, ...rest } = props;
+  return (
+    <div className="shrink-0 rounded-2xl border border-white/10 bg-white/[0.02] p-2">
+      <div className="mb-1.5 flex items-center gap-2 px-0.5">
+        <span className="text-[10.5px] uppercase tracking-[0.18em] text-white/35">feed gallery</span>
+        <span className="text-[10px] font-light text-white/30">every camera in every rendering, live · tap one for full screen</span>
+        <button onClick={onPop} title="pop the gallery out" className="ml-auto text-white/40 hover:text-white/80"><PictureInPicture2 className="h-3.5 w-3.5" /></button>
+        <button onClick={onHide} title="hide the gallery" className="text-white/40 hover:text-white/80"><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        <GalleryThumbs {...rest} />
+      </div>
+    </div>
+  );
+}
+
+/** the popped-out gallery: a floating panel the operator can drag anywhere over
+ * the room, so the feeds stay visible while a single camera is full screen. */
+function FloatingGallery(props: GalleryProps & { onDock: () => void }) {
+  const { onDock, ...rest } = props;
+  const [pos, setPos] = useState({ x: 24, y: 96 });
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (!dragRef.current) return;
+      setPos({
+        x: Math.max(8, Math.min(window.innerWidth - 260, e.clientX - dragRef.current.dx)),
+        y: Math.max(8, Math.min(window.innerHeight - 120, e.clientY - dragRef.current.dy)),
+      });
+    };
+    const up = () => { dragRef.current = null; };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  }, []);
+
+  return (
+    <div
+      className="fixed z-[60] max-h-[70vh] w-[360px] overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0d]/95 shadow-2xl backdrop-blur"
+      style={{ left: pos.x, top: pos.y }}
+    >
+      <div
+        onPointerDown={(e) => { dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; }}
+        className="flex cursor-grab items-center gap-2 border-b border-white/10 px-3 py-2 active:cursor-grabbing"
+      >
+        <ExternalLink className="h-3.5 w-3.5 text-white/40" />
+        <span className="text-[11px] font-light text-white/70">feed gallery</span>
+        <button onClick={onDock} className="ml-auto text-[10.5px] font-light text-white/45 hover:text-white/85">dock</button>
+      </div>
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto p-2">
+        <GalleryThumbs {...rest} />
+      </div>
     </div>
   );
 }
