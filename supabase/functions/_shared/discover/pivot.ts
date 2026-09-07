@@ -14,6 +14,10 @@ export interface PivotOptions {
   maxDepth: number;
   maxNodes: number;
   maxFanoutPerNode: number;
+  /** wall-clock epoch ms after which no further node is expanded. */
+  deadlineAt?: number;
+  /** surfaced so a resolver failure is reported, never silently absorbed. */
+  onResolverError?: (node: PivotNode, error: unknown) => void;
 }
 
 export const DEFAULT_PIVOT: PivotOptions = { maxDepth: 3, maxNodes: 40, maxFanoutPerNode: 8 };
@@ -40,12 +44,14 @@ export async function expandPivot(
   const queue: PivotNode[] = [root];
   let counter = 1;
   while (queue.length && nodes.length < cfg.maxNodes) {
+    if (cfg.deadlineAt && Date.now() > cfg.deadlineAt) break;
     const node = queue.shift()!;
     if (node.depth >= cfg.maxDepth) continue;
     let discovered: Array<{ identifier: string; kind: IdentifierKind }> = [];
     try {
       discovered = await resolver(node);
-    } catch {
+    } catch (e) {
+      cfg.onResolverError?.(node, e);
       discovered = [];
     }
     let taken = 0;

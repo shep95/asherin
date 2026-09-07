@@ -28,8 +28,20 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ error: "invalid json" }, 400, cors); }
   const seed = String(body?.seed ?? "").trim().toLowerCase();
   const domain = seed.replace(/^https?:\/\//, "").split("/")[0];
-  if (!/^[a-z0-9.-]{3,253}$/.test(domain) || !isProbeableHost(domain)) {
-    return json({ error: "seed must be a public hostname; loopback, private ranges and metadata hosts are refused" }, 400, cors);
+  if (!/^[a-z0-9.-]{3,253}$/.test(domain) || !domain.includes(".") || !isProbeableHost(domain)) {
+    // a person, handle, address or number is a valid thing to search — it is
+    // just not a discover seed. say which mode owns it instead of erroring blind.
+    const routed = /\s/.test(seed) ? "name"
+      : /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(seed) ? "email"
+      : /^[+()\d][\d\s().-]{6,}$/.test(seed) ? "phone"
+      : /^[a-z0-9][a-z0-9._-]{1,38}$/.test(seed) ? "username"
+      : null;
+    return json({
+      error: routed
+        ? `"${seed}" is a ${routed}, not a hostname — discover maps infrastructure. run it in identity mode.`
+        : "seed must be a public hostname; loopback, private ranges and metadata hosts are refused",
+      route_to: routed ? { mode: "identity", kind: routed } : null,
+    }, 400, cors);
   }
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {

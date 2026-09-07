@@ -26,7 +26,12 @@ interface Hit {
 }
 
 interface PivotRow { id: string; node_id: string; parent_node: string | null; identifier: string; kind: string; depth: number }
-interface RunMeta { sources: Record<string, { available: boolean; reason?: string; count?: number; index?: string | null }> }
+interface RunMeta {
+  sources: Record<string, { available: boolean; reason?: string; count?: number; index?: string | null; note?: string; present?: string[]; absent?: number; unmeasured?: Array<{ platform: string; reason: string }> }>;
+  storage?: { stored: number; errors: string[] };
+  coverage?: { measured: number; refused: number; nodes: number; elapsed_ms: number; budget_hit: boolean };
+  node_errors?: Array<{ node: string; error: string }>;
+}
 
 function classDot(score: number) {
   if (score >= 85) return "bg-red-500";
@@ -75,6 +80,33 @@ const AsherinSearchView = () => {
     setPivots((p ?? []) as PivotRow[]);
   }, []);
 
+  // an edge failure carries its json body on error.context — reading it turns
+  // "edge function error" into the actual sentence the backend wrote.
+  const readEdgeError = useCallback(async (error: unknown): Promise<{ message: string; route?: { mode: Mode; kind: IdentifierKind } }> => {
+    const ctx = (error as { context?: Response })?.context;
+    if (ctx && typeof ctx.text === "function") {
+      try {
+        const body = JSON.parse(await ctx.clone().text()) as { error?: string; route_to?: { mode: Mode; kind: IdentifierKind } };
+        if (body?.error) return { message: body.error, route: body.route_to ?? undefined };
+      } catch { /* body was not json — fall through to the generic message */ }
+    }
+    return { message: error instanceof Error ? error.message : "request failed" };
+  }, []);
+
+  const runIdentityWith = useCallback(async (kind: IdentifierKind) => {
+    setRunning(true); setHits([]); setPivots([]); setMeta(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("asherin-search-identity", { body: { identifier: seed.trim(), kind } });
+      if (error) throw error;
+      const rid = (data as { run_id?: string })?.run_id ?? null;
+      setRunId(rid);
+      setMeta((data as { meta?: RunMeta })?.meta ?? null);
+      if (rid) await loadRun(rid);
+    } catch (e) {
+      toast.error((await readEdgeError(e)).message);
+    } finally { setRunning(false); }
+  }, [seed, loadRun, readEdgeError]);
+
   const runDiscover = useCallback(async () => {
     if (!seed.trim()) { toast.error("enter a seed domain"); return; }
     setRunning(true); setHits([]); setPivots([]); setMeta(null);
@@ -86,24 +118,23 @@ const AsherinSearchView = () => {
       setMeta((data as { meta?: RunMeta })?.meta ?? null);
       if (rid) await loadRun(rid);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "discover failed");
+      const { message, route } = await readEdgeError(e);
+      if (route?.mode === "identity") {
+        // the seed was a person, not a host. move the run instead of failing it.
+        setMode("identity"); setIdKind(route.kind);
+        toast.message(message);
+        setRunning(false);
+        await runIdentityWith(route.kind);
+        return;
+      }
+      toast.error(message);
     } finally { setRunning(false); }
-  }, [seed, loadRun]);
+  }, [seed, loadRun, readEdgeError, runIdentityWith]);
 
   const runIdentity = useCallback(async () => {
     if (!seed.trim()) { toast.error("enter an identifier"); return; }
-    setRunning(true); setHits([]); setPivots([]); setMeta(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("asherin-search-identity", { body: { identifier: seed.trim(), kind: idKind } });
-      if (error) throw error;
-      const rid = (data as { run_id?: string })?.run_id ?? null;
-      setRunId(rid);
-      setMeta((data as { meta?: RunMeta })?.meta ?? null);
-      if (rid) await loadRun(rid);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "identity failed");
-    } finally { setRunning(false); }
-  }, [seed, idKind, loadRun]);
+    await runIdentityWith(idKind);
+  }, [seed, idKind, runIdentityWith]);
 
   const recheck = useCallback(async (hit: Hit) => {
     try {
@@ -178,7 +209,18 @@ const AsherinSearchView = () => {
 
       {meta && (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur">
-          <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground/60">sources read</div>
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/60">
+            <span>sources read</span>
+            {meta.coverage && (
+              <span className="normal-case tracking-normal text-muted-foreground/50">
+                {meta.coverage.measured} answered · {meta.coverage.refused} unmeasured · {meta.coverage.nodes} identifiers · {(meta.coverage.elapsed_ms / 1000).toFixed(1)}s
+                {meta.coverage.budget_hit ? " · stopped at the time budget, results are partial" : ""}
+              </span>
+            )}
+            {meta.storage?.errors?.length ? (
+              <span className="normal-case tracking-normal text-amber-300/80">storage error: {meta.storage.errors[0]}</span>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(meta.sources).map(([name, s]) => (
               <button key={name} onClick={() => setFilter(filter === name ? "all" : name)} className={`rounded-lg border px-2 py-1 text-[10px] font-light transition ${filter === name ? "border-white/30 bg-white/10" : "border-white/10 bg-black/20 hover:border-white/20"}`}>
@@ -201,7 +243,7 @@ const AsherinSearchView = () => {
       <div className="flex-1 overflow-auto rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur">
         {hits.length === 0 && !running && (
           <div className="flex h-full items-center justify-center p-8 text-center text-xs font-light text-muted-foreground/60">
-            {runId ? "no hits — the sources ran but nothing surfaced." : "results appear here after a run."}
+            {runId ? (meta?.coverage ? `no hits — ${meta.coverage.measured} sources answered and none carried this identifier; ${meta.coverage.refused} could not be read.` : "no hits — the sources ran but nothing surfaced.") : "results appear here after a run."}
           </div>
         )}
         {grouped.map(([source, list]) => (

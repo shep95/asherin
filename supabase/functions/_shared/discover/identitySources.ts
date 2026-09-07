@@ -68,14 +68,44 @@ export async function gravatarProfile(email: string): Promise<IdResult> {
 }
 
 export async function githubUserByEmail(email: string): Promise<IdResult> {
+  // the code search api needs a token, but the *user* search api answers
+  // unauthenticated at a lower rate. a missing token narrows the sweep; it must
+  // not silence it.
   const token = Deno.env.get("GITHUB_TOKEN");
-  if (!token) return { available: false, reason: "requires GITHUB_TOKEN", rows: [] };
-  const j = await json(
-    `https://api.github.com/search/users?q=${encodeURIComponent(email + " in:email")}`,
-    12_000,
-    { authorization: `Bearer ${token}`, "x-github-api-version": "2022-11-28", accept: "application/vnd.github+json" },
-  );
-  const items = (j as { items?: Array<Record<string, unknown>> } | null)?.items ?? [];
+  const headers: Record<string, string> = {
+    "x-github-api-version": "2022-11-28",
+    accept: "application/vnd.github+json",
+  };
+  if (token) headers.authorization = `Bearer ${token}`;
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort("timeout"), 12_000);
+  let payload: { items?: Array<Record<string, unknown>> } | null = null;
+  try {
+    const r = await fetch(
+      `https://api.github.com/search/users?q=${encodeURIComponent(email + " in:email")}&per_page=10`,
+      { signal: c.signal, headers: { "user-agent": UA, ...headers } },
+    );
+    if (r.status === 403 || r.status === 429) {
+      await r.text().catch(() => "");
+      return {
+        available: false,
+        reason: token
+          ? "github rate limit reached for this token"
+          : "github unauthenticated search rate limit reached — set GITHUB_TOKEN to widen it",
+        rows: [],
+      };
+    }
+    if (!r.ok) {
+      await r.text().catch(() => "");
+      return { available: false, reason: `github http ${r.status}`, rows: [] };
+    }
+    payload = await r.json();
+  } catch (e) {
+    return { available: false, reason: e instanceof Error ? e.message : "github unavailable", rows: [] };
+  } finally {
+    clearTimeout(t);
+  }
+  const items = payload?.items ?? [];
   return {
     available: true,
     rows: items.slice(0, 10).map((it) => ({
@@ -90,6 +120,39 @@ export async function githubUserByEmail(email: string): Promise<IdResult> {
     })),
   };
 }
+
+// free public breach index — accepts an email and returns the source list.
+export async function leakCheckEmail(email: string): Promise<IdResult> {
+  const j = await json(`https://leakcheck.io/api/public?check=${encodeURIComponent(email.trim().toLowerCase())}`, 12_000);
+  const body = j as { success?: boolean; found?: number; fields?: string[]; sources?: Array<{ name: string; date?: string }> } | null;
+  if (!body) return { available: false, reason: "leakcheck did not answer", rows: [] };
+  if (!body.success) return { available: true, rows: [] };
+  const rows: IdRow[] = (body.sources ?? []).slice(0, 30).map((s) => ({
+    source: "leakcheck.public",
+    kind: "breach",
+    url: "https://leakcheck.io/",
+    summary: `this address appears in the public breach index for ${s.name}${s.date ? ` (${s.date})` : ""}`,
+    discovered: [],
+  }));
+  if (body.fields?.length) {
+    rows.push({
+      source: "leakcheck.public",
+      kind: "breach-fields",
+      summary: `field types exposed alongside this address across ${body.found ?? rows.length} records: ${body.fields.join(", ")}`,
+      discovered: [],
+    });
+  }
+  return { available: true, rows };
+}
+
+export function emailKeyedSources(): Record<string, { available: false; reason: string }> {
+  return {
+    "haveibeenpwned": { available: false, reason: "requires HIBP_API_KEY (paid)" },
+    "emailrep": { available: false, reason: "emailrep disabled its unauthenticated api; requires EMAILREP_API_KEY" },
+    "hunter.io": { available: false, reason: "requires HUNTER_API_KEY" },
+  };
+}
+
 
 export async function keyserverProfile(email: string): Promise<IdResult> {
   // keys.openpgp.org lookup by email. text/plain if found.
