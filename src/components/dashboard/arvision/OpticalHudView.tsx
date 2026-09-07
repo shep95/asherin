@@ -344,7 +344,12 @@ function bootArvision(wrap, root, emitPull) {
     inboxOpen: false,
     deviceLog: [],
     personTags: {},
+    // which view owns the full screen. the other one sits in the corner box.
+    primary: "spectral",
+    specW: 384,
+    specSeen: 0,
   };
+
 
   function layerChips() {
     layersEl.innerHTML = "";
