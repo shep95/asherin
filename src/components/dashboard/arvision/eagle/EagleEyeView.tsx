@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle, Bluetooth, Camera, CheckCircle2, CircleSlash, Download,
-  Eye, Loader2, Play, ShieldAlert, Square, Trash2, X,
+  Eye, Grid2X2, Loader2, Maximize2, Play, ShieldAlert, Square, Trash2, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -56,6 +56,7 @@ interface Runtime {
   config: CameraConfig;
   lastCaptureByTrack: Map<string, number>;
   overlay: HTMLCanvasElement | null;
+  lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
 }
@@ -82,6 +83,10 @@ export default function EagleEyeView() {
   const [openVariant, setOpenVariant] = useState(0);
   const [ble, setBle] = useState<BleLink[]>([]);
   const [preview, setPreview] = useState<FilterMode>("clean");
+  const [quad, setQuad] = useState(false);
+  // a camera that just recorded something flashes until a human looks at it.
+  const [alerted, setAlerted] = useState<Record<string, number>>({});
+  const [full, setFull] = useState<{ deviceId: string; mode: FilterMode } | null>(null);
   const [captureFrom, setCaptureFrom] = useState<ThreatTier>("elevated");
   const [exporting, setExporting] = useState(false);
   const [contextNote, setContextNote] = useState<string>("capture context resolves on the first recorded event");
@@ -149,6 +154,7 @@ export default function EagleEyeView() {
         config: createCameraConfig(device.deviceId.slice(0, 12) || label, label, "pending", 0, 0, Intl.DateTimeFormat().resolvedOptions().timeZone, createDefaultZones(w, h)),
         lastCaptureByTrack: new Map(),
         overlay: null,
+        lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
       });
@@ -179,7 +185,7 @@ export default function EagleEyeView() {
   }, []);
 
   // ---- evidence -----------------------------------------------------------
-  const recordEvent = useCallback(async (rt: Runtime, event: ThreatEvent, entity: TrackedEntity, frame: HTMLCanvasElement) => {
+  const recordEvent = useCallback(async (deviceId: string, rt: Runtime, event: ThreatEvent, entity: TrackedEntity, frame: HTMLCanvasElement) => {
     const ctx = await captureContext();
     setContextNote(contextLine(ctx));
     // the engine's camera config carries whatever the platform actually gave
@@ -204,6 +210,7 @@ export default function EagleEyeView() {
       cameraLabel: rt.config.label,
     });
     setRecords((r) => [record, ...r].slice(0, 200));
+    setAlerted((a) => ({ ...a, [deviceId]: Date.now() }));
     toast.warning(`${event.threatTier} pattern on ${rt.config.label}`, {
       description: `${event.patternsTriggered.slice(0, 3).join(", ") || "pattern set recorded"} — captured for human review`,
     });
@@ -242,6 +249,7 @@ export default function EagleEyeView() {
           rt.entities,
         );
         rt.entities = out.updatedEntities;
+        rt.lastObjects = [...det.objects, ...det.vehicles];
         drawOverlay(rt, det.persons.map((p) => ({ trackId: p.trackId, box: p.boundingBox })), frame.width, frame.height);
 
         if (!capturingRef.current) {
@@ -255,7 +263,7 @@ export default function EagleEyeView() {
             rt.lastCaptureByTrack.set(ev.trackId, Date.now());
             capturingRef.current = true;
             try {
-              await recordEvent(rt, ev, entity, frame);
+              await recordEvent(deviceId, rt, ev, entity, frame);
             } finally {
               capturingRef.current = false;
             }
@@ -293,6 +301,24 @@ export default function EagleEyeView() {
       ctx.fillRect(b.box.x, Math.max(0, b.box.y - 18), tw, 17);
       ctx.fillStyle = TIER_STYLE[tier].ring;
       ctx.fillText(label, b.box.x + 5, Math.max(11, b.box.y - 5));
+    }
+    // the object pass the optical hud draws too: coco-ssd classes with the
+    // engine's abandoned flag. objects are named, never people.
+    for (const obj of rt.lastObjects) {
+      const box = obj.boundingBox;
+      const warn = obj.isAbandoned;
+      ctx.strokeStyle = warn ? "#F59E0B" : "rgba(255,255,255,0.5)";
+      ctx.lineWidth = warn ? 2 : 1.2;
+      ctx.setLineDash(warn ? [] : [5, 4]);
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
+      ctx.setLineDash([]);
+      const label = warn ? `${obj.label} · unattended` : obj.label;
+      ctx.font = "11px ui-monospace, monospace";
+      const tw = ctx.measureText(label).width + 8;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(box.x, box.y + box.height + 2, tw, 15);
+      ctx.fillStyle = warn ? "#FBBF24" : "rgba(255,255,255,0.75)";
+      ctx.fillText(label, box.x + 4, box.y + box.height + 13);
     }
   };
 
@@ -438,6 +464,14 @@ export default function EagleEyeView() {
               <button key={f.id} onClick={() => setPreview(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${preview === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
             ))}
           </div>
+          <button
+            onClick={() => setQuad((q) => !q)}
+            className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition ${quad ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"}`}
+          >
+            <Grid2X2 className="mb-1 h-3.5 w-3.5" />
+            <div>{quad ? "quad view on" : "quad view"}</div>
+            <div className="text-[10.5px] text-white/40">one square per camera split into clean, thermal, spectral and edge — tap any pane for full screen.</div>
+          </button>
           <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
         </div>
 
@@ -458,7 +492,11 @@ export default function EagleEyeView() {
                 key={t.deviceId}
                 tile={t}
                 preview={preview}
+                quad={quad}
                 running={running}
+                alerted={Boolean(alerted[t.deviceId])}
+                onAck={() => setAlerted((a) => { const n = { ...a }; delete n[t.deviceId]; return n; })}
+                onExpand={(mode) => setFull({ deviceId: t.deviceId, mode })}
                 bind={(overlay, mount) => {
                   const rt = runtimes.current.get(t.deviceId);
                   if (!rt) return;
@@ -519,6 +557,21 @@ export default function EagleEyeView() {
         </div>
       </div>
 
+      {full && (
+        <FullFrame
+          label={tiles.find((t) => t.deviceId === full.deviceId)?.label ?? "camera"}
+          mode={full.mode}
+          onMode={(mode) => setFull((f) => (f ? { ...f, mode } : f))}
+          onClose={() => setFull(null)}
+          getFrame={() => {
+            const rt = runtimes.current.get(full.deviceId);
+            if (!rt || !rt.video.videoWidth) return null;
+            return grabCanvas(rt.video, rt.video.videoWidth, rt.video.videoHeight, 1280);
+          }}
+          getOverlay={() => runtimes.current.get(full.deviceId)?.overlay ?? null}
+        />
+      )}
+
       {openRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={() => setOpenRecord(null)}>
           <div className="flex max-h-full w-full max-w-4xl flex-col gap-3 overflow-y-auto rounded-2xl border border-white/12 bg-[#0b0b0d] p-4" onClick={(e) => e.stopPropagation()}>
@@ -555,56 +608,167 @@ export default function EagleEyeView() {
   );
 }
 
-function CameraTile({
-  tile, preview, running, bind, getFrame, onDetach,
-}: {
-  tile: TileState;
-  preview: FilterMode;
-  running: boolean;
-  bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
-  getFrame: () => HTMLCanvasElement | null;
-  onDetach: () => void;
-}) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
-  const filterRef = useRef<HTMLCanvasElement>(null);
+const QUAD_MODES: FilterMode[] = ["clean", "thermal", "spectral", "edge"];
 
-  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind]);
-
-  // the filtered preview re-renders from the same frames the detector reads, so
-  // what the operator watches is what the evidence will contain.
+/** paints one filtered rendering of the live frames at a modest cadence. the
+ * pixels come from the same grab the detector reads, so what an operator
+ * watches is what the evidence package will contain. */
+function FilterPane({ mode, getFrame, className }: { mode: FilterMode; getFrame: () => HTMLCanvasElement | null; className?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (preview === "clean") return;
     let alive = true;
+    let timer = 0;
     const paint = () => {
       if (!alive) return;
       const frame = getFrame();
-      const target = filterRef.current;
+      const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, preview);
+        const out = filteredCanvas(frame, mode);
         if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
         target.getContext("2d")?.drawImage(out, 0, 0);
       }
-      window.setTimeout(paint, 140);
+      timer = window.setTimeout(paint, 140);
     };
     paint();
-    return () => { alive = false; };
-  }, [preview, getFrame]);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [mode, getFrame]);
+  return <canvas ref={ref} className={className ?? "absolute inset-0 h-full w-full object-contain"} />;
+}
+
+function CameraTile({
+  tile, preview, quad, running, alerted, bind, getFrame, onDetach, onAck, onExpand,
+}: {
+  tile: TileState;
+  preview: FilterMode;
+  quad: boolean;
+  running: boolean;
+  alerted: boolean;
+  bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
+  getFrame: () => HTMLCanvasElement | null;
+  onDetach: () => void;
+  onAck: () => void;
+  onExpand: (mode: FilterMode) => void;
+}) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind, quad, preview]);
+
+  const cleanPane = (
+    <>
+      <div ref={mountRef} className="absolute inset-0" />
+      <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+    </>
+  );
+
+  // the flash is a summons, not decoration: the border alternates white and
+  // black five times and then holds a lit ring until a human opens the tile.
+  const alertClass = alerted ? "eagle-alert" : "border border-white/10";
 
   return (
-    <div className="relative min-h-[180px] overflow-hidden rounded-2xl border border-white/10 bg-black/50">
-      <div ref={mountRef} className={`absolute inset-0 ${preview === "clean" ? "" : "invisible"}`} />
-      {preview !== "clean" && <canvas ref={filterRef} className="absolute inset-0 h-full w-full object-contain" />}
-      <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
-      <div className="absolute left-2 top-2 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10.5px] font-light text-white/70">
+    <div className={`relative min-h-[180px] overflow-hidden rounded-2xl bg-black/50 ${alertClass}`}>
+      {quad ? (
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[2px] bg-white/10">
+          {QUAD_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { onAck(); onExpand(m); }}
+              className="group relative overflow-hidden bg-black/70 text-left"
+              title={`${m} — tap for full screen`}
+            >
+              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} />}
+              <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] font-light text-white/65">{m}</span>
+              <Maximize2 className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 text-white/25 group-hover:text-white/70" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button type="button" onClick={() => { onAck(); onExpand(preview); }} className="absolute inset-0 block">
+          {preview === "clean" ? cleanPane : (
+            <>
+              <div ref={mountRef} className="invisible absolute inset-0" />
+              <FilterPane mode={preview} getFrame={getFrame} />
+              <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+            </>
+          )}
+          <Maximize2 className="pointer-events-none absolute bottom-2 right-2 h-3.5 w-3.5 text-white/25" />
+        </button>
+      )}
+
+      <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10.5px] font-light text-white/70">
         <span className={`h-1.5 w-1.5 rounded-full ${tile.status === "live" ? (running ? "bg-emerald-400" : "bg-white/40") : "bg-rose-400"}`} />
         <span className="max-w-[160px] truncate">{tile.label}</span>
         <span className="text-white/35">{tile.personCount} tracked · {tile.inferenceMs}ms</span>
       </div>
+      {alerted && (
+        <button onClick={onAck} className="absolute bottom-2 left-2 rounded-full border border-white/25 bg-black/70 px-2.5 py-1 text-[10.5px] font-light text-white/85">
+          pattern captured — tap to acknowledge
+        </button>
+      )}
       <button onClick={onDetach} className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/55 p-1 text-white/50 hover:text-white/90"><X className="h-3.5 w-3.5" /></button>
       {tile.status === "failed" && (
         <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-[11.5px] font-light text-rose-200/80">{tile.error}</div>
       )}
+    </div>
+  );
+}
+
+/** full-screen read of one camera in one rendering, with the tracking overlay
+ * scaled on top and the other renderings one tap away. */
+function FullFrame({
+  label, mode, onMode, onClose, getFrame, getOverlay,
+}: {
+  label: string;
+  mode: FilterMode;
+  onMode: (m: FilterMode) => void;
+  onClose: () => void;
+  getFrame: () => HTMLCanvasElement | null;
+  getOverlay: () => HTMLCanvasElement | null;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+    const paint = () => {
+      if (!alive) return;
+      const frame = getFrame();
+      const target = ref.current;
+      if (frame && target) {
+        const out = filteredCanvas(frame, mode);
+        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+        const ctx = target.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(out, 0, 0);
+          const ov = getOverlay();
+          if (ov && ov.width > 0) ctx.drawImage(ov, 0, 0, target.width, target.height);
+        }
+      }
+      timer = window.setTimeout(paint, 120);
+    };
+    paint();
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [mode, getFrame, getOverlay]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col gap-3 bg-black/92 p-4" onClick={onClose}>
+      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <span className="text-[13px] font-light text-white/75">{label}</span>
+        {FILTER_MODES.map((f) => (
+          <button key={f.id} onClick={() => onMode(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${mode === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
+        ))}
+        <button onClick={onClose} className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-light text-white/70">close</button>
+      </div>
+      <div className="min-h-0 flex-1" onClick={(e) => e.stopPropagation()}>
+        <canvas ref={ref} className="h-full w-full object-contain" />
+      </div>
+      <div className="text-[10.5px] font-light text-white/35">{FILTER_MODES.find((f) => f.id === mode)?.note}</div>
     </div>
   );
 }

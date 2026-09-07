@@ -144,3 +144,18 @@ describe("engine scoring stays reachable through the adapter", () => {
     expect(ARVisionUtils.scoreToTier(0.9, 0, 1)).toBe("critical");
   });
 });
+
+describe("spectral filter parity with the optical hud", () => {
+  it("is offered as a mode and repaints the frame", async () => {
+    const { FILTER_MODES, applyFilter } = await import("../filters");
+    expect(FILTER_MODES.map((m) => m.id)).toContain("spectral");
+    const src = new ImageData(4, 4);
+    for (let p = 0; p < src.data.length; p += 4) {
+      src.data[p] = 200; src.data[p + 1] = 90; src.data[p + 2] = 70; src.data[p + 3] = 255;
+    }
+    const out = applyFilter(src, "spectral");
+    expect(out.width).toBe(4);
+    // a warm, tissue-like ratio must not come back as the untouched pixel
+    expect([out.data[0], out.data[1], out.data[2]]).not.toEqual([200, 90, 70]);
+  });
+});
