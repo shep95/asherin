@@ -107,3 +107,39 @@ describe("reading the read-out", () => {
     expect(confidencePhrase(faint.findings[0])).toContain("barely");
   });
 });
+
+describe("editing photographs on a stored read-out", () => {
+  const photo = (id: string) => ({ id, label: id, dataUrl: `data:image/png;base64,${id}` });
+  const finding = (id: string, photoIndex: number) => ({
+    id, title: id, plain: id, detail: "", category: "skin" as const, severity: "routine" as const,
+    confidence: 0.5, photoIndex, regions: [] as string[], systems: [] as never[],
+  });
+  const base = {
+    id: "r1", createdAt: new Date().toISOString(), prompt: "", summary: "", limits: [], questions: [],
+    photos: [photo("a"), photo("b"), photo("c")],
+    findings: [finding("f0", 0), finding("f1", 1), finding("f2", 2), finding("fx", -1)],
+  } as never as import("../photoRead").PhotoRead;
+
+  it("drops the deleted photograph's findings and re-points the ones after it", async () => {
+    const { dropPhotoFromRead } = await import("../photoRead");
+    const out = dropPhotoFromRead(base, 1)!;
+    expect(out.photos.map((p) => p.id)).toEqual(["a", "c"]);
+    expect(out.findings.map((f) => f.id)).toEqual(["f0", "f2", "fx"]);
+    expect(out.findings.find((f) => f.id === "f2")!.photoIndex).toBe(1);
+    expect(out.findings.find((f) => f.id === "fx")!.photoIndex).toBe(-1);
+  });
+
+  it("returns nothing when the last photograph goes, so no orphan read-out survives", async () => {
+    const { dropPhotoFromRead } = await import("../photoRead");
+    const one = { ...base, photos: [photo("a")], findings: [finding("f0", 0)] } as never as import("../photoRead").PhotoRead;
+    expect(dropPhotoFromRead(one, 0)).toBeNull();
+  });
+
+  it("keeps a replaced photograph's slot but discards the lines read from the old image", async () => {
+    const { replacePhotoInRead } = await import("../photoRead");
+    const out = replacePhotoInRead(base, 0, photo("z"));
+    expect(out.photos[0].dataUrl).toContain("z");
+    expect(out.photos[0].id).toBe("a");
+    expect(out.findings.map((f) => f.id)).toEqual(["f1", "f2", "fx"]);
+  });
+});
