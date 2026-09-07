@@ -116,6 +116,15 @@ function heartQuality(history: HeartFrame[]): number {
   return Math.max(0, Math.min(1, plausible * (1 - 0.5 * gapPenalty)));
 }
 
+export interface HeartExposure {
+  connected: boolean;
+  deviceName: string | null;
+  rrIntervals: boolean;
+  battery: boolean;
+  spo2: boolean;
+  temperature: boolean;
+}
+
 export class HeartRateAdapter {
   private device: BluetoothLike | null = null;
   private history: HeartFrame[] = [];
@@ -126,9 +135,25 @@ export class HeartRateAdapter {
   readonly onStatus = new Emitter<AdapterStatus>();
   private cleanups: (() => void)[] = [];
   private status: AdapterStatus = heartRateCapability();
+  private exposedRr = false;
+  private exposedBattery = false;
+  private exposedSpo2 = false;
+  private exposedTemperature = false;
 
   getStatus(): AdapterStatus {
     return this.status;
+  }
+
+  /** what this specific connected device actually exposed, discovered from real gatt responses only. */
+  getExposure(): HeartExposure {
+    return {
+      connected: this.status.state === "connected",
+      deviceName: this.status.deviceName ?? null,
+      rrIntervals: this.exposedRr,
+      battery: this.exposedBattery,
+      spo2: this.exposedSpo2,
+      temperature: this.exposedTemperature,
+    };
   }
 
   private setStatus(next: Partial<AdapterStatus>): void {
@@ -175,6 +200,7 @@ export class HeartRateAdapter {
       if (!value) return;
       const sample: HeartSample = parseHeartRateValue(value);
       const frame: HeartFrame = { bpm: sample.bpm, rr: sample.rr, at: sample.at };
+      if (frame.rr.length > 0) this.exposedRr = true;
       this.history.push(frame);
       if (this.history.length > 200) this.history.shift();
       this.onHeart.emit(frame);
@@ -191,6 +217,7 @@ export class HeartRateAdapter {
       const characteristic = await service.getCharacteristic("battery_level");
       if (characteristic.readValue) {
         const value = await characteristic.readValue();
+        this.exposedBattery = true;
         this.onBattery.emit({ percent: value.getUint8(0), at: Date.now() });
       }
     } catch {
@@ -223,6 +250,7 @@ export class HeartRateAdapter {
     // ble plx spot-check measurement (0x2a5e): flags, spo2 (sfloat), pulse rate (sfloat).
     const spo2 = view.getUint16(1, true) & 0x0fff;
     const pulseRaw = view.byteLength > 3 ? view.getUint16(3, true) & 0x0fff : null;
+    this.exposedSpo2 = true;
     this.onSpo2.emit({ percent: spo2 / 10, pulseBpm: pulseRaw ? pulseRaw / 10 : null, at: Date.now() });
   }
 
@@ -233,6 +261,7 @@ export class HeartRateAdapter {
     const mantissa = raw & 0x00ffffff;
     const signedMantissa = mantissa & 0x800000 ? mantissa - 0x1000000 : mantissa;
     const celsius = signedMantissa * 10 ** exponent;
+    this.exposedTemperature = true;
     this.onTemperature.emit({ celsius, at: Date.now() });
   }
 
@@ -241,6 +270,10 @@ export class HeartRateAdapter {
     if (this.device?.gatt?.connected) this.device.gatt.disconnect();
     this.device = null;
     this.history = [];
+    this.exposedRr = false;
+    this.exposedBattery = false;
+    this.exposedSpo2 = false;
+    this.exposedTemperature = false;
     this.setStatus({ state: "not-connected", reason: "disconnected.", signalQuality: null });
   }
 }
@@ -315,9 +348,16 @@ export function museCapability(): AdapterStatus {
   return { id: "eeg", label: "eeg headband (muse-compatible)", state: "not-connected", reason: "pair a muse-protocol eeg headband. no other eeg protocol is supported.", signalQuality: null };
 }
 
+export interface EegExposure {
+  connected: boolean;
+  deviceName: string | null;
+  channelsSeen: string[];
+}
+
 export class MuseEegAdapter {
   private device: BluetoothLike | null = null;
   private packets: EegPacket[] = [];
+  private channelsSeen: Set<string> = new Set();
   readonly onPacket = new Emitter<EegPacket>();
   readonly onStatus = new Emitter<AdapterStatus>();
   private cleanups: (() => void)[] = [];
@@ -325,6 +365,11 @@ export class MuseEegAdapter {
 
   getStatus(): AdapterStatus {
     return this.status;
+  }
+
+  /** which of the muse channels have actually produced a packet this connection — not the theoretical five. */
+  getExposure(): EegExposure {
+    return { connected: this.status.state === "connected", deviceName: this.status.deviceName ?? null, channelsSeen: [...this.channelsSeen] };
   }
   private setStatus(next: Partial<AdapterStatus>): void {
     this.status = { ...this.status, ...next };
@@ -354,6 +399,7 @@ export class MuseEegAdapter {
           if (!value) return;
           const { sequence, samples } = unpackMusePacket(value);
           const packet: EegPacket = { channelIndex, channelName: MUSE_CHANNEL_NAMES[channelIndex], sequence, samples, at: Date.now() };
+          this.channelsSeen.add(packet.channelName);
           this.packets.push(packet);
           if (this.packets.length > 300) this.packets.shift();
           this.onPacket.emit(packet);
@@ -375,6 +421,7 @@ export class MuseEegAdapter {
     if (this.device?.gatt?.connected) this.device.gatt.disconnect();
     this.device = null;
     this.packets = [];
+    this.channelsSeen = new Set();
     this.setStatus({ state: "not-connected", reason: "disconnected.", signalQuality: null });
   }
 }
@@ -416,15 +463,25 @@ function motionQuality(frames: MotionFrame[]): number {
   return Math.max(0, Math.min(1, 1 - dropouts / recent.length - saturated / recent.length));
 }
 
+export interface MotionExposure {
+  connected: boolean;
+  rotationRate: boolean;
+}
+
 export class MotionAdapter {
   private frames: MotionFrame[] = [];
   readonly onFrame = new Emitter<MotionFrame>();
   readonly onStatus = new Emitter<AdapterStatus>();
   private status: AdapterStatus = motionCapability();
   private handler: ((event: DeviceMotionEvent) => void) | null = null;
+  private exposedRotation = false;
 
   getStatus(): AdapterStatus {
     return this.status;
+  }
+
+  getExposure(): MotionExposure {
+    return { connected: this.status.state === "connected", rotationRate: this.exposedRotation };
   }
   private setStatus(next: Partial<AdapterStatus>): void {
     this.status = { ...this.status, ...next };
@@ -455,6 +512,7 @@ export class MotionAdapter {
           gz: rotation?.gamma ?? null,
           at: Date.now(),
         };
+        if (frame.gx !== null || frame.gy !== null || frame.gz !== null) this.exposedRotation = true;
         this.frames.push(frame);
         if (this.frames.length > 500) this.frames.shift();
         this.onFrame.emit(frame);
@@ -472,6 +530,7 @@ export class MotionAdapter {
     if (this.handler) window.removeEventListener("devicemotion", this.handler);
     this.handler = null;
     this.frames = [];
+    this.exposedRotation = false;
     this.setStatus({ state: "not-connected", reason: "disconnected.", signalQuality: null });
   }
 }
@@ -503,6 +562,11 @@ function audioQuality(frames: AudioFrame[]): number {
   return silent ? 0.1 : Math.max(0, 1 - clipped * 3);
 }
 
+export interface AudioExposure {
+  connected: boolean;
+  sampleRate: number | null;
+}
+
 export class AudioAdapter {
   private stream: MediaStream | null = null;
   private context: AudioContext | null = null;
@@ -516,6 +580,10 @@ export class AudioAdapter {
 
   getStatus(): AdapterStatus {
     return this.status;
+  }
+
+  getExposure(): AudioExposure {
+    return { connected: this.status.state === "connected", sampleRate: this.frames.length ? this.frames[this.frames.length - 1].sampleRate : null };
   }
   private setStatus(next: Partial<AdapterStatus>): void {
     this.status = { ...this.status, ...next };
