@@ -79,6 +79,14 @@ import { describeEstimate } from "@/lib/health/bodyModel";
 
 const AnatomyScene = lazy(() => import("./AnatomyScene"));
 const BodyModelPanel = lazy(() => import("./BodyModelPanel"));
+const DeepAnatomyPanel = lazy(() => import("./DeepAnatomyPanel"));
+const IntakePanel = lazy(() => import("./IntakePanel"));
+const FunctionalPanel = lazy(() => import("./FunctionalPanel"));
+const TimelinePanel = lazy(() => import("./TimelinePanel"));
+const LiveSensingPanel = lazy(() => import("./LiveSensingPanel"));
+const PainStudioPanel = lazy(() => import("./PainStudioPanel"));
+const HerbalPanel = lazy(() => import("./HerbalPanel"));
+const SharePanel = lazy(() => import("./SharePanel"));
 
 /** the room runs on the person's own model key when they have one, exactly like every other asherin surface. */
 async function resolveByok(): Promise<Record<string, string> | undefined> {
@@ -107,16 +115,33 @@ async function resolveByok(): Promise<Record<string, string> | undefined> {
   }
 }
 
-type Panel = "atlas" | "body" | "record" | "pain" | "herbs" | "signals" | "findings";
+type Panel =
+  | "atlas"
+  | "deep"
+  | "body"
+  | "record"
+  | "intake"
+  | "pain"
+  | "herbs"
+  | "functional"
+  | "timeline"
+  | "signals"
+  | "share"
+  | "findings";
 
 const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
   { id: "atlas", label: "layers", icon: Layers },
+  { id: "deep", label: "anatomy", icon: Boxes },
   { id: "body", label: "body model", icon: PersonStanding },
   { id: "record", label: "record", icon: ClipboardList },
+  { id: "intake", label: "intake", icon: Upload },
   { id: "pain", label: "pain", icon: Crosshair },
   { id: "herbs", label: "herbs", icon: Leaf },
+  { id: "functional", label: "systems", icon: Activity },
+  { id: "timeline", label: "over time", icon: RotateCcw },
   { id: "signals", label: "live", icon: Radar },
-  { id: "findings", label: "read-out", icon: Activity },
+  { id: "share", label: "share", icon: Download },
+  { id: "findings", label: "read-out", icon: Eye },
 ];
 
 const LAYER_LABEL: Record<LayerId, string> = {
