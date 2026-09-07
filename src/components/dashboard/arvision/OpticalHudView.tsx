@@ -403,6 +403,180 @@ function bootArvision(wrap, root, emitPull) {
     hud.classList.remove("mirror");
   }
 
+  // ── spectral filter ──────────────────────────────────────────────────────
+  // the camera hands back three overlapping colour channels. two surfaces that
+  // look alike to the eye rarely sit at the same ratio across those channels:
+  // living tissue and vegetation push the long channel well above the short
+  // ones, most painted synthetics and coated metal fall the other way, glass and
+  // standing water lift the middle. the filter isolates that difference and
+  // paints it, so the frame reads as a material map instead of a picture. it is
+  // derived from the camera's own channels — it is not a calibrated infrared
+  // sensor, and the room says that rather than implying a band it cannot see.
+  function coverFit(vw, vh, dw, dh) {
+    const scale = Math.max(dw / vw, dh / vh);
+    const w = vw * scale;
+    const h = vh * scale;
+    return [(dw - w) / 2, (dh - h) / 2, w, h];
+  }
+
+  function drawFrameInto(c2d, source, dw, dh, mirror) {
+    const [vw, vh] = videoSize(source);
+    if (!vw || !vh) return;
+    const fit = coverFit(vw, vh, dw, dh);
+    c2d.save();
+    if (mirror) {
+      c2d.translate(dw, 0);
+      c2d.scale(-1, 1);
+    }
+    try {
+      c2d.drawImage(source, fit[0], fit[1], fit[2], fit[3]);
+    } catch (_) {}
+    c2d.restore();
+  }
+
+  function buildSpectral(src) {
+    const [vw, vh] = videoSize(src);
+    if (!vw || !vh) return false;
+    const aw = Math.max(96, Math.round(S.specW));
+    const ah = Math.max(72, Math.round((aw * vh) / vw));
+    if (specSrc.width !== aw || specSrc.height !== ah) {
+      specSrc.width = aw;
+      specSrc.height = ah;
+      specOut.width = aw;
+      specOut.height = ah;
+    }
+    let img;
+    try {
+      specSrcCtx.drawImage(src, 0, 0, aw, ah);
+      img = specSrcCtx.getImageData(0, 0, aw, ah);
+    } catch (_) {
+      return false;
+    }
+    const d = img.data;
+    const n = aw * ah;
+    const lum = new Float32Array(n);
+    const nd = new Float32Array(n);
+    const wd = new Float32Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const r = d[p] / 255;
+      const g = d[p + 1] / 255;
+      const b = d[p + 2] / 255;
+      lum[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+      const vis = (g + b) / 2;
+      nd[i] = (r - vis) / (r + vis + 0.004);
+      wd[i] = (g - r) / (g + r + 0.004);
+    }
+    const out = specOutCtx.createImageData(aw, ah);
+    const o = out.data;
+    for (let y = 0; y < ah; y++) {
+      for (let x = 0; x < aw; x++) {
+        const i = y * aw + x;
+        const p = i * 4;
+        // a material boundary is where the ratio flips, not where the light does
+        const edge =
+          x > 0 && x < aw - 1 && y > 0 && y < ah - 1
+            ? Math.min(0.5, (Math.abs(lum[i + 1] - lum[i - 1]) + Math.abs(lum[i + aw] - lum[i - aw])) * 0.85)
+            : 0;
+        const base = 0.15 + 0.68 * Math.pow(lum[i], 0.85);
+        let cr = base;
+        let cg = base;
+        let cb = base;
+        const warm = nd[i];
+        const cool = -nd[i];
+        const wet = wd[i];
+        if (warm > 0.055) {
+          const k = Math.min(1, (warm - 0.055) * 3.4);
+          cr = base + k * (0.94 - base) * 0.85;
+          cg = base + k * (0.64 - base) * 0.6;
+          cb = base * (1 - 0.45 * k);
+        } else if (cool > 0.045) {
+          const k = Math.min(1, (cool - 0.045) * 3.8);
+          cb = base + k * (0.95 - base) * 0.8;
+          cg = base + k * (0.8 - base) * 0.55;
+          cr = base * (1 - 0.4 * k);
+        } else if (wet > 0.05 && lum[i] > 0.3) {
+          const k = Math.min(1, (wet - 0.05) * 3.2);
+          cb = base + k * (1 - base) * 0.55;
+          cg = base + k * (0.92 - base) * 0.45;
+          cr = base + k * (0.72 - base) * 0.25;
+        }
+        o[p] = Math.round(Math.min(1, cr + edge) * 255);
+        o[p + 1] = Math.round(Math.min(1, cg + edge) * 255);
+        o[p + 2] = Math.round(Math.min(1, cb + edge) * 255);
+        o[p + 3] = 255;
+      }
+    }
+    specOutCtx.putImageData(out, 0, 0);
+    return true;
+  }
+
+  function paintSpectral(src, w, h) {
+    const live = !!(src && (src.readyState >= 2 || src.width));
+    const specPrimary = S.primary === "spectral";
+    // adaptive cost — the pixel read is the expensive part of the pass
+    if (S.fps && S.fps < 20 && S.specW > 256) S.specW = 256;
+    else if (S.fps > 40 && S.specW < 384) S.specW = 384;
+    const ok = live ? buildSpectral(src) : false;
+    S.specSeen = ok ? S.specSeen + 1 : 0;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+
+    specEl.hidden = !specPrimary;
+    if (specPrimary) {
+      const sw = Math.max(1, Math.round(w * dpr));
+      const sh = Math.max(1, Math.round(h * dpr));
+      if (specEl.width !== sw || specEl.height !== sh) {
+        specEl.width = sw;
+        specEl.height = sh;
+      }
+      specEl.style.width = w + "px";
+      specEl.style.height = h + "px";
+      specCtx.setTransform(1, 0, 0, 1, 0, 0);
+      specCtx.fillStyle = "#000";
+      specCtx.fillRect(0, 0, sw, sh);
+      if (ok) drawFrameInto(specCtx, specOut, sw, sh, selfieMirror());
+    }
+
+    // the corner box carries whichever view is not on the stage, at the stage's
+    // own aspect, so the overlay lands on the same pixels in both places
+    const pw = Math.max(1, pipWrap.clientWidth || 1);
+    const ph = Math.max(1, Math.round(pw * (h / Math.max(1, w))));
+    if (pipWrap.style.height !== ph + "px") pipWrap.style.height = ph + "px";
+    const cw = Math.max(1, Math.round(pw * dpr));
+    const ch = Math.max(1, Math.round(ph * dpr));
+    if (pipCanvas.width !== cw || pipCanvas.height !== ch) {
+      pipCanvas.width = cw;
+      pipCanvas.height = ch;
+    }
+    pipCtx.setTransform(1, 0, 0, 1, 0, 0);
+    pipCtx.fillStyle = "#000";
+    pipCtx.fillRect(0, 0, cw, ch);
+    if (specPrimary) {
+      if (live) drawFrameInto(pipCtx, src, cw, ch, selfieMirror());
+    } else if (ok) {
+      drawFrameInto(pipCtx, specOut, cw, ch, selfieMirror());
+    }
+    try {
+      pipCtx.drawImage(hud, 0, 0, cw, ch);
+    } catch (_) {}
+
+    pipLabel.textContent = specPrimary ? "colorized" : "spectral filter";
+    swColor.classList.toggle("on", !specPrimary);
+    swSpec.classList.toggle("on", specPrimary);
+    swColor.setAttribute("aria-pressed", String(!specPrimary));
+    swSpec.setAttribute("aria-pressed", String(specPrimary));
+  }
+
+  function setPrimary(mode) {
+    if (mode !== "color" && mode !== "spectral") return;
+    S.primary = mode;
+  }
+
+  pipEl.onclick = () => setPrimary(S.primary === "spectral" ? "color" : "spectral");
+  swColor.onclick = () => setPrimary("color");
+  swSpec.onclick = () => setPrimary("spectral");
+
+
+
   function note(t) {
     noteEl.textContent = t || "";
   }
