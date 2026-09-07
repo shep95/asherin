@@ -12,11 +12,14 @@
 import { geoToLocal, type GeoAnchor } from "./geo";
 import type { MapBounds, NavigationData, NavigationPOI, NavigationWaypoint, Vec3 } from "./types";
 
+// Only worldwide mirrors belong here. Regional instances answer 200 with an
+// empty result outside their own country, which reads as "nothing is mapped
+// here" and is a lie about the place rather than about the service.
 const ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.osm.ch/api/interpreter",
 ];
+
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
