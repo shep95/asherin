@@ -44,7 +44,7 @@ const ConnectView = lazyWithRetry(() => import("@/components/dashboard/connect/C
 const SubscriptionView = lazyWithRetry(() => import("@/components/dashboard/SubscriptionView"));
 const AsherinSearchView = lazyWithRetry(() => import("@/components/dashboard/search/AsherinSearchView"));
 const AsherinxEngView = lazyWithRetry(() => import("@/components/dashboard/asherinx/AsherinxEngView"));
-const AzplenView = lazyWithRetry(() => import("@/components/dashboard/azplen/AzplenView"));
+const AsherinDataView = lazyWithRetry(() => import("@/components/dashboard/data/AsherinDataView"));
 const ZaliView = lazyWithRetry(() => import("@/components/dashboard/zali/ZaliView"));
 const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/CommunityView"));
 const BriefingView = lazyWithRetry(() => import("@/components/dashboard/BriefingView"));
@@ -1989,9 +1989,9 @@ const Dashboard = () => {
       case "azplen":
         return gatedView(
           "azplen",
-          AzplenView,
-          "Azplen Intelligence",
-          "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.",
+          AsherinDataView,
+          "Asherin Data",
+          "The data intelligence platform — bring your data, ask in plain english, get an answer with evidence, a visual and what to watch next. Available on paid plans.",
         );
       // case "elion" removed
       case "briefing":
