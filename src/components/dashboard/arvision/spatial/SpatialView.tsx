@@ -235,7 +235,7 @@ const SpatialView = () => {
           });
         });
 
-      const fix = await ask(true, 30000, 0).catch(async (first: GeolocationPositionError) => {
+      const fix = await ask(true, 30000, 10000).catch(async (first: GeolocationPositionError) => {
         if (first?.code === 1) throw new Error("location permission was refused, so live positioning stays off");
         setLiveNote("no precise fix yet — trying a coarse one");
         return ask(false, 30000, 60000).catch((second: GeolocationPositionError) => {
