@@ -43,8 +43,8 @@ const PLANS = [
         items: [
           "asherin.search, discovery-first public search with every hit cited",
           "asherin.eye, sourced world layers, flights, quakes, incidents, public cameras",
-          "asherin.cyber, passive domain, tls and public advisory context, no scanning",
           "asherin.google, your own connected mail, calendar and drive",
+          "asherin.extract and asherin.briefings",
         ],
       },
       {
@@ -60,9 +60,8 @@ const PLANS = [
         title: "read and build",
         items: [
           "asherin.health, your own anatomy and records, read locally, never a diagnosis",
-          "asherin.data, upload a file or connect a source and ask in plain english",
-          "asherin.ide, asherin.agents, asherin.snippets",
-          "asherin.knowledge, asherin.extract, asherin.briefings, asherin.pages",
+          "asherin.ide, asherin.agents, asherin.snippets, asherin.design",
+          "asherin.pages, asherin.slides, asherin.ebook, whiteboard",
         ],
       },
       {
@@ -94,6 +93,15 @@ const PLANS = [
         items: [
           "200 messages per 3-hour window",
           "higher search, discovery and map throughput, priority when the queue is busy",
+        ],
+      },
+      {
+        title: "rooms only pro opens",
+        items: [
+          "asherin.data, upload a file or connect a source and ask in plain english",
+          "asherin.cyber, passive domain, tls and public advisory context, no scanning",
+          "asherin.knowledge, your own ingested sources",
+          "asherin.community, pattern analysis, predictive and audit surfaces",
         ],
       },
       {

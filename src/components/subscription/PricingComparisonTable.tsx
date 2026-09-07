@@ -38,8 +38,9 @@ const features: Feature[] = [
   { name: "asherin.defender", desc: "Camera, wifi, bluetooth and spy-class posture on your own device. Pro adds the companion apply path and full scan with recommendations.", aureon: "Read + status", pro: "Apply + full scan", enterprise: "Custom" },
   { name: "asherin.sentinel", desc: "Ambient watch with a visible running state — voices separated on the microphone you grant it, kept in one searchable timeline.", aureon: true, pro: true, enterprise: true },
   { name: "asherin.health", desc: "Your own anatomy and records, held on your device: body model, pain interviews, labs, wearables and herbal context. Observational, never a diagnosis.", aureon: true, pro: true, enterprise: true },
-  { name: "asherin.data", desc: "Upload a file or connect a source, then ask in plain english and get charts with the numbers' provenance attached.", aureon: true, pro: true, enterprise: true },
-  { name: "asherin.cyber", desc: "Passive domain, TLS and public advisory context. No authentication, exploitation or host scanning.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.data", desc: "Upload a file or connect a source, then ask in plain english and get charts with the numbers' provenance attached.", aureon: false, pro: true, enterprise: true },
+  { name: "asherin.cyber", desc: "Passive domain, TLS and public advisory context. No authentication, exploitation or host scanning.", aureon: false, pro: true, enterprise: true },
+  { name: "asherin.knowledge", desc: "Ingest your own sources and keep them searchable next to the chat.", aureon: false, pro: true, enterprise: true },
   { name: "asherin.ide + agents", desc: "Repository-aware editing with diff approval, plus agent runs you review before anything lands.", aureon: true, pro: true, enterprise: true },
   { name: "Directive profiles", desc: "Your own written instructions and attached files, applied to a conversation and switchable per thread.", aureon: true, pro: true, enterprise: true },
 

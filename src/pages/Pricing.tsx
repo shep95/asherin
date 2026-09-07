@@ -20,11 +20,11 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.data, asherin.cyber, asherin.ide and the workspace. Asherin Pro is $79 per month and raises the limits on all of it. Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.ide and the workspace. Asherin Pro is $79 per month, raises the limits on all of it, and adds asherin.data, asherin.cyber and asherin.knowledge. Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) is the whole room set at standard limits: direct-answer chat with four reasoning modes and directive profiles, a capable coding engine, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.data, asherin.cyber, persistent memory and a 60-message / 3-hour window. Asherin Pro ($79/mo) keeps the same rooms and raises the ceilings: deeper search discovery and identity pivots, higher throughput with queue priority, more simultaneous eagle.eye cameras with longer evidence retention, the defender companion apply path, admin controls, and 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) is the whole room set at standard limits: direct-answer chat with four reasoning modes and directive profiles, a capable coding engine, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, persistent memory and a 60-message / 3-hour window. Asherin Pro ($79/mo) adds asherin.data, asherin.cyber and asherin.knowledge, and raises the ceilings: deeper search discovery and identity pivots, higher throughput with queue priority, more simultaneous eagle.eye cameras with longer evidence retention, the defender companion apply path, admin controls, and 200 messages per 3-hour window.",
   },
   {
     q: "How much does Asherin Team cost?",
@@ -235,8 +235,9 @@ const Pricing = () => {
                     ["asherin.defender, your own device", "Read + status", "Companion apply + full scan", "Custom"],
                     ["asherin.sentinel, ambient watch", "✓", "✓", "✓"],
                     ["asherin.health, your own records", "✓", "✓", "✓"],
-                    ["asherin.data, ask your own files", "✓", "✓", "✓"],
-                    ["asherin.cyber, passive domain context", "✓", "✓", "✓"],
+                    ["asherin.data, ask your own files", "-", "✓", "✓"],
+                    ["asherin.cyber, passive domain context", "-", "✓", "✓"],
+                    ["asherin.knowledge, your own ingested sources", "-", "✓", "✓"],
                     ["asherin.ide, agents and snippets", "✓", "✓", "✓"],
                     ["Directive profiles, your own instructions", "✓", "✓", "✓"],
                     ["Persistent memory, account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],

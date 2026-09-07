@@ -2045,14 +2045,14 @@ const Dashboard = () => {
           "pattern-analysis",
           PatternAnalysisView,
           "Pattern Analysis Engine",
-          "Data pattern recognition with visual graph forecasting. Included with any paid Asherin plan.",
+          "Data pattern recognition with visual graph forecasting. Available on Asherin Pro.",
         );
       case "zerlal":
         return gatedView(
           "zerlal",
           ZerlalView,
           "asherin.cyber",
-          "Passive domain reconnaissance and public advisory context. Included with any paid Asherin plan.",
+          "Passive domain reconnaissance and public advisory context. Available on Asherin Pro.",
         );
       case "google":
         return gatedView(
