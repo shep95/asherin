@@ -140,7 +140,7 @@ describe("evidence manifest", () => {
 
 describe("engine scoring stays reachable through the adapter", () => {
   it("maps a score to a tier", () => {
-    expect(ARVisionUtils.scoreToTier(0)).toBe("observation");
-    expect(ARVisionUtils.scoreToTier(100)).toBe("critical");
+    expect(ARVisionUtils.scoreToTier(0, 0, 0)).toBe("observation");
+    expect(ARVisionUtils.scoreToTier(0.9, 0, 1)).toBe("critical");
   });
 });

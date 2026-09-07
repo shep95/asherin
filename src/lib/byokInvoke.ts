@@ -91,7 +91,17 @@ export async function invokeWithByokRetry<T = unknown>(
       continue;
     }
 
-    const msg = payload?.message || (error as Error).message || "Request failed";
+    // Many of our functions answer with `{ error: "<sentence a person reads>" }`
+    // and no `message` field. Reading only `message` threw that sentence away
+    // and left the user with supabase-js's generic "Edge Function returned a
+    // non-2xx status code" — the failure was explained, then discarded on the
+    // way to the screen. Prefer any human sentence the function actually sent.
+    const fromPayload =
+      (typeof payload?.message === "string" && payload.message) ||
+      (typeof payload?.error === "string" && payload.error !== payload?.code ? payload.error : "") ||
+      (typeof payload?.detail === "string" && payload.detail) ||
+      "";
+    const msg = fromPayload || (error as Error).message || "Request failed";
     const err: any = new Error(msg);
     err.status = status;
     err.code = payload?.error;

@@ -43,7 +43,14 @@ you are the assistant inside asherin.health. hard rules, in order:
 `;
 
 function json(body: unknown, status: number, cors: Record<string, string>) {
-  return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+  // Every failure carries a `message` as well as `error`: the client reads
+  // `message` first, and a body that only names the fault in `error` used to
+  // arrive on screen as a generic non-2xx toast.
+  const payload =
+    body && typeof body === "object" && "error" in (body as Record<string, unknown>) && !("message" in (body as Record<string, unknown>))
+      ? { ...(body as Record<string, unknown>), message: (body as Record<string, unknown>).error }
+      : body;
+  return new Response(JSON.stringify(payload), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
 function extractJson(raw: string): any {
@@ -67,6 +74,7 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
   for (const img of images) parts.push({ inlineData: { mimeType: img.mime, data: img.b64 } });
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
   let last = "";
+  let lastStatus = 0;
   for (let attempt = 1; attempt <= 3; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90_000);
@@ -84,6 +92,7 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
         const data = await resp.json();
         return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       }
+      lastStatus = resp.status;
       last = `${resp.status} ${(await resp.text()).slice(0, 200)}`;
       if (resp.status !== 429 && resp.status !== 503) break;
       await new Promise((r) => setTimeout(r, 1200 * attempt));
@@ -93,7 +102,17 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
       clearTimeout(timer);
     }
   }
-  throw new Error(`vision unavailable: ${last}`);
+  // The upstream status decides how the room speaks: a quota wall is not the
+  // same event as a broken request, and the person should be told which it is.
+  const err = new Error(
+    lastStatus === 429
+      ? "the vision model is at its rate or quota limit right now. wait a moment and try again, or add your own model key in settings so this runs on your key."
+      : lastStatus === 401 || lastStatus === 403 || /api key not valid|invalid api key|api_key_invalid/i.test(last)
+        ? "the vision key was rejected by the model provider. check the key in settings."
+        : `the photographs could not be read right now (${last || "no response from the model"}).`,
+  ) as Error & { upstreamStatus?: number };
+  err.upstreamStatus = lastStatus;
+  throw err;
 }
 
 
@@ -283,6 +302,13 @@ Deno.serve(async (req) => {
 
     return json({ error: "unknown action" }, 400, cors);
   } catch (e) {
-    return json({ error: e instanceof Error ? e.message : "the request failed." }, 502, cors);
+    const upstream = (e as { upstreamStatus?: number })?.upstreamStatus ?? 0;
+    const message = e instanceof Error ? e.message : "the request failed.";
+    // A provider rate limit is retryable and the client knows how to wait it
+    // out; anything else is reported as it happened.
+    if (upstream === 429) {
+      return json({ error: "RATE_LIMITED", message, retryAfterMs: 20_000 }, 429, cors);
+    }
+    return json({ error: message, message }, upstream === 401 || upstream === 403 ? 402 : 502, cors);
   }
 });
