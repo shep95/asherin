@@ -74,6 +74,7 @@ async function callGemini(apiKey: string, prompt: string, images: ImageIn[], max
   for (const img of images) parts.push({ inlineData: { mimeType: img.mime, data: img.b64 } });
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
   let last = "";
+  let lastStatus = 0;
   for (let attempt = 1; attempt <= 3; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 90_000);
