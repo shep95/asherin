@@ -34,7 +34,7 @@ describe("profiling", () => {
     const byName = Object.fromEntries(profiles.map((p) => [p.name, p.type]));
     expect(byName.revenue).toBe("currency");
     expect(byName.closed_at).toBe("date");
-    expect(byName.region).toBe("category");
+    expect(byName.region).toBe("geo");
   });
   it("counts missing values honestly", () => {
     const revenue = profiles.find((p) => p.name === "revenue")!;
