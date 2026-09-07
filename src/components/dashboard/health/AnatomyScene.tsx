@@ -225,11 +225,29 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     const mats = new Map(SYSTEMS.map((s) => [s.id, materialFor(s.id)]));
 
     let loaded = 0;
-    const loadChunk = async (ci: number) => {
+    let failed = 0;
+    const fetchChunk = async (ci: number) => {
       const chunk = atlas.chunks[ci];
       const compressed = !!chunk.gzip && typeof DecompressionStream !== "undefined";
-      const response = await fetch(compressed ? chunk.gzip! : chunk.url, { signal: abort.signal });
-      const buffer = await decodeModelResponse(response, chunk.bytes, compressed);
+      // three attempts: a single dropped chunk used to reject the whole load and
+      // leave a half-built body on screen with no way back.
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await fetch(compressed ? chunk.gzip! : chunk.url, { signal: abort.signal, cache: "force-cache" });
+          if (!response.ok) throw new Error(`chunk ${ci} responded ${response.status}`);
+          return await decodeModelResponse(response, chunk.bytes, compressed);
+        } catch (e) {
+          if (abort.signal.aborted || disposed) throw e;
+          lastErr = e;
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        }
+      }
+      throw lastErr instanceof Error ? lastErr : new Error(`chunk ${ci} could not be read`);
+    };
+
+    const loadChunk = async (ci: number) => {
+      const buffer = await fetchChunk(ci);
       if (disposed) return;
       const groups = new Map<string, T.BufferGeometry[]>();
       atlas.parts.forEach((p, i) => {
@@ -259,30 +277,38 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
         scene.add(mesh);
       });
       lastState = null;
-      loaded++;
-      progressRef.current(Math.round((loaded / atlas.chunks.length) * 100));
       dirty = true;
     };
 
     void (async () => {
-      try {
-        let cursor = 0;
-        await Promise.all(
-          Array.from({ length: 3 }, async () => {
-            while (cursor < atlas.chunks.length) {
-              const i = cursor++;
-              await loadChunk(i);
-            }
-          }),
-        );
-        if (!disposed) {
-          ready = true;
-          dirty = true;
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < atlas.chunks.length && !disposed) {
+          const i = cursor++;
+          try {
+            await loadChunk(i);
+            loaded++;
+          } catch (e) {
+            if (disposed || abort.signal.aborted) return;
+            failed++;
+            console.warn("[health] anatomy chunk failed", i, e);
+          }
+          progressRef.current(Math.round(((loaded + failed) / atlas.chunks.length) * 100));
         }
-      } catch (e) {
-        if (!disposed && !abort.signal.aborted) errorRef.current(e instanceof Error ? e.message : "the anatomy could not be loaded.");
+      };
+      await Promise.all(Array.from({ length: 3 }, worker));
+      if (disposed || abort.signal.aborted) return;
+      ready = true;
+      dirty = true;
+      if (failed > 0) {
+        errorRef.current(
+          loaded === 0
+            ? "the anatomy could not be loaded. check your connection and reload the room."
+            : `${failed} of ${atlas.chunks.length} sections of the body did not download. what loaded is shown; reload the room to try the rest.`,
+        );
       }
     })();
+
 
     const fit = (view: string, extent = 0) => {
       const mobile = el.clientWidth < 768;
