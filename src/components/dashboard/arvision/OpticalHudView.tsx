@@ -2105,17 +2105,20 @@ function bootArvision(wrap, root, emitPull) {
     }
     x.fillStyle = "#000";
     x.fillRect(0, 0, rw, rh);
+    // a still is of the view that is actually on the stage, spectral included
+    const source = S.primary === "spectral" && specOut.width ? specOut : cam;
     try {
       if (selfieMirror()) {
         x.save();
         x.translate(rw, 0);
         x.scale(-1, 1);
-        x.drawImage(cam, rw - ox - dw, oy, dw, dh);
+        x.drawImage(source, rw - ox - dw, oy, dw, dh);
         x.restore();
       } else {
-        x.drawImage(cam, ox, oy, dw, dh);
+        x.drawImage(source, ox, oy, dw, dh);
       }
     } catch (_) {}
+
     try {
       x.drawImage(hud, 0, 0, rw, rh);
     } catch (_) {}
