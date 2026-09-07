@@ -8,8 +8,10 @@ import {
   Download,
   Eye,
   EyeOff,
+  ClipboardList,
   Layers,
   Leaf,
+  PersonStanding,
   Loader2,
   Pill,
   Radar,
@@ -71,13 +73,46 @@ import {
 } from "@/lib/health/signals";
 import { EMPTY_RECORD, clearRecord, exportRecord, importRecord, loadRecord, newId, recordCount, saveRecord, type HealthRecord } from "@/lib/health/store";
 
-const AnatomyScene = lazy(() => import("./AnatomyScene"));
+import { supabase } from "@/integrations/supabase/client";
+import HealthAssistant from "./HealthAssistant";
+import { describeEstimate } from "@/lib/health/bodyModel";
 
-type Panel = "atlas" | "record" | "pain" | "herbs" | "signals" | "findings";
+const AnatomyScene = lazy(() => import("./AnatomyScene"));
+const BodyModelPanel = lazy(() => import("./BodyModelPanel"));
+
+/** the room runs on the person's own model key when they have one, exactly like every other asherin surface. */
+async function resolveByok(): Promise<Record<string, string> | undefined> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return undefined;
+    const { data: pref } = await supabase
+      .from("user_model_preferences" as never)
+      .select("active_provider, active_model")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const provider = (pref as { active_provider?: string } | null)?.active_provider;
+    const model = (pref as { active_model?: string } | null)?.active_model;
+    if (!provider || provider === "default" || !model || model === "default") return undefined;
+    const { data: keyRow } = await supabase
+      .from("user_api_keys" as never)
+      .select("api_key")
+      .eq("user_id", user.id)
+      .eq("provider", provider)
+      .eq("is_active", true)
+      .maybeSingle();
+    const apiKey = (keyRow as { api_key?: string } | null)?.api_key;
+    return apiKey ? { provider, model, apiKey } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+type Panel = "atlas" | "body" | "record" | "pain" | "herbs" | "signals" | "findings";
 
 const PANELS: { id: Panel; label: string; icon: typeof Layers }[] = [
-  { id: "atlas", label: "atlas", icon: Boxes },
-  { id: "record", label: "record", icon: Layers },
+  { id: "atlas", label: "layers", icon: Layers },
+  { id: "body", label: "body model", icon: PersonStanding },
+  { id: "record", label: "record", icon: ClipboardList },
   { id: "pain", label: "pain", icon: Crosshair },
   { id: "herbs", label: "herbs", icon: Leaf },
   { id: "signals", label: "live", icon: Radar },
