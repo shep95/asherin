@@ -248,19 +248,22 @@ export default function BodyModelPanel({ record, persist, resolveByok, onEvent }
             ["chestCm", "chest cm"],
             ["neckCm", "neck cm"],
           ] as [keyof BodyMeasurements, string][]).map(([key, label]) => (
+            // controlled, and committed as it is typed: an uncontrolled field
+            // that only saved on blur made the figure look inert while a person
+            // watched their own number sit there doing nothing.
             <Input
               key={key}
               type="number"
               inputMode="decimal"
               placeholder={label}
-              defaultValue={measurements[key] as number | undefined}
-              onBlur={(e) => setMeasurement({ [key]: num(e.target.value) } as Partial<BodyMeasurements>)}
+              value={(measurements[key] as number | undefined) ?? ""}
+              onChange={(e) => setMeasurement({ [key]: num(e.target.value) } as Partial<BodyMeasurements>)}
               className="h-8 rounded-lg border-white/[0.08] bg-white/[0.03] text-[11px]"
             />
           ))}
           <select
             value={measurements.sex ?? "unspecified"}
-            onChange={(e) => setMeasurement({ sex: e.target.value as Sex })}
+            onChange={(e) => setSex(e.target.value as Sex)}
             className="h-8 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 text-[11px] text-foreground/80"
           >
             <option value="unspecified">sex — unspecified</option>
