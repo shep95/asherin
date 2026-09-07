@@ -652,7 +652,7 @@ function CameraTile({
   const mountRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind, quad]);
+  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind, quad, preview]);
 
   const cleanPane = (
     <>

@@ -1026,3 +1026,21 @@ html[data-scrolling] .zophiel-aurora-pulse {
 @media (prefers-reduced-motion: reduce) {
   .animate-sheet-up { animation: none; }
 }
+
+
+/* eagle.eye — a camera that has just recorded a pattern flashes its border
+   white and black five times and then holds a lit ring until a human opens it.
+   motion-sensitive operators get the ring without the flashing. */
+.eagle-alert {
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
+  animation: eagle-alert-flash 0.34s steps(1, end) 5;
+}
+@keyframes eagle-alert-flash {
+  0% { border-color: #ffffff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45); }
+  50% { border-color: #000000; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.75); }
+  100% { border-color: #ffffff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eagle-alert { animation: none; }
+}
