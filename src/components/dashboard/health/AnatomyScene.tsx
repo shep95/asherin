@@ -6,10 +6,13 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { createExplosionLayout } from "@/lib/health/explosionLayout";
 import { PointerTap } from "@/lib/health/pointerTap";
 import { decodeModelResponse, SYSTEMS, type Atlas, type SceneState } from "@/lib/health/atlas";
+import { SHAPE_BANDS, shapeKey, type BodyShape } from "@/lib/health/bodyShape";
 
 interface Props {
   atlas: Atlas;
   state: SceneState;
+  /** the person's own proportions, applied to the reference mesh. */
+  shape?: BodyShape | null;
   onSelect: (id: string) => void;
   onProgress: (n: number) => void;
   onError: (s: string) => void;
@@ -20,7 +23,7 @@ interface Props {
  * and intelligence paint are all written into that texture rather than into the scene graph,
  * so 2,000+ structures stay interactive on a laptop.
  */
-export default function AnatomyScene({ atlas, state, onSelect, onProgress, onError }: Props) {
+export default function AnatomyScene({ atlas, state, shape, onSelect, onProgress, onError }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef(state);
   const select = useRef(onSelect);
@@ -30,10 +33,16 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
   // the body flickering in and out and never finishing.
   const progressRef = useRef(onProgress);
   const errorRef = useRef(onError);
+  // the shape rides a ref for the same reason: measurements change while the
+  // atlas is on screen, and re-mounting the renderer to apply a waist reading
+  // would be a full reload of the body.
+  const shapeRef = useRef<BodyShape | null | undefined>(shape);
   latest.current = state;
   select.current = onSelect;
   progressRef.current = onProgress;
   errorRef.current = onError;
+  shapeRef.current = shape;
+
 
 
   useEffect(() => {
