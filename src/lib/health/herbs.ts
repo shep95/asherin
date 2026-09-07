@@ -5,10 +5,22 @@ import type { Finding } from "./model";
 
 export type EvidenceTier = "clinical-trials" | "mixed" | "traditional-only";
 
+export type Tradition =
+  | "western herbal"
+  | "ayurveda"
+  | "traditional chinese"
+  | "unani"
+  | "indigenous north american"
+  | "african traditional"
+  | "japanese kampo";
+
 export interface HerbDef {
   key: string;
   label: string;
   latin: string;
+  tradition: Tradition;
+  /** active constituents thought to carry the effect. */
+  constituents: string[];
   territoryKeys: string[];
   /** what it is traditionally or clinically used for. */
   uses: string[];
@@ -27,6 +39,7 @@ export const HERBS: HerbDef[] = [
     key: "turmeric",
     label: "turmeric",
     latin: "curcuma longa",
+    tradition: "western herbal",
     territoryKeys: ["liver", "cartilage", "colon"],
     uses: ["joint discomfort", "digestive comfort"],
     mechanism: "curcuminoids modulate nf-κb signalling; oral bioavailability is low without piperine or a lipid carrier.",
@@ -41,6 +54,7 @@ export const HERBS: HerbDef[] = [
     key: "ginger",
     label: "ginger",
     latin: "zingiber officinale",
+    tradition: "western herbal",
     territoryKeys: ["stomach", "small-intestine", "vestibular"],
     uses: ["nausea", "motion sickness", "digestive comfort"],
     mechanism: "gingerols accelerate gastric emptying and dampen vagal nausea signalling.",
@@ -54,6 +68,7 @@ export const HERBS: HerbDef[] = [
     key: "ashwagandha",
     label: "ashwagandha",
     latin: "withania somnifera",
+    tradition: "western herbal",
     territoryKeys: ["adrenal", "hypothalamus", "thyroid"],
     uses: ["stress tolerance", "sleep onset"],
     mechanism: "withanolides modulate hpa axis output; several trials show reduced evening cortisol.",
@@ -68,6 +83,7 @@ export const HERBS: HerbDef[] = [
     key: "st-johns-wort",
     label: "st john's wort",
     latin: "hypericum perforatum",
+    tradition: "western herbal",
     territoryKeys: ["liver", "brainstem", "hippocampus"],
     uses: ["low mood"],
     mechanism: "hyperforin inhibits monoamine reuptake and strongly induces cyp3a4 and p-glycoprotein in the liver.",
@@ -82,6 +98,7 @@ export const HERBS: HerbDef[] = [
     key: "valerian",
     label: "valerian",
     latin: "valeriana officinalis",
+    tradition: "western herbal",
     territoryKeys: ["brainstem", "hypothalamus"],
     uses: ["sleep onset"],
     mechanism: "valerenic acid modulates gaba-a receptor signalling.",
@@ -95,6 +112,7 @@ export const HERBS: HerbDef[] = [
     key: "chamomile",
     label: "chamomile",
     latin: "matricaria chamomilla",
+    tradition: "western herbal",
     territoryKeys: ["stomach", "small-intestine", "brainstem"],
     uses: ["digestive settling", "mild anxiety"],
     mechanism: "apigenin binds benzodiazepine sites weakly; local antispasmodic effect on gut smooth muscle.",
@@ -108,6 +126,7 @@ export const HERBS: HerbDef[] = [
     key: "peppermint",
     label: "peppermint oil",
     latin: "mentha × piperita",
+    tradition: "western herbal",
     territoryKeys: ["colon", "small-intestine", "oesophagus"],
     uses: ["irritable bowel cramping"],
     mechanism: "menthol blocks calcium channels in intestinal smooth muscle, reducing spasm.",
@@ -122,6 +141,7 @@ export const HERBS: HerbDef[] = [
     key: "milk-thistle",
     label: "milk thistle",
     latin: "silybum marianum",
+    tradition: "western herbal",
     territoryKeys: ["liver", "gallbladder"],
     uses: ["liver support"],
     mechanism: "silymarin stabilises hepatocyte membranes and raises intracellular glutathione in laboratory models.",
@@ -135,6 +155,7 @@ export const HERBS: HerbDef[] = [
     key: "hawthorn",
     label: "hawthorn",
     latin: "crataegus monogyna",
+    tradition: "western herbal",
     territoryKeys: ["heart", "coronary", "peripheral-arteries"],
     uses: ["cardiac tonic in traditional use"],
     mechanism: "flavonoids show mild positive inotropic and vasodilatory activity.",
@@ -149,6 +170,7 @@ export const HERBS: HerbDef[] = [
     key: "ginkgo",
     label: "ginkgo",
     latin: "ginkgo biloba",
+    tradition: "western herbal",
     territoryKeys: ["cerebral-arteries", "cochlea", "peripheral-arteries"],
     uses: ["circulation", "tinnitus", "memory"],
     mechanism: "terpene lactones inhibit platelet activating factor and modestly increase microvascular flow.",
@@ -163,6 +185,7 @@ export const HERBS: HerbDef[] = [
     key: "garlic",
     label: "garlic",
     latin: "allium sativum",
+    tradition: "western herbal",
     territoryKeys: ["peripheral-arteries", "coronary", "liver"],
     uses: ["blood pressure", "lipids"],
     mechanism: "allicin derivatives promote nitric oxide availability and mildly inhibit platelet aggregation.",
@@ -176,6 +199,7 @@ export const HERBS: HerbDef[] = [
     key: "echinacea",
     label: "echinacea",
     latin: "echinacea purpurea",
+    tradition: "western herbal",
     territoryKeys: ["lymph-nodes", "upper-airway", "lymphatic"],
     uses: ["upper respiratory infection duration"],
     mechanism: "alkylamides modulate innate immune cell signalling.",
@@ -190,6 +214,7 @@ export const HERBS: HerbDef[] = [
     key: "elderberry",
     label: "elderberry",
     latin: "sambucus nigra",
+    tradition: "western herbal",
     territoryKeys: ["upper-airway", "lymphatic"],
     uses: ["cold and influenza symptoms"],
     mechanism: "anthocyanins show antiviral activity in vitro; clinical mechanism is not established.",
@@ -203,6 +228,7 @@ export const HERBS: HerbDef[] = [
     key: "rhodiola",
     label: "rhodiola",
     latin: "rhodiola rosea",
+    tradition: "western herbal",
     territoryKeys: ["adrenal", "frontal-lobe", "muscle"],
     uses: ["fatigue", "stress tolerance"],
     mechanism: "rosavins and salidroside influence monoamine turnover and cellular stress response.",
@@ -216,6 +242,7 @@ export const HERBS: HerbDef[] = [
     key: "berberine",
     label: "berberine",
     latin: "berberis vulgaris",
+    tradition: "western herbal",
     territoryKeys: ["liver", "pancreas", "colon", "small-intestine"],
     uses: ["glucose regulation", "lipids"],
     mechanism: "activates ampk and alters the gut microbiome; the metabolic effect is genuinely pharmacological.",
@@ -230,6 +257,7 @@ export const HERBS: HerbDef[] = [
     key: "cinnamon",
     label: "cinnamon (cassia)",
     latin: "cinnamomum cassia",
+    tradition: "western herbal",
     territoryKeys: ["liver", "pancreas"],
     uses: ["glucose regulation"],
     mechanism: "polyphenols mildly improve insulin sensitivity in some studies.",
@@ -243,6 +271,7 @@ export const HERBS: HerbDef[] = [
     key: "saw-palmetto",
     label: "saw palmetto",
     latin: "serenoa repens",
+    tradition: "western herbal",
     territoryKeys: ["prostate", "bladder"],
     uses: ["urinary symptoms of prostate enlargement"],
     mechanism: "weak 5-alpha reductase inhibition and anti-inflammatory activity in prostatic tissue.",
@@ -256,6 +285,7 @@ export const HERBS: HerbDef[] = [
     key: "nettle",
     label: "nettle root",
     latin: "urtica dioica",
+    tradition: "western herbal",
     territoryKeys: ["prostate", "kidney", "cartilage"],
     uses: ["urinary flow", "joint discomfort"],
     mechanism: "lignans bind sex hormone binding globulin; mild diuretic activity.",
@@ -270,6 +300,7 @@ export const HERBS: HerbDef[] = [
     key: "dandelion",
     label: "dandelion",
     latin: "taraxacum officinale",
+    tradition: "western herbal",
     territoryKeys: ["liver", "gallbladder", "kidney"],
     uses: ["bile flow", "mild diuresis"],
     mechanism: "bitter compounds stimulate bile secretion; high potassium content accompanies the diuretic effect.",
@@ -283,6 +314,7 @@ export const HERBS: HerbDef[] = [
     key: "licorice",
     label: "liquorice root",
     latin: "glycyrrhiza glabra",
+    tradition: "western herbal",
     territoryKeys: ["stomach", "adrenal", "kidney", "heart"],
     uses: ["gastric mucosal comfort", "adrenal support in traditional use"],
     mechanism: "glycyrrhizin inhibits 11-beta-hsd2, producing sodium retention, potassium loss and hypertension with sustained intake.",
@@ -297,6 +329,7 @@ export const HERBS: HerbDef[] = [
     key: "aloe",
     label: "aloe vera (inner leaf)",
     latin: "aloe barbadensis",
+    tradition: "western herbal",
     territoryKeys: ["stomach", "colon", "skin"],
     uses: ["gastric comfort", "topical skin repair"],
     mechanism: "polysaccharides support mucosal repair; whole-leaf latex is a stimulant laxative and is a different product entirely.",
@@ -310,6 +343,7 @@ export const HERBS: HerbDef[] = [
     key: "green-tea",
     label: "green tea extract",
     latin: "camellia sinensis",
+    tradition: "western herbal",
     territoryKeys: ["liver", "peripheral-arteries", "colon"],
     uses: ["metabolic support", "antioxidant intake"],
     mechanism: "egcg modulates lipid handling and endothelial function.",
@@ -323,6 +357,7 @@ export const HERBS: HerbDef[] = [
     key: "red-yeast-rice",
     label: "red yeast rice",
     latin: "monascus purpureus",
+    tradition: "western herbal",
     territoryKeys: ["liver", "muscle", "coronary"],
     uses: ["cholesterol"],
     mechanism: "contains monacolin k, which is chemically identical to lovastatin.",
@@ -337,6 +372,7 @@ export const HERBS: HerbDef[] = [
     key: "magnesium-glycinate",
     label: "magnesium glycinate",
     latin: "supplement",
+    tradition: "western herbal",
     territoryKeys: ["muscle", "heart", "peripheral-nerve", "brainstem"],
     uses: ["muscle cramp", "sleep quality"],
     mechanism: "replaces a cation used in over 300 enzymatic reactions and in nmda channel gating.",
@@ -350,6 +386,7 @@ export const HERBS: HerbDef[] = [
     key: "melatonin",
     label: "melatonin",
     latin: "supplement",
+    tradition: "western herbal",
     territoryKeys: ["pineal", "hypothalamus", "retina"],
     uses: ["circadian phase shifting", "jet lag"],
     mechanism: "signals biological night to the suprachiasmatic nucleus; timing matters far more than dose.",
@@ -363,6 +400,7 @@ export const HERBS: HerbDef[] = [
     key: "omega3-supp",
     label: "omega-3 (epa/dha)",
     latin: "supplement",
+    tradition: "western herbal",
     territoryKeys: ["heart", "cerebral-cortex", "retina", "cartilage"],
     uses: ["triglycerides", "joint comfort"],
     mechanism: "epa and dha shift eicosanoid balance and membrane composition.",
@@ -376,6 +414,7 @@ export const HERBS: HerbDef[] = [
     key: "probiotic",
     label: "multi-strain probiotic",
     latin: "supplement",
+    tradition: "western herbal",
     territoryKeys: ["colon", "small-intestine", "lymphatic"],
     uses: ["antibiotic-associated diarrhoea", "gut comfort"],
     mechanism: "transient colonisation competes with pathogens and modulates mucosal immunity.",
@@ -390,6 +429,7 @@ export const HERBS: HerbDef[] = [
     key: "dong-quai",
     label: "dong quai",
     latin: "angelica sinensis",
+    tradition: "western herbal",
     territoryKeys: ["liver", "peripheral-arteries"],
     uses: ["menstrual discomfort in traditional use"],
     mechanism: "coumarin derivatives with anticoagulant and photosensitising activity.",
