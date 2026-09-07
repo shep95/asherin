@@ -2,6 +2,7 @@
 // and the interactions that make it unsafe alongside common medication. nothing here is a
 // prescription, and a herb with thin evidence is labelled as such rather than dressed up.
 import type { Finding } from "./model";
+import { findDrug } from "./medications";
 
 export type EvidenceTier = "clinical-trials" | "mixed" | "traditional-only";
 

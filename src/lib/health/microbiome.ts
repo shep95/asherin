@@ -33,13 +33,15 @@ export interface MicrobiomeUserNote {
 export function microbiomeUserNotes(exposures: ExposureEntry[], nutrition: NutritionEntry[]): MicrobiomeUserNote[] {
   const notes: MicrobiomeUserNote[] = [];
   for (const e of exposures) {
-    if (/probiotic|antibiotic|ferment|gut|microbiome|yeast|vaginal|skin flora/i.test(e.label ?? "") || /probiotic|antibiotic|ferment|gut|microbiome/i.test(e.detail ?? "")) {
-      notes.push({ site: e.label ?? "exposure", note: e.detail ?? e.label ?? "", source: "exposures" });
+    const text = `${e.exposureKey} ${e.note ?? ""}`;
+    if (/probiotic|antibiotic|ferment|gut|microbiome|yeast|vaginal|skin flora|mould|mold/i.test(text)) {
+      notes.push({ site: e.exposureKey, note: e.note ?? e.exposureKey, source: "exposures" });
     }
   }
   for (const n of nutrition) {
-    if (/probiotic|fermented|yogurt|kefir|kimchi|sauerkraut|fiber|fibre|prebiotic/i.test(n.label ?? "") || /probiotic|fermented|fiber|fibre|prebiotic/i.test(n.detail ?? "")) {
-      notes.push({ site: n.label ?? "nutrition", note: n.detail ?? n.label ?? "", source: "nutrition" });
+    const text = `${n.nutrientKey} ${n.note ?? ""}`;
+    if (/probiotic|fermented|yogurt|kefir|kimchi|sauerkraut|fiber|fibre|prebiotic/i.test(text)) {
+      notes.push({ site: n.nutrientKey, note: n.note ?? n.nutrientKey, source: "nutrition" });
     }
   }
   return notes;
