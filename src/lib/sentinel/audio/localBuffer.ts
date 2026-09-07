@@ -74,6 +74,10 @@ function open(): Promise<IDBDatabase> {
         store.createIndex("at", "at");
         store.createIndex("synced", "synced");
       }
+      if (!db.objectStoreNames.contains(SESSION_STORE)) {
+        const sessions = db.createObjectStore(SESSION_STORE, { keyPath: "id" });
+        sessions.createIndex("startedAt", "startedAt");
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error("indexeddb unavailable"));
