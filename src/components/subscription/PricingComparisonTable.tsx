@@ -31,13 +31,22 @@ const features: Feature[] = [
   { name: "Multi-language output", desc: "Generate output in any major spoken or programming language at identical quality.", aureon: true, pro: true, enterprise: true },
   { name: "Response depth control", desc: "Pick concise, standard or maximum-depth answers per turn.", aureon: true, pro: true, enterprise: true },
 
-  // Zophiel Search
-  { name: "Zophiel Search (Base)", desc: "Real-time web search with standard recency and basic query limits.", aureon: true, pro: false, enterprise: false },
-  { name: "Zophiel Search (Pro)", desc: "Higher query limits, deeper crawling, broader source coverage and priority latency.", aureon: false, pro: true, enterprise: true },
+  // Rooms behind the seat — every tier gets the room, Pro gets the throughput.
+  { name: "asherin.search", desc: "Discovery-first public search: orphan pages, certificate logs, public registries and recursive identity pivots, every hit cited. Pro runs deeper pivots and larger discovery budgets.", aureon: "Standard", pro: "Deeper + priority", enterprise: "Custom" },
+  { name: "asherin.eye", desc: "Sourced world layers — flights, earthquakes, public incident feeds and public camera registries. Unavailable feeds say so instead of guessing.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.arvision", desc: "Camera intelligence on your own device: optical, spatial and eagle.eye behavioural watch with reviewable evidence. Pro allows more simultaneous cameras and longer evidence retention.", aureon: "Standard", pro: "More cameras", enterprise: "Custom" },
+  { name: "asherin.defender", desc: "Camera, wifi, bluetooth and spy-class posture on your own device. Pro adds the companion apply path and full scan with recommendations.", aureon: "Read + status", pro: "Apply + full scan", enterprise: "Custom" },
+  { name: "asherin.sentinel", desc: "Ambient watch with a visible running state — voices separated on the microphone you grant it, kept in one searchable timeline.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.health", desc: "Your own anatomy and records, held on your device: body model, pain interviews, labs, wearables and herbal context. Observational, never a diagnosis.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.data", desc: "Upload a file or connect a source, then ask in plain english and get charts with the numbers' provenance attached.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.cyber", desc: "Passive domain, TLS and public advisory context. No authentication, exploitation or host scanning.", aureon: true, pro: true, enterprise: true },
+  { name: "asherin.ide + agents", desc: "Repository-aware editing with diff approval, plus agent runs you review before anything lands.", aureon: true, pro: true, enterprise: true },
+  { name: "Directive profiles", desc: "Your own written instructions and attached files, applied to a conversation and switchable per thread.", aureon: true, pro: true, enterprise: true },
 
   // Productivity
   { name: "Code snippets library", desc: "Save, tag and reuse code snippets across projects and conversations.", aureon: true, pro: true, enterprise: true },
   { name: "Keyboard shortcuts / command palette", desc: "⌘K command palette and full keyboard shortcut set.", aureon: true, pro: true, enterprise: true },
+
 
   // Workspace + Collaboration
   { name: "Team workspace", desc: "Asherin: limited workspace with basic sharing. Pro: full team workspace with shared threads, outputs, admin controls.", aureon: "Limited", pro: "Full", enterprise: "Full + SSO" },
