@@ -345,7 +345,7 @@ function bootArvision(wrap, root, emitPull) {
     deviceLog: [],
     personTags: {},
     // which view owns the full screen. the other one sits in the corner box.
-    primary: "spectral",
+    primary: "color",
     specW: 384,
     specSeen: 0,
   };
