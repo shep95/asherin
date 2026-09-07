@@ -255,6 +255,24 @@ function bootArvision(wrap, root, emitPull) {
   const noteEl = $("note");
   const rose = $("rose");
   const compassBtn = $("compass");
+  const specEl = $("spec");
+  const specCtx = specEl.getContext("2d");
+  const pipEl = $("pip");
+  const pipWrap = pipEl.querySelector(".pipwrap");
+  const pipCanvas = $("pipc");
+  const pipCtx = pipCanvas.getContext("2d");
+  const pipLabel = $("piplabel");
+  const swColor = $("swcolor");
+  const swSpec = $("swspec");
+
+  // the spectral pass runs on a small copy of the frame and is blown back up.
+  // reading pixels is the expensive part, so the analysis buffer stays small and
+  // shrinks further if the frame rate starts paying for it.
+  const specSrc = document.createElement("canvas");
+  const specSrcCtx = specSrc.getContext("2d", { willReadFrequently: true });
+  const specOut = document.createElement("canvas");
+  const specOutCtx = specOut.getContext("2d");
+
 
   const layers = {
     reticle: true,
