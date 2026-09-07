@@ -510,3 +510,166 @@ function ImmersiveView({ bpm, lastBeatAt, breathing, eegSummary, hrv, heartConne
     </div>
   );
 }
+
+function contactTone(quality: ContactReading["quality"]): string {
+  if (quality === "good-contact") return "border-emerald-400/30 text-emerald-300";
+  if (quality === "poor-contact") return "border-amber-400/25 text-amber-300";
+  return "border-white/10 text-white/40";
+}
+
+function ContactBadgeRow({ readings }: { readings: ContactReading[] }) {
+  const known = readings.filter((r) => r.quality !== "no-device");
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+      <span className="text-[11px] uppercase tracking-wide text-white/40">contact quality</span>
+      {known.length === 0 ? (
+        <p className="mt-1 text-[11px] text-white/40">no device is connected — contact quality is not available.</p>
+      ) : (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {readings.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded-full border border-white/[0.06] px-2.5 py-1">
+              <Badge variant="outline" className={cn("rounded-full text-[10px] font-normal lowercase", contactTone(r.quality))}>
+                {r.quality}
+              </Badge>
+              <span className="text-[10px] text-white/40">{r.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <ul className="mt-2 space-y-1">
+        {readings.map((r) => (
+          <li key={r.id} className="text-[10px] text-white/30">
+            {r.label}: {r.detail}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function baselineTone(status: BaselineComparison["status"]): string {
+  if (status === "above-baseline") return "text-amber-300";
+  if (status === "below-baseline") return "text-sky-300";
+  if (status === "within-baseline") return "text-emerald-300";
+  return "text-white/40";
+}
+
+function BaselineComparisonCard({ comparisons, mode }: { comparisons: BaselineComparison[] | null; mode: SessionMode | null }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+      <span className="text-[11px] uppercase tracking-wide text-white/40">pre/post session baseline{mode ? ` — ${mode}` : ""}</span>
+      {comparisons === null ? (
+        <p className="mt-1 text-[11px] text-white/40">end a session to compare it against this person's own baseline.</p>
+      ) : comparisons.length === 0 ? (
+        <p className="mt-1 text-[11px] text-white/40">that session did not record any metric that can be compared to a baseline.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {comparisons.map((c) => (
+            <li key={c.metric} className="rounded-xl border border-white/[0.05] p-2 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">{c.metric}</span>
+                <span className={baselineTone(c.status)}>{c.status}</span>
+              </div>
+              <p className="mt-1 text-white/40">{c.detail}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PatternSummaryCard({
+  mode,
+  trends,
+  dayPatterns,
+  timePatterns,
+  drifts,
+}: {
+  mode: SessionMode;
+  trends: PerModeTrend[];
+  dayPatterns: BucketedPatternResult[];
+  timePatterns: BucketedPatternResult[];
+  drifts: DriftResult[];
+}) {
+  const anySufficientTrend = trends.some((t) => t.direction !== "insufficient-data");
+  const anySufficientBucket = [...dayPatterns, ...timePatterns].some((p) => p.sufficient);
+  const anySufficientDrift = drifts.some((d) => d.sufficient);
+  const nothingYet = !anySufficientTrend && !anySufficientBucket && !anySufficientDrift;
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+      <span className="text-[11px] uppercase tracking-wide text-white/40">longitudinal patterns — {mode}</span>
+      {nothingYet ? (
+        <p className="mt-1 text-[11px] text-white/40">not enough saved {mode} sessions yet to claim a pattern.</p>
+      ) : (
+        <div className="mt-2 space-y-3">
+          {trends.filter((t) => t.direction !== "insufficient-data").length > 0 && (
+            <div>
+              <span className="text-[10px] uppercase tracking-wide text-white/30">trend</span>
+              <ul className="mt-1 space-y-1">
+                {trends
+                  .filter((t) => t.direction !== "insufficient-data")
+                  .map((t) => (
+                    <li key={t.metric} className="text-[11px] text-white/50">
+                      {t.detail}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+          {drifts.filter((d) => d.sufficient).length > 0 && (
+            <div>
+              <span className="text-[10px] uppercase tracking-wide text-white/30">drift vs baseline</span>
+              <ul className="mt-1 space-y-1">
+                {drifts
+                  .filter((d) => d.sufficient)
+                  .map((d) => (
+                    <li key={d.metric} className="text-[11px] text-white/50">
+                      {d.detail}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+          {[...dayPatterns, ...timePatterns].filter((p) => p.sufficient).length > 0 && (
+            <div>
+              <span className="text-[10px] uppercase tracking-wide text-white/30">time patterns</span>
+              <ul className="mt-1 space-y-1">
+                {[...dayPatterns, ...timePatterns]
+                  .filter((p) => p.sufficient)
+                  .map((p) => (
+                    <li key={`${p.kind}-${p.metric}`} className="text-[11px] text-white/50">
+                      {p.detail}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CapabilityReadoutCard({ entries, anyConnected }: { entries: CapabilityEntry[]; anyConnected: boolean }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3">
+      <span className="text-[11px] uppercase tracking-wide text-white/40">connected device capabilities</span>
+      {!anyConnected ? (
+        <p className="mt-1 text-[11px] text-white/40">no device is connected — capabilities are not available.</p>
+      ) : entries.length === 0 ? (
+        <p className="mt-1 text-[11px] text-white/40">connected, but nothing has reported a capability yet.</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {entries.map((e) => (
+            <li key={e.id} className="flex items-center justify-between gap-2 text-[11px]">
+              <span className={e.exposed ? "text-white/70" : "text-white/30"}>{e.label}</span>
+              <span className={e.exposed ? "text-emerald-300" : "text-white/25"}>{e.exposed ? "available" : "not exposed"}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
