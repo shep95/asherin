@@ -79,10 +79,20 @@ export default function AnatomyScene({ atlas, state, onSelect, onProgress, onErr
     controls.dampingFactor = 0.085;
     controls.minDistance = 0.07;
     controls.maxDistance = 40;
-    controls.maxPolarAngle = Math.PI * 0.96;
+    // full freedom: orbit through any direction, pan in screen space, and dolly
+    // toward whatever the pointer is over rather than the scene centre.
+    controls.maxPolarAngle = Math.PI;
+    controls.minPolarAngle = 0;
+    controls.screenSpacePanning = true;
+    controls.zoomToCursor = true;
+    controls.panSpeed = 0.9;
+    controls.zoomSpeed = 0.9;
+    controls.mouseButtons = { LEFT: T.MOUSE.ROTATE, MIDDLE: T.MOUSE.DOLLY, RIGHT: T.MOUSE.PAN };
+    controls.touches = { ONE: T.TOUCH.ROTATE, TWO: T.TOUCH.DOLLY_PAN };
     controls.addEventListener("change", () => {
       dirty = true;
     });
+
 
     const pmrem = new T.PMREMGenerator(renderer);
     const room = new RoomEnvironment();
