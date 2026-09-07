@@ -544,6 +544,30 @@ Deno.serve(async (req) => {
         return json({ ok: true }, 200, cors);
       }
 
+      case "event": {
+        // The body of an incident. Scoped to the caller's own user id, so an
+        // event id guessed from elsewhere reads as "not found", never as
+        // someone else's conversation.
+        const eventId = String(body.eventId ?? "");
+        if (!eventId) return json({ error: "BAD_REQUEST", message: "An event is required." }, 400, cors);
+        const contextSeconds = Math.min(600, Math.max(0, Number(body.contextSeconds) || 90));
+        const { data: event, error } = await admin.from("asherin_ambient_events").select("*")
+          .eq("id", eventId).eq("user_id", userId).maybeSingle();
+        if (error) throw error;
+        if (!event) return json({ event: null, context: [], speakers: [] }, 200, cors);
+        const anchor = Date.parse(event.started_at as string);
+        const [{ data: context }, { data: speakers }] = await Promise.all([
+          admin.from("asherin_ambient_events").select("*").eq("user_id", userId)
+            .gte("started_at", new Date(anchor - contextSeconds * 1000).toISOString())
+            .lte("started_at", new Date(anchor + contextSeconds * 1000).toISOString())
+            .order("started_at", { ascending: true }).limit(120),
+          admin.from("asherin_ambient_speakers")
+            .select("id,label,name,name_source,sample_count,confidence,first_heard_at,last_heard_at")
+            .eq("user_id", userId),
+        ]);
+        return json({ event, context: context ?? [], speakers: speakers ?? [] }, 200, cors);
+      }
+
       case "devices": {
         const { data, error } = await admin.from("asherin_ambient_devices").select("*")
           .eq("user_id", userId).order("last_seen_at", { ascending: false });
