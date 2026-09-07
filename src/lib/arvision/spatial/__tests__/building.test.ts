@@ -30,7 +30,6 @@ describe("building footprint maths", () => {
     const fix = { x: 0, y: 0, z: 0 };
     expect(pointInRing(fix, host)).toBe(true);
     expect(pointInRing(fix, neighbour)).toBe(false);
-    expect(distanceToRing(fix, host)).toBe(0 === 0 ? distanceToRing(fix, host) : 0);
     expect(distanceToRing(fix, host)).toBeCloseTo(12, 6); // nearest wall is the south one
     expect(distanceToRing(fix, neighbour)).toBeGreaterThan(60);
   });
