@@ -39,6 +39,10 @@ import {
   bluetoothSupported, closeStream, listVideoInputs, openCamera, pairBleDevice,
   primePermissions, proximityBand, refreshRadio, watchRadio, type BleLink,
 } from "./cameras";
+import {
+  SCAN_UNAVAILABLE_NOTE, displayName, mergeSighting, motionLabel, passiveScanSupported,
+  proximityBandFor, pruneSightings, startPassiveScan, type RadioSighting,
+} from "./radioScan";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
   observation: { ring: "#3B82F6", text: "text-sky-300/80", chip: "border-sky-400/25 bg-sky-400/10 text-sky-200/90" },
@@ -137,12 +141,85 @@ export default function EagleEyeView() {
   const bleRef = useRef<BleLink[]>([]);
   bleRef.current = ble;
   const radioWatchers = useRef<Map<string, () => void>>(new Map());
+  // passive advertisement scan: nothing is ever connected to. these are packets
+  // the radios around the camera are already broadcasting, the same thing a
+  // phone's "nearby devices" list shows.
+  const [scanning, setScanning] = useState(false);
+  const sightings = useRef<Map<string, RadioSighting>>(new Map());
+  const scanStop = useRef<(() => void) | null>(null);
   const loopRef = useRef<number | null>(null);
   const busyRef = useRef(false);
   const runningRef = useRef(false);
   const capturingRef = useRef(false);
 
   const captureThresholdIndex = CAPTURE_TIERS.indexOf(captureFrom);
+
+  /** fold the live sighting map into the roster the rest of the room reads. */
+  const publishSightings = useCallback(() => {
+    const now = Date.now();
+    const live = pruneSightings([...sightings.current.values()], now);
+    sightings.current = new Map(live.map((s) => [s.id, s]));
+    const rows: BleLink[] = live
+      .sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999))
+      .map((s) => ({
+        id: s.id,
+        name: displayName(s),
+        connected: false,
+        batteryPercent: null,
+        services: s.services,
+        note: "observed from its own broadcast advertisement. nothing was connected to, and presence in range is not attribution to any person in frame.",
+        manufacturer: s.vendor ?? (s.companyId !== null ? `company id 0x${s.companyId.toString(16)}` : null),
+        model: null,
+        firmware: null,
+        serial: null,
+        appearance: s.appearance === null ? null : String(s.appearance),
+        rssi: s.rssi,
+        txPower: s.txPower,
+        proximityMeters: s.meters,
+        advertising: true,
+        firstSeenMs: s.firstSeenMs,
+        lastSeenMs: s.lastSeenMs,
+        source: "scan" as const,
+        observation: motionLabel(s.motion),
+        fingerprint: s.fingerprint,
+        packets: s.packets,
+      }));
+    setBle((cur) => [...cur.filter((l) => l.source !== "scan"), ...rows]);
+  }, []);
+
+  const toggleScan = useCallback(async () => {
+    if (scanStop.current) {
+      scanStop.current();
+      scanStop.current = null;
+      setScanning(false);
+      toast.message("advertisement scan stopped", { description: "the roster keeps its last readings and ages them out." });
+      return;
+    }
+    try {
+      const stop = await startPassiveScan((reading) => {
+        sightings.current.set(reading.id, mergeSighting(sightings.current.get(reading.id), reading));
+      });
+      scanStop.current = stop;
+      setScanning(true);
+      toast.success("scanning advertisements", {
+        description: "listening to broadcasts only — no device is connected to, and a radio in range is never attribution to a person.",
+      });
+    } catch (e) {
+      toast.error("advertisement scan unavailable", { description: e instanceof Error ? e.message : SCAN_UNAVAILABLE_NOTE });
+    }
+  }, []);
+
+  // the roster refreshes on a slow tick rather than per packet: advertisements
+  // arrive several times a second per device and a render per packet would jank
+  // the video without telling the operator anything new.
+  useEffect(() => {
+    if (!scanning) return;
+    publishSightings();
+    const id = window.setInterval(publishSightings, 1200);
+    return () => window.clearInterval(id);
+  }, [scanning, publishSightings]);
+
+  useEffect(() => () => { scanStop.current?.(); scanStop.current = null; }, []);
 
   // ---- devices ------------------------------------------------------------
   const refreshDevices = useCallback(async () => {
@@ -382,7 +459,7 @@ export default function EagleEyeView() {
     // labelled as presence, never as "this person's device".
     const radios = bleRef.current;
     const lines = radios.length
-      ? radios.slice(0, 4).map((r) => `${r.name}${r.manufacturer ? ` · ${r.manufacturer}` : ""}${r.rssi !== null ? ` · ${r.rssi}dBm` : ""}${r.proximityMeters !== null ? ` ~${r.proximityMeters}m` : ""}${r.batteryPercent !== null ? ` · ${r.batteryPercent}%` : ""}`)
+      ? radios.slice(0, 5).map((r) => `${r.name}${r.manufacturer ? ` · ${r.manufacturer}` : ""}${r.rssi !== null ? ` · ${r.rssi}dBm` : ""}${r.proximityMeters !== null ? ` ~${r.proximityMeters}m` : ""}${r.batteryPercent !== null ? ` · ${r.batteryPercent}%` : ""}${r.fingerprint ? ` · fp ${r.fingerprint}` : ""}`)
       : ["no bluetooth radio observable from this device"];
     ctx.font = "11px ui-monospace, monospace";
     const head = radios.length ? `bt in range (${radios.length}) — presence, not attribution` : "bt in range (0)";
@@ -516,6 +593,19 @@ export default function EagleEyeView() {
 
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">bluetooth</div>
           <button
+            disabled={!passiveScanSupported()}
+            onClick={() => void toggleScan()}
+            className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition disabled:opacity-40 ${scanning ? "border-sky-400/30 bg-sky-400/10 text-sky-100/90" : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"}`}
+          >
+            <Bluetooth className="mb-1 h-3.5 w-3.5" />
+            <div>{passiveScanSupported() ? (scanning ? "scanning nearby radios — stop" : "scan nearby radios") : "advertisement scan unavailable here"}</div>
+            <div className="text-[10.5px] text-white/40">
+              {passiveScanSupported()
+                ? "reads the name and id every nearby device is already broadcasting — on a person, in a pocket or left behind. nothing is connected to."
+                : SCAN_UNAVAILABLE_NOTE}
+            </div>
+          </button>
+          <button
             disabled={!bluetoothSupported()}
             onClick={async () => {
               try {
@@ -535,8 +625,8 @@ export default function EagleEyeView() {
             className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-[12px] font-light text-white/70 disabled:opacity-40 hover:bg-white/[0.06]"
           >
             <Bluetooth className="mb-1 h-3.5 w-3.5" />
-            <div>{bluetoothSupported() ? "pair a device" : "web bluetooth unavailable here"}</div>
-            <div className="text-[10.5px] text-white/40">control and status channel. video appears above only when the system also exposes it as a camera input.</div>
+            <div>{bluetoothSupported() ? "pick a device for deeper detail" : "web bluetooth unavailable here"}</div>
+            <div className="text-[10.5px] text-white/40">optional. picking a device adds make, model, firmware and battery to what the broadcast already gave. video appears above only when the system also exposes it as a camera input.</div>
           </button>
           {ble.map((l) => (
             <div key={l.id} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11.5px] font-light text-white/65">
@@ -558,8 +648,9 @@ export default function EagleEyeView() {
                 {l.manufacturer ?? "make not published"}{l.model ? ` · ${l.model}` : ""}{l.batteryPercent !== null ? ` · battery ${l.batteryPercent}%` : ""}
               </div>
               <div className="text-[10.5px] text-white/35">
-                {l.connected ? "connected" : "paired, not connected"} · {l.rssi !== null ? `${l.rssi} dBm ~${l.proximityMeters ?? "?"} m` : "range not reported by this browser"}
+                {l.source === "scan" ? "observed, not connected" : l.connected ? "connected" : "picked, not connected"} · {l.rssi !== null ? `${l.rssi} dBm ~${l.proximityMeters ?? "?"} m` : "range not reported by this browser"}
               </div>
+              {l.observation && <div className="text-[10px] text-white/30">{l.observation}</div>}
               <div className="mt-0.5 text-[10px] text-white/25">{proximityBand(l.proximityMeters)}</div>
             </div>
           ))}
@@ -893,7 +984,7 @@ function RadioPane({ radio }: { radio: BleLink[] }) {
       </div>
       {radio.length === 0 ? (
         <div className="mt-1.5 text-[10px] font-light leading-relaxed text-white/40">
-          pair a radio on the left. nothing observable here means nothing a browser could see — not that no radio is present.
+          start the scan on the left to list the radios broadcasting nearby. nothing here means nothing a browser could observe — not that no radio is present.
         </div>
       ) : (
         <div className="mt-1.5 space-y-1.5">
@@ -904,7 +995,11 @@ function RadioPane({ radio }: { radio: BleLink[] }) {
                 {r.manufacturer ?? "make not published"}{r.model ? ` · ${r.model}` : ""}{r.batteryPercent !== null ? ` · ${r.batteryPercent}%` : ""}
               </div>
               <div className="truncate text-[9.5px] font-light text-white/35">
-                {r.rssi !== null ? `${r.rssi} dBm · ~${r.proximityMeters ?? "?"} m` : "range not reported"} · {proximityBand(r.proximityMeters)}
+                {r.rssi !== null ? `${r.rssi} dBm · ~${r.proximityMeters ?? "?"} m` : "range not reported"} · {r.source === "scan" ? proximityBandFor(r.proximityMeters) : proximityBand(r.proximityMeters)}
+              </div>
+              {r.observation && <div className="truncate text-[9.5px] font-light text-white/30">{r.observation}</div>}
+              <div className="truncate text-[9px] font-light text-white/25">
+                id {r.id.slice(0, 12)}{r.fingerprint ? ` · fp ${r.fingerprint}` : ""}{r.packets ? ` · ${r.packets} packets` : ""}
               </div>
             </div>
           ))}
