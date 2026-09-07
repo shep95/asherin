@@ -75,6 +75,33 @@ const AsherinSearchView = () => {
     setPivots((p ?? []) as PivotRow[]);
   }, []);
 
+  // an edge failure carries its json body on error.context — reading it turns
+  // "edge function error" into the actual sentence the backend wrote.
+  const readEdgeError = useCallback(async (error: unknown): Promise<{ message: string; route?: { mode: Mode; kind: IdentifierKind } }> => {
+    const ctx = (error as { context?: Response })?.context;
+    if (ctx && typeof ctx.text === "function") {
+      try {
+        const body = JSON.parse(await ctx.clone().text()) as { error?: string; route_to?: { mode: Mode; kind: IdentifierKind } };
+        if (body?.error) return { message: body.error, route: body.route_to ?? undefined };
+      } catch { /* body was not json — fall through to the generic message */ }
+    }
+    return { message: error instanceof Error ? error.message : "request failed" };
+  }, []);
+
+  const runIdentityWith = useCallback(async (kind: IdentifierKind) => {
+    setRunning(true); setHits([]); setPivots([]); setMeta(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("asherin-search-identity", { body: { identifier: seed.trim(), kind } });
+      if (error) throw error;
+      const rid = (data as { run_id?: string })?.run_id ?? null;
+      setRunId(rid);
+      setMeta((data as { meta?: RunMeta })?.meta ?? null);
+      if (rid) await loadRun(rid);
+    } catch (e) {
+      toast.error((await readEdgeError(e)).message);
+    } finally { setRunning(false); }
+  }, [seed, loadRun, readEdgeError]);
+
   const runDiscover = useCallback(async () => {
     if (!seed.trim()) { toast.error("enter a seed domain"); return; }
     setRunning(true); setHits([]); setPivots([]); setMeta(null);
@@ -86,24 +113,23 @@ const AsherinSearchView = () => {
       setMeta((data as { meta?: RunMeta })?.meta ?? null);
       if (rid) await loadRun(rid);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "discover failed");
+      const { message, route } = await readEdgeError(e);
+      if (route?.mode === "identity") {
+        // the seed was a person, not a host. move the run instead of failing it.
+        setMode("identity"); setIdKind(route.kind);
+        toast.message(message);
+        setRunning(false);
+        await runIdentityWith(route.kind);
+        return;
+      }
+      toast.error(message);
     } finally { setRunning(false); }
-  }, [seed, loadRun]);
+  }, [seed, loadRun, readEdgeError, runIdentityWith]);
 
   const runIdentity = useCallback(async () => {
     if (!seed.trim()) { toast.error("enter an identifier"); return; }
-    setRunning(true); setHits([]); setPivots([]); setMeta(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("asherin-search-identity", { body: { identifier: seed.trim(), kind: idKind } });
-      if (error) throw error;
-      const rid = (data as { run_id?: string })?.run_id ?? null;
-      setRunId(rid);
-      setMeta((data as { meta?: RunMeta })?.meta ?? null);
-      if (rid) await loadRun(rid);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "identity failed");
-    } finally { setRunning(false); }
-  }, [seed, idKind, loadRun]);
+    await runIdentityWith(idKind);
+  }, [seed, idKind, runIdentityWith]);
 
   const recheck = useCallback(async (hit: Hit) => {
     try {
