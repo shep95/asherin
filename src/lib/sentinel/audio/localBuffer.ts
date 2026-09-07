@@ -14,10 +14,29 @@
 // and after every write, so a tab left open for a week does not grow forever.
 
 const DB_NAME = "asherin-sentinel-ambient";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const KEY_STORE = "keys";
 const SEG_STORE = "segments";
+const SESSION_STORE = "sessions";
 export const DEFAULT_RETENTION_HOURS = 72;
+
+/**
+ * A recording session: one continuous stretch between "start listening" and
+ * "stop listening". It is a ledger entry, not a copy of the audio — the audio
+ * lives in the segment store under the same retention window, and the account
+ * timeline holds the transcripts. The history list says plainly which of those
+ * two are still available for a given session rather than offering a download
+ * that would silently come back empty.
+ */
+export interface RecordingSession {
+  id: string;
+  startedAt: number;
+  endedAt: number | null;
+  deviceKey: string;
+  deviceLabel: string;
+  speechSegments: number;
+  soundSegments: number;
+}
 
 export interface BufferedSegment {
   id: string;
@@ -54,6 +73,10 @@ function open(): Promise<IDBDatabase> {
         const store = db.createObjectStore(SEG_STORE, { keyPath: "id" });
         store.createIndex("at", "at");
         store.createIndex("synced", "synced");
+      }
+      if (!db.objectStoreNames.contains(SESSION_STORE)) {
+        const sessions = db.createObjectStore(SESSION_STORE, { keyPath: "id" });
+        sessions.createIndex("startedAt", "startedAt");
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -160,4 +183,82 @@ export async function bufferStats(): Promise<{ total: number; pending: number; o
 /** Operator-facing wipe. Clears every buffered row on this device. */
 export async function wipeLocal(): Promise<void> {
   await tx(SEG_STORE, "readwrite", (s) => s.clear());
+}
+
+// ── recording sessions ───────────────────────────────────────────────────────
+// A session row is opened when the watch starts and closed when it stops. It is
+// deliberately tiny: two timestamps, the device, and how much it heard. Nothing
+// here duplicates audio, so a session never outlives the retention window it
+// claims — and history says so rather than offering an empty download.
+
+export async function openSession(deviceKey: string, deviceLabel: string): Promise<string> {
+  const row: RecordingSession = {
+    id: crypto.randomUUID(),
+    startedAt: Date.now(),
+    endedAt: null,
+    deviceKey,
+    deviceLabel,
+    speechSegments: 0,
+    soundSegments: 0,
+  };
+  try {
+    await tx(SESSION_STORE, "readwrite", (s) => s.put(row));
+  } catch {
+    return ""; // no local storage: the watch still runs, history simply cannot
+  }
+  return row.id;
+}
+
+async function patchSession(id: string, patch: (row: RecordingSession) => RecordingSession): Promise<void> {
+  if (!id) return;
+  try {
+    const row = await tx<RecordingSession | undefined>(SESSION_STORE, "readonly", (s) => s.get(id) as IDBRequest<RecordingSession | undefined>);
+    if (!row) return;
+    await tx(SESSION_STORE, "readwrite", (s) => s.put(patch(row)));
+  } catch {
+    /* history is a convenience layer; its failure must never stop capture */
+  }
+}
+
+export const countSessionSegment = (id: string, kind: "speech" | "sound") =>
+  patchSession(id, (row) => ({
+    ...row,
+    speechSegments: row.speechSegments + (kind === "speech" ? 1 : 0),
+    soundSegments: row.soundSegments + (kind === "sound" ? 1 : 0),
+  }));
+
+export const closeSession = (id: string) => patchSession(id, (row) => ({ ...row, endedAt: Date.now() }));
+
+export async function listSessions(): Promise<RecordingSession[]> {
+  try {
+    const all = await tx<RecordingSession[]>(SESSION_STORE, "readonly", (s) => s.getAll() as IDBRequest<RecordingSession[]>);
+    return all.sort((a, b) => b.startedAt - a.startedAt);
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteSession(id: string): Promise<void> {
+  try {
+    await tx(SESSION_STORE, "readwrite", (s) => s.delete(id));
+  } catch {
+    /* noop */
+  }
+}
+
+/** Decrypted payloads whose capture time falls inside a window, oldest first.
+ *  Rows past the retention window are simply gone; the caller reports that. */
+export async function payloadsBetween(from: number, to: number): Promise<Array<{ at: number; payload: SegmentPayload }>> {
+  try {
+    const all = await tx<BufferedSegment[]>(SEG_STORE, "readonly", (s) => s.getAll() as IDBRequest<BufferedSegment[]>);
+    const rows = all.filter((r) => r.at >= from && r.at <= to).sort((a, b) => a.at - b.at);
+    const out: Array<{ at: number; payload: SegmentPayload }> = [];
+    for (const row of rows) {
+      const payload = await readPayload(row);
+      if (payload) out.push({ at: row.at, payload });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }

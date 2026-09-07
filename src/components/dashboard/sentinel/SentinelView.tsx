@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Check, Ear, HardDrive, Loader2, Mic, MicOff, Radio, Search, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Activity, AlertTriangle, Check, Download, Ear, HardDrive, History, Loader2, Mic, MicOff, Radio, Search, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { SentinelEngine, deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
-import { bufferStats, wipeLocal, DEFAULT_RETENTION_HOURS } from "@/lib/sentinel/audio/localBuffer";
+import { deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
+import {
+  bufferStats, deleteSession, listSessions, payloadsBetween, wipeLocal,
+  DEFAULT_RETENTION_HOURS, type RecordingSession,
+} from "@/lib/sentinel/audio/localBuffer";
+import { sentinelEngine, sentinelNotes, sentinelStatus, setSentinelSensitivity, subscribeSentinel } from "@/lib/sentinel/audio/engineSingleton";
 import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
-  ackAlert, fetchAlerts, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
+  ackAlert, fetchAlerts, fetchEvent, fetchSettings, fetchTimeline, renameSpeaker, saveSettings, purgeRemote,
   type AmbientAlert, type AmbientDevice, type AmbientEvent, type AmbientSpeaker,
 } from "@/lib/sentinel/audio/sync";
 import CompanionPanel from "./CompanionPanel";
@@ -26,7 +30,7 @@ import CompanionPanel from "./CompanionPanel";
  * record.
  */
 
-type Tab = "live" | "timeline" | "speakers" | "alerts" | "devices";
+type Tab = "live" | "timeline" | "speakers" | "alerts" | "history" | "devices";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 const chip = "rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/55";
@@ -36,14 +40,18 @@ const dayStamp = (iso: string) => new Date(iso).toLocaleDateString([], { month: 
 
 const SentinelView = () => {
   const { toast } = useToast();
-  const engineRef = useRef<SentinelEngine | null>(null);
-  const [status, setStatus] = useState<EngineStatus | null>(null);
+  const engine = sentinelEngine();
+  const [status, setStatus] = useState<EngineStatus | null>(() => sentinelStatus());
   const [tab, setTab] = useState<Tab>("live");
   const [events, setEvents] = useState<AmbientEvent[]>([]);
   const [speakers, setSpeakers] = useState<AmbientSpeaker[]>([]);
   const [devices, setDevices] = useState<AmbientDevice[]>([]);
   const [alerts, setAlerts] = useState<AmbientAlert[]>([]);
-  const [notes, setNotes] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string[]>(() => sentinelNotes());
+  const [sessions, setSessions] = useState<RecordingSession[]>([]);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [openAlert, setOpenAlert] = useState<string | null>(null);
+  const [incident, setIncident] = useState<{ alertId: string; loading: boolean; error: string | null; event: AmbientEvent | null; context: AmbientEvent[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -60,26 +68,24 @@ const SentinelView = () => {
     setNotes((prev) => (prev.includes(note) ? prev : [note, ...prev].slice(0, 6)));
   }, []);
 
-  const engine = useMemo(() => {
-    if (!engineRef.current) {
-      engineRef.current = new SentinelEngine({
-        onStatus: setStatus,
-        onNote: pushNote,
-        onIngest: (result) => {
-          if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
-          if (result.speakers?.length) {
-            setSpeakers((prev) => {
-              const map = new Map(prev.map((s) => [s.id, s]));
-              for (const s of result.speakers) map.set(s.id, s);
-              return [...map.values()].sort((a, b) => a.first_heard_at.localeCompare(b.first_heard_at));
-            });
-          }
-          if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
-        },
-      });
-    }
-    return engineRef.current;
-  }, [pushNote]);
+  // The engine is a module singleton, so leaving this room — or any other
+  // navigation inside the app — no longer ends the watch. This view only
+  // subscribes to it and unsubscribes on unmount.
+  useEffect(() => subscribeSentinel({
+    onStatus: setStatus,
+    onNote: pushNote,
+    onIngest: (result) => {
+      if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
+      if (result.speakers?.length) {
+        setSpeakers((prev) => {
+          const map = new Map(prev.map((s) => [s.id, s]));
+          for (const s of result.speakers) map.set(s.id, s);
+          return [...map.values()].sort((a, b) => a.first_heard_at.localeCompare(b.first_heard_at));
+        });
+      }
+      if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
+    },
+  }), [pushNote]);
 
   const reload = useCallback(async () => {
     setLoadError(null);
@@ -99,7 +105,7 @@ const SentinelView = () => {
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
       const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
       setSensitivity(sens);
-      engineRef.current?.setSensitivity(sens);
+      setSentinelSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
@@ -117,10 +123,11 @@ const SentinelView = () => {
     return () => window.clearInterval(tick);
   }, []);
 
-  // Release the microphone when the operator leaves the room. Holding a live
-  // stream behind a navigated-away view is exactly the behaviour this product
-  // must never exhibit.
-  useEffect(() => () => { void engineRef.current?.stop(); }, []);
+  // The watch is deliberately NOT stopped on unmount. Stopping here was the
+  // bug: opening another room killed a capture the operator had explicitly
+  // started. It now ends only on the stop control or when the tab itself dies,
+  // and the header says which of those is true at any moment.
+  useEffect(() => { void listSessions().then(setSessions); }, [tab]);
 
   const listening = status?.state === "listening";
 
@@ -147,13 +154,114 @@ const SentinelView = () => {
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
     setSensitivity(next.sensitivity);
-    engineRef.current?.setSensitivity(next.sensitivity);
+    setSentinelSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
       await saveSettings(next, hours);
     } catch (e) {
       pushNote(e instanceof Error ? e.message : "settings could not be saved.");
+    }
+  };
+
+  /** Opens the turn an alert was raised about. An alert without an event id
+   *  refers to a device or account condition, not a recorded turn — that is
+   *  said plainly instead of spinning on an empty fetch. */
+  const openIncident = async (alert: AmbientAlert) => {
+    if (openAlert === alert.id) { setOpenAlert(null); return; }
+    setOpenAlert(alert.id);
+    if (!alert.event_id) {
+      setIncident({ alertId: alert.id, loading: false, error: "this alert was raised about the watch itself, not about a recorded turn.", event: null, context: [] });
+      return;
+    }
+    setIncident({ alertId: alert.id, loading: true, error: null, event: null, context: [] });
+    try {
+      const res = await fetchEvent(alert.event_id);
+      if (res.speakers?.length) {
+        setSpeakers((prev) => {
+          const map = new Map(prev.map((x) => [x.id, x]));
+          for (const sp of res.speakers) map.set(sp.id, sp);
+          return [...map.values()];
+        });
+      }
+      setIncident({
+        alertId: alert.id,
+        loading: false,
+        error: res.event ? null : "that turn is no longer in the account timeline — it was purged or aged out.",
+        event: res.event,
+        context: res.context ?? [],
+      });
+    } catch (e) {
+      setIncident({ alertId: alert.id, loading: false, error: e instanceof Error ? e.message : "the transcript could not be read.", event: null, context: [] });
+    }
+  };
+
+  /** A session download is assembled from two independent records: the account
+   *  timeline (transcripts) and this device's still-retained encrypted audio.
+   *  Either can legitimately be empty by the time it is asked for, and the
+   *  archive says which rather than pretending to be complete. */
+  const exportSession = async (session: RecordingSession) => {
+    setExporting(session.id);
+    try {
+      const endedAt = session.endedAt ?? Date.now();
+      const [{ default: JSZip }, timeline, clips] = await Promise.all([
+        import("jszip"),
+        fetchTimeline({
+          sinceIso: new Date(session.startedAt - 1000).toISOString(),
+          untilIso: new Date(endedAt + 1000).toISOString(),
+          limit: 500,
+        }).catch(() => ({ events: [] as AmbientEvent[], speakers: [] as AmbientSpeaker[], devices: [] as AmbientDevice[] })),
+        payloadsBetween(session.startedAt - 1000, endedAt + 1000),
+      ]);
+      const ordered = [...timeline.events].sort((a, b) => a.started_at.localeCompare(b.started_at));
+      const nameOf = (id: string | null) => {
+        const sp = timeline.speakers.find((x) => x.id === id);
+        return sp?.name || sp?.label || (id ? "unknown voice" : "unattributed voice");
+      };
+      const lines = ordered.map((ev) =>
+        ev.kind === "sound"
+          ? `[${clock(ev.started_at)}] (sound: ${ev.tag ?? "unclassified"})`
+          : `[${clock(ev.started_at)}] ${nameOf(ev.speaker_id)}: ${ev.transcript || "(no transcript)"}`,
+      );
+      const zip = new JSZip();
+      zip.file(
+        "transcript.txt",
+        [
+          `asherin.sentinel session`,
+          `device: ${session.deviceLabel}`,
+          `started: ${new Date(session.startedAt).toLocaleString()}`,
+          `ended: ${session.endedAt ? new Date(session.endedAt).toLocaleString() : "still running"}`,
+          `turns in the account timeline for this window: ${ordered.length}`,
+          `audio clips still held on this device: ${clips.length}`,
+          "",
+          ...(lines.length ? lines : ["no turn was recorded in this window, or the timeline for it has been purged."]),
+        ].join("\n"),
+      );
+      zip.file("timeline.json", JSON.stringify({ session, events: ordered, speakers: timeline.speakers }, null, 2));
+      let written = 0;
+      for (const clip of clips) {
+        if (!clip.payload.audio) continue;
+        const stamp = new Date(clip.at).toISOString().replace(/[:.]/g, "-");
+        zip.file(`audio/${stamp}-${clip.payload.kind}.wav`, clip.payload.audio, { base64: true });
+        written += 1;
+      }
+      if (!written) {
+        zip.file("audio/README.txt", "no audio from this session is still on this device: it passed the retention window set in watch settings, or it was wiped.");
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `asherin-sentinel-${new Date(session.startedAt).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.zip`;
+      a.click();
+      // Revoked on the next frame: revoking synchronously can cancel the
+      // download in some browsers before it has read the blob.
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast({ title: "session downloaded", description: `${ordered.length} turns · ${written} audio clips` });
+    } catch (e) {
+      pushNote(e instanceof Error ? e.message : "the session could not be packaged.");
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -168,6 +276,7 @@ const SentinelView = () => {
     { key: "timeline", label: "timeline", icon: Activity },
     { key: "speakers", label: "speakers", icon: Users },
     { key: "alerts", label: "alerts", icon: AlertTriangle },
+    { key: "history", label: "history", icon: History },
     { key: "devices", label: "devices", icon: HardDrive },
   ];
 
@@ -202,7 +311,7 @@ const SentinelView = () => {
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-3">
           <p className="text-xs leading-relaxed text-white/70">
-            <span className="font-medium text-white/90">truth boundary:</span> in this page, sentinel listens only while the page is open. it survives the tab being backgrounded and the desktop screen locking, but not the tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
+            <span className="font-medium text-white/90">truth boundary:</span> once started, the watch keeps running while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
           </p>
         </div>
 
@@ -372,11 +481,14 @@ const SentinelView = () => {
           <h2 className="mb-4 text-sm font-light tracking-wide text-white/70">alerts</h2>
           <div className="space-y-2">
             {alerts.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="min-w-0">
+              <div key={a.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <button className="min-w-0 flex-1 text-left" onClick={() => void openIncident(a)}>
                   <div className="truncate text-sm text-white/80">{a.message}</div>
-                  <div className="text-[11px] text-white/40">{dayStamp(a.created_at)} {clock(a.created_at)} · {a.kind}</div>
-                </div>
+                  <div className="text-[11px] text-white/40">
+                    {dayStamp(a.created_at)} {clock(a.created_at)} · {a.kind} · {openAlert === a.id ? "hide the transcript" : "read the transcript"}
+                  </div>
+                </button>
                 {a.acknowledged_at ? (
                   <Check className="h-4 w-4 shrink-0 text-white/35" />
                 ) : (
@@ -394,8 +506,75 @@ const SentinelView = () => {
                   </Button>
                 )}
               </div>
+              {openAlert === a.id && (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  {incident?.alertId !== a.id || incident.loading ? (
+                    <div className="flex items-center gap-2 text-xs text-white/45"><Loader2 className="h-3.5 w-3.5 animate-spin" /> reading the turn behind this alert</div>
+                  ) : incident.error ? (
+                    <p className="text-xs text-white/45">{incident.error}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {(incident.context.length ? incident.context : incident.event ? [incident.event] : []).map((ev) => (
+                        <div key={ev.id} className={ev.id === incident.event?.id ? "rounded-xl border border-white/20 bg-white/[0.05]" : ""}>
+                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} />
+                        </div>
+                      ))}
+                      <p className="text-[11px] text-white/35">the highlighted turn is the one that raised this alert; the rest is what was said around it.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              </div>
             ))}
             {!alerts.length && <p className="py-8 text-center text-sm text-white/40">nothing has met an alert threshold.</p>}
+          </div>
+        </section>
+      ) : tab === "history" ? (
+        <section className={`${card} p-5`}>
+          <h2 className="mb-1 text-sm font-light tracking-wide text-white/70">recording history</h2>
+          <p className="mb-4 max-w-3xl text-xs leading-relaxed text-white/45">
+            every stretch between start and stop on this device. a download packages the transcripts for that window from
+            your account timeline together with whatever audio is still held here — audio ages out on the retention you
+            set under devices, so an older session may come back as transcript only, and the archive says so on its face.
+          </p>
+          <div className="space-y-2">
+            {sessions.map((sess) => {
+              const running = sess.endedAt === null;
+              const mins = Math.max(1, Math.round(((sess.endedAt ?? Date.now()) - sess.startedAt) / 60_000));
+              return (
+                <div key={sess.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm text-white/80">
+                      {new Date(sess.startedAt).toLocaleString()} {running && <span className={`${chip} ml-2`}>running</span>}
+                    </div>
+                    <div className="text-[11px] text-white/40">
+                      {mins} min · {sess.speechSegments} speech · {sess.soundSegments} sound · {sess.deviceLabel}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      disabled={exporting === sess.id}
+                      className="h-8 rounded-lg border border-white/10 text-[11px] text-white/65"
+                      onClick={() => void exportSession(sess)}
+                    >
+                      {exporting === sess.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                      download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-8 rounded-lg text-[11px] text-white/40"
+                      onClick={async () => { await deleteSession(sess.id); setSessions((prev) => prev.filter((x) => x.id !== sess.id)); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {!sessions.length && (
+              <p className="py-8 text-center text-sm text-white/40">no session yet. history begins with the first time you start the watch on this device.</p>
+            )}
           </div>
         </section>
       ) : (

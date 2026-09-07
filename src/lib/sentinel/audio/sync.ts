@@ -89,6 +89,17 @@ export const fetchTimeline = (filters: {
   limit?: number;
 }) => call<{ events: AmbientEvent[]; speakers: AmbientSpeaker[]; devices: AmbientDevice[] }>("timeline", filters);
 
+/**
+ * The turn behind an alert, plus the turns immediately around it. An alert with
+ * no readable body is the failure this fixes: the operator was told something
+ * happened and given no way to read what was said.
+ */
+export const fetchEvent = (eventId: string, contextSeconds = 90) =>
+  call<{ event: AmbientEvent | null; context: AmbientEvent[]; speakers: AmbientSpeaker[] }>("event", {
+    eventId,
+    contextSeconds,
+  });
+
 export const fetchSpeakers = () => call<{ speakers: AmbientSpeaker[] }>("speakers");
 export const renameSpeaker = (speakerId: string, name: string) =>
   call<{ speaker: AmbientSpeaker }>("rename-speaker", { speakerId, name });
