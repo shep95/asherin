@@ -122,12 +122,24 @@ export async function buildLiveMap(
   radiusM = 400,
   spacing = 10,
 ): Promise<LiveMapResult> {
+  if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lon) || Math.abs(lon) > 180) {
+    throw new Error("that position is not a valid point on earth");
+  }
+  const radius = Math.min(1500, Math.max(100, Number.isFinite(radiusM) ? radiusM : 400));
+  const step = Math.min(40, Math.max(4, Number.isFinite(spacing) ? spacing : 10));
+
   const anchor: GeoAnchor = { lat, lon };
-  const elements = await callOverpass(query(lat, lon, Math.round(radiusM)));
+  const elements = await callOverpass(query(lat, lon, Math.round(radius)));
 
   const waypoints: NavigationWaypoint[] = [];
   const byCell = new Map<string, number>();
-  const cell = spacing * 0.6;
+  const cell = step * 0.6;
+
+  // ways come back whole, so their far ends can sit far outside the circle the
+  // operator asked for. Points past the edge are dropped and the chain is
+  // broken there, which keeps the map honest about how far it actually reaches.
+  const keepRadius = radius * 1.1;
+  const inRange = (p: Vec3) => Math.hypot(p.x, p.z) <= keepRadius;
 
   const weld = (p: Vec3): number => {
     const key = cellKey(p, cell);
@@ -139,8 +151,8 @@ export async function buildLiveMap(
     return id;
   };
 
-  const link = (a: number, b: number) => {
-    if (a === b) return;
+  const link = (a: number | null, b: number) => {
+    if (a === null || a === b) return;
     const wa = waypoints[a - 1];
     const wb = waypoints[b - 1];
     if (!wa || !wb) return;
@@ -152,31 +164,33 @@ export async function buildLiveMap(
     if (el.type !== "way" || !el.geometry || el.geometry.length < 2) continue;
     const points = el.geometry.map((g) => geoToLocal(anchor, g.lat, g.lon));
 
+    const place = (p: Vec3, previous: number | null): number | null => {
+      if (!inRange(p)) return null;
+      const id = weld(p);
+      link(previous, id);
+      return id;
+    };
+
     // resample the way at the chosen spacing so waypoint density is uniform
     // regardless of how finely the way happens to be drawn in OSM
-    let previousId = weld(points[0]);
+    let previousId = place(points[0], null);
     let carried = 0;
     for (let i = 1; i < points.length; i += 1) {
       const from = points[i - 1];
       const to = points[i];
       const segment = Math.hypot(to.x - from.x, to.z - from.z);
       if (segment <= 0) continue;
-      let travelled = spacing - carried;
+      let travelled = step - carried;
       while (travelled < segment) {
         const t = travelled / segment;
-        const id = weld({ x: from.x + (to.x - from.x) * t, y: 0, z: from.z + (to.z - from.z) * t });
-        link(previousId, id);
-        previousId = id;
-        travelled += spacing;
+        previousId = place({ x: from.x + (to.x - from.x) * t, y: 0, z: from.z + (to.z - from.z) * t }, previousId);
+        travelled += step;
       }
-      carried = segment - (travelled - spacing);
-      if (i === points.length - 1) {
-        const id = weld(to);
-        link(previousId, id);
-        previousId = id;
-      }
+      carried = segment - (travelled - step);
+      if (i === points.length - 1) previousId = place(to, previousId);
     }
   }
+
 
   if (waypoints.length < 2) {
     return {
