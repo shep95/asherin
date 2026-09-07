@@ -7,7 +7,7 @@ import { useIsV2 } from "@/lib/dashboardUiContext";
 /**
  * Dashboard "Subscription" page.
  *
- * Renders the active monthly subscription model ($18 Aureon / $79 Aureon Pro)
+ * Renders the active monthly subscription model ($18 Asherin / $79 Asherin Pro)
  * plus the Enterprise contact card.
  */
 const SubscriptionView = () => {
