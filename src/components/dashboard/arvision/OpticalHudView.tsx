@@ -1853,7 +1853,7 @@ function bootArvision(wrap, root, emitPull) {
       '<button type="button" class="fold" id="sens-cycle">sens · ' +
       (S.sensitivity || "high") +
       "</button>" +
-      row("view", S.primary === "spectral" ? "spectral filter" : "colorized") +
+      row("view", MODE_NAMES[S.primary] || "colorized") +
       row("luma", S.luma.toFixed(2)) +
 
       row("contrast", S.contrast.toFixed(2)) +
@@ -1872,6 +1872,7 @@ function bootArvision(wrap, root, emitPull) {
       list(S.obstruction.join(" · ") || "clear") +
       list(S.ocr ? S.ocr.slice(0, 180) : "ocr on freeze / auto on car") +
       list("spectral filter: separates materials by how differently they sit across the camera's own colour channels. it is not a calibrated infrared sensor and does not read heat.") +
+      list("thermal estimate: maps this camera's brightness onto an iron palette — bright reads warm, dark reads cool. a phone camera cannot measure infrared radiation or temperature, so this is a visualization, not a thermometer. it cannot see through ordinary walls, and common glass is opaque to real long-wave thermal too — a true thermal camera pointed at a window reads the glass surface and its reflections, not what is behind it.") +
       list("scene geocode: CANNOT_RESOLVE until ≥3 visual votes") +
 
       list("headphones music: CANNOT_RESOLVE unless MCS GATT · A2DP intercept refused") +
