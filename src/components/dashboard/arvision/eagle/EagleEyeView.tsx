@@ -608,56 +608,167 @@ export default function EagleEyeView() {
   );
 }
 
-function CameraTile({
-  tile, preview, running, bind, getFrame, onDetach,
-}: {
-  tile: TileState;
-  preview: FilterMode;
-  running: boolean;
-  bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
-  getFrame: () => HTMLCanvasElement | null;
-  onDetach: () => void;
-}) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
-  const filterRef = useRef<HTMLCanvasElement>(null);
+const QUAD_MODES: FilterMode[] = ["clean", "thermal", "spectral", "edge"];
 
-  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind]);
-
-  // the filtered preview re-renders from the same frames the detector reads, so
-  // what the operator watches is what the evidence will contain.
+/** paints one filtered rendering of the live frames at a modest cadence. the
+ * pixels come from the same grab the detector reads, so what an operator
+ * watches is what the evidence package will contain. */
+function FilterPane({ mode, getFrame, className }: { mode: FilterMode; getFrame: () => HTMLCanvasElement | null; className?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (preview === "clean") return;
     let alive = true;
+    let timer = 0;
     const paint = () => {
       if (!alive) return;
       const frame = getFrame();
-      const target = filterRef.current;
+      const target = ref.current;
       if (frame && target) {
-        const out = filteredCanvas(frame, preview);
+        const out = filteredCanvas(frame, mode);
         if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
         target.getContext("2d")?.drawImage(out, 0, 0);
       }
-      window.setTimeout(paint, 140);
+      timer = window.setTimeout(paint, 140);
     };
     paint();
-    return () => { alive = false; };
-  }, [preview, getFrame]);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [mode, getFrame]);
+  return <canvas ref={ref} className={className ?? "absolute inset-0 h-full w-full object-contain"} />;
+}
+
+function CameraTile({
+  tile, preview, quad, running, alerted, bind, getFrame, onDetach, onAck, onExpand,
+}: {
+  tile: TileState;
+  preview: FilterMode;
+  quad: boolean;
+  running: boolean;
+  alerted: boolean;
+  bind: (overlay: HTMLCanvasElement | null, mount: HTMLDivElement | null) => void;
+  getFrame: () => HTMLCanvasElement | null;
+  onDetach: () => void;
+  onAck: () => void;
+  onExpand: (mode: FilterMode) => void;
+}) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => { bind(overlayRef.current, mountRef.current); }, [bind, quad]);
+
+  const cleanPane = (
+    <>
+      <div ref={mountRef} className="absolute inset-0" />
+      <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+    </>
+  );
+
+  // the flash is a summons, not decoration: the border alternates white and
+  // black five times and then holds a lit ring until a human opens the tile.
+  const alertClass = alerted ? "eagle-alert" : "border border-white/10";
 
   return (
-    <div className="relative min-h-[180px] overflow-hidden rounded-2xl border border-white/10 bg-black/50">
-      <div ref={mountRef} className={`absolute inset-0 ${preview === "clean" ? "" : "invisible"}`} />
-      {preview !== "clean" && <canvas ref={filterRef} className="absolute inset-0 h-full w-full object-contain" />}
-      <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
-      <div className="absolute left-2 top-2 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10.5px] font-light text-white/70">
+    <div className={`relative min-h-[180px] overflow-hidden rounded-2xl bg-black/50 ${alertClass}`}>
+      {quad ? (
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[2px] bg-white/10">
+          {QUAD_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { onAck(); onExpand(m); }}
+              className="group relative overflow-hidden bg-black/70 text-left"
+              title={`${m} — tap for full screen`}
+            >
+              {m === "clean" ? cleanPane : <FilterPane mode={m} getFrame={getFrame} />}
+              <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] font-light text-white/65">{m}</span>
+              <Maximize2 className="pointer-events-none absolute bottom-1 right-1 h-3 w-3 text-white/25 group-hover:text-white/70" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button type="button" onClick={() => { onAck(); onExpand(preview); }} className="absolute inset-0 block">
+          {preview === "clean" ? cleanPane : (
+            <>
+              <div ref={mountRef} className="invisible absolute inset-0" />
+              <FilterPane mode={preview} getFrame={getFrame} />
+              <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+            </>
+          )}
+          <Maximize2 className="pointer-events-none absolute bottom-2 right-2 h-3.5 w-3.5 text-white/25" />
+        </button>
+      )}
+
+      <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10.5px] font-light text-white/70">
         <span className={`h-1.5 w-1.5 rounded-full ${tile.status === "live" ? (running ? "bg-emerald-400" : "bg-white/40") : "bg-rose-400"}`} />
         <span className="max-w-[160px] truncate">{tile.label}</span>
         <span className="text-white/35">{tile.personCount} tracked · {tile.inferenceMs}ms</span>
       </div>
+      {alerted && (
+        <button onClick={onAck} className="absolute bottom-2 left-2 rounded-full border border-white/25 bg-black/70 px-2.5 py-1 text-[10.5px] font-light text-white/85">
+          pattern captured — tap to acknowledge
+        </button>
+      )}
       <button onClick={onDetach} className="absolute right-2 top-2 rounded-full border border-white/10 bg-black/55 p-1 text-white/50 hover:text-white/90"><X className="h-3.5 w-3.5" /></button>
       {tile.status === "failed" && (
         <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-[11.5px] font-light text-rose-200/80">{tile.error}</div>
       )}
+    </div>
+  );
+}
+
+/** full-screen read of one camera in one rendering, with the tracking overlay
+ * scaled on top and the other renderings one tap away. */
+function FullFrame({
+  label, mode, onMode, onClose, getFrame, getOverlay,
+}: {
+  label: string;
+  mode: FilterMode;
+  onMode: (m: FilterMode) => void;
+  onClose: () => void;
+  getFrame: () => HTMLCanvasElement | null;
+  getOverlay: () => HTMLCanvasElement | null;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+    const paint = () => {
+      if (!alive) return;
+      const frame = getFrame();
+      const target = ref.current;
+      if (frame && target) {
+        const out = filteredCanvas(frame, mode);
+        if (target.width !== out.width || target.height !== out.height) { target.width = out.width; target.height = out.height; }
+        const ctx = target.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(out, 0, 0);
+          const ov = getOverlay();
+          if (ov && ov.width > 0) ctx.drawImage(ov, 0, 0, target.width, target.height);
+        }
+      }
+      timer = window.setTimeout(paint, 120);
+    };
+    paint();
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [mode, getFrame, getOverlay]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col gap-3 bg-black/92 p-4" onClick={onClose}>
+      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <span className="text-[13px] font-light text-white/75">{label}</span>
+        {FILTER_MODES.map((f) => (
+          <button key={f.id} onClick={() => onMode(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${mode === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
+        ))}
+        <button onClick={onClose} className="ml-auto rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-light text-white/70">close</button>
+      </div>
+      <div className="min-h-0 flex-1" onClick={(e) => e.stopPropagation()}>
+        <canvas ref={ref} className="h-full w-full object-contain" />
+      </div>
+      <div className="text-[10.5px] font-light text-white/35">{FILTER_MODES.find((f) => f.id === mode)?.note}</div>
     </div>
   );
 }
