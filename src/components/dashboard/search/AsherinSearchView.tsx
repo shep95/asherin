@@ -26,7 +26,12 @@ interface Hit {
 }
 
 interface PivotRow { id: string; node_id: string; parent_node: string | null; identifier: string; kind: string; depth: number }
-interface RunMeta { sources: Record<string, { available: boolean; reason?: string; count?: number; index?: string | null }> }
+interface RunMeta {
+  sources: Record<string, { available: boolean; reason?: string; count?: number; index?: string | null; note?: string; present?: string[]; absent?: number; unmeasured?: Array<{ platform: string; reason: string }> }>;
+  storage?: { stored: number; errors: string[] };
+  coverage?: { measured: number; refused: number; nodes: number; elapsed_ms: number; budget_hit: boolean };
+  node_errors?: Array<{ node: string; error: string }>;
+}
 
 function classDot(score: number) {
   if (score >= 85) return "bg-red-500";
