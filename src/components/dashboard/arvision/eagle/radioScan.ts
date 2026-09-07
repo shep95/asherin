@@ -201,8 +201,11 @@ export function displayName(s: RadioSighting): string {
 }
 
 // ---------------------------------------------------------------------------
-// the browser scan itself
+// the browser/native scan itself
 // ---------------------------------------------------------------------------
+
+import { startNativeScan } from "@/lib/native/nativeBle";
+import { isNativeApp } from "@/lib/native/nativeRuntime";
 
 interface ScanAdvertisementEvent {
   device?: { id?: string; name?: string | null };
@@ -224,6 +227,7 @@ type ScanNavigator = Navigator & {
 };
 
 export function passiveScanSupported(): boolean {
+  if (isNativeApp()) return true;
   if (typeof navigator === "undefined") return false;
   const bt = (navigator as ScanNavigator).bluetooth;
   return !!bt && typeof bt.requestLEScan === "function";
@@ -260,6 +264,21 @@ export function readAdvertisement(e: ScanAdvertisementEvent, at = Date.now()) {
 export async function startPassiveScan(
   onSighting: (reading: ReturnType<typeof readAdvertisement>) => void,
 ): Promise<() => void> {
+  if (isNativeApp()) {
+    const handle = await startNativeScan((advert) => {
+      onSighting({
+        id: advert.id,
+        name: advert.name,
+        companyId: null,
+        services: advert.serviceUuids,
+        appearance: null,
+        rssi: advert.rssi,
+        txPower: advert.txPower,
+        at: advert.ts,
+      });
+    });
+    return () => { void handle.stop(); };
+  }
   const bt = (navigator as ScanNavigator).bluetooth;
   if (!bt?.requestLEScan) throw new Error(SCAN_UNAVAILABLE_NOTE);
   const handler = (e: ScanAdvertisementEvent) => onSighting(readAdvertisement(e));
