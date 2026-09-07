@@ -1765,7 +1765,9 @@ function bootArvision(wrap, root, emitPull) {
       list(S.blend || "") +
       list(S.obstruction.join(" · ") || "clear") +
       list(S.ocr ? S.ocr.slice(0, 180) : "ocr on freeze / auto on car") +
+      list("spectral filter: separates materials by how differently they sit across the camera's own colour channels. it is not a calibrated infrared sensor and does not read heat.") +
       list("scene geocode: CANNOT_RESOLVE until ≥3 visual votes") +
+
       list("headphones music: CANNOT_RESOLVE unless MCS GATT · A2DP intercept refused") +
       list("open apps / tabs / SMS / in-app DMs on another phone: CANNOT_RESOLVE · no implant") +
       list("laptop screen: CANNOT_RESOLVE · no implant") +
