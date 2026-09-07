@@ -76,6 +76,7 @@ import { EMPTY_RECORD, clearRecord, exportRecord, importRecord, loadRecord, newI
 
 import { supabase } from "@/integrations/supabase/client";
 import HealthAssistant from "./HealthAssistant";
+import { bodyShape } from "@/lib/health/bodyShape";
 import { describeEstimate } from "@/lib/health/bodyModel";
 
 const AnatomyScene = lazy(() => import("./AnatomyScene"));
@@ -290,6 +291,14 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const sceneState: SceneState = useMemo(
     () => ({ explode, visible, selected, isolate, view, rotate, reset, highlights }),
     [explode, visible, selected, isolate, view, rotate, reset, highlights],
+  );
+
+  // the figure on screen has to be the person's figure. height, weight, the
+  // circumferences they measured and the sex they set all reshape the reference
+  // mesh; nothing measured leaves it exactly as shipped.
+  const bodyShapeState = useMemo(
+    () => bodyShape(record.body.measurements, record.body.solves.length ? record.body.solves[record.body.solves.length - 1] : null),
+    [record.body.measurements, record.body.solves],
   );
 
   const searchResults = useMemo(() => {
@@ -664,6 +673,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
                 <AnatomyScene
                   atlas={atlas}
                   state={sceneState}
+                  shape={bodyShapeState}
                   onSelect={selectPart}
                   onProgress={setProgress}
                   onError={(m) => setAtlasError(m)}
@@ -673,6 +683,11 @@ export default function AsherinHealthView({ userId = null }: Props) {
                 <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-light tracking-wide text-foreground/60">
                   loading anatomy · {progress}%
                 </div>
+              )}
+              {bodyShapeState.personalised && (
+                <p className="pointer-events-none absolute bottom-3 left-4 max-w-[46%] text-[10px] font-light leading-relaxed text-foreground/40">
+                  proportions from your own measurements{bodyShapeState.sex !== "unspecified" ? ` · ${bodyShapeState.sex} reference` : ""} — a reshaped reference body, not a scan of you.
+                </p>
               )}
               {highlights.length > 0 && (
                 <p className="pointer-events-none absolute bottom-3 right-4 text-[10px] font-light text-foreground/40">
