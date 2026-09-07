@@ -541,18 +541,90 @@ function bootArvision(wrap, root, emitPull) {
     return true;
   }
 
+  // thermal estimate — a phone or laptop camera sees visible light, not the
+  // long-wave infrared a real thermal camera measures. so this maps frame
+  // brightness (with a small lift for surfaces whose long channel runs hot,
+  // the closest a visible sensor gets to a warmth cue) onto the iron palette
+  // above. the frame then reads the way a thermal image does — bright bodies
+  // against a cool ground, hot spots popping out of machinery — and is
+  // labelled an estimate everywhere it appears: it cannot measure temperature,
+  // cannot see through ordinary walls, and common glass is just as much a
+  // barrier here as it is to a real long-wave thermal camera.
+  function buildThermal(src) {
+    const fr = readFrame(src);
+    if (!fr) return false;
+    const { img, aw, ah } = fr;
+    const d = img.data;
+    const n = aw * ah;
+    const t = new Float32Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const r = d[p] / 255;
+      const g = d[p + 1] / 255;
+      const b = d[p + 2] / 255;
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      const warm = Math.max(0, r - (g + b) / 2) * 0.22;
+      t[i] = Math.min(1, Math.pow(lum, 0.8) + warm);
+    }
+    const out = specOutCtx.createImageData(aw, ah);
+    const o = out.data;
+    for (let y = 0; y < ah; y++) {
+      for (let x = 0; x < aw; x++) {
+        const i = y * aw + x;
+        const p = i * 4;
+        // thermal frames are soft; a faint edge lift keeps silhouettes legible
+        // without turning the pass back into a photo
+        const edge =
+          x > 0 && x < aw - 1 && y > 0 && y < ah - 1
+            ? Math.min(0.16, (Math.abs(t[i + 1] - t[i - 1]) + Math.abs(t[i + aw] - t[i - aw])) * 0.6)
+            : 0;
+        const v = Math.max(0, Math.min(255, Math.round((t[i] + edge) * 255)));
+        o[p] = IRON[v * 3];
+        o[p + 1] = IRON[v * 3 + 1];
+        o[p + 2] = IRON[v * 3 + 2];
+        o[p + 3] = 255;
+      }
+    }
+    specOutCtx.putImageData(out, 0, 0);
+    // the scale bar a real imager draws: hot at the top, cold at the bottom
+    const barH = Math.round(ah * 0.62);
+    const barW = Math.max(3, Math.round(aw * 0.014));
+    const bx = aw - barW - 3;
+    const by = Math.round((ah - barH) / 2);
+    for (let yy = 0; yy < barH; yy++) {
+      const v = Math.round(255 * (1 - yy / Math.max(1, barH - 1)));
+      specOutCtx.fillStyle = "rgb(" + IRON[v * 3] + "," + IRON[v * 3 + 1] + "," + IRON[v * 3 + 2] + ")";
+      specOutCtx.fillRect(bx, by + yy, barW, 1);
+    }
+    specOutCtx.strokeStyle = "rgba(255,255,255,.35)";
+    specOutCtx.lineWidth = 1;
+    specOutCtx.strokeRect(bx - 0.5, by - 0.5, barW + 1, barH + 1);
+    return true;
+  }
+
+  const MODE_NAMES = { color: "colorized", spectral: "spectral filter", thermal: "thermal estimate" };
+
   function paintSpectral(src, w, h) {
     const live = !!(src && (src.readyState >= 2 || src.width));
-    const specPrimary = S.primary === "spectral";
+    const primary = MODE_NAMES[S.primary] ? S.primary : "color";
+    // the corner box carries the colorized frame unless colorized is already
+    // on the stage — then it shows the spectral filter. it stays a two-view
+    // swap; the thermal estimate takes the stage from the switch, not the pip.
+    const pipMode = primary === "color" ? "spectral" : "color";
     // adaptive cost — the pixel read is the expensive part of the pass
     if (S.fps && S.fps < 20 && S.specW > 256) S.specW = 256;
     else if (S.fps > 40 && S.specW < 384) S.specW = 384;
-    const ok = live ? buildSpectral(src) : false;
+    const filterMode = primary !== "color" ? primary : pipMode;
+    const ok =
+      live && filterMode !== "color"
+        ? filterMode === "thermal"
+          ? buildThermal(src)
+          : buildSpectral(src)
+        : false;
     S.specSeen = ok ? S.specSeen + 1 : 0;
     const dpr = Math.min(devicePixelRatio || 1, 2);
 
-    specEl.hidden = !specPrimary;
-    if (specPrimary) {
+    specEl.hidden = primary === "color";
+    if (primary !== "color") {
       const sw = Math.max(1, Math.round(w * dpr));
       const sh = Math.max(1, Math.round(h * dpr));
       if (specEl.width !== sw || specEl.height !== sh) {
@@ -581,7 +653,7 @@ function bootArvision(wrap, root, emitPull) {
     pipCtx.setTransform(1, 0, 0, 1, 0, 0);
     pipCtx.fillStyle = "#000";
     pipCtx.fillRect(0, 0, cw, ch);
-    if (specPrimary) {
+    if (pipMode === "color") {
       if (live) drawFrameInto(pipCtx, src, cw, ch, selfieMirror());
     } else if (ok) {
       drawFrameInto(pipCtx, specOut, cw, ch, selfieMirror());
@@ -590,21 +662,24 @@ function bootArvision(wrap, root, emitPull) {
       pipCtx.drawImage(hud, 0, 0, cw, ch);
     } catch (_) {}
 
-    pipLabel.textContent = specPrimary ? "colorized" : "spectral filter";
-    swColor.classList.toggle("on", !specPrimary);
-    swSpec.classList.toggle("on", specPrimary);
-    swColor.setAttribute("aria-pressed", String(!specPrimary));
-    swSpec.setAttribute("aria-pressed", String(specPrimary));
+    pipLabel.textContent = MODE_NAMES[pipMode];
+    swColor.classList.toggle("on", primary === "color");
+    swSpec.classList.toggle("on", primary === "spectral");
+    swTherm.classList.toggle("on", primary === "thermal");
+    swColor.setAttribute("aria-pressed", String(primary === "color"));
+    swSpec.setAttribute("aria-pressed", String(primary === "spectral"));
+    swTherm.setAttribute("aria-pressed", String(primary === "thermal"));
   }
 
   function setPrimary(mode) {
-    if (mode !== "color" && mode !== "spectral") return;
+    if (!MODE_NAMES[mode]) return;
     S.primary = mode;
   }
 
-  pipEl.onclick = () => setPrimary(S.primary === "spectral" ? "color" : "spectral");
+  pipEl.onclick = () => setPrimary(S.primary === "color" ? "spectral" : "color");
   swColor.onclick = () => setPrimary("color");
   swSpec.onclick = () => setPrimary("spectral");
+  swTherm.onclick = () => setPrimary("thermal");
 
 
 
