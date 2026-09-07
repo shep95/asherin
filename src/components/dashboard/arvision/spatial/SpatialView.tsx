@@ -175,15 +175,102 @@ const SpatialView = () => {
 
   // push pose into guidance and out to the session
   const applyPose = useCallback(
-    (next: Vec3, source: "camera positioning" | "placed by hand", nextRotation?: Quat) => {
+    (next: Vec3, source: Exclude<PoseSource, "none">, nextRotation?: Quat) => {
       setPosition(next);
       setPoseSource(source);
       const rot = nextRotation ?? quatFromYaw((yawDeg * Math.PI) / 180);
       guidanceRef.current?.updatePosition(next, rot);
-      sessionRef.current?.sendPose({ position: next, rotation: rot, isLocalized: source === "camera positioning" });
+      sessionRef.current?.sendPose({
+        position: next,
+        rotation: rot,
+        isLocalized: source === "camera positioning" || source === "live position",
+      });
     },
     [yawDeg],
   );
+
+  // live position from the device receiver, plotted on an earth-anchored map.
+  // the fix is real or it is absent — a stale or rejected fix says so and the
+  // room falls back to placing yourself by hand rather than drifting a guess.
+  const stopLive = useCallback(() => {
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    }
+    setLiveOn(false);
+  }, []);
+
+  const startLive = useCallback(async () => {
+    if (liveBusy) return;
+    if (!("geolocation" in navigator)) {
+      setLiveNote("this device does not expose a position receiver to the browser");
+      return;
+    }
+    setLiveBusy(true);
+    setLiveNote("waiting for a position fix");
+    try {
+      const fix = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
+      }).catch((error: GeolocationPositionError) => {
+        throw new Error(
+          error?.code === 1
+            ? "location permission was refused, so live positioning stays off"
+            : error?.code === 3
+              ? "no position fix arrived in time — try again with a clearer view of the sky"
+              : "the device could not produce a position fix",
+        );
+      });
+
+      setLiveNote("building a map of what is actually around you");
+      const built = await buildLiveMap(fix.coords.latitude, fix.coords.longitude);
+      if (!built.data) {
+        setLiveNote(built.message);
+        return;
+      }
+      const nextAnchor = built.anchor;
+      setAnchor(nextAnchor);
+      setGraph(new NavigationGraph(built.data));
+      setMapCode(built.data.mapCode);
+      setMapLabel(`live map · ${nextAnchor.lat.toFixed(5)}, ${nextAnchor.lon.toFixed(5)}`);
+      setLiveNote(built.message);
+
+      const push = (p: GeolocationPosition) => {
+        const local = geoToLocal(nextAnchor, p.coords.latitude, p.coords.longitude);
+        setFixAccuracy(typeof p.coords.accuracy === "number" ? p.coords.accuracy : null);
+        setFixAt(p.timestamp);
+        setSpeedMs(typeof p.coords.speed === "number" && p.coords.speed >= 0 ? p.coords.speed : null);
+        // heading: the device compass wins, otherwise the receiver's own course,
+        // otherwise the bearing of the last real movement
+        const course = typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null;
+        if (headingRef.current !== "live") {
+          const moved = lastFixRef.current ? bearingFromLocal(lastFixRef.current, local) : null;
+          const next = course ?? moved;
+          if (next !== null) setYawDeg(Math.round(next));
+        }
+        lastFixRef.current = local;
+        applyPoseRef.current(local, "live position");
+      };
+
+      push(fix);
+      watchRef.current = navigator.geolocation.watchPosition(
+        push,
+        () => setLiveNote("the position stream dropped — the last real fix is still shown"),
+        { enableHighAccuracy: true, timeout: 25000, maximumAge: 1000 },
+      );
+      setLiveOn(true);
+    } catch (error) {
+      setLiveNote(error instanceof Error ? error.message : "live positioning failed");
+      setLiveOn(false);
+    } finally {
+      setLiveBusy(false);
+    }
+  }, [liveBusy]);
+
+
 
   // heading from the device compass when the user grants it
   const enableHeading = useCallback(async () => {
