@@ -153,7 +153,7 @@ export function bodyShape(measurements: BodyMeasurements, solve: BodySolve | nul
   // the sex difference applied on top.
   measured.shoulder = clamp((measured.chest ?? 1) * (factor.shoulder / (factor.chest || 1)), 0.7, 1.45);
   // limbs and head follow the trunk gently: a body does not change waist alone.
-  const trunk = (measured.waist ?? 1 + (measured.hip ?? 1)) / 2 || 1;
+  const trunk = ((measured.waist ?? 1) + (measured.hip ?? 1)) / 2;
   measured.knee = clamp(1 + ((measured.thigh ?? 1) - 1) * 0.5, 0.8, 1.3);
   measured.calf = clamp(1 + ((measured.thigh ?? 1) - 1) * 0.6, 0.8, 1.3);
   measured.ankle = clamp(1 + ((measured.thigh ?? 1) - 1) * 0.25, 0.85, 1.2);
