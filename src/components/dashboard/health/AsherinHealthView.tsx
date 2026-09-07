@@ -42,7 +42,8 @@ import {
   type SystemId,
   type View,
 } from "@/lib/health/atlas";
-import { resolveTerritories, TERRITORIES, type TerritoryIndex } from "@/lib/health/territory";
+import { registerTerritoryDefs, resolveTerritories, TERRITORIES, type TerritoryIndex } from "@/lib/health/territory";
+import { EXTRA_TERRITORIES } from "@/lib/health/territoryExtra";
 import { findingHighlights, sortFindings, type Finding, type LayerId } from "@/lib/health/model";
 import { LAB_DEFS, labDef, labFindings, parseLabText } from "@/lib/health/labs";
 import { DRUG_DEFS, drugInteractions, findDrug, medicationFindings } from "@/lib/health/medications";
@@ -181,6 +182,7 @@ export default function AsherinHealthView({ userId = null }: Props) {
   const [reset, setReset] = useState(0);
   const [query, setQuery] = useState("");
   const [assistantTrigger, setAssistantTrigger] = useState<string | null>(null);
+  const [panelHighlights, setPanelHighlights] = useState<AtlasHighlight[]>([]);
   const painCount = useRef<number | null>(null);
   const [activeLayers, setActiveLayers] = useState<LayerId[]>([
     "lab",
@@ -237,7 +239,15 @@ export default function AsherinHealthView({ userId = null }: Props) {
     [],
   );
 
-  const territories: TerritoryIndex | null = useMemo(() => (atlas ? resolveTerritories(atlas) : null), [atlas]);
+  useEffect(() => {
+    // the extended catalogue has to be registered before any panel asks for a label.
+    registerTerritoryDefs(EXTRA_TERRITORIES);
+  }, []);
+
+  const territories: TerritoryIndex | null = useMemo(
+    () => (atlas ? resolveTerritories(atlas, EXTRA_TERRITORIES) : null),
+    [atlas],
+  );
   const partById = useMemo(() => new Map((atlas?.parts ?? []).map((p) => [p.id, p])), [atlas]);
 
   const findings: Finding[] = useMemo(() => {
@@ -257,7 +267,25 @@ export default function AsherinHealthView({ userId = null }: Props) {
     return sortFindings(all.filter((f) => activeLayers.includes(f.layer)));
   }, [record, heart, motion, activeLayers]);
 
-  const highlights: AtlasHighlight[] = useMemo(() => findingHighlights(findings, territories), [findings, territories]);
+  const highlights: AtlasHighlight[] = useMemo(
+    () => [...findingHighlights(findings, territories), ...panelHighlights],
+    [findings, territories, panelHighlights],
+  );
+
+  /** one way for any panel to ask the body to look somewhere, with an honest miss. */
+  const focusTerritories = useCallback(
+    (keys: string[]) => {
+      if (!territories) return;
+      const ids = keys.flatMap((k) => territories.get(k)?.partIds ?? []);
+      if (ids.length === 0) {
+        toast.message("that territory is not represented in the reference geometry.");
+        return;
+      }
+      setSelected(ids.slice(0, 60));
+      setIsolate(true);
+    },
+    [territories],
+  );
 
   const sceneState: SceneState = useMemo(
     () => ({ explode, visible, selected, isolate, view, rotate, reset, highlights }),
