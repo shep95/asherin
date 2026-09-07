@@ -43,7 +43,14 @@ you are the assistant inside asherin.health. hard rules, in order:
 `;
 
 function json(body: unknown, status: number, cors: Record<string, string>) {
-  return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+  // Every failure carries a `message` as well as `error`: the client reads
+  // `message` first, and a body that only names the fault in `error` used to
+  // arrive on screen as a generic non-2xx toast.
+  const payload =
+    body && typeof body === "object" && "error" in (body as Record<string, unknown>) && !("message" in (body as Record<string, unknown>))
+      ? { ...(body as Record<string, unknown>), message: (body as Record<string, unknown>).error }
+      : body;
+  return new Response(JSON.stringify(payload), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
 function extractJson(raw: string): any {
