@@ -20,11 +20,11 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month for the core platform. Asherin Pro is $79 per month and unlocks the full intelligence suite (Azplen, Asherin Engine, advanced Briefings, Zophiel Pro, full team collaboration). Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.data, asherin.cyber, asherin.ide and the workspace. Asherin Pro is $79 per month and raises the limits on all of it. Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
-    a: "Asherin ($18/mo) gives you direct-answer chat, four reasoning modes, a capable coding engine, base Zophiel Search, persistent memory and a 60-message / 3-hour usage window. Asherin Pro ($79/mo) adds the Azplen data platform, the Asherin Engine reach-back harvest, advanced Intelligence Briefings, Zophiel Pro (higher limits, deeper crawling, priority latency), and full team collaboration with admin controls, and raises the limit to 200 messages per 3-hour window.",
+    a: "Asherin ($18/mo) is the whole room set at standard limits: direct-answer chat with four reasoning modes and directive profiles, a capable coding engine, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.data, asherin.cyber, persistent memory and a 60-message / 3-hour window. Asherin Pro ($79/mo) keeps the same rooms and raises the ceilings: deeper search discovery and identity pivots, higher throughput with queue priority, more simultaneous eagle.eye cameras with longer evidence retention, the defender companion apply path, admin controls, and 200 messages per 3-hour window.",
   },
   {
     q: "How much does Asherin Team cost?",
