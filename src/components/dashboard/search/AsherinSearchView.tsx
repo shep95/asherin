@@ -243,7 +243,7 @@ const AsherinSearchView = () => {
       <div className="flex-1 overflow-auto rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur">
         {hits.length === 0 && !running && (
           <div className="flex h-full items-center justify-center p-8 text-center text-xs font-light text-muted-foreground/60">
-            {runId ? "no hits — the sources ran but nothing surfaced." : "results appear here after a run."}
+            {runId ? (meta?.coverage ? `no hits — ${meta.coverage.measured} sources answered and none carried this identifier; ${meta.coverage.refused} could not be read.` : "no hits — the sources ran but nothing surfaced.") : "results appear here after a run."}
           </div>
         )}
         {grouped.map(([source, list]) => (
