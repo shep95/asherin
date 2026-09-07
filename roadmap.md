@@ -25,5 +25,5 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 
 ## asherin.health — photo reading + findings tab (requested 2026-09-07)
 - [x] body model reacts to measurements + sex (bodyShape.ts, AnatomyScene shape affine)
-- [ ] upload photos in the health room and have the assistant read them, adjust the view/filters from what it reads
-- [ ] a "findings" tab: plain-language, organised output of what the reading found, quotable back to the assistant for follow-up questions
+- [x] upload photos in the health room and have the assistant read them, adjust the view/filters from what it reads (photos tab + photo.read action)
+- [x] read-out organised by category/severity, quotable into the room assistant
