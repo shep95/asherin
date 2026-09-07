@@ -4467,6 +4467,290 @@ export type Database = {
         }
         Relationships: []
       }
+      data_alert_events: {
+        Row: {
+          acknowledged: boolean
+          created_at: string
+          expected: Json
+          id: string
+          kind: string
+          message: string
+          metric: string
+          rule_id: string | null
+          value: number | null
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          created_at?: string
+          expected?: Json
+          id?: string
+          kind?: string
+          message?: string
+          metric?: string
+          rule_id?: string | null
+          value?: number | null
+          workspace_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          created_at?: string
+          expected?: Json
+          id?: string
+          kind?: string
+          message?: string
+          metric?: string
+          rule_id?: string | null
+          value?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_alert_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "data_alert_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_alert_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_alert_rules: {
+        Row: {
+          active: boolean
+          channels: Json
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          source_id: string | null
+          spec: Json
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          channels?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          source_id?: string | null
+          spec?: Json
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          channels?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          source_id?: string | null
+          spec?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_alert_rules_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_alert_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_audit: {
+        Row: {
+          action: string
+          created_at: string
+          id: number
+          meta: Json
+          target: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: number
+          meta?: Json
+          target?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: number
+          meta?: Json
+          target?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_audit_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_chunks: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          meta: Json
+          source_id: string
+          version_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          meta?: Json
+          source_id: string
+          version_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          meta?: Json
+          source_id?: string
+          version_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_chunks_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_chunks_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "data_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_chunks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_dashboards: {
+        Row: {
+          cards: Json
+          created_at: string
+          embed_enabled: boolean
+          embed_token: string | null
+          id: string
+          name: string
+          workspace_id: string
+        }
+        Insert: {
+          cards?: Json
+          created_at?: string
+          embed_enabled?: boolean
+          embed_token?: string | null
+          id?: string
+          name?: string
+          workspace_id: string
+        }
+        Update: {
+          cards?: Json
+          created_at?: string
+          embed_enabled?: boolean
+          embed_token?: string | null
+          id?: string
+          name?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_dashboards_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_dictionary: {
+        Row: {
+          column_name: string
+          definition: string
+          id: string
+          inferred_type: string
+          source_id: string
+          updated_at: string
+          user_edited: boolean
+          workspace_id: string
+        }
+        Insert: {
+          column_name: string
+          definition?: string
+          id?: string
+          inferred_type?: string
+          source_id: string
+          updated_at?: string
+          user_edited?: boolean
+          workspace_id: string
+        }
+        Update: {
+          column_name?: string
+          definition?: string
+          id?: string
+          inferred_type?: string
+          source_id?: string
+          updated_at?: string
+          user_edited?: boolean
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_dictionary_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_dictionary_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_permissions: {
         Row: {
           created_at: string
@@ -4514,6 +4798,370 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_queries: {
+        Row: {
+          answer: Json
+          chart: Json | null
+          citations: Json
+          confidence: string
+          correction: string | null
+          created_at: string
+          flagged: boolean
+          id: string
+          question: string
+          reasoning: Json
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          answer?: Json
+          chart?: Json | null
+          citations?: Json
+          confidence?: string
+          correction?: string | null
+          created_at?: string
+          flagged?: boolean
+          id?: string
+          question: string
+          reasoning?: Json
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          answer?: Json
+          chart?: Json | null
+          citations?: Json
+          confidence?: string
+          correction?: string | null
+          created_at?: string
+          flagged?: boolean
+          id?: string
+          question?: string
+          reasoning?: Json
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_queries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_records: {
+        Row: {
+          id: number
+          idx: number
+          row: Json
+          version_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: number
+          idx: number
+          row?: Json
+          version_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: number
+          idx?: number
+          row?: Json
+          version_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_records_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "data_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_records_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_reports: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          last_generated_at: string | null
+          name: string
+          next_run_at: string | null
+          recipients: Json
+          schedule: string
+          template: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          last_generated_at?: string | null
+          name: string
+          next_run_at?: string | null
+          recipients?: Json
+          schedule?: string
+          template?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          last_generated_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          recipients?: Json
+          schedule?: string
+          template?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_sources: {
+        Row: {
+          config: Json
+          connector: string | null
+          created_at: string
+          id: string
+          kind: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          name: string
+          status: string
+          sync_cadence: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          connector?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          name: string
+          status?: string
+          sync_cadence?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          connector?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          name?: string
+          status?: string
+          sync_cadence?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_versions: {
+        Row: {
+          byte_size: number
+          column_count: number
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          id: string
+          mime: string | null
+          note: string | null
+          profile: Json
+          quality: Json
+          row_count: number
+          source_id: string
+          storage_path: string | null
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          byte_size?: number
+          column_count?: number
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          id?: string
+          mime?: string | null
+          note?: string | null
+          profile?: Json
+          quality?: Json
+          row_count?: number
+          source_id: string
+          storage_path?: string | null
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          byte_size?: number
+          column_count?: number
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          id?: string
+          mime?: string | null
+          note?: string | null
+          profile?: Json
+          quality?: Json
+          row_count?: number
+          source_id?: string
+          storage_path?: string | null
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_versions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_webhooks: {
+        Row: {
+          active: boolean
+          created_at: string
+          events: Json
+          id: string
+          last_error: string | null
+          last_status: number | null
+          url: string
+          workspace_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          events?: Json
+          id?: string
+          last_error?: string | null
+          last_status?: number | null
+          url: string
+          workspace_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          events?: Json
+          id?: string
+          last_error?: string | null
+          last_status?: number | null
+          url?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_webhooks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_workspace_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "data_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_workspaces: {
+        Row: {
+          api_key_hash: string | null
+          created_at: string
+          id: string
+          instructions: string
+          memory: Json
+          name: string
+          owner_id: string
+          theme: Json
+        }
+        Insert: {
+          api_key_hash?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string
+          memory?: Json
+          name?: string
+          owner_id: string
+          theme?: Json
+        }
+        Update: {
+          api_key_hash?: string | null
+          created_at?: string
+          id?: string
+          instructions?: string
+          memory?: Json
+          name?: string
+          owner_id?: string
+          theme?: Json
+        }
+        Relationships: []
       }
       defender_devices: {
         Row: {
@@ -14484,6 +15132,25 @@ export type Database = {
       }
       ble_can_claim: { Args: { _fingerprint: string }; Returns: Json }
       canonical_email: { Args: { _email: string }; Returns: string }
+      data_can_read: { Args: { _uid: string; _ws: string }; Returns: boolean }
+      data_can_write: { Args: { _uid: string; _ws: string }; Returns: boolean }
+      data_match_chunks: {
+        Args: {
+          _limit?: number
+          _query: string
+          _sources?: string[]
+          _ws: string
+        }
+        Returns: {
+          content: string
+          id: string
+          meta: Json
+          similarity: number
+          source_id: string
+          version_id: string
+        }[]
+      }
+      data_ws_role: { Args: { _uid: string; _ws: string }; Returns: string }
       delete_conversation: { Args: { p_conv_id: string }; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }

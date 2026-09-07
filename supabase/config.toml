@@ -296,3 +296,21 @@ verify_jwt = true
 
 [functions.asherin-defender-agent]
 verify_jwt = false
+
+[functions.asherin-data-ingest]
+verify_jwt = true
+
+[functions.asherin-data-ask]
+verify_jwt = true
+
+[functions.asherin-data-alerts]
+verify_jwt = true
+
+[functions.asherin-data-report]
+verify_jwt = true
+
+[functions.asherin-data-sync]
+verify_jwt = true
+
+[functions.asherin-data-api]
+verify_jwt = false
