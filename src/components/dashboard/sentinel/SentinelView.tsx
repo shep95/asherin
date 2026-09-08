@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, Bluetooth, Check, Download, Ear, HardDrive, History, Languages, Loader2, Mic, MicOff, Plus, Radio, Search, Trash2, Unplug, Users } from "lucide-react";
+import { Activity, AlertTriangle, Bluetooth, Check, Download, Ear, HardDrive, History, Languages, Loader2, Mic, MicOff, Plus, Radio, Search, Signal, Trash2, Unplug, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +22,7 @@ import {
   type AmbientAlert, type AmbientDevice, type AmbientEvent, type AmbientSpeaker,
 } from "@/lib/sentinel/audio/sync";
 import CompanionPanel from "./CompanionPanel";
+import EnvironmentPanel from "./EnvironmentPanel";
 
 
 /**
@@ -41,7 +42,7 @@ import CompanionPanel from "./CompanionPanel";
  * a visible gap, never hidden as quiet.
  */
 
-type Tab = "live" | "channels" | "timeline" | "speakers" | "alerts" | "history" | "devices";
+type Tab = "live" | "channels" | "environment" | "timeline" | "speakers" | "alerts" | "history" | "devices";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 const chip = "rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/55";
@@ -329,6 +330,7 @@ const SentinelView = () => {
   const tabs: Array<{ key: Tab; label: string; icon: typeof Ear }> = [
     { key: "live", label: "live", icon: Radio },
     { key: "channels", label: "channels", icon: Bluetooth },
+    { key: "environment", label: "environment", icon: Signal },
     { key: "timeline", label: "timeline", icon: Activity },
     { key: "speakers", label: "speakers", icon: Users },
     { key: "alerts", label: "alerts", icon: AlertTriangle },
@@ -462,6 +464,8 @@ const SentinelView = () => {
           }}
           onNote={pushNote}
         />
+      ) : tab === "environment" ? (
+        <EnvironmentPanel />
       ) : tab === "timeline" ? (
 
         <section className={`${card} p-5`}>

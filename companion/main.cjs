@@ -23,6 +23,7 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, powerMonitor, shell, nativeImag
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const fssync = require("node:fs");
+const bleBridge = require("./bleBridge.cjs");
 
 const STORE_FILE = () => path.join(app.getPath("userData"), "sentinel.json");
 const PENDING_DIR = () => path.join(app.getPath("userData"), "pending");
@@ -149,6 +150,9 @@ app.whenReady().then(async () => {
   wirePermissions();
   createWindow();
   buildTray();
+  // The passive radio bridge: the dashboard reads real advertisement packets
+  // from this process because a browser tab structurally cannot.
+  try { bleBridge.start(); } catch (e) { console.error("[sentinel] ble bridge failed:", e.message); }
 
   const store = await readStore();
   if (!store.token) showWindow(); // unpaired: the operator must see the code box
