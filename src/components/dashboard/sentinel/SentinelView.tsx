@@ -480,13 +480,24 @@ const SentinelView = () => {
                 <option key={s.id} value={s.id}>{s.name || s.label}</option>
               ))}
             </select>
+            <select
+              value={laneFilter}
+              onChange={(e) => setLaneFilter(e.target.value)}
+              className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70"
+            >
+              <option value="">every channel</option>
+              {devices.map((d) => (
+                <option key={d.id} value={d.id}>{d.label}</option>
+              ))}
+            </select>
             <Button variant="ghost" className="h-10 rounded-xl text-xs text-white/60" onClick={() => void reload()}>refresh</Button>
           </div>
           <div className="space-y-2">
             {events.map((ev) => (
-              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} showDay />
+              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} showDay />
             ))}
             {!events.length && <p className="py-8 text-center text-sm text-white/40">no turn matches that.</p>}
+
           </div>
         </section>
       ) : tab === "speakers" ? (
