@@ -490,6 +490,21 @@ export class SentinelEngine {
     const wav = encodeWav(pcm, TARGET_RATE);
     if (tooThinToSend(wav)) return; // a header with nothing in it proves nothing
 
+    // LAYER 5 — the intelligence gate. The energy detector opened this turn;
+    // the on-device model now decides whether a person was actually speaking.
+    // A television, a fan spinning up, a chair scrape can all pass the energy
+    // test, and a transcriber handed one of those invents a confident sentence
+    // that then enters the timeline as something a person said. The model
+    // judges the exact 16 khz buffer that would be uploaded — not a different
+    // signal — and nothing leaves the device to make the call.
+    const verdict = await confirmSpeech(pcm, TARGET_RATE);
+    if (verdict.note) this.note(verdict.note);
+    if (verdict.modelRan && !this.status.modelJudging) this.emit({ modelJudging: true });
+    if (verdict.modelRan && !verdict.speech) {
+      this.emit({ discardedByModel: this.status.discardedByModel + 1 });
+      return; // room noise. discarded here, never transcribed, never stored.
+    }
+
     const frameMs = (FRAME * 1000) / rate;
     const embedding = seg.voiced ? embedVoice(features, frameMs) : null;
     const payload: SegmentPayload = {
@@ -499,7 +514,10 @@ export class SentinelEngine {
       audio: toBase64(wav),
       embedding: embedding ?? undefined,
       peakRms: seg.peakRms,
+      speechRatio: verdict.modelRan ? Number(verdict.ratio.toFixed(3)) : undefined,
+      judgedBy: verdict.modelRan ? "silero on-device + energy detector" : "energy detector only",
     };
+
     try {
       await writeSegment(payload);
       void countSessionSegment(this.sessionId, "speech");
