@@ -956,7 +956,7 @@ export default function EagleEyeView() {
 
 const QUAD_MODES: FilterMode[] = ["clean", "colorized", "thermal", "spectral", "edge"];
 
-/** paints one filtered rendering of the live frames at a modest cadence. the
+/** paints one palette rendering of the live frames at a modest cadence. the
  * pixels come from the same grab the detector reads, so what an operator
  * watches is what the evidence package will contain. */
 function FilterPane({ mode, getFrame, getOverlay, className, thermalDevice = false, calibration = null, onThermal, interval = 140 }: {
