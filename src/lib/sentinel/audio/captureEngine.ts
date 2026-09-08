@@ -442,7 +442,10 @@ export class SentinelEngine {
         level: f.rms,
         noiseFloor: this.vad.noiseFloor,
         speaking: verdict === "speech" || verdict === "opening",
+        gateOpen: this.chain?.gateOpenRatio() ?? 1,
+        pipeline: this.pipelineNote,
       });
+
     }
 
     // Judge background sound on a rolling window, separately from voice.
