@@ -24,11 +24,14 @@
 
 import { FRAME, frameFeatures, type FrameFeatures } from "./dsp";
 import { Vad, VAD_DEFAULTS, VAD_SENSITIVITY, type VadSegment, type VadSensitivity } from "./vad";
+import { buildEarChain, EAR_TUNING, GATE_BY_PICKUP, type EarChain } from "./earChain";
+import { confirmSpeech, primeNeuralVad } from "./neuralVad";
 import { classifySounds, type SoundEvent } from "./soundEvents";
 import { embedVoice } from "./voiceprint";
 import { concat, encodeWav, resample, toBase64, tooThinToSend, TARGET_RATE } from "./wav";
 import { closeSession, countSessionSegment, markAttempt, markSynced, openSession, pendingSegments, purge, readPayload, writeSegment, type SegmentPayload } from "./localBuffer";
 import { heartbeat, ingest, registerDevice, type IngestResult } from "./sync";
+
 
 const DEVICE_KEY_STORAGE = "asherin.sentinel.ambient.deviceKey";
 /** pre-roll kept so a segment never starts mid-word */
@@ -50,7 +53,16 @@ export interface EngineStatus {
   lastSyncAt: number | null;
   deviceKey: string;
   sampleRate: number;
+  /** what the ear chain is doing to this channel's signal, in plain terms */
+  pipeline: string | null;
+  /** how much of the last half second passed the silence gate, 0..1 */
+  gateOpen: number;
+  /** turns the on-device speech model rejected as room noise */
+  discardedByModel: number;
+  /** true once the local speech model has judged at least one turn */
+  modelJudging: boolean;
 }
+
 
 export interface EngineEvents {
   onStatus?: (s: EngineStatus) => void;
@@ -114,8 +126,11 @@ export class SentinelEngine {
   private node: ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private wakeLock: { release: () => Promise<void> } | null = null;
+  private chain: EarChain | null = null;
+  private pipelineNote: string | null = null;
   private vad = new Vad(VAD_DEFAULTS);
   private sensitivity: VadSensitivity = "balanced";
+
 
   private preroll: Float32Array[] = [];
   private segment: Float32Array[] = [];
@@ -142,7 +157,12 @@ export class SentinelEngine {
     lastSyncAt: null,
     deviceKey: deviceKey(),
     sampleRate: 0,
+    pipeline: null,
+    gateOpen: 1,
+    discardedByModel: 0,
+    modelJudging: false,
   };
+
 
   private readonly label: string;
   private readonly inputDeviceId: string | null;
@@ -172,8 +192,26 @@ export class SentinelEngine {
     if (s === this.sensitivity) return;
     this.sensitivity = s;
     this.vad = new Vad(VAD_SENSITIVITY[s]);
-    this.note(`pickup sensitivity is now ${s}.`);
+    // The silence gate moves with the pickup distance: a collar headset and a
+    // phone across a room do not agree about which floor is worth keeping.
+    this.chain?.setGateThresholdDb(GATE_BY_PICKUP[s]);
+    this.note(`pickup sensitivity is now ${s}; the silence gate sits at ${GATE_BY_PICKUP[s]} db.`);
   }
+
+  /** What the radio actually delivered, as opposed to what was asked for. A
+   *  bluetooth voice link often lands at 16 khz or lower, and a room that
+   *  claims "48 khz" over an 8 khz link is lying to its operator. */
+  private reportLink(): void {
+    const track = this.stream?.getAudioTracks()[0];
+    const settings = track?.getSettings?.() as MediaTrackSettings | undefined;
+    const linkRate = settings?.sampleRate;
+    if (linkRate && linkRate < 16000) {
+      this.note(
+        `this input negotiated a ${Math.round(linkRate / 1000)} khz voice link. that is a narrowband bluetooth profile — consonants above ${Math.round(linkRate / 2000)} khz were discarded by the radio before sentinel saw them, and no filtering can put them back.`,
+      );
+    }
+  }
+
 
   private emit(patch: Partial<EngineStatus>) {
     this.status = { ...this.status, ...patch };
@@ -203,11 +241,19 @@ export class SentinelEngine {
       // A bound channel asks for its own input exactly: falling back to the
       // default mic would silently record the laptop instead of the headset
       // the operator is wearing in another room, and label it as the headset.
+      //
+      // The browser's own cleanup is refused on purpose. Its noise suppressor
+      // is tuned for a video call and treats a whisper across a room as noise;
+      // its auto gain rides the floor up between sentences until the room tone
+      // sounds like speech. Both jobs are done downstream, tunably, in the ear
+      // chain — echo cancellation is the one the browser does better, because
+      // only it knows what the device is playing back.
       const audio: MediaTrackConstraints = {
-        echoCancellation: false,
+        echoCancellation: true,
         noiseSuppression: false,
         autoGainControl: false,
         channelCount: 1,
+        sampleRate: 48000,
       };
       if (this.inputDeviceId) audio.deviceId = { exact: this.inputDeviceId };
       this.stream = await navigator.mediaDevices.getUserMedia({ audio });
@@ -234,16 +280,31 @@ export class SentinelEngine {
     }
 
     const Ctx: typeof AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx = new Ctx();
+    // 48 khz asked for explicitly: a bluetooth voice link that negotiated
+    // narrowband will still deliver 8 or 16 khz, and the settings read below
+    // reports what actually arrived rather than what was requested.
+    this.ctx = new Ctx({ sampleRate: 48000 });
     if (this.ctx.state === "suspended") await this.ctx.resume().catch(() => {});
     this.source = this.ctx.createMediaStreamSource(this.stream);
+
+    // Layers 2, 3 and 4 — the ear model. Everything downstream, the meters and
+    // the uploaded wav included, reads the shaped signal, so what the operator
+    // watches is what the transcriber is given.
+    this.chain = await buildEarChain(this.ctx, this.source, EAR_TUNING);
+    this.chain.setGateThresholdDb(GATE_BY_PICKUP[this.sensitivity]);
+    this.pipelineNote = this.chain.describe();
+    this.reportLink();
+    if (!this.chain.gated) {
+      this.note("this browser has no audio worklet, so the silence gate is skipped — room tone reaches the detector and more of it gets judged.");
+    }
+
     // ScriptProcessor is deprecated but universally present, and the whole job
     // here is 512-sample feature extraction on the main thread's idle time —
     // an AudioWorklet would need a second copy of the dsp code shipped as a
     // module url for no measurable gain at this frame budget.
     this.node = this.ctx.createScriptProcessor(2048, 1, 1);
     this.node.onaudioprocess = (ev) => this.onAudio(ev.inputBuffer.getChannelData(0));
-    this.source.connect(this.node);
+    this.chain.tail.connect(this.node);
     // A ScriptProcessor only pulls when connected to a sink. Route through a
     // muted gain so nothing is ever played back into the room (feedback).
     const mute = this.ctx.createGain();
@@ -251,7 +312,12 @@ export class SentinelEngine {
     this.node.connect(mute);
     mute.connect(this.ctx.destination);
 
+    // Layer 5 loads while the first turns are still forming, so no sentence
+    // waits on a 1.8 mb download.
+    primeNeuralVad();
+
     this.emit({ state: "listening", message: null, sampleRate: this.ctx.sampleRate });
+
     this.sessionId = await openSession(this.status.deviceKey, this.label);
 
     void this.requestWakeLock();
