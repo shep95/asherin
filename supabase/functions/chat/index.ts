@@ -3005,13 +3005,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // asherin identical. What replaces it is small and per-person — the loop,
       // the silence law, and the pattern library this organism minted from real
       // sessions with THIS operator.
-      _R.trivial ? "" : ORGANISM_CORE,
-      // Pattern Forge — how the organism thinks, not something it runs.
-      _R.trivial ? "" : forgeBlock,
+      // ALWAYS-ON CONTRACT: the organism, the way of thinking, and this
+      // operator's vault ride EVERY request — no activation, no mode, no
+      // trivial-turn exemption. Only the heavy doctrine is depth-gated.
+      ORGANISM_CORE,
+      forgeBlock,
       (_R.deep || _R.analytics || _R.intel || _R.strategic || _R.coding) ? forgeDoctrineBlock : "",
-      // The vault + minted patterns. Injected silently at every non-trivial
-      // turn; the operator never sees this block and it is never evidence.
-      _R.trivial ? "" : organismInjection,
+      organismInjection,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
       _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",
