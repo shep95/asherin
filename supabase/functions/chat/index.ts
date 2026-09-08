@@ -3546,10 +3546,14 @@ The operator is requesting a defensive security audit / flaw check of their own 
         }
 
         const _scanner = createPostInferenceScanner();
+        // The harvest loop reads the finished exchange, so the reply has to be
+        // accumulated as it streams. This is the organism's only input.
+        let _replyAccum = "";
         const emitText = async (text: string) => {
           const safe = _scanner.feed(text);
           if (!safe) return;
           _emitted += safe.length;
+          _replyAccum += safe;
           await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
         };
         const flushScanner = async () => {
