@@ -168,12 +168,26 @@ class SentinelGate extends AudioWorkletProcessor {
 registerProcessor("sentinel-gate", SentinelGate);
 `;
 
+/** Mirror of GATE_WORKLET_SOURCE served from this origin. A worklet module is
+ *  fetched under script-src, and this app's content policy does not allow
+ *  blob: scripts — loading the inline copy first would silently cost every
+ *  session its silence gate. The blob is kept only as a fallback for a host
+ *  that fails to serve the file. */
+const GATE_WORKLET_URL = "/sentinel/gate-worklet.js";
+
 let workletUrl: string | null = null;
 const loadedContexts = new WeakSet<BaseAudioContext>();
 
-async function ensureGateModule(ctx: AudioContext): Promise<boolean> {
+async function ensureGateModule(ctx: BaseAudioContext): Promise<boolean> {
   if (loadedContexts.has(ctx)) return true;
   if (!ctx.audioWorklet) return false;
+  try {
+    await ctx.audioWorklet.addModule(GATE_WORKLET_URL);
+    loadedContexts.add(ctx);
+    return true;
+  } catch {
+    /* fall through to the inline copy */
+  }
   try {
     if (!workletUrl) workletUrl = URL.createObjectURL(new Blob([GATE_WORKLET_SOURCE], { type: "text/javascript" }));
     await ctx.audioWorklet.addModule(workletUrl);
@@ -183,6 +197,7 @@ async function ensureGateModule(ctx: AudioContext): Promise<boolean> {
     return false;
   }
 }
+
 
 export interface EarChain {
   /** the node the rest of the pipeline reads from */
