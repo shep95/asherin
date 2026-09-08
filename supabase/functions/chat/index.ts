@@ -2773,8 +2773,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const { ORGANISM_CORE } = await import("../_shared/organism/core.ts");
     let organismInjection = "";
     try {
+      // Always-on: the vault loads on EVERY signed-in turn, short ones
+      // included. A greeting answered by a stranger is the failure state the
+      // organism exists to remove. Only an intel/dossier turn stays sealed,
+      // because vault content must never leak into a research finding.
       const authO = isIntelTurn ? null : req.headers.get("Authorization");
-      if (authO && !_skipHeavyOrgans) {
+      if (authO) {
         const URL_O = Deno.env.get("SUPABASE_URL") || "";
         const SRK_O = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const ANON_O = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -3001,13 +3005,13 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // asherin identical. What replaces it is small and per-person — the loop,
       // the silence law, and the pattern library this organism minted from real
       // sessions with THIS operator.
-      _R.trivial ? "" : ORGANISM_CORE,
-      // Pattern Forge — how the organism thinks, not something it runs.
-      _R.trivial ? "" : forgeBlock,
+      // ALWAYS-ON CONTRACT: the organism, the way of thinking, and this
+      // operator's vault ride EVERY request — no activation, no mode, no
+      // trivial-turn exemption. Only the heavy doctrine is depth-gated.
+      ORGANISM_CORE,
+      forgeBlock,
       (_R.deep || _R.analytics || _R.intel || _R.strategic || _R.coding) ? forgeDoctrineBlock : "",
-      // The vault + minted patterns. Injected silently at every non-trivial
-      // turn; the operator never sees this block and it is never evidence.
-      _R.trivial ? "" : organismInjection,
+      organismInjection,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
       _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",
@@ -3546,21 +3550,61 @@ The operator is requesting a defensive security audit / flaw check of their own 
         }
 
         const _scanner = createPostInferenceScanner();
+        // The harvest loop reads the finished exchange, so the reply has to be
+        // accumulated as it streams. This is the organism's only input.
+        let _replyAccum = "";
         const emitText = async (text: string) => {
           const safe = _scanner.feed(text);
           if (!safe) return;
           _emitted += safe.length;
+          _replyAccum += safe;
           await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: safe } }] })}\n\n`);
         };
         const flushScanner = async () => {
           const tail = _scanner.flush();
           if (tail) {
             _emitted += tail.length;
+            _replyAccum += tail;
             await safeWrite(`data: ${JSON.stringify({ choices: [{ delta: { content: tail } }] })}\n\n`);
           }
           const s = _scanner.stats();
           if (s.refusalSuppressed || s.scaffoldRedactions) {
             console.warn(`[chat] layer3 refusalSuppressed=${s.refusalSuppressed} redactions=${s.scaffoldRedactions}`);
+          }
+        };
+
+        // ── THE HARVEST LOOP ────────────────────────────────────────────────
+        // Growth used to be fired by the browser after the stream ended, which
+        // meant a closed tab, a navigation, or a dropped connection silently
+        // cost the organism that turn. It now runs here, on the server, after
+        // the reply is complete: every finished exchange feeds the vault, so
+        // the organism answering at message 10 is not the one from message 1.
+        // Fire-and-forget by contract — learning can never slow or fail a turn.
+        const _harvest = () => {
+          try {
+            const authH = req.headers.get("Authorization") || "";
+            if (!authH || !_replyAccum.trim()) return;
+            const turns = [
+              ...(prunedMessages || [])
+                .filter((m: { role?: string }) => m?.role === "user" || m?.role === "assistant")
+                .slice(-11)
+                .map((m: { role?: string; content?: unknown }) => ({
+                  role: String(m.role),
+                  content: String(m.content ?? ""),
+                })),
+              { role: "assistant", content: _replyAccum.slice(0, 20000) },
+            ];
+            const p = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/organism-grow`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: authH },
+              body: JSON.stringify({ turns }),
+            })
+              .then((r) => console.log(`[organism] harvest ${r.status}`))
+              .catch((e) => console.error("[organism] harvest failed:", e instanceof Error ? e.message : e));
+            const ert = (globalThis as { EdgeRuntime?: { waitUntil?: (x: Promise<unknown>) => void } }).EdgeRuntime;
+            if (ert && typeof ert.waitUntil === "function") ert.waitUntil(p);
+          } catch (e) {
+            console.error("[organism] harvest skipped:", e instanceof Error ? e.message : e);
           }
         };
 
@@ -3736,6 +3780,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
               if (done) break;
             }
             await flushScanner();
+            _harvest();
             await safeWrite("data: [DONE]\n\n");
           } catch (e) {
             console.error("stream transform error:", e);

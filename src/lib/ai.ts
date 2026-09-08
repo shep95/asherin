@@ -496,30 +496,10 @@ export async function streamChat({
 
   onDone();
 
-  // ── Growth: hand the finished exchange to the organism ──────────────────
-  // Fire-and-forget on purpose — the reply is already on screen and learning
-  // must never be able to slow down or fail a turn. Anonymous sessions grow
-  // nothing, because there is no vault to grow into.
-  try {
-    const isSignedIn = !!authToken && authToken !== import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    if (isSignedIn && assistantAccum.trim().length > 0) {
-      const turns = [...messages]
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .slice(-11)
-        .map((m) => ({ role: m.role, content: String(m.content ?? "") }));
-      turns.push({ role: "assistant", content: assistantAccum });
-      const GROW_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/organism-grow`;
-      fetch(GROW_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ turns, conversationId }),
-      }).catch(() => {
-        /* silent — growth is never allowed to surface as a chat failure */
-      });
-    }
-  } catch {
-    /* silent */
-  }
+  // Growth is no longer fired from the browser. The server harvests the
+  // finished exchange itself once the stream completes, so a closed tab, a
+  // navigation away, or a dropped connection no longer costs the organism a
+  // turn — and the same loop covers every surface, not just this one.
 }
 
 // ── Multi-Model Consensus ──────────────────────────────────────────────
