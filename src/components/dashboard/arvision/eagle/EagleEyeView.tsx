@@ -714,7 +714,7 @@ export default function EagleEyeView() {
             ))}
           </div>
 
-          <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">live view</div>
+          <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">render palette</div>
           <div className="flex flex-wrap gap-1.5">
             {FILTER_MODES.map((f) => (
               <button key={f.id} onClick={() => setPreview(f.id)} title={f.note} className={`rounded-full border px-2.5 py-1 text-[11px] font-light ${preview === f.id ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/55"}`}>{f.label}</button>
@@ -725,10 +725,10 @@ export default function EagleEyeView() {
             className={`rounded-xl border px-3 py-2 text-left text-[12px] font-light transition ${quad ? "border-white/25 bg-white/12 text-white/90" : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]"}`}
           >
             <Grid2X2 className="mb-1 h-3.5 w-3.5" />
-            <div>{quad ? "quad view on" : "quad view"}</div>
-            <div className="text-[10.5px] text-white/40">one square per camera split into clean, colorized, thermal, spectral, edge and the bluetooth roster — tap any pane for full screen.</div>
+            <div>{quad ? "palette grid on" : "palette grid"}</div>
+            <div className="text-[10.5px] text-white/40">one square per camera split into every palette — optical, colorized, thermal, spectral, edge — plus the bluetooth roster. tap any pane for full screen.</div>
           </button>
-          <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all of these renderings, whichever one is on screen.</div>
+          <div className="text-[10.5px] font-light leading-relaxed text-white/35">every recorded event stores the clean frame plus all palette renderings, whichever one is on screen.</div>
 
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-white/35">thermal path</div>
           <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2.5">

@@ -1,23 +1,25 @@
-// eagle.eye — frame filters.
+// eagle.eye — render palettes.
 //
-// every variant here is a *rendering* of the same captured pixels, never a new
-// measurement. the thermal variant maps visible-light luminance through an iron
-// palette: it is a contrast reading, not an infrared temperature reading, and
-// the evidence manifest says so in words. the low-light variant applies gain and
+// every variant here is a *palette* applied to the same captured pixels, never a
+// new measurement. the thermal palette maps visible-light luminance through an iron
+// ramp: it is a contrast rendering, not an infrared temperature reading, and
+// the evidence manifest says so in words. the low-light palette applies gain and
 // gamma to pixels that were actually captured — it does not hallucinate detail.
-// the edge variant is a sobel pass used to make posture and carried-object
+// the edge palette is a sobel pass used to make posture and carried-object
 // outlines legible in a printed report.
 
 export type FilterMode = "clean" | "colorized" | "thermal" | "spectral" | "lowlight" | "edge";
+export type PaletteMode = FilterMode;
 
 export const FILTER_MODES: Array<{ id: FilterMode; label: string; note: string }> = [
-  { id: "clean", label: "optical", note: "unmodified optical frame straight off the sensor" },
-  { id: "colorized", label: "optical colorized", note: "the optical hud's working view — per-channel auto-levels, saturation and a light unsharp pass on the real pixels, so people, clothing and carried objects stay legible for a reviewer" },
-  { id: "spectral", label: "spectral", note: "channel-ratio material map — living tissue, coated synthetics and wet surfaces separate; not a calibrated infrared band" },
-  { id: "thermal", label: "thermal map", note: "visible-light luminance mapped to an iron palette — not an infrared temperature reading" },
-  { id: "lowlight", label: "low light", note: "gain and gamma lift on the captured pixels — no detail is invented" },
-  { id: "edge", label: "edge trace", note: "sobel outline pass for posture and carried-object legibility in print" },
+  { id: "clean", label: "optical palette", note: "unmodified optical frame straight off the sensor" },
+  { id: "colorized", label: "colorized palette", note: "the optical hud's working view — per-channel auto-levels, saturation and a light unsharp pass on the real pixels, so people, clothing and carried objects stay legible for a reviewer" },
+  { id: "spectral", label: "spectral palette", note: "channel-ratio material map — living tissue, coated synthetics and wet surfaces separate; not a calibrated infrared band" },
+  { id: "thermal", label: "thermal palette", note: "visible-light luminance mapped to an iron palette — not an infrared temperature reading" },
+  { id: "lowlight", label: "low-light palette", note: "gain and gamma lift on the captured pixels — no detail is invented" },
+  { id: "edge", label: "edge palette", note: "sobel outline pass for posture and carried-object legibility in print" },
 ];
+export const PALETTE_MODES = FILTER_MODES;
 
 
 /** 256-entry iron palette, r,g,b triplets. built once. */
