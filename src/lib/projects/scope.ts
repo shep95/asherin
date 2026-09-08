@@ -127,8 +127,10 @@ export async function loadScopeCounts(userId: string, projectId: string): Promis
       .eq("user_id", userId).eq("project_id", projectId),
     supabase.from("library_files").select("id", { count: "exact", head: true })
       .eq("user_id", userId).eq("project_id", projectId).eq("text_status", "ok"),
-    supabase.from("memory_entries").select("id", { count: "exact", head: true })
-      .eq("user_id", userId).eq("project_id", projectId),
+    // The vault is account-wide, not per project — it follows the operator
+    // across every workspace, so this count is not project-filtered.
+    supabase.from("organism_vault").select("id", { count: "exact", head: true })
+      .eq("user_id", userId).eq("enabled", true),
   ]);
   return {
     files: files.count ?? 0,

@@ -52,11 +52,13 @@ serve(async (req) => {
     await adminClient.from("calibration_feedback").delete().eq("user_id", userId);
     await adminClient.from("messages").delete().eq("user_id", userId);
     await adminClient.from("conversations").delete().eq("user_id", userId);
-    await adminClient.from("memory_entries").delete().eq("user_id", userId);
+    await adminClient.from("organism_vault").delete().eq("user_id", userId);
+    await adminClient.from("organism_patterns").delete().eq("user_id", userId);
+    await adminClient.from("organism_growth").delete().eq("user_id", userId);
     await adminClient.from("saved_prompts").delete().eq("user_id", userId);
     await adminClient.from("library_files").delete().eq("user_id", userId);
     await adminClient.from("projects").delete().eq("user_id", userId);
-    await adminClient.from("user_intelligence_profile").delete().eq("user_id", userId);
+    
     await adminClient.from("usage_stats").delete().eq("user_id", userId);
     await adminClient.from("user_settings").delete().eq("user_id", userId);
     await adminClient.from("profiles").delete().eq("user_id", userId);

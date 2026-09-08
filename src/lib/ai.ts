@@ -496,22 +496,25 @@ export async function streamChat({
 
   onDone();
 
-  // ── Fire-and-forget memory extraction (cross-chat persistent rules) ──
-  // Only mine the LAST user message; skip if no auth token (anon).
+  // ── Growth: hand the finished exchange to the organism ──────────────────
+  // Fire-and-forget on purpose — the reply is already on screen and learning
+  // must never be able to slow down or fail a turn. Anonymous sessions grow
+  // nothing, because there is no vault to grow into.
   try {
-    const lastUser = [...messages].reverse().find((m) => m.role === "user");
-    if (lastUser?.content && authToken && authToken !== import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
-      const EXTRACT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-extract`;
-      fetch(EXTRACT_URL, {
+    const isSignedIn = !!authToken && authToken !== import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if (isSignedIn && assistantAccum.trim().length > 0) {
+      const turns = [...messages]
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-11)
+        .map((m) => ({ role: m.role, content: String(m.content ?? "") }));
+      turns.push({ role: "assistant", content: assistantAccum });
+      const GROW_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/organism-grow`;
+      fetch(GROW_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({
-          userMessage: lastUser.content,
-          assistantMessage: assistantAccum,
-          conversationId,
-        }),
+        body: JSON.stringify({ turns, conversationId }),
       }).catch(() => {
-        /* silent */
+        /* silent — growth is never allowed to surface as a chat failure */
       });
     }
   } catch {

@@ -35,7 +35,7 @@ const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccou
 const LibraryView = lazyWithRetry(() => import("@/components/dashboard/LibraryView"));
 const CodeSnippetsView = lazyWithRetry(() => import("@/components/dashboard/CodeSnippetsView"));
 const ProjectsView = lazyWithRetry(() => import("@/components/dashboard/ProjectsView"));
-const MemoryCenterView = lazyWithRetry(() => import("@/components/dashboard/MemoryCenterView"));
+const OrganismVaultView = lazyWithRetry(() => import("@/components/dashboard/OrganismVaultView"));
 const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView"));
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
@@ -697,14 +697,13 @@ const Dashboard = () => {
     let cancelled = false;
 
     const load = async () => {
-      const [convResult, profileResult, settingsResult] = await Promise.all([
+      const [convResult, settingsResult] = await Promise.all([
         supabase
           .from("conversations")
           .select("*")
           .eq("user_id", user.id)
           .eq("archived", false)
           .order("created_at", { ascending: false }),
-        supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
 
@@ -716,13 +715,9 @@ const Dashboard = () => {
         return;
       }
 
-      if (profileResult.data) {
-        setUserProfile({
-          tone_preference: profileResult.data.tone_preference,
-          topics_of_interest: profileResult.data.topics_of_interest,
-          inferred_traits: profileResult.data.inferred_traits as Record<string, unknown>,
-        });
-      }
+      // The inferred-profile table is gone: what the assistant knows about the
+      // operator now lives in their encrypted vault and is read server-side.
+
 
       if (settingsResult.data?.response_depth) {
         setDepth(settingsResult.data.response_depth as ResponseDepth);
@@ -1151,29 +1146,26 @@ const Dashboard = () => {
     async (messageId: string, feedback: FeedbackType) => {
       if (!user) return;
       await supabase.from("calibration_feedback").insert({ user_id: user.id, message_id: messageId, feedback });
-      const { data: profile } = await supabase
-        .from("user_intelligence_profile")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile) {
-        const updates: Record<string, any> = { total_calibrations: (profile.total_calibrations ?? 0) + 1 };
-        if (feedback === "too_shallow") {
-          const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
-          const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
-          if (idx < depthOrder.length - 1) updates.depth_auto = depthOrder[idx + 1];
-        } else if (feedback === "too_deep") {
-          const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
-          const idx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
-          if (idx > 0) updates.depth_auto = depthOrder[idx - 1];
-        } else if (feedback === "perfect") {
-          updates.tone_preference = "direct";
-        }
-        await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
+      // Depth calibration now moves the operator's saved answer depth directly,
+      // so the correction survives reloads and applies on every device.
+      const order: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
+      let next: ResponseDepth | null = null;
+      if (feedback === "too_shallow") {
+        const i = order.indexOf(depth);
+        if (i > -1 && i < order.length - 1) next = order[i + 1];
+      } else if (feedback === "too_deep") {
+        const i = order.indexOf(depth);
+        if (i > 0) next = order[i - 1];
+      }
+      if (next) {
+        setDepth(next);
+        await supabase
+          .from("user_settings")
+          .upsert({ user_id: user.id, response_depth: next }, { onConflict: "user_id" });
       }
       toast({ title: "Calibrated", description: "Asherin adjusted to your preference." });
     },
-    [user, toast],
+    [user, toast, depth],
   );
 
   const stopStreaming = useCallback(() => {
@@ -2149,7 +2141,7 @@ const Dashboard = () => {
         return (
           <ErrorBoundary>
             <Suspense fallback={<LazyFallback />}>
-              <MemoryCenterView />
+              <OrganismVaultView />
             </Suspense>
           </ErrorBoundary>
         );

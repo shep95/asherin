@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { BRAIN_ORCHESTRATOR } from "../_shared/brainOrchestrator.ts";
+// brain orchestrator retired — the organism sequences the turn now
 import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outputConductDoctrine.ts";
 import { AXIOMATIC_GROUNDING_DOCTRINE, AXIOMATIC_GROUNDING_ANCHOR } from "../_shared/axiomaticGroundingDoctrine.ts";
 import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptGuardLayers.ts";
@@ -2079,77 +2079,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       // Sanitize: append a guard instruction
     }
 
-    // ── Build user context from profile ────────────────────────────────────
-    // This is a preference note, not a dossier: the person on the other side of
-    // the chat is never a subject to be profiled back at them. Anything that
-    // looks like network or location telemetry is dropped before it can reach
-    // the model, because once it is in the prompt it can be recited in a bubble.
-    const { TELEMETRY_KEY, TELEMETRY_VALUE } = await import("../_shared/speakerTelemetryFilter.ts");
-    let userContextStr = "";
-    if (userProfile && !isIntelTurn) {
-      const parts: string[] = [];
-      if (userProfile.tone_preference && userProfile.tone_preference !== "neutral") {
-        parts.push(`User prefers ${userProfile.tone_preference} communication style.`);
-      }
-      if (userProfile.topics_of_interest?.length > 0) {
-        parts.push(`User's areas of interest: ${userProfile.topics_of_interest.join(", ")}.`);
-      }
-      if (userProfile.inferred_traits && Object.keys(userProfile.inferred_traits).length > 0) {
-        const safeTraits: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(userProfile.inferred_traits as Record<string, unknown>)) {
-          if (TELEMETRY_KEY.test(k)) continue;
-          if (typeof v === "string" && TELEMETRY_VALUE.test(v)) continue;
-          safeTraits[k] = v;
-        }
-        if (Object.keys(safeTraits).length > 0) {
-          parts.push(`Preferences remembered from earlier conversations: ${JSON.stringify(safeTraits)}`);
-        }
-      }
-      if (parts.length > 0) {
-        // Deliberately not an "intelligence profile" heading — that framing is
-        // what turned a preference note into an analyst target package.
-
-        userContextStr = `\n\n## HOW THIS PERSON LIKES TO BE ANSWERED (silent — never recite it back)\n${parts.join("\n")}`;
-      }
-    }
-
-    // ── Persistent user memory (cross-chat rules) ────────────
-    // Suppressed entirely on intel turns: saved memories are the operator's own
-    // assertions from OTHER conversations, not public-record evidence, and were
-    // leaking into dossiers as if they had been sourced.
-    let memoryContextStr = "";
-    try {
-      const authH = isIntelTurn ? null : req.headers.get("Authorization");
-
-      if (authH) {
-        const SUPABASE_URL_M = Deno.env.get("SUPABASE_URL") || "";
-        const SRK_M = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-        const ANON_M = Deno.env.get("SUPABASE_ANON_KEY") || "";
-        const { createClient: ccM } = await import("https://esm.sh/@supabase/supabase-js@2");
-        const memUser = await resolveCallerCached(authH, SUPABASE_URL_M, ANON_M);
-        if (memUser) {
-          const adminM = ccM(SUPABASE_URL_M, SRK_M);
-          // Project scope: global memories always apply; project memories only
-          // inside their own project. Another project's memories never load.
-          const scopedProjectId = typeof projectScope?.projectId === "string" ? projectScope.projectId : null;
-          let memQ = adminM
-            .from("memory_entries")
-            .select("content, category, kind")
-            .eq("user_id", memUser.id)
-            .eq("enabled", true);
-          memQ = scopedProjectId
-            ? memQ.or(`project_id.is.null,project_id.eq.${scopedProjectId}`)
-            : memQ.is("project_id", null);
-          const { data: mems } = await memQ.order("created_at", { ascending: false }).limit(100);
-          if (mems && mems.length) {
-            const lines = mems.map((m: any) => `- [${m.kind || m.category}] ${m.content}`).join("\n");
-            memoryContextStr = `\n\n## PERSISTENT USER MEMORY (style and preference layer only)\nThese are durable preferences and rules the user saved in other conversations. Honor them silently — do not announce them. If two rules conflict, prefer the most recent.\nHARD LIMIT: this block is NOT evidence. Never present anything here as a research finding, a public record, a sourced fact, or a citation, and never attribute it to a website or registry. If a claim exists only here, it does not go in a dossier, profile, entity card, or sources list.\n\n${lines}`;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("memory load failed:", e);
-    }
+    // ── Retired: inferred-profile block and the flat memory-entry list ──────
+    // Both were replaced by the organism. What the assistant knows about the
+    // operator now lives in one encrypted vault, is loaded once per turn, and
+    // stays silent unless they ask for it directly.
 
     // ── PROJECT CORPUS (Library files scoped to the active project) ────────
     // Isolated mode is the research default: the model may only ground on this
@@ -2821,49 +2754,41 @@ The operator is requesting a defensive security audit / flaw check of their own 
     // kernel is small and rides every non-trivial turn because the universal
     // operation must always be resident; the heavy operator dossiers are
     // relevance-gated to the two-to-three this message actually demands.
-    let PATTERN_RECOGNITION_KERNEL = "";
-    let PATTERN_OPERATOR_ROSTER = "";
+    // Identity turns still need the shape detector and the verdict tail — a
+    // wrong person-merge is the most expensive error the product can make, and
+    // that contract is a safety rule, not part of the retired brain pile.
     let IDENTITY_VERDICT_CONTRACT = "";
-    let _patternEmphasis = "";
     let isIdentityLookup = (_t: string) => false;
     if (!_skipHeavyOrgans) {
       const _pe = await import("../_shared/patternRecognitionEngine.ts");
-      PATTERN_RECOGNITION_KERNEL = _pe.PATTERN_RECOGNITION_KERNEL;
-      PATTERN_OPERATOR_ROSTER = _pe.PATTERN_OPERATOR_ROSTER;
       IDENTITY_VERDICT_CONTRACT = _pe.IDENTITY_VERDICT_CONTRACT;
-      _patternEmphasis = _pe.buildPatternEmphasis(_lastUserText);
       isIdentityLookup = _pe.isIdentityLookup;
     }
-    // Identity turns carry no analytic vocabulary, so the keyword scorer used
-    // to disarm the engine on exactly the questions where a wrong merge is
-    // most expensive. Shape detection forces the corroboration stack and the
-    // visible verdict tail (resolution / corroboration / confidence /
-    // falsifier / gaps) that Law 7 requires of any scoreable claim.
     const _isIdentityTurn = isIdentityLookup(_lastUserText);
 
-    // Domain atlas — WHERE to look. 28 terrains / 274 subdomains. Resident
-    // index + terrain records gated to the two domains this message enters.
-    let DOMAIN_ATLAS_INDEX = "";
-    let _domainEmphasis = "";
-    if (!_skipHeavyOrgans) {
-      const _da = await import("../_shared/domainAtlas.ts");
-      DOMAIN_ATLAS_INDEX = _da.DOMAIN_ATLAS_INDEX;
-      _domainEmphasis = _da.buildDomainEmphasis(_lastUserText);
-    }
-
-    // Pattern forge — the CYCLE layer (observe → … → learn), scale-invariant
-    // and open-world. Loaded alongside the engine and atlas so the model has
-    // HOW / WHERE / IN WHAT ORDER before it writes a single token.
-    let PATTERN_FORGE_KERNEL = "";
-    let UNIVERSAL_PATTERN_OBJECT = "";
-    let PATTERN_FORGE_DOCTRINE = "";
-    let _forgeEmphasis = "";
-    if (!_skipHeavyOrgans) {
-      const _pf = await import("../_shared/patternForge.ts");
-      PATTERN_FORGE_KERNEL = _pf.PATTERN_FORGE_KERNEL;
-      UNIVERSAL_PATTERN_OBJECT = _pf.UNIVERSAL_PATTERN_OBJECT;
-      PATTERN_FORGE_DOCTRINE = _pf.PATTERN_FORGE_DOCTRINE;
-      _forgeEmphasis = _pf.buildPatternForgeEmphasis(_lastUserText);
+    // ── THE ORGANISM ──────────────────────────────────────────────────────
+    // The resident core plus this operator's private vault and the pattern
+    // library minted from their own past sessions. Read silently; the operator
+    // is never told it loaded, and it never becomes evidence.
+    const { ORGANISM_CORE } = await import("../_shared/organism/core.ts");
+    let organismInjection = "";
+    try {
+      const authO = isIntelTurn ? null : req.headers.get("Authorization");
+      if (authO && !_skipHeavyOrgans) {
+        const URL_O = Deno.env.get("SUPABASE_URL") || "";
+        const SRK_O = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const ANON_O = Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const oUser = await resolveCallerCached(authO, URL_O, ANON_O);
+        if (oUser) {
+          const { createClient: ccO } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const { loadVault, vaultInjection } = await import("../_shared/organism/vault.ts");
+          const loaded = await loadVault(ccO(URL_O, SRK_O), oUser.id, authO);
+          organismInjection = vaultInjection(loaded);
+        }
+      }
+    } catch (e) {
+      // A vault that cannot be read is a quieter organism, never a failed turn.
+      console.error("[organism] vault load failed:", e instanceof Error ? e.message : e);
     }
 
     // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
@@ -2957,7 +2882,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // about — a greeting does not need System-2 forcing.
       _R.trivial ? "" : SYSTEM_TWO_FORCING_BRAIN,
       _R.coding || _R.deep ? CODE_NARRATIVE_PROTOCOL : "",
-      _R.trivial ? "" : BRAIN_ORCHESTRATOR,
+      // (brain orchestrator retired — the organism sequences the turn now)
       WORKFLOW_SECRECY_DIRECTIVE,
       cognitiveWorkflowDirective,
       _R.strategic || _R.intel || _R.deep ? AUREON_SCENARIO_MATRIX : "",
@@ -2991,8 +2916,8 @@ The operator is requesting a defensive security audit / flaw check of their own 
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       // ── USER-CONTROLLED OVERRIDES (highest recency priority) ──
-      _B.operatorProfile ? userContextStr : "",
-      memoryContextStr,
+      // Standing directives the operator wrote themselves live in the vault as
+      // the `directive` facet and ride inside the organism injection above.
       projectCorpusStr,
       vaultContextStr,
       brainContextStr,
@@ -3050,34 +2975,16 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // block in the prompt. The per-message emphasis (which names the two or
       // three logics this turn demands) always ships; the full roster only
       // when the turn is genuinely analytical.
-      // Reasoning architecture. The kernel is cheap and universal — it ships
-      // on anything that is not a greeting, because dropping it changes HOW
-      // the model thinks rather than merely what it knows. The roster only
-      // loads when the turn is analytical enough to pick an operator from it.
-      _R.trivial ? "" : PATTERN_RECOGNITION_KERNEL,
-      _R.analytics || _R.intel || _R.deep || _R.strategic || _isIdentityTurn ? PATTERN_OPERATOR_ROSTER : "",
-      _R.trivial ? "" : _patternEmphasis,
-      // Domain atlas — the terrain layer. The engine above knows HOW to think
-      // and WHICH move to make; without this it will analyse whatever it was
-      // handed, at whatever resolution the operator happened to choose. The
-      // index is 28 lines and rides any non-trivial turn so the model can
-      // always locate itself; the heavy terrain records (observable, baseline,
-      // invariant, trap, subdomains) are gated to the two terrains this
-      // message actually enters.
-      _R.trivial ? "" : DOMAIN_ATLAS_INDEX,
-      _R.trivial ? "" : _domainEmphasis,
-      // Pattern forge — the CYCLE layer. The engine says how thought moves and
-      // the atlas says where to look; this says in what order an observation is
-      // carried from raw signal to an encoded, falsifiable pattern, and forces
-      // the disconfirmation pass before any read leaves the turn. Kernel rides
-      // every non-trivial turn (the loop is invariant); the object schema and
-      // full doctrine load only when the turn is heavy enough to need them.
-      _R.trivial ? "" : PATTERN_FORGE_KERNEL,
-      _R.analytics || _R.intel || _R.deep || _R.strategic || _R.coding || _isIdentityTurn
-        ? UNIVERSAL_PATTERN_OBJECT
-        : "",
-      _R.deep || _R.analytics || _R.intel || _R.strategic ? PATTERN_FORGE_DOCTRINE : "",
-      _R.trivial ? "" : _forgeEmphasis,
+      // THE ORGANISM — the resident reasoning layer. The static brain pile that
+      // used to sit here (engine kernel, operator roster, domain atlas, forge
+      // doctrine) has been retired: a wall of generic doctrine made every user's
+      // asherin identical. What replaces it is small and per-person — the loop,
+      // the silence law, and the pattern library this organism minted from real
+      // sessions with THIS operator.
+      _R.trivial ? "" : ORGANISM_CORE,
+      // The vault + minted patterns. Injected silently at every non-trivial
+      // turn; the operator never sees this block and it is never evidence.
+      _R.trivial ? "" : organismInjection,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
       _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",

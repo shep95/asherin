@@ -3655,35 +3655,38 @@ export type Database = {
       }
       brains: {
         Row: {
+          category: string
           created_at: string
           description: string | null
-          file_ids: string[] | null
+          file_ids: string[]
           id: string
-          is_active: boolean | null
+          is_active: boolean
           name: string
-          system_prompt: string | null
+          system_prompt: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          category?: string
           created_at?: string
           description?: string | null
-          file_ids?: string[] | null
+          file_ids?: string[]
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           name: string
-          system_prompt?: string | null
+          system_prompt?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          category?: string
           created_at?: string
           description?: string | null
-          file_ids?: string[] | null
+          file_ids?: string[]
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           name?: string
-          system_prompt?: string | null
+          system_prompt?: string
           updated_at?: string
           user_id?: string
         }
@@ -8252,56 +8255,6 @@ export type Database = {
           },
         ]
       }
-      memory_entries: {
-        Row: {
-          category: string
-          content: string
-          created_at: string
-          enabled: boolean
-          id: string
-          kind: string
-          project_id: string | null
-          reason: string | null
-          source: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          category?: string
-          content: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          kind?: string
-          project_id?: string | null
-          reason?: string | null
-          source?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          category?: string
-          content?: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          kind?: string
-          project_id?: string | null
-          reason?: string | null
-          source?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "memory_entries_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       mesh_devices: {
         Row: {
           accuracy: number | null
@@ -9678,6 +9631,42 @@ export type Database = {
         }
         Relationships: []
       }
+      organism_growth: {
+        Row: {
+          created_at: string
+          density: number
+          entries: number
+          last_grown_at: string | null
+          last_note: string | null
+          patterns: number
+          sessions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          density?: number
+          entries?: number
+          last_grown_at?: string | null
+          last_note?: string | null
+          patterns?: number
+          sessions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          density?: number
+          entries?: number
+          last_grown_at?: string | null
+          last_note?: string | null
+          patterns?: number
+          sessions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organism_links: {
         Row: {
           confidence: number
@@ -9779,6 +9768,57 @@ export type Database = {
           },
         ]
       }
+      organism_patterns: {
+        Row: {
+          active: boolean
+          created_at: string
+          domain: string
+          generation: number
+          id: string
+          name: string
+          potency: number
+          procedure: string
+          provenance: Json
+          slug: string
+          trigger: string
+          updated_at: string
+          user_id: string
+          uses: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          domain?: string
+          generation?: number
+          id?: string
+          name: string
+          potency?: number
+          procedure: string
+          provenance?: Json
+          slug: string
+          trigger?: string
+          updated_at?: string
+          user_id: string
+          uses?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          domain?: string
+          generation?: number
+          id?: string
+          name?: string
+          potency?: number
+          procedure?: string
+          provenance?: Json
+          slug?: string
+          trigger?: string
+          updated_at?: string
+          user_id?: string
+          uses?: number
+        }
+        Relationships: []
+      }
       organism_state: {
         Row: {
           calibration: number
@@ -9809,6 +9849,66 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vitals?: Json
+        }
+        Relationships: []
+      }
+      organism_vault: {
+        Row: {
+          confidence: number
+          content: string
+          conversation_id: string | null
+          created_at: string
+          enabled: boolean
+          encrypted: boolean
+          facet: string
+          fingerprint: string
+          first_seen: string
+          id: string
+          label: string
+          last_seen: string
+          occurrences: number
+          sensitive: boolean
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          encrypted?: boolean
+          facet?: string
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          label?: string
+          last_seen?: string
+          occurrences?: number
+          sensitive?: boolean
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          encrypted?: boolean
+          facet?: string
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          label?: string
+          last_seen?: string
+          occurrences?: number
+          sensitive?: boolean
+          source?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -12714,45 +12814,6 @@ export type Database = {
           risk_score?: number
           session_fingerprint?: string | null
           unique_endpoints?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_intelligence_profile: {
-        Row: {
-          active_hours: string[]
-          created_at: string
-          depth_auto: string
-          id: string
-          inferred_traits: Json
-          tone_preference: string
-          topics_of_interest: string[]
-          total_calibrations: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          active_hours?: string[]
-          created_at?: string
-          depth_auto?: string
-          id?: string
-          inferred_traits?: Json
-          tone_preference?: string
-          topics_of_interest?: string[]
-          total_calibrations?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          active_hours?: string[]
-          created_at?: string
-          depth_auto?: string
-          id?: string
-          inferred_traits?: Json
-          tone_preference?: string
-          topics_of_interest?: string[]
-          total_calibrations?: number
-          updated_at?: string
           user_id?: string
         }
         Relationships: []

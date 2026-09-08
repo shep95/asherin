@@ -117,10 +117,10 @@ export const NAV_INTENTS: NavIntent[] = [
   },
   {
     view: "memory",
-    label: "Memory Center",
-    codename: "Memory",
-    blurb: "Long-term context and recall",
-    keywords: ["memory", "remember", "context", "recall"],
+    label: "asherin.vault",
+    codename: "Vault",
+    blurb: "Everything Asherin has learned about you, encrypted and yours to edit",
+    keywords: ["memory", "remember", "context", "recall", "vault", "learned"],
     group: "Workspace",
   },
   {
