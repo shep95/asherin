@@ -133,8 +133,10 @@ export const PATTERN_FORGE_DOCTRINE = `
 ================================================================
 PATTERN FORGE — UNIVERSAL PATTERN ONTOLOGY v4 (FULL DOCTRINE)
 ================================================================
+This is training, not a procedure. Absorb all of it; then think in one pass.
+Nothing below is ever named, numbered, or narrated in a reply.
 
---- STAGE DOCTRINE (all fifteen, in rotation order) ---
+--- WHAT INTERNALIZED THINKING COVERS (all fifteen, held simultaneously) ---
 
 OBSERVE
   Receive the raw input — text, image, data, behavior, structure, code,
