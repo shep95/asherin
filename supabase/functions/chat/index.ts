@@ -3776,6 +3776,7 @@ The operator is requesting a defensive security audit / flaw check of their own 
               if (done) break;
             }
             await flushScanner();
+            _harvest();
             await safeWrite("data: [DONE]\n\n");
           } catch (e) {
             console.error("stream transform error:", e);
