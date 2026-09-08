@@ -433,36 +433,28 @@ const STAGES: ForgeStage[] = [
   },
 ];
 
-const BY_STAGE = new Map<ForgeStageId, ForgeStage>(STAGES.map((s) => [s.id, s]));
+/* ────────────────────────────────────────────────────────────────────────────
+   FLUENCY — no selector, no routing, no per-message stage picking.
+   The whole way of thinking is resident; this block only re-states that it is
+   one act, so the model never degrades it into a visible procedure.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-/** Always engaged: the loop refuses to skip its two disciplinary stages. */
-const MANDATORY: ForgeStageId[] = ["contradict"];
+export const PATTERN_FORGE_FLUENCY = `
+## HOW THIS SHOWS UP IN THE ANSWER
+Think it whole; write only the finding. The reply reads as one considered
+reading — mechanism first, the closest structural match named, where this
+instance departs from that match stated, the disconfirmation already done and
+its falsifier said plainly, current-state kept separate from projection. No
+stage names. No process narration. No "let me analyze this." If the whole of
+it did not fit the question, say what is missing instead of padding.
+`;
 
-function score(text: string, stage: ForgeStage): number {
-  const t = text.toLowerCase();
-  let n = 0;
-  for (const cue of stage.cues) if (t.includes(cue)) n += 1;
-  return n;
-}
-
-/** Pick the stages this message actually demands (contradiction always rides). */
-export function detectForgeStages(text: string, limit = 4): ForgeStage[] {
-  const scored = STAGES
-    .map((s) => ({ s, n: score(text || "", s) }))
-    .filter((x) => x.n > 0)
-    .sort((a, b) => b.n - a.n)
-    .map((x) => x.s);
-
-  const picked: ForgeStage[] = [];
-  for (const id of MANDATORY) {
-    const s = BY_STAGE.get(id);
-    if (s) picked.push(s);
-  }
-  for (const s of scored) {
-    if (picked.length >= limit) break;
-    if (!picked.some((p) => p.id === s.id)) picked.push(s);
-  }
-  return picked;
+/**
+ * Back-compat shim for callers that used the old relevance gate. There is no
+ * stage selection any more — the doctrine is internalized, not dispatched.
+ */
+export function buildPatternForgeEmphasis(_text?: string): string {
+  return PATTERN_FORGE_FLUENCY;
 }
 
 function dossier(s: ForgeStage): string {
@@ -473,28 +465,17 @@ function dossier(s: ForgeStage): string {
   ].join("\n");
 }
 
-/** Relevance-gated stage block for this message only. */
-export function buildPatternForgeEmphasis(text: string, limit = 4): string {
-  const picked = detectForgeStages(text, limit);
-  if (!picked.length) return "";
-  return [
-    `## ENGAGED FORGE STAGES (this message only)`,
-    `Run these on the input in front of you. Never name them in the reply.`,
-    ...picked.map(dossier),
-    `Rotation rule: the loop still runs whole; these stages get the deepest pass. If a stage here breaks the read, re-enter the loop at observe rather than patching the answer. Selection expires with this message.`,
-  ].join("\n\n");
-}
-
 /** Full forge as markdown — used by the brain-download surface. */
 export function fullPatternForgeMarkdown(): string {
   return [
     "# PATTERN FORGE — UNIVERSAL PATTERN ONTOLOGY v4",
     "",
-    "A living cycle, not a pipeline. Scale-invariant, open-world, silent by contract.",
+    "A way of thinking, not a pipeline. Internalized whole, executed as one fluid act. Scale-invariant, open-world, silent by contract.",
     PATTERN_FORGE_KERNEL,
     UNIVERSAL_PATTERN_OBJECT,
     PATTERN_FORGE_DOCTRINE,
-    "## FULL STAGE DOSSIERS",
+    "## WHAT EACH FACET TRAINS",
     ...STAGES.map(dossier),
+    PATTERN_FORGE_FLUENCY,
   ].join("\n\n");
 }
