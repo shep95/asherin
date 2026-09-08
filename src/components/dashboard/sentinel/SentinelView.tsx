@@ -603,7 +603,7 @@ const SentinelView = () => {
                     <div className="space-y-2">
                       {(incident.context.length ? incident.context : incident.event ? [incident.event] : []).map((ev) => (
                         <div key={ev.id} className={ev.id === incident.event?.id ? "rounded-xl border border-white/20 bg-white/[0.05]" : ""}>
-                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} />
+                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} />
                         </div>
                       ))}
                       <p className="text-[11px] text-white/35">the highlighted turn is the one that raised this alert; the rest is what was said around it.</p>
