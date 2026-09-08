@@ -33,7 +33,7 @@ export interface AmbientEvent {
   id: string;
   device_id: string | null;
   speaker_id: string | null;
-  kind: "speech" | "sound";
+  kind: "speech" | "sound" | "gap";
   transcript: string | null;
   tag: string | null;
   confidence: number | null;
@@ -41,6 +41,7 @@ export interface AmbientEvent {
   duration_ms: number | null;
   meta: Record<string, unknown>;
 }
+
 
 export interface AmbientAlert {
   id: string;
@@ -78,6 +79,29 @@ export const heartbeat = (deviceKey: string, status: string) => call<{ ok: true 
 
 export const ingest = (deviceKey: string, segments: unknown[]) =>
   call<IngestResult>("ingest", { deviceKey, segments });
+
+// ── channels: one bluetooth input, one account device row ────────────────────
+
+/** Rename the lane a device writes into. The timeline reads by this name later,
+ *  so it is the operator's word, not the browser's device string. */
+export const renameDevice = (deviceKey: string, label: string) =>
+  call<{ device: AmbientDevice }>("rename-device", { deviceKey, label });
+
+/** The per-channel language contract. `sourceLang` is a hint for the
+ *  transcriber ("auto" lets it detect); `translateTo` is the render language,
+ *  empty meaning the channel stays in whatever language was spoken. */
+export const setDevicePrefs = (deviceKey: string, prefs: { sourceLang?: string; translateTo?: string }) =>
+  call<{ device: AmbientDevice }>("device-prefs", { deviceKey, prefs });
+
+/** Open a visible hole in the timeline. Called the moment a channel drops, so
+ *  the record shows what was NOT captured instead of implying continuity. */
+export const openGap = (deviceKey: string, startedAtIso: string, reason: string) =>
+  call<{ gapId: string | null }>("gap", { deviceKey, startedAtIso, reason });
+
+/** Close a hole once the channel is capturing again. */
+export const closeGap = (gapId: string, endedAtIso: string) =>
+  call<{ ok: true }>("gap", { gapId, endedAtIso });
+
 
 export const fetchTimeline = (filters: {
   sinceIso?: string;

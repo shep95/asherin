@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { Activity, AlertTriangle, Check, Download, Ear, HardDrive, History, Loader2, Mic, MicOff, Radio, Search, Trash2, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Activity, AlertTriangle, Bluetooth, Check, Download, Ear, HardDrive, History, Languages, Loader2, Mic, MicOff, Plus, Radio, Search, Trash2, Unplug, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
+import { deviceLabel } from "@/lib/sentinel/audio/captureEngine";
 import {
   bufferStats, deleteSession, listSessions, payloadsBetween, wipeLocal,
   DEFAULT_RETENTION_HOURS, type RecordingSession,
 } from "@/lib/sentinel/audio/localBuffer";
-import { sentinelEngine, sentinelNotes, sentinelStatus, setSentinelSensitivity, subscribeSentinel } from "@/lib/sentinel/audio/engineSingleton";
+import {
+  addChannel, audioInputs, bootChannels, inputTaken, listChannels, refreshInputs,
+  removeChannel, renameChannel, setChannelLanguages, setChannelSensitivity, startChannel, stopChannel,
+  subscribeChannelIngest, subscribeChannels, type ChannelView,
+} from "@/lib/sentinel/audio/channels";
+import { AUTO_SOURCE, LANGUAGES, NO_TRANSLATION, languageName } from "@/lib/sentinel/audio/languages";
 import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
@@ -18,19 +23,25 @@ import {
 } from "@/lib/sentinel/audio/sync";
 import CompanionPanel from "./CompanionPanel";
 
+
 /**
  * asherin.sentinel — the ambient watch, and the truth about its reach.
  *
- * The room states its own boundary on its face rather than in a footnote: a
- * browser holds the microphone while this page lives, including while the tab is
- * behind others and while a desktop screen sleeps. It does NOT hold the
- * microphone after the tab closes or after a phone suspends the browser, because
- * the operating system takes the radio back. Everything captured is encrypted on
- * this device before it is sent, and the account timeline — not this tab — is the
- * record.
+ * The watch is no longer one microphone. Each CHANNEL binds one input — the
+ * machine's own mic, a bluetooth headset, a usb array — to one named lane with
+ * its own language contract, and every lane writes into the same searchable
+ * account timeline. A bluetooth channel moves the microphone onto the person,
+ * so distance from the machine stops being the limit; the headset's own radio
+ * range is.
+ *
+ * The room states its boundary on its face rather than in a footnote: a browser
+ * holds its inputs while this page lives, including behind other tabs and while
+ * a desktop screen sleeps. It does NOT hold them after the tab closes or after a
+ * phone suspends the browser. Whatever is missed is written into the timeline as
+ * a visible gap, never hidden as quiet.
  */
 
-type Tab = "live" | "timeline" | "speakers" | "alerts" | "history" | "devices";
+type Tab = "live" | "channels" | "timeline" | "speakers" | "alerts" | "history" | "devices";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 const chip = "rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/55";
@@ -40,14 +51,16 @@ const dayStamp = (iso: string) => new Date(iso).toLocaleDateString([], { month: 
 
 const SentinelView = () => {
   const { toast } = useToast();
-  const engine = sentinelEngine();
-  const [status, setStatus] = useState<EngineStatus | null>(() => sentinelStatus());
+  const [channels, setChannels] = useState<ChannelView[]>([]);
+  const [inputs, setInputs] = useState<MediaDeviceInfo[]>([]);
+  const [labelsUnlocked, setLabelsUnlocked] = useState(false);
   const [tab, setTab] = useState<Tab>("live");
   const [events, setEvents] = useState<AmbientEvent[]>([]);
+
   const [speakers, setSpeakers] = useState<AmbientSpeaker[]>([]);
   const [devices, setDevices] = useState<AmbientDevice[]>([]);
   const [alerts, setAlerts] = useState<AmbientAlert[]>([]);
-  const [notes, setNotes] = useState<string[]>(() => sentinelNotes());
+  const [notes, setNotes] = useState<string[]>([]);
   const [sessions, setSessions] = useState<RecordingSession[]>([]);
   const [exporting, setExporting] = useState<string | null>(null);
   const [openAlert, setOpenAlert] = useState<string | null>(null);
@@ -56,6 +69,8 @@ const SentinelView = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [speakerFilter, setSpeakerFilter] = useState<string>("");
+  const [laneFilter, setLaneFilter] = useState<string>("");
+
   const [buffer, setBuffer] = useState({ total: 0, pending: 0, oldestAt: null as number | null });
   const [transcribeOn, setTranscribeOn] = useState(true);
   const [pushNewSpeaker, setPushNewSpeaker] = useState(true);
@@ -68,13 +83,18 @@ const SentinelView = () => {
     setNotes((prev) => (prev.includes(note) ? prev : [note, ...prev].slice(0, 6)));
   }, []);
 
-  // The engine is a module singleton, so leaving this room — or any other
-  // navigation inside the app — no longer ends the watch. This view only
-  // subscribes to it and unsubscribes on unmount.
-  useEffect(() => subscribeSentinel({
-    onStatus: setStatus,
-    onNote: pushNote,
-    onIngest: (result) => {
+  // Channels live at module scope, so leaving this room — or any other
+  // navigation inside the app — no longer ends a watch. This view subscribes to
+  // the roster and unsubscribes on unmount; the capture itself is untouched.
+  useEffect(() => {
+    bootChannels();
+    const sync = () => {
+      setChannels(listChannels());
+      setInputs(audioInputs());
+    };
+    sync();
+    const offRoster = subscribeChannels(sync);
+    const offIngest = subscribeChannelIngest((_id, result) => {
       if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
       if (result.speakers?.length) {
         setSpeakers((prev) => {
@@ -84,14 +104,24 @@ const SentinelView = () => {
         });
       }
       if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
-    },
-  }), [pushNote]);
+      if (result.notes?.length) result.notes.forEach((n) => pushNote(n));
+    });
+    void refreshInputs().then((list) => {
+      setInputs(list);
+      // A browser withholds input names until microphone permission has been
+      // granted once. An unnamed roster is unusable for choosing a headset, so
+      // the room says so instead of showing "audioinput 2".
+      setLabelsUnlocked(list.length === 0 || list.some((d) => Boolean(d.label)));
+    });
+    return () => { offRoster(); offIngest(); };
+  }, [pushNote]);
+
 
   const reload = useCallback(async () => {
     setLoadError(null);
     try {
       const [timeline, alertList, settings] = await Promise.all([
-        fetchTimeline({ limit: 200, query: query.trim() || undefined, speakerId: speakerFilter || undefined }),
+        fetchTimeline({ limit: 200, query: query.trim() || undefined, speakerId: speakerFilter || undefined, deviceId: laneFilter || undefined }),
         fetchAlerts(),
         fetchSettings(),
       ]);
@@ -105,13 +135,13 @@ const SentinelView = () => {
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
       const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
       setSensitivity(sens);
-      setSentinelSensitivity(sens);
+      setChannelSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
       setLoading(false);
     }
-  }, [query, speakerFilter]);
+  }, [query, speakerFilter, laneFilter]);
 
   useEffect(() => {
     void reload();
@@ -125,24 +155,44 @@ const SentinelView = () => {
 
   // The watch is deliberately NOT stopped on unmount. Stopping here was the
   // bug: opening another room killed a capture the operator had explicitly
-  // started. It now ends only on the stop control or when the tab itself dies,
-  // and the header says which of those is true at any moment.
+  // started. It ends only on a stop control or when the tab itself dies.
   useEffect(() => { void listSessions().then(setSessions); }, [tab]);
 
-  const listening = status?.state === "listening";
+  const listening = channels.some((c) => c.listening);
+  const liveCount = channels.filter((c) => c.listening).length;
+  /** The loudest live channel drives the header meter: a header showing a dead
+   *  lane's level while another lane is capturing would read as silence. */
+  const lead = useMemo(
+    () => channels.filter((c) => c.listening).sort((a, b) => (b.status?.level ?? 0) - (a.status?.level ?? 0))[0] ?? channels[0] ?? null,
+    [channels],
+  );
+  const status = lead?.status ?? null;
+  const channelNotes = useMemo(() => [...new Set(channels.flatMap((c) => c.notes))].slice(0, 6), [channels]);
 
+  /** Start every channel that is not already running, or stop all of them.
+   *  Partial failures are named per channel rather than collapsed into one
+   *  "the watch did not start", which hid which headset was off. */
   const toggle = async () => {
     setBusy(true);
     try {
-      if (listening) await engine.stop();
-      else {
-        const ok = await engine.start();
-        if (!ok) toast({ title: "the watch did not start", description: engine.getStatus().message ?? "", variant: "destructive" });
+      if (listening) {
+        await Promise.all(channels.filter((c) => c.listening).map((c) => stopChannel(c.config.id)));
+      } else {
+        const results = await Promise.all(
+          channels.map(async (c) => ({ label: c.config.label, ok: await startChannel(c.config.id).catch(() => false) })),
+        );
+        const failed = results.filter((r) => !r.ok);
+        if (failed.length === results.length) {
+          toast({ title: "the watch did not start", description: failed.map((f) => f.label).join(", "), variant: "destructive" });
+        } else if (failed.length) {
+          toast({ title: `${failed.length} channel${failed.length === 1 ? "" : "s"} did not start`, description: `${failed.map((f) => f.label).join(", ")} — check the device is powered on and connected.` });
+        }
       }
     } finally {
       setBusy(false);
     }
   };
+
 
   const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number; sensitivity?: VadSensitivity }) => {
     const next = {
@@ -154,7 +204,7 @@ const SentinelView = () => {
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
     setSensitivity(next.sensitivity);
-    setSentinelSensitivity(next.sensitivity);
+    setChannelSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
@@ -271,14 +321,21 @@ const SentinelView = () => {
     return s?.name || s?.label || "unknown voice";
   };
 
+  /** Which lane a turn came in on. Unknown is said plainly: a turn whose device
+   *  row was deleted must not be silently attributed to the machine's own mic. */
+  const laneName = (id: string | null) => devices.find((d) => d.id === id)?.label ?? (id ? "a channel no longer registered" : "unassigned channel");
+
+
   const tabs: Array<{ key: Tab; label: string; icon: typeof Ear }> = [
     { key: "live", label: "live", icon: Radio },
+    { key: "channels", label: "channels", icon: Bluetooth },
     { key: "timeline", label: "timeline", icon: Activity },
     { key: "speakers", label: "speakers", icon: Users },
     { key: "alerts", label: "alerts", icon: AlertTriangle },
     { key: "history", label: "history", icon: History },
     { key: "devices", label: "devices", icon: HardDrive },
   ];
+
 
   const meterWidth = Math.min(100, Math.round((status?.level ?? 0) * 900));
 
@@ -289,37 +346,40 @@ const SentinelView = () => {
           <div className="min-w-[240px]">
             <h1 className="font-light tracking-tight text-2xl text-white/90">asherin.sentinel</h1>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">
-              an ambient watch. it separates voices, learns them from their own words, tags the sounds around them, and
-              keeps every turn in one searchable account timeline.
+              an ambient watch across as many inputs as you connect. each channel is its own named lane with its own
+              language, and every lane lands in one searchable account timeline.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right text-[11px] leading-tight text-white/40">
               <div>{deviceLabel()}</div>
+              <div>{liveCount} of {channels.length} channel{channels.length === 1 ? "" : "s"} live</div>
               <div>{buffer.pending} buffered · {buffer.total} on device</div>
             </div>
             <Button
               onClick={toggle}
-              disabled={busy}
+              disabled={busy || !channels.length}
               className={`h-11 rounded-xl border px-5 font-light ${listening ? "border-white/20 bg-white/[0.08] text-white/90" : "border-white/15 bg-white/[0.05] text-white/70"}`}
             >
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : listening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-              {listening ? "stop listening" : "start listening"}
+              {listening ? "stop every channel" : "start every channel"}
             </Button>
           </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-3">
           <p className="text-xs leading-relaxed text-white/70">
-            <span className="font-medium text-white/90">truth boundary:</span> once started, the watch keeps running while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
+            <span className="font-medium text-white/90">truth boundary:</span> a running channel keeps capturing while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off — and when any of that happens the missing stretch is written into the timeline as a visible gap rather than shown as quiet. a bluetooth channel follows the person wearing it, so distance from this machine stops mattering; its own radio range is the limit. to keep listening with no browser open, pair the desktop companion under devices. the account timeline is the authoritative record.
           </p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span className={chip}>{status?.state ?? "idle"}</span>
+          <span className={chip}>{listening ? `${liveCount} listening` : status?.state ?? "idle"}</span>
+          {listening && <span className={chip}>{lead?.config.label}</span>}
           {listening && <span className={chip}>{status?.speaking ? "voice" : "ambient"}</span>}
           {listening && <span className={chip}>floor {(status?.noiseFloor ?? 0).toFixed(4)}</span>}
           {listening && <span className={chip}>{status?.sampleRate ?? 0} hz</span>}
+          {channels.some((c) => c.gapOpen) && <span className={chip}>gap open</span>}
           <div className="h-1.5 min-w-[120px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
             <div className="h-full rounded-full bg-white/40 transition-[width] duration-150" style={{ width: `${meterWidth}%` }} />
           </div>
@@ -328,14 +388,15 @@ const SentinelView = () => {
         {status?.message && (
           <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/60">{status.message}</p>
         )}
-        {notes.length > 0 && (
+        {(notes.length > 0 || channelNotes.length > 0) && (
           <ul className="mt-3 space-y-1">
-            {notes.map((n) => (
+            {[...new Set([...notes, ...channelNotes])].slice(0, 8).map((n) => (
               <li key={n} className="text-[11px] text-white/45">— {n}</li>
             ))}
           </ul>
         )}
       </header>
+
 
       <nav className="flex flex-wrap gap-2">
         {tabs.map(({ key, label, icon: Icon }) => (
@@ -378,16 +439,31 @@ const SentinelView = () => {
           )}
           <div className="space-y-2">
             {events.slice(0, 40).map((ev) => (
-              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} />
+              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} />
             ))}
             {!events.length && (
               <p className="py-8 text-center text-sm text-white/40">
-                nothing captured yet. start the watch and speak — a turn appears here the moment it closes and syncs.
+                nothing captured yet. start a channel and speak — a turn appears here the moment it closes and syncs.
               </p>
             )}
           </div>
         </section>
+      ) : tab === "channels" ? (
+        <ChannelsPanel
+          channels={channels}
+          inputs={inputs}
+          labelsUnlocked={labelsUnlocked}
+          onUnlockLabels={async () => {
+            const { unlockInputLabels } = await import("@/lib/sentinel/audio/channels");
+            const ok = await unlockInputLabels();
+            setLabelsUnlocked(ok);
+            setInputs(audioInputs());
+            if (!ok) pushNote("the microphone was refused, so this browser will not name your inputs.");
+          }}
+          onNote={pushNote}
+        />
       ) : tab === "timeline" ? (
+
         <section className={`${card} p-5`}>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
@@ -409,13 +485,24 @@ const SentinelView = () => {
                 <option key={s.id} value={s.id}>{s.name || s.label}</option>
               ))}
             </select>
+            <select
+              value={laneFilter}
+              onChange={(e) => setLaneFilter(e.target.value)}
+              className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/70"
+            >
+              <option value="">every channel</option>
+              {devices.map((d) => (
+                <option key={d.id} value={d.id}>{d.label}</option>
+              ))}
+            </select>
             <Button variant="ghost" className="h-10 rounded-xl text-xs text-white/60" onClick={() => void reload()}>refresh</Button>
           </div>
           <div className="space-y-2">
             {events.map((ev) => (
-              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} showDay />
+              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} showDay />
             ))}
             {!events.length && <p className="py-8 text-center text-sm text-white/40">no turn matches that.</p>}
+
           </div>
         </section>
       ) : tab === "speakers" ? (
@@ -516,7 +603,7 @@ const SentinelView = () => {
                     <div className="space-y-2">
                       {(incident.context.length ? incident.context : incident.event ? [incident.event] : []).map((ev) => (
                         <div key={ev.id} className={ev.id === incident.event?.id ? "rounded-xl border border-white/20 bg-white/[0.05]" : ""}>
-                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} />
+                          <EventRow ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} />
                         </div>
                       ))}
                       <p className="text-[11px] text-white/35">the highlighted turn is the one that raised this alert; the rest is what was said around it.</p>
@@ -663,9 +750,44 @@ const SentinelView = () => {
   );
 };
 
-const EventRow = ({ ev, name, showDay }: { ev: AmbientEvent; name: string; showDay?: boolean }) => {
-  const meta = ev.meta as { ambiguousVoice?: boolean; nameBoundFrom?: string | null };
+const EventRow = ({ ev, name, lane, showDay }: { ev: AmbientEvent; name: string; lane: string; showDay?: boolean }) => {
+  const meta = ev.meta as {
+    ambiguousVoice?: boolean;
+    nameBoundFrom?: string | null;
+    translated?: boolean;
+    translateTo?: string | null;
+    sourceLang?: string | null;
+    sourceTranscript?: string | null;
+    reason?: string;
+    open?: boolean;
+  };
   const sound = ev.kind === "sound";
+  const gap = ev.kind === "gap";
+  const mins = ev.duration_ms ? Math.max(1, Math.round(ev.duration_ms / 60_000)) : null;
+
+  // A gap is the one row that describes what is NOT here. It reads differently
+  // on purpose: a dashed frame, no speaker, and the reason capture ended.
+  if (gap) {
+    return (
+      <div className="flex gap-3 rounded-xl border border-dashed border-white/20 bg-white/[0.015] p-3">
+        <div className="w-[86px] shrink-0 font-mono text-[11px] leading-5 text-white/35">
+          {showDay && <div>{dayStamp(ev.started_at)}</div>}
+          {clock(ev.started_at)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-white/50">
+            <Unplug className="h-3 w-3" />
+            capture gap · {lane}
+            <span className="text-white/35">{meta?.open ? "still open" : mins ? `${mins} min not captured` : "closed"}</span>
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-white/60">
+            {meta?.reason || "this channel stopped capturing."} nothing from this stretch was recorded.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
       <div className="w-[86px] shrink-0 font-mono text-[11px] leading-5 text-white/35">
@@ -678,19 +800,31 @@ const EventRow = ({ ev, name, showDay }: { ev: AmbientEvent; name: string; showD
             <span className="mr-2 rounded-md border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[11px] uppercase tracking-wider text-white/55">
               {ev.tag}
             </span>
+            <span className="mr-2 text-[11px] text-white/35">{lane}</span>
             {ev.confidence !== null && <span className="text-[11px] text-white/35">confidence {ev.confidence.toFixed(2)}</span>}
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 text-[11px] text-white/45">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
               <Ear className="h-3 w-3" />
               <span className="text-white/70">{name}</span>
+              <span className="text-white/35">· {lane}</span>
+              {meta?.translated && (
+                <span className="rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-white/50">
+                  {languageName(meta.sourceLang)} → {languageName(meta.translateTo)}
+                </span>
+              )}
               {meta?.ambiguousVoice && <span className="text-white/35">— two stored voices matched too closely to separate</span>}
               {meta?.nameBoundFrom && <span className="text-white/35">— named from “{meta.nameBoundFrom}”</span>}
             </div>
             <p className="mt-1 text-sm leading-relaxed text-white/80">
               {ev.transcript || <span className="text-white/35">no transcript for this turn</span>}
             </p>
+            {meta?.translated && meta.sourceTranscript && (
+              <p className="mt-1 border-l border-white/10 pl-2 text-[12px] leading-relaxed text-white/40">
+                as spoken: {meta.sourceTranscript}
+              </p>
+            )}
           </>
         )}
       </div>
@@ -698,4 +832,229 @@ const EventRow = ({ ev, name, showDay }: { ev: AmbientEvent; name: string; showD
   );
 };
 
+/**
+ * The channel roster. One card per input, responsive from a phone to a wide
+ * desktop, each carrying its own name, its own language contract, its own
+ * start/stop, and its own honest state — including "this input is not connected
+ * right now", which is the failure a silent headset used to hide.
+ */
+const ChannelsPanel = ({
+  channels, inputs, labelsUnlocked, onUnlockLabels, onNote,
+}: {
+  channels: ChannelView[];
+  inputs: MediaDeviceInfo[];
+  labelsUnlocked: boolean;
+  onUnlockLabels: () => Promise<void>;
+  onNote: (n: string) => void;
+}) => {
+  const [adding, setAdding] = useState(false);
+  const [pick, setPick] = useState("");
+  const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const free = inputs.filter((d) => !inputTaken(d.deviceId));
+
+  return (
+    <section className="space-y-4">
+      <div className={`${card} p-5`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-light tracking-wide text-white/70">channels</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-white/45">
+              one input, one lane, one language. connect a bluetooth headset in your operating system first, then add it
+              here — the browser can only open inputs the system has already paired. each lane starts and stops on its
+              own, and anything it misses is written into the timeline as a gap.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              className="h-9 rounded-lg border border-white/10 text-xs text-white/60"
+              onClick={() => void refreshInputs()}
+            >
+              rescan inputs
+            </Button>
+            <Button
+              className="h-9 rounded-lg border border-white/15 bg-white/[0.06] text-xs text-white/80"
+              onClick={() => setAdding((v) => !v)}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> add a channel
+            </Button>
+          </div>
+        </div>
+
+        {adding && (
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            {!labelsUnlocked && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                <span className="text-xs text-white/60">this browser hides input names until the microphone has been allowed once.</span>
+                <Button variant="ghost" className="h-8 rounded-lg border border-white/10 text-[11px] text-white/70" onClick={() => void onUnlockLabels()}>
+                  show my inputs
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <select
+                value={pick}
+                onChange={(e) => setPick(e.target.value)}
+                className="h-10 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-white/75"
+              >
+                <option value="">choose an input</option>
+                {free.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || "unnamed input"}</option>
+                ))}
+              </select>
+              <Button
+                disabled={!pick}
+                className="h-10 rounded-xl border border-white/15 bg-white/[0.06] text-xs text-white/80"
+                onClick={() => {
+                  const input = inputs.find((d) => d.deviceId === pick);
+                  if (!input) return;
+                  addChannel({ inputDeviceId: input.deviceId, inputLabel: input.label || "unnamed input" });
+                  setPick("");
+                  setAdding(false);
+                }}
+              >
+                add
+              </Button>
+            </div>
+            {!free.length && (
+              <p className="mt-3 text-xs text-white/45">
+                every input this browser can see is already a channel. pair another bluetooth device in your operating
+                system, then press rescan.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        {channels.map((c) => {
+          const s = c.status;
+          const meter = Math.min(100, Math.round((s?.level ?? 0) * 900));
+          return (
+            <div key={c.config.id} className={`${card} p-4`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {editing?.id === c.config.id ? (
+                    <div className="flex gap-2">
+                      <Input
+                        value={editing.value}
+                        autoFocus
+                        onChange={(e) => setEditing({ id: c.config.id, value: e.target.value })}
+                        className="h-9 rounded-lg border-white/10 bg-white/[0.05] text-sm text-white/85"
+                        placeholder="the room, the person, the context"
+                      />
+                      <Button
+                        className="h-9 rounded-lg border border-white/15 bg-white/[0.06] text-xs text-white/80"
+                        onClick={async () => {
+                          await renameChannel(c.config.id, editing.value);
+                          setEditing(null);
+                        }}
+                      >
+                        save
+                      </Button>
+                    </div>
+                  ) : (
+                    <button className="text-left" onClick={() => setEditing({ id: c.config.id, value: c.config.label })}>
+                      <div className="truncate text-sm text-white/85">{c.config.label}</div>
+                      <div className="truncate text-[11px] text-white/40">{c.config.inputLabel || "system default input"} · tap to rename</div>
+                    </button>
+                  )}
+                </div>
+                <Button
+                  disabled={busy === c.config.id}
+                  onClick={async () => {
+                    setBusy(c.config.id);
+                    try {
+                      if (c.listening) await stopChannel(c.config.id);
+                      else {
+                        const ok = await startChannel(c.config.id);
+                        if (!ok) onNote(`${c.config.label} did not start — power the device on, reconnect it, then try again.`);
+                      }
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                  className={`h-9 shrink-0 rounded-lg border px-3 text-xs ${c.listening ? "border-white/20 bg-white/[0.08] text-white/90" : "border-white/15 bg-white/[0.05] text-white/70"}`}
+                >
+                  {busy === c.config.id ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : c.listening ? <MicOff className="mr-1.5 h-3.5 w-3.5" /> : <Mic className="mr-1.5 h-3.5 w-3.5" />}
+                  {c.listening ? "stop" : "start"}
+                </Button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className={chip}>{s?.state ?? "idle"}</span>
+                {!c.inputPresent && <span className={chip}>input not connected</span>}
+                {c.gapOpen && <span className={chip}>gap open</span>}
+                {c.listening && <span className={chip}>{s?.speaking ? "voice" : "ambient"}</span>}
+                <div className="h-1.5 min-w-[80px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="h-full rounded-full bg-white/40 transition-[width] duration-150" style={{ width: `${meter}%` }} />
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] uppercase tracking-[0.16em] text-white/40">spoken language</span>
+                  <select
+                    value={c.config.sourceLang}
+                    onChange={(e) => void setChannelLanguages(c.config.id, { sourceLang: e.target.value })}
+                    className="h-9 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-sm text-white/75"
+                  >
+                    <option value={AUTO_SOURCE}>auto-detect</option>
+                    {LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-white/40">
+                    <Languages className="h-3 w-3" /> render as
+                  </span>
+                  <select
+                    value={c.config.translateTo}
+                    onChange={(e) => void setChannelLanguages(c.config.id, { translateTo: e.target.value })}
+                    className="h-9 rounded-lg border border-white/10 bg-white/[0.05] px-2 text-sm text-white/75"
+                  >
+                    <option value={NO_TRANSLATION}>no translation — keep what was said</option>
+                    {LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {!c.config.translateTo && (
+                <p className="mt-2 text-[11px] text-white/35">
+                  this lane has no translation target, so its turns land in whatever language was spoken.
+                </p>
+              )}
+              {s?.message && <p className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/55">{s.message}</p>}
+
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-white/35">
+                  {s?.segmentsCaptured ?? 0} turns · {s?.pendingUploads ?? 0} waiting to sync
+                </span>
+                {channels.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    className="h-8 rounded-lg text-[11px] text-white/40"
+                    onClick={async () => {
+                      await removeChannel(c.config.id);
+                      onNote(`${c.config.label} was removed from this device. its turns stay in the account timeline.`);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
+
 export default SentinelView;
+

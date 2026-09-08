@@ -56,7 +56,21 @@ export interface EngineEvents {
   onStatus?: (s: EngineStatus) => void;
   onIngest?: (r: IngestResult) => void;
   onNote?: (note: string) => void;
+  /** The input vanished on its own — a bluetooth headset powered off, a usb
+   *  mic was unplugged, the OS revoked the track. The channel manager turns
+   *  this into a visible gap rather than a quiet stop. */
+  onDrop?: (reason: string) => void;
 }
+
+/** A channel binds this engine to one physical input and one account device
+ *  row. Absent, the engine behaves exactly as the single built-in watch did. */
+export interface EngineOptions {
+  deviceKey?: string;
+  label?: string;
+  /** MediaDeviceInfo.deviceId of the input to open; null = system default. */
+  inputDeviceId?: string | null;
+}
+
 
 function deviceKey(): string {
   try {
@@ -130,7 +144,22 @@ export class SentinelEngine {
     sampleRate: 0,
   };
 
-  constructor(private readonly events: EngineEvents = {}) {}
+  private readonly label: string;
+  private readonly inputDeviceId: string | null;
+  private dropped = false;
+
+  constructor(private readonly events: EngineEvents = {}, opts: EngineOptions = {}) {
+    if (opts.deviceKey) this.status.deviceKey = opts.deviceKey;
+    this.label = opts.label?.trim() || deviceLabel();
+    this.inputDeviceId = opts.inputDeviceId ?? null;
+  }
+
+  /** The input this channel is bound to, so the manager can tell whether it is
+   *  still plugged in without reaching into private state. */
+  boundInputId(): string | null {
+    return this.inputDeviceId;
+  }
+
 
   getStatus(): EngineStatus {
     return { ...this.status };
@@ -157,10 +186,11 @@ export class SentinelEngine {
 
   async start(): Promise<boolean> {
     if (this.status.state === "listening" || this.status.state === "starting") return true;
+    this.dropped = false;
     this.emit({ state: "starting", message: "asking for the microphone" });
 
     try {
-      await registerDevice(this.status.deviceKey, deviceLabel(), devicePlatform());
+      await registerDevice(this.status.deviceKey, this.label, devicePlatform());
       this.registered = true;
     } catch (e) {
       // A registration failure must not silently downgrade to a local-only
@@ -170,23 +200,37 @@ export class SentinelEngine {
     }
 
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 1,
-        },
-      });
+      // A bound channel asks for its own input exactly: falling back to the
+      // default mic would silently record the laptop instead of the headset
+      // the operator is wearing in another room, and label it as the headset.
+      const audio: MediaTrackConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1,
+      };
+      if (this.inputDeviceId) audio.deviceId = { exact: this.inputDeviceId };
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio });
     } catch (e) {
       const denied = e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
+      const missing = e instanceof DOMException && (e.name === "OverconstrainedError" || e.name === "NotFoundError");
       this.emit({
         state: denied ? "denied" : "error",
         message: denied
           ? "the microphone was refused. sentinel cannot listen without it, and it will not ask again until you press start."
-          : "no microphone is available on this device.",
+          : missing && this.inputDeviceId
+            ? "that input is not connected right now. power the bluetooth device on, reconnect it, then start this channel again."
+            : "no microphone is available on this device.",
       });
       return false;
+    }
+
+    // The one signal a browser gives when a bluetooth headset powers off
+    // mid-session. Without it the capture goes silent and the room keeps
+    // claiming it is listening — the exact failure this watch must not have.
+    for (const track of this.stream.getAudioTracks()) {
+      track.addEventListener("ended", () => this.handleDrop("the input ended — the device powered off, disconnected, or was taken by another app."));
+      track.addEventListener("mute", () => this.note("this input went silent at the operating system level; nothing is reaching sentinel while it stays muted."));
     }
 
     const Ctx: typeof AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -208,7 +252,8 @@ export class SentinelEngine {
     mute.connect(this.ctx.destination);
 
     this.emit({ state: "listening", message: null, sampleRate: this.ctx.sampleRate });
-    this.sessionId = await openSession(this.status.deviceKey, deviceLabel());
+    this.sessionId = await openSession(this.status.deviceKey, this.label);
+
     void this.requestWakeLock();
     // A screen wake lock is dropped by the browser whenever the page is hidden.
     // Without re-acquiring it on return, a phone that was backgrounded once
@@ -261,9 +306,22 @@ export class SentinelEngine {
     this.onVisible = null;
     if (this.sessionId) { void closeSession(this.sessionId); this.sessionId = ""; }
     if (this.registered) void heartbeat(this.status.deviceKey, "offline").catch(() => {});
-    this.emit({ state: "stopped", speaking: false, level: 0, message: null });
+    if (!this.dropped) this.emit({ state: "stopped", speaking: false, level: 0, message: null });
     void this.drain();
   }
+
+  /** An input that ended by itself. The buffered tail is still flushed, the
+   *  state says dropped rather than stopped, and the owner is told so the gap
+   *  can be written into the timeline instead of hidden. */
+  private handleDrop(reason: string): void {
+    if (this.dropped || this.status.state !== "listening") return;
+    this.dropped = true;
+    this.emit({ state: "error", speaking: false, level: 0, message: reason });
+    this.note(reason);
+    void this.stop().finally(() => this.events.onDrop?.(reason));
+  }
+
+
 
   private async requestWakeLock() {
     try {
