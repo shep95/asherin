@@ -321,6 +321,11 @@ const SentinelView = () => {
     return s?.name || s?.label || "unknown voice";
   };
 
+  /** Which lane a turn came in on. Unknown is said plainly: a turn whose device
+   *  row was deleted must not be silently attributed to the machine's own mic. */
+  const laneName = (id: string | null) => devices.find((d) => d.id === id)?.label ?? (id ? "a channel no longer registered" : "unassigned channel");
+
+
   const tabs: Array<{ key: Tab; label: string; icon: typeof Ear }> = [
     { key: "live", label: "live", icon: Radio },
     { key: "channels", label: "channels", icon: Bluetooth },
