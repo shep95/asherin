@@ -38,7 +38,7 @@ const V2_LABELS: Partial<Record<string, string>> = {
   "asherin-arvision": "asherin.arvision",
   "asherin-eye": "asherin.eye",
   "asherin-sentinel": "asherin.sentinel",
-  memory: "Memory",
+  memory: "asherin.vault",
   subscription: "Subscription",
 };
 

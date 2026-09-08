@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
 
     const tables = [
-      "profiles", "conversations", "messages", "memory_entries",
+      "profiles", "conversations", "messages", "organism_vault", "organism_patterns",
       "saved_prompts", "projects", "library_files", "calibration_feedback",
     ];
 

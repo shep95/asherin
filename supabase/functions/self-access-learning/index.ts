@@ -71,7 +71,7 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/GeospatialView.tsx", domain: "Data", desc: "Geospatial visualization" },
   { path: "src/components/dashboard/ImagineToCodeView.tsx", domain: "Frontend", desc: "Pixel art to code generator" },
   { path: "src/components/dashboard/LibraryView.tsx", domain: "Frontend", desc: "File library manager" },
-  { path: "src/components/dashboard/MemoryCenterView.tsx", domain: "Frontend", desc: "Memory center UI" },
+  { path: "src/components/dashboard/OrganismVaultView.tsx", domain: "Frontend", desc: "Encrypted operator vault UI" },
   { path: "src/components/dashboard/ModeSelector.tsx", domain: "Frontend", desc: "Chat mode selector" },
   { path: "src/components/dashboard/NotebooksView.tsx", domain: "Frontend", desc: "Intelligence notebooks" },
   { path: "src/components/dashboard/NotificationInbox.tsx", domain: "Frontend", desc: "Notification inbox" },
