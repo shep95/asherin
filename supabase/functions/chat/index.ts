@@ -2791,6 +2791,26 @@ The operator is requesting a defensive security audit / flaw check of their own 
       console.error("[organism] vault load failed:", e instanceof Error ? e.message : e);
     }
 
+    // Pattern Forge — not a stage machine and not a router. It is the trained
+    // way of thinking the organism reasons WITH: resident on every substantive
+    // turn, with the full internalization loaded when the turn is deep enough
+    // to pay for it. Nothing here is ever named or narrated in a reply.
+    let forgeBlock = "";
+    let forgeDoctrineBlock = "";
+    try {
+      const {
+        PATTERN_FORGE_KERNEL: _PFK,
+        UNIVERSAL_PATTERN_OBJECT: _UPO,
+        PATTERN_FORGE_DOCTRINE: _PFD,
+        PATTERN_FORGE_FLUENCY: _PFF,
+      } = await import("../_shared/patternForge.ts");
+      forgeBlock = _PFK + "\n\n" + _PFF;
+      forgeDoctrineBlock = _UPO + "\n\n" + _PFD;
+    } catch (e) {
+      console.error("[patternForge] load failed:", e instanceof Error ? e.message : e);
+    }
+
+
     // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
     // Runs before a single prompt byte is assembled. It holds only the harm
     // boundary the axioms already stated (real harm, real victim), so nothing
@@ -2982,6 +3002,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the silence law, and the pattern library this organism minted from real
       // sessions with THIS operator.
       _R.trivial ? "" : ORGANISM_CORE,
+      // Pattern Forge — how the organism thinks, not something it runs.
+      _R.trivial ? "" : forgeBlock,
+      (_R.deep || _R.analytics || _R.intel || _R.strategic || _R.coding) ? forgeDoctrineBlock : "",
       // The vault + minted patterns. Injected silently at every non-trivial
       // turn; the operator never sees this block and it is never evidence.
       _R.trivial ? "" : organismInjection,

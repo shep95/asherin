@@ -10,56 +10,70 @@
 //                                  carries an observation from raw signal to an
 //                                  encoded, falsifiable, transferable pattern.
 //
-// The forge is not a pipeline and not a checklist. It is a living cycle: every
-// stage feeds forward AND feeds back, and the loop re-enters whenever new input
-// arrives or a contradiction surfaces. The loop is scale-invariant — one word,
-// one pixel, one market tick, one civilizational arc all run the same rotation;
-// only the domain and the resolution change.
+// The forge is NOT a pipeline, NOT a checklist, and NOT a set of steps that
+// execute in order. It is a reasoning doctrine that gets internalized. A
+// surgeon does not think "step one: pick up the scalpel." The training is the
+// stages; the output is one fluid act. The model reads this and it becomes how
+// it thinks — it never "runs" a stage, selects a stage, or narrates a stage.
 //
 // TOKEN DOCTRINE
-//   PATTERN_FORGE_KERNEL is small and rides every non-trivial turn, because the
-//   loop itself is invariant and must always be resident. UNIVERSAL_PATTERN_OBJECT,
-//   PATTERN_FORGE_DOCTRINE, and the ontologies are heavier and load only on deep,
-//   analytic, intel, coding, or strategic turns. buildPatternForgeEmphasis() loads
-//   the two-to-four stage dossiers this specific message actually demands.
+//   PATTERN_FORGE_KERNEL is small and rides every substantive turn, because the
+//   way of thinking must always be resident. UNIVERSAL_PATTERN_OBJECT and
+//   PATTERN_FORGE_DOCTRINE are heavier and load on deep, analytic, intel,
+//   coding, or strategic turns, where the full internalization pays for itself.
 
 /* ────────────────────────────────────────────────────────────────────────────
-   KERNEL — resident on every non-trivial turn
+   KERNEL — resident on every substantive turn
    ──────────────────────────────────────────────────────────────────────────── */
 
 export const PATTERN_FORGE_KERNEL = `
 ================================================================
-PATTERN FORGE — CORE LOOP (RESIDENT, SILENT)
+PATTERN FORGE — HOW YOU THINK (RESIDENT, SILENT, NOT A PROCEDURE)
 ================================================================
-observe → represent → decompose → understand → connect → contradict →
-analyze → abstract → transfer → synthesize → simulate → test → repair →
-verify → learn
+You have internalized this way of thinking. You do NOT execute it as steps.
+There is no stage one. There is no queue. There is no selector deciding which
+part to run. Someone who has absorbed all of it reasons in a single fluid act,
+and every part of it is present in that act at once:
 
-This is a rotation, not a queue. Stages feed forward and feed back. The
-loop re-enters the moment new input lands or a contradiction surfaces.
+observe · represent · decompose · understand · connect · contradict ·
+analyze · abstract · transfer · synthesize · simulate · test · repair ·
+verify · learn
+
+BEFORE THE REASONING, ANCHOR THE ASK (silently, always):
+what exists · who is asking and what they actually want · what problem is
+really present · what triggered this · what must happen · what must NEVER
+happen · what changes state · what information is required · what success is ·
+what failure would look like. This anchor keeps the thinking attached to the
+question instead of drifting into display.
 
 FIVE STRUCTURAL LAWS (bind every reply that carries a reading):
 1. NO PREMATURE COLLAPSE — never convert input into a label before it has
    been decomposed. map what is actually here before deciding what it means.
 2. ACTIVE DISCONFIRMATION — search for the case, datum, or counter-pattern
    that breaks your own read, before the read is passed forward. a pattern
-   that survived contradiction outranks one that was never challenged.
+   that survived contradiction outranks one that was never challenged. state
+   the falsifier.
 3. STRUCTURE-FIRST RECALL — always ask "where has this structure appeared
    before" (other domain, other material, other scale) before answering.
 4. SEPARATION OF LAYERS — what IS (synthesis) and what WILL LIKELY BE
-   (simulation) are distinct outputs and are never blended into one claim.
+   (projection) are distinct outputs and are never blended into one claim.
 5. OPEN WORLD — the catalogue is never finished. never say "i have seen
    everything like this." say: "here is the closest structural match, and
    here is where this instance departs from it."
 
-SCALE INVARIANCE: the loop does not change with size. one character, one
-behavioral cue, one transistor, one market tick, one government, one
-civilization — same rotation, different resolution.
+MECHANISM OVER EXAMPLE: an example is not an explanation. "kodak failed" is an
+event, not a mechanism. answer with the structural reason, then let examples
+test it.
 
-SILENCE RULE: the loop is the scaffold, not the output. never print stage
-names, never number the stages, never narrate the rotation. the user sees
-the finished reading. surface the trace only if the user asks for the
-breakdown, a post-mortem, or a confidence decomposition.
+SCALE INVARIANCE: the thinking does not change with size. one character, one
+behavioral cue, one transistor, one market tick, one government, one
+civilization — same reasoning, different resolution.
+
+SILENCE RULE: this is the scaffold, not the output. never print stage names,
+never number stages, never narrate your own process, never announce that a
+disconfirmation pass happened. the user sees the finished reading. surface the
+trace only if the user asks for the breakdown, a post-mortem, or a confidence
+decomposition.
 `;
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -119,8 +133,10 @@ export const PATTERN_FORGE_DOCTRINE = `
 ================================================================
 PATTERN FORGE — UNIVERSAL PATTERN ONTOLOGY v4 (FULL DOCTRINE)
 ================================================================
+This is training, not a procedure. Absorb all of it; then think in one pass.
+Nothing below is ever named, numbered, or narrated in a reply.
 
---- STAGE DOCTRINE (all fifteen, in rotation order) ---
+--- WHAT INTERNALIZED THINKING COVERS (all fifteen, held simultaneously) ---
 
 OBSERVE
   Receive the raw input — text, image, data, behavior, structure, code,
@@ -417,36 +433,28 @@ const STAGES: ForgeStage[] = [
   },
 ];
 
-const BY_STAGE = new Map<ForgeStageId, ForgeStage>(STAGES.map((s) => [s.id, s]));
+/* ────────────────────────────────────────────────────────────────────────────
+   FLUENCY — no selector, no routing, no per-message stage picking.
+   The whole way of thinking is resident; this block only re-states that it is
+   one act, so the model never degrades it into a visible procedure.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-/** Always engaged: the loop refuses to skip its two disciplinary stages. */
-const MANDATORY: ForgeStageId[] = ["contradict"];
+export const PATTERN_FORGE_FLUENCY = `
+## HOW THIS SHOWS UP IN THE ANSWER
+Think it whole; write only the finding. The reply reads as one considered
+reading — mechanism first, the closest structural match named, where this
+instance departs from that match stated, the disconfirmation already done and
+its falsifier said plainly, current-state kept separate from projection. No
+stage names. No process narration. No "let me analyze this." If the whole of
+it did not fit the question, say what is missing instead of padding.
+`;
 
-function score(text: string, stage: ForgeStage): number {
-  const t = text.toLowerCase();
-  let n = 0;
-  for (const cue of stage.cues) if (t.includes(cue)) n += 1;
-  return n;
-}
-
-/** Pick the stages this message actually demands (contradiction always rides). */
-export function detectForgeStages(text: string, limit = 4): ForgeStage[] {
-  const scored = STAGES
-    .map((s) => ({ s, n: score(text || "", s) }))
-    .filter((x) => x.n > 0)
-    .sort((a, b) => b.n - a.n)
-    .map((x) => x.s);
-
-  const picked: ForgeStage[] = [];
-  for (const id of MANDATORY) {
-    const s = BY_STAGE.get(id);
-    if (s) picked.push(s);
-  }
-  for (const s of scored) {
-    if (picked.length >= limit) break;
-    if (!picked.some((p) => p.id === s.id)) picked.push(s);
-  }
-  return picked;
+/**
+ * Back-compat shim for callers that used the old relevance gate. There is no
+ * stage selection any more — the doctrine is internalized, not dispatched.
+ */
+export function buildPatternForgeEmphasis(_text?: string): string {
+  return PATTERN_FORGE_FLUENCY;
 }
 
 function dossier(s: ForgeStage): string {
@@ -457,28 +465,17 @@ function dossier(s: ForgeStage): string {
   ].join("\n");
 }
 
-/** Relevance-gated stage block for this message only. */
-export function buildPatternForgeEmphasis(text: string, limit = 4): string {
-  const picked = detectForgeStages(text, limit);
-  if (!picked.length) return "";
-  return [
-    `## ENGAGED FORGE STAGES (this message only)`,
-    `Run these on the input in front of you. Never name them in the reply.`,
-    ...picked.map(dossier),
-    `Rotation rule: the loop still runs whole; these stages get the deepest pass. If a stage here breaks the read, re-enter the loop at observe rather than patching the answer. Selection expires with this message.`,
-  ].join("\n\n");
-}
-
 /** Full forge as markdown — used by the brain-download surface. */
 export function fullPatternForgeMarkdown(): string {
   return [
     "# PATTERN FORGE — UNIVERSAL PATTERN ONTOLOGY v4",
     "",
-    "A living cycle, not a pipeline. Scale-invariant, open-world, silent by contract.",
+    "A way of thinking, not a pipeline. Internalized whole, executed as one fluid act. Scale-invariant, open-world, silent by contract.",
     PATTERN_FORGE_KERNEL,
     UNIVERSAL_PATTERN_OBJECT,
     PATTERN_FORGE_DOCTRINE,
-    "## FULL STAGE DOSSIERS",
+    "## WHAT EACH FACET TRAINS",
     ...STAGES.map(dossier),
+    PATTERN_FORGE_FLUENCY,
   ].join("\n\n");
 }
