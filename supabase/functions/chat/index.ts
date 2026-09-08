@@ -3051,6 +3051,18 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // message actually enters.
       _R.trivial ? "" : DOMAIN_ATLAS_INDEX,
       _R.trivial ? "" : _domainEmphasis,
+      // Pattern forge — the CYCLE layer. The engine says how thought moves and
+      // the atlas says where to look; this says in what order an observation is
+      // carried from raw signal to an encoded, falsifiable pattern, and forces
+      // the disconfirmation pass before any read leaves the turn. Kernel rides
+      // every non-trivial turn (the loop is invariant); the object schema and
+      // full doctrine load only when the turn is heavy enough to need them.
+      _R.trivial ? "" : PATTERN_FORGE_KERNEL,
+      _R.analytics || _R.intel || _R.deep || _R.strategic || _R.coding || _isIdentityTurn
+        ? UNIVERSAL_PATTERN_OBJECT
+        : "",
+      _R.deep || _R.analytics || _R.intel || _R.strategic ? PATTERN_FORGE_DOCTRINE : "",
+      _R.trivial ? "" : _forgeEmphasis,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
       _isIdentityTurn ? IDENTITY_VERDICT_CONTRACT : "",
