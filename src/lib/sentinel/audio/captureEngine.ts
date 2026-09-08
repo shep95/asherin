@@ -283,7 +283,15 @@ export class SentinelEngine {
     // 48 khz asked for explicitly: a bluetooth voice link that negotiated
     // narrowband will still deliver 8 or 16 khz, and the settings read below
     // reports what actually arrived rather than what was requested.
-    this.ctx = new Ctx({ sampleRate: 48000 });
+    // Some browsers reject a requested rate outright rather than resampling.
+    // Losing the whole channel over a preference would be the wrong trade: fall
+    // back to the hardware rate and let the status report what truly arrived.
+    try {
+      this.ctx = new Ctx({ sampleRate: 48000 });
+    } catch {
+      this.ctx = new Ctx();
+    }
+
     if (this.ctx.state === "suspended") await this.ctx.resume().catch(() => {});
     this.source = this.ctx.createMediaStreamSource(this.stream);
 
