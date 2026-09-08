@@ -230,9 +230,17 @@ export async function buildEarChain(
     return n;
   };
 
-  // layer 2 — the contour
-  const highpass = biquad("highpass", tuning.rumbleCutHz);
+  // layer 2 — the contour.
+  // Two cascaded high-pass stages, not one: a single biquad is 12 db/octave,
+  // and 60 hz mains hum sits well under half an octave below an 80 hz corner,
+  // so one stage leaves most of the rumble in place. Cascading gets it to
+  // 24 db/octave, which is what actually clears table thumps and hvac out of
+  // the compressor's input — otherwise the compressor rides the rumble and
+  // ducks the speech that follows it.
+  const highpass = biquad("highpass", tuning.rumbleCutHz, undefined, 0.707);
+  const highpass2 = biquad("highpass", tuning.rumbleCutHz, undefined, 0.707);
   const warmth = biquad("lowshelf", tuning.warmthHz, tuning.warmthGainDb);
+
   const presence = biquad("peaking", tuning.presenceHz, tuning.presenceGainDb, tuning.presenceQ);
   const airShelf = biquad("highshelf", tuning.airShelfHz, tuning.airShelfGainDb);
   // A lowpass above nyquist is a no-op that lies in the description, so the
