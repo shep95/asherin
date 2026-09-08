@@ -192,7 +192,7 @@ interface SpeakerRow {
 // id is resolved from the stored hash — never from anything the companion says.
 const DEVICE_HEADER = "x-asherin-device";
 const PAIR_TTL_MS = 10 * 60_000;
-const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings", "gap"]);
+const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings", "gap", "radio", "location"]);
 
 /** A caller-supplied timestamp is only accepted when it parses and is not in
  *  the future by more than a minute; anything else falls back to server time,
@@ -465,6 +465,94 @@ Deno.serve(async (req) => {
         return json({ gapId: data.id }, 200, cors);
       }
 
+      /**
+       * The radio environment. Every packet below was broadcast to the whole
+       * room by the device itself — nothing here connects, pairs or queries.
+       * Stored on the master timeline beside speech so "who was in the room"
+       * and "what was said" read as one record rather than two products.
+       */
+      case "radio": {
+        const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
+        const entries = Array.isArray(body.entries) ? body.entries.slice(0, 200) : [];
+        if (!entries.length) return json({ ok: true, written: 0 }, 200, cors);
+        const { data: device } = await admin.from("asherin_ambient_devices")
+          .select("id,label").eq("user_id", userId).eq("device_key", deviceKey).maybeSingle();
+
+        const rows = entries.map((raw) => {
+          const e = (raw ?? {}) as Record<string, unknown>;
+          const meta = (e.meta ?? {}) as Record<string, unknown>;
+          return {
+            user_id: userId,
+            device_id: device?.id ?? null,
+            speaker_id: null,
+            kind: "radio",
+            transcript: typeof e.summary === "string" ? e.summary.slice(0, 600) : null,
+            tag: typeof e.tag === "string" ? e.tag.slice(0, 60) : "radio",
+            confidence: null,
+            started_at: isoOrNull(e.atIso) ?? new Date().toISOString(),
+            duration_ms: typeof e.durationMs === "number" ? Math.max(0, Math.round(e.durationMs)) : null,
+            meta: { ...meta, channel: device?.label ?? null, source: String(e.source ?? "unknown").slice(0, 24) },
+          };
+        });
+        const { error } = await admin.from("asherin_ambient_events").insert(rows);
+        if (error) throw error;
+
+        // A critical exposure is worth an alert; anything less would train the
+        // operator to ignore the ones that matter.
+        const critical = entries.filter((raw) => (raw as Record<string, unknown>)?.risk === "critical").slice(0, 5);
+        for (const raw of critical) {
+          const e = raw as Record<string, unknown>;
+          await admin.from("asherin_ambient_alerts").insert({
+            user_id: userId,
+            kind: "radio-exposure",
+            message: String(e.summary ?? "a nearby radio is broadcasting a highly identifying signature.").slice(0, 300),
+          });
+        }
+        return json({ ok: true, written: rows.length }, 200, cors);
+      }
+
+      /**
+       * A place, with its provenance. Accuracy and source ride with every fix,
+       * because a 5 km ip estimate and a 6 m satellite fix are different claims
+       * and rendering them identically is the lie this record refuses.
+       */
+      case "location": {
+        const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
+        const fixes = Array.isArray(body.fixes) ? body.fixes.slice(0, 200) : [];
+        if (!fixes.length) return json({ ok: true, written: 0 }, 200, cors);
+        const { data: device } = await admin.from("asherin_ambient_devices")
+          .select("id,label").eq("user_id", userId).eq("device_key", deviceKey).maybeSingle();
+
+        const rows = fixes
+          .map((raw) => (raw ?? {}) as Record<string, unknown>)
+          .filter((f) => Number.isFinite(Number(f.lat)) && Number.isFinite(Number(f.lon)))
+          .map((f) => ({
+            user_id: userId,
+            device_id: device?.id ?? null,
+            speaker_id: null,
+            kind: "location",
+            transcript: typeof f.place === "string" ? f.place.slice(0, 400) : null,
+            tag: String(f.source ?? "unknown").slice(0, 24),
+            confidence: null,
+            started_at: isoOrNull(f.atIso) ?? new Date().toISOString(),
+            duration_ms: null,
+            meta: {
+              lat: Number(f.lat),
+              lon: Number(f.lon),
+              accuracyM: Number(f.accuracyM) || null,
+              altitudeM: Number.isFinite(Number(f.altitudeM)) ? Number(f.altitudeM) : null,
+              speedMps: Number.isFinite(Number(f.speedMps)) ? Number(f.speedMps) : null,
+              headingDeg: Number.isFinite(Number(f.headingDeg)) ? Number(f.headingDeg) : null,
+              movement: typeof f.movement === "string" ? f.movement.slice(0, 24) : null,
+              note: typeof f.note === "string" ? f.note.slice(0, 300) : null,
+              channel: device?.label ?? null,
+            },
+          }));
+        if (!rows.length) return json({ ok: true, written: 0 }, 200, cors);
+        const { error } = await admin.from("asherin_ambient_events").insert(rows);
+        if (error) throw error;
+        return json({ ok: true, written: rows.length }, 200, cors);
+      }
 
 
       case "ingest": {

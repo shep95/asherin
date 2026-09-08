@@ -23,6 +23,19 @@ What it does not do, and will not claim:
 2. Launch the companion and type the code. It exchanges the code for a device token, stored only
    on this machine and hashed in the account. Revoke it any time from the same panel.
 
+## Bluetooth environment scanning
+
+The companion also runs a passive BLE bridge on `ws://127.0.0.1:8769`, bound to loopback and
+restricted to the dashboard origins. The environment tab in `asherin.sentinel` connects to it
+automatically and starts reading advertisement packets — the real hardware address, address type,
+manufacturer payload and service data, none of which a browser tab can see.
+
+- scan only: it never connects, pairs, reads a characteristic or writes one
+- macOS hides the MAC and hands out a per-host uuid; the bridge reports that as
+  `addressIsHardware: false` instead of printing a uuid as though it were hardware
+- Linux needs `sudo setcap cap_net_raw+eip $(eval readlink -f $(which node))` for scanning
+- the scanner module is optional; without it the bridge says so instead of showing an empty room
+
 ## Build
 
 ```bash

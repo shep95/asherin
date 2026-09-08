@@ -33,7 +33,7 @@ export interface AmbientEvent {
   id: string;
   device_id: string | null;
   speaker_id: string | null;
-  kind: "speech" | "sound" | "gap";
+  kind: "speech" | "sound" | "gap" | "radio" | "location";
   transcript: string | null;
   tag: string | null;
   confidence: number | null;
@@ -102,6 +102,40 @@ export const openGap = (deviceKey: string, startedAtIso: string, reason: string)
 export const closeGap = (gapId: string, endedAtIso: string) =>
   call<{ ok: true }>("gap", { gapId, endedAtIso });
 
+
+/** The radio environment, written to the same timeline as speech. Every entry
+ *  came from a broadcast packet — nothing pairs, connects or queries. */
+export const logRadio = (
+  deviceKey: string,
+  entries: {
+    atIso: string;
+    summary: string;
+    tag: string;
+    risk: string;
+    source: string;
+    durationMs?: number;
+    meta?: Record<string, unknown>;
+  }[],
+) => call<{ ok: true; written: number }>("radio", { deviceKey, entries });
+
+/** A place with its provenance attached. Accuracy and source travel with the
+ *  fix so the timeline can never present a city-level guess as a street fix. */
+export const logLocation = (
+  deviceKey: string,
+  fixes: {
+    atIso: string;
+    lat: number;
+    lon: number;
+    accuracyM: number;
+    source: string;
+    note?: string;
+    place?: string | null;
+    movement?: string;
+    altitudeM?: number | null;
+    speedMps?: number | null;
+    headingDeg?: number | null;
+  }[],
+) => call<{ ok: true; written: number }>("location", { deviceKey, fixes });
 
 export const fetchTimeline = (filters: {
   sinceIso?: string;
