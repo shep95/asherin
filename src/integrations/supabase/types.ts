@@ -3653,6 +3653,45 @@ export type Database = {
         }
         Relationships: []
       }
+      brains: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          file_ids: string[]
+          id: string
+          is_active: boolean
+          name: string
+          system_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_ids?: string[]
+          id?: string
+          is_active?: boolean
+          name: string
+          system_prompt?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_ids?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          system_prompt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       briefing_profiles: {
         Row: {
           company_name: string | null
