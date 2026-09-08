@@ -3002,6 +3002,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // the silence law, and the pattern library this organism minted from real
       // sessions with THIS operator.
       _R.trivial ? "" : ORGANISM_CORE,
+      // Pattern Forge — how the organism thinks, not something it runs.
+      _R.trivial ? "" : forgeBlock,
+      (_R.deep || _R.analytics || _R.intel || _R.strategic || _R.coding) ? forgeDoctrineBlock : "",
       // The vault + minted patterns. Injected silently at every non-trivial
       // turn; the operator never sees this block and it is never evidence.
       _R.trivial ? "" : organismInjection,
