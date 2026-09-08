@@ -253,14 +253,6 @@ export const NAV_INTENTS: NavIntent[] = [
 
   // BUILD
   {
-    view: "ide",
-    label: "asherin.ide",
-    codename: "editor",
-    blurb: "read, edit and run code with diffs before apply",
-    keywords: ["ide", "code", "editor", "repo", "git", "terminal"],
-    group: "Build",
-  },
-  {
     view: "zahten",
     label: "asherin.agents",
     codename: "agent forge",

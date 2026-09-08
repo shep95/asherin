@@ -23,7 +23,6 @@ const TITLES: Partial<Record<string, V2Title>> = {
   connect: { title: "connect", subtitle: "what actually ran, and what it is bound to." },
   "api-keys": { title: "connect", subtitle: "what actually ran, and what it is bound to." },
   teams: { title: "team", subtitle: "people, seats and billing for one workspace." },
-  ide: { title: "ide", canvas: true },
   "asherin-defender": { title: "asherin.defender", subtitle: "your own device, watched honestly." },
   "asherin-arvision": { title: "asherin.arvision", canvas: true },
   "asherin-eye": { title: "asherin.eye", canvas: true },

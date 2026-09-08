@@ -136,7 +136,6 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   gematria: Calculator,
   briefing: Newspaper,
   cross: Crosshair,
-  ide: Terminal,
   notebooks: FileText,
   agents: Zap,
   zahten: Workflow,
