@@ -645,6 +645,18 @@ serve(async (req) => {
       await import("../_shared/domainAtlas.ts");
     const _dEmph = _bDE(lastUserText);
     const atlasBlock = "\n\n" + _DAI + (_dEmph ? "\n\n" + _dEmph : "");
+    // Pattern forge — the CYCLE layer. HOW thought moves (engine) and WHERE to
+    // look (atlas) still leave the order unfixed: this carries an observation
+    // from raw signal through disconfirmation to an encoded, falsifiable
+    // pattern, and keeps simulation typed separately from synthesis.
+    const {
+      PATTERN_FORGE_KERNEL: _PFK,
+      UNIVERSAL_PATTERN_OBJECT: _UPO,
+      PATTERN_FORGE_DOCTRINE: _PFD,
+      buildPatternForgeEmphasis: _bPF,
+    } = await import("../_shared/patternForge.ts");
+    const _fEmph = _bPF(lastUserText);
+    const forgeBlock = "\n\n" + _PFK + "\n\n" + _UPO + "\n\n" + _PFD + (_fEmph ? "\n\n" + _fEmph : "");
 
     // ── QUEUE 10: LIVE DORK. Fire before the model writes. Honest offline banner
     // on failure — no fabricated SERP. ──
@@ -664,7 +676,7 @@ serve(async (req) => {
       liveDorkOfflineBlock = `\n[LIVE DORK OFFLINE] live dork offline (${(e as Error).message}).\n`;
     }
 
-    const fullSystem = ASHERIN_IDENTITY + "\n\n" + buildAsherinProcedures(lastUserText) + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + OUTPUT_CONDUCT_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_DOCTRINE + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + liveDorkBlock + liveDorkOfflineBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_ANCHOR + "\n\n" + OUTPUT_CONDUCT_ANCHOR;
+    const fullSystem = ASHERIN_IDENTITY + "\n\n" + buildAsherinProcedures(lastUserText) + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + temporalBlock + "\n\n" + OUTPUT_CONDUCT_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_DOCTRINE + "\n\n" + SYSTEM_PROMPT + numberedDirective + "\n\n" + SYSTEM_TWO_FORCING_BRAIN + "\n\n" + CODE_NARRATIVE_PROTOCOL + "\n\n" + BRAIN_ORCHESTRATOR + "\n\n" + SOCIAL_AWARENESS_BRAIN + "\n\n" + DEEP_TRAINING_ARCHITECTURE_BRAIN + "\n\n" + NARRATIVE_FORGE_BRAIN + "\n\n" + QUANTUM_ORCHESTRATION_BRAIN + "\n\n" + BUTTERFLY_PROTOCOL_BRAIN + "\n\n" + COMEDY_BRAIN + "\n\n" + ASHER_LOGIC_BRAIN + "\n\n" + PROMPT_INTELLIGENCE_PROTOCOL + "\n\n" + SYNTHESIS_ENGINE_BRAIN + "\n\n" + VISUAL_INTELLIGENCE_BRAIN + chartVisionBlock + "\n\n" + GEOLOCATION_BRAIN + logicBlock + patternBlock + atlasBlock + forgeBlock + "\n\n" + GEMATRIA_CHAT_DIRECTIVE + brainBlock + ctxBlock + leaksBlock + archiveBlock + jurisdictionalBlock + youtubeBlock + liveDorkBlock + liveDorkOfflineBlock + "\n\n" + HYPOTHETICAL_REALISM_DOCTRINE + "\n\n" + AXIOMATIC_GROUNDING_ANCHOR + "\n\n" + OUTPUT_CONDUCT_ANCHOR;
 
     // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
     if (hasAttachments) {
