@@ -299,7 +299,7 @@ export async function exportEvidenceZip(records: EvidenceRecord[]): Promise<Blob
   }
 
   zip.file("index.json", JSON.stringify({ schema: "asherin.eagle.eye/evidence-index@1", exportedAtUtc: new Date().toISOString(), records: index }, null, 2));
-  zip.file("READ-ME-FIRST.txt", `${EVIDENCE_DISCLAIMER}\n\neach folder holds one recorded event: the clean frame, a stamped copy, the annotated reading, filter renderings, a card of the bluetooth radios in range, a manifest with sha-256 hashes of every image, and a printable report.\nverify an image by hashing the exact file bytes and comparing with the manifest entry.\n`);
+  zip.file("READ-ME-FIRST.txt", `${EVIDENCE_DISCLAIMER}\n\neach folder holds one recorded event: the clean frame, a stamped copy, the annotated reading, palette renderings, a card of the bluetooth radios in range, a manifest with sha-256 hashes of every image, and a printable report.\nverify an image by hashing the exact file bytes and comparing with the manifest entry.\n`);
   return await zip.generateAsync({ type: "blob" });
 }
 
