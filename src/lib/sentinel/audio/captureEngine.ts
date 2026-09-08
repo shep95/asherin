@@ -351,6 +351,7 @@ export class SentinelEngine {
 
     try {
       this.node?.disconnect();
+      this.chain?.disconnect();
       this.source?.disconnect();
       this.stream?.getTracks().forEach((t) => t.stop());
       await this.ctx?.close();
@@ -358,10 +359,13 @@ export class SentinelEngine {
       /* teardown is best-effort; the tracks stop either way */
     }
     this.node = null;
+    this.chain = null;
+    this.pipelineNote = null;
     this.source = null;
     this.stream = null;
     this.ctx = null;
     await this.wakeLock?.release().catch(() => {});
+
     this.wakeLock = null;
     this.vad = new Vad(VAD_SENSITIVITY[this.sensitivity]);
     this.preroll = [];
