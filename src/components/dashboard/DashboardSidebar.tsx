@@ -39,7 +39,6 @@ import {
   Trash2 as Trash2Icon,
   Pencil,
   MessagesSquare,
-  Terminal,
   Sparkles,
   Lock as LockIcon,
   Shield,
