@@ -21,6 +21,8 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 
 const STT_MODEL = "openai/gpt-4o-mini-transcribe";
+const TRANSLATE_MODEL = "openai/gpt-6-astra";
+
 const MAX_SEGMENTS = 6;
 const MAX_AUDIO_B64 = 4_000_000; // ~3mb wav — about 90s at 16khz mono
 const MAX_TIMELINE = 300;
@@ -89,7 +91,7 @@ function base64ToBytes(b64: string): Uint8Array {
   return out;
 }
 
-async function transcribe(wav: Uint8Array): Promise<{ text: string | null; note: string | null }> {
+async function transcribe(wav: Uint8Array, sourceLang: string): Promise<{ text: string | null; note: string | null }> {
   if (!LOVABLE_API_KEY) return { text: null, note: "transcription is not configured on this deployment." };
   const form = new FormData();
   form.append("model", STT_MODEL);
@@ -97,6 +99,9 @@ async function transcribe(wav: Uint8Array): Promise<{ text: string | null; note:
   const bytes = new Uint8Array(wav.length);
   bytes.set(wav);
   form.append("file", new Blob([bytes.buffer as ArrayBuffer], { type: "audio/wav" }), "segment.wav");
+  // Only a bare, known code is forwarded. "auto" is the absence of a hint, not
+  // a value the transcriber understands, and a locale string is rejected.
+  if (/^[a-z]{2,3}$/.test(sourceLang) && sourceLang !== "auto") form.append("language", sourceLang);
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 45_000);
   try {
@@ -122,6 +127,57 @@ async function transcribe(wav: Uint8Array): Promise<{ text: string | null; note:
   }
 }
 
+/**
+ * Render one turn into the channel's target language.
+ *
+ * The failure that matters here is a translator that answers a question in the
+ * transcript instead of translating it, or that quietly returns the source text
+ * and lets the lane claim it was translated. So: a narrow instruction, no
+ * conversation, and a caller that treats an unchanged or empty answer as a
+ * stated failure rather than as a translation.
+ */
+async function translate(text: string, target: string): Promise<{ text: string | null; note: string | null }> {
+  if (!LOVABLE_API_KEY) return { text: null, note: "translation is not configured on this deployment." };
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 30_000);
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      signal: ctl.signal,
+      body: JSON.stringify({
+        model: TRANSLATE_MODEL,
+        reasoning_effort: "low",
+        max_completion_tokens: 900,
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are a translation engine. Translate the user's text into ${target} (ISO code). ` +
+              "Return only the translation: no preamble, no notes, no quotation marks, no answer to anything the text asks. " +
+              "Preserve names, numbers and profanity exactly. If the text is already in the target language, return it unchanged.",
+          },
+          { role: "user", content: text.slice(0, 4000) },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      if (res.status === 429) return { text: null, note: "translation is rate limited right now; the turn is stored in its source language." };
+      if (res.status === 402) return { text: null, note: "translation credits are exhausted on this workspace; the turn is stored in its source language." };
+      return { text: null, note: `translation refused this turn (${res.status}); it is stored in its source language.` };
+    }
+    const body = await res.json().catch(() => null) as { choices?: Array<{ message?: { content?: string } }> } | null;
+    const out = (body?.choices?.[0]?.message?.content ?? "").trim();
+    if (!out) return { text: null, note: "the translator returned nothing; the turn is stored in its source language." };
+    return { text: out.slice(0, 8000), note: null };
+  } catch (e) {
+    return { text: null, note: e instanceof Error && e.name === "AbortError" ? "translation timed out; the turn is stored in its source language." : "translation could not be reached." };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
 interface SpeakerRow {
   id: string; label: string; name: string | null; name_source: string | null;
   embedding: number[]; sample_count: number; confidence: number;
@@ -136,7 +192,20 @@ interface SpeakerRow {
 // id is resolved from the stored hash — never from anything the companion says.
 const DEVICE_HEADER = "x-asherin-device";
 const PAIR_TTL_MS = 10 * 60_000;
-const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings"]);
+const DEVICE_ACTIONS = new Set(["register", "heartbeat", "ingest", "get-settings", "gap"]);
+
+/** A caller-supplied timestamp is only accepted when it parses and is not in
+ *  the future by more than a minute; anything else falls back to server time,
+ *  so a gap can never be back-dated to hide or invent a hole. */
+function isoOrNull(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = Date.parse(v);
+  if (!Number.isFinite(t)) return null;
+  if (t > Date.now() + 60_000) return null;
+  if (t < Date.now() - 30 * 24 * 3600_000) return null;
+  return new Date(t).toISOString();
+}
+
 
 // pair-claim is the one door without a session on it, so it gets a per-isolate
 // throttle. An eight character code from a 32 symbol alphabet is ~10^12 wide;
@@ -326,6 +395,78 @@ Deno.serve(async (req) => {
         return json({ ok: true }, 200, cors);
       }
 
+      /** Rename the lane. The operator's word wins over the browser's device
+       *  string, because the timeline is read months later. */
+      case "rename-device": {
+        const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
+        const label = String(body.label ?? "").trim().slice(0, 60);
+        if (!deviceKey || !label) return json({ error: "BAD_REQUEST", message: "A device key and a name are required." }, 400, cors);
+        const { data, error } = await admin.from("asherin_ambient_devices")
+          .update({ label }).eq("user_id", userId).eq("device_key", deviceKey).select().maybeSingle();
+        if (error) throw error;
+        if (!data) return json({ error: "UNKNOWN_DEVICE", message: "That channel is not registered to this account." }, 404, cors);
+        return json({ device: data }, 200, cors);
+      }
+
+      /** The per-channel language contract, stored server-side so ingest reads
+       *  it rather than trusting whatever the client sends with a batch. */
+      case "device-prefs": {
+        const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
+        const incoming = (body.prefs ?? {}) as Record<string, unknown>;
+        const code = (v: unknown) => (typeof v === "string" && /^[a-z]{2,3}$/.test(v) ? v : "");
+        if (!deviceKey) return json({ error: "BAD_REQUEST", message: "A device key is required." }, 400, cors);
+        const { data: row } = await admin.from("asherin_ambient_devices")
+          .select("id,push_prefs").eq("user_id", userId).eq("device_key", deviceKey).maybeSingle();
+        if (!row) return json({ error: "UNKNOWN_DEVICE", message: "That channel is not registered to this account." }, 404, cors);
+        const next = { ...(row.push_prefs ?? {}) as Record<string, unknown> };
+        if (incoming.sourceLang !== undefined) next.sourceLang = incoming.sourceLang === "auto" ? "auto" : code(incoming.sourceLang);
+        if (incoming.translateTo !== undefined) next.translateTo = code(incoming.translateTo);
+        const { data, error } = await admin.from("asherin_ambient_devices")
+          .update({ push_prefs: next }).eq("id", row.id).select().single();
+        if (error) throw error;
+        return json({ device: data }, 200, cors);
+      }
+
+      /**
+       * A hole in the record, opened when a channel drops and closed when it
+       * comes back. This is the one thing sentinel must never hide: an absence
+       * of events is not evidence of an absence of sound.
+       */
+      case "gap": {
+        const gapId = typeof body.gapId === "string" ? body.gapId : null;
+        if (gapId) {
+          const endedIso = isoOrNull(body.endedAtIso) ?? new Date().toISOString();
+          const { data: existing } = await admin.from("asherin_ambient_events")
+            .select("id,started_at,meta").eq("user_id", userId).eq("id", gapId).eq("kind", "gap").maybeSingle();
+          if (!existing) return json({ ok: true, closed: false }, 200, cors);
+          const durationMs = Math.max(0, new Date(endedIso).getTime() - new Date(existing.started_at).getTime());
+          await admin.from("asherin_ambient_events").update({
+            duration_ms: durationMs,
+            meta: { ...(existing.meta ?? {}) as Record<string, unknown>, endedAt: endedIso, open: false },
+          }).eq("id", gapId).eq("user_id", userId);
+          return json({ ok: true, closed: true }, 200, cors);
+        }
+
+        const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
+        const reason = String(body.reason ?? "this channel stopped capturing.").slice(0, 240);
+        const startedAt = isoOrNull(body.startedAtIso) ?? new Date().toISOString();
+        const { data: device } = await admin.from("asherin_ambient_devices")
+          .select("id,label").eq("user_id", userId).eq("device_key", deviceKey).maybeSingle();
+        if (!device) return json({ error: "UNKNOWN_DEVICE", message: "That channel is not registered to this account." }, 404, cors);
+        const { data, error } = await admin.from("asherin_ambient_events").insert({
+          user_id: userId, device_id: device.id, speaker_id: null,
+          kind: "gap", transcript: null, tag: "capture gap", confidence: null,
+          started_at: startedAt, duration_ms: null,
+          meta: { reason, open: true, channel: device.label },
+        }).select("id").single();
+        if (error) throw error;
+        await admin.from("asherin_ambient_devices")
+          .update({ status: "offline", last_seen_at: new Date().toISOString() }).eq("id", device.id);
+        return json({ gapId: data.id }, 200, cors);
+      }
+
+
+
       case "ingest": {
         const deviceKey = String(body.deviceKey ?? "").slice(0, 80);
         const segments = Array.isArray(body.segments) ? body.segments.slice(0, MAX_SEGMENTS) : [];
@@ -336,6 +477,15 @@ Deno.serve(async (req) => {
         if (!device) return json({ error: "UNKNOWN_DEVICE", message: "Register this device first." }, 409, cors);
         await admin.from("asherin_ambient_devices")
           .update({ status: "active", last_seen_at: new Date().toISOString() }).eq("id", device.id);
+
+        // The channel's own language contract. Held on the device row, not sent
+        // by the client with each batch: a stale or patched client must not be
+        // able to render a lane in a language the stored turn disagrees with.
+        const devPrefs = (device.push_prefs ?? {}) as Record<string, unknown>;
+        const langCode = (v: unknown) => (typeof v === "string" && /^[a-z]{2,3}$/.test(v) ? v : "");
+        const chanSource = langCode(devPrefs.sourceLang) || "auto";
+        const chanTarget = langCode(devPrefs.translateTo);
+
 
         const { data: settingsRow } = await admin.from("asherin_ambient_settings")
           .select("prefs").eq("user_id", userId).maybeSingle();
@@ -426,18 +576,36 @@ Deno.serve(async (req) => {
           }
 
           let transcript: string | null = null;
+          let sourceText: string | null = null;
+          let translated = false;
           if (transcribeEnabled && audioB64) {
-            const { text, note } = await transcribe(base64ToBytes(audioB64));
+            const { text, note } = await transcribe(base64ToBytes(audioB64), chanSource);
             transcript = text;
             if (note) notes.push(note);
+            // Translation renders the lane; the source text is kept beside it so
+            // the record never loses what was actually said.
+            if (text && chanTarget) {
+              const out = await translate(text, chanTarget);
+              if (out.text) {
+                sourceText = text;
+                transcript = out.text;
+                translated = true;
+              } else if (out.note) {
+                notes.push(out.note);
+              }
+            }
           } else if (!transcribeEnabled) {
             notes.push("transcription is switched off in settings; segments are logged with voice identity only.");
           }
 
-          // Passive self-identification, only from the speaker's own words.
+
+          // Passive self-identification, only from the speaker's own words —
+          // read from what was SAID, never from a translation of it.
           let nameBound: { name: string; quote: string } | null = null;
-          if (transcript && speaker && !speaker.name) {
-            nameBound = selfName(transcript);
+          const spokenText = sourceText ?? transcript;
+          if (spokenText && speaker && !speaker.name) {
+            nameBound = selfName(spokenText);
+
             if (nameBound) {
               const { data: named } = await admin.from("asherin_ambient_speakers")
                 .update({ name: nameBound.name, name_source: `self-claim: "${nameBound.quote}"` })
@@ -474,8 +642,15 @@ Deno.serve(async (req) => {
               nameBoundFrom: nameBound?.quote ?? null,
               identityMethod: "acoustic similarity on this account's own samples — not forensic speaker verification",
               transcriptionModel: transcript ? STT_MODEL : null,
+              channel: device.label,
+              sourceLang: chanSource,
+              translateTo: chanTarget || null,
+              translated,
+              sourceTranscript: sourceText,
+              translationModel: translated ? TRANSLATE_MODEL : null,
             },
           }).select().single();
+
           if (error) throw error;
           events.push(ev);
           if (ambiguous) notes.push("two stored voices matched this turn too closely to separate; it is logged without a name.");

@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { Activity, AlertTriangle, Check, Download, Ear, HardDrive, History, Loader2, Mic, MicOff, Radio, Search, Trash2, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Activity, AlertTriangle, Bluetooth, Check, Download, Ear, HardDrive, History, Languages, Loader2, Mic, MicOff, Plus, Radio, Search, Trash2, Unplug, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { deviceLabel, type EngineStatus } from "@/lib/sentinel/audio/captureEngine";
+import { deviceLabel } from "@/lib/sentinel/audio/captureEngine";
 import {
   bufferStats, deleteSession, listSessions, payloadsBetween, wipeLocal,
   DEFAULT_RETENTION_HOURS, type RecordingSession,
 } from "@/lib/sentinel/audio/localBuffer";
-import { sentinelEngine, sentinelNotes, sentinelStatus, setSentinelSensitivity, subscribeSentinel } from "@/lib/sentinel/audio/engineSingleton";
+import {
+  addChannel, audioInputs, bootChannels, inputTaken, listChannels, refreshInputs,
+  removeChannel, renameChannel, setChannelLanguages, setChannelSensitivity, startChannel, stopChannel,
+  subscribeChannelIngest, subscribeChannels, type ChannelView,
+} from "@/lib/sentinel/audio/channels";
+import { AUTO_SOURCE, LANGUAGES, NO_TRANSLATION, languageName } from "@/lib/sentinel/audio/languages";
 import { isVadSensitivity, type VadSensitivity } from "@/lib/sentinel/audio/vad";
 import { DEFAULT_PUSH_TAGS } from "@/lib/sentinel/audio/soundEvents";
 import {
@@ -18,19 +23,25 @@ import {
 } from "@/lib/sentinel/audio/sync";
 import CompanionPanel from "./CompanionPanel";
 
+
 /**
  * asherin.sentinel — the ambient watch, and the truth about its reach.
  *
- * The room states its own boundary on its face rather than in a footnote: a
- * browser holds the microphone while this page lives, including while the tab is
- * behind others and while a desktop screen sleeps. It does NOT hold the
- * microphone after the tab closes or after a phone suspends the browser, because
- * the operating system takes the radio back. Everything captured is encrypted on
- * this device before it is sent, and the account timeline — not this tab — is the
- * record.
+ * The watch is no longer one microphone. Each CHANNEL binds one input — the
+ * machine's own mic, a bluetooth headset, a usb array — to one named lane with
+ * its own language contract, and every lane writes into the same searchable
+ * account timeline. A bluetooth channel moves the microphone onto the person,
+ * so distance from the machine stops being the limit; the headset's own radio
+ * range is.
+ *
+ * The room states its boundary on its face rather than in a footnote: a browser
+ * holds its inputs while this page lives, including behind other tabs and while
+ * a desktop screen sleeps. It does NOT hold them after the tab closes or after a
+ * phone suspends the browser. Whatever is missed is written into the timeline as
+ * a visible gap, never hidden as quiet.
  */
 
-type Tab = "live" | "timeline" | "speakers" | "alerts" | "history" | "devices";
+type Tab = "live" | "channels" | "timeline" | "speakers" | "alerts" | "history" | "devices";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 const chip = "rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/55";
@@ -40,14 +51,16 @@ const dayStamp = (iso: string) => new Date(iso).toLocaleDateString([], { month: 
 
 const SentinelView = () => {
   const { toast } = useToast();
-  const engine = sentinelEngine();
-  const [status, setStatus] = useState<EngineStatus | null>(() => sentinelStatus());
+  const [channels, setChannels] = useState<ChannelView[]>([]);
+  const [inputs, setInputs] = useState<MediaDeviceInfo[]>([]);
+  const [labelsUnlocked, setLabelsUnlocked] = useState(false);
   const [tab, setTab] = useState<Tab>("live");
   const [events, setEvents] = useState<AmbientEvent[]>([]);
+
   const [speakers, setSpeakers] = useState<AmbientSpeaker[]>([]);
   const [devices, setDevices] = useState<AmbientDevice[]>([]);
   const [alerts, setAlerts] = useState<AmbientAlert[]>([]);
-  const [notes, setNotes] = useState<string[]>(() => sentinelNotes());
+  const [notes, setNotes] = useState<string[]>([]);
   const [sessions, setSessions] = useState<RecordingSession[]>([]);
   const [exporting, setExporting] = useState<string | null>(null);
   const [openAlert, setOpenAlert] = useState<string | null>(null);
@@ -56,6 +69,8 @@ const SentinelView = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [speakerFilter, setSpeakerFilter] = useState<string>("");
+  const [laneFilter, setLaneFilter] = useState<string>("");
+
   const [buffer, setBuffer] = useState({ total: 0, pending: 0, oldestAt: null as number | null });
   const [transcribeOn, setTranscribeOn] = useState(true);
   const [pushNewSpeaker, setPushNewSpeaker] = useState(true);
@@ -68,13 +83,18 @@ const SentinelView = () => {
     setNotes((prev) => (prev.includes(note) ? prev : [note, ...prev].slice(0, 6)));
   }, []);
 
-  // The engine is a module singleton, so leaving this room — or any other
-  // navigation inside the app — no longer ends the watch. This view only
-  // subscribes to it and unsubscribes on unmount.
-  useEffect(() => subscribeSentinel({
-    onStatus: setStatus,
-    onNote: pushNote,
-    onIngest: (result) => {
+  // Channels live at module scope, so leaving this room — or any other
+  // navigation inside the app — no longer ends a watch. This view subscribes to
+  // the roster and unsubscribes on unmount; the capture itself is untouched.
+  useEffect(() => {
+    bootChannels();
+    const sync = () => {
+      setChannels(listChannels());
+      setInputs(audioInputs());
+    };
+    sync();
+    const offRoster = subscribeChannels(sync);
+    const offIngest = subscribeChannelIngest((_id, result) => {
       if (result.events?.length) setEvents((prev) => [...result.events, ...prev].slice(0, 400));
       if (result.speakers?.length) {
         setSpeakers((prev) => {
@@ -84,14 +104,24 @@ const SentinelView = () => {
         });
       }
       if (result.alerts?.length) setAlerts((prev) => [...result.alerts, ...prev].slice(0, 100));
-    },
-  }), [pushNote]);
+      if (result.notes?.length) result.notes.forEach((n) => pushNote(n));
+    });
+    void refreshInputs().then((list) => {
+      setInputs(list);
+      // A browser withholds input names until microphone permission has been
+      // granted once. An unnamed roster is unusable for choosing a headset, so
+      // the room says so instead of showing "audioinput 2".
+      setLabelsUnlocked(list.length === 0 || list.some((d) => Boolean(d.label)));
+    });
+    return () => { offRoster(); offIngest(); };
+  }, [pushNote]);
+
 
   const reload = useCallback(async () => {
     setLoadError(null);
     try {
       const [timeline, alertList, settings] = await Promise.all([
-        fetchTimeline({ limit: 200, query: query.trim() || undefined, speakerId: speakerFilter || undefined }),
+        fetchTimeline({ limit: 200, query: query.trim() || undefined, speakerId: speakerFilter || undefined, deviceId: laneFilter || undefined }),
         fetchAlerts(),
         fetchSettings(),
       ]);
@@ -105,13 +135,13 @@ const SentinelView = () => {
       setRetention(settings.retentionHours || DEFAULT_RETENTION_HOURS);
       const sens: VadSensitivity = isVadSensitivity(prefs.sensitivity) ? prefs.sensitivity : "balanced";
       setSensitivity(sens);
-      setSentinelSensitivity(sens);
+      setChannelSensitivity(sens);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "the account timeline could not be read.");
     } finally {
       setLoading(false);
     }
-  }, [query, speakerFilter]);
+  }, [query, speakerFilter, laneFilter]);
 
   useEffect(() => {
     void reload();
@@ -125,24 +155,44 @@ const SentinelView = () => {
 
   // The watch is deliberately NOT stopped on unmount. Stopping here was the
   // bug: opening another room killed a capture the operator had explicitly
-  // started. It now ends only on the stop control or when the tab itself dies,
-  // and the header says which of those is true at any moment.
+  // started. It ends only on a stop control or when the tab itself dies.
   useEffect(() => { void listSessions().then(setSessions); }, [tab]);
 
-  const listening = status?.state === "listening";
+  const listening = channels.some((c) => c.listening);
+  const liveCount = channels.filter((c) => c.listening).length;
+  /** The loudest live channel drives the header meter: a header showing a dead
+   *  lane's level while another lane is capturing would read as silence. */
+  const lead = useMemo(
+    () => channels.filter((c) => c.listening).sort((a, b) => (b.status?.level ?? 0) - (a.status?.level ?? 0))[0] ?? channels[0] ?? null,
+    [channels],
+  );
+  const status = lead?.status ?? null;
+  const channelNotes = useMemo(() => [...new Set(channels.flatMap((c) => c.notes))].slice(0, 6), [channels]);
 
+  /** Start every channel that is not already running, or stop all of them.
+   *  Partial failures are named per channel rather than collapsed into one
+   *  "the watch did not start", which hid which headset was off. */
   const toggle = async () => {
     setBusy(true);
     try {
-      if (listening) await engine.stop();
-      else {
-        const ok = await engine.start();
-        if (!ok) toast({ title: "the watch did not start", description: engine.getStatus().message ?? "", variant: "destructive" });
+      if (listening) {
+        await Promise.all(channels.filter((c) => c.listening).map((c) => stopChannel(c.config.id)));
+      } else {
+        const results = await Promise.all(
+          channels.map(async (c) => ({ label: c.config.label, ok: await startChannel(c.config.id).catch(() => false) })),
+        );
+        const failed = results.filter((r) => !r.ok);
+        if (failed.length === results.length) {
+          toast({ title: "the watch did not start", description: failed.map((f) => f.label).join(", "), variant: "destructive" });
+        } else if (failed.length) {
+          toast({ title: `${failed.length} channel${failed.length === 1 ? "" : "s"} did not start`, description: `${failed.map((f) => f.label).join(", ")} — check the device is powered on and connected.` });
+        }
       }
     } finally {
       setBusy(false);
     }
   };
+
 
   const persistSettings = async (patch: { transcribe?: boolean; pushNewSpeaker?: boolean; retentionHours?: number; sensitivity?: VadSensitivity }) => {
     const next = {
@@ -154,7 +204,7 @@ const SentinelView = () => {
     setTranscribeOn(next.transcribe);
     setPushNewSpeaker(next.pushNewSpeaker);
     setSensitivity(next.sensitivity);
-    setSentinelSensitivity(next.sensitivity);
+    setChannelSensitivity(next.sensitivity);
     const hours = patch.retentionHours ?? retention;
     setRetention(hours);
     try {
@@ -273,12 +323,14 @@ const SentinelView = () => {
 
   const tabs: Array<{ key: Tab; label: string; icon: typeof Ear }> = [
     { key: "live", label: "live", icon: Radio },
+    { key: "channels", label: "channels", icon: Bluetooth },
     { key: "timeline", label: "timeline", icon: Activity },
     { key: "speakers", label: "speakers", icon: Users },
     { key: "alerts", label: "alerts", icon: AlertTriangle },
     { key: "history", label: "history", icon: History },
     { key: "devices", label: "devices", icon: HardDrive },
   ];
+
 
   const meterWidth = Math.min(100, Math.round((status?.level ?? 0) * 900));
 
@@ -289,37 +341,40 @@ const SentinelView = () => {
           <div className="min-w-[240px]">
             <h1 className="font-light tracking-tight text-2xl text-white/90">asherin.sentinel</h1>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">
-              an ambient watch. it separates voices, learns them from their own words, tags the sounds around them, and
-              keeps every turn in one searchable account timeline.
+              an ambient watch across as many inputs as you connect. each channel is its own named lane with its own
+              language, and every lane lands in one searchable account timeline.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right text-[11px] leading-tight text-white/40">
               <div>{deviceLabel()}</div>
+              <div>{liveCount} of {channels.length} channel{channels.length === 1 ? "" : "s"} live</div>
               <div>{buffer.pending} buffered · {buffer.total} on device</div>
             </div>
             <Button
               onClick={toggle}
-              disabled={busy}
+              disabled={busy || !channels.length}
               className={`h-11 rounded-xl border px-5 font-light ${listening ? "border-white/20 bg-white/[0.08] text-white/90" : "border-white/15 bg-white/[0.05] text-white/70"}`}
             >
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : listening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-              {listening ? "stop listening" : "start listening"}
+              {listening ? "stop every channel" : "start every channel"}
             </Button>
           </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/[0.05] p-3">
           <p className="text-xs leading-relaxed text-white/70">
-            <span className="font-medium text-white/90">truth boundary:</span> once started, the watch keeps running while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off. to keep listening with no browser open, pair the desktop companion under devices — it runs as its own process and resumes after a reboot, though nothing can record while a machine is powered off, asleep or hibernating. the account timeline is the authoritative record of what was captured.
+            <span className="font-medium text-white/90">truth boundary:</span> a running channel keeps capturing while you move between rooms in this dashboard, while this tab sits behind other tabs or apps, and while a desktop screen locks. it does not survive this tab closing, the browser quitting, the phone sleeping the browser, or the device powering off — and when any of that happens the missing stretch is written into the timeline as a visible gap rather than shown as quiet. a bluetooth channel follows the person wearing it, so distance from this machine stops mattering; its own radio range is the limit. to keep listening with no browser open, pair the desktop companion under devices. the account timeline is the authoritative record.
           </p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span className={chip}>{status?.state ?? "idle"}</span>
+          <span className={chip}>{listening ? `${liveCount} listening` : status?.state ?? "idle"}</span>
+          {listening && <span className={chip}>{lead?.config.label}</span>}
           {listening && <span className={chip}>{status?.speaking ? "voice" : "ambient"}</span>}
           {listening && <span className={chip}>floor {(status?.noiseFloor ?? 0).toFixed(4)}</span>}
           {listening && <span className={chip}>{status?.sampleRate ?? 0} hz</span>}
+          {channels.some((c) => c.gapOpen) && <span className={chip}>gap open</span>}
           <div className="h-1.5 min-w-[120px] flex-1 overflow-hidden rounded-full bg-white/[0.06]">
             <div className="h-full rounded-full bg-white/40 transition-[width] duration-150" style={{ width: `${meterWidth}%` }} />
           </div>
@@ -328,14 +383,15 @@ const SentinelView = () => {
         {status?.message && (
           <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/60">{status.message}</p>
         )}
-        {notes.length > 0 && (
+        {(notes.length > 0 || channelNotes.length > 0) && (
           <ul className="mt-3 space-y-1">
-            {notes.map((n) => (
+            {[...new Set([...notes, ...channelNotes])].slice(0, 8).map((n) => (
               <li key={n} className="text-[11px] text-white/45">— {n}</li>
             ))}
           </ul>
         )}
       </header>
+
 
       <nav className="flex flex-wrap gap-2">
         {tabs.map(({ key, label, icon: Icon }) => (
