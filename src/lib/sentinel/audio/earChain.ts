@@ -260,7 +260,8 @@ export async function buildEarChain(
   makeup.gain.value = dbToLinear(tuning.makeupGainDb);
 
   source.connect(highpass);
-  highpass.connect(warmth);
+  highpass.connect(highpass2);
+  highpass2.connect(warmth);
   warmth.connect(presence);
   presence.connect(airShelf);
   airShelf.connect(ceiling);
@@ -290,7 +291,7 @@ export async function buildEarChain(
     }
   }
 
-  const nodes: AudioNode[] = [highpass, warmth, presence, airShelf, ceiling, comp, makeup];
+  const nodes: AudioNode[] = [highpass, highpass2, warmth, presence, airShelf, ceiling, comp, makeup];
   if (gate) nodes.push(gate);
 
   return {
@@ -306,7 +307,7 @@ export async function buildEarChain(
     describe: () =>
       [
         `${Math.round(ctx.sampleRate / 1000)} khz mono`,
-        `rumble cut ${tuning.rumbleCutHz} hz`,
+        `rumble cut ${tuning.rumbleCutHz} hz at 24 db/oct`,
         `presence +${tuning.presenceGainDb} db at ${tuning.presenceHz} hz`,
         `air ${tuning.airShelfGainDb} db over ${tuning.airShelfHz} hz`,
         `ceiling ${Math.round(ceilingHz / 1000)} khz`,
