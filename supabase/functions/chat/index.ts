@@ -2851,6 +2851,21 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _domainEmphasis = _da.buildDomainEmphasis(_lastUserText);
     }
 
+    // Pattern forge — the CYCLE layer (observe → … → learn), scale-invariant
+    // and open-world. Loaded alongside the engine and atlas so the model has
+    // HOW / WHERE / IN WHAT ORDER before it writes a single token.
+    let PATTERN_FORGE_KERNEL = "";
+    let UNIVERSAL_PATTERN_OBJECT = "";
+    let PATTERN_FORGE_DOCTRINE = "";
+    let _forgeEmphasis = "";
+    if (!_skipHeavyOrgans) {
+      const _pf = await import("../_shared/patternForge.ts");
+      PATTERN_FORGE_KERNEL = _pf.PATTERN_FORGE_KERNEL;
+      UNIVERSAL_PATTERN_OBJECT = _pf.UNIVERSAL_PATTERN_OBJECT;
+      PATTERN_FORGE_DOCTRINE = _pf.PATTERN_FORGE_DOCTRINE;
+      _forgeEmphasis = _pf.buildPatternForgeEmphasis(_lastUserText);
+    }
+
     // ── LAYER 1 — PRE-INFERENCE GATE ──────────────────────────────────────
     // Runs before a single prompt byte is assembled. It holds only the harm
     // boundary the axioms already stated (real harm, real victim), so nothing
