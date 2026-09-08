@@ -645,18 +645,16 @@ serve(async (req) => {
       await import("../_shared/domainAtlas.ts");
     const _dEmph = _bDE(lastUserText);
     const atlasBlock = "\n\n" + _DAI + (_dEmph ? "\n\n" + _dEmph : "");
-    // Pattern forge — the CYCLE layer. HOW thought moves (engine) and WHERE to
-    // look (atlas) still leave the order unfixed: this carries an observation
-    // from raw signal through disconfirmation to an encoded, falsifiable
-    // pattern, and keeps simulation typed separately from synthesis.
+    // Pattern forge — the trained way of thinking, not a process to execute.
+    // No stage selection, no rotation to schedule: the whole doctrine is
+    // resident and shows up as one fluid reading, silently.
     const {
       PATTERN_FORGE_KERNEL: _PFK,
       UNIVERSAL_PATTERN_OBJECT: _UPO,
       PATTERN_FORGE_DOCTRINE: _PFD,
-      buildPatternForgeEmphasis: _bPF,
+      PATTERN_FORGE_FLUENCY: _PFF,
     } = await import("../_shared/patternForge.ts");
-    const _fEmph = _bPF(lastUserText);
-    const forgeBlock = "\n\n" + _PFK + "\n\n" + _UPO + "\n\n" + _PFD + (_fEmph ? "\n\n" + _fEmph : "");
+    const forgeBlock = "\n\n" + _PFK + "\n\n" + _UPO + "\n\n" + _PFD + "\n\n" + _PFF;
 
     // ── QUEUE 10: LIVE DORK. Fire before the model writes. Honest offline banner
     // on failure — no fabricated SERP. ──
