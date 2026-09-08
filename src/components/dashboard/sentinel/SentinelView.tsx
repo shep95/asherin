@@ -434,16 +434,31 @@ const SentinelView = () => {
           )}
           <div className="space-y-2">
             {events.slice(0, 40).map((ev) => (
-              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} />
+              <EventRow key={ev.id} ev={ev} name={speakerName(ev.speaker_id)} lane={laneName(ev.device_id)} />
             ))}
             {!events.length && (
               <p className="py-8 text-center text-sm text-white/40">
-                nothing captured yet. start the watch and speak — a turn appears here the moment it closes and syncs.
+                nothing captured yet. start a channel and speak — a turn appears here the moment it closes and syncs.
               </p>
             )}
           </div>
         </section>
+      ) : tab === "channels" ? (
+        <ChannelsPanel
+          channels={channels}
+          inputs={inputs}
+          labelsUnlocked={labelsUnlocked}
+          onUnlockLabels={async () => {
+            const { unlockInputLabels } = await import("@/lib/sentinel/audio/channels");
+            const ok = await unlockInputLabels();
+            setLabelsUnlocked(ok);
+            setInputs(audioInputs());
+            if (!ok) pushNote("the microphone was refused, so this browser will not name your inputs.");
+          }}
+          onNote={pushNote}
+        />
       ) : tab === "timeline" ? (
+
         <section className={`${card} p-5`}>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1">
