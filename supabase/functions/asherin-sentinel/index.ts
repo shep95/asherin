@@ -648,7 +648,12 @@ Deno.serve(async (req) => {
               translated,
               sourceTranscript: sourceText,
               translationModel: translated ? TRANSLATE_MODEL : null,
+              // How this turn survived the gate stack on the device, kept so a
+              // thin or contested transcript can be read with its provenance.
+              speechRatio: typeof seg.speechRatio === "number" ? seg.speechRatio : null,
+              judgedBy: typeof seg.judgedBy === "string" ? seg.judgedBy.slice(0, 80) : null,
             },
+
           }).select().single();
 
           if (error) throw error;

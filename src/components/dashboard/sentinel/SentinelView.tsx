@@ -1031,10 +1031,32 @@ const ChannelsPanel = ({
               )}
               {s?.message && <p className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/55">{s.message}</p>}
 
+              {/* The ear model, stated rather than implied: what this lane is
+                  doing to the signal before anything is judged or sent. */}
+              {s?.pipeline && (
+                <p className="mt-2 rounded-lg border border-white/[0.07] bg-white/[0.02] p-2 font-mono text-[10px] leading-relaxed text-white/40">
+                  {s.pipeline}
+                </p>
+              )}
+              {c.listening && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-white/40">
+                  <span>gate open {Math.round((s?.gateOpen ?? 1) * 100)}% of the last half second</span>
+                  <span className="text-white/25">·</span>
+                  <span>{s?.modelJudging ? "on-device speech model judging turns" : "energy detector only"}</span>
+                  {(s?.discardedByModel ?? 0) > 0 && (
+                    <>
+                      <span className="text-white/25">·</span>
+                      <span>{s?.discardedByModel} turns dropped as room noise</span>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 flex items-center justify-between gap-2">
                 <span className="text-[11px] text-white/35">
                   {s?.segmentsCaptured ?? 0} turns · {s?.pendingUploads ?? 0} waiting to sync
                 </span>
+
                 {channels.length > 1 && (
                   <Button
                     variant="ghost"

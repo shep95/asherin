@@ -61,7 +61,12 @@ export interface SegmentPayload {
   confidence?: number;
   evidence?: Record<string, unknown>;
   peakRms?: number;
+  /** portion of the turn the on-device speech model marked as speech, 0..1 */
+  speechRatio?: number;
+  /** which layers agreed this was a person talking */
+  judgedBy?: string;
 }
+
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
