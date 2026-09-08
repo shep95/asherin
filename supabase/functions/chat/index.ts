@@ -2773,8 +2773,12 @@ The operator is requesting a defensive security audit / flaw check of their own 
     const { ORGANISM_CORE } = await import("../_shared/organism/core.ts");
     let organismInjection = "";
     try {
+      // Always-on: the vault loads on EVERY signed-in turn, short ones
+      // included. A greeting answered by a stranger is the failure state the
+      // organism exists to remove. Only an intel/dossier turn stays sealed,
+      // because vault content must never leak into a research finding.
       const authO = isIntelTurn ? null : req.headers.get("Authorization");
-      if (authO && !_skipHeavyOrgans) {
+      if (authO) {
         const URL_O = Deno.env.get("SUPABASE_URL") || "";
         const SRK_O = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
         const ANON_O = Deno.env.get("SUPABASE_ANON_KEY") || "";
