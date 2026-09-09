@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- placeholder: replaced with the signed AppInstaller manifest after the MSIX build -->
-<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2" Version="0.9.0.0" Uri="https://asherin.ide/install/asherin.appinstaller">
-  <MainPackage Name="asherin.ide" Publisher="CN=TODO" Version="0.9.0.0" ProcessorArchitecture="x64" Uri="https://asherin.ide/install/asherin-x64.msix" />
+<!-- Publisher must match the code-signing certificate subject of the built MSIX exactly. -->
+<AppInstaller
+  xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2"
+  Version="0.9.0.0"
+  Uri="https://asherin.com/install/asherin.appinstaller">
+  <MainPackage
+    Name="asherin.ide"
+    Publisher="CN=TODO_CN_FROM_YOUR_CODE_SIGNING_CERT"
+    Version="0.9.0.0"
+    ProcessorArchitecture="x64"
+    Uri="https://asherin.com/install/asherin-x64.msix" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="12" />
+  </UpdateSettings>
 </AppInstaller>

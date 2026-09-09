@@ -35,6 +35,10 @@
 /api/*          /404-not-found  404
 /security.txt   /.well-known/security.txt  301
 
+# Desktop install page (the artifacts under /install/ are real static files and
+# are served before this rule ever runs).
+/install           /index.html  200
+
 # Signed-in app surfaces — real routes, gated by the app, not marketing pages.
 /auth              /index.html  200
 /dashboard         /index.html  200
