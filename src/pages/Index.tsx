@@ -282,9 +282,9 @@ const Index = () => {
             >
               pricing
             </Link>
-            {/* full document load: /asherin.ide is a standalone static page, not an SPA route */}
+            {/* full document load to the standalone static page, not an SPA route */}
             <a
-              href="/asherin.ide"
+              href="https://asherin.com/asherin.ide/"
               className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
             >
               asherin.ide
