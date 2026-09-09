@@ -1,5 +1,7 @@
 {
   "version": "0.9.0",
-  "url": "https://asherin.ide/install/asherin-x64.msix",
+  "releasedAt": "2026-09-09T00:00:00.000Z",
+  "url": "https://asherin.com/install/asherin-x64.msix",
+  "appinstaller": "https://asherin.com/install/asherin.appinstaller",
   "sha256": "REPLACE_AFTER_BUILD"
 }
