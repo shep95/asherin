@@ -175,6 +175,12 @@ h6 {
 
     --radius: 0.75rem;
 
+    /* the one colour that is allowed to appear: trust states only —
+       live, verified, encrypted. never decoration. */
+    --signal-live: 152 48% 46%;
+    --signal-live-dim: 152 30% 22%;
+
+
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 85%;
     --sidebar-primary: 0 0% 100%;
