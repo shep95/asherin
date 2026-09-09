@@ -282,6 +282,13 @@ const Index = () => {
             >
               pricing
             </Link>
+            {/* full document load: /asherin.ide is a standalone static page, not an SPA route */}
+            <a
+              href="/asherin.ide"
+              className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
+            >
+              asherin.ide
+            </a>
           </div>
           <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
             rooms on a seat: chat, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision,
