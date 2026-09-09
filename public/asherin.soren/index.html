@@ -201,9 +201,9 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
       <div class="modalBody">
         <div class="notice warn"><strong>API keys are not stored in the browser or written to disk.</strong> when entered here they are sent to the local asherin.soren server and retained only in server memory for this process. you may instead use provider environment variables before starting the server.</div>
         <div class="settingsGrid" style="margin-top:14px">
-          <div class="field"><label>provider</label><select id="providerSelect"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
+          <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
           <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
-          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use server environment configuration"><small>Ollama normally does not need a key. custom compatible endpoints may.</small></div>
+          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use the free asherin hosted model"><small>the asherin hosted model needs no key — asherin covers it until you bring your own. Ollama normally does not need a key. custom compatible endpoints may.</small></div>
           <div class="field"><label>available model</label><select id="modelSelect"><option value="">connect to load models</option></select></div>
           <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
         </div>
@@ -1632,7 +1632,7 @@ async function sendChat() {
   finally { $('#sendChat').disabled = false; }
 }
 
-const PROVIDER_DEFAULTS = { openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1', google: 'https://generativelanguage.googleapis.com/v1beta', 'openai-compatible': 'http://localhost:1234/v1', ollama: 'http://localhost:11434' };
+const PROVIDER_DEFAULTS = { asherin: 'https://xpgxgzqbtrrrbtjcemci.functions.supabase.co/soren-ai', openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1', google: 'https://generativelanguage.googleapis.com/v1beta', 'openai-compatible': 'http://localhost:1234/v1', ollama: 'http://localhost:11434' };
 
 async function providerStatus() {
   try { const res = await fetch('/api/provider/status', { headers: apiHeaders() }); const data = await res.json(); if (!res.ok) throw new Error();
