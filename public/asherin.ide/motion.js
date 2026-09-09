@@ -67,8 +67,8 @@
 
 (() => {
   const btn = document.getElementById('asherin-install');
-  const note = document.getElementById('asherin-install-note');
-  if (!btn || !note) return;
+  const note = document.getElementById('asherin-install-note') || document.getElementById('asherin-install-fine');
+  if (!btn) return;
   const ua = navigator.userAgent;
   const platform = /Windows/i.test(ua) ? 'windows'
     : /Macintosh|Mac OS X/i.test(ua) ? 'mac'
@@ -84,7 +84,7 @@
   function halt(text) {
     btn.dataset.state = 'unavailable';
     btn.setAttribute('aria-disabled', 'true');
-    note.textContent = text;
+    if (note) note.textContent = text;
   }
   btn.addEventListener('click', e => {
     if (btn.getAttribute('aria-disabled') === 'true' || btn.dataset.state === 'checking') e.preventDefault();
@@ -110,7 +110,7 @@
       btn.href = platform === 'windows' && release.appinstaller
         ? 'ms-appinstaller:?source=' + release.appinstaller
         : release.url;
-      note.textContent = 'version ' + (release.version || data.version || 'latest')
+      if (note) note.textContent = 'version ' + (release.version || data.version || 'latest')
         + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download');
     })
     .catch(() => halt('could not reach the release channel just now. try again in a moment.'))
