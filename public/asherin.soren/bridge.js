@@ -307,8 +307,25 @@
     return (data.message && data.message.content) || "";
   }
 
+  // Hosted relay: the prompt leaves this tab for asherin's own server, which holds
+  // the model credential. No key is stored in the browser for this path.
+  async function callAsherin(config, body) {
+    var images = [];
+    (body.images || []).forEach(function (img) {
+      if (img && typeof img.data_url === "string") images.push(img.data_url);
+    });
+    var data = await fetchJson(HOSTED_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ system: SYSTEM_INSTRUCTION, prompt: buildAgentPrompt(body), images: images }),
+    });
+    return data.text || "";
+  }
+
   async function callProvider(config, body) {
+    if (config.provider === "asherin") return callAsherin(config, body);
     if (config.provider === "openai") return callOpenAI(config, body, false);
+
     if (config.provider === "openai-compatible") return callOpenAI(config, body, true);
     if (config.provider === "anthropic") return callAnthropic(config, body);
     if (config.provider === "google") return callGoogle(config, body);
