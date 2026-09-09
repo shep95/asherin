@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
+import { recordSignup } from "@/lib/analytics/visitLedger";
+
 
 interface AuthOverlayProps {
   isLogin: boolean;
