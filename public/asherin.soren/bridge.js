@@ -458,9 +458,10 @@
       var provider = safeProvider(body.provider);
       var apiKey = String(body.apiKey || (provider === runtime.provider ? runtime.apiKey : "") || "");
       var baseUrl = trimBase(body.baseUrl || DEFAULTS[provider]);
-      if (!apiKey && provider !== "ollama" && provider !== "openai-compatible") {
+      if (!apiKey && !keyless(provider)) {
         return json(400, { error: "an API key is required for " + provider });
       }
+
       try {
         var models = await listModels({ provider: provider, apiKey: apiKey, baseUrl: baseUrl });
         runtime.provider = provider;
