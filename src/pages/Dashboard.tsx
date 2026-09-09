@@ -2498,7 +2498,13 @@ const Dashboard = () => {
                    inside one rounded bordered surface. chat stays full bleed
                    because it is the surface, not a room on top of it. */
                 <div className="h-full min-h-0 w-full p-2 sm:p-3">
-                  <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/20 bg-background/55 shadow-[0_24px_70px_-40px_hsl(var(--foreground)/0.55)] backdrop-blur-xl">
+                  <div
+                    data-asherin-room={[
+                      "zerlal", "file-scrapper", "briefing", "azplen",
+                      "snippets", "zali", "slideshow", "ebook",
+                    ].includes(String(activeView)) ? String(activeView) : undefined}
+                    className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/20 bg-background/55 shadow-[0_24px_70px_-40px_hsl(var(--foreground)/0.55)] backdrop-blur-xl"
+                  >
                     {isV2 ? (
                       <DashboardUiProvider value="v2">
                         {(() => {

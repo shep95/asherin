@@ -28,10 +28,12 @@ const V2PageShell = ({ title, subtitle, canvas = false, children }: Props) => {
   const long = !!subtitle && subtitle.length > 90;
   return (
     <div data-dashboard-ui="v2" className="flex h-full min-h-0 w-full flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border/15 px-4 sm:px-6">
+      <header className="v2-room-header flex h-14 shrink-0 items-center gap-3 border-b border-border/15 px-4 sm:px-6">
+        <span className="v2-room-index hidden font-mono text-[9px] text-muted-foreground/35 sm:inline" aria-hidden="true">ASH / 01</span>
+        <span className="hidden h-4 w-px bg-border/25 sm:block" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h1
-            className="truncate text-sm font-light lowercase tracking-wide text-foreground"
+            className="truncate text-sm font-light lowercase text-foreground"
             title={long ? subtitle : undefined}
           >
             {title}
@@ -39,6 +41,10 @@ const V2PageShell = ({ title, subtitle, canvas = false, children }: Props) => {
           {subtitle && !long && (
             <p className="truncate text-[11px] font-extralight text-muted-foreground/70">{subtitle}</p>
           )}
+        </div>
+        <div className="v2-room-signal hidden items-center gap-2 text-[9px] text-muted-foreground/45 sm:flex" aria-label="room status: active">
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--signal-live))] shadow-[0_0_12px_hsl(var(--signal-live)/0.5)]" />
+          ACTIVE
         </div>
         <div id={ACTION_SLOT_ID} className="flex shrink-0 items-center gap-2" />
       </header>

@@ -234,7 +234,7 @@ export const NAV_INTENTS: NavIntent[] = [
   },
   {
     view: "briefing",
-    label: "asherin.briefings",
+    label: "asherin.briefing",
     codename: "scheduled reading",
     blurb: "scheduled reading, sourced",
     keywords: ["briefing", "briefings", "daily", "digest", "news"],
@@ -304,7 +304,7 @@ export const NAV_INTENTS: NavIntent[] = [
   },
   {
     view: "ebook",
-    label: "asherin.ebook",
+    label: "asherin.ebooks",
     codename: "long form",
     blurb: "long-form writing to a finished file",
     keywords: ["ebook", "book", "chapters", "write"],

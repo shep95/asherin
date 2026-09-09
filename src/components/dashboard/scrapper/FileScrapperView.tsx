@@ -121,7 +121,7 @@ const FileScrapperView = () => {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-xs font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
-          Loading File Scrapper…
+          opening asherin.extract…
         </p>
       </div>
     );
@@ -143,9 +143,9 @@ const FileScrapperView = () => {
         ) : (
           <div className="flex flex-1 h-full items-center justify-center">
             <div className="text-center space-y-3">
-              <div className="text-5xl">📄</div>
-              <h2 className="text-lg font-extralight tracking-wide text-foreground">
-                FILE SCRAPPER
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-border/20 font-mono text-muted-foreground/40">EX</div>
+              <h2 className="text-lg font-extralight text-foreground">
+                asherin.extract
               </h2>
               <p className="text-xs font-extralight text-muted-foreground max-w-sm">
                 Upload unstructured documents — PDFs, images, scanned files — and extract all text

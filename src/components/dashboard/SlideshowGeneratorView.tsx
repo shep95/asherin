@@ -138,7 +138,7 @@ Return ONLY the JSON array, no markdown wrapping.`
         if (i > 0) pdf.addPage([1920, 1080], "landscape");
         pdf.addImage(imgData, "PNG", 0, 0, 1920, 1080);
       }
-      pdf.save("aureon-slideshow.pdf");
+      pdf.save("asherin-slides.pdf");
     } catch (e) {
       console.error("Slideshow export error:", e);
     }
@@ -235,8 +235,8 @@ Return ONLY the JSON array, no markdown wrapping.`
           <div className="flex items-center gap-3">
             <Presentation className="h-5 w-5 text-accent" />
             <div>
-              <h1 className="text-lg font-extralight tracking-wide text-foreground">Slideshow Generator</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">AI-Structured Presentation Builder</p>
+              <h1 className="text-lg font-extralight text-foreground">asherin.slides</h1>
+              <p className="text-[10px] font-extralight text-muted-foreground/60 uppercase hidden sm:block">presentation builder</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

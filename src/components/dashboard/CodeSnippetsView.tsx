@@ -155,7 +155,7 @@ const CodeSnippetsView = () => {
       <div className="w-72 flex-shrink-0 border-r border-border/20 flex flex-col bg-card/10">
         <div className="p-3 border-b border-border/20 space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extralight tracking-wide text-foreground">Code Snippets</h2>
+            <h2 className="text-sm font-extralight text-foreground">asherin.snippets</h2>
             <div className="flex gap-1">
               <button onClick={() => setShowNewFolder(true)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-colors" title="New folder">
                 <FolderPlus className="h-3.5 w-3.5" />

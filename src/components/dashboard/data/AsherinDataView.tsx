@@ -311,7 +311,7 @@ export default function AsherinDataView() {
       {/* header */}
       <header className="flex flex-wrap items-center gap-3 border-b border-white/8 px-4 py-3 sm:px-6">
         <div className="mr-auto">
-          <h1 className="text-sm font-extralight tracking-[0.2em] text-white/70">asherin.data</h1>
+          <h1 className="text-sm font-extralight text-white/70">asherin.data</h1>
           <p className="text-[11px] text-white/40">bring data, ask in plain english, get evidence back</p>
         </div>
         <select

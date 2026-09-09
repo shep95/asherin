@@ -19,6 +19,7 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] headphone contact quality / baseline / longitudinal patterns: wired into the live panel, tested (86 cases), build ok
 
 ## Open
+- [x] unify asherin.cyber, extract, briefing, data, snippets, design, slides and ebooks under the cold cinematic room system
 - [ ] asherin.arvision thermal camera view: infrared-style heat visualization from camera, honest RGB-derived labeling (not true LWIR; no through-wall/through-glass claims)
 
 - [ ] asherin.arvision: add third mode "eagle.eye" — full behavioral detection engine from arvision-engine-v2.ts (all patterns, no picking), plug-and-play on any device camera

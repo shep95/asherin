@@ -120,7 +120,7 @@ const BriefingView = () => {
         { role: "assistant", content: data.reply },
       ]);
     } catch {
-      setChatMessages([{ role: "assistant", content: "Welcome to AUREON Intelligence Briefings. I'll help you set up your personalized daily briefing. Let's start — what's your company name and what industry are you in?" }]);
+      setChatMessages([{ role: "assistant", content: "welcome to asherin.briefing. i'll help set up your daily briefing. what is your company name and industry?" }]);
     }
     setChatLoading(false);
   }, [chatMessages.length, deliveryTime]);
@@ -392,7 +392,7 @@ const BriefingView = () => {
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
           <div className="flex items-center gap-2">
             <Newspaper className="h-4 w-4 text-accent" />
-            <h2 className="text-sm font-light tracking-wide text-foreground">Intelligence Briefing — Setup</h2>
+            <h2 className="text-sm font-light text-foreground">asherin.briefing — setup</h2>
           </div>
           {hasProfile && (
             <button onClick={() => { setShowSetup(false); setChatMessages([]); }} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
@@ -470,7 +470,7 @@ const BriefingView = () => {
       <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
         <div className="flex items-center gap-2">
           <Newspaper className="h-4 w-4 text-accent" />
-          <h2 className="text-sm font-light tracking-wide text-foreground">Intelligence Briefings</h2>
+          <h2 className="text-sm font-light text-foreground">asherin.briefing</h2>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowEditor(true)} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Edit profile">
