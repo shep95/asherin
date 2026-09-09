@@ -16,7 +16,11 @@
   "use strict";
 
   var KEY = "asherin.soren.provider";
+  // Hosted relay: asherin covers the model cost until the operator brings a key.
+  var HOSTED_ENDPOINT = "https://xpgxgzqbtrrrbtjcemci.functions.supabase.co/soren-ai";
+  var HOSTED_MODEL = { id: "asherin-hosted", label: "asherin hosted model (free)" };
   var DEFAULTS = {
+    asherin: HOSTED_ENDPOINT,
     openai: "https://api.openai.com/v1",
     anthropic: "https://api.anthropic.com/v1",
     google: "https://generativelanguage.googleapis.com/v1beta",
@@ -25,7 +29,22 @@
   };
   var POWER_PARAMETERS = ["T2M", "PS", "RH2M", "WS10M", "WD10M", "ALLSKY_SFC_SW_DWN"];
 
+  function hostedRuntime() {
+    return {
+      provider: "asherin",
+      apiKey: "",
+      baseUrl: HOSTED_ENDPOINT,
+      model: HOSTED_MODEL.id,
+      models: [HOSTED_MODEL],
+    };
+  }
+
+  function keyless(provider) {
+    return provider === "asherin" || provider === "ollama" || provider === "openai-compatible";
+  }
+
   var runtime = load();
+
 
   function load() {
     try {
