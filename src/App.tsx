@@ -256,6 +256,7 @@ const GlossaryConversationalSeo = lazy(() => import("./pages/glossary/Conversati
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import RouteSessionTracker from "./components/RouteSessionTracker";
+import VisitLedgerTracker from "./components/VisitLedgerTracker";
 import AutoTripMount from "./components/AutoTripMount";
 import SentinelDaemon from "./components/dashboard/SentinelDaemon";
 import RouteSeo from "./components/RouteSeo";
@@ -305,6 +306,7 @@ const App = () => (
             <BrowserRouter>
               <CommandPalette />
               <RouteSessionTracker />
+              <VisitLedgerTracker />
               <AutoTripMount />
               <SentinelDaemon />
               <RouteSeo />
@@ -320,6 +322,7 @@ const App = () => (
                       {/* /auth is the sign-in surface every gated route falls back to. */}
                       <Route path="/auth" element={<Index />} />
                       {/* asherin.ide: static site under public/; this is the SPA-navigation fallback. */}
+                      <Route path="/asherin.analytics" element={<AsherinAnalytics />} />
                       <Route path="/asherin.ide" element={<AsherinIde />} />
                       <Route path="/asherin.ide/*" element={<AsherinIde />} />
                       {/* OAuth 2.1 consent screen for agent integrations (MCP clients). */}

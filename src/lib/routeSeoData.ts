@@ -40,6 +40,11 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "asherin is $18/mo. asherin pro is $79/mo. monthly, in USD, cancel in one click. enterprise on request.",
   },
+  "/asherin.analytics": {
+    title: "asherin.analytics — the public record of who arrives here",
+    description:
+      "a public, live analytics record for asherin: visitors, returning visitors, sources, pages, countries and regions, ai crawlers, suspected vpn exits, sign-ups and page speed.",
+  },
   "/software": {
     title: "software | asherin",
     description:
