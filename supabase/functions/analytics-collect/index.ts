@@ -64,7 +64,7 @@ const CRAWLERS: Array<[RegExp, string, string]> = [
   [/Bytedance|TikTok/i, "TikTok Agent", "ByteDance"],
 ];
 
-const GENERIC_BOT = /bot\b|crawler|spider|scrapy|curl\/|wget|headless|python-requests|axios\/|node-fetch|monitor|uptime|preview/i;
+const GENERIC_BOT = /bot\b|crawler|spider|scrapy|curl\/|wget|headless|python-requests|axios\/|node-fetch|uptime-monitor/i;
 
 function classifyAgent(ua: string): { isBot: boolean; name: string | null; company: string | null } {
   for (const [re, name, company] of CRAWLERS) {
