@@ -74,7 +74,7 @@ export default function RouteSessionTracker() {
 
   useEffect(() => {
     const path = location.pathname || "/";
-    const skipP = ["/internal", "/dashboard", "/auth", "/ziaassets", "/asher-dashboard"];
+    const skipP = ["/asherin.acatalepsy", "/internal", "/dashboard", "/auth", "/ziaassets", "/asher-dashboard"];
     const skipped = skipP.some((s) => path === s || path.startsWith(s + "/"));
     let zone: string | null = null;
     try {

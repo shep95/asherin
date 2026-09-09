@@ -19,6 +19,7 @@ const Index = lazy(() => import("./pages/Index"));
 const AsherinIde = lazy(() => import("./pages/AsherinIde"));
 const AsherinAnalytics = lazy(() => import("./pages/AsherinAnalytics"));
 
+const AsherinAcatalepsy = lazy(() => import("./pages/AsherinAcatalepsy"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -324,6 +325,7 @@ const App = () => (
                       {/* /auth is the sign-in surface every gated route falls back to. */}
                       <Route path="/auth" element={<Index />} />
                       {/* asherin.ide: static site under public/; this is the SPA-navigation fallback. */}
+                      <Route path="/asherin.acatalepsy" element={<AsherinAcatalepsy />} />
                       <Route path="/asherin.analytics" element={<AsherinAnalytics />} />
                       <Route path="/asherin.ide" element={<AsherinIde />} />
                       <Route path="/asherin.ide/*" element={<AsherinIde />} />

@@ -40,6 +40,10 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description:
       "asherin is $18/mo. asherin pro is $79/mo. monthly, in USD, cancel in one click. enterprise on request.",
   },
+  "/asherin.acatalepsy": {
+    title: "asherin.acatalepsy",
+    description: "incomprehensibility. the doctrine that human knowledge can never reach to the certainty of truth, but only to probability.",
+  },
   "/asherin.analytics": {
     title: "asherin.analytics — the public record of who arrives here",
     description:

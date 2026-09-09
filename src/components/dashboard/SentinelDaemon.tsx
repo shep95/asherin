@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { bootSentinel } from "@/lib/sentinel/alwaysOn";
@@ -14,8 +15,9 @@ import { bootOpLayer } from "@/lib/op/opDaemon";
  */
 const SentinelDaemon = () => {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   useEffect(() => {
-    if (!user) return;
+    if (!user || pathname === "/asherin.acatalepsy") return;
     bootSentinel();
     // The OP layer arms itself the moment a session exists on ANY device:
     // protection is scoped to the account, so it must not wait for the
