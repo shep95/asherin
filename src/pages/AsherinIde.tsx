@@ -8,7 +8,7 @@ import { useEffect } from "react";
  */
 const AsherinIde = () => {
   useEffect(() => {
-    window.location.replace("/asherin.ide/index.html");
+    window.location.replace("/asherin.ide/");
   }, []);
 
   return (
@@ -17,7 +17,7 @@ const AsherinIde = () => {
         opening asherin.ide…
       </p>
       <a
-        href="/asherin.ide/index.html"
+        href="/asherin.ide/"
         className="text-xs font-light text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
       >
         continue to asherin.ide
