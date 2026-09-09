@@ -1739,23 +1739,50 @@ async function providerStatus() {
   renderChat();
 }
 
+function detectProvider(key) {
+  const k = (key || '').trim();
+  if (!k) return { provider: 'asherin', label: 'free asherin hosted model · no key needed' };
+  if (k.startsWith('sk-ant-')) return { provider: 'anthropic', label: 'detected anthropic' };
+  if (k.startsWith('sk-or-')) return { provider: 'openai-compatible', baseUrl: 'https://openrouter.ai/api/v1', label: 'detected openrouter' };
+  if (/^AIza[0-9A-Za-z_-]{10,}$/.test(k)) return { provider: 'google', label: 'detected google gemini' };
+  if (k.startsWith('sk-') || k.startsWith('sess-')) return { provider: 'openai', label: 'detected openai' };
+  return { provider: 'openai-compatible', label: 'unrecognised key shape — using an openai compatible endpoint, set the base URL under advanced' };
+}
+
+function syncDetectedProvider() {
+  const d = detectProvider($('#apiKey').value);
+  $('#providerSelect').value = d.provider;
+  $('#baseUrl').value = d.baseUrl || PROVIDER_DEFAULTS[d.provider] || '';
+  $('#keyHint').textContent = d.label;
+  return d;
+}
+
 async function connectProvider() {
-  const provider = $('#providerSelect').value, apiKey = $('#apiKey').value, baseUrl = $('#baseUrl').value.trim() || PROVIDER_DEFAULTS[provider]; $('#connectionState').textContent = 'connecting…'; $('#connectionState').className = 'connectionState';
+  const detected = syncDetectedProvider();
+  const provider = detected.provider, apiKey = $('#apiKey').value.trim(), baseUrl = $('#baseUrl').value.trim() || PROVIDER_DEFAULTS[provider]; $('#connectionState').textContent = 'connecting…'; $('#connectionState').className = 'connectionState';
   try {
     const res = await fetch('/api/provider/connect', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ provider, apiKey, baseUrl }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'provider connection failed');
     state.ai.connected = true; state.ai.provider = provider; state.ai.baseUrl = data.baseUrl || baseUrl; $('#apiKey').value = '';
     const modelSelect = $('#modelSelect'); modelSelect.replaceChildren(); (data.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label || m.id; modelSelect.append(o); });
     if (!data.models?.length) { const o = document.createElement('option'); o.value = ''; o.textContent = 'no compatible models returned'; modelSelect.append(o); }
     if (state.ai.model && data.models?.some(m => m.id === state.ai.model)) modelSelect.value = state.ai.model;
-    $('#connectionState').textContent = `${data.models?.length || 0} live models discovered`; $('#connectionState').className = 'connectionState ok'; renderChat();
+    const first = modelSelect.value || data.models?.[0]?.id || '';
+    if (first) { modelSelect.value = first; await activateModel(first); }
+    else { $('#connectionState').textContent = 'connected · no models returned'; $('#connectionState').className = 'connectionState bad'; }
+    renderChat();
   } catch (error) { state.ai.connected = false; $('#connectionState').textContent = error.message; $('#connectionState').className = 'connectionState bad'; renderChat(); }
+}
+
+async function activateModel(model) {
+  if (!model) return;
+  state.ai.model = model; state.ai.controlPolicy = $('#controlPolicy').value; storageSet('asherin.ai.controlPolicy', state.ai.controlPolicy);
+  try { await fetch('/api/provider/active', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ model }) }); } catch {}
+  $('#connectionState').textContent = `ready · ${state.ai.provider} · ${model}`; $('#connectionState').className = 'connectionState ok'; renderChat();
 }
 
 async function saveActiveModel() {
   const model = $('#modelSelect').value; if (!state.ai.connected || !model) return toast('connect and choose a model');
-  state.ai.model = model; state.ai.controlPolicy = $('#controlPolicy').value; storageSet('asherin.ai.controlPolicy', state.ai.controlPolicy);
-  try { await fetch('/api/provider/active', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ model }) }); } catch {}
-  $('#connectionState').textContent = `active · ${model}`; $('#connectionState').className = 'connectionState ok'; renderChat(); closeModal('settingsModal');
+  await activateModel(model); closeModal('settingsModal');
 }
 
 function renderAudit() {
@@ -1812,6 +1839,11 @@ function bindUI() {
   $('#branchSelect').addEventListener('change', e => { state.chat.activeId = e.target.value; saveChat(); renderChat(); }); $('#newBranch').addEventListener('click', () => createBranch('new branch'));
   $('#sendChat').addEventListener('click', sendChat); $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
   $('#providerSelect').addEventListener('change', e => { $('#baseUrl').value = PROVIDER_DEFAULTS[e.target.value] || ''; }); $('#controlPolicy').value = state.ai.controlPolicy; $('#connectProvider').addEventListener('click', connectProvider); $('#saveModel').addEventListener('click', saveActiveModel);
+  $('#apiKey').addEventListener('input', syncDetectedProvider);
+  $('#apiKey').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); connectProvider(); } });
+  $('#useHosted').addEventListener('click', () => { $('#apiKey').value = ''; syncDetectedProvider(); connectProvider(); });
+  $('#modelSelect').addEventListener('change', e => { if (state.ai.connected && e.target.value) activateModel(e.target.value); });
+  syncDetectedProvider();
   document.addEventListener('keydown', e => {
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable;
     if (e.key === 'Escape') { $$('.modal').forEach(m => m.hidden = true); return; }
