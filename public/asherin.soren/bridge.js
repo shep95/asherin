@@ -121,6 +121,8 @@
     var provider = config.provider;
     var base = trimBase(config.baseUrl || DEFAULTS[provider]);
     var rows = [];
+    if (provider === "asherin") return [HOSTED_MODEL];
+
     if (provider === "openai" || provider === "openai-compatible") {
       var d = await fetchJson(base + "/models", { headers: headersFor(provider, config.apiKey) });
       rows = Array.isArray(d.data) ? d.data : Array.isArray(d.models) ? d.models : [];
