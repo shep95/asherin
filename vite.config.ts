@@ -14,6 +14,10 @@ const asherinIdeStaticRoute = (): Plugin => {
       if (req.url === "/asherin.ide" || req.url === "/asherin.ide/") {
         req.url = "/asherin.ide/index.html";
       }
+      // Dotted SPA route: vite's history fallback skips paths containing a dot.
+      if (req.url === "/asherin.analytics" || req.url === "/asherin.analytics/") {
+        req.url = "/index.html";
+      }
       next();
     });
   };
