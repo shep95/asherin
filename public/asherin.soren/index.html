@@ -2048,6 +2048,7 @@ function bindUI() {
 
 function heartbeat() { $('#clock').textContent = new Date().toLocaleTimeString([], { hour12: false }); }
 
+window.soren = { state, createGeneratedGeometry, clearGeneratedGeometry, executeTool, activeBranch, closeModal, fitCamera };
 bindUI(); renderAll(); providerStatus(); developerStatus(); heartbeat(); setInterval(heartbeat, 1000);
 
 </script>
