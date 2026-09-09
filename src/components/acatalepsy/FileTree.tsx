@@ -5,7 +5,12 @@ import type { LocalDataset } from "@/lib/acatalepsy/engine";
 const ext = (name: string) => name.split(".").pop()?.toLowerCase() ?? "file";
 
 export function FileTree({ datasets, activeId, onSelect, onRemove, onDownload }: { datasets: LocalDataset[]; activeId?: string; onSelect: (id:string)=>void; onRemove:(id:string)=>void; onDownload:(id:string)=>void }) {
-  const groups = Object.entries(Object.groupBy(datasets, (d) => ext(d.file.name)));
+  const grouped = datasets.reduce<Record<string, LocalDataset[]>>((acc, dataset) => {
+    const key = ext(dataset.file.name);
+    (acc[key] ??= []).push(dataset);
+    return acc;
+  }, {});
+  const groups = Object.entries(grouped);
   return <div className="space-y-4" aria-label="local file tree">
     {groups.map(([group, items]) => <section key={group}>
       <div className="mb-1 flex items-center gap-2 px-2 text-[10px] uppercase text-muted-foreground"><ChevronDown className="size-3"/><Folder className="size-3"/>{group}<span className="ml-auto">{items?.length ?? 0}</span></div>

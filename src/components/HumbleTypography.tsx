@@ -66,6 +66,7 @@ const WORKING_SURFACES = [
   "/report/",
   "/whiteboard",
   "/ziaassets",
+  "/asherin.acatalepsy",
 ];
 
 const HumbleTypography = () => {

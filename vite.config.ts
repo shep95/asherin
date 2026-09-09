@@ -18,6 +18,9 @@ const asherinIdeStaticRoute = (): Plugin => {
       if (req.url === "/asherin.analytics" || req.url === "/asherin.analytics/") {
         req.url = "/index.html";
       }
+      if (req.url === "/asherin.acatalepsy" || req.url === "/asherin.acatalepsy/") {
+        req.url = "/index.html";
+      }
       next();
     });
   };

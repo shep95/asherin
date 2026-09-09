@@ -29,7 +29,7 @@ export default function RouteSessionTracker() {
   };
 
   useEffect(() => {
-    if (!user || !session) return;
+    if (!user || !session || location.pathname === "/asherin.acatalepsy") return;
 
     const sid = user.id + "_" + (session.access_token?.substring(0, 8) || "x");
     updateSessionActivity(user.id, sid, location.pathname);

@@ -23,6 +23,7 @@ export const ORG_SAME_AS: string[] = ["https://www.asherin.com"];
 export const ORG_ID = `${ORIGIN}/#organization`;
 export const SITE_ID = `${ORIGIN}/#website`;
 export const APP_ID = `${ORIGIN}/#software`;
+export const ACATALEPSY_APP_ID = `${ORIGIN}/asherin.acatalepsy#software`;
 
 export function buildOrganization(): Json {
   return {
@@ -99,6 +100,21 @@ export function buildSoftwareApplication(): Json {
   };
 }
 
+export function buildAcatalepsyApplication(): Json {
+  return {
+    "@type": "SoftwareApplication",
+    "@id": ACATALEPSY_APP_ID,
+    name: "asherin.acatalepsy",
+    applicationCategory: "DataVisualizationApplication",
+    operatingSystem: "Web browser",
+    url: `${ORIGIN}/asherin.acatalepsy`,
+    publisher: { "@id": ORG_ID },
+    description: "a no-login browser workspace that uses deterministic rules to profile uploaded data and select evidence-supported visualizations without ai processing.",
+    featureList: ["Local file parsing", "Deterministic data profiling", "Rule-based visualization selection", "Local chart export", "Session-only data"],
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+  };
+}
+
 function buildMainEntity(pathname: string, entry: SeoEntry): Json {
   const canonical = `${ORIGIN}${pathname}`;
   const isArticle = entry.ogType === "article" && Boolean(entry.datePublished);
@@ -140,5 +156,6 @@ export function buildRouteGraph(pathname: string, entry: SeoEntry): Json {
   if (pathname === "/" || pathname === "/pricing" || pathname === "/software") {
     graph.push(buildSoftwareApplication());
   }
+  if (pathname === "/asherin.acatalepsy") graph.push(buildAcatalepsyApplication());
   return { "@context": "https://schema.org", "@graph": graph };
 }
