@@ -103,12 +103,6 @@
     if (note) note.textContent = text;
   }
   function trigger(href, name) {
-    const frame = document.createElement('iframe');
-    frame.hidden = true;
-    frame.setAttribute('aria-hidden', 'true');
-    frame.src = href;
-    document.body.append(frame);
-    setTimeout(() => frame.remove(), 120000);
     const anchor = document.createElement('a');
     anchor.href = href;
     anchor.download = name;
