@@ -12348,6 +12348,87 @@ export type Database = {
         }
         Relationships: []
       }
+      site_visit_events: {
+        Row: {
+          bot_company: string | null
+          bot_name: string | null
+          browser: string | null
+          city: string | null
+          country: string | null
+          device_type: string | null
+          dwell_ms: number | null
+          goal: string | null
+          id: string
+          is_bot: boolean
+          is_new: boolean
+          load_ms: number | null
+          locale: string | null
+          occurred_at: string
+          os: string | null
+          path: string
+          referrer_host: string | null
+          region: string | null
+          session_hash: string
+          source: string
+          timezone: string | null
+          visitor_hash: string
+          vpn_reason: string | null
+          vpn_suspected: boolean
+        }
+        Insert: {
+          bot_company?: string | null
+          bot_name?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
+          dwell_ms?: number | null
+          goal?: string | null
+          id?: string
+          is_bot?: boolean
+          is_new?: boolean
+          load_ms?: number | null
+          locale?: string | null
+          occurred_at?: string
+          os?: string | null
+          path: string
+          referrer_host?: string | null
+          region?: string | null
+          session_hash: string
+          source?: string
+          timezone?: string | null
+          visitor_hash: string
+          vpn_reason?: string | null
+          vpn_suspected?: boolean
+        }
+        Update: {
+          bot_company?: string | null
+          bot_name?: string | null
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
+          dwell_ms?: number | null
+          goal?: string | null
+          id?: string
+          is_bot?: boolean
+          is_new?: boolean
+          load_ms?: number | null
+          locale?: string | null
+          occurred_at?: string
+          os?: string | null
+          path?: string
+          referrer_host?: string | null
+          region?: string | null
+          session_hash?: string
+          source?: string
+          timezone?: string | null
+          visitor_hash?: string
+          vpn_reason?: string | null
+          vpn_suspected?: boolean
+        }
+        Relationships: []
+      }
       social_intel_cache: {
         Row: {
           created_at: string
@@ -15158,6 +15239,7 @@ export type Database = {
           visits: number
         }[]
       }
+      analytics_overview: { Args: { days?: number }; Returns: Json }
       asher_accept_invitation: { Args: { _token: string }; Returns: string }
       asher_has_role_in_org: {
         Args: {
