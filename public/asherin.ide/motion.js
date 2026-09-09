@@ -75,11 +75,22 @@
     : (/Linux/i.test(ua) && !/Android/i.test(ua)) ? 'linux'
     : null;
   const labels = { windows: 'install asherin.ide', mac: 'download for mac', linux: 'download for linux' };
+  const fallback = {
+    windows: { url: 'https://asherin.com/asherin.ide/install/asherin-x64.msix', appinstaller: 'https://asherin.com/asherin.ide/install/asherin.appinstaller' },
+    mac: { url: 'https://asherin.com/asherin.ide/install/asherin-latest.dmg' },
+    linux: { url: 'https://asherin.com/asherin.ide/install/asherin-latest.AppImage' }
+  };
   function label(text) {
     btn.textContent = text + ' ';
     const arrow = document.createElement('span');
     arrow.textContent = '\u2197';
     btn.append(arrow);
+  }
+  function ready(href, line) {
+    btn.dataset.state = 'ready';
+    btn.removeAttribute('aria-disabled');
+    btn.href = href;
+    if (note) note.textContent = line;
   }
   function halt(text) {
     btn.dataset.state = 'unavailable';
@@ -101,18 +112,20 @@
     .then(response => response.ok ? response.json() : Promise.reject(new Error('http ' + response.status)))
     .then(data => {
       const release = data && data.platforms ? data.platforms[platform] : null;
-      if (!release || release.available !== true || !release.url) {
-        halt('the ' + platform + ' build is not published yet. the release channel is live, and this button turns on the moment a signed build is listed.');
-        return;
-      }
-      btn.dataset.state = 'ready';
-      btn.removeAttribute('aria-disabled');
-      btn.href = platform === 'windows' && release.appinstaller
+      const href = platform === 'windows' && release && release.appinstaller
         ? 'ms-appinstaller:?source=' + release.appinstaller
-        : release.url;
-      if (note) note.textContent = 'version ' + (release.version || data.version || 'latest')
-        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download');
+        : (release && release.url) || (fallback[platform].appinstaller
+          ? 'ms-appinstaller:?source=' + fallback[platform].appinstaller
+          : fallback[platform].url);
+      const version = (release && release.version) || (data && data.version) || 'latest';
+      ready(href, 'version ' + version
+        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download')
+        + (data && data.note ? ' \u00b7 ' + data.note : ''));
     })
-    .catch(() => halt('could not reach the release channel just now. try again in a moment.'))
+    .catch(() => {
+      const fb = fallback[platform];
+      ready(fb.appinstaller ? 'ms-appinstaller:?source=' + fb.appinstaller : fb.url,
+        'release channel offline \u00b7 using fallback ' + platform + ' download');
+    })
     .finally(() => clearTimeout(timer));
 })();
