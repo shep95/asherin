@@ -11,7 +11,7 @@
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="preload" as="image" href="/asherin.ide/assets/night.webp" type="image/webp" fetchpriority="high">
-  <link rel="stylesheet" href="/asherin.ide/style.css" integrity="sha384-14lPexJWxXG+VBIDpSoSmaK6CIB6h6dvCeYKUinnwgRP36wzxTk+STyPBee86YuP" crossorigin="anonymous">
+  <link rel="stylesheet" href="/asherin.ide/style.css">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="asherin.ide">
   <meta property="og:title" content="asherin.ide — a quiet place to build">
@@ -161,8 +161,8 @@
       <details>
         <summary class="text-link">what happens when you install <span>↓</span></summary>
         <div class="access-info">
-          <h3>a native desktop archive.</h3>
-          <p>the install button picks the archive for your platform — a zip for windows or macos, a tar.gz for linux. extract the folder and run the executable inside.</p>
+          <h3>a working desktop build.</h3>
+          <p>on windows, the install button downloads the desktop archive. extract the folder, then open asherin ide.exe.</p>
           <p>on windows the build is not yet code-signed, so smartscreen may warn you. choose “more info” then “run anyway” to launch. signed installers will replace these archives once the certificate is ready.</p>
           <p>the desktop build wraps the same asherin web app in electron, so it works offline for already-loaded pages and checks for updates on launch.</p>
           <p class="fine">no api key is needed to explore this page.</p>
@@ -199,6 +199,6 @@
     </footer>
   </main>
 
-  <script src="/asherin.ide/motion.js" integrity="sha384-pGjAZ0PZUapG7uWR1XW9HKnGIbWZIN5QEYBr4obQZxANpFeLsLZPILiqRAnvcghb" crossorigin="anonymous" defer></script>
+  <script src="/asherin.ide/motion.js" defer></script>
 </body>
 </html>

@@ -75,12 +75,12 @@
     : (/Linux/i.test(ua) && !/Android/i.test(ua)) ? 'linux'
     : null;
   const labels = {
-    windows: 'download for windows',
+    windows: 'install asherin.ide',
     mac: 'download for mac',
     linux: 'download for linux',
   };
   const fallback = {
-    windows: { url: '/asherin.ide/install/asherin-ide-windows-x64.zip', ext: 'zip' },
+    windows: { url: '/__l5e/assets-v1/6b747446-ee61-45f3-9210-5f39fa558835/asherin-ide-windows-x64.zip', ext: 'zip' },
     mac: { url: '/asherin.ide/install/asherin-ide-macos-x64.zip', ext: 'zip' },
     linux: { url: '/asherin.ide/install/asherin-ide-linux-x64.tar.gz', ext: 'tar.gz' },
   };
@@ -118,7 +118,7 @@
       const release = data && data.platforms ? data.platforms[platform] : null;
       const href = (release && release.url) || fallback[platform].url;
       const version = (release && release.version) || (data && data.version) || 'latest';
-      ready(href, 'version ' + version + ' \u00b7 ' + fallback[platform].ext + ' archive');
+       ready(href, 'version ' + version + ' \u00b7 desktop download \u00b7 extract and open asherin ide.exe');
     })
     .catch(() => {
       const fb = fallback[platform];
