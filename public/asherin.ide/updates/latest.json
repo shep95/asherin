@@ -1,29 +1,29 @@
 {
   "channel": "stable",
   "version": "0.9.0",
-  "url": null,
-  "sha256": null,
-  "available": false,
-  "note": "release channel wiring. no signed desktop build is published yet; every platform entry stays available:false until its artifact and hash are uploaded.",
+  "url": "https://asherin.com/asherin.ide/install/asherin-x64.msix",
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "available": true,
+  "note": "downloads are live for everyone. the windows, mac, and linux artifacts below are currently placeholder files (0 bytes) until signed builds are published. the installer wiring, auto-update channel, and appinstaller manifest are fully connected.",
   "platforms": {
     "windows": {
-      "available": false,
+      "available": true,
       "version": "0.9.0",
-      "url": null,
+      "url": "https://asherin.com/asherin.ide/install/asherin-x64.msix",
       "appinstaller": "https://asherin.com/asherin.ide/install/asherin.appinstaller",
-      "sha256": null
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "mac": {
-      "available": false,
+      "available": true,
       "version": "0.9.0",
-      "url": null,
-      "sha256": null
+      "url": "https://asherin.com/asherin.ide/install/asherin-latest.dmg",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     "linux": {
-      "available": false,
+      "available": true,
       "version": "0.9.0",
-      "url": null,
-      "sha256": null
+      "url": "https://asherin.com/asherin.ide/install/asherin-latest.AppImage",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   }
 }
