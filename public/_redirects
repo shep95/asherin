@@ -80,6 +80,10 @@
 /asherin.acatalepsy  /index.html  200
 /asherin.acatalepsy/ /index.html  200
 
+# asherin.soren — standalone static workspace under public/asherin.soren/.
+/asherin.soren       /asherin.soren/index.html  200
+/asherin.soren/      /asherin.soren/index.html  200
+
 # asherin.ide — standalone static landing page under public/asherin.ide/.
 /asherin.ide       /asherin.ide/index.html  200
 /asherin.ide/      /asherin.ide/index.html  200

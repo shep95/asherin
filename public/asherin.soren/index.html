@@ -1,0 +1,1739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>asherin.soren</title>
+  <style>:root{
+  /* asherin palette — layered absence, one trust signal */
+  --void:#040505;--surface:#08090a;--surface2:#0b0c0e;--surface3:#101214;--line:#1a1c1e;--line2:#262a2d;
+  --text:#e9eae9;--muted:#8b9091;--faint:#585d5f;--cyan:#c9cecd;--trust:#63e3a0;--violet:#a9afb0;--blue:#9aa2a4;--amber:#c8b98f;--red:#d98a86;
+  --top:52px;--left:340px;--right:320px;--bottom:192px;--radius:16px;--radius-sm:10px;--scale:1;
+}
+*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:var(--void);color:var(--text);font:200 calc(12px * var(--scale))/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.025em}
+button,input,select,textarea{font:inherit;color:inherit}button{border:0;background:transparent;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:1px solid var(--cyan);outline-offset:2px}
+button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-color:#2a343a transparent}
+.topbar{height:var(--top);display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#070808,#040505);position:relative;z-index:30}
+.brand{display:flex;align-items:center;gap:9px;min-width:260px}.brandMark{width:7px;height:7px;border-radius:999px;background:var(--trust);box-shadow:0 0 14px rgba(114,242,165,.4)}.brandName{letter-spacing:.16em}.brand small{color:var(--faint)}
+.topnav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px;margin:auto}.topnav button{padding:6px 10px;border-radius:7px;color:var(--muted)}.topnav button:hover,.topnav button.active{background:#11171b;color:var(--text)}.topnav .aiAccent{color:var(--violet)}
+.status{min-width:230px;text-align:right;color:var(--muted)}.status strong{font-weight:500;color:var(--trust)}.status #clock{margin-left:14px;color:var(--faint)}
+.shell{position:absolute;inset:var(--top) 0 var(--bottom);display:grid;grid-template-columns:var(--left) minmax(0,1fr) var(--right);gap:8px;padding:8px;background:var(--void)}
+.rail,.bottom,.modalCard,.floating{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 18px 45px rgba(0,0,0,.34)}.rail{min-width:0;overflow:hidden;display:flex;flex-direction:column}.railHead{height:43px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 12px;border-bottom:1px solid var(--line);color:var(--muted)}.railHead button{width:27px;height:27px;border-radius:8px;background:#10151a;color:var(--muted)}
+.leftTabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:7px;border-bottom:1px solid var(--line)}.leftTabs button{padding:7px 8px;border-radius:8px;color:var(--muted);background:#080b0e}.leftTabs button.active{background:#12191d;color:var(--text);box-shadow:inset 0 -2px 0 var(--cyan)}.leftTabs button[data-tab="ai"].active{box-shadow:inset 0 -2px 0 var(--violet)}
+.panelPane{min-height:0;flex:1;display:flex;flex-direction:column}.panelPane[hidden]{display:none!important}.search{padding:10px}.search input,.field input,.field select,.chatComposer textarea,.settingsGrid input,.settingsGrid select{width:100%;border:1px solid #202a30;background:#070a0d;border-radius:var(--radius-sm);padding:9px 10px;outline:none}.search input:focus,.field input:focus,.field select:focus,.chatComposer textarea:focus,.settingsGrid input:focus,.settingsGrid select:focus{border-color:var(--cyan)}
+.tree{padding:0 7px 12px;overflow:auto;flex:1}.treeEmpty,.emptyState{color:var(--faint);padding:18px 12px;line-height:1.7}.treeItem{padding:9px 10px;border-radius:9px;color:var(--muted);cursor:pointer;margin:2px 0;display:flex;gap:8px;align-items:center}.treeItem:hover{background:#0e1418;color:var(--text)}.treeItem.active{background:#11191d;color:var(--text);box-shadow:inset 2px 0 0 var(--cyan)}.treeItem small{margin-left:auto;color:var(--faint)}
+.sourceBar{border-top:1px solid var(--line);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;color:var(--muted)}.sourceBar button{color:var(--violet)}.flowList{border-top:1px solid var(--line);padding:10px 12px}.label{color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.14em;margin:2px 0 8px}.flowList label{display:flex;align-items:center;gap:8px;padding:4px 0;color:var(--muted)}.flowList input{accent-color:var(--cyan)}
+.viewport{position:relative;overflow:hidden;border:1px solid #171f24;border-radius:18px;background:#06090b}.viewport canvas{display:block;width:100%;height:100%}.sceneHeader{position:absolute;top:16px;left:18px}.sceneHeader strong{display:block;font-weight:500;letter-spacing:.1em}.sceneHeader small{color:var(--faint)}.sceneTools{position:absolute;right:14px;top:14px;display:flex;gap:4px;padding:4px;border:1px solid #202b31;border-radius:10px;background:#090d10}.sceneTools button{padding:7px 10px;border-radius:7px;color:var(--muted)}.sceneTools button.active{color:var(--cyan);background:#111a1f}
+.viewControls{position:absolute;right:14px;top:58px;width:248px;min-width:220px;max-width:420px;max-height:70%;overflow:auto;resize:both;padding:10px 11px;border:1px solid #202b31;border-radius:var(--radius);background:#090d10}.viewControls.collapsed{height:36px!important;min-height:36px;overflow:hidden;resize:none}.viewControls.collapsed .controlBody{display:none}.floatHead{height:22px;display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.13em}.floatHead button{width:22px;height:22px;border-radius:7px;background:#11171b}.range{margin:9px 0}.range label{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}.range output{color:var(--text)}input[type=range]{width:100%;accent-color:var(--cyan)}
+.sceneEmpty[hidden]{display:none}.sceneEmpty{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}.sceneEmptyCard{max-width:460px;text-align:center;padding:24px;color:var(--muted)}.sceneEmptyCard strong{display:block;font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px}.sceneEmptyCard span{color:var(--faint);line-height:1.75}.sceneHint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:5px 9px;border:1px solid #182126;border-radius:999px;background:#080c0e;color:var(--faint);font-size:9px;white-space:nowrap}
+.hud{position:absolute;bottom:18px;padding:8px 10px;border:1px solid #1b252b;border-radius:9px;background:#080c0e}.hud.left{left:16px}.hud.right{right:16px;text-align:right}.hud span{display:block;color:var(--faint);font-size:9px;text-transform:uppercase}.hud strong{display:block;font-weight:500;margin-top:3px}
+.inspectorScroll{overflow:auto;min-height:0}.hero{padding:16px 14px 12px;border-bottom:1px solid var(--line)}.hero small{color:var(--faint)}.hero h2{font-size:20px;font-weight:400;margin:6px 0 9px}.stateLine{display:flex;align-items:center;gap:7px;color:var(--trust)}.stateDot{width:6px;height:6px;border-radius:99px;background:currentColor}.section{padding:10px 14px;border-bottom:1px solid var(--line)}.metric{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #171f24}.metric:last-child{border-bottom:0}.metric span{color:var(--muted)}.metric strong{font-weight:450;font-variant-numeric:tabular-nums;text-align:right}.relation{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:6px 0}.relation b{font-weight:400;color:var(--faint)}.relation span{color:var(--text)}
+.bottom{position:absolute;left:8px;right:8px;bottom:8px;height:calc(var(--bottom) - 8px);z-index:20;overflow:hidden}.bottom.collapsed{height:42px}.bottom.collapsed .chartWrap,.bottom.collapsed .timelineRange{display:none}.bottomHead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 11px;color:var(--muted)}.bottomActions{display:flex;gap:4px}.bottomActions button{padding:5px 8px;border-radius:7px;background:#10151a}.chartWrap{height:112px}.timelineRange{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;padding:0 11px;color:var(--faint);font-size:9px}
+.resizeHandle{position:fixed;z-index:25;opacity:.02;touch-action:none}.resizeHandle:hover,.resizeHandle.dragging{opacity:1;background:var(--cyan)}.resizeLeft{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);left:calc(8px + var(--left) + 4px);width:4px;cursor:col-resize}.resizeRight{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);right:calc(8px + var(--right) + 4px);width:4px;cursor:col-resize}.resizeBottom{left:18px;right:18px;bottom:calc(var(--bottom) + 1px);height:5px;cursor:row-resize}.collapsedLeft{--left:44px}.collapsedRight{--right:44px}.collapsedLeft .left .panelPane,.collapsedLeft .leftTabs,.collapsedRight .right .inspectorScroll{display:none}.collapsedLeft .left .railHead span,.collapsedRight .right .railHead span{display:none}.collapsedLeft .resizeLeft,.collapsedRight .resizeRight{display:none}
+/* ai chat */
+.aiPane{min-height:0}.branchToolbar{display:grid;grid-template-columns:1fr auto auto;gap:5px;padding:8px;border-bottom:1px solid var(--line)}.branchToolbar select{min-width:0;background:#080c0f;border:1px solid #202a30;border-radius:8px;padding:7px 8px;color:var(--text)}.branchToolbar button{width:30px;height:30px;border-radius:8px;background:#11171b;color:var(--muted)}.branchToolbar .settingsButton{color:var(--violet)}.branchHistory{max-height:112px;overflow:auto;border-bottom:1px solid var(--line);padding:6px}.branchItem{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--muted);cursor:pointer}.branchItem:hover,.branchItem.active{background:#10161a;color:var(--text)}.branchItem i{width:5px;height:5px;border-radius:50%;background:var(--violet)}.branchItem small{margin-left:auto;color:var(--faint)}
+.chatMessages{flex:1;min-height:0;overflow:auto;padding:10px 10px 4px}.message{margin-bottom:10px}.messageMeta{display:flex;align-items:center;gap:7px;color:var(--faint);font-size:9px;margin-bottom:4px}.message.user .messageMeta{justify-content:flex-end}.bubble{padding:9px 10px;border:1px solid #1c252a;border-radius:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.message.user .bubble{background:#0d1519;border-color:#20313a;margin-left:22px}.message.assistant .bubble{background:#0a0d10;margin-right:12px}.message.system .bubble{border-color:#29233a;color:#a99fc7;background:#0e0c13}.message.error .bubble{border-color:#45282b;color:#ffaaa9;background:#130a0b}.messageTools{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.toolChip{font-size:9px;padding:4px 6px;border:1px solid #263038;border-radius:999px;color:var(--cyan)}.toolChip.approval{color:var(--amber);border-color:#49372a}.toolChip button{color:inherit;margin-left:6px}.evidenceTags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.evidenceTag{font-size:9px;padding:3px 6px;border:1px solid #283238;border-radius:999px;color:var(--trust)}
+.chatStatus{height:26px;display:flex;align-items:center;gap:7px;padding:0 10px;border-top:1px solid var(--line);color:var(--faint);font-size:9px}.providerDot{width:6px;height:6px;border-radius:50%;background:#59636a}.providerDot.connected{background:var(--trust);box-shadow:0 0 10px rgba(114,242,165,.35)}.chatComposer{padding:8px;border-top:1px solid var(--line)}.chatComposer textarea{height:72px;resize:vertical;min-height:52px;max-height:160px}.composerActions{display:flex;align-items:center;justify-content:space-between;margin-top:6px}.composerActions span{font-size:9px;color:var(--faint)}.composerActions button{padding:7px 10px;border-radius:8px;background:#17131d;color:var(--violet);border:1px solid #2b2440}
+/* modal */
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(3,5,6,.84);padding:24px}.modal[hidden]{display:none}.modalCard{width:min(880px,94vw);max-height:88vh;overflow:auto}.modalHead{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line);color:var(--muted)}.modalHead button{width:28px;height:28px;border-radius:8px;background:#11171b}.modalBody{padding:16px}.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;color:var(--muted);margin-bottom:6px}.field small{display:block;color:var(--faint);margin-top:5px;line-height:1.5}.field.full{grid-column:1/-1}.buttonRow{display:flex;gap:8px;align-items:center;margin-top:14px}.primary{padding:8px 11px!important;border-radius:8px!important;background:#14111b!important;color:var(--violet)!important;border:1px solid #302942!important}.secondary{padding:8px 11px!important;border-radius:8px!important;background:#0d1215!important;color:var(--text)!important;border:1px solid #263238!important}.connectionState{margin-left:auto;color:var(--faint)}.connectionState.ok{color:var(--trust)}.connectionState.bad{color:var(--red)}
+.sourceList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sourceCard{border:1px solid #1d272c;border-radius:10px;background:#080b0e;padding:10px}.sourceCard strong{display:block;font-weight:500}.sourceCard span,.sourceCard small{display:block;color:var(--faint);margin-top:4px}.sourceCard .parsed{color:var(--trust)}.sourceActions{display:flex;gap:6px;margin-top:8px}.sourceActions button{padding:5px 7px;border-radius:7px;background:#11171b;color:var(--muted)}.dropZone{border:1px dashed #29373f;border-radius:12px;padding:20px;text-align:center;color:var(--muted);cursor:pointer;margin-bottom:12px}.dropZone.drag{border-color:var(--violet);background:#0e0b13}.dropZone strong{display:block;color:var(--text);margin-bottom:5px}.notice{padding:10px 11px;border:1px solid #283238;border-radius:9px;background:#080c0e;color:var(--muted);line-height:1.65}.notice strong{color:var(--text)}.notice.warn{border-color:#4a3528}.narrative{color:var(--muted);line-height:1.8}.narrative h2,.narrative h3{color:var(--text);font-weight:450}.narrative h2{font-size:24px}.narrative h3{font-size:14px;margin-top:24px}.narrative strong{color:var(--text)}.auditGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.auditCard{border:1px solid #1e282d;border-radius:10px;padding:11px;background:#080b0e}.auditCard b{display:block;margin-bottom:5px}.auditCard span{color:var(--muted);line-height:1.6}.auditCard.critical{border-color:#43292b}.auditCard.future{border-color:#34304d}
+.toast{position:fixed;z-index:90;left:50%;bottom:calc(var(--bottom) + 18px);transform:translate(-50%,8px);opacity:0;pointer-events:none;padding:7px 11px;border:1px solid #263238;border-radius:999px;background:#0a0e11;color:var(--muted);transition:.16s}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:1080px){.status,.brand small{display:none}.brand{min-width:165px}.settingsGrid{grid-template-columns:1fr}.field.full{grid-column:auto}.sourceList{grid-template-columns:1fr}.auditGrid{grid-template-columns:1fr}}
+@media(max-width:780px){:root{--bottom:158px}.topbar{padding:0 8px}.topnav{margin-left:auto;margin-right:0;overflow:auto}.shell{grid-template-columns:1fr;padding:6px}.left,.right{position:absolute;top:6px;bottom:6px;width:min(360px,86vw);z-index:35}.left{left:6px}.right{right:6px}.collapsedLeft .left{transform:translateX(calc(-100% - 12px))}.collapsedRight .right{transform:translateX(calc(100% + 12px))}.viewport{grid-column:1}.resizeHandle{display:none}.bottom{left:6px;right:6px;bottom:6px}.viewControls{right:10px;max-width:72vw}.sceneTools{right:10px}.hud{display:none}.sceneHint{max-width:70vw;white-space:normal;text-align:center}.modal{padding:10px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* physical data fabric */
+.dataFabricCard{width:min(1120px,96vw);max-height:92vh}.dataTabs{display:flex;gap:5px;padding:8px 10px;border-bottom:1px solid var(--line);background:#070a0c}.dataTabs button{padding:7px 10px;border-radius:8px;color:var(--muted);background:#0a0e11;border:1px solid transparent}.dataTabs button.active{color:var(--cyan);border-color:#253740;background:#0e1519}.dataPane[hidden]{display:none!important}.fabricHero{padding:4px 0 14px}.fabricHero small{color:var(--cyan);text-transform:uppercase;letter-spacing:.14em;font-size:9px}.fabricHero h2{font-size:22px;font-weight:420;margin:6px 0 7px;letter-spacing:.01em}.fabricHero p{margin:0;color:var(--muted);max-width:830px;line-height:1.75}.connectorCard{border:1px solid #1f2a30;border-radius:12px;background:#080c0f;padding:13px;margin-bottom:14px}.liveConnector{border-color:#22382f}.connectorHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.connectorHead strong{display:block;font-weight:500}.connectorHead span{display:block;color:var(--faint);font-size:10px;margin-top:3px}.liveBadge{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:5px 8px;border-radius:999px;border:1px solid #28503a;color:var(--trust)!important;background:#0a1510!important;white-space:nowrap}.fabricFields{grid-template-columns:repeat(4,minmax(0,1fr))}.fabricFields .full{grid-column:span 2}.fabricSplit{display:grid;grid-template-columns:minmax(250px,.8fr) minmax(0,1.2fr);gap:12px;margin:14px 0}.singleList{grid-template-columns:1fr;max-height:280px;overflow:auto}.fabricLabel{margin-top:16px}.solverGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.solverCard{border:1px solid #202a30;border-radius:11px;background:#080b0e;padding:11px}.solverCard.ready{border-color:#28513a}.solverCard.blocked{border-color:#40322a}.solverCardHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.solverCardHead strong{font-weight:500}.solverState{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--amber)}.solverCard.ready .solverState{color:var(--trust)}.requirement{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid #151d21;color:var(--muted);font-size:10px}.requirement b{font-weight:450;color:var(--red)}.requirement.present b{color:var(--trust)}.propertyRecord{padding:6px 0;border-top:1px solid #171f24}.propertyRecord:first-of-type{border-top:0}.propertyRecord strong{font-weight:450}.propertyRecord small{color:var(--faint);margin-top:2px}.sourceCard code,.notice code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--cyan);font-size:.92em}.provenanceLine{color:var(--faint)!important;font-size:9px!important;overflow-wrap:anywhere}.metric .verifiedValue{color:var(--trust)}
+@media(max-width:980px){.fabricFields{grid-template-columns:1fr 1fr}.fabricSplit{grid-template-columns:1fr}.solverGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.fabricFields,.solverGrid{grid-template-columns:1fr}.fabricFields .full{grid-column:auto}.connectorHead{align-items:flex-start}.dataTabs{overflow:auto}}
+.renderBadge{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--green,#72f2a5);padding:6px 8px;border:1px solid rgba(114,242,165,.18);border-radius:8px;background:#07100c;white-space:nowrap}
+#runAnimation.active{color:#07110d;background:#72f2a5;border-color:#72f2a5}
+#runAnimation:disabled{opacity:.34;cursor:not-allowed}
+.developerAccess{margin-top:14px;display:flex;gap:18px;align-items:center;justify-content:space-between;padding:13px 14px;border:1px solid #1c252c;border-radius:12px;background:#080d11}.developerAccess>div{display:flex;flex-direction:column;gap:4px;min-width:0}.developerAccess strong{font-size:11px;font-weight:650}.developerAccess span:not(.connectionState){font-size:10px;color:#6f7b82;line-height:1.45;max-width:560px}.developerAccess .connectionState{white-space:nowrap}
+</style>
+  <meta name="description" content="asherin.soren is a free, local engineering evidence workspace. connect your own model API, import real geometry and telemetry, and build 3D models from your own sources. nothing is stored on a server.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://asherin.com/asherin.soren/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="asherin.soren — local 3D engineering evidence workspace">
+  <meta property="og:description" content="free, local, no account. connect an API key, import sources, build 3D models from real geometry.">
+  <meta property="og:url" content="https://asherin.com/asherin.soren/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&family=Cormorant+Garamond:wght@300;400&display=swap">
+  <script src="./bridge.js"></script>
+  <style>
+    .brandName{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;font-size:16px;letter-spacing:.1em}
+    .brand a{color:var(--faint);text-decoration:none;border-bottom:1px solid transparent}
+    .brand a:hover{color:var(--muted);border-bottom-color:var(--line2)}
+    .brandHome{margin-left:2px}
+    .topnav button.aiAccent{color:var(--muted)}
+    .status strong{color:var(--trust);font-weight:300}
+    body{background:
+      radial-gradient(140% 90% at 50% -20%, rgba(255,255,255,.035), transparent 60%),
+      var(--void);}
+    .freeTag{margin-left:10px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--faint);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
+    /* off-canvas rails translate past the right edge on phones; clip them so
+       the document itself never gains a horizontal scrollbar. */
+    @media(max-width:780px){html,body{overflow-x:hidden}.shell{overflow:hidden}.freeTag{display:none}.brandName{font-size:14px}.brand{min-width:0;flex:0 0 auto;overflow:hidden}.topnav{flex:1 1 auto;min-width:0;margin:0 0 0 8px}.viewControls{width:200px;max-width:58vw}}
+    @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body class="collapsedRight">
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brandMark"></span><span class="brandName">asherin.soren</span><small><a class="brandHome" href="https://asherin.com" title="asherin.com">asherin.com</a></small><span class="freeTag">free · local</span></div>
+    <nav class="topnav" aria-label="primary">
+      <button id="sourcesButton">sources</button>
+      <button id="scenarioButton">physical data</button>
+      <button id="auditButton">audit</button>
+      <button id="settingsButton" class="aiAccent">AI models</button>
+      <button id="shortcutsButton" title="keyboard shortcuts">⌘</button>
+    </nav>
+    <div class="status"><strong id="truthStatus">source truth only</strong><span id="clock">00:00:00</span></div>
+  </header>
+
+  <main class="shell">
+    <aside class="rail left" aria-label="system and AI assistant">
+      <div class="railHead"><span id="leftTitle">assistant</span><button id="collapseLeft" title="collapse left panel">−</button></div>
+      <div class="leftTabs">
+        <button data-left-tab="system">system</button>
+        <button data-left-tab="ai" class="active">AI</button>
+      </div>
+
+      <section class="panelPane" id="systemPane" hidden>
+        <div class="search"><input id="systemSearch" placeholder="query imported system" autocomplete="off"></div>
+        <div class="tree" id="tree"><div class="treeEmpty">no engineering objects are loaded.</div></div>
+        <div class="sourceBar"><span><b id="sourceCount">0</b> real sources</span><button id="sourceBarButton">manage</button></div>
+        <div class="flowList">
+          <div class="label">flow overlays</div>
+          <label><input type="checkbox" data-flow="electrical"> electrical</label>
+          <label><input type="checkbox" data-flow="thermal"> thermal</label>
+          <label><input type="checkbox" data-flow="coolant"> coolant</label>
+          <label><input type="checkbox" data-flow="control"> control</label>
+        </div>
+      </section>
+
+      <section class="panelPane aiPane" id="aiPane">
+        <div class="branchToolbar">
+          <select id="branchSelect" aria-label="chat branch"></select>
+          <button id="newBranch" title="new branch">＋</button>
+          <button id="aiSettingsInline" class="settingsButton" title="AI model settings">⚙</button>
+        </div>
+        <div class="branchHistory" id="branchHistory"></div>
+        <div class="chatMessages" id="chatMessages"></div>
+        <div class="chatStatus"><span class="providerDot" id="providerDot"></span><span id="providerStatus">no AI provider connected</span></div>
+        <div class="chatComposer">
+          <textarea id="chatInput" placeholder="ask the system to inspect, retrieve, compare, navigate, or operate…"></textarea>
+          <div class="composerActions"><span>enter to send · shift enter for newline</span><button id="sendChat">send</button></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="viewport" id="viewport">
+      <canvas id="scene" aria-label="engineering geometry viewport"></canvas>
+      <div class="sceneHeader"><strong id="sceneTitle">no geometry connected</strong><small id="sceneSubtitle">import a real source to begin</small></div>
+      <div class="sceneTools" role="toolbar" aria-label="view mode"><span class="renderBadge">3D · WebGL</span>
+        <button data-view="orbit" class="active">orbit</button>
+        <button data-view="explode">explode</button>
+        <button data-view="xray">x ray</button>
+        <button data-view="thermal">thermal</button>
+      </div>
+      <div class="viewControls" id="viewControls">
+        <div class="floatHead"><span>adaptive view</span><button id="collapseView">−</button></div>
+        <div class="controlBody">
+          <div class="range"><label>orbit sensitivity <output id="orbitOut">50%</output></label><input id="orbitRange" type="range" min="5" max="100" value="50"></div>
+          <div class="range"><label>explode distance <output id="explodeOut">0%</output></label><input id="explodeRange" type="range" min="0" max="100" value="0"></div>
+          <div class="range"><label>x ray opacity <output id="xrayOut">20%</output></label><input id="xrayRange" type="range" min="0" max="100" value="20"></div>
+          <div class="range"><label>thermal visibility <output id="thermalOut">60%</output></label><input id="thermalRange" type="range" min="0" max="100" value="60"></div>
+          <div class="emptyState" id="adaptiveNote">controls affect the actual loaded geometry. thermal rendering remains unavailable until a thermal field or temperature source is bound.</div>
+        </div>
+      </div>
+      <div class="sceneEmpty" id="sceneEmpty"><div class="sceneEmptyCard"><strong>the viewport is intentionally empty.</strong><span>asherin.soren no longer ships with demonstration machine measurements or decorative engineering geometry. import OBJ, STL, ASCII PLY, structured workspace JSON, telemetry, documents, or images. parsed mesh formats render as actual depth tested 3D geometry. unsupported formats are registered honestly and remain gated until a parser is connected.</span></div></div>
+      <div class="hud left"><span>environment</span><strong id="envName">unassigned</strong></div>
+      <div class="hud right"><span>timeline</span><strong id="timeState">no telemetry</strong></div>
+      <div class="sceneHint">drag to orbit in 3D · wheel to dolly · double click to fit · run follows the same 3D transform</div>
+    </section>
+
+    <aside class="rail right" aria-label="inspector">
+      <div class="railHead"><span>inspector</span><button id="collapseRight" title="collapse inspector">+</button></div>
+      <div class="inspectorScroll">
+        <div class="hero"><small id="objectPath">nothing selected</small><h2 id="objectName">no object</h2><div class="stateLine"><span class="stateDot"></span><span id="objectState">unknown</span></div></div>
+        <div class="section"><div class="label">source backed properties</div><div id="metrics"><div class="emptyState">select an imported object.</div></div></div>
+        <div class="section"><div class="label">relationships</div><div id="relations"><div class="emptyState">no relationships loaded.</div></div></div>
+        <div class="section"><div class="label">evidence</div><div id="evidenceMetrics"><div class="metric"><span>bound sources</span><strong>0</strong></div></div></div>
+        <div class="section"><div class="label">environment evidence</div><div id="environmentMetrics"><div class="emptyState">no environment evidence selected.</div></div></div>
+        <div class="section"><div class="label">material passport</div><div id="materialMetrics"><div class="emptyState">no material passport bound.</div></div></div>
+        <div class="section"><div class="label">solver eligibility</div><div id="solverMetrics"><div class="emptyState">select an imported object.</div></div></div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="resizeHandle resizeLeft" id="resizeLeft" aria-label="resize left panel"></div>
+  <div class="resizeHandle resizeRight" id="resizeRight" aria-label="resize right panel"></div>
+  <div class="resizeHandle resizeBottom" id="resizeBottom" aria-label="resize timeline"></div>
+
+  <section class="bottom" id="bottomPanel">
+    <div class="bottomHead"><span>telemetry / timeline</span><div class="bottomActions"><button id="runAnimation" disabled title="requires explicit flow relationships or timestamped telemetry">run</button><button id="stepBack">−1</button><button id="stepForward">+1</button><button id="collapseBottom">−</button></div></div>
+    <div class="chartWrap"><canvas id="chart"></canvas></div>
+    <div class="timelineRange"><span id="timeMin">0</span><input id="timeRange" type="range" min="0" max="0" value="0" disabled><span id="timeMax">0</span></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal" id="sourcesModal" hidden>
+    <div class="modalCard">
+      <div class="modalHead"><span>real source registry</span><button data-close="sourcesModal">×</button></div>
+      <div class="modalBody">
+        <div class="dropZone" id="dropZone" tabindex="0"><strong>import actual project evidence</strong><span>files remain local in the browser unless you explicitly send relevant content to a connected AI model.</span></div>
+        <input id="sourceInput" type="file" multiple hidden accept=".json,.csv,.tsv,.txt,.md,.pdf,.png,.jpg,.jpeg,.webp,.gif,.obj,.stl,.ply,.glb,.gltf,.3mf,.dxf,.las,.laz">
+        <div class="notice"><strong>real capability boundary</strong> -> this build directly parses workspace JSON, CSV or TSV telemetry, OBJ, STL, ASCII PLY, text, and images. GLB, GLTF, 3MF, DXF, LAS, LAZ, and PDF are registered as real source artifacts but are not promoted to parsed engineering truth until a dedicated parser is connected.</div>
+        <div class="sourceList" id="sourceList" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modalCard">
+      <div class="modalHead"><span>AI model gateway</span><button data-close="settingsModal">×</button></div>
+      <div class="modalBody">
+        <div class="notice warn"><strong>API keys are not stored in the browser or written to disk.</strong> when entered here they are sent to the local asherin.soren server and retained only in server memory for this process. you may instead use provider environment variables before starting the server.</div>
+        <div class="settingsGrid" style="margin-top:14px">
+          <div class="field"><label>provider</label><select id="providerSelect"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
+          <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
+          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use server environment configuration"><small>Ollama normally does not need a key. custom compatible endpoints may.</small></div>
+          <div class="field"><label>available model</label><select id="modelSelect"><option value="">connect to load models</option></select></div>
+          <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
+        </div>
+        <div class="buttonRow"><button class="primary" id="connectProvider">connect + discover live models</button><button class="secondary" id="saveModel">use selected model</button><span class="connectionState" id="connectionState">not connected</span></div>
+        <div class="developerAccess"><div><strong>developer code access</strong><span>allows the AI to read only allowlisted UI files, stage exact patches, then apply them only after approval with backup + automated tests + rollback on failure.</span></div><span class="connectionState" id="developerStatus">checking…</span></div>
+        <div class="notice"><strong>redesign authority</strong> -> normal engineering tools cannot edit code. code editing is disabled by default and must be explicitly enabled when starting the local server with <code>ASHERIN_ALLOW_CODE_EDIT=1</code>.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="environmentModal" hidden>
+    <div class="modalCard dataFabricCard">
+      <div class="modalHead"><span>physical data fabric</span><button data-close="environmentModal">×</button></div>
+      <div class="dataTabs">
+        <button data-data-tab="environment" class="active">environment</button>
+        <button data-data-tab="materials">materials</button>
+        <button data-data-tab="solvers">solver readiness</button>
+      </div>
+      <div class="modalBody">
+        <section class="dataPane" id="dataEnvironmentPane">
+          <div class="fabricHero"><small>environment resolver</small><h2>retrieve a real atmospheric boundary condition.</h2><p>this connector requests hourly point data from NASA POWER through the local asherin.soren server. the returned provider, coordinates, UTC timestamp, raw parameter names, retrieval time, and content hash stay attached to the environment state.</p></div>
+          <div class="connectorCard liveConnector">
+            <div class="connectorHead"><div><strong>NASA POWER</strong><span>hourly meteorology + solar · no account required</span></div><span class="liveBadge">live connector</span></div>
+            <div class="settingsGrid fabricFields">
+              <div class="field"><label>latitude</label><input id="powerLatitude" type="number" step="0.0001" min="-90" max="90" placeholder="33.4484"></div>
+              <div class="field"><label>longitude</label><input id="powerLongitude" type="number" step="0.0001" min="-180" max="180" placeholder="-112.0740"></div>
+              <div class="field"><label>date</label><input id="powerDate" type="date"></div>
+              <div class="field"><label>UTC hour</label><select id="powerHour"></select></div>
+              <div class="field full"><label>site elevation · optional meters</label><input id="powerElevation" type="number" step="1" placeholder="provider grid elevation unless supplied"></div>
+            </div>
+            <div class="buttonRow"><button class="primary" id="fetchPowerEnvironment">retrieve + register evidence</button><span class="connectionState" id="powerConnectionState">not requested</span></div>
+          </div>
+          <div class="fabricSplit">
+            <div><div class="label">active environment</div><div id="activeEnvironmentCard" class="sourceCard"><span>no observed environment is active.</span></div></div>
+            <div><div class="label">retrieved records</div><div id="environmentObservationList" class="sourceList singleList"><div class="emptyState">no environment records retrieved.</div></div></div>
+          </div>
+          <div class="notice"><strong>scope boundary</strong> -> NASA POWER establishes atmospheric and solar conditions at its source resolution. it does not replace local CFD around imported geometry. local sensors and test chamber measurements should outrank regional gridded data when they are available.</div>
+        </section>
+
+        <section class="dataPane" id="dataMaterialsPane" hidden>
+          <div class="fabricHero"><small>material registry</small><h2>properties belong to exact material states, not family names.</h2><p>material passports are imported as project evidence. a passport can identify family, grade, standard, condition, form, component bindings, source bindings, property values or curves, and provenance. asherin.soren does not manufacture missing design allowables.</p></div>
+          <div class="notice"><strong>current live boundary</strong> -> this build reads material passports supplied in workspace JSON under <code>materials[]</code>. external certified material databases are not silently queried. add a licensed or authoritative connector only when its terms, identity matching, and property semantics are known.</div>
+          <div class="buttonRow"><button class="secondary" id="importMaterialSource">import material evidence</button><span class="connectionState" id="materialCountState">0 passports</span></div>
+          <div class="label fabricLabel">material passports</div>
+          <div id="materialRegistryList" class="sourceList"></div>
+        </section>
+
+        <section class="dataPane" id="dataSolversPane" hidden>
+          <div class="fabricHero"><small>simulation eligibility</small><h2>the solver does not start until the evidence graph is complete enough.</h2><p>readiness is calculated from the selected object's parsed geometry, bound material passport, source backed component inputs, and active environment evidence. unavailable inputs remain unavailable.</p></div>
+          <div id="solverReadinessGrid" class="solverGrid"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="auditModal" hidden>
+    <div class="modalCard" style="width:min(1050px,95vw)">
+      <div class="modalHead"><span>codebase audit -> fixed operating narrative</span><button data-close="auditModal">×</button></div>
+      <div class="modalBody narrative">
+        <h2>the interface should never be more certain than its sources.</h2>
+        <p>the previous build mixed UI, geometry, environment formulas, simulated telemetry, evidence intake, and interaction state inside one global script. that was fast to prototype, but the same pattern would eventually make every new feature capable of breaking unrelated features. the fixed build separates source ingestion, canonical state, rendering, AI provider transport, chat history, controlled actions, and UI presentation.</p>
+        <div class="auditGrid" id="auditGrid"></div>
+        <h3>the AI operating narrative</h3>
+        <p>the model does not receive a screenshot of the interface and guess what the software is doing. before every model call, asherin.soren constructs a canonical system snapshot containing the actual imported components, selected object, environment, view state, timeline position, source manifests, parser status, and connected model identity. the AI can then request specific real source contents through tools. read actions execute directly. navigation actions can execute automatically. scenario altering actions remain approval gated unless the user changes that policy.</p>
+        <p>for visual evidence, image bytes are passed to a vision capable connected model only when an image is actually registered. geometry measurements come from the geometry parser, not the vision model. telemetry values come from imported rows, not generated curves. missing source content stays missing.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="shortcutsModal" hidden>
+    <div class="modalCard" style="width:min(620px,94vw)">
+      <div class="modalHead"><span>keyboard map</span><button data-close="shortcutsModal">×</button></div>
+      <div class="modalBody"><div class="sourceList">
+        <div class="sourceCard"><strong>⌘ or ctrl + k</strong><span>system search</span></div>
+        <div class="sourceCard"><strong>⌘ or ctrl + j</strong><span>AI chat input</span></div>
+        <div class="sourceCard"><strong>1 2 3 4</strong><span>orbit · explode · x ray · thermal</span></div>
+        <div class="sourceCard"><strong>s / a</strong><span>system pane · AI pane</span></div>
+        <div class="sourceCard"><strong>i / t / h</strong><span>inspector · timeline · adaptive controls</span></div>
+        <div class="sourceCard"><strong>0</strong><span>fit camera to real loaded geometry</span></div>
+        <div class="sourceCard"><strong>esc</strong><span>close open room</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+<script type="module">
+const SOURCE_TYPES = {
+  glb: 'mesh', gltf: 'mesh', stl: 'mesh', obj: 'mesh', ply: 'mesh', '3mf': 'mesh',
+  dxf: 'drawing', las: 'point-cloud', laz: 'point-cloud',
+  json: 'structured-data', csv: 'telemetry', tsv: 'telemetry',
+  txt: 'document', md: 'document', pdf: 'document',
+  png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', gif: 'image'
+};
+
+function extOf(name = '') {
+  const match = String(name).toLowerCase().match(/\.([^.]+)$/);
+  return match ? match[1] : '';
+}
+
+function classifyFileName(name = '', mime = '') {
+  const ext = extOf(name);
+  return SOURCE_TYPES[ext] || (String(mime).startsWith('image/') ? 'image' : 'unknown');
+}
+
+function uid(prefix = 'id') {
+  if (globalThis.crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function clamp(value, min, max) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : min;
+}
+
+function safeJsonParse(text) {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+function extractJsonObject(text = '') {
+  const direct = safeJsonParse(text);
+  if (direct) return direct;
+  const fence = String(text).match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) {
+    const parsed = safeJsonParse(fence[1]);
+    if (parsed) return parsed;
+  }
+  const start = String(text).indexOf('{');
+  const end = String(text).lastIndexOf('}');
+  if (start >= 0 && end > start) return safeJsonParse(String(text).slice(start, end + 1));
+  return null;
+}
+
+function sanitizeAgentPacket(packet, rawText = '') {
+  const value = packet && typeof packet === 'object' ? packet : {};
+  return {
+    message: typeof value.message === 'string' ? value.message : (rawText || 'model returned no message'),
+    tool_calls: Array.isArray(value.tool_calls) ? value.tool_calls
+      .filter(x => x && typeof x.name === 'string')
+      .slice(0, 12)
+      .map(x => ({ name: x.name, arguments: x.arguments && typeof x.arguments === 'object' ? x.arguments : {} })) : [],
+    evidence: Array.isArray(value.evidence) ? value.evidence.slice(0, 20) : [],
+    missing: Array.isArray(value.missing) ? value.missing.slice(0, 20) : [],
+    confidence: typeof value.confidence === 'string' ? value.confidence : 'unspecified'
+  };
+}
+
+function parseAgentPacket(text = '') {
+  return sanitizeAgentPacket(extractJsonObject(text), text);
+}
+
+function parseCSV(text = '', delimiter = null) {
+  const rawLines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/).filter(line => line.trim().length);
+  if (!rawLines.length) return { headers: [], rows: [] };
+  const guess = delimiter || (rawLines[0].includes('\t') ? '\t' : ',');
+  const parseLine = line => {
+    const cells = [];
+    let cell = '', quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (quoted && line[i + 1] === '"') { cell += '"'; i++; }
+        else quoted = !quoted;
+      } else if (ch === guess && !quoted) {
+        cells.push(cell.trim()); cell = '';
+      } else cell += ch;
+    }
+    cells.push(cell.trim());
+    return cells;
+  };
+  const headers = parseLine(rawLines[0]);
+  const rows = rawLines.slice(1).map(line => {
+    const values = parseLine(line);
+    return Object.fromEntries(headers.map((h, i) => [h || `column_${i + 1}`, values[i] ?? '']));
+  });
+  return { headers, rows };
+}
+
+function summarizeTelemetry(parsed) {
+  if (!parsed?.headers?.length) return { channels: [], rowCount: 0, numeric: [] };
+  const numeric = parsed.headers.filter(h => parsed.rows.some(r => Number.isFinite(Number(r[h]))));
+  return { channels: parsed.headers, rowCount: parsed.rows.length, numeric };
+}
+
+function normalizeWorkspace(input) {
+  if (!input || typeof input !== 'object') return null;
+  const components = Array.isArray(input.components) ? input.components.map((c, index) => ({
+    id: String(c.id ?? `component_${index + 1}`),
+    name: String(c.name ?? c.id ?? `component ${index + 1}`),
+    type: String(c.type ?? 'component'),
+    path: String(c.path ?? ''),
+    state: c.state == null ? 'unknown' : String(c.state),
+    metrics: c.metrics && typeof c.metrics === 'object' ? c.metrics : {},
+    relations: Array.isArray(c.relations) ? c.relations : [],
+    geometryRef: c.geometryRef == null ? null : String(c.geometryRef),
+    materialId: c.materialId == null ? null : String(c.materialId)
+  })) : [];
+  const environment = input.environment && typeof input.environment === 'object' ? input.environment : {};
+  const telemetry = input.telemetry && typeof input.telemetry === 'object' ? input.telemetry : {};
+  const materials = Array.isArray(input.materials) ? input.materials.map((m, i) => normalizeMaterialPassport(m, i)).filter(Boolean) : [];
+  return {
+    project: input.project && typeof input.project === 'object' ? input.project : {},
+    components,
+    environment,
+    telemetry,
+    materials,
+    metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {}
+  };
+}
+
+function triangulatePolygon(indices) {
+  const out = [];
+  for (let i = 1; i < indices.length - 1; i++) out.push([indices[0], indices[i], indices[i + 1]]);
+  return out;
+}
+
+function parseOBJ(text = '') {
+  const vertices = [], faces = [];
+  const lines = String(text).split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.startsWith('v ')) {
+      const p = line.split(/\s+/).slice(1, 4).map(Number);
+      if (p.length === 3 && p.every(Number.isFinite)) vertices.push(p);
+    } else if (line.startsWith('f ')) {
+      const idx = line.split(/\s+/).slice(1).map(token => {
+        const v = Number(token.split('/')[0]);
+        return v < 0 ? vertices.length + v : v - 1;
+      }).filter(Number.isInteger);
+      faces.push(...triangulatePolygon(idx));
+    }
+  }
+  return { format: 'obj', vertices, faces };
+}
+
+function parseASCIISTL(text = '') {
+  const vertices = [], faces = [], map = new Map();
+  const getIndex = p => {
+    const key = p.join(',');
+    if (!map.has(key)) { map.set(key, vertices.length); vertices.push(p); }
+    return map.get(key);
+  };
+  const tri = [];
+  for (const match of String(text).matchAll(/vertex\s+([-+\deE.]+)\s+([-+\deE.]+)\s+([-+\deE.]+)/g)) {
+    const p = [Number(match[1]), Number(match[2]), Number(match[3])];
+    if (p.every(Number.isFinite)) tri.push(getIndex(p));
+    if (tri.length === 3) faces.push(tri.splice(0, 3));
+  }
+  return { format: 'stl-ascii', vertices, faces };
+}
+
+function parseBinarySTL(buffer) {
+  const view = new DataView(buffer);
+  if (buffer.byteLength < 84) return { format: 'stl-binary', vertices: [], faces: [] };
+  const triCount = view.getUint32(80, true);
+  const vertices = [], faces = [];
+  const count = Math.min(triCount, Math.floor((buffer.byteLength - 84) / 50));
+  let offset = 84;
+  for (let i = 0; i < count; i++, offset += 50) {
+    const face = [];
+    for (let v = 0; v < 3; v++) {
+      const base = offset + 12 + v * 12;
+      const p = [view.getFloat32(base, true), view.getFloat32(base + 4, true), view.getFloat32(base + 8, true)];
+      face.push(vertices.length); vertices.push(p);
+    }
+    faces.push(face);
+  }
+  return { format: 'stl-binary', vertices, faces };
+}
+
+function parseSTL(buffer, textHint = '') {
+  const prefix = String(textHint).slice(0, 80).trim().toLowerCase();
+  if (prefix.startsWith('solid') && /facet\s+normal/i.test(String(textHint).slice(0, 8000))) return parseASCIISTL(textHint);
+  return parseBinarySTL(buffer);
+}
+
+function parseASCIIPLY(text = '') {
+  const lines = String(text).split(/\r?\n/);
+  if (lines[0]?.trim() !== 'ply') return { format: 'ply', vertices: [], faces: [], error: 'not a ply file' };
+  let vertexCount = 0, faceCount = 0, end = -1, format = '';
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('format ')) format = line.split(/\s+/)[1];
+    if (line.startsWith('element vertex ')) vertexCount = Number(line.split(/\s+/)[2]) || 0;
+    if (line.startsWith('element face ')) faceCount = Number(line.split(/\s+/)[2]) || 0;
+    if (line === 'end_header') { end = i; break; }
+  }
+  if (format !== 'ascii') return { format: 'ply', vertices: [], faces: [], error: 'only ascii ply is parsed in this build' };
+  const vertices = [];
+  for (let i = 0; i < vertexCount; i++) {
+    const p = lines[end + 1 + i]?.trim().split(/\s+/).slice(0, 3).map(Number) || [];
+    if (p.length === 3 && p.every(Number.isFinite)) vertices.push(p);
+  }
+  const faces = [];
+  for (let i = 0; i < faceCount; i++) {
+    const cells = lines[end + 1 + vertexCount + i]?.trim().split(/\s+/).map(Number) || [];
+    const n = cells[0] || 0;
+    const idx = cells.slice(1, 1 + n).filter(Number.isInteger);
+    faces.push(...triangulatePolygon(idx));
+  }
+  return { format: 'ply-ascii', vertices, faces };
+}
+
+function geometryBounds(geometry) {
+  const vertices = geometry?.vertices || [];
+  if (!vertices.length) return null;
+  const min = [...vertices[0]], max = [...vertices[0]];
+  for (const p of vertices) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], p[i]); max[i] = Math.max(max[i], p[i]); }
+  const center = min.map((v, i) => (v + max[i]) / 2);
+  const size = max.map((v, i) => v - min[i]);
+  const radius = Math.max(...size) / 2 || 1;
+  return { min, max, center, size, radius };
+}
+
+function sourceManifest(source) {
+  return {
+    id: source.id,
+    name: source.name,
+    kind: source.kind,
+    size: source.size,
+    mime: source.mime,
+    modified: source.modified,
+    parseStatus: source.parseStatus,
+    summary: source.summary || null,
+    authoritative: !!source.authoritative,
+    boundComponentIds: source.boundComponentIds || [],
+    originUrl: source.originUrl || null,
+    provenance: source.provenance || null
+  };
+}
+
+function buildSystemSnapshot(state) {
+  const components = state.workspace?.components || [];
+  const sources = state.sources || [];
+  const componentLimit = 400, sourceLimit = 200;
+  return {
+    product: 'asherin.soren',
+    timestamp: new Date().toISOString(),
+    project: state.workspace?.project || {},
+    selection: state.selectedId || null,
+    componentCount: components.length,
+    componentsTruncated: components.length > componentLimit,
+    components: components.slice(0, componentLimit).map(c => ({
+      id: c.id, name: c.name, type: c.type, path: c.path, state: c.state,
+      metrics: c.metrics, relations: c.relations, geometryRef: c.geometryRef, materialId: c.materialId
+    })),
+    environment: state.environment || {},
+    materialCount: (state.workspace?.materials || []).length,
+    materials: (state.workspace?.materials || []).slice(0, 120).map(m => ({ id:m.id,name:m.name,materialFamily:m.materialFamily,grade:m.grade,standard:m.standard,condition:m.condition,form:m.form,componentIds:m.componentIds,sourceIds:m.sourceIds })),
+    view: {
+      mode: state.view?.mode,
+      yaw: state.view?.yaw,
+      pitch: state.view?.pitch,
+      zoom: state.view?.zoom,
+      explode: state.view?.explode,
+      xray: state.view?.xray,
+      thermal: state.view?.thermal,
+      flows: state.view?.flows
+    },
+    timeline: { index: state.timeline?.index ?? 0, playing: !!state.timeline?.playing },
+    sourceCount: sources.length,
+    sourcesTruncated: sources.length > sourceLimit,
+    sources: sources.slice(0, sourceLimit).map(sourceManifest),
+    provider: state.ai?.provider ? { provider: state.ai.provider, model: state.ai.model, connected: !!state.ai.connected } : null
+  };
+}
+
+const TOOL_DEFINITIONS = [
+  ['search_sources', 'search the complete registered source registry without copying every source into the prompt', { query: 'string optional', limit: 'number optional' }, false],
+  ['read_source', 'read actual registered source content or parsed source details', { source_id: 'string', max_chars: 'number optional' }, false],
+  ['inspect_image', 'queue any registered image source for direct vision input on the next AI round', { source_id: 'string' }, false],
+  ['search_components', 'search the complete canonical component registry', { query: 'string optional', limit: 'number optional' }, false],
+  ['inspect_component', 'read the canonical component record', { component_id: 'string' }, false],
+  ['select_component', 'select a component in the workspace', { component_id: 'string' }, false],
+  ['set_view_mode', 'change visualization mode', { mode: 'orbit|explode|xray|thermal' }, false],
+  ['set_camera', 'set camera yaw, pitch, or zoom without changing engineering state', { yaw: 'number optional', pitch: 'number optional', zoom: 'number optional' }, false],
+  ['set_panel_visibility', 'open or collapse a workspace panel', { panel: 'left|right|timeline|view_controls', visible: 'boolean' }, false],
+  ['set_left_tab', 'switch the left workspace between AI chat and system hierarchy', { tab: 'ai|system' }, false],
+  ['set_visual_parameter', 'set a live visualization control value', { name: 'orbit_sensitivity|explode|xray|thermal', value: 'number from 0 to 1' }, false],
+  ['search_materials', 'search imported material passports and property records', { query: 'string optional', limit: 'number optional' }, false],
+  ['inspect_material', 'read one material passport including source backed property records', { material_id: 'string' }, false],
+  ['get_solver_eligibility', 'inspect which source backed inputs are present or missing for a solver and component', { solver: 'thermal|structural|electrical|cfd|electromagnetic|fatigue', component_id: 'string optional' }, false],
+  ['fetch_environment_power', 'retrieve hourly NASA POWER environmental evidence for a point and apply the selected hour as the active observed environment', { latitude: 'number', longitude: 'number', date: 'YYYY-MM-DD', hour_utc: '0-23 optional', site_elevation_m: 'number optional' }, true],
+  ['set_time_index', 'move to an imported telemetry sample index', { index: 'number' }, false],
+  ['set_flow_visibility', 'turn a flow layer on or off', { flow: 'electrical|thermal|coolant|control', visible: 'boolean' }, false],
+  ['fit_camera', 'fit current loaded geometry in the viewport', {}, false],
+  ['retrieve_url', 'download an exact approved external engineering source URL into the local evidence registry', { url: 'https URL' }, true],
+  ['bind_source', 'bind a registered source to an engineering component without editing the source file', { source_id: 'string', component_id: 'string' }, true],
+  ['remove_source', 'remove a source from the current workspace without deleting the original local file', { source_id: 'string' }, true],
+  ['set_scenario_value', 'change an explicit scenario variable without modifying source truth', { key: 'string', value: 'number|string|boolean' }, true],
+  ['list_code_files', 'list UI code files available to explicitly enabled developer code access', {}, false],
+  ['read_code_file', 'read an allowlisted UI code slice before proposing a redesign patch', { path: 'public/index.html|public/styles.css|public/app.js|public/renderer3d.js', query: 'string optional', max_chars: 'number optional' }, false],
+  ['stage_code_patch', 'stage an exact reversible UI code replacement hunk without applying it', { path: 'allowlisted path', find: 'exact current code', replace: 'replacement code', description: 'string optional' }, true],
+  ['apply_code_stage', 'apply an approved staged UI code patch with backup, tests, and automatic rollback on failure', { stage_id: 'string' }, true],
+  ['revert_last_code_change', 'restore the last applied UI code backup and rerun tests', {}, true]
+].map(([name, description, args, requiresApproval]) => ({ name, description, args, requiresApproval }));
+
+function toolDefinitionText() {
+  return TOOL_DEFINITIONS.map(t => `${t.name} -> ${t.description} -> args ${JSON.stringify(t.args)} -> approval ${t.requiresApproval ? 'required' : 'not required'}`).join('\n');
+}
+
+const SOLVER_REQUIREMENTS = {
+  thermal: [
+    { id: 'geometry', label: 'parsed geometry', kind: 'geometry' },
+    { id: 'density', label: 'material density', kind: 'material', aliases: ['density'] },
+    { id: 'thermal_conductivity', label: 'thermal conductivity', kind: 'material', aliases: ['thermal_conductivity','conductivity_thermal','k'] },
+    { id: 'specific_heat', label: 'specific heat', kind: 'material', aliases: ['specific_heat','heat_capacity','specific_heat_capacity','cp'] },
+    { id: 'heat_source', label: 'heat source or loss power', kind: 'component', aliases: ['heat_source','heat_generation','power_loss','thermal_loss'] },
+    { id: 'ambient_temperature', label: 'ambient temperature', kind: 'environment', aliases: ['temperature_c','T2M','ambient_temperature_c'] }
+  ],
+  structural: [
+    { id: 'geometry', label: 'parsed geometry', kind: 'geometry' },
+    { id: 'elastic_modulus', label: 'elastic modulus', kind: 'material', aliases: ['elastic_modulus','youngs_modulus','E'] },
+    { id: 'poisson_ratio', label: 'poisson ratio', kind: 'material', aliases: ['poisson_ratio','nu'] },
+    { id: 'yield_strength', label: 'yield strength', kind: 'material', aliases: ['yield_strength','yield'] },
+    { id: 'load', label: 'applied load or load case', kind: 'component', aliases: ['load','force','pressure_load','torque'] }
+  ],
+  electrical: [
+    { id: 'geometry', label: 'component identity / geometry', kind: 'geometry' },
+    { id: 'resistivity', label: 'electrical resistivity or conductivity', kind: 'material', aliases: ['resistivity','electrical_resistivity','electrical_conductivity','conductivity'] },
+    { id: 'electrical_load', label: 'voltage / current / electrical load', kind: 'component', aliases: ['voltage','current','electrical_load','power'] },
+    { id: 'temperature', label: 'operating temperature', kind: 'environment-or-component', aliases: ['temperature','temperature_c','T2M'] }
+  ],
+  cfd: [
+    { id: 'geometry', label: 'parsed external or internal flow geometry', kind: 'geometry' },
+    { id: 'fluid_density', label: 'fluid density', kind: 'environment', aliases: ['air_density_kg_m3','fluid_density','density'] },
+    { id: 'fluid_viscosity', label: 'fluid viscosity', kind: 'environment', aliases: ['dynamic_viscosity_pa_s','fluid_viscosity','viscosity'] },
+    { id: 'velocity', label: 'far field or inlet velocity', kind: 'environment', aliases: ['wind_speed_10m_ms','WS10M','velocity','inlet_velocity'] }
+  ],
+  electromagnetic: [
+    { id: 'geometry', label: 'parsed geometry', kind: 'geometry' },
+    { id: 'permeability', label: 'magnetic permeability', kind: 'material', aliases: ['permeability','magnetic_permeability'] },
+    { id: 'permittivity', label: 'electrical permittivity', kind: 'material', aliases: ['permittivity','dielectric_permittivity'] },
+    { id: 'conductivity', label: 'electrical conductivity', kind: 'material', aliases: ['electrical_conductivity','conductivity','resistivity'] },
+    { id: 'excitation', label: 'frequency / current / excitation', kind: 'component', aliases: ['frequency','current','excitation'] }
+  ],
+  fatigue: [
+    { id: 'geometry', label: 'parsed geometry', kind: 'geometry' },
+    { id: 'fatigue_curve', label: 'fatigue or S N curve', kind: 'material', aliases: ['fatigue_curve','sn_curve','s_n_curve'] },
+    { id: 'stress_history', label: 'stress or load history', kind: 'component', aliases: ['stress_history','load_history','stress'] }
+  ]
+};
+
+function normalizeMaterialPassport(input, index = 0) {
+  if (!input || typeof input !== 'object') return null;
+  const properties = input.properties && typeof input.properties === 'object' ? input.properties : {};
+  return {
+    id: String(input.id ?? `material_${index + 1}`),
+    name: String(input.name ?? input.grade ?? input.materialFamily ?? `material ${index + 1}`),
+    materialFamily: input.materialFamily == null ? '' : String(input.materialFamily),
+    grade: input.grade == null ? '' : String(input.grade),
+    standard: input.standard == null ? '' : String(input.standard),
+    condition: input.condition == null ? String(input.temper ?? '') : String(input.condition),
+    form: input.form == null ? '' : String(input.form),
+    properties,
+    componentIds: Array.isArray(input.componentIds) ? input.componentIds.map(String) : [],
+    sourceIds: Array.isArray(input.sourceIds) ? input.sourceIds.map(String) : [],
+    provenance: input.provenance && typeof input.provenance === 'object' ? input.provenance : {}
+  };
+}
+
+function materialPropertyValue(material, aliases = []) {
+  const props = material?.properties || {};
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(props, alias)) return props[alias];
+    const key = Object.keys(props).find(k => k.toLowerCase() === String(alias).toLowerCase());
+    if (key) return props[key];
+  }
+  return null;
+}
+
+function hasMetric(component, aliases = []) {
+  const metrics = component?.metrics || {};
+  const keys = Object.keys(metrics);
+  return aliases.some(alias => keys.some(k => k.toLowerCase() === String(alias).toLowerCase() || k.toLowerCase().includes(String(alias).toLowerCase())));
+}
+
+function envValue(environment, aliases = []) {
+  const values = environment?.values || environment || {};
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(values, alias)) return values[alias];
+    const key = Object.keys(values).find(k => k.toLowerCase() === String(alias).toLowerCase());
+    if (key) return values[key];
+  }
+  return null;
+}
+
+function solverEligibility({ solver, component, material, environment, geometryAvailable = false }) {
+  const requirements = SOLVER_REQUIREMENTS[solver] || [];
+  const rows = requirements.map(req => {
+    let value = null, present = false;
+    if (req.kind === 'geometry') { present = !!geometryAvailable; value = present ? 'available' : null; }
+    else if (req.kind === 'material') { value = materialPropertyValue(material, req.aliases); present = value != null; }
+    else if (req.kind === 'component') { present = hasMetric(component, req.aliases); value = present ? 'available' : null; }
+    else if (req.kind === 'environment') { value = envValue(environment, req.aliases); present = value != null; }
+    else if (req.kind === 'environment-or-component') {
+      value = envValue(environment, req.aliases); present = value != null || hasMetric(component, req.aliases); if (!present) value = null;
+    }
+    return { ...req, present, value };
+  });
+  const missing = rows.filter(r => !r.present);
+  return { solver, eligible: rows.length > 0 && missing.length === 0, present: rows.length - missing.length, total: rows.length, missing: missing.map(r => r.id), requirements: rows };
+}
+
+function moistAirDensity({ temperature_c, pressure_kpa, relative_humidity_pct = 0 }) {
+  const t = Number(temperature_c), p = Number(pressure_kpa), rh = clamp(relative_humidity_pct, 0, 100);
+  if (!Number.isFinite(t) || !Number.isFinite(p) || p <= 0) return null;
+  const kelvin = t + 273.15;
+  const saturationHpa = 6.112 * Math.exp((17.67 * t) / (t + 243.5));
+  const vaporPa = rh / 100 * saturationHpa * 100;
+  const totalPa = p * 1000;
+  const dryPa = Math.max(0, totalPa - vaporPa);
+  return dryPa / (287.058 * kelvin) + vaporPa / (461.495 * kelvin);
+}
+
+function dynamicAirViscosity(temperature_c) {
+  const t = Number(temperature_c); if (!Number.isFinite(t)) return null;
+  const T = t + 273.15, T0 = 273.15, mu0 = 1.716e-5, S = 111;
+  return mu0 * Math.pow(T / T0, 1.5) * (T0 + S) / (T + S);
+}
+
+const VERT = `#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPosition;
+uniform mat4 uMVP;
+uniform float uPointSize;
+out vec3 vWorld;
+void main(){
+  vec4 p = uMVP * vec4(aPosition,1.0);
+  gl_Position = p;
+  gl_PointSize = uPointSize;
+  vWorld = aPosition;
+}`;
+
+const FRAG = `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+uniform float uLit;
+in vec3 vWorld;
+out vec4 outColor;
+void main(){
+  vec3 rgb = uColor.rgb;
+  if (uLit > 0.5) {
+    vec3 dx = dFdx(vWorld), dy = dFdy(vWorld);
+    vec3 n = normalize(cross(dx,dy));
+    vec3 l = normalize(vec3(-0.35,0.72,0.48));
+    float diffuse = 0.28 + 0.72 * abs(dot(n,l));
+    rgb *= diffuse;
+  }
+  outColor = vec4(rgb,uColor.a);
+}`;
+
+const LINE_VERT = `#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPosition;
+uniform mat4 uMVP;
+uniform float uPointSize;
+void main(){gl_Position=uMVP*vec4(aPosition,1.0);gl_PointSize=uPointSize;}`;
+const LINE_FRAG = `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 outColor;
+void main(){outColor=uColor;}`;
+
+function shader(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s)||'shader compile failed');return s;}
+function program(gl,vs,fs){const p=gl.createProgram();gl.attachShader(p,shader(gl,gl.VERTEX_SHADER,vs));gl.attachShader(p,shader(gl,gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p)||'program link failed');return p;}
+
+function mat4Identity(){return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);}
+function mat4Multiply(a,b){
+  const o=new Float32Array(16);
+  for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[0*4+r]*b[c*4+0]+a[1*4+r]*b[c*4+1]+a[2*4+r]*b[c*4+2]+a[3*4+r]*b[c*4+3];
+  return o;
+}
+function mat4Translate(x,y,z){const m=mat4Identity();m[12]=x;m[13]=y;m[14]=z;return m;}
+function mat4Scale(x,y,z){const m=mat4Identity();m[0]=x;m[5]=y;m[10]=z;return m;}
+function mat4Perspective(fovy,aspect,near,far){const f=1/Math.tan(fovy/2),nf=1/(near-far);const m=new Float32Array(16);m[0]=f/aspect;m[5]=f;m[10]=(far+near)*nf;m[11]=-1;m[14]=2*far*near*nf;return m;}
+function mat4LookAt(eye,target=[0,0,0],up=[0,1,0]){
+  let zx=eye[0]-target[0],zy=eye[1]-target[1],zz=eye[2]-target[2];let len=Math.hypot(zx,zy,zz)||1;zx/=len;zy/=len;zz/=len;
+  let xx=up[1]*zz-up[2]*zy,xy=up[2]*zx-up[0]*zz,xz=up[0]*zy-up[1]*zx;len=Math.hypot(xx,xy,xz)||1;xx/=len;xy/=len;xz/=len;
+  const yx=zy*xz-zz*xy,yy=zz*xx-zx*xz,yz=zx*xy-zy*xx;
+  const m=mat4Identity();m[0]=xx;m[1]=yx;m[2]=zx;m[4]=xy;m[5]=yy;m[6]=zy;m[8]=xz;m[9]=yz;m[10]=zz;m[12]=-(xx*eye[0]+xy*eye[1]+xz*eye[2]);m[13]=-(yx*eye[0]+yy*eye[1]+yz*eye[2]);m[14]=-(zx*eye[0]+zy*eye[1]+zz*eye[2]);return m;
+}
+function transformPoint(m,p){const x=p[0],y=p[1],z=p[2],w=m[3]*x+m[7]*y+m[11]*z+m[15];return [(m[0]*x+m[4]*y+m[8]*z+m[12])/w,(m[1]*x+m[5]*y+m[9]*z+m[13])/w,(m[2]*x+m[6]*y+m[10]*z+m[14])/w,w];}
+
+function hexRgb(hex){const s=hex.replace('#','');const v=parseInt(s.length===3?s.split('').map(c=>c+c).join(''):s,16);return [((v>>16)&255)/255,((v>>8)&255)/255,(v&255)/255];}
+function color4(hex,a=1){return [...hexRgb(hex),a];}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+class Renderer3D {
+  constructor(canvas){
+    this.canvas=canvas;
+    this.gl=canvas.getContext('webgl2',{alpha:false,antialias:true,preserveDrawingBuffer:true});
+    if(!this.gl)throw new Error('WebGL2 is required for the 3D workspace');
+    const gl=this.gl;
+    this.meshProgram=program(gl,VERT,FRAG);this.lineProgram=program(gl,LINE_VERT,LINE_FRAG);
+    this.meshCache=new WeakMap();this.pointCache=new WeakMap();this.lineBuffer=gl.createBuffer();
+    gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  }
+  resize(){const r=this.canvas.getBoundingClientRect(),dpr=Math.max(1,Math.min(2,devicePixelRatio||1)),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.gl.viewport(0,0,w,h);return {w:r.width,h:r.height,dpr};}
+  cameraMatrix(view,w,h){const distance=3.4/Math.max(.08,view.zoom||1);const cp=Math.cos(view.pitch||0),sp=Math.sin(view.pitch||0),cy=Math.cos(view.yaw||0),sy=Math.sin(view.yaw||0);const eye=[distance*sy*cp,distance*sp,distance*cy*cp];const projection=mat4Perspective(Math.PI/4,Math.max(.1,w/h),.03,100);return mat4Multiply(projection,mat4LookAt(eye));}
+  modelMatrix(bounds,explodeOffset=0){const r=bounds.radius||1;const normalize=mat4Multiply(mat4Scale(1/r,1/r,1/r),mat4Translate(-bounds.center[0],-bounds.center[1],-bounds.center[2]));return mat4Multiply(mat4Translate(explodeOffset,0,0),normalize);}
+  meshBuffer(geometry){let hit=this.meshCache.get(geometry);if(hit)return hit;const gl=this.gl,arr=[];for(const f of geometry.faces||[]){if(f.length!==3)continue;for(const i of f){const p=geometry.vertices[i];if(p)arr.push(p[0],p[1],p[2]);}}const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW);hit={buffer,count:arr.length/3};this.meshCache.set(geometry,hit);return hit;}
+  pointBuffer(geometry){let hit=this.pointCache.get(geometry);if(hit)return hit;const gl=this.gl,arr=[];const stride=Math.max(1,Math.ceil((geometry.vertices||[]).length/180000));for(let i=0;i<(geometry.vertices||[]).length;i+=stride){const p=geometry.vertices[i];arr.push(p[0],p[1],p[2]);}const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(arr),gl.STATIC_DRAW);hit={buffer,count:arr.length/3};this.pointCache.set(geometry,hit);return hit;}
+  drawBuffer(programInfo,buffer,count,mode,mvp,color,pointSize=2,lit=0){const gl=this.gl,p=programInfo;gl.useProgram(p);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,0,0);gl.uniformMatrix4fv(gl.getUniformLocation(p,'uMVP'),false,mvp);const c=gl.getUniformLocation(p,'uColor');if(c)gl.uniform4fv(c,color);const ps=gl.getUniformLocation(p,'uPointSize');if(ps)gl.uniform1f(ps,pointSize);const l=gl.getUniformLocation(p,'uLit');if(l)gl.uniform1f(l,lit);gl.drawArrays(mode,0,count);}
+  render({geometries,bounds,view,selectedId,componentForGeometry,numericTemperature,flows=[],phase=0}){
+    const gl=this.gl,{w,h}=this.resize();gl.clearColor(0.018,0.025,0.031,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(!bounds)return {hitBoxes:[],mvpByGeometry:[]};
+    const vp=this.cameraMatrix(view,w,h),hitBoxes=[],mvpByGeometry=[];
+    // subtle world grid in the same depth space
+    const grid=[];for(let i=-10;i<=10;i++){const s=i/5;grid.push(-2,0,s,2,0,s,s,0,-2,s,0,2);}gl.bindBuffer(gl.ARRAY_BUFFER,this.lineBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(grid),gl.DYNAMIC_DRAW);this.drawBuffer(this.lineProgram,this.lineBuffer,grid.length/3,gl.LINES,vp,color4('#172128',.45),1,0);
+    geometries.forEach((g,gi)=>{
+      const comp=componentForGeometry(g),active=!selectedId||comp?.id===selectedId,offset=view.mode==='explode'&&geometries.length>1?(gi-(geometries.length-1)/2)*(view.explode||0)*1.65:0,model=this.modelMatrix(bounds,offset),mvp=mat4Multiply(vp,model);mvpByGeometry.push({g,mvp,model,offset,componentId:comp?.id||null});
+      let alpha=active?.92:.34,base=active?'#c3cacb':'#2a2e30';if(view.mode==='xray'&&!active)alpha=Math.max(.03,view.xray||0);if(view.mode==='thermal'){const t=numericTemperature(comp);if(t!=null){base='#ff9a5a';alpha=Math.min(.96,.25+(view.thermal||0)*.7);}}
+      if((g.geometry.faces||[]).length){const b=this.meshBuffer(g.geometry);gl.depthMask(alpha>.55);this.drawBuffer(this.meshProgram,b.buffer,b.count,gl.TRIANGLES,mvp,color4(base,alpha),1,1);gl.depthMask(true);}else{const b=this.pointBuffer(g.geometry);this.drawBuffer(this.lineProgram,b.buffer,b.count,gl.POINTS,mvp,color4(active?'#d4d9d9':'#4c5254',active?1:.55),active?2.6:1.5,0);}
+      const corners=[];for(const x of [g.bounds.min[0],g.bounds.max[0]])for(const y of [g.bounds.min[1],g.bounds.max[1]])for(const z of [g.bounds.min[2],g.bounds.max[2]])corners.push([x,y,z]);let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const c of corners){const q=transformPoint(mvp,c);if(q[3]<=0)continue;const sx=(q[0]*.5+.5)*w,sy=(1-(q[1]*.5+.5))*h;minX=Math.min(minX,sx);maxX=Math.max(maxX,sx);minY=Math.min(minY,sy);maxY=Math.max(maxY,sy);}if(Number.isFinite(minX))hitBoxes.push({geometry:g,componentId:comp?.id||null,minX,minY,maxX,maxY});
+    });
+    // explicit relationship flows: line and directional particle share the exact same 3D transform
+    for(const f of flows){const a=this.normalizedPoint(f.from,bounds),b=this.normalizedPoint(f.to,bounds);if(view.mode==='explode'&&geometries.length>1){a[0]+=(f.fromIndex-(geometries.length-1)/2)*(view.explode||0)*1.65;b[0]+=(f.toIndex-(geometries.length-1)/2)*(view.explode||0)*1.65;}const verts=new Float32Array([...a,...b]);gl.bindBuffer(gl.ARRAY_BUFFER,this.lineBuffer);gl.bufferData(gl.ARRAY_BUFFER,verts,gl.DYNAMIC_DRAW);this.drawBuffer(this.lineProgram,this.lineBuffer,2,gl.LINES,vp,color4(f.color,.72),1,0);const t=(phase+(f.phase||0))%1,p=[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(p),gl.DYNAMIC_DRAW);this.drawBuffer(this.lineProgram,this.lineBuffer,1,gl.POINTS,vp,color4(f.color,1),6,0);}
+    return {hitBoxes,mvpByGeometry};
+  }
+  normalizedPoint(p,bounds){const r=bounds.radius||1;return [(p[0]-bounds.center[0])/r,(p[1]-bounds.center[1])/r,(p[2]-bounds.center[2])/r];}
+}
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const root = document.documentElement;
+
+function storageGet(key, fallback = null) { try { const v = localStorage.getItem(key); return v == null ? fallback : v; } catch { return fallback; } }
+function storageSet(key, value) { try { localStorage.setItem(key, value); return true; } catch { return false; } }
+
+const API_SESSION = storageGet('asherin.api.session.v5', '') || uid('session');
+storageSet('asherin.api.session.v5', API_SESSION);
+function apiHeaders(json = false) { return { 'x-asherin-session': API_SESSION, ...(json ? { 'content-type': 'application/json' } : {}) }; }
+
+const AUDIT_ITEMS = [
+  ['critical', 'fake engineering state', 'the previous build hard coded machine components, temperatures, power, thrust, efficiency, and chart curves. those values looked live but were not connected to evidence. this build starts empty and only renders imported source backed values.'],
+  ['critical', 'one global state mutation bug', 'component state was derived from motor temperature even when a battery, group, or unrelated component was selected. unrelated objects could therefore inherit motor thermal status. canonical object state is now source backed and is not recomputed by unrelated UI logic.'],
+  ['critical', 'extension equals authority', 'the old source registry marked a mesh or drawing as a primary artifact based only on its filename extension. a corrupt file could appear authoritative. parse status and source authority are now separate fields.'],
+  ['critical', 'PDF false positive', 'small PDF files were read with file.text and could be labeled readable reference documents even though the bytes were not a valid text extraction. PDFs are now registered but explicitly unparsed.'],
+  ['critical', 'decorative 3D selection', 'selection previously used three fixed horizontal screen bands instead of hit testing the geometry. rotating the scene did not change the selection zones. the new renderer builds hit bounds from projected real geometry.'],
+  ['future', 'frame rate dependent time', 'the old timeline advanced by a fixed amount on every animation frame, so 60 hz and 120 hz displays produced different time behavior. this build does not fabricate time. imported telemetry is indexed directly.'],
+  ['future', 'CSS override archaeology', 'the old file contained an original design system followed by a second design system overriding it. future changes depended on stylesheet order. the fixed interface has one token system and one stylesheet.'],
+  ['future', 'global event ownership', 'window.onpointermove, window.onpointerup, and window.onresize were assigned directly. future modules could overwrite them. this build uses scoped addEventListener handlers and pointer capture.'],
+  ['future', 'unsafe future ontology rendering', 'several old render paths used innerHTML with values that were safe only because the demo data was hard coded. imported engineering data would eventually create an XSS path. the fixed UI builds source derived rows with DOM nodes or textContent.'],
+  ['future', 'AI stage theater', 'the old research room marked stages ready based on whether any file existed, not whether parsing or model execution succeeded. the live AI gateway now reports actual server and provider connection state, and source tools expose parse status explicitly.'],
+  ['future', 'no model lifecycle strategy', 'hard coding a model name would break as providers deprecate models. provider settings now discover the currently available model list from the configured live provider instead of shipping a frozen catalog.'],
+  ['future', 'no action authority layer', 'giving an AI direct DOM access would make changes impossible to audit. AI control now goes through a named tool registry. read and view tools can auto execute, while scenario modifying tools are approval gated.']
+];
+
+const state = {
+  workspace: { project: {}, components: [], environment: {}, telemetry: {}, materials: [], metadata: {} },
+  sources: [],
+  geometries: [],
+  selectedId: null,
+  environment: { mode: 'unassigned', sourceId: null, values: {}, derived: {}, provenance: null },
+  environmentDatasets: [],
+  view: { mode: 'orbit', yaw: 0.45, pitch: -0.28, zoom: 1, orbitSensitivity: 0.5, explode: 0, xray: 0.2, thermal: 0.6, flows: { electrical: false, thermal: false, coolant: false, control: false } },
+  timeline: { parsed: null, index: 0, numericChannel: null },
+  ai: { provider: '', model: '', connected: false, baseUrl: '', controlPolicy: storageGet('asherin.ai.controlPolicy', 'safe-auto'), requestedVisionIds: [] },
+  chat: { branches: [], activeId: null },
+  layout: loadLayout()
+};
+
+let lastProjected = [];
+let drag = null;
+let renderer3d = null;
+let animationHandle = 0;
+let animationLast = 0;
+state.animation = { running: false, phase: 0, telemetryAccumulator: 0 };
+try { renderer3d = new Renderer3D($('#scene')); } catch (error) { console.error(error); }
+
+function toast(text) {
+  const el = $('#toast'); el.textContent = text; el.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+function openModal(id) { const el = $('#' + id); if (el) el.hidden = false; }
+function closeModal(id) { const el = $('#' + id); if (el) el.hidden = true; }
+
+function textEl(tag, text, className = '') { const el = document.createElement(tag); if (className) el.className = className; el.textContent = text; return el; }
+
+function selectedComponent() { return state.workspace.components.find(c => c.id === state.selectedId) || null; }
+function selectedMaterial() {
+  const c = selectedComponent(); if (!c) return null;
+  return (state.workspace.materials || []).find(m => m.id === c.materialId) || (state.workspace.materials || []).find(m => (m.componentIds || []).includes(c.id)) || null;
+}
+function geometryAvailableFor(component) {
+  if (!component) return false;
+  return state.geometries.some(g => g.componentId === component.id || component.geometryRef === g.source.name || component.geometryRef === g.source.id);
+}
+
+function saveLayout() {
+  storageSet('asherin.layout.v5', JSON.stringify({
+    left: parseFloat(getComputedStyle(root).getPropertyValue('--left')),
+    right: parseFloat(getComputedStyle(root).getPropertyValue('--right')),
+    bottom: parseFloat(getComputedStyle(root).getPropertyValue('--bottom')),
+    leftCollapsed: document.body.classList.contains('collapsedLeft'),
+    rightCollapsed: document.body.classList.contains('collapsedRight'),
+    bottomCollapsed: $('#bottomPanel').classList.contains('collapsed'),
+    viewCollapsed: $('#viewControls').classList.contains('collapsed')
+  }));
+}
+
+function loadLayout() {
+  try { return JSON.parse(storageGet('asherin.layout.v5', '{}')); } catch { return {}; }
+}
+
+function applyLayout(layout = {}) {
+  const left = clamp(layout.left ?? 340, 230, 560), right = clamp(layout.right ?? 320, 230, 560), bottom = clamp(layout.bottom ?? 192, 110, 360);
+  root.style.setProperty('--left', left + 'px'); root.style.setProperty('--right', right + 'px'); root.style.setProperty('--bottom', bottom + 'px');
+  document.body.classList.toggle('collapsedLeft', !!layout.leftCollapsed);
+  document.body.classList.toggle('collapsedRight', layout.rightCollapsed !== false);
+  $('#bottomPanel').classList.toggle('collapsed', !!layout.bottomCollapsed);
+  $('#viewControls').classList.toggle('collapsed', !!layout.viewCollapsed);
+  $('#collapseLeft').textContent = document.body.classList.contains('collapsedLeft') ? '+' : '−';
+  $('#collapseRight').textContent = document.body.classList.contains('collapsedRight') ? '+' : '−';
+  $('#collapseBottom').textContent = $('#bottomPanel').classList.contains('collapsed') ? '+' : '−';
+  $('#collapseView').textContent = $('#viewControls').classList.contains('collapsed') ? '+' : '−';
+}
+
+function bindResize(handle, variable, min, max, direction = 1) {
+  let start = 0, base = 0, active = false;
+  handle.addEventListener('pointerdown', e => {
+    active = true; handle.classList.add('dragging'); handle.setPointerCapture(e.pointerId);
+    start = variable === '--bottom' ? e.clientY : e.clientX;
+    base = parseFloat(getComputedStyle(root).getPropertyValue(variable));
+  });
+  handle.addEventListener('pointermove', e => {
+    if (!active) return;
+    const delta = variable === '--bottom' ? start - e.clientY : (e.clientX - start) * direction;
+    root.style.setProperty(variable, clamp(base + delta, min, max) + 'px');
+    drawScene(); drawChart();
+  });
+  const end = () => { if (!active) return; active = false; handle.classList.remove('dragging'); saveLayout(); };
+  handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+}
+
+function setLeftTab(tab) {
+  $$('[data-left-tab]').forEach(b => b.classList.toggle('active', b.dataset.leftTab === tab));
+  $('#systemPane').hidden = tab !== 'system'; $('#aiPane').hidden = tab !== 'ai'; $('#leftTitle').textContent = tab === 'ai' ? 'assistant' : 'system';
+}
+
+function renderTree(query = '') {
+  const tree = $('#tree'); tree.replaceChildren();
+  const q = query.trim().toLowerCase();
+  const list = state.workspace.components.filter(c => !q || `${c.name} ${c.type} ${c.path} ${c.id}`.toLowerCase().includes(q));
+  if (!list.length) { tree.append(textEl('div', state.workspace.components.length ? 'no matching objects.' : 'no engineering objects are loaded.', 'treeEmpty')); return; }
+  list.forEach(c => {
+    const item = document.createElement('div'); item.className = 'treeItem' + (c.id === state.selectedId ? ' active' : ''); item.tabIndex = 0;
+    item.append(textEl('span', c.name)); item.append(textEl('small', c.type));
+    item.addEventListener('click', () => selectComponent(c.id));
+    item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectComponent(c.id); });
+    tree.append(item);
+  });
+}
+
+function sourceBindingsFor(componentId) {
+  return state.sources.filter(s => (s.boundComponentIds || []).includes(componentId));
+}
+
+function currentTelemetryValues(component) {
+  const parsed = state.timeline.parsed;
+  const bindings = state.workspace.telemetry?.bindings?.[component?.id];
+  if (!parsed || !bindings || !parsed.rows.length) return [];
+  const row = parsed.rows[clamp(state.timeline.index, 0, parsed.rows.length - 1)];
+  return Object.entries(bindings).map(([metric, channel]) => ({ metric, channel, value: row[channel] ?? null })).filter(x => x.value != null);
+}
+
+function renderInspector() {
+  const c = selectedComponent();
+  $('#objectPath').textContent = c?.path || 'nothing selected'; $('#objectName').textContent = c?.name || 'no object'; $('#objectState').textContent = c?.state || 'unknown';
+  const metrics = $('#metrics'); metrics.replaceChildren();
+  if (!c) metrics.append(textEl('div', 'select an imported object.', 'emptyState'));
+  else {
+    for (const [k, v] of Object.entries(c.metrics || {})) metrics.append(metricRow(k, String(v)));
+    for (const t of currentTelemetryValues(c)) metrics.append(metricRow(`${t.metric} · telemetry`, String(t.value)));
+    if (!Object.keys(c.metrics || {}).length && !currentTelemetryValues(c).length) metrics.append(textEl('div', 'this object has no source backed metrics.', 'emptyState'));
+  }
+  const relations = $('#relations'); relations.replaceChildren();
+  if (c?.relations?.length) c.relations.forEach(r => {
+    const row = document.createElement('div'); row.className = 'relation'; row.append(textEl('b', String(r[0] ?? 'relates'))); row.append(textEl('span', String(r[1] ?? ''))); relations.append(row);
+  }); else relations.append(textEl('div', 'no relationships loaded.', 'emptyState'));
+  const evidence = $('#evidenceMetrics'); evidence.replaceChildren();
+  const bound = c ? sourceBindingsFor(c.id) : [];
+  evidence.append(metricRow('bound sources', String(bound.length)));
+  if (bound.length) {
+    evidence.append(metricRow('parsed', String(bound.filter(s => s.parseStatus === 'parsed').length)));
+    evidence.append(metricRow('unparsed', String(bound.filter(s => s.parseStatus !== 'parsed').length)));
+  }
+  renderEnvironmentMetrics(); renderMaterialMetrics(); renderSolverMetrics();
+}
+
+function metricRow(k, v) { const row = document.createElement('div'); row.className = 'metric'; row.append(textEl('span', k)); row.append(textEl('strong', v)); return row; }
+
+function selectComponent(id) {
+  if (!state.workspace.components.some(c => c.id === id)) return false;
+  state.selectedId = id; renderTree($('#systemSearch').value); renderInspector(); adaptControls(); drawScene(); return true;
+}
+
+function prettyValue(value) {
+  if (value == null) return 'unavailable';
+  if (typeof value === 'object') {
+    if ('value' in value) return `${value.value}${value.unit ? ` ${value.unit}` : ''}`;
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function renderEnvironmentMetrics() {
+  const el = $('#environmentMetrics'); el.replaceChildren();
+  const values = state.environment.values || {}, derived = state.environment.derived || {};
+  if (!Object.keys(values).length) { el.append(textEl('div', 'no environment evidence selected.', 'emptyState')); $('#envName').textContent = 'unassigned'; return; }
+  $('#envName').textContent = state.environment.mode === 'observed' ? `${state.environment.provider || 'source'} · ${state.environment.timestamp || ''}` : (values.label || state.environment.mode || 'environment');
+  for (const [k, v] of Object.entries(values)) if (k !== 'label' && v != null) el.append(metricRow(k.replaceAll('_', ' '), prettyValue(v)));
+  for (const [k, v] of Object.entries(derived)) if (v != null) el.append(metricRow(`${k.replaceAll('_',' ')} · derived`, prettyValue(v)));
+  if (state.environment.sourceId) el.append(metricRow('environment source', state.environment.sourceId));
+  if (state.environment.provenance?.sourceUrl) el.append(metricRow('provider provenance', 'registered'));
+}
+
+function renderMaterialMetrics() {
+  const el = $('#materialMetrics'); if (!el) return; el.replaceChildren(); const material = selectedMaterial();
+  if (!material) { el.append(textEl('div', 'no material passport bound to this object.', 'emptyState')); return; }
+  el.append(metricRow('material', material.name));
+  if (material.grade) el.append(metricRow('grade', material.grade));
+  if (material.standard) el.append(metricRow('standard', material.standard));
+  if (material.condition) el.append(metricRow('condition', material.condition));
+  if (material.form) el.append(metricRow('form', material.form));
+  for (const [k,v] of Object.entries(material.properties || {}).slice(0, 8)) el.append(metricRow(k.replaceAll('_',' '), prettyValue(v)));
+}
+
+const SOLVER_ORDER = ['thermal','structural','electrical','cfd','electromagnetic','fatigue'];
+function currentSolverStatuses() {
+  const component = selectedComponent(), material = selectedMaterial();
+  return SOLVER_ORDER.map(solver => solverEligibility({ solver, component, material, environment: state.environment, geometryAvailable: geometryAvailableFor(component) }));
+}
+function renderSolverMetrics() {
+  const el = $('#solverMetrics'); if (!el) return; el.replaceChildren();
+  if (!selectedComponent()) { el.append(textEl('div', 'select an imported object.', 'emptyState')); return; }
+  currentSolverStatuses().forEach(status => el.append(metricRow(status.solver, status.eligible ? 'eligible inputs present' : `${status.missing.length} input${status.missing.length===1?'':'s'} missing`)));
+}
+
+function setDataTab(tab) {
+  $$('[data-data-tab]').forEach(b => b.classList.toggle('active', b.dataset.dataTab === tab));
+  $('#dataEnvironmentPane').hidden = tab !== 'environment'; $('#dataMaterialsPane').hidden = tab !== 'materials'; $('#dataSolversPane').hidden = tab !== 'solvers';
+  if (tab === 'materials') renderMaterialRegistry(); if (tab === 'solvers') renderSolverReadinessGrid();
+}
+
+function renderEnvironmentObservationList() {
+  const list = $('#environmentObservationList'); if (!list) return; list.replaceChildren();
+  if (!state.environmentDatasets.length) { list.append(textEl('div', 'no environment records retrieved.', 'emptyState')); return; }
+  state.environmentDatasets.slice().reverse().forEach(ds => {
+    const card = document.createElement('div'); card.className = 'sourceCard'; card.append(textEl('strong', `${ds.provider} · ${ds.date}`));
+    card.append(textEl('span', `${ds.latitude.toFixed(4)}, ${ds.longitude.toFixed(4)} · ${ds.records.length} hourly records · UTC`));
+    card.append(textEl('small', `source ${ds.sourceId} · ${ds.sha256?.slice(0,12) || 'hash unavailable'}`, 'provenanceLine'));
+    const actions = document.createElement('div'); actions.className = 'sourceActions';
+    const b = textEl('button', 'inspect source'); b.addEventListener('click', () => { openModal('sourcesModal'); const node=[...$('#sourceList').children].find(x=>x.textContent.includes(ds.sourceId)); if(node) node.scrollIntoView({block:'center'}); }); actions.append(b); card.append(actions); list.append(card);
+  });
+}
+
+function renderActiveEnvironmentCard() {
+  const card = $('#activeEnvironmentCard'); if (!card) return; card.replaceChildren();
+  if (!state.environment.sourceId && !Object.keys(state.environment.values || {}).length) { card.append(textEl('span','no observed environment is active.')); return; }
+  card.append(textEl('strong', state.environment.mode === 'observed' ? `${state.environment.provider} · ${state.environment.timestamp} UTC` : 'scenario assumption'));
+  if (state.environment.provenance?.coordinates) card.append(textEl('span', `${state.environment.provenance.coordinates.latitude}, ${state.environment.provenance.coordinates.longitude}`));
+  if (state.environment.sourceId) card.append(textEl('small', `source ${state.environment.sourceId}`,'provenanceLine'));
+  if (state.environment.provenance?.retrievedAt) card.append(textEl('small', `retrieved ${state.environment.provenance.retrievedAt}`,'provenanceLine'));
+}
+
+function renderMaterialRegistry() {
+  const list = $('#materialRegistryList'); if (!list) return; list.replaceChildren(); const materials = state.workspace.materials || [];
+  $('#materialCountState').textContent = `${materials.length} passport${materials.length===1?'':'s'}`;
+  if (!materials.length) { list.append(textEl('div','no material passports imported. add materials[] to a workspace JSON source.','emptyState')); return; }
+  materials.forEach(m => {
+    const card=document.createElement('div'); card.className='sourceCard'; card.append(textEl('strong',m.name));
+    card.append(textEl('span',[m.materialFamily,m.grade,m.condition].filter(Boolean).join(' · ') || 'identity supplied without family metadata'));
+    const props=Object.entries(m.properties||{}); card.append(textEl('small',`${props.length} property record${props.length===1?'':'s'} · ${(m.componentIds||[]).length} component binding${(m.componentIds||[]).length===1?'':'s'}`));
+    props.slice(0,6).forEach(([k,v])=>{const row=document.createElement('div');row.className='propertyRecord';row.append(textEl('strong',k.replaceAll('_',' ')));row.append(textEl('small',prettyValue(v)));card.append(row);});
+    list.append(card);
+  });
+}
+
+function renderSolverReadinessGrid() {
+  const grid=$('#solverReadinessGrid'); if(!grid) return; grid.replaceChildren();
+  if (!selectedComponent()) { grid.append(textEl('div','select an imported engineering object to calculate readiness.','emptyState')); return; }
+  currentSolverStatuses().forEach(status=>{
+    const card=document.createElement('div');card.className=`solverCard ${status.eligible?'ready':'blocked'}`;
+    const head=document.createElement('div');head.className='solverCardHead';head.append(textEl('strong',status.solver));head.append(textEl('span',status.eligible?'eligible':'blocked','solverState'));card.append(head);
+    status.requirements.forEach(r=>{const row=document.createElement('div');row.className='requirement'+(r.present?' present':'');row.append(textEl('span',r.label));row.append(textEl('b',r.present?'present':'missing'));card.append(row);}); grid.append(card);
+  });
+}
+
+function selectPowerRecord(dataset, hourUtc) {
+  const hour=String(clamp(Number(hourUtc),0,23)).padStart(2,'0');
+  return dataset.records.find(r=>String(r.timestamp).endsWith(hour)) || dataset.records[0] || null;
+}
+
+function applyPowerEnvironment(dataset, record) {
+  if (!record) return false; const raw=record.values || {};
+  const density=moistAirDensity({ temperature_c: raw.T2M, pressure_kpa: raw.PS, relative_humidity_pct: raw.RH2M });
+  const viscosity=dynamicAirViscosity(raw.T2M);
+  state.environment={
+    mode:'observed', sourceId:dataset.sourceId, provider:dataset.provider, timestamp:record.timestamp,
+    values:{ temperature_c:raw.T2M, pressure_kpa:raw.PS, relative_humidity_pct:raw.RH2M, wind_speed_10m_ms:raw.WS10M, wind_direction_10m_deg:raw.WD10M, solar_shortwave_down:raw.ALLSKY_SFC_SW_DWN },
+    derived:{ air_density_kg_m3:density==null?null:Number(density.toFixed(5)), dynamic_viscosity_pa_s:viscosity==null?null:Number(viscosity.toExponential(6)) },
+    provenance:{ provider:dataset.provider, sourceUrl:dataset.sourceUrl, retrievedAt:dataset.retrievedAt, sha256:dataset.sha256, coordinates:{latitude:dataset.latitude,longitude:dataset.longitude}, siteElevationM:dataset.siteElevationM, timeStandard:'UTC', rawParameterNames:Object.keys(raw) }
+  };
+  renderEnvironmentMetrics();renderActiveEnvironmentCard();renderSolverMetrics();renderSolverReadinessGrid();return true;
+}
+
+async function fetchPowerEnvironmentEvidence(args={}) {
+  const body={ latitude:Number(args.latitude), longitude:Number(args.longitude), date:String(args.date||''), hour_utc:args.hour_utc==null?0:Number(args.hour_utc), site_elevation_m:args.site_elevation_m==null?'':args.site_elevation_m };
+  const res=await fetch('/api/environment/power',{method:'POST',headers:apiHeaders(true),body:JSON.stringify(body)});const data=await res.json().catch(()=>({}));
+  if(!res.ok) return {ok:false,error:data.error||`environment request failed with ${res.status}`};
+  const file=new File([JSON.stringify(data.raw)],`NASA-POWER-${body.date}-${body.latitude}-${body.longitude}.json`,{type:'application/json',lastModified:Date.now()});
+  const added=await registerFiles([file],{method:'NASA POWER hourly API',originUrl:data.sourceUrl,retrievedAt:data.retrievedAt,serverSha256:data.sha256,provider:'NASA POWER'});const source=added[0];
+  if(!source) return {ok:false,error:'environment evidence could not be registered'}; source.kind='environment-data';source.summary=`${data.records.length} hourly NASA POWER records · ${body.latitude}, ${body.longitude}`;source.authoritative=true;
+  const dataset={sourceId:source.id,provider:data.provider||'NASA POWER',date:body.date,latitude:data.latitude,longitude:data.longitude,siteElevationM:data.siteElevationM,parameters:data.parameters||[],records:data.records||[],sourceUrl:data.sourceUrl,retrievedAt:data.retrievedAt,sha256:data.sha256};
+  state.environmentDatasets.push(dataset);const record=selectPowerRecord(dataset,body.hour_utc);applyPowerEnvironment(dataset,record);renderSources();renderEnvironmentObservationList();renderActiveEnvironmentCard();
+  return {ok:true,source_id:source.id,provider:dataset.provider,timestamp:record?.timestamp||null,values:state.environment.values,derived:state.environment.derived,provenance:state.environment.provenance};
+}
+
+async function fetchPowerEnvironmentFromUI() {
+  const status=$('#powerConnectionState'); status.textContent='retrieving…';status.className='connectionState';
+  const result=await fetchPowerEnvironmentEvidence({latitude:$('#powerLatitude').value,longitude:$('#powerLongitude').value,date:$('#powerDate').value,hour_utc:$('#powerHour').value,site_elevation_m:$('#powerElevation').value});
+  if(result.ok){status.textContent=`active · ${result.timestamp} UTC`;status.className='connectionState ok';toast('real environment evidence registered');}
+  else{status.textContent=result.error;status.className='connectionState bad';}
+  return result;
+}
+
+function resizeCanvas(canvas) {
+  const r = canvas.getBoundingClientRect(), dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  return { w: r.width, h: r.height, dpr };
+}
+
+function combinedBounds() {
+  const list = state.geometries.map(g => g.bounds).filter(Boolean); if (!list.length) return null;
+  const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (const b of list) for (let i = 0; i < 3; i++) { min[i] = Math.min(min[i], b.min[i]); max[i] = Math.max(max[i], b.max[i]); }
+  const center = min.map((v, i) => (v + max[i]) / 2), size = max.map((v, i) => v - min[i]), radius = Math.max(...size) / 2 || 1;
+  return { min, max, center, size, radius };
+}
+
+function projectVertex(p, bounds, w, h, geometryIndex = 0) {
+  const center = bounds.center, radius = bounds.radius || 1;
+  let x = (p[0] - center[0]) / radius, y = (p[1] - center[1]) / radius, z = (p[2] - center[2]) / radius;
+  if (state.view.mode === 'explode' && state.geometries.length > 1) x += (geometryIndex - (state.geometries.length - 1) / 2) * state.view.explode * 1.2;
+  const cy = Math.cos(state.view.yaw), sy = Math.sin(state.view.yaw), cp = Math.cos(state.view.pitch), sp = Math.sin(state.view.pitch);
+  const x1 = x * cy - z * sy, z1 = x * sy + z * cy, y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+  const depth = 3.8 + z2; const perspective = 1 / Math.max(1.2, depth);
+  const scale = Math.min(w, h) * 1.45 * state.view.zoom;
+  return { x: w / 2 + x1 * scale * perspective, y: h / 2 - y1 * scale * perspective, z: z2, perspective };
+}
+
+function componentForGeometry(g) {
+  return state.workspace.components.find(c => c.geometryRef && (c.geometryRef === g.source.name || c.geometryRef === g.source.id)) ||
+    state.workspace.components.find(c => c.id === g.componentId) || null;
+}
+
+function hasThermalEvidence(component) {
+  if (!component) return false;
+  const keys = Object.keys(component.metrics || {}).map(x => x.toLowerCase());
+  if (keys.some(k => k.includes('temperature') || k.includes('thermal'))) return true;
+  return currentTelemetryValues(component).some(x => x.metric.toLowerCase().includes('temperature') || x.channel.toLowerCase().includes('temp'));
+}
+
+function numericTemperature(component) {
+  const values = currentTelemetryValues(component);
+  const t = values.find(x => x.metric.toLowerCase().includes('temperature') || x.channel.toLowerCase().includes('temp'));
+  if (t && Number.isFinite(Number(t.value))) return Number(t.value);
+  for (const [k, v] of Object.entries(component?.metrics || {})) if (k.toLowerCase().includes('temperature')) {
+    const n = Number(String(v).match(/[-+]?\d+(?:\.\d+)?/)?.[0]); if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function geometryWorldCenter(g) {
+  return g?.bounds?.center ? [...g.bounds.center] : [0,0,0];
+}
+
+function relationTargetId(rel) {
+  if (!rel || typeof rel !== 'object') return null;
+  return String(rel.targetId ?? rel.target_id ?? rel.target ?? rel.to ?? rel.componentId ?? rel.component_id ?? '').trim() || null;
+}
+
+function relationFlowType(rel) {
+  if (!rel || typeof rel !== 'object') return '';
+  const raw = String(rel.flow ?? rel.flowType ?? rel.flow_type ?? rel.type ?? rel.relationship ?? '').toLowerCase();
+  if (/elect|power|supply|energ/.test(raw)) return 'electrical';
+  if (/therm|heat/.test(raw)) return 'thermal';
+  if (/cool|fluid|liquid/.test(raw)) return 'coolant';
+  if (/control|signal|command|data/.test(raw)) return 'control';
+  return '';
+}
+
+const FLOW_COLORS = { electrical:'#c8b98f', thermal:'#d98a86', coolant:'#8fa1a6', control:'#a9afb0' };
+
+function activeFlowSegments() {
+  const out=[];
+  const geometryByComponent=new Map();
+  for (const g of state.geometries) {
+    const c=componentForGeometry(g); if (c) geometryByComponent.set(c.id,g);
+  }
+  for (const c of state.workspace.components || []) {
+    const fromG=geometryByComponent.get(c.id); if(!fromG) continue;
+    for (const rel of c.relations || []) {
+      const flow=relationFlowType(rel); if(!flow || !state.view.flows[flow]) continue;
+      const targetId=relationTargetId(rel),toG=targetId?geometryByComponent.get(targetId):null; if(!toG) continue;
+      out.push({from:geometryWorldCenter(fromG),to:geometryWorldCenter(toG),fromIndex:state.geometries.indexOf(fromG),toIndex:state.geometries.indexOf(toG),flow,color:FLOW_COLORS[flow],phase:(out.length*.173)%1});
+    }
+  }
+  return out;
+}
+
+function drawScene() {
+  const canvas=$('#scene');
+  const bounds=combinedBounds();
+  $('#sceneEmpty').hidden=!!bounds;
+  $('#sceneTitle').textContent=bounds?(selectedComponent()?.name||state.geometries[0]?.source.name||'loaded geometry'):'no geometry connected';
+  $('#sceneSubtitle').textContent=bounds?`${state.geometries.length} parsed 3D geometry source${state.geometries.length===1?'':'s'} · WebGL depth rendered`:'import a real 3D source to begin';
+  if(!renderer3d){
+    $('#sceneSubtitle').textContent='WebGL2 unavailable in this browser';
+    return;
+  }
+  const result=renderer3d.render({geometries:state.geometries,bounds,view:state.view,selectedId:state.selectedId,componentForGeometry,numericTemperature,flows:activeFlowSegments(),phase:state.animation.phase});
+  lastProjected=result.hitBoxes||[];
+  updateRunState();
+}
+
+function telemetryTimestampColumn() {
+  const p=state.timeline.parsed;if(!p?.headers?.length)return null;
+  return p.headers.find(h=>/^(timestamp|time|datetime|date_time|utc)$/i.test(h.trim()))||p.headers.find(h=>/time|date/i.test(h));
+}
+
+function telemetryIntervalMs() {
+  const p=state.timeline.parsed,col=telemetryTimestampColumn();if(!p?.rows?.length||!col||p.rows.length<2)return null;
+  const i=clamp(state.timeline.index,0,p.rows.length-2),a=Date.parse(p.rows[i][col]),b=Date.parse(p.rows[i+1][col]);
+  if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a)return null;
+  return Math.min(60000,Math.max(16,b-a));
+}
+
+function canRunAnimation() {
+  return activeFlowSegments().length>0 || telemetryIntervalMs()!=null;
+}
+
+function updateRunState() {
+  const b=$('#runAnimation'); if(!b)return;
+  b.disabled=!canRunAnimation();
+  b.textContent=state.animation.running?'pause':'run';
+  b.classList.toggle('active',state.animation.running);
+  b.title=canRunAnimation()?'animate explicit flow relationships and timestamped telemetry':'requires explicit flow relationships or timestamped telemetry';
+}
+
+function animationFrame(ts) {
+  if(!state.animation.running){animationHandle=0;animationLast=0;return;}
+  if(!animationLast)animationLast=ts;
+  const dt=Math.min(250,ts-animationLast);animationLast=ts;
+  // phase is only a directional visualization cursor. physical magnitude is never inferred from it.
+  state.animation.phase=(state.animation.phase+dt/2400)%1;
+  const interval=telemetryIntervalMs();
+  if(interval!=null){state.animation.telemetryAccumulator+=dt;while(state.animation.telemetryAccumulator>=interval){state.animation.telemetryAccumulator-=interval;const count=state.timeline.parsed?.rows?.length||0;if(count)setTimelineIndex((state.timeline.index+1)%count);}}
+  drawScene();
+  animationHandle=requestAnimationFrame(animationFrame);
+}
+
+function setAnimationRunning(running) {
+  const next=!!running && canRunAnimation();state.animation.running=next;state.animation.telemetryAccumulator=0;animationLast=0;updateRunState();
+  if(next&&!animationHandle)animationHandle=requestAnimationFrame(animationFrame);
+  return next;
+}
+
+function fitCamera() { state.view.yaw = 0.45; state.view.pitch = -0.28; state.view.zoom = 1; drawScene(); return !!combinedBounds(); }
+
+function setViewMode(mode) {
+  if (!['orbit', 'explode', 'xray', 'thermal'].includes(mode)) return false;
+  state.view.mode = mode; $$('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === mode)); adaptControls(); drawScene(); return true;
+}
+
+function adaptControls() {
+  const c = selectedComponent();
+  const geoms = c ? state.geometries.filter(g => componentForGeometry(g)?.id === c.id) : state.geometries;
+  const faces = geoms.reduce((sum, g) => sum + (g.geometry.faces?.length || 0), 0);
+  const suggestedOrbit = faces > 120000 ? 28 : faces > 25000 ? 38 : 50;
+  if (!state.view.userOrbitSet) { state.view.orbitSensitivity = suggestedOrbit / 100; $('#orbitRange').value = suggestedOrbit; $('#orbitOut').textContent = suggestedOrbit + '%'; }
+  const canExplode = state.geometries.length > 1; $('#explodeRange').disabled = !canExplode;
+  const thermal = hasThermalEvidence(c); $('#thermalRange').disabled = !thermal;
+  $('#adaptiveNote').textContent = `${c ? `selected ${c.type}` : 'workspace'} · ${faces.toLocaleString()} parsed faces · ${canExplode ? 'multi source explode available' : 'explode requires multiple geometry sources'} · ${thermal ? 'thermal evidence available' : 'thermal mode is visually gated without source backed temperature data'}`;
+}
+
+function drawChart() {
+  const canvas = $('#chart'), { w, h, dpr } = resizeCanvas(canvas), ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = '#182127'; for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(0, i * h / 4); ctx.lineTo(w, i * h / 4); ctx.stroke(); }
+  const parsed = state.timeline.parsed, channel = state.timeline.numericChannel;
+  if (!parsed?.rows?.length || !channel) { ctx.fillStyle = '#566168'; ctx.font = '11px system-ui'; ctx.fillText('no imported numeric telemetry', 12, 20); return; }
+  const values = parsed.rows.map(r => Number(r[channel])).filter(Number.isFinite); if (!values.length) return;
+  let min = Math.min(...values), max = Math.max(...values); if (min === max) { min -= 1; max += 1; }
+  ctx.strokeStyle = '#8b9091'; ctx.lineWidth = 1.25; ctx.beginPath();
+  values.forEach((v, i) => { const x = i / Math.max(1, values.length - 1) * w, y = h - ((v - min) / (max - min)) * (h - 18) - 4; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+  const cursor = clamp(state.timeline.index, 0, values.length - 1) / Math.max(1, values.length - 1) * w; ctx.strokeStyle = '#72f2a5'; ctx.beginPath(); ctx.moveTo(cursor, 0); ctx.lineTo(cursor, h); ctx.stroke();
+  ctx.fillStyle = '#657277'; ctx.font = '9px system-ui'; ctx.fillText(`${channel} · imported telemetry`, 8, 12);
+}
+
+function updateTimelineUI() {
+  const parsed = state.timeline.parsed, count = parsed?.rows?.length || 0; const input = $('#timeRange');
+  input.disabled = !count; input.max = Math.max(0, count - 1); input.value = clamp(state.timeline.index, 0, Math.max(0, count - 1)); $('#timeMax').textContent = String(Math.max(0, count - 1)); $('#timeMin').textContent = '0'; $('#timeState').textContent = count ? `sample ${state.timeline.index + 1} / ${count}` : 'no telemetry';
+  renderInspector(); drawChart();
+}
+
+function setTimelineIndex(index) {
+  const count = state.timeline.parsed?.rows?.length || 0; if (!count) return false;
+  state.timeline.index = Math.round(clamp(index, 0, count - 1)); updateTimelineUI(); drawScene(); return true;
+}
+
+async function sha256(file) {
+  if (file.size > 64 * 1024 * 1024 || !globalThis.crypto?.subtle) return null;
+  const buf = await file.arrayBuffer(); const digest = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function fileToDataURL(file) {
+  return await new Promise((resolve, reject) => { const r = new FileReader(); r.onerror = reject; r.onload = () => resolve(r.result); r.readAsDataURL(file); });
+}
+
+async function imageDimensions(dataUrl) {
+  return await new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight }); img.onerror = reject; img.src = dataUrl; });
+}
+
+function mergeWorkspace(ws, source) {
+  if (!ws) return;
+  const existing = new Map(state.workspace.components.map(c => [c.id, c])); ws.components.forEach(c => existing.set(c.id, c));
+  const materials = new Map((state.workspace.materials || []).map(m => [m.id, m])); (ws.materials || []).forEach(m => materials.set(m.id, m));
+  state.workspace = { ...state.workspace, ...ws, components: [...existing.values()], materials: [...materials.values()] };
+  if (ws.environment && Object.keys(ws.environment).length) state.environment = { mode: 'workspace', sourceId: source?.id || null, values: { ...ws.environment }, derived: {}, provenance: { method: 'workspace source', sourceId: source?.id || null } };
+  if (!state.selectedId && state.workspace.components.length) state.selectedId = state.workspace.components[0].id;
+  source.authoritative = true;
+}
+
+function bindGeometrySource(source, geometry) {
+  const bounds = geometryBounds(geometry); if (!bounds || !geometry.vertices.length) throw new Error('geometry contains no usable vertices');
+  let component = state.workspace.components.find(c => c.geometryRef === source.name || c.geometryRef === source.id);
+  if (!component) {
+    component = { id: `artifact:${source.id}`, name: source.name, type: 'geometry artifact', path: 'imported geometry', state: 'source artifact', metrics: { vertices: geometry.vertices.length, faces: geometry.faces?.length || 0, format: geometry.format }, relations: [], geometryRef: source.name };
+    state.workspace.components.push(component);
+  }
+  source.boundComponentIds = [...new Set([...(source.boundComponentIds || []), component.id])];
+  state.geometries.push({ source, geometry, bounds, componentId: component.id }); if (!state.selectedId) state.selectedId = component.id;
+}
+
+async function registerFiles(files, provenance = null) {
+  const registered = [];
+  for (const file of files) {
+    const kind = classifyFileName(file.name, file.type); const source = { id: uid('src'), name: file.name, size: file.size, mime: file.type || '', modified: file.lastModified, kind, parseStatus: 'registered', authoritative: false, boundComponentIds: [], file, ...(provenance ? { provenance: structuredClone(provenance), originUrl: provenance.originUrl || null } : {}) };
+    registered.push(source);
+    state.sources.push(source);
+    try {
+      source.hash = await sha256(file);
+      if (kind === 'structured-data') {
+        const text = await file.text(); source.content = text; const raw = JSON.parse(text); const ws = normalizeWorkspace(raw);
+        if (ws && (Array.isArray(raw.components) || raw.project || raw.environment || raw.telemetry)) { mergeWorkspace(ws, source); source.summary = `${ws.components.length} component records`; }
+        else source.summary = `JSON keys: ${Object.keys(raw).slice(0, 12).join(', ')}`;
+        source.parseStatus = 'parsed'; source.authoritative = true;
+      } else if (kind === 'telemetry') {
+        const text = await file.text(); source.content = text; const parsed = parseCSV(text, file.name.toLowerCase().endsWith('.tsv') ? '\t' : null); source.parsed = parsed; source.summary = summarizeTelemetry(parsed); source.parseStatus = 'parsed'; source.authoritative = true;
+        state.timeline.parsed = parsed; state.timeline.index = 0; state.timeline.numericChannel = source.summary.numeric.find(x => /temp/i.test(x)) || source.summary.numeric[0] || null;
+      } else if (kind === 'document' && ['txt', 'md'].includes(file.name.split('.').pop().toLowerCase())) {
+        source.content = await file.text(); source.summary = `${source.content.length.toLocaleString()} text characters`; source.parseStatus = 'parsed'; source.authoritative = true;
+      } else if (kind === 'image') {
+        source.dataUrl = await fileToDataURL(file); source.summary = await imageDimensions(source.dataUrl); source.parseStatus = 'parsed'; source.authoritative = true;
+      } else if (kind === 'mesh') {
+        const ext = file.name.split('.').pop().toLowerCase(); let geometry = null;
+        if (ext === 'obj') geometry = parseOBJ(await file.text());
+        else if (ext === 'stl') { const buffer = await file.arrayBuffer(); const hint = new TextDecoder().decode(buffer.slice(0, Math.min(buffer.byteLength, 8000))); geometry = parseSTL(buffer, hint.startsWith('solid') ? await file.text() : hint); }
+        else if (ext === 'ply') geometry = parseASCIIPLY(await file.text());
+        if (geometry && geometry.vertices.length) { bindGeometrySource(source, geometry); source.summary = `${geometry.vertices.length.toLocaleString()} vertices · ${(geometry.faces?.length || 0).toLocaleString()} faces`; source.parseStatus = 'parsed'; source.authoritative = true; }
+        else { source.parseStatus = 'unparsed'; source.summary = `${ext.toUpperCase()} parser not connected in this build`; }
+      } else {
+        source.parseStatus = 'unparsed'; source.summary = `${file.name.split('.').pop()?.toUpperCase() || 'unknown'} registered without parser`;
+      }
+    } catch (error) { source.parseStatus = 'error'; source.error = error.message; source.authoritative = false; }
+  }
+  $('#sourceInput').value = ''; renderAll(); return registered;
+}
+
+function removeSource(id) {
+  const source = state.sources.find(s => s.id === id); if (!source) return;
+  state.sources = state.sources.filter(s => s.id !== id); state.geometries = state.geometries.filter(g => g.source.id !== id);
+  if (source.kind === 'telemetry' && source.parsed === state.timeline.parsed) { state.timeline = { parsed: null, index: 0, numericChannel: null }; }
+  renderAll();
+}
+
+function renderSources() {
+  $('#sourceCount').textContent = String(state.sources.length); const list = $('#sourceList'); list.replaceChildren();
+  if (!state.sources.length) { list.append(textEl('div', 'no sources registered.', 'emptyState')); return; }
+  state.sources.forEach(s => {
+    const card = document.createElement('div'); card.className = 'sourceCard'; card.append(textEl('strong', s.name));
+    card.append(textEl('span', `${s.kind} · ${(s.size / 1024).toFixed(1)} kb · ${s.hash ? s.hash.slice(0, 10) : 'hash unavailable'}`));
+    card.append(textEl('small', `source ${s.id}`, 'provenanceLine'));
+    card.append(textEl('small', `${s.parseStatus}${s.summary ? ` · ${typeof s.summary === 'string' ? s.summary : JSON.stringify(s.summary)}` : ''}`, s.parseStatus === 'parsed' ? 'parsed' : ''));
+    if (s.originUrl) card.append(textEl('small', `retrieved source · ${s.originUrl}`));
+    if (s.error) card.append(textEl('small', s.error));
+    const actions = document.createElement('div'); actions.className = 'sourceActions'; const rm = textEl('button', 'remove'); rm.addEventListener('click', () => removeSource(s.id)); actions.append(rm); card.append(actions); list.append(card);
+  });
+}
+
+function renderAll() { renderSources(); renderTree($('#systemSearch').value); renderInspector(); renderMaterialRegistry(); renderEnvironmentObservationList(); renderActiveEnvironmentCard(); renderSolverReadinessGrid(); updateTimelineUI(); adaptControls(); drawScene(); renderChat(); }
+
+function searchSourceResult(query = '', limit = 40) {
+  const q = String(query || '').trim().toLowerCase(), n = clamp(limit, 1, 200);
+  const matches = state.sources.filter(s => !q || `${s.id} ${s.name} ${s.kind} ${s.parseStatus} ${s.originUrl || ''}`.toLowerCase().includes(q)).slice(0, n);
+  return { ok: true, total: state.sources.length, matched: matches.length, sources: matches.map(s => ({ id: s.id, name: s.name, kind: s.kind, parseStatus: s.parseStatus, summary: s.summary, boundComponentIds: s.boundComponentIds, originUrl: s.originUrl || null })) };
+}
+
+function searchComponentResult(query = '', limit = 60) {
+  const q = String(query || '').trim().toLowerCase(), n = clamp(limit, 1, 300);
+  const matches = state.workspace.components.filter(c => !q || `${c.id} ${c.name} ${c.type} ${c.path} ${c.state}`.toLowerCase().includes(q)).slice(0, n);
+  return { ok: true, total: state.workspace.components.length, matched: matches.length, components: matches.map(c => ({ id: c.id, name: c.name, type: c.type, path: c.path, state: c.state, geometryRef: c.geometryRef })) };
+}
+
+function searchMaterialResult(query = '', limit = 50) {
+  const q=String(query||'').trim().toLowerCase(),n=clamp(limit,1,200);const all=state.workspace.materials||[];
+  const matches=all.filter(m=>!q||`${m.id} ${m.name} ${m.materialFamily} ${m.grade} ${m.standard} ${m.condition}`.toLowerCase().includes(q)).slice(0,n);
+  return {ok:true,total:all.length,matched:matches.length,materials:matches.map(m=>({id:m.id,name:m.name,materialFamily:m.materialFamily,grade:m.grade,standard:m.standard,condition:m.condition,componentIds:m.componentIds,propertyKeys:Object.keys(m.properties||{})}))};
+}
+function inspectMaterialResult(materialId) { const m=(state.workspace.materials||[]).find(x=>x.id===materialId);return m?{ok:true,material:m}:{ok:false,error:'material not found'}; }
+function solverEligibilityResult(solver, componentId = null) {
+  const component=(componentId?state.workspace.components.find(c=>c.id===componentId):selectedComponent())||null;
+  if(!component)return {ok:false,error:'component not found or selected'};
+  const material=(state.workspace.materials||[]).find(m=>m.id===component.materialId)||(state.workspace.materials||[]).find(m=>(m.componentIds||[]).includes(component.id))||null;
+  return {ok:true,component_id:component.id,material_id:material?.id||null,...solverEligibility({solver:String(solver),component,material,environment:state.environment,geometryAvailable:geometryAvailableFor(component)})};
+}
+
+function queueVisionSource(sourceId) {
+  const source = state.sources.find(s => s.id === sourceId);
+  if (!source) return { ok: false, error: 'source not found' };
+  if (source.kind !== 'image' || !source.dataUrl) return { ok: false, error: 'source is not a parsed image' };
+  state.ai.requestedVisionIds = [...new Set([source.id, ...(state.ai.requestedVisionIds || [])])].slice(0, 8);
+  return { ok: true, source_id: source.id, name: source.name, queued_for_vision: true };
+}
+
+function sourceToolResult(sourceId, maxChars = 16000) {
+  const source = state.sources.find(s => s.id === sourceId); if (!source) return { ok: false, error: 'source not found' };
+  const result = { ok: true, source: { id: source.id, name: source.name, kind: source.kind, parseStatus: source.parseStatus, summary: source.summary, hash: source.hash, boundComponentIds: source.boundComponentIds, originUrl: source.originUrl || null, provenance: source.provenance || null } };
+  const limit = clamp(maxChars, 1000, 50000);
+  if (source.content) result.content = source.content.slice(0, limit);
+  if (source.parsed) result.parsed = { headers: source.parsed.headers, rows: source.parsed.rows.slice(0, 80) };
+  if (source.dataUrl) result.image = { available_to_vision: true, mime: source.mime, width: source.summary?.width, height: source.summary?.height };
+  if (source.kind === 'mesh' && source.parseStatus === 'parsed') {
+    const g = state.geometries.find(x => x.source.id === source.id); if (g) result.geometry = { format: g.geometry.format, vertices: g.geometry.vertices.length, faces: g.geometry.faces.length, bounds: g.bounds };
+  }
+  return result;
+}
+
+function inspectComponentResult(componentId) {
+  const c = state.workspace.components.find(x => x.id === componentId); if (!c) return { ok: false, error: 'component not found' };
+  return { ok: true, component: c, boundSources: sourceBindingsFor(c.id).map(s => ({ id: s.id, name: s.name, kind: s.kind, parseStatus: s.parseStatus })) };
+}
+
+function requiresApproval(toolName) { return TOOL_DEFINITIONS.find(t => t.name === toolName)?.requiresApproval ?? true; }
+
+async function retrieveExternalSource(url) {
+  const res = await fetch('/api/retrieve', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ url }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, error: data.error || `retrieval failed with ${res.status}` };
+  try {
+    const binary = atob(data.base64 || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const file = new File([bytes], data.filename || 'retrieved-source', { type: data.mime || 'application/octet-stream', lastModified: Date.now() });
+    const added = await registerFiles([file], { method: 'approved-url-retrieval', originUrl: data.finalUrl || url, retrievedAt: new Date().toISOString(), serverSha256: data.sha256 || null });
+    const source = added[0];
+    return { ok: !!source, source_id: source?.id || null, name: source?.name || data.filename, final_url: data.finalUrl || url, sha256: data.sha256 || null, parseStatus: source?.parseStatus || 'unknown' };
+  } catch (error) { return { ok: false, error: `retrieved bytes could not be registered: ${error.message}` }; }
+}
+
+function setPanelVisibility(panel, visible) {
+  const open = !!visible;
+  if (panel === 'left') { document.body.classList.toggle('collapsedLeft', !open); $('#collapseLeft').textContent = open ? '−' : '+'; }
+  else if (panel === 'right') { document.body.classList.toggle('collapsedRight', !open); $('#collapseRight').textContent = open ? '−' : '+'; }
+  else if (panel === 'timeline') { $('#bottomPanel').classList.toggle('collapsed', !open); $('#collapseBottom').textContent = open ? '−' : '+'; }
+  else if (panel === 'view_controls') { $('#viewControls').classList.toggle('collapsed', !open); $('#collapseView').textContent = open ? '−' : '+'; }
+  else return false;
+  saveLayout(); drawScene(); drawChart(); return true;
+}
+
+function bindSourceToComponent(sourceId, componentId) {
+  const source = state.sources.find(s => s.id === sourceId);
+  const component = state.workspace.components.find(c => c.id === componentId);
+  if (!source || !component) return { ok: false, error: !source ? 'source not found' : 'component not found' };
+  source.boundComponentIds = [...new Set([...(source.boundComponentIds || []), component.id])];
+  for (const g of state.geometries) if (g.source.id === source.id) g.componentId = component.id;
+  renderAll();
+  return { ok: true, source_id: source.id, component_id: component.id, source_name: source.name, component_name: component.name };
+}
+
+
+async function developerStatus() {
+  try { const res=await fetch('/api/dev/status',{headers:apiHeaders()}); const data=await res.json(); const el=$('#developerStatus'); if(el){el.textContent=data.enabled?`enabled · ${data.allowlist.length} UI files allowlisted`:'disabled · start server with ASHERIN_ALLOW_CODE_EDIT=1';el.className='connectionState '+(data.enabled?'ok':'');} state.ai.developerCodeEnabled=!!data.enabled; return data; }
+  catch(error){const el=$('#developerStatus');if(el){el.textContent='developer status unavailable';el.className='connectionState bad';}return {enabled:false,error:error.message};}
+}
+async function codeApi(path,body={}) { const res=await fetch(path,{method:'POST',headers:apiHeaders(true),body:JSON.stringify(body)});const data=await res.json().catch(()=>({}));if(!res.ok)return {ok:false,error:data.error||`code operation failed with ${res.status}`,...data};return data; }
+
+async function executeTool(call) {
+  const a = call.arguments || {};
+  switch (call.name) {
+    case 'search_sources': return searchSourceResult(a.query, a.limit);
+    case 'read_source': return sourceToolResult(a.source_id, a.max_chars);
+    case 'inspect_image': return queueVisionSource(String(a.source_id || ''));
+    case 'search_components': return searchComponentResult(a.query, a.limit);
+    case 'inspect_component': return inspectComponentResult(a.component_id);
+    case 'select_component': return { ok: selectComponent(String(a.component_id)), selected: state.selectedId };
+    case 'set_view_mode': return { ok: setViewMode(String(a.mode)), mode: state.view.mode };
+    case 'set_camera': {
+      if (a.yaw != null && Number.isFinite(Number(a.yaw))) state.view.yaw = Number(a.yaw);
+      if (a.pitch != null && Number.isFinite(Number(a.pitch))) state.view.pitch = clamp(Number(a.pitch), -1.55, 1.55);
+      if (a.zoom != null && Number.isFinite(Number(a.zoom))) state.view.zoom = clamp(Number(a.zoom), 0.08, 12);
+      drawScene(); return { ok: true, yaw: state.view.yaw, pitch: state.view.pitch, zoom: state.view.zoom };
+    }
+    case 'set_panel_visibility': return { ok: setPanelVisibility(String(a.panel), !!a.visible), panel: a.panel, visible: !!a.visible };
+    case 'set_left_tab': { const tab = String(a.tab || ''); if (!['ai','system'].includes(tab)) return { ok: false, error: 'unknown left tab' }; setLeftTab(tab); return { ok: true, tab }; }
+    case 'set_visual_parameter': {
+      const name = String(a.name || ''), value = clamp(Number(a.value), 0, 1);
+      const map = { orbit_sensitivity: ['orbitSensitivity','#orbitRange','#orbitOut'], explode: ['explode','#explodeRange','#explodeOut'], xray: ['xray','#xrayRange','#xrayOut'], thermal: ['thermal','#thermalRange','#thermalOut'] };
+      if (!map[name]) return { ok: false, error: 'unknown visual parameter' };
+      const [key, selector, outSelector] = map[name]; state.view[key] = value; if (name === 'orbit_sensitivity') state.view.userOrbitSet = true;
+      const input = $(selector), out = $(outSelector); if (input) input.value = String(Math.round(value * 100)); if (out) out.textContent = `${Math.round(value * 100)}%`; drawScene();
+      return { ok: true, name, value };
+    }
+    case 'search_materials': return searchMaterialResult(a.query,a.limit);
+    case 'inspect_material': return inspectMaterialResult(String(a.material_id||''));
+    case 'get_solver_eligibility': return solverEligibilityResult(String(a.solver||''),a.component_id?String(a.component_id):null);
+    case 'fetch_environment_power': return await fetchPowerEnvironmentEvidence(a);
+    case 'set_time_index': return { ok: setTimelineIndex(Number(a.index)), index: state.timeline.index };
+    case 'set_flow_visibility': {
+      if (!(a.flow in state.view.flows)) return { ok: false, error: 'unknown flow' }; state.view.flows[a.flow] = !!a.visible; const input = $(`input[data-flow="${CSS.escape(a.flow)}"]`); if (input) input.checked = !!a.visible; drawScene(); return { ok: true, flow: a.flow, visible: !!a.visible };
+    }
+    case 'fit_camera': return { ok: fitCamera() };
+    case 'retrieve_url': return await retrieveExternalSource(String(a.url || ''));
+    case 'bind_source': return bindSourceToComponent(String(a.source_id || ''), String(a.component_id || ''));
+    case 'remove_source': { const id = String(a.source_id || ''); if (!state.sources.some(source => source.id === id)) return { ok: false, error: 'source not found' }; removeSource(id); return { ok: true, source_id: id }; }
+    case 'set_scenario_value': {
+      const key = String(a.key || ''); if (!key) return { ok: false, error: 'missing key' }; state.environment.values[key] = a.value; state.environment.mode = 'scenario'; state.environment.sourceId = null; state.environment.provenance = { method:'AI or user scenario assumption', changedAt:new Date().toISOString() }; state.environment.values.label = 'scenario assumption'; renderEnvironmentMetrics(); renderActiveEnvironmentCard(); renderSolverMetrics(); renderSolverReadinessGrid(); return { ok: true, key, value: a.value, classification:'assumption' };
+    }
+    case 'list_code_files': { const res=await fetch('/api/dev/status',{headers:apiHeaders()}); const data=await res.json().catch(()=>({})); return res.ok?{ok:true,enabled:!!data.enabled,files:data.allowlist||[],staged:data.staged||0}:{ok:false,error:data.error||'developer status failed'}; }
+    case 'read_code_file': return await codeApi('/api/dev/read',{path:String(a.path||''),query:String(a.query||''),max_chars:a.max_chars});
+    case 'stage_code_patch': return await codeApi('/api/dev/stage',{path:String(a.path||''),find:String(a.find??''),replace:String(a.replace??''),description:String(a.description||'AI UI redesign patch')});
+    case 'apply_code_stage': { const out=await codeApi('/api/dev/apply',{stage_id:String(a.stage_id||'')}); if(out.ok) setTimeout(()=>location.reload(),500); return out; }
+    case 'revert_last_code_change': { const out=await codeApi('/api/dev/revert',{}); if(out.ok) setTimeout(()=>location.reload(),500); return out; }
+    default: return { ok: false, error: 'unknown tool' };
+  }
+}
+
+function chatStorageKey() { return 'asherin.chat.branches.v6'; }
+function saveChat() { storageSet(chatStorageKey(), JSON.stringify({ branches: state.chat.branches, activeId: state.chat.activeId })); }
+function loadChat() {
+  try {
+    const data = JSON.parse(storageGet(chatStorageKey(), '{}')); if (Array.isArray(data.branches)) state.chat.branches = data.branches; state.chat.activeId = data.activeId || state.chat.branches[0]?.id || null;
+  } catch {}
+  if (!state.chat.branches.length) createBranch('primary investigation');
+}
+function activeBranch() { return state.chat.branches.find(b => b.id === state.chat.activeId); }
+function createBranch(title = 'new branch', fromMessages = []) { const b = { id: uid('branch'), title, created: Date.now(), updated: Date.now(), messages: structuredClone(fromMessages) }; state.chat.branches.unshift(b); state.chat.activeId = b.id; saveChat(); renderChat(); return b; }
+function addChatMessage(role, content, extra = {}) { const b = activeBranch(); if (!b) return; b.messages.push({ id: uid('msg'), role, content, created: Date.now(), ...extra }); b.updated = Date.now(); if (b.messages.filter(m => m.role === 'user').length === 1) b.title = content.slice(0, 42) || b.title; saveChat(); renderChat(); }
+
+function renderChat() {
+  const select = $('#branchSelect'); select.replaceChildren(); state.chat.branches.forEach(b => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.title; o.selected = b.id === state.chat.activeId; select.append(o); });
+  const history = $('#branchHistory'); history.replaceChildren(); state.chat.branches.slice(0, 8).forEach(b => { const item = document.createElement('div'); item.className = 'branchItem' + (b.id === state.chat.activeId ? ' active' : ''); item.append(document.createElement('i')); item.append(textEl('span', b.title)); item.append(textEl('small', new Date(b.updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))); item.addEventListener('click', () => { state.chat.activeId = b.id; saveChat(); renderChat(); }); history.append(item); });
+  const box = $('#chatMessages'); box.replaceChildren(); const branch = activeBranch();
+  if (!branch?.messages.length) box.append(textEl('div', 'connect a model, import real evidence, then ask the assistant to inspect the system. it can read source contents, navigate the workspace, and operate through audited tools.', 'emptyState'));
+  else branch.messages.forEach(m => {
+    const wrap = document.createElement('div'); wrap.className = `message ${m.role}`; const meta = textEl('div', m.role === 'assistant' ? `${state.ai.provider || 'AI'} · ${state.ai.model || 'unconfigured'}` : m.role, 'messageMeta'); wrap.append(meta); wrap.append(textEl('div', m.content, 'bubble'));
+    if (m.evidence?.length) { const tags = document.createElement('div'); tags.className = 'evidenceTags'; m.evidence.forEach(e => tags.append(textEl('span', typeof e === 'string' ? e : JSON.stringify(e), 'evidenceTag'))); wrap.append(tags); }
+    if (m.approvals?.length) { const tools = document.createElement('div'); tools.className = 'messageTools'; m.approvals.forEach(call => { const chip = document.createElement('span'); chip.className = 'toolChip approval'; chip.append(document.createTextNode(`${call.name} ${JSON.stringify(call.arguments)}`)); const approve = textEl('button', 'approve'); approve.addEventListener('click', async () => { approve.disabled = true; const result = await executeTool(call); chip.textContent = `${call.name} -> ${result.ok ? 'executed' : result.error}`; addChatMessage('system', `approved tool result -> ${call.name} -> ${JSON.stringify(result)}`); }); chip.append(approve); tools.append(chip); }); wrap.append(tools); }
+    box.append(wrap);
+  });
+  box.scrollTop = box.scrollHeight;
+  $('#providerDot').classList.toggle('connected', state.ai.connected); $('#providerStatus').textContent = state.ai.connected ? `${state.ai.provider} · ${state.ai.model || 'select a model'}` : 'no AI provider connected';
+}
+
+function sourceDigest() {
+  return state.sources.slice(0, 60).map(s => {
+    const out = { id: s.id, name: s.name, kind: s.kind, parseStatus: s.parseStatus, summary: s.summary, boundComponentIds: s.boundComponentIds, originUrl: s.originUrl || null, provenance: s.provenance || null };
+    if (s.content) out.excerpt = s.content.slice(0, 1200);
+    if (s.parsed) out.preview = { headers: s.parsed.headers, rows: s.parsed.rows.slice(0, 4) };
+    return out;
+  });
+}
+
+function visionImages() {
+  const requested = new Set(state.ai.requestedVisionIds || []);
+  const bound = new Set(sourceBindingsFor(state.selectedId).map(s => s.id));
+  const images = state.sources.filter(s => s.kind === 'image' && s.dataUrl).sort((a, b) => Number(requested.has(b.id)) - Number(requested.has(a.id)) || Number(bound.has(b.id)) - Number(bound.has(a.id)));
+  return images.slice(0, 6).map(s => ({ source_id: s.id, name: s.name, data_url: s.dataUrl }));
+}
+
+async function callAgent(conversation, toolResults = [], round = 0) {
+  if (!state.ai.connected || !state.ai.model) throw new Error('connect an AI provider and select a live model first');
+  const payload = {
+    provider: state.ai.provider,
+    model: state.ai.model,
+    conversation,
+    snapshot: buildSystemSnapshot(state),
+    sourceDigest: sourceDigest(),
+    images: visionImages(),
+    toolResults,
+    round
+  };
+  const res = await fetch('/api/chat', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify(payload) });
+  const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || `AI request failed with ${res.status}`); return parseAgentPacket(data.text || '');
+}
+
+async function sendChat() {
+  const input = $('#chatInput'), text = input.value.trim(); if (!text) return; input.value = ''; addChatMessage('user', text); $('#sendChat').disabled = true;
+  try {
+    const conversation = activeBranch().messages.filter(m => ['user', 'assistant'].includes(m.role)).map(m => ({ role: m.role, content: m.content }));
+    let toolResults = [], finalPacket = null;
+    for (let round = 0; round < 4; round++) {
+      const packet = await callAgent(conversation, toolResults, round); finalPacket = packet; const approvals = [], executed = [];
+      for (const call of packet.tool_calls) {
+        const approval = requiresApproval(call.name) || state.ai.controlPolicy === 'approve-all';
+        if (approval) approvals.push(call); else executed.push({ call, result: await executeTool(call) });
+      }
+      if (approvals.length) { addChatMessage('assistant', packet.message, { evidence: packet.evidence, approvals }); return; }
+      if (!executed.length) break;
+      toolResults = executed.map(x => ({ tool: x.call.name, arguments: x.call.arguments, result: x.result }));
+    }
+    addChatMessage('assistant', finalPacket?.message || 'the model returned no usable response.', { evidence: finalPacket?.evidence || [] });
+  } catch (error) { addChatMessage('error', error.message); }
+  finally { $('#sendChat').disabled = false; }
+}
+
+const PROVIDER_DEFAULTS = { openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1', google: 'https://generativelanguage.googleapis.com/v1beta', 'openai-compatible': 'http://localhost:1234/v1', ollama: 'http://localhost:11434' };
+
+async function providerStatus() {
+  try { const res = await fetch('/api/provider/status', { headers: apiHeaders() }); const data = await res.json(); if (!res.ok) throw new Error();
+    if (data.connected) { state.ai.connected = true; state.ai.provider = data.provider; state.ai.model = data.model || ''; state.ai.baseUrl = data.baseUrl || ''; $('#providerSelect').value = data.provider; $('#baseUrl').value = data.baseUrl || PROVIDER_DEFAULTS[data.provider] || ''; const modelSelect = $('#modelSelect'); modelSelect.replaceChildren(); (data.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label || m.id; modelSelect.append(o); }); if (state.ai.model && (data.models || []).some(m => m.id === state.ai.model)) modelSelect.value = state.ai.model; $('#connectionState').textContent = data.model ? `connected · ${data.model}` : `connected · ${(data.models || []).length} models`; $('#connectionState').className = 'connectionState ok'; }
+  } catch { state.ai.connected = false; }
+  renderChat();
+}
+
+async function connectProvider() {
+  const provider = $('#providerSelect').value, apiKey = $('#apiKey').value, baseUrl = $('#baseUrl').value.trim() || PROVIDER_DEFAULTS[provider]; $('#connectionState').textContent = 'connecting…'; $('#connectionState').className = 'connectionState';
+  try {
+    const res = await fetch('/api/provider/connect', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ provider, apiKey, baseUrl }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'provider connection failed');
+    state.ai.connected = true; state.ai.provider = provider; state.ai.baseUrl = data.baseUrl || baseUrl; $('#apiKey').value = '';
+    const modelSelect = $('#modelSelect'); modelSelect.replaceChildren(); (data.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label || m.id; modelSelect.append(o); });
+    if (!data.models?.length) { const o = document.createElement('option'); o.value = ''; o.textContent = 'no compatible models returned'; modelSelect.append(o); }
+    if (state.ai.model && data.models?.some(m => m.id === state.ai.model)) modelSelect.value = state.ai.model;
+    $('#connectionState').textContent = `${data.models?.length || 0} live models discovered`; $('#connectionState').className = 'connectionState ok'; renderChat();
+  } catch (error) { state.ai.connected = false; $('#connectionState').textContent = error.message; $('#connectionState').className = 'connectionState bad'; renderChat(); }
+}
+
+async function saveActiveModel() {
+  const model = $('#modelSelect').value; if (!state.ai.connected || !model) return toast('connect and choose a model');
+  state.ai.model = model; state.ai.controlPolicy = $('#controlPolicy').value; storageSet('asherin.ai.controlPolicy', state.ai.controlPolicy);
+  try { await fetch('/api/provider/active', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ model }) }); } catch {}
+  $('#connectionState').textContent = `active · ${model}`; $('#connectionState').className = 'connectionState ok'; renderChat(); closeModal('settingsModal');
+}
+
+function renderAudit() {
+  const grid = $('#auditGrid'); grid.replaceChildren(); AUDIT_ITEMS.forEach(([type, title, body]) => { const card = document.createElement('div'); card.className = `auditCard ${type}`; card.append(textEl('b', title)); card.append(textEl('span', body)); grid.append(card); });
+}
+
+function initPhysicalDataUI() {
+  $$('[data-data-tab]').forEach(b=>b.addEventListener('click',()=>setDataTab(b.dataset.dataTab)));
+  const hours=$('#powerHour'); if(hours&&!hours.children.length) for(let h=0;h<24;h++){const o=document.createElement('option');o.value=String(h);o.textContent=`${String(h).padStart(2,'0')}:00 UTC`;hours.append(o);}
+  const date=$('#powerDate'); if(date&&!date.value){const d=new Date(Date.now()-7*86400000);date.value=d.toISOString().slice(0,10);}
+  $('#fetchPowerEnvironment')?.addEventListener('click',fetchPowerEnvironmentFromUI);
+  $('#importMaterialSource')?.addEventListener('click',()=>{closeModal('environmentModal');openModal('sourcesModal');$('#sourceInput').click();});
+  setDataTab('environment');renderMaterialRegistry();renderEnvironmentObservationList();renderActiveEnvironmentCard();renderSolverReadinessGrid();
+}
+
+function bindUI() {
+  applyLayout(state.layout); renderAudit(); loadChat(); initPhysicalDataUI();
+  $$('[data-left-tab]').forEach(b => b.addEventListener('click', () => setLeftTab(b.dataset.leftTab)));
+  $('#systemSearch').addEventListener('input', e => renderTree(e.target.value));
+  $('#sourcesButton').addEventListener('click', () => openModal('sourcesModal')); $('#sourceBarButton').addEventListener('click', () => openModal('sourcesModal'));
+  $('#settingsButton').addEventListener('click', () => { openModal('settingsModal'); developerStatus(); }); $('#aiSettingsInline').addEventListener('click', () => { openModal('settingsModal'); developerStatus(); });
+  $('#scenarioButton').addEventListener('click', () => { openModal('environmentModal'); renderMaterialRegistry(); renderEnvironmentObservationList(); renderActiveEnvironmentCard(); renderSolverReadinessGrid(); }); $('#auditButton').addEventListener('click', () => openModal('auditModal')); $('#shortcutsButton').addEventListener('click', () => openModal('shortcutsModal'));
+  $$('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+  $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) m.hidden = true; }));
+  const drop = $('#dropZone'), input = $('#sourceInput'); drop.addEventListener('click', () => input.click()); drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); }); input.addEventListener('change', e => registerFiles([...e.target.files]));
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); })); ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); })); drop.addEventListener('drop', e => registerFiles([...e.dataTransfer.files]));
+  $$('[data-view]').forEach(b => b.addEventListener('click', () => setViewMode(b.dataset.view)));
+  $$('input[data-flow]').forEach(i => i.addEventListener('change', () => { state.view.flows[i.dataset.flow] = i.checked; drawScene(); }));
+  $('#orbitRange').addEventListener('input', e => { state.view.orbitSensitivity = +e.target.value / 100; state.view.userOrbitSet = true; $('#orbitOut').textContent = e.target.value + '%'; });
+  $('#explodeRange').addEventListener('input', e => { state.view.explode = +e.target.value / 100; $('#explodeOut').textContent = e.target.value + '%'; drawScene(); });
+  $('#xrayRange').addEventListener('input', e => { state.view.xray = +e.target.value / 100; $('#xrayOut').textContent = e.target.value + '%'; drawScene(); });
+  $('#thermalRange').addEventListener('input', e => { state.view.thermal = +e.target.value / 100; $('#thermalOut').textContent = e.target.value + '%'; drawScene(); });
+  $('#collapseView').addEventListener('click', () => { $('#viewControls').classList.toggle('collapsed'); $('#collapseView').textContent = $('#viewControls').classList.contains('collapsed') ? '+' : '−'; saveLayout(); });
+  $('#collapseLeft').addEventListener('click', () => { document.body.classList.toggle('collapsedLeft'); $('#collapseLeft').textContent = document.body.classList.contains('collapsedLeft') ? '+' : '−'; saveLayout(); drawScene(); });
+  $('#collapseRight').addEventListener('click', () => { document.body.classList.toggle('collapsedRight'); $('#collapseRight').textContent = document.body.classList.contains('collapsedRight') ? '+' : '−'; saveLayout(); drawScene(); });
+  $('#collapseBottom').addEventListener('click', () => { $('#bottomPanel').classList.toggle('collapsed'); $('#collapseBottom').textContent = $('#bottomPanel').classList.contains('collapsed') ? '+' : '−'; saveLayout(); drawScene(); });
+  bindResize($('#resizeLeft'), '--left', 230, 560, 1); bindResize($('#resizeRight'), '--right', 230, 560, -1); bindResize($('#resizeBottom'), '--bottom', 110, 360, 1);
+  $('#timeRange').addEventListener('input', e => setTimelineIndex(+e.target.value)); $('#stepBack').addEventListener('click', () => setTimelineIndex(state.timeline.index - 1)); $('#stepForward').addEventListener('click', () => setTimelineIndex(state.timeline.index + 1)); $('#runAnimation').addEventListener('click', () => setAnimationRunning(!state.animation.running));
+  const scene = $('#scene'); scene.addEventListener('pointerdown', e => { drag = { id: e.pointerId, x: e.clientX, y: e.clientY, distance: 0 }; scene.setPointerCapture(e.pointerId); });
+  scene.addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.distance += Math.abs(dx) + Math.abs(dy); state.view.yaw += dx * 0.012 * state.view.orbitSensitivity; state.view.pitch = clamp(state.view.pitch + dy * 0.012 * state.view.orbitSensitivity, -1.55, 1.55); drag.x = e.clientX; drag.y = e.clientY; drawScene(); });
+  scene.addEventListener('pointerup', e => { if (!drag || drag.id !== e.pointerId) return; const distance = drag.distance; drag = null; if (distance < 5) { const r = scene.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; const candidates = lastProjected.filter(h => x >= h.minX && x <= h.maxX && y >= h.minY && y <= h.maxY); if (candidates.length) selectComponent(candidates[candidates.length - 1].componentId); } });
+  scene.addEventListener('pointercancel', () => { drag = null; }); scene.addEventListener('wheel', e => { e.preventDefault(); state.view.zoom = clamp(state.view.zoom * Math.exp(-e.deltaY * 0.0012), 0.08, 12); drawScene(); }, { passive: false }); scene.addEventListener('dblclick', () => fitCamera());
+  $('#branchSelect').addEventListener('change', e => { state.chat.activeId = e.target.value; saveChat(); renderChat(); }); $('#newBranch').addEventListener('click', () => createBranch('new branch'));
+  $('#sendChat').addEventListener('click', sendChat); $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
+  $('#providerSelect').addEventListener('change', e => { $('#baseUrl').value = PROVIDER_DEFAULTS[e.target.value] || ''; }); $('#controlPolicy').value = state.ai.controlPolicy; $('#connectProvider').addEventListener('click', connectProvider); $('#saveModel').addEventListener('click', saveActiveModel);
+  document.addEventListener('keydown', e => {
+    const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable;
+    if (e.key === 'Escape') { $$('.modal').forEach(m => m.hidden = true); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setLeftTab('system'); $('#systemSearch').focus(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); setLeftTab('ai'); $('#chatInput').focus(); return; }
+    if (typing) return; const k = e.key.toLowerCase(); if (k === '1') setViewMode('orbit'); else if (k === '2') setViewMode('explode'); else if (k === '3') setViewMode('xray'); else if (k === '4') setViewMode('thermal'); else if (k === 's') setLeftTab('system'); else if (k === 'a') setLeftTab('ai'); else if (k === 'i') $('#collapseRight').click(); else if (k === 't') $('#collapseBottom').click(); else if (k === 'h') $('#collapseView').click(); else if (k === '0') fitCamera(); else if (k === ' ') { e.preventDefault(); setAnimationRunning(!state.animation.running); }
+  });
+  window.addEventListener('resize', () => { drawScene(); drawChart(); });
+}
+
+function heartbeat() { $('#clock').textContent = new Date().toLocaleTimeString([], { hour12: false }); }
+
+bindUI(); renderAll(); providerStatus(); developerStatus(); heartbeat(); setInterval(heartbeat, 1000);
+
+</script>
+<script type="application/x-asherin-source" src="./app.js"></script>
+<script>
+/* phones open onto the model, not onto a drawer: fold both rails away on the
+   first visit at phone width. a saved layout always wins. */
+window.addEventListener('load', function () {
+  try {
+    if (window.innerWidth > 780) return;
+    if (localStorage.getItem('soren.mobileFolded')) return;
+    localStorage.setItem('soren.mobileFolded', '1');
+    document.body.classList.add('collapsedLeft', 'collapsedRight');
+    var v = document.getElementById('viewControls');
+    if (v) { v.classList.add('collapsed'); var cv = document.getElementById('collapseView'); if (cv) cv.textContent = '+'; }
+    var l = document.getElementById('collapseLeft'); if (l) l.textContent = '+';
+    var r = document.getElementById('collapseRight'); if (r) r.textContent = '+';
+  } catch (_) { /* private mode */ }
+});
+</script>
+</body>
+</html>

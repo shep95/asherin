@@ -306,7 +306,7 @@ const Index = () => {
               free to use software.
             </h2>
             <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">
-              two asherin workspaces you can open immediately. no account or subscription required.
+              three asherin workspaces you can open immediately. no account or subscription required.
             </p>
           </div>
 
@@ -340,7 +340,23 @@ const Index = () => {
               </p>
               <p className="mt-5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/70">open workspace · free to use</p>
             </a>
+
+            <a
+              href="/asherin.soren/"
+              className="group flex min-h-64 flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.04] p-7 backdrop-blur-xl transition-colors hover:border-foreground/25 hover:bg-foreground/[0.07] sm:p-8 md:col-span-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-light uppercase tracking-[0.25em] text-muted-foreground">engineering workspace</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+              </div>
+              <h3 className="mt-auto font-display text-3xl font-light text-foreground">asherin.soren</h3>
+              <p className="mt-3 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
+                import real geometry, telemetry and material passports, see them as a 3d model, and connect your own model api key to read the evidence with you. everything runs in your browser session.
+              </p>
+              <p className="mt-5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/70">bring your own key · local only · free to use</p>
+            </a>
           </div>
+
         </div>
       </Section>
 
