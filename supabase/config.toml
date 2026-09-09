@@ -317,3 +317,6 @@ verify_jwt = false
 
 [functions.analytics-collect]
 verify_jwt = false
+
+[functions.soren-ai]
+verify_jwt = false

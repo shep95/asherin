@@ -77,6 +77,26 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     .freeTag{margin-left:10px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--faint);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
     /* off-canvas rails translate past the right edge on phones; clip them so
        the document itself never gains a horizontal scrollbar. */
+.mobileRails{display:none}
+    @media(max-width:780px){
+      .mobileRails{display:flex;gap:6px;position:fixed;left:8px;right:8px;bottom:calc(var(--bottom) + 14px);z-index:40;pointer-events:none}
+      .mobileRails button{pointer-events:auto;flex:1;padding:11px 8px;border:1px solid #202b31;border-radius:12px;background:rgba(8,12,14,.92);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:lowercase;backdrop-filter:blur(6px)}
+      .mobileRails button[aria-pressed="true"]{color:var(--trust);border-color:#26443a}
+      .topnav{gap:4px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+      .topnav::-webkit-scrollbar{display:none}
+      .topnav button{white-space:nowrap;padding:8px 9px;font-size:11px}
+      .sceneHeader{top:auto;bottom:64px;left:12px;right:12px;text-align:center}
+      .sceneTools{left:10px;right:10px;top:10px;justify-content:center;flex-wrap:wrap;row-gap:4px}
+      .sceneTools .renderBadge{display:none}
+      .viewControls{top:auto;bottom:112px;left:10px;right:10px;width:auto;max-width:none}
+      .sceneHint{display:none}
+      .left,.right{width:min(360px,92vw)}
+    }
+    @media(max-width:420px){
+      .brandName{font-size:13px}
+      .topnav button{padding:7px 7px;font-size:10px}
+      .bottomHead{padding:0 8px;font-size:11px}
+    }
     @media(max-width:780px){html,body{overflow-x:hidden}.shell{overflow:hidden}.freeTag{display:none}.brandName{font-size:14px}.brand{min-width:0;flex:0 0 auto;overflow:hidden}.topnav{flex:1 1 auto;min-width:0;margin:0 0 0 8px}.viewControls{width:200px;max-width:58vw}}
     @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
   </style>
@@ -95,6 +115,10 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     <div class="status"><strong id="truthStatus">source truth only</strong><span id="clock">00:00:00</span></div>
   </header>
 
+  <div class="mobileRails" aria-hidden="false">
+    <button id="mobileLeftToggle" type="button" aria-label="toggle assistant panel">assistant</button>
+    <button id="mobileRightToggle" type="button" aria-label="toggle inspector panel">inspector</button>
+  </div>
   <main class="shell">
     <aside class="rail left" aria-label="system and AI assistant">
       <div class="railHead"><span id="leftTitle">assistant</span><button id="collapseLeft" title="collapse left panel">−</button></div>
@@ -201,9 +225,9 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
       <div class="modalBody">
         <div class="notice warn"><strong>API keys are not stored in the browser or written to disk.</strong> when entered here they are sent to the local asherin.soren server and retained only in server memory for this process. you may instead use provider environment variables before starting the server.</div>
         <div class="settingsGrid" style="margin-top:14px">
-          <div class="field"><label>provider</label><select id="providerSelect"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
+          <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
           <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
-          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use server environment configuration"><small>Ollama normally does not need a key. custom compatible endpoints may.</small></div>
+          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use the free asherin hosted model"><small>the asherin hosted model needs no key — asherin covers it until you bring your own. Ollama normally does not need a key. custom compatible endpoints may.</small></div>
           <div class="field"><label>available model</label><select id="modelSelect"><option value="">connect to load models</option></select></div>
           <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
         </div>
@@ -1632,7 +1656,7 @@ async function sendChat() {
   finally { $('#sendChat').disabled = false; }
 }
 
-const PROVIDER_DEFAULTS = { openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1', google: 'https://generativelanguage.googleapis.com/v1beta', 'openai-compatible': 'http://localhost:1234/v1', ollama: 'http://localhost:11434' };
+const PROVIDER_DEFAULTS = { asherin: 'https://xpgxgzqbtrrrbtjcemci.functions.supabase.co/soren-ai', openai: 'https://api.openai.com/v1', anthropic: 'https://api.anthropic.com/v1', google: 'https://generativelanguage.googleapis.com/v1beta', 'openai-compatible': 'http://localhost:1234/v1', ollama: 'http://localhost:11434' };
 
 async function providerStatus() {
   try { const res = await fetch('/api/provider/status', { headers: apiHeaders() }); const data = await res.json(); if (!res.ok) throw new Error();
@@ -1691,6 +1715,17 @@ function bindUI() {
   $('#xrayRange').addEventListener('input', e => { state.view.xray = +e.target.value / 100; $('#xrayOut').textContent = e.target.value + '%'; drawScene(); });
   $('#thermalRange').addEventListener('input', e => { state.view.thermal = +e.target.value / 100; $('#thermalOut').textContent = e.target.value + '%'; drawScene(); });
   $('#collapseView').addEventListener('click', () => { $('#viewControls').classList.toggle('collapsed'); $('#collapseView').textContent = $('#viewControls').classList.contains('collapsed') ? '+' : '−'; saveLayout(); });
+  (function(){
+    var ml = $('#mobileLeftToggle'), mr = $('#mobileRightToggle');
+    function sync(){
+      ml.setAttribute('aria-pressed', String(!document.body.classList.contains('collapsedLeft')));
+      mr.setAttribute('aria-pressed', String(!document.body.classList.contains('collapsedRight')));
+    }
+    ml.addEventListener('click', function(){ $('#collapseLeft').click(); sync(); });
+    mr.addEventListener('click', function(){ $('#collapseRight').click(); sync(); });
+    new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    sync();
+  })();
   $('#collapseLeft').addEventListener('click', () => { document.body.classList.toggle('collapsedLeft'); $('#collapseLeft').textContent = document.body.classList.contains('collapsedLeft') ? '+' : '−'; saveLayout(); drawScene(); });
   $('#collapseRight').addEventListener('click', () => { document.body.classList.toggle('collapsedRight'); $('#collapseRight').textContent = document.body.classList.contains('collapsedRight') ? '+' : '−'; saveLayout(); drawScene(); });
   $('#collapseBottom').addEventListener('click', () => { $('#bottomPanel').classList.toggle('collapsed'); $('#collapseBottom').textContent = $('#bottomPanel').classList.contains('collapsed') ? '+' : '−'; saveLayout(); drawScene(); });

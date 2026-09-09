@@ -16,7 +16,11 @@
   "use strict";
 
   var KEY = "asherin.soren.provider";
+  // Hosted relay: asherin covers the model cost until the operator brings a key.
+  var HOSTED_ENDPOINT = "https://xpgxgzqbtrrrbtjcemci.functions.supabase.co/soren-ai";
+  var HOSTED_MODEL = { id: "asherin-hosted", label: "asherin hosted model (free)" };
   var DEFAULTS = {
+    asherin: HOSTED_ENDPOINT,
     openai: "https://api.openai.com/v1",
     anthropic: "https://api.anthropic.com/v1",
     google: "https://generativelanguage.googleapis.com/v1beta",
@@ -25,13 +29,29 @@
   };
   var POWER_PARAMETERS = ["T2M", "PS", "RH2M", "WS10M", "WD10M", "ALLSKY_SFC_SW_DWN"];
 
+  function hostedRuntime() {
+    return {
+      provider: "asherin",
+      apiKey: "",
+      baseUrl: HOSTED_ENDPOINT,
+      model: HOSTED_MODEL.id,
+      models: [HOSTED_MODEL],
+    };
+  }
+
+  function keyless(provider) {
+    return provider === "asherin" || provider === "ollama" || provider === "openai-compatible";
+  }
+
   var runtime = load();
+
 
   function load() {
     try {
       var raw = sessionStorage.getItem(KEY);
-      if (!raw) return { provider: "", apiKey: "", baseUrl: "", model: "", models: [] };
+      if (!raw) return hostedRuntime();
       var parsed = JSON.parse(raw);
+      if (!parsed.provider) return hostedRuntime();
       return {
         provider: parsed.provider || "",
         apiKey: parsed.apiKey || "",
@@ -40,9 +60,10 @@
         models: Array.isArray(parsed.models) ? parsed.models : [],
       };
     } catch (_) {
-      return { provider: "", apiKey: "", baseUrl: "", model: "", models: [] };
+      return hostedRuntime();
     }
   }
+
 
   function save() {
     try { sessionStorage.setItem(KEY, JSON.stringify(runtime)); } catch (_) { /* private mode */ }
@@ -100,6 +121,8 @@
     var provider = config.provider;
     var base = trimBase(config.baseUrl || DEFAULTS[provider]);
     var rows = [];
+    if (provider === "asherin") return [HOSTED_MODEL];
+
     if (provider === "openai" || provider === "openai-compatible") {
       var d = await fetchJson(base + "/models", { headers: headersFor(provider, config.apiKey) });
       rows = Array.isArray(d.data) ? d.data : Array.isArray(d.models) ? d.models : [];
@@ -284,8 +307,25 @@
     return (data.message && data.message.content) || "";
   }
 
+  // Hosted relay: the prompt leaves this tab for asherin's own server, which holds
+  // the model credential. No key is stored in the browser for this path.
+  async function callAsherin(config, body) {
+    var images = [];
+    (body.images || []).forEach(function (img) {
+      if (img && typeof img.data_url === "string") images.push(img.data_url);
+    });
+    var data = await fetchJson(HOSTED_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ system: SYSTEM_INSTRUCTION, prompt: buildAgentPrompt(body), images: images }),
+    });
+    return data.text || "";
+  }
+
   async function callProvider(config, body) {
+    if (config.provider === "asherin") return callAsherin(config, body);
     if (config.provider === "openai") return callOpenAI(config, body, false);
+
     if (config.provider === "openai-compatible") return callOpenAI(config, body, true);
     if (config.provider === "anthropic") return callAnthropic(config, body);
     if (config.provider === "google") return callGoogle(config, body);
@@ -418,9 +458,10 @@
       var provider = safeProvider(body.provider);
       var apiKey = String(body.apiKey || (provider === runtime.provider ? runtime.apiKey : "") || "");
       var baseUrl = trimBase(body.baseUrl || DEFAULTS[provider]);
-      if (!apiKey && provider !== "ollama" && provider !== "openai-compatible") {
+      if (!apiKey && !keyless(provider)) {
         return json(400, { error: "an API key is required for " + provider });
       }
+
       try {
         var models = await listModels({ provider: provider, apiKey: apiKey, baseUrl: baseUrl });
         runtime.provider = provider;
@@ -442,9 +483,10 @@
     }
     if (method === "POST" && pathname === "/api/chat") {
       var chatBody = await readBody(init);
-      if (!runtime.provider || !runtime.apiKey && runtime.provider !== "ollama" && runtime.provider !== "openai-compatible") {
+      if (!runtime.provider || (!runtime.apiKey && !keyless(runtime.provider))) {
         return json(400, { error: "connect a model provider first" });
       }
+
       try {
         var text = await callProvider(runtime, chatBody);
         return json(200, { ok: true, text: text });
