@@ -17,6 +17,8 @@ import SiteFooter from "@/components/SiteFooter";
 
 const Index = lazy(() => import("./pages/Index"));
 const AsherinIde = lazy(() => import("./pages/AsherinIde"));
+const AsherinAnalytics = lazy(() => import("./pages/AsherinAnalytics"));
+
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
