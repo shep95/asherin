@@ -37,3 +37,10 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] pop-out gallery rail: every feed/filter/camera live at once, switchable, screenshot on detection
 
 - [x] asherin.health photos: replace or delete an uploaded image and its reading
+
+## asherin.acatalepsy — local deterministic analytics (requested 2026-09-09)
+- [ ] public no-login `/asherin.acatalepsy` route with visible wallpaper and privacy exclusions
+- [ ] local multi-file/folder/paste/url ingestion queue with honest format validation
+- [ ] deterministic domain/rank/visual matching from uploaded architecture specification
+- [ ] organized tree, preview/search/statistics, filters, cross-file analysis, downloads and exports
+- [ ] advanced SEO, automated tests, and live desktop/mobile workflow verification
