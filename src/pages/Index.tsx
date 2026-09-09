@@ -4,7 +4,6 @@ import { ArrowRight, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import Header from "@/components/Header";
-import InstallButton from "@/components/InstallButton";
 import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
