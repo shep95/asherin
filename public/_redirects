@@ -76,6 +76,10 @@
 /asherin.analytics  /index.html  200
 /asherin.analytics/ /index.html  200
 
+# asherin.acatalepsy — public, local-only browser workspace.
+/asherin.acatalepsy  /index.html  200
+/asherin.acatalepsy/ /index.html  200
+
 # asherin.ide — standalone static landing page under public/asherin.ide/.
 /asherin.ide       /asherin.ide/index.html  200
 /asherin.ide/      /asherin.ide/index.html  200

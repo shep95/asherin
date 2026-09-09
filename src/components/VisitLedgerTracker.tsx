@@ -8,7 +8,7 @@ import { recordView, flushDwell } from "@/lib/analytics/visitLedger";
  * Dashboard rooms are excluded: this ledger is public, so only public surfaces
  * are written to it.
  */
-const PRIVATE_PREFIXES = ["/dashboard", "/asher", "/ziaassets", "/ZIAASSETS", "/.lovable"];
+const PRIVATE_PREFIXES = ["/asherin.acatalepsy", "/dashboard", "/asher", "/ziaassets", "/ZIAASSETS", "/.lovable"];
 
 const VisitLedgerTracker = () => {
   const location = useLocation();

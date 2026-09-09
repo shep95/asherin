@@ -44,3 +44,5 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] deterministic domain/rank/visual matching from uploaded architecture specification
 - [ ] organized tree, preview/search/statistics, filters, cross-file analysis, downloads and exports
 - [ ] advanced SEO, automated tests, and live desktop/mobile workflow verification
+
+- [x] Fix all current preview typecheck errors from observability log

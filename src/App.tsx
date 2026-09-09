@@ -19,6 +19,7 @@ const Index = lazy(() => import("./pages/Index"));
 const AsherinIde = lazy(() => import("./pages/AsherinIde"));
 const AsherinAnalytics = lazy(() => import("./pages/AsherinAnalytics"));
 
+const AsherinAcatalepsy = lazy(() => import("./pages/AsherinAcatalepsy"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -297,15 +298,27 @@ const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const AppShell = () => {
+  const { pathname } = useLocation();
+  if (pathname === "/asherin.acatalepsy") {
+    return (
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <RouteSeo />
+        <RouteBoundary>
+          <Suspense fallback={<PageLoader />}><main><AsherinAcatalepsy /></main></Suspense>
+        </RouteBoundary>
+      </TooltipProvider>
+    );
+  }
+  return <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <StepUpProvider>
         <SubscriptionProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
               <CommandPalette />
               <RouteSessionTracker />
               <VisitLedgerTracker />
@@ -324,6 +337,7 @@ const App = () => (
                       {/* /auth is the sign-in surface every gated route falls back to. */}
                       <Route path="/auth" element={<Index />} />
                       {/* asherin.ide: static site under public/; this is the SPA-navigation fallback. */}
+                      <Route path="/asherin.acatalepsy" element={<AsherinAcatalepsy />} />
                       <Route path="/asherin.analytics" element={<AsherinAnalytics />} />
                       <Route path="/asherin.ide" element={<AsherinIde />} />
                       <Route path="/asherin.ide/*" element={<AsherinIde />} />
@@ -601,12 +615,13 @@ const App = () => (
                   </main>
                 </Suspense>
               </RouteBoundary>
-            </BrowserRouter>
           </TooltipProvider>
         </SubscriptionProvider>
       </StepUpProvider>
     </AuthProvider>
-  </QueryClientProvider>
-);
+  </QueryClientProvider>;
+};
+
+const App = () => <BrowserRouter><AppShell /></BrowserRouter>;
 
 export default App;
