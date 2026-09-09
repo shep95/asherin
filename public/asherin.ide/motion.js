@@ -94,6 +94,7 @@
     btn.dataset.state = 'ready';
     btn.removeAttribute('aria-disabled');
     btn.href = href;
+    if (platform === 'windows') btn.setAttribute('download', 'asherin-ide-windows-x64.zip');
     if (note) note.textContent = line;
   }
   function halt(text) {
@@ -102,7 +103,13 @@
     if (note) note.textContent = text;
   }
   btn.addEventListener('click', e => {
-    if (btn.getAttribute('aria-disabled') === 'true' || btn.dataset.state === 'checking') e.preventDefault();
+    if (btn.getAttribute('aria-disabled') === 'true') {
+      e.preventDefault();
+      return;
+    }
+    if (platform === 'windows' && note) {
+      note.textContent = 'download started · 443 mb · check your browser downloads';
+    }
   });
   if (!platform) {
     label('desktop builds only');
@@ -110,6 +117,10 @@
     return;
   }
   label(labels[platform]);
+  if (platform === 'windows') {
+    ready(fallback.windows.url, 'version 0.9.1 · windows desktop · 443 mb zip');
+    return;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   fetch('/asherin.ide/updates/latest.json', { signal: controller.signal, cache: 'no-store' })
