@@ -40,6 +40,28 @@
           "value": "credentialless"
         }
       ]
+    },
+    {
+      "source": "/install/(.*).appinstaller",
+      "headers": [
+        { "key": "Content-Type", "value": "application/appinstaller" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/install/(.*).msix",
+      "headers": [{ "key": "Content-Type", "value": "application/msix" }]
+    },
+    {
+      "source": "/install/(.*).msixbundle",
+      "headers": [{ "key": "Content-Type", "value": "application/msixbundle" }]
+    },
+    {
+      "source": "/updates/latest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
     }
   ]
 }
