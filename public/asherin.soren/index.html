@@ -77,7 +77,7 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     .freeTag{margin-left:10px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--faint);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
     /* off-canvas rails translate past the right edge on phones; clip them so
        the document itself never gains a horizontal scrollbar. */
-    @media(max-width:780px){html,body{overflow-x:hidden}.shell{overflow:hidden}}
+    @media(max-width:780px){html,body{overflow-x:hidden}.shell{overflow:hidden}.freeTag{display:none}.brandName{font-size:14px}.brand{min-width:0}}
     @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
   </style>
 </head>
@@ -1719,5 +1719,19 @@ bindUI(); renderAll(); providerStatus(); developerStatus(); heartbeat(); setInte
 
 </script>
 <script type="application/x-asherin-source" src="./app.js"></script>
+<script>
+/* phones open onto the model, not onto a drawer: fold both rails away on the
+   first visit at phone width. a saved layout always wins. */
+window.addEventListener('load', function () {
+  try {
+    if (window.innerWidth > 780) return;
+    if (localStorage.getItem('soren.mobileFolded')) return;
+    localStorage.setItem('soren.mobileFolded', '1');
+    document.body.classList.add('collapsedLeft', 'collapsedRight');
+    var l = document.getElementById('collapseLeft'); if (l) l.textContent = '+';
+    var r = document.getElementById('collapseRight'); if (r) r.textContent = '+';
+  } catch (_) { /* private mode */ }
+});
+</script>
 </body>
 </html>
