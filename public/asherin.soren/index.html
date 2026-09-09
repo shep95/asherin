@@ -9,11 +9,38 @@
   /* asherin palette — layered absence, one trust signal */
   --void:#040505;--surface:#090909;--surface2:#0b0b0b;--surface3:#101010;--line:#1a1a1a;--line2:#262626;
   --text:#e9eae9;--muted:#8b9091;--faint:#585d5f;--cyan:#c8b98f;--trust:#63e3a0;--violet:#c8b98f;--blue:#a0a0a0;--amber:#c8b98f;--red:#d98a86;
-  --top:52px;--left:340px;--right:320px;--bottom:192px;--radius:16px;--radius-sm:10px;--scale:1;
+  --top:52px;--siteTop:60px;--left:340px;--right:320px;--bottom:192px;--radius:16px;--radius-sm:10px;--scale:1;
 }
-*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:var(--void);color:var(--text);font:200 calc(12px * var(--scale))/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.025em}
+*{box-sizing:border-box}html{scroll-behavior:smooth}html,body{margin:0;width:100%;min-height:100%;overflow-x:hidden;background:var(--void);color:var(--text);font:200 calc(12px * var(--scale))/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.025em}
 button,input,select,textarea{font:inherit;color:inherit}button{border:0;background:transparent;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:1px solid var(--cyan);outline-offset:2px}
 button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-color:#2b2b2b transparent}
+/* asherin page frame — this software owns its own page */
+#app{position:relative;height:calc(100svh - var(--siteTop) - 108px);min-height:600px;margin:14px 16px 0;border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--void);box-shadow:0 40px 120px rgba(0,0,0,.6)}
+.siteTop{position:sticky;top:0;z-index:50;height:var(--siteTop);display:flex;align-items:center;gap:16px;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(4,5,5,.9);backdrop-filter:blur(10px)}
+.siteBrand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}
+.siteBrand i{width:7px;height:7px;border-radius:999px;background:var(--amber);box-shadow:0 0 14px rgba(200,185,143,.45)}
+.siteBrand b{font-weight:300;letter-spacing:.22em;text-transform:lowercase;font-size:13px}
+.siteBrand span{color:var(--faint);letter-spacing:.22em;font-size:13px}
+.siteNav{margin-left:auto;display:flex;align-items:center;gap:6px;overflow:auto;scrollbar-width:none}
+.siteNav::-webkit-scrollbar{display:none}
+.siteNav a{padding:7px 10px;border-radius:999px;color:var(--muted);text-decoration:none;letter-spacing:.14em;text-transform:lowercase;font-size:10px;white-space:nowrap}
+.siteNav a:hover{color:var(--text);background:#131313}
+.siteNav a.tag{border:1px solid #2a2418;color:var(--amber)}
+.pageIntro{padding:22px 18px 0;max-width:920px}
+.pageIntro h1{margin:0;font-weight:200;font-size:clamp(22px,4vw,34px);letter-spacing:.02em}
+.pageIntro h1 em{font-style:normal;color:var(--faint)}
+.pageIntro p{margin:9px 0 0;color:var(--muted);line-height:1.75;max-width:74ch}
+.siteFooter{margin:26px 16px 0;border-top:1px solid var(--line);padding:26px 2px 30px}
+.footRow{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.footId{max-width:420px}
+.footId a{color:var(--text);text-decoration:none;letter-spacing:.2em;font-size:13px}
+.footId p{color:var(--faint);line-height:1.75;margin:9px 0 0}
+.footLinks{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px 14px}
+.footLinks a,.footSocials a{color:var(--muted);text-decoration:none;letter-spacing:.14em;text-transform:lowercase;font-size:10px}
+.footLinks a:hover,.footSocials a:hover{color:var(--text)}
+.footBottom{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin-top:22px;padding-top:16px;border-top:1px solid var(--line);color:var(--faint);font-size:10px;letter-spacing:.12em}
+.footSocials{display:flex;gap:14px}
+@media(max-width:780px){#app{margin:10px 8px 0;height:calc(100svh - var(--siteTop) - 74px);min-height:520px;border-radius:18px}.pageIntro{padding:16px 12px 0}.siteFooter{margin:20px 12px 0}.footLinks{margin-left:0}}
 .topbar{height:var(--top);display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#070808,#040505);position:relative;z-index:30}
 .brand{display:flex;align-items:center;gap:9px;min-width:260px}.brandMark{width:7px;height:7px;border-radius:999px;background:var(--trust);box-shadow:0 0 14px rgba(114,242,165,.4)}.brandName{letter-spacing:.16em}.brand small{color:var(--faint)}
 .topnav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px;margin:auto}.topnav button{padding:6px 10px;border-radius:7px;color:var(--muted)}.topnav button:hover,.topnav button.active{background:#141414;color:var(--text)}.topnav .aiAccent{color:var(--violet)}
@@ -30,7 +57,7 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
 .hud{position:absolute;bottom:18px;padding:8px 10px;border:1px solid #1d1d1d;border-radius:9px;background:#0a0a0a}.hud.left{left:16px}.hud.right{right:16px;text-align:right}.hud span{display:block;color:var(--faint);font-size:9px;text-transform:uppercase}.hud strong{display:block;font-weight:500;margin-top:3px}
 .inspectorScroll{overflow:auto;min-height:0}.hero{padding:16px 14px 12px;border-bottom:1px solid var(--line)}.hero small{color:var(--faint)}.hero h2{font-size:20px;font-weight:400;margin:6px 0 9px}.stateLine{display:flex;align-items:center;gap:7px;color:var(--trust)}.stateDot{width:6px;height:6px;border-radius:99px;background:currentColor}.section{padding:10px 14px;border-bottom:1px solid var(--line)}.metric{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid #1a1a1a}.metric:last-child{border-bottom:0}.metric span{color:var(--muted)}.metric strong{font-weight:450;font-variant-numeric:tabular-nums;text-align:right}.relation{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:6px 0}.relation b{font-weight:400;color:var(--faint)}.relation span{color:var(--text)}
 .bottom{position:absolute;left:8px;right:8px;bottom:8px;height:calc(var(--bottom) - 8px);z-index:20;overflow:hidden}.bottom.collapsed{height:42px}.bottom.collapsed .chartWrap,.bottom.collapsed .timelineRange{display:none}.bottomHead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 11px;color:var(--muted)}.bottomActions{display:flex;gap:4px}.bottomActions button{padding:5px 8px;border-radius:7px;background:#131313}.chartWrap{height:112px}.timelineRange{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;padding:0 11px;color:var(--faint);font-size:9px}
-.resizeHandle{position:fixed;z-index:25;opacity:.02;touch-action:none}.resizeHandle:hover,.resizeHandle.dragging{opacity:1;background:var(--cyan)}.resizeLeft{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);left:calc(8px + var(--left) + 4px);width:4px;cursor:col-resize}.resizeRight{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);right:calc(8px + var(--right) + 4px);width:4px;cursor:col-resize}.resizeBottom{left:18px;right:18px;bottom:calc(var(--bottom) + 1px);height:5px;cursor:row-resize}.collapsedLeft{--left:44px}.collapsedRight{--right:44px}.collapsedLeft .left .panelPane,.collapsedLeft .leftTabs,.collapsedRight .right .inspectorScroll{display:none}.collapsedLeft .left .railHead span,.collapsedRight .right .railHead span{display:none}.collapsedLeft .resizeLeft,.collapsedRight .resizeRight{display:none}
+.resizeHandle{position:absolute;z-index:25;opacity:.02;touch-action:none}.resizeHandle:hover,.resizeHandle.dragging{opacity:1;background:var(--cyan)}.resizeLeft{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);left:calc(8px + var(--left) + 4px);width:4px;cursor:col-resize}.resizeRight{top:calc(var(--top) + 16px);bottom:calc(var(--bottom) + 8px);right:calc(8px + var(--right) + 4px);width:4px;cursor:col-resize}.resizeBottom{left:18px;right:18px;bottom:calc(var(--bottom) + 1px);height:5px;cursor:row-resize}.collapsedLeft{--left:44px}.collapsedRight{--right:44px}.collapsedLeft .left .panelPane,.collapsedLeft .leftTabs,.collapsedRight .right .inspectorScroll{display:none}.collapsedLeft .left .railHead span,.collapsedRight .right .railHead span{display:none}.collapsedLeft .resizeLeft,.collapsedRight .resizeRight{display:none}
 /* ai chat */
 .aiPane{min-height:0}.branchToolbar{display:grid;grid-template-columns:1fr auto auto;gap:5px;padding:8px;border-bottom:1px solid var(--line)}.branchToolbar select{min-width:0;background:#0a0a0a;border:1px solid #232323;border-radius:8px;padding:7px 8px;color:var(--text)}.branchToolbar button{width:30px;height:30px;border-radius:8px;background:#141414;color:var(--muted)}.branchToolbar .settingsButton{color:var(--violet)}.branchHistory{max-height:112px;overflow:auto;border-bottom:1px solid var(--line);padding:6px}.branchItem{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--muted);cursor:pointer}.branchItem:hover,.branchItem.active{background:#131313;color:var(--text)}.branchItem i{width:5px;height:5px;border-radius:50%;background:var(--violet)}.branchItem small{margin-left:auto;color:var(--faint)}
 .chatMessages{flex:1;min-height:0;overflow:auto;padding:10px 10px 4px}.message{margin-bottom:10px}.messageMeta{display:flex;align-items:center;gap:7px;color:var(--faint);font-size:9px;margin-bottom:4px}.message.user .messageMeta{justify-content:flex-end}.bubble{padding:9px 10px;border:1px solid #1e1e1e;border-radius:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}.message.user .bubble{background:#121212;border-color:#2a2418;margin-left:22px}.message.assistant .bubble{background:#0b0b0b;margin-right:12px}.message.system .bubble{border-color:#2a2418;color:#c8b98f;background:#0f0d09}.message.error .bubble{border-color:#45282b;color:#ffaaa9;background:#130a0b}.messageTools{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.toolChip{font-size:9px;padding:4px 6px;border:1px solid #262626;border-radius:999px;color:var(--cyan)}.toolChip.approval{color:var(--amber);border-color:#49372a}.toolChip button{color:inherit;margin-left:6px}.evidenceTags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.evidenceTag{font-size:9px;padding:3px 6px;border:1px solid #272727;border-radius:999px;color:var(--trust)}
@@ -79,8 +106,8 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
        the document itself never gains a horizontal scrollbar. */
 .mobileRails{display:none}
     @media(max-width:780px){
-      .mobileRails{display:flex;gap:6px;position:fixed;left:8px;right:8px;bottom:calc(var(--bottom) + 14px);z-index:40;pointer-events:none}
-      .mobileRails button{pointer-events:auto;flex:1;padding:11px 8px;border:1px solid #242424;border-radius:12px;background:rgba(8,12,14,.92);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:lowercase;backdrop-filter:blur(6px)}
+      .mobileRails{display:flex;gap:6px;position:absolute;left:8px;right:8px;bottom:calc(var(--bottom) + 14px);z-index:40;pointer-events:none}
+      {}.mobileRails button{pointer-events:auto;flex:1;padding:11px 8px;border:1px solid #242424;border-radius:12px;background:rgba(8,12,14,.92);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:lowercase;backdrop-filter:blur(6px)}
       .mobileRails button[aria-pressed="true"]{color:var(--trust);border-color:#26443a}
       .topnav{gap:4px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
       .topnav::-webkit-scrollbar{display:none}
@@ -102,6 +129,22 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
   </style>
 </head>
 <body class="collapsedRight">
+<a class="skip" href="#app"></a>
+<header class="siteTop">
+  <a class="siteBrand" href="https://asherin.com"><i></i><b>asherin</b><span>.soren</span></a>
+  <nav class="siteNav" aria-label="asherin">
+    <a href="https://asherin.com/">asherin.com</a>
+    <a href="https://asherin.com/software">software</a>
+    <a href="https://asherin.com/pricing">pricing</a>
+    <a href="/asherin.acatalepsy">acatalepsy</a>
+    <a href="/asherin.ide/">ide</a>
+    <a class="tag" href="#app">free · no account</a>
+  </nav>
+</header>
+<section class="pageIntro">
+  <h1>asherin.soren <em>— local 3d modelling from real sources</em></h1>
+  <p>import real geometry, telemetry, documents, and physical data. soren renders depth-tested 3d from what you give it, never from decoration. free, no account, and everything stays in this browser tab unless you send it to a model. the hosted asherin model answers with no key until you bring your own.</p>
+</section>
 <div id="app">
   <header class="topbar">
     <div class="brand"><span class="brandMark"></span><span class="brandName">asherin.soren</span><small><a class="brandHome" href="https://asherin.com" title="asherin.com">asherin.com</a></small><span class="freeTag">free · local</span></div>
@@ -312,6 +355,32 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     </div>
   </div>
 </div>
+<footer class="siteFooter">
+  <div class="footRow">
+    <div class="footId">
+      <a href="https://asherin.com">asherin<span style="color:var(--faint)">.soren</span></a>
+      <p>a free room inside asherin. bring your own model key, or use the hosted asherin model while you work. honest about what it cannot parse.</p>
+    </div>
+    <nav class="footLinks" aria-label="footer">
+      <a href="https://asherin.com/">asherin</a>
+      <a href="https://asherin.com/software">software</a>
+      <a href="https://asherin.com/pricing">pricing</a>
+      <a href="https://asherin.com/blog">blog</a>
+      <a href="https://asherin.com/founder">founder</a>
+      <a href="https://asherin.com/privacy">privacy</a>
+      <a href="https://asherin.com/terms">terms</a>
+    </nav>
+  </div>
+  <div class="footBottom">
+    <div class="footSocials">
+      <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer">x</a>
+      <a href="https://www.instagram.com/asher_united" target="_blank" rel="noopener noreferrer">instagram</a>
+      <a href="https://www.linkedin.com/in/asher-newton" target="_blank" rel="noopener noreferrer">linkedin</a>
+      <a href="https://discord.gg/M9hnebRwvk" target="_blank" rel="noopener noreferrer">discord</a>
+    </div>
+    <span>© 2026 zorak corp · #houseofasher</span>
+  </div>
+</footer>
 <script type="module">
 const SOURCE_TYPES = {
   glb: 'mesh', gltf: 'mesh', stl: 'mesh', obj: 'mesh', ply: 'mesh', '3mf': 'mesh',
