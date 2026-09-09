@@ -1,4 +1,4 @@
-import WindowsInstall from "@/components/WindowsInstall";
+import InstallButton from "@/components/InstallButton";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -22,7 +22,7 @@ const InstallPage = () => {
           package link instead.
         </p>
         <div className="mt-16 flex w-full justify-center">
-          <WindowsInstall />
+          <InstallButton />
         </div>
         <p className="mt-10 max-w-xl text-sm leading-relaxed text-muted-foreground">
           the package on the server is still a placeholder file, so windows will
