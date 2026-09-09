@@ -15239,6 +15239,7 @@ export type Database = {
           visits: number
         }[]
       }
+      analytics_live: { Args: { window_minutes?: number }; Returns: Json }
       analytics_overview: { Args: { days?: number }; Returns: Json }
       asher_accept_invitation: { Args: { _token: string }; Returns: string }
       asher_has_role_in_org: {
