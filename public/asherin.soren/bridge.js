@@ -49,8 +49,9 @@
   function load() {
     try {
       var raw = sessionStorage.getItem(KEY);
-      if (!raw) return { provider: "", apiKey: "", baseUrl: "", model: "", models: [] };
+      if (!raw) return hostedRuntime();
       var parsed = JSON.parse(raw);
+      if (!parsed.provider) return hostedRuntime();
       return {
         provider: parsed.provider || "",
         apiKey: parsed.apiKey || "",
@@ -59,9 +60,10 @@
         models: Array.isArray(parsed.models) ? parsed.models : [],
       };
     } catch (_) {
-      return { provider: "", apiKey: "", baseUrl: "", model: "", models: [] };
+      return hostedRuntime();
     }
   }
+
 
   function save() {
     try { sessionStorage.setItem(KEY, JSON.stringify(runtime)); } catch (_) { /* private mode */ }
