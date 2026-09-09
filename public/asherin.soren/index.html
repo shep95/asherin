@@ -107,7 +107,7 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
 .mobileRails{display:none}
     @media(max-width:780px){
       .mobileRails{display:flex;gap:6px;position:absolute;left:8px;right:8px;bottom:calc(var(--bottom) + 14px);z-index:40;pointer-events:none}
-      {}.mobileRails button{pointer-events:auto;flex:1;padding:11px 8px;border:1px solid #242424;border-radius:12px;background:rgba(8,12,14,.92);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:lowercase;backdrop-filter:blur(6px)}
+      .mobileRails button{pointer-events:auto;flex:1;padding:11px 8px;border:1px solid #242424;border-radius:12px;background:rgba(8,12,14,.92);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:lowercase;backdrop-filter:blur(6px)}
       .mobileRails button[aria-pressed="true"]{color:var(--trust);border-color:#26443a}
       .topnav{gap:4px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
       .topnav::-webkit-scrollbar{display:none}
@@ -129,7 +129,6 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
   </style>
 </head>
 <body class="collapsedRight">
-<a class="skip" href="#app"></a>
 <header class="siteTop">
   <a class="siteBrand" href="https://asherin.com"><i></i><b>asherin</b><span>.soren</span></a>
   <nav class="siteNav" aria-label="asherin">
