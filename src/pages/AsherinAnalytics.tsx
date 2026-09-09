@@ -313,6 +313,109 @@ const Skeleton = ({ h = 120 }: { h?: number }) => (
   </div>
 );
 
+/* ---------------------------------------------------------- who is here -- */
+
+/** Reads the live window every 20s while the tab is visible. Polling stops when
+ *  the tab is hidden so a backgrounded page never keeps the ledger busy. */
+function useLive(windowMinutes = 5) {
+  const [live, setLive] = useState<Live | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let id: number | null = null;
+
+    const tick = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data, error } = await supabase.rpc("analytics_live", { window_minutes: windowMinutes });
+      if (cancelled) return;
+      if (error) { setFailed(true); return; }
+      setFailed(false);
+      setLive(data as unknown as Live);
+    };
+
+    void tick();
+    id = window.setInterval(() => void tick(), 20000);
+    const onVis = () => { if (document.visibilityState === "visible") void tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      cancelled = true;
+      if (id) window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [windowMinutes]);
+
+  return { live, failed };
+}
+
+const DeviceTile = ({ label, value, total }: { label: string; value: number; total: number }) => (
+  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-background/30 p-4">
+    <div
+      className="absolute inset-x-0 bottom-0 bg-signal-dim/40 transition-all duration-700"
+      style={{ height: `${total ? (value / total) * 100 : 0}%` }}
+    />
+    <div className="relative">
+      <p className="text-2xl font-extralight tabular-nums text-foreground">{value.toLocaleString()}</p>
+      <p className="mt-1 text-[10px] font-extralight uppercase tracking-[0.28em] text-muted-foreground">{label}</p>
+    </div>
+  </div>
+);
+
+const LiveRoom = ({ windowMinutes = 5 }: { windowMinutes?: number }) => {
+  const { live, failed } = useLive(windowMinutes);
+  const d = live?.devices;
+  const total = d ? d.mobile + d.laptop + d.tablet + d.other : 0;
+
+  return (
+    <Room
+      title="here right now"
+      note={live ? `active in the last ${live.window_minutes} minutes · refreshes every 20s` : "reading the live window"}
+      wide
+    >
+      {failed && !live && <Empty note="the live window did not answer. nothing is being guessed in its place." />}
+      {!failed && !live && <Skeleton h={140} />}
+      {live && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,220px)_1fr]">
+          <div className="flex items-center gap-4 rounded-2xl border border-border/40 bg-background/20 p-5">
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${live.online > 0 ? "bg-signal shadow-[0_0_12px_hsl(var(--signal-live))] animate-pulse" : "bg-muted-foreground/40"}`}
+              aria-hidden="true"
+            />
+            <div>
+              <p className="text-4xl font-extralight tabular-nums text-foreground">{live.online.toLocaleString()}</p>
+              <p className="mt-1 text-[10px] font-extralight uppercase tracking-[0.3em] text-muted-foreground">
+                {live.online === 1 ? "person online" : "people online"}
+              </p>
+              <p className="mt-1 text-[11px] font-extralight text-muted-foreground">
+                {live.sessions.toLocaleString()} open {live.sessions === 1 ? "session" : "sessions"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <DeviceTile label="mobile" value={d?.mobile ?? 0} total={total} />
+            <DeviceTile label="laptop" value={d?.laptop ?? 0} total={total} />
+            <DeviceTile label="tablet" value={d?.tablet ?? 0} total={total} />
+            <DeviceTile label="other" value={d?.other ?? 0} total={total} />
+          </div>
+
+          <div className="lg:col-span-2 grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="mb-3 text-[10px] font-extralight uppercase tracking-[0.28em] text-muted-foreground">pages being read</p>
+              {live.pages.length ? <Bars rows={live.pages} unit="here" /> : <Empty note="no one is on a page in this window." />}
+            </div>
+            <div>
+              <p className="mb-3 text-[10px] font-extralight uppercase tracking-[0.28em] text-muted-foreground">where from</p>
+              {live.countries.length ? <Bars rows={live.countries} unit="here" /> : <Empty note="no location signal in this window." />}
+            </div>
+          </div>
+        </div>
+      )}
+    </Room>
+  );
+};
+
+
 /* ---------------------------------------------------------------- page -- */
 
 const AsherinAnalytics = () => {
