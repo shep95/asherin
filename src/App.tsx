@@ -20,6 +20,7 @@ const AsherinIde = lazy(() => import("./pages/AsherinIde"));
 const AsherinAnalytics = lazy(() => import("./pages/AsherinAnalytics"));
 
 const AsherinAcatalepsy = lazy(() => import("./pages/AsherinAcatalepsy"));
+const InstallPage = lazy(() => import("./pages/Install"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -338,6 +339,7 @@ const AppShell = () => {
                       <Route path="/auth" element={<Index />} />
                       {/* asherin.ide: static site under public/; this is the SPA-navigation fallback. */}
                       <Route path="/asherin.acatalepsy" element={<AsherinAcatalepsy />} />
+                      <Route path="/install" element={<InstallPage />} />
                       <Route path="/asherin.analytics" element={<AsherinAnalytics />} />
                       <Route path="/asherin.ide" element={<AsherinIde />} />
                       <Route path="/asherin.ide/*" element={<AsherinIde />} />
