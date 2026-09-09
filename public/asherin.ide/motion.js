@@ -76,9 +76,9 @@
     : null;
   const labels = { windows: 'install asherin.ide', mac: 'download for mac', linux: 'download for linux' };
   const fallback = {
-    windows: { url: 'https://asherin.com/asherin.ide/install/asherin-x64.msix', appinstaller: 'https://asherin.com/asherin.ide/install/asherin.appinstaller' },
-    mac: { url: 'https://asherin.com/asherin.ide/install/asherin-latest.dmg' },
-    linux: { url: 'https://asherin.com/asherin.ide/install/asherin-latest.AppImage' }
+    windows: { url: '/asherin.ide/install/asherin.appinstaller' },
+    mac: { url: '/asherin.ide/install/asherin-latest.dmg' },
+    linux: { url: '/asherin.ide/install/asherin-latest.AppImage' }
   };
   function label(text) {
     btn.textContent = text + ' ';
@@ -112,18 +112,15 @@
     .then(response => response.ok ? response.json() : Promise.reject(new Error('http ' + response.status)))
     .then(data => {
       const release = data && data.platforms ? data.platforms[platform] : null;
-      const href = platform === 'windows' && release && release.appinstaller
-        ? 'ms-appinstaller:?source=' + release.appinstaller
-        : (release && release.url) || (fallback[platform].appinstaller
-          ? 'ms-appinstaller:?source=' + fallback[platform].appinstaller
-          : fallback[platform].url);
+      const href = platform === 'windows'
+        ? fallback.windows.url
+        : (release && release.url) || fallback[platform].url;
       const version = (release && release.version) || (data && data.version) || 'latest';
-      ready(href, 'version ' + version
-        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download'));
+      ready(href, 'version ' + version + ' \u00b7 direct download');
     })
     .catch(() => {
       const fb = fallback[platform];
-      ready(fb.appinstaller ? 'ms-appinstaller:?source=' + fb.appinstaller : fb.url,
+      ready(fb.url,
         'release channel offline \u00b7 using fallback ' + platform + ' download');
     })
     .finally(() => clearTimeout(timer));
