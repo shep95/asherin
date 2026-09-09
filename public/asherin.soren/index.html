@@ -265,16 +265,22 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     <div class="modalCard">
       <div class="modalHead"><span>AI model gateway</span><button data-close="settingsModal">×</button></div>
       <div class="modalBody">
-        <div class="notice warn"><strong>API keys are not stored in the browser or written to disk.</strong> when entered here they are sent to the local asherin.soren server and retained only in server memory for this process. you may instead use provider environment variables before starting the server.</div>
+        <div class="notice"><strong>one step.</strong> paste a key from openai, anthropic, google, or openrouter and asherin works out the rest. keys stay in this session's server memory — never written to disk, never stored in the browser. no key? use the free hosted model.</div>
         <div class="settingsGrid" style="margin-top:14px">
-          <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
-          <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
-          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use the free asherin hosted model"><small>the asherin hosted model needs no key — asherin covers it until you bring your own. Ollama normally does not need a key. custom compatible endpoints may.</small></div>
-          <div class="field"><label>available model</label><select id="modelSelect"><option value="">connect to load models</option></select></div>
-          <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
+          <div class="field full"><label>paste your api key</label><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-… · sk-ant-… · AIza… · sk-or-…"><small id="keyHint">no key needed for the free asherin hosted model.</small></div>
         </div>
-        <div class="buttonRow"><button class="primary" id="connectProvider">connect + discover live models</button><button class="secondary" id="saveModel">use selected model</button><span class="connectionState" id="connectionState">not connected</span></div>
+        <div class="buttonRow"><button class="primary" id="connectProvider">connect</button><button class="secondary" id="useHosted">use free hosted model</button><span class="connectionState" id="connectionState">not connected</span></div>
+        <div class="field full" id="modelField" style="margin-top:12px"><label>model</label><select id="modelSelect"><option value="">connect to load models</option></select><small>changing this switches the active model right away.</small></div>
+        <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted);font-size:11px;letter-spacing:.12em">advanced</summary>
+          <div class="settingsGrid" style="margin-top:12px">
+            <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
+            <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
+            <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
+            <div class="field"><label>&nbsp;</label><button class="secondary" id="saveModel">use selected model</button></div>
+          </div>
+        </details>
         <div class="developerAccess"><div><strong>developer code access</strong><span>allows the AI to read only allowlisted UI files, stage exact patches, then apply them only after approval with backup + automated tests + rollback on failure.</span></div><span class="connectionState" id="developerStatus">checking…</span></div>
+
         <div class="notice"><strong>redesign authority</strong> -> normal engineering tools cannot edit code. code editing is disabled by default and must be explicitly enabled when starting the local server with <code>ASHERIN_ALLOW_CODE_EDIT=1</code>.</div>
       </div>
     </div>
