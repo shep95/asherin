@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import ByokRequiredDialog from "@/components/ByokRequiredDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, Link, useParams } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation, Link, useParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { StepUpProvider } from "@/components/auth/StepUpProvider";
 
@@ -624,6 +624,15 @@ const AppShell = () => {
   </QueryClientProvider>;
 };
 
-const App = () => <BrowserRouter><AppShell /></BrowserRouter>;
+const isElectronFileProtocol = typeof window !== "undefined" && window.location.protocol === "file:";
+const App = () => {
+  const Router = isElectronFileProtocol ? HashRouter : BrowserRouter;
+  return (
+    <Router>
+      <AppShell />
+    </Router>
+  );
+};
+
 
 export default App;

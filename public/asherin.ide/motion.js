@@ -74,11 +74,15 @@
     : /Macintosh|Mac OS X/i.test(ua) ? 'mac'
     : (/Linux/i.test(ua) && !/Android/i.test(ua)) ? 'linux'
     : null;
-  const labels = { windows: 'install asherin.ide', mac: 'download for mac', linux: 'download for linux' };
+  const labels = {
+    windows: 'download for windows',
+    mac: 'download for mac',
+    linux: 'download for linux',
+  };
   const fallback = {
-    windows: { url: '/asherin.ide/install/asherin.appinstaller' },
-    mac: { url: '/asherin.ide/install/asherin-latest.dmg' },
-    linux: { url: '/asherin.ide/install/asherin-latest.AppImage' }
+    windows: { url: '/asherin.ide/install/asherin-ide-windows-x64.zip', ext: 'zip' },
+    mac: { url: '/asherin.ide/install/asherin-ide-macos-x64.zip', ext: 'zip' },
+    linux: { url: '/asherin.ide/install/asherin-ide-linux-x64.tar.gz', ext: 'tar.gz' },
   };
   function label(text) {
     btn.textContent = text + ' ';
@@ -102,7 +106,7 @@
   });
   if (!platform) {
     label('desktop builds only');
-    halt('the editor is a desktop build. open this page on windows, macos, or linux to install it.');
+    halt('the editor is a desktop build. open this page on windows, macos, or linux to download it.');
     return;
   }
   label(labels[platform]);
@@ -112,16 +116,13 @@
     .then(response => response.ok ? response.json() : Promise.reject(new Error('http ' + response.status)))
     .then(data => {
       const release = data && data.platforms ? data.platforms[platform] : null;
-      const href = platform === 'windows'
-        ? fallback.windows.url
-        : (release && release.url) || fallback[platform].url;
+      const href = (release && release.url) || fallback[platform].url;
       const version = (release && release.version) || (data && data.version) || 'latest';
-      ready(href, 'version ' + version + ' \u00b7 direct download');
+      ready(href, 'version ' + version + ' \u00b7 ' + fallback[platform].ext + ' archive');
     })
     .catch(() => {
       const fb = fallback[platform];
-      ready(fb.url,
-        'release channel offline \u00b7 using fallback ' + platform + ' download');
+      ready(fb.url, 'release channel offline \u00b7 using fallback ' + platform + ' ' + fb.ext + ' archive');
     })
     .finally(() => clearTimeout(timer));
 })();

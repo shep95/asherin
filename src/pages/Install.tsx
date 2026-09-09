@@ -17,15 +17,21 @@ const InstallPage = () => {
           className="mt-8 max-w-xl text-lg leading-relaxed text-foreground/85"
           style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
         >
-          clicking install opens a native windows popup asking to confirm. no zip, no download step.
-          installs in under 15 seconds. every launch checks for updates silently in the background.
+          download the archive for your platform, extract it, and run the app.
+          windows users: open <code className="font-mono text-sm">asherin ide.exe</code> inside the folder.
+          mac/linux users: run the bundled executable from the extracted folder.
         </p>
         <div className="mt-10 flex flex-col items-center gap-4">
           <InstallButton />
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-            windows · macOS · linux · one click, native install, auto-updates
+            windows · macos · linux · zip / tar.gz · no installer needed
           </p>
         </div>
+        <p className="mt-8 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          the windows build is not code-signed, so smartscreen may show a warning.
+          click “more info” then “run anyway” to launch. signed installers will
+          replace these archives once the release certificate is ready.
+        </p>
       </main>
       <SiteFooter />
     </div>

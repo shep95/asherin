@@ -8,7 +8,11 @@ import { useEffect } from "react";
  */
 const AsherinIde = () => {
   useEffect(() => {
-    window.location.replace("/asherin.ide/");
+    if (typeof window !== "undefined" && window.location.protocol === "file:") {
+      window.location.replace("./asherin.ide/index.html");
+    } else {
+      window.location.replace("/asherin.ide/");
+    }
   }, []);
 
   return (
