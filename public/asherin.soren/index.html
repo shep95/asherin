@@ -814,8 +814,8 @@ class Renderer3D {
     const grid=[];for(let i=-10;i<=10;i++){const s=i/5;grid.push(-2,0,s,2,0,s,s,0,-2,s,0,2);}gl.bindBuffer(gl.ARRAY_BUFFER,this.lineBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(grid),gl.DYNAMIC_DRAW);this.drawBuffer(this.lineProgram,this.lineBuffer,grid.length/3,gl.LINES,vp,color4('#172128',.45),1,0);
     geometries.forEach((g,gi)=>{
       const comp=componentForGeometry(g),active=!selectedId||comp?.id===selectedId,offset=view.mode==='explode'&&geometries.length>1?(gi-(geometries.length-1)/2)*(view.explode||0)*1.65:0,model=this.modelMatrix(bounds,offset),mvp=mat4Multiply(vp,model);mvpByGeometry.push({g,mvp,model,offset,componentId:comp?.id||null});
-      let alpha=active?.92:.34,base=active?'#75d4ff':'#35444d';if(view.mode==='xray'&&!active)alpha=Math.max(.03,view.xray||0);if(view.mode==='thermal'){const t=numericTemperature(comp);if(t!=null){base='#ff9a5a';alpha=Math.min(.96,.25+(view.thermal||0)*.7);}}
-      if((g.geometry.faces||[]).length){const b=this.meshBuffer(g.geometry);gl.depthMask(alpha>.55);this.drawBuffer(this.meshProgram,b.buffer,b.count,gl.TRIANGLES,mvp,color4(base,alpha),1,1);gl.depthMask(true);}else{const b=this.pointBuffer(g.geometry);this.drawBuffer(this.lineProgram,b.buffer,b.count,gl.POINTS,mvp,color4(active?'#8bdcff':'#50616b',active?1:.55),active?2.6:1.5,0);}
+      let alpha=active?.92:.34,base=active?'#c3cacb':'#2a2e30';if(view.mode==='xray'&&!active)alpha=Math.max(.03,view.xray||0);if(view.mode==='thermal'){const t=numericTemperature(comp);if(t!=null){base='#ff9a5a';alpha=Math.min(.96,.25+(view.thermal||0)*.7);}}
+      if((g.geometry.faces||[]).length){const b=this.meshBuffer(g.geometry);gl.depthMask(alpha>.55);this.drawBuffer(this.meshProgram,b.buffer,b.count,gl.TRIANGLES,mvp,color4(base,alpha),1,1);gl.depthMask(true);}else{const b=this.pointBuffer(g.geometry);this.drawBuffer(this.lineProgram,b.buffer,b.count,gl.POINTS,mvp,color4(active?'#d4d9d9':'#4c5254',active?1:.55),active?2.6:1.5,0);}
       const corners=[];for(const x of [g.bounds.min[0],g.bounds.max[0]])for(const y of [g.bounds.min[1],g.bounds.max[1]])for(const z of [g.bounds.min[2],g.bounds.max[2]])corners.push([x,y,z]);let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const c of corners){const q=transformPoint(mvp,c);if(q[3]<=0)continue;const sx=(q[0]*.5+.5)*w,sy=(1-(q[1]*.5+.5))*h;minX=Math.min(minX,sx);maxX=Math.max(maxX,sx);minY=Math.min(minY,sy);maxY=Math.max(maxY,sy);}if(Number.isFinite(minX))hitBoxes.push({geometry:g,componentId:comp?.id||null,minX,minY,maxX,maxY});
     });
     // explicit relationship flows: line and directional particle share the exact same 3D transform
@@ -1198,7 +1198,7 @@ function relationFlowType(rel) {
   return '';
 }
 
-const FLOW_COLORS = { electrical:'#ffd66b', thermal:'#ff9666', coolant:'#67aaff', control:'#b68cff' };
+const FLOW_COLORS = { electrical:'#c8b98f', thermal:'#d98a86', coolant:'#8fa1a6', control:'#a9afb0' };
 
 function activeFlowSegments() {
   const out=[];
@@ -1299,7 +1299,7 @@ function drawChart() {
   if (!parsed?.rows?.length || !channel) { ctx.fillStyle = '#566168'; ctx.font = '11px system-ui'; ctx.fillText('no imported numeric telemetry', 12, 20); return; }
   const values = parsed.rows.map(r => Number(r[channel])).filter(Number.isFinite); if (!values.length) return;
   let min = Math.min(...values), max = Math.max(...values); if (min === max) { min -= 1; max += 1; }
-  ctx.strokeStyle = '#789cff'; ctx.lineWidth = 1.25; ctx.beginPath();
+  ctx.strokeStyle = '#8b9091'; ctx.lineWidth = 1.25; ctx.beginPath();
   values.forEach((v, i) => { const x = i / Math.max(1, values.length - 1) * w, y = h - ((v - min) / (max - min)) * (h - 18) - 4; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
   const cursor = clamp(state.timeline.index, 0, values.length - 1) / Math.max(1, values.length - 1) * w; ctx.strokeStyle = '#72f2a5'; ctx.beginPath(); ctx.moveTo(cursor, 0); ctx.lineTo(cursor, h); ctx.stroke();
   ctx.fillStyle = '#657277'; ctx.font = '9px system-ui'; ctx.fillText(`${channel} · imported telemetry`, 8, 12);
