@@ -103,6 +103,18 @@ const Header = () => {
                 className="h-6 w-px bg-foreground/15"
               />
 
+              <Link
+                to="/install"
+                className="px-4 py-2.5 font-mono text-[11px] lowercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                install
+              </Link>
+
+              <span
+                aria-hidden
+                className="h-6 w-px bg-foreground/15"
+              />
+
               <div className="relative">
                 <ForumsDropdown />
               </div>
@@ -269,6 +281,13 @@ const Header = () => {
                     className="rounded-lg px-4 py-3 min-h-[48px] flex items-center text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10"
                   >
                     Blog
+                  </Link>
+                  <Link
+                    to="/install"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-4 py-3 min-h-[48px] flex items-center font-mono text-sm lowercase tracking-[0.08em] text-foreground transition-colors hover:bg-foreground/10"
+                  >
+                    install
                   </Link>
                   <Link
                     to="/forums"
