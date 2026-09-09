@@ -64,3 +64,55 @@
     if (e.matches) { observer.disconnect(); elements.forEach(el => el.classList.add('is-visible')); }
   });
 })();
+
+(() => {
+  const btn = document.getElementById('asherin-install');
+  const note = document.getElementById('asherin-install-note');
+  if (!btn || !note) return;
+  const ua = navigator.userAgent;
+  const platform = /Windows/i.test(ua) ? 'windows'
+    : /Macintosh|Mac OS X/i.test(ua) ? 'mac'
+    : (/Linux/i.test(ua) && !/Android/i.test(ua)) ? 'linux'
+    : null;
+  const labels = { windows: 'install asherin.ide', mac: 'download for mac', linux: 'download for linux' };
+  function label(text) {
+    btn.textContent = text + ' ';
+    const arrow = document.createElement('span');
+    arrow.textContent = '\u2197';
+    btn.append(arrow);
+  }
+  function halt(text) {
+    btn.dataset.state = 'unavailable';
+    btn.setAttribute('aria-disabled', 'true');
+    note.textContent = text;
+  }
+  btn.addEventListener('click', e => {
+    if (btn.getAttribute('aria-disabled') === 'true' || btn.dataset.state === 'checking') e.preventDefault();
+  });
+  if (!platform) {
+    label('desktop builds only');
+    halt('the editor is a desktop build. open this page on windows, macos, or linux to install it.');
+    return;
+  }
+  label(labels[platform]);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  fetch('/asherin.ide/updates/latest.json', { signal: controller.signal, cache: 'no-store' })
+    .then(response => response.ok ? response.json() : Promise.reject(new Error('http ' + response.status)))
+    .then(data => {
+      const release = data && data.platforms ? data.platforms[platform] : null;
+      if (!release || release.available !== true || !release.url) {
+        halt('the ' + platform + ' build is not published yet. the release channel is live, and this button turns on the moment a signed build is listed.');
+        return;
+      }
+      btn.dataset.state = 'ready';
+      btn.removeAttribute('aria-disabled');
+      btn.href = platform === 'windows' && release.appinstaller
+        ? 'ms-appinstaller:?source=' + release.appinstaller
+        : release.url;
+      note.textContent = 'version ' + (release.version || data.version || 'latest')
+        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download');
+    })
+    .catch(() => halt('could not reach the release channel just now. try again in a moment.'))
+    .finally(() => clearTimeout(timer));
+})();
