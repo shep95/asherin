@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
+import { recordSignup } from "@/lib/analytics/visitLedger";
+
 
 interface AuthOverlayProps {
   isLogin: boolean;
@@ -66,8 +68,12 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: AuthOverlayProps) => {
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
+        // Public visit ledger: attribute the completed sign-up to the page the
+        // visitor was reading when they decided. Never blocks the redirect.
+        void recordSignup();
         window.location.href = getRedirectPath();
       }
+
     }
   };
 

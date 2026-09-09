@@ -314,3 +314,6 @@ verify_jwt = true
 
 [functions.asherin-data-api]
 verify_jwt = false
+
+[functions.analytics-collect]
+verify_jwt = false

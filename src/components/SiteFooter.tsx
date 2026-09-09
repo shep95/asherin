@@ -12,6 +12,7 @@ const LINKS = [
   { to: "/forums", label: "forums" },
   { to: "/founder", label: "founder" },
   { to: "/blog", label: "blog" },
+  { to: "/asherin.analytics", label: "analytics" },
   { to: "/privacy", label: "privacy" },
   { to: "/terms", label: "terms" },
 ];
