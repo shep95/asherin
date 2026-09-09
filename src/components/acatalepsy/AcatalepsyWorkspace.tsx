@@ -99,8 +99,28 @@ export default function AcatalepsyWorkspace() {
 
   return <div className="min-h-screen text-foreground">
     {dragging && <div className="fixed inset-0 z-[100] flex items-center justify-center border-2 border-signal-live bg-background/90 text-center"><div><Upload className="mx-auto size-10 text-signal-live"/><p className="mt-4 text-xl font-extralight">release to read locally</p><p className="mt-2 text-xs text-muted-foreground">nothing leaves this device</p></div></div>}
-    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md md:px-7">
-      <div className="mx-auto flex max-w-[1800px] items-center gap-3"><a href="/" className="text-sm font-extralight">asherin<span className="text-muted-foreground">.acatalepsy</span></a><span className="hidden text-[10px] text-muted-foreground sm:inline">local deterministic analysis</span><div className="ml-auto flex items-center gap-1"><span className="mr-2 hidden items-center gap-1.5 text-[10px] text-signal-live md:flex"><ShieldCheck className="size-3"/>no upload · no account · no ai</span><Button variant="ghost" size="sm" onClick={()=>inputRef.current?.click()}><Upload/>files</Button><Button variant="ghost" size="sm" onClick={()=>folderRef.current?.click()}><FolderOpen/>folder</Button><Button variant="ghost" size="sm" onClick={()=>setPasteOpen(true)}><ClipboardPaste/>paste</Button><Button variant="ghost" size="sm" onClick={()=>setUrlOpen(true)}><Link2/>url</Button>{datasets.length>0&&<Button variant="ghost" size="icon" onClick={clear} aria-label="clear all local files"><Eraser/></Button>}</div></div>
+    <header className="sticky top-0 z-40 px-3 pt-3 md:px-6 md:pt-4">
+      <div className="mx-auto max-w-[1800px] border border-border/60 bg-card/90 shadow-2xl">
+        <div className="flex min-h-16 items-center gap-3 px-3 md:px-5">
+          <a href="/" className="group flex shrink-0 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="asherin home">
+            <span className="flex size-7 rotate-45 items-center justify-center border border-primary/50 bg-primary/10 transition-transform duration-500 motion-reduce:transition-none group-hover:rotate-0"><span className="size-2 bg-primary" /></span>
+            <span className="flex items-baseline"><span className="font-display text-xl font-light text-foreground">asherin</span><span className="font-mono text-[11px] text-muted-foreground">.acatalepsy</span></span>
+          </a>
+          <span className="hidden h-5 w-px bg-border/70 lg:block" aria-hidden />
+          <span className="hidden text-[10px] uppercase text-muted-foreground lg:inline">local deterministic workspace</span>
+          <div className="ml-auto flex items-center gap-1">
+            <span className="mr-2 hidden items-center gap-2 border-r border-border/70 pr-4 text-[10px] text-muted-foreground xl:flex"><ShieldCheck className="size-3 text-primary"/>private session · no account · no ai</span>
+            <Button variant="ghost" size="sm" onClick={()=>inputRef.current?.click()} aria-label="choose files"><Upload/><span className="hidden sm:inline">files</span></Button>
+            <Button variant="ghost" size="sm" onClick={()=>folderRef.current?.click()} aria-label="choose folder"><FolderOpen/><span className="hidden sm:inline">folder</span></Button>
+            <Button variant="ghost" size="sm" onClick={()=>setPasteOpen(true)} aria-label="paste table"><ClipboardPaste/><span className="hidden md:inline">paste</span></Button>
+            <Button variant="ghost" size="sm" onClick={()=>setUrlOpen(true)} aria-label="read public url"><Link2/><span className="hidden md:inline">url</span></Button>
+            {datasets.length>0&&<><span className="mx-1 h-5 w-px bg-border/70" aria-hidden/><Button variant="ghost" size="icon" onClick={clear} aria-label="clear all local files"><Eraser/></Button></>}
+          </div>
+        </div>
+        <div className="flex h-7 items-center border-t border-border/40 px-3 text-[9px] uppercase text-muted-foreground md:px-5">
+          <span className="text-primary">workspace</span><span className="mx-2 text-border">/</span><span>{datasets.length ? `${datasets.length} local file${datasets.length === 1 ? "" : "s"}` : "ready for local data"}</span><span className="ml-auto flex items-center gap-1.5 xl:hidden"><ShieldCheck className="size-3 text-primary"/>private session</span>
+        </div>
+      </div>
       <input ref={inputRef} hidden type="file" multiple accept={ACATALEPSY_EXTENSIONS.join(",")} onChange={(e)=>{void ingest([...e.target.files??[]]); e.currentTarget.value="";}}/>
       <input ref={folderRef} hidden type="file" multiple {...({ webkitdirectory: "", directory: "" } as React.InputHTMLAttributes<HTMLInputElement>)} onChange={(e)=>{void ingest([...e.target.files??[]]); e.currentTarget.value="";}}/>
     </header>
