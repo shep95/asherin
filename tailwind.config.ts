@@ -15,6 +15,11 @@ export default {
     extend: {
       colors: {
         border: "hsl(var(--border))",
+        signal: {
+          DEFAULT: "hsl(var(--signal-live))",
+          dim: "hsl(var(--signal-live-dim))",
+        },
+
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
