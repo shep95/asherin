@@ -59,6 +59,8 @@ const EXTRA_PATHS = [
   "/for/companies",
   "/for/investigators",
   "/for/analysts",
+  // static workspaces served from public/ rather than a React route.
+  "/asherin.soren/",
 ];
 const urls = Array.from(new Set(sitemapPaths().concat(EXTRA_PATHS))).map((path) => {
   const lastmod = lastmodFor(path);
