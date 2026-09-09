@@ -72,5 +72,10 @@
 /blog/how-asherin-uses-c-seo-research /index.html 200
 /blog/how-we-make-asherin-sound-human /index.html 200
 
+# asherin.ide — standalone static landing page under public/asherin.ide/.
+/asherin.ide       /asherin.ide/index.html  200
+/asherin.ide/      /asherin.ide/index.html  200
+
+
 # Everything else: the SPA shell, served with a real 404 status.
 /*                 /404.html    404
