@@ -1,4 +1,4 @@
-import InstallButton from "@/components/InstallButton";
+import WindowsInstall from "@/components/WindowsInstall";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -17,20 +17,16 @@ const InstallPage = () => {
           className="mt-8 max-w-xl text-lg leading-relaxed text-foreground/85"
           style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
         >
-          download the archive for your platform, extract it, and run the app.
-          windows users: open <code className="font-mono text-sm">asherin ide.exe</code> inside the folder.
-          mac/linux users: run the bundled executable from the extracted folder.
+          one click installs the desktop editor through windows itself and keeps
+          it updated. if your browser blocks the install handler, use the direct
+          package link instead.
         </p>
-        <div className="mt-10 flex flex-col items-center gap-4">
-          <InstallButton />
-          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-            windows · macos · linux · zip / tar.gz · no installer needed
-          </p>
+        <div className="mt-16 flex w-full justify-center">
+          <WindowsInstall />
         </div>
-        <p className="mt-8 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          the windows build is not code-signed, so smartscreen may show a warning.
-          click “more info” then “run anyway” to launch. signed installers will
-          replace these archives once the release certificate is ready.
+        <p className="mt-10 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          the package on the server is still a placeholder file, so windows will
+          report a parsing error until the signed build is uploaded.
         </p>
       </main>
       <SiteFooter />
