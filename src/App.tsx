@@ -298,15 +298,27 @@ const RouteBoundary = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const AppShell = () => {
+  const { pathname } = useLocation();
+  if (pathname === "/asherin.acatalepsy") {
+    return (
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <RouteSeo />
+        <RouteBoundary>
+          <Suspense fallback={<PageLoader />}><main><AsherinAcatalepsy /></main></Suspense>
+        </RouteBoundary>
+      </TooltipProvider>
+    );
+  }
+  return <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <StepUpProvider>
         <SubscriptionProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
               <CommandPalette />
               <RouteSessionTracker />
               <VisitLedgerTracker />
@@ -603,12 +615,13 @@ const App = () => (
                   </main>
                 </Suspense>
               </RouteBoundary>
-            </BrowserRouter>
           </TooltipProvider>
         </SubscriptionProvider>
       </StepUpProvider>
     </AuthProvider>
-  </QueryClientProvider>
-);
+  </QueryClientProvider>;
+};
+
+const App = () => <BrowserRouter><AppShell /></BrowserRouter>;
 
 export default App;
