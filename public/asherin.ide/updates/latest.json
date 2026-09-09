@@ -1,0 +1,29 @@
+{
+  "channel": "stable",
+  "version": "0.9.0",
+  "url": null,
+  "sha256": null,
+  "available": false,
+  "note": "release channel wiring. no signed desktop build is published yet; every platform entry stays available:false until its artifact and hash are uploaded.",
+  "platforms": {
+    "windows": {
+      "available": false,
+      "version": "0.9.0",
+      "url": null,
+      "appinstaller": "https://asherin.com/asherin.ide/install/asherin.appinstaller",
+      "sha256": null
+    },
+    "mac": {
+      "available": false,
+      "version": "0.9.0",
+      "url": null,
+      "sha256": null
+    },
+    "linux": {
+      "available": false,
+      "version": "0.9.0",
+      "url": null,
+      "sha256": null
+    }
+  }
+}
