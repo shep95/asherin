@@ -1,17 +1,16 @@
 {
   "channel": "stable",
-  "version": "0.9.0",
-  "url": "https://asherin.com/asherin.ide/install/asherin-x64.msix",
-  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "version": "0.9.1",
+  "url": "/__l5e/assets-v1/6b747446-ee61-45f3-9210-5f39fa558835/asherin-ide-windows-x64.zip",
+  "sha256": "b6f0a7ded3970beca2ac2baadf9a67dc3bb7edcecb57288196ced2e9833562fe",
   "available": true,
-  "note": "downloads are live for everyone. the windows, mac, and linux artifacts below are currently placeholder files (0 bytes) until signed builds are published. the installer wiring, auto-update channel, and appinstaller manifest are fully connected.",
+  "note": "the windows desktop archive is live. extract it and open asherin ide.exe. native signed installers will replace the archive when signing is complete.",
   "platforms": {
     "windows": {
       "available": true,
-      "version": "0.9.0",
-      "url": "https://asherin.com/asherin.ide/install/asherin-x64.msix",
-      "appinstaller": "https://asherin.com/asherin.ide/install/asherin.appinstaller",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "version": "0.9.1",
+      "url": "/__l5e/assets-v1/6b747446-ee61-45f3-9210-5f39fa558835/asherin-ide-windows-x64.zip",
+      "sha256": "b6f0a7ded3970beca2ac2baadf9a67dc3bb7edcecb57288196ced2e9833562fe"
     },
     "mac": {
       "available": true,
