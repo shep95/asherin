@@ -45,4 +45,4 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] organized tree, preview/search/statistics, filters, cross-file analysis, downloads and exports
 - [ ] advanced SEO, automated tests, and live desktop/mobile workflow verification
 
-- [ ] Fix all current preview typecheck errors from observability log
+- [x] Fix all current preview typecheck errors from observability log

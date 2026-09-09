@@ -11,7 +11,7 @@ const rows: DataRow[] = [
 
 describe("acatalepsy deterministic engine", () => {
   it("selects financial visuals from explicit field evidence", () => {
-    const parsed: ParsedFile = { kind: "table", columns: Object.keys(rows[0]), rows, warnings: [], method: "test", truncated: false };
+    const parsed: ParsedFile = { kind: "table", columns: Object.keys(rows[0]), rows, text: "", warnings: [], method: "test", truncated: false };
     const analysis = analyzeParsed(parsed);
     expect(analysis.domains[0]?.domain).toBe("financial");
     expect(analysis.visuals.some((visual) => visual.kind === "candlestick")).toBe(true);
@@ -23,7 +23,7 @@ describe("acatalepsy deterministic engine", () => {
   });
 
   it("assigns complexity labels from documented thresholds", () => {
-    const parsed: ParsedFile = { kind: "table", columns: Object.keys(rows[0]), rows, warnings: [], method: "test", truncated: false };
+    const parsed: ParsedFile = { kind: "table", columns: Object.keys(rows[0]), rows, text: "", warnings: [], method: "test", truncated: false };
     const profile = analyzeParsed(parsed).profile;
     expect(assignRank(profile).rank).toBe("beginner");
   });
