@@ -100,14 +100,14 @@ export default function AcatalepsyWorkspace() {
   return <div className="min-h-screen text-foreground">
     {dragging && <div className="fixed inset-0 z-[100] flex items-center justify-center border-2 border-signal-live bg-background/90 text-center"><div><Upload className="mx-auto size-10 text-signal-live"/><p className="mt-4 text-xl font-extralight">release to read locally</p><p className="mt-2 text-xs text-muted-foreground">nothing leaves this device</p></div></div>}
     <header className="sticky top-0 z-40 px-3 pt-3 md:px-6 md:pt-4">
-      <div className="mx-auto max-w-[1800px] border border-border/60 bg-card/90 shadow-2xl">
+      <div className="mx-auto max-w-[1800px] overflow-hidden rounded-2xl border border-foreground/15 bg-background/80 shadow-2xl backdrop-blur-2xl">
         <div className="flex min-h-16 items-center gap-3 px-3 md:px-5">
-          <a href="/" className="group flex shrink-0 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="asherin home">
-            <span className="flex size-7 rotate-45 items-center justify-center border border-primary/50 bg-primary/10 transition-transform duration-500 motion-reduce:transition-none group-hover:rotate-0"><span className="size-2 bg-primary" /></span>
-            <span className="flex items-baseline"><span className="font-display text-xl font-light text-foreground">asherin</span><span className="font-mono text-[11px] text-muted-foreground">.acatalepsy</span></span>
+          <a href="https://asherin.com" className="group flex shrink-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="visit asherin.com">
+            <span className="flex size-8 items-center justify-center rounded-full border border-foreground/20 bg-foreground/5"><span className="size-1.5 rounded-full bg-foreground shadow-[0_0_8px_hsl(var(--foreground)/0.8)]" /></span>
+            <span className="flex min-w-0 flex-col leading-none"><span className="text-sm font-extralight uppercase tracking-[0.25em] text-foreground">asherin</span><span className="mt-1 truncate font-mono text-[8px] text-muted-foreground">asherin.com</span></span>
           </a>
           <span className="hidden h-5 w-px bg-border/70 lg:block" aria-hidden />
-          <span className="hidden text-[10px] uppercase text-muted-foreground lg:inline">local deterministic workspace</span>
+          <span className="hidden text-[10px] uppercase text-muted-foreground lg:inline">acatalepsy · local deterministic workspace</span>
           <div className="ml-auto flex items-center gap-1">
             <span className="mr-2 hidden items-center gap-2 border-r border-border/70 pr-4 text-[10px] text-muted-foreground xl:flex"><ShieldCheck className="size-3 text-primary"/>private session · no account · no ai</span>
             <Button variant="ghost" size="sm" onClick={()=>inputRef.current?.click()} aria-label="choose files"><Upload/><span className="hidden sm:inline">files</span></Button>
@@ -117,8 +117,8 @@ export default function AcatalepsyWorkspace() {
             {datasets.length>0&&<><span className="mx-1 h-5 w-px bg-border/70" aria-hidden/><Button variant="ghost" size="icon" onClick={clear} aria-label="clear all local files"><Eraser/></Button></>}
           </div>
         </div>
-        <div className="flex h-7 items-center border-t border-border/40 px-3 text-[9px] uppercase text-muted-foreground md:px-5">
-          <span className="text-primary">workspace</span><span className="mx-2 text-border">/</span><span>{datasets.length ? `${datasets.length} local file${datasets.length === 1 ? "" : "s"}` : "ready for local data"}</span><span className="ml-auto flex items-center gap-1.5 xl:hidden"><ShieldCheck className="size-3 text-primary"/>private session</span>
+        <div className="flex h-8 items-center border-t border-border/40 px-3 text-[9px] uppercase text-muted-foreground md:px-5">
+          <span className="text-foreground">asherin.acatalepsy</span><span className="mx-2 text-border">/</span><span>{datasets.length ? `${datasets.length} local file${datasets.length === 1 ? "" : "s"}` : "ready for local data"}</span><span className="ml-auto flex items-center gap-1.5 xl:hidden"><ShieldCheck className="size-3 text-primary"/>private session</span>
         </div>
       </div>
       <input ref={inputRef} hidden type="file" multiple accept={ACATALEPSY_EXTENSIONS.join(",")} onChange={(e)=>{void ingest([...e.target.files??[]]); e.currentTarget.value="";}}/>
