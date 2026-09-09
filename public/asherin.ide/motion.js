@@ -119,8 +119,7 @@
           : fallback[platform].url);
       const version = (release && release.version) || (data && data.version) || 'latest';
       ready(href, 'version ' + version
-        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download')
-        + (data && data.note ? ' \u00b7 ' + data.note : ''));
+        + (platform === 'windows' ? ' \u00b7 opens the windows app installer, no download step' : ' \u00b7 direct download'));
     })
     .catch(() => {
       const fb = fallback[platform];
