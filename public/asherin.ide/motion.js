@@ -20,12 +20,17 @@
   nav.addEventListener('click', e => { if (e.target.closest('a')) closeMenu(); });
   matchMedia('(min-width: 651px)').addEventListener('change', () => closeMenu());
   const loading = document.querySelector('.loading-indicator');
+  const reveal = () => { loading.hidden = true; document.body.classList.add('wallpaper-ready'); };
   const wallpaper = new Image();
-  const finish = () => { loading.hidden = true; };
-  wallpaper.onload = finish;
-  wallpaper.onerror = finish;
-  wallpaper.src = '/asherin.ide/assets/night.png';
-  if (!wallpaper.complete) loading.hidden = false;
+  wallpaper.decoding = 'async';
+  if ('fetchPriority' in wallpaper) wallpaper.fetchPriority = 'high';
+  wallpaper.onload = reveal;
+  wallpaper.onerror = reveal;
+  wallpaper.src = document.createElement('canvas').toDataURL('image/webp').indexOf('image/webp') === 5
+    ? '/asherin.ide/assets/night.webp'
+    : '/asherin.ide/assets/night.jpg';
+  if (wallpaper.complete) reveal(); else loading.hidden = false;
+  setTimeout(reveal, 4000);
   const bar = document.querySelector('.scroll-progress');
   const sections = [...document.querySelectorAll('main > section')];
   let scheduled = false;
