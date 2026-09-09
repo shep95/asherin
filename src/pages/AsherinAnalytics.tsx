@@ -402,11 +402,11 @@ const LiveRoom = ({ windowMinutes = 5 }: { windowMinutes?: number }) => {
           <div className="lg:col-span-2 grid gap-6 sm:grid-cols-2">
             <div>
               <p className="mb-3 text-[10px] font-extralight uppercase tracking-[0.28em] text-muted-foreground">pages being read</p>
-              {live.pages.length ? <Bars rows={live.pages} unit="here" /> : <Empty note="no one is on a page in this window." />}
+              {live.pages.length ? <BarList rows={live.pages} unit="here" /> : <Empty note="no one is on a page in this window." />}
             </div>
             <div>
               <p className="mb-3 text-[10px] font-extralight uppercase tracking-[0.28em] text-muted-foreground">where from</p>
-              {live.countries.length ? <Bars rows={live.countries} unit="here" /> : <Empty note="no location signal in this window." />}
+              {live.countries.length ? <BarList rows={live.countries} unit="here" /> : <Empty note="no location signal in this window." />}
             </div>
           </div>
         </div>
