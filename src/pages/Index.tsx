@@ -306,7 +306,7 @@ const Index = () => {
               free to use software.
             </h2>
             <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">
-              three asherin workspaces you can open immediately. no account or subscription required.
+              two asherin workspaces you can open immediately. no account or subscription required.
             </p>
           </div>
 
