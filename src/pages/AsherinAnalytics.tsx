@@ -522,6 +522,10 @@ const AsherinAnalytics = () => {
           </div>
         )}
 
+        <div className="mb-6">
+          <LiveRoom />
+        </div>
+
         {data && (
           <div className="space-y-6 animate-fade-in">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
