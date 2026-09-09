@@ -483,9 +483,10 @@
     }
     if (method === "POST" && pathname === "/api/chat") {
       var chatBody = await readBody(init);
-      if (!runtime.provider || !runtime.apiKey && runtime.provider !== "ollama" && runtime.provider !== "openai-compatible") {
+      if (!runtime.provider || (!runtime.apiKey && !keyless(runtime.provider))) {
         return json(400, { error: "connect a model provider first" });
       }
+
       try {
         var text = await callProvider(runtime, chatBody);
         return json(200, { ok: true, text: text });
