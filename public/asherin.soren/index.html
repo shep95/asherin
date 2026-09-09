@@ -687,6 +687,8 @@ const TOOL_DEFINITIONS = [
   ['set_time_index', 'move to an imported telemetry sample index', { index: 'number' }, false],
   ['set_flow_visibility', 'turn a flow layer on or off', { flow: 'electrical|thermal|coolant|control', visible: 'boolean' }, false],
   ['fit_camera', 'fit current loaded geometry in the viewport', {}, false],
+  ['create_geometry', 'author real 3d geometry from an explicit parameter spec and render it immediately. shapes: box, plane, sphere, cylinder, cone, torus, prism, extrude, revolve. result is labelled authored geometry, never measured evidence', { name: 'string', units: 'string optional', parts: '[{shape, width|height|depth|radius|radius_top|tube|sides|segments|profile, position:[x,y,z], rotation:[rx,ry,rz] degrees, scale}]' }, false],
+  ['clear_generated_geometry', 'remove every authored parametric geometry from the workspace, leaving imported sources untouched', {}, true],
   ['retrieve_url', 'download an exact approved external engineering source URL into the local evidence registry', { url: 'https URL' }, true],
   ['bind_source', 'bind a registered source to an engineering component without editing the source file', { source_id: 'string', component_id: 'string' }, true],
   ['remove_source', 'remove a source from the current workspace without deleting the original local file', { source_id: 'string' }, true],
@@ -1437,6 +1439,194 @@ function mergeWorkspace(ws, source) {
   source.authoritative = true;
 }
 
+// ---- parametric geometry authoring -------------------------------------
+// deterministic mesh construction from an explicit parameter spec.
+// authored geometry is never treated as measured source truth: every
+// generated source is flagged generated:true and stays non authoritative.
+const GEOMETRY_SHAPES = ['box','plane','sphere','cylinder','cone','torus','prism','extrude','revolve'];
+
+function degToRad(d) { return (Number(d) || 0) * Math.PI / 180; }
+
+function applyTransform(points, part) {
+  const pos = Array.isArray(part.position) ? part.position.map(Number) : [0, 0, 0];
+  const rot = Array.isArray(part.rotation) ? part.rotation.map(degToRad) : [0, 0, 0];
+  const rawScale = part.scale;
+  const sc = Array.isArray(rawScale) ? rawScale.map(Number) : [Number(rawScale) || 1, Number(rawScale) || 1, Number(rawScale) || 1];
+  const [rx, ry, rz] = rot.map(v => Number.isFinite(v) ? v : 0);
+  const cx = Math.cos(rx), sx = Math.sin(rx), cy = Math.cos(ry), sy = Math.sin(ry), cz = Math.cos(rz), sz = Math.sin(rz);
+  return points.map(([x0, y0, z0]) => {
+    let x = x0 * (Number.isFinite(sc[0]) ? sc[0] : 1);
+    let y = y0 * (Number.isFinite(sc[1]) ? sc[1] : 1);
+    let z = z0 * (Number.isFinite(sc[2]) ? sc[2] : 1);
+    let y1 = y * cx - z * sx, z1 = y * sx + z * cx; y = y1; z = z1;
+    let x1 = x * cy + z * sy; z1 = -x * sy + z * cy; x = x1; z = z1;
+    x1 = x * cz - y * sz; y1 = x * sz + y * cz; x = x1; y = y1;
+    return [x + (Number(pos[0]) || 0), y + (Number(pos[1]) || 0), z + (Number(pos[2]) || 0)];
+  });
+}
+
+function quadFaces(a, b, c, d) { return [[a, b, c], [a, c, d]]; }
+
+function fanFaces(centerIndex, ring, reverse) {
+  const out = [];
+  for (let i = 0; i < ring.length; i++) {
+    const j = (i + 1) % ring.length;
+    out.push(reverse ? [centerIndex, ring[j], ring[i]] : [centerIndex, ring[i], ring[j]]);
+  }
+  return out;
+}
+
+function ringPoints(radius, y, segments) {
+  const pts = [];
+  for (let i = 0; i < segments; i++) {
+    const t = (i / segments) * Math.PI * 2;
+    pts.push([Math.cos(t) * radius, y, Math.sin(t) * radius]);
+  }
+  return pts;
+}
+
+function shapeMesh(part) {
+  const shape = String(part.shape || '').toLowerCase();
+  const num = (v, fallback) => { const n = Number(v); return Number.isFinite(n) && n !== 0 ? n : fallback; };
+  const seg = Math.max(3, Math.min(128, Math.round(num(part.segments, 32))));
+  const vertices = [], faces = [];
+  if (shape === 'box') {
+    const w = num(part.width, 1) / 2, h = num(part.height, 1) / 2, d = num(part.depth, 1) / 2;
+    vertices.push([-w,-h,-d],[w,-h,-d],[w,h,-d],[-w,h,-d],[-w,-h,d],[w,-h,d],[w,h,d],[-w,h,d]);
+    [[0,1,2,3],[5,4,7,6],[4,0,3,7],[1,5,6,2],[3,2,6,7],[4,5,1,0]].forEach(q => faces.push(...quadFaces(...q)));
+  } else if (shape === 'plane') {
+    const w = num(part.width, 1) / 2, d = num(part.depth, part.height || 1) / 2;
+    vertices.push([-w,0,-d],[w,0,-d],[w,0,d],[-w,0,d]);
+    faces.push(...quadFaces(0,1,2,3));
+  } else if (shape === 'sphere') {
+    const r = num(part.radius, 0.5), rings = Math.max(3, Math.min(96, Math.round(num(part.rings, Math.round(seg / 2)))));
+    for (let i = 0; i <= rings; i++) {
+      const phi = (i / rings) * Math.PI;
+      for (let j = 0; j < seg; j++) {
+        const theta = (j / seg) * Math.PI * 2;
+        vertices.push([r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta)]);
+      }
+    }
+    for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) {
+      const a = i * seg + j, b = i * seg + (j + 1) % seg, c = (i + 1) * seg + (j + 1) % seg, d = (i + 1) * seg + j;
+      faces.push(...quadFaces(a, b, c, d));
+    }
+  } else if (shape === 'cylinder' || shape === 'cone' || shape === 'prism') {
+    const sides = shape === 'prism' ? Math.max(3, Math.min(64, Math.round(num(part.sides, 6)))) : seg;
+    const h = num(part.height, 1), rb = num(part.radius, 0.5);
+    const rt = shape === 'cone' ? 0 : num(part.radius_top, rb);
+    const bottom = ringPoints(rb, -h / 2, sides), top = ringPoints(rt, h / 2, sides);
+    bottom.forEach(p => vertices.push(p));
+    const topStart = vertices.length;
+    top.forEach(p => vertices.push(p));
+    for (let i = 0; i < sides; i++) {
+      const j = (i + 1) % sides;
+      faces.push(...quadFaces(i, j, topStart + j, topStart + i));
+    }
+    const bc = vertices.length; vertices.push([0, -h / 2, 0]);
+    const tc = vertices.length; vertices.push([0, h / 2, 0]);
+    faces.push(...fanFaces(bc, bottom.map((_, i) => i), true));
+    faces.push(...fanFaces(tc, top.map((_, i) => topStart + i), false));
+  } else if (shape === 'torus') {
+    const R = num(part.radius, 0.6), r = num(part.tube, 0.2);
+    const tubeSeg = Math.max(3, Math.min(96, Math.round(num(part.tube_segments, 16))));
+    for (let i = 0; i < seg; i++) {
+      const u = (i / seg) * Math.PI * 2;
+      for (let j = 0; j < tubeSeg; j++) {
+        const v = (j / tubeSeg) * Math.PI * 2;
+        vertices.push([(R + r * Math.cos(v)) * Math.cos(u), r * Math.sin(v), (R + r * Math.cos(v)) * Math.sin(u)]);
+      }
+    }
+    for (let i = 0; i < seg; i++) for (let j = 0; j < tubeSeg; j++) {
+      const a = i * tubeSeg + j, b = ((i + 1) % seg) * tubeSeg + j;
+      const c = ((i + 1) % seg) * tubeSeg + (j + 1) % tubeSeg, d = i * tubeSeg + (j + 1) % tubeSeg;
+      faces.push(...quadFaces(a, b, c, d));
+    }
+  } else if (shape === 'extrude') {
+    const profile = (part.profile || []).map(p => [Number(p[0]), Number(p[1])]).filter(p => p.every(Number.isFinite));
+    if (profile.length < 3) throw new Error('extrude needs a profile of at least 3 [x,z] points');
+    const h = num(part.height, 1);
+    profile.forEach(([x, z]) => vertices.push([x, -h / 2, z]));
+    const topStart = vertices.length;
+    profile.forEach(([x, z]) => vertices.push([x, h / 2, z]));
+    for (let i = 0; i < profile.length; i++) {
+      const j = (i + 1) % profile.length;
+      faces.push(...quadFaces(i, j, topStart + j, topStart + i));
+    }
+    const idx = profile.map((_, i) => i);
+    faces.push(...triangulatePolygon(idx).map(f => [f[2], f[1], f[0]]));
+    faces.push(...triangulatePolygon(idx.map(i => topStart + i)));
+  } else if (shape === 'revolve') {
+    const profile = (part.profile || []).map(p => [Math.abs(Number(p[0])), Number(p[1])]).filter(p => p.every(Number.isFinite));
+    if (profile.length < 2) throw new Error('revolve needs a profile of at least 2 [radius,y] points');
+    for (let i = 0; i < seg; i++) {
+      const t = (i / seg) * Math.PI * 2;
+      profile.forEach(([r, y]) => vertices.push([Math.cos(t) * r, y, Math.sin(t) * r]));
+    }
+    const n = profile.length;
+    for (let i = 0; i < seg; i++) for (let j = 0; j < n - 1; j++) {
+      const a = i * n + j, b = i * n + j + 1;
+      const c = ((i + 1) % seg) * n + j + 1, d = ((i + 1) % seg) * n + j;
+      faces.push(...quadFaces(a, b, c, d));
+    }
+  } else {
+    throw new Error(`unsupported shape "${shape}" -> supported: ${GEOMETRY_SHAPES.join(', ')}`);
+  }
+  return { vertices: applyTransform(vertices, part), faces };
+}
+
+function buildParametricGeometry(spec) {
+  const parts = Array.isArray(spec.parts) ? spec.parts : [];
+  if (!parts.length) throw new Error('parts array is required, each entry needs a shape');
+  if (parts.length > 64) throw new Error('a single generated assembly is limited to 64 parts');
+  const vertices = [], faces = [], partReport = [];
+  parts.forEach((part, index) => {
+    const mesh = shapeMesh(part);
+    const offset = vertices.length;
+    mesh.vertices.forEach(v => vertices.push(v));
+    mesh.faces.forEach(f => faces.push(f.map(i => i + offset)));
+    partReport.push({ index, name: part.name || part.shape, shape: String(part.shape || '').toLowerCase(), vertices: mesh.vertices.length, faces: mesh.faces.length });
+    if (vertices.length > 250000) throw new Error('generated geometry exceeded the 250k vertex budget');
+  });
+  return { geometry: { format: 'asherin-parametric', vertices, faces }, partReport };
+}
+
+function createGeneratedGeometry(args) {
+  const spec = args || {};
+  const name = String(spec.name || 'generated assembly').slice(0, 80);
+  let built;
+  try { built = buildParametricGeometry(spec); }
+  catch (error) { return { ok: false, error: error.message, supported_shapes: GEOMETRY_SHAPES }; }
+  const units = String(spec.units || 'mm');
+  const source = {
+    id: uid('src'), name: `${name}.parametric.json`, kind: 'geometry', size: 0,
+    mime: 'model/asherin-parametric+json', modified: Date.now(), parseStatus: 'generated',
+    authoritative: false, generated: true, boundComponentIds: [],
+    content: JSON.stringify({ name, units, parts: spec.parts }, null, 2),
+    summary: `authored parametric geometry · ${built.geometry.vertices.length.toLocaleString()} vertices · ${built.geometry.faces.length.toLocaleString()} faces`,
+    provenance: { method: 'parametric authoring inside asherin.soren', authoredAt: new Date().toISOString(), classification: 'authored geometry, not measured evidence', units }
+  };
+  state.sources.push(source);
+  try { bindGeometrySource(source, built.geometry); }
+  catch (error) { state.sources = state.sources.filter(s => s.id !== source.id); return { ok: false, error: error.message }; }
+  const component = state.workspace.components.find(c => c.geometryRef === source.name);
+  if (component) { component.type = 'authored geometry'; component.state = 'generated · not measured'; component.path = 'parametric authoring'; state.selectedId = component.id; }
+  renderAll(); fitCamera();
+  return {
+    ok: true, source_id: source.id, component_id: component?.id || null, name, units,
+    classification: 'authored geometry, not measured evidence',
+    vertices: built.geometry.vertices.length, faces: built.geometry.faces.length,
+    bounds: geometryBounds(built.geometry), parts: built.partReport
+  };
+}
+
+function clearGeneratedGeometry() {
+  const ids = state.sources.filter(s => s.generated).map(s => s.id);
+  ids.forEach(id => removeSource(id));
+  renderAll();
+  return { ok: true, removed: ids.length };
+}
+
 function bindGeometrySource(source, geometry) {
   const bounds = geometryBounds(geometry); if (!bounds || !geometry.vertices.length) throw new Error('geometry contains no usable vertices');
   let component = state.workspace.components.find(c => c.geometryRef === source.name || c.geometryRef === source.id);
@@ -1636,6 +1826,8 @@ async function executeTool(call) {
       if (!(a.flow in state.view.flows)) return { ok: false, error: 'unknown flow' }; state.view.flows[a.flow] = !!a.visible; const input = $(`input[data-flow="${CSS.escape(a.flow)}"]`); if (input) input.checked = !!a.visible; drawScene(); return { ok: true, flow: a.flow, visible: !!a.visible };
     }
     case 'fit_camera': return { ok: fitCamera() };
+    case 'create_geometry': return createGeneratedGeometry(a);
+    case 'clear_generated_geometry': return clearGeneratedGeometry();
     case 'retrieve_url': return await retrieveExternalSource(String(a.url || ''));
     case 'bind_source': return bindSourceToComponent(String(a.source_id || ''), String(a.component_id || ''));
     case 'remove_source': { const id = String(a.source_id || ''); if (!state.sources.some(source => source.id === id)) return { ok: false, error: 'source not found' }; removeSource(id); return { ok: true, source_id: id }; }
