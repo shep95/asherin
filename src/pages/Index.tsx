@@ -4,7 +4,6 @@ import { ArrowRight, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import Header from "@/components/Header";
-import InstallButton from "@/components/InstallButton";
 import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
@@ -260,26 +259,24 @@ const Index = () => {
           </p>
 
           <div className="mt-10 flex flex-col items-start gap-5">
-            <InstallButton />
-            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-              windows · macOS · linux · one click, native install, auto-updates
-            </p>
+            {user ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-3 px-6 py-3 bg-[#4ade80] text-black font-mono text-xs uppercase tracking-[0.08em] font-medium transition-opacity hover:opacity-85 border border-white/[0.08]"
+                style={{ borderRadius: 0, transitionTimingFunction: "cubic-bezier(0.16,1,0.28,1)", transitionDuration: "220ms" }}
+              >
+                go to dashboard <span>→</span>
+              </Link>
+            ) : (
+              <button
+                onClick={openSignup}
+                className="inline-flex items-center gap-3 px-6 py-3 bg-[#4ade80] text-black font-mono text-xs uppercase tracking-[0.08em] font-medium transition-opacity hover:opacity-85 border border-white/[0.08]"
+                style={{ borderRadius: 0, transitionTimingFunction: "cubic-bezier(0.16,1,0.28,1)", transitionDuration: "220ms" }}
+              >
+                create account <span>→</span>
+              </button>
+            )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-              {user ? (
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
-                >
-                  go to dashboard
-                </Link>
-              ) : (
-                <button
-                  onClick={openSignup}
-                  className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
-                >
-                  create account
-                </button>
-              )}
               <Link
                 to="/pricing"
                 className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
