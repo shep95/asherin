@@ -262,20 +262,21 @@ const Index = () => {
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-3 px-6 py-3 bg-[#4ade80] text-black font-mono text-xs uppercase tracking-[0.08em] font-medium transition-opacity hover:opacity-85 border border-white/[0.08]"
-                style={{ borderRadius: 0, transitionTimingFunction: "cubic-bezier(0.16,1,0.28,1)", transitionDuration: "220ms" }}
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
-                go to dashboard <span>→</span>
+                go to dashboard
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             ) : (
               <button
                 onClick={openSignup}
-                className="inline-flex items-center gap-3 px-6 py-3 bg-[#4ade80] text-black font-mono text-xs uppercase tracking-[0.08em] font-medium transition-opacity hover:opacity-85 border border-white/[0.08]"
-                style={{ borderRadius: 0, transitionTimingFunction: "cubic-bezier(0.16,1,0.28,1)", transitionDuration: "220ms" }}
+                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
               >
-                create account <span>→</span>
+                create account
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             )}
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
               <Link
                 to="/pricing"
