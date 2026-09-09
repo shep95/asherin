@@ -102,14 +102,31 @@
     btn.setAttribute('aria-disabled', 'true');
     if (note) note.textContent = text;
   }
+  function trigger(href, name) {
+    const frame = document.createElement('iframe');
+    frame.hidden = true;
+    frame.setAttribute('aria-hidden', 'true');
+    frame.src = href;
+    document.body.append(frame);
+    setTimeout(() => frame.remove(), 120000);
+    const anchor = document.createElement('a');
+    anchor.href = href;
+    anchor.download = name;
+    anchor.rel = 'noopener';
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+  }
   btn.addEventListener('click', e => {
     if (btn.getAttribute('aria-disabled') === 'true') {
       e.preventDefault();
       return;
     }
-    if (platform === 'windows' && note) {
-      note.textContent = 'download started · 443 mb · check your browser downloads';
-    }
+    const href = btn.getAttribute('href');
+    if (!href || href.charAt(0) === '#') return;
+    e.preventDefault();
+    trigger(href, btn.getAttribute('download') || '');
+    if (note) note.textContent = 'download started \u00b7 check your browser downloads';
   });
   if (!platform) {
     label('desktop builds only');
