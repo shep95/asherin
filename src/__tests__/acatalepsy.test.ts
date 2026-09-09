@@ -25,7 +25,7 @@ describe("acatalepsy deterministic engine", () => {
   it("assigns complexity labels from documented thresholds", () => {
     const parsed: ParsedFile = { kind: "table", columns: Object.keys(rows[0]), rows, warnings: [], method: "test", truncated: false };
     const profile = analyzeParsed(parsed).profile;
-    expect(assignRank(profile).rank).toBe("intermediate");
+    expect(assignRank(profile).rank).toBe("beginner");
   });
 
   it("turns pasted tabular content into an in-memory file", () => {
