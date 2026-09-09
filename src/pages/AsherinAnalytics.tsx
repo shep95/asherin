@@ -48,6 +48,16 @@ interface Overview {
   vpn_reasons: Slice[];
 }
 
+interface Live {
+  window_minutes: number;
+  generated_at: string;
+  online: number;
+  sessions: number;
+  devices: { mobile: number; laptop: number; tablet: number; other: number };
+  pages: Slice[];
+  countries: Slice[];
+}
+
 const RANGES = [
   { days: 7, label: "7d" },
   { days: 30, label: "30d" },
