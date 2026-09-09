@@ -24,7 +24,7 @@
   const finish = () => { loading.hidden = true; };
   wallpaper.onload = finish;
   wallpaper.onerror = finish;
-  wallpaper.src = 'assets/night.png';
+  wallpaper.src = '/asherin.ide/assets/night.png';
   if (!wallpaper.complete) loading.hidden = false;
   const bar = document.querySelector('.scroll-progress');
   const sections = [...document.querySelectorAll('main > section')];
