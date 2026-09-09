@@ -810,8 +810,8 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
             <div className="flex items-center gap-3">
               <BookOpen className="h-5 w-5 text-accent" />
               <div>
-                <h1 className="text-lg font-extralight tracking-wide text-foreground">E-Book Generator</h1>
-                <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">AI-Powered Book Builder</p>
+                <h1 className="text-lg font-extralight text-foreground">asherin.ebooks</h1>
+                <p className="text-[10px] font-extralight text-muted-foreground/60 uppercase hidden sm:block">long-form publishing room</p>
               </div>
             </div>
             <button onClick={createSession}

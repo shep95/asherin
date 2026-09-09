@@ -161,8 +161,8 @@ const ZerlalView = () => {
               <Shield className="h-3.5 w-3.5 text-foreground/60" />
             </div>
             <div>
-              <h1 className="text-[11px] font-light tracking-[0.12em] text-foreground/90 uppercase">Zerlal</h1>
-              <p className="text-[8px] text-muted-foreground/30 tracking-[0.15em] uppercase">Cyber Intelligence Engine</p>
+              <h1 className="text-[11px] font-light text-foreground/90">asherin.cyber</h1>
+              <p className="text-[8px] text-muted-foreground/30 uppercase">infrastructure intelligence</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
