@@ -265,16 +265,22 @@ button:disabled{opacity:.38;cursor:not-allowed}*{scrollbar-width:thin;scrollbar-
     <div class="modalCard">
       <div class="modalHead"><span>AI model gateway</span><button data-close="settingsModal">×</button></div>
       <div class="modalBody">
-        <div class="notice warn"><strong>API keys are not stored in the browser or written to disk.</strong> when entered here they are sent to the local asherin.soren server and retained only in server memory for this process. you may instead use provider environment variables before starting the server.</div>
+        <div class="notice"><strong>one step.</strong> paste a key from openai, anthropic, google, or openrouter and asherin works out the rest. keys stay in this session's server memory — never written to disk, never stored in the browser. no key? use the free hosted model.</div>
         <div class="settingsGrid" style="margin-top:14px">
-          <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
-          <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
-          <div class="field full"><label>API key</label><input id="apiKey" type="password" autocomplete="off" placeholder="leave empty to use the free asherin hosted model"><small>the asherin hosted model needs no key — asherin covers it until you bring your own. Ollama normally does not need a key. custom compatible endpoints may.</small></div>
-          <div class="field"><label>available model</label><select id="modelSelect"><option value="">connect to load models</option></select></div>
-          <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
+          <div class="field full"><label>paste your api key</label><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-… · sk-ant-… · AIza… · sk-or-…"><small id="keyHint">no key needed for the free asherin hosted model.</small></div>
         </div>
-        <div class="buttonRow"><button class="primary" id="connectProvider">connect + discover live models</button><button class="secondary" id="saveModel">use selected model</button><span class="connectionState" id="connectionState">not connected</span></div>
+        <div class="buttonRow"><button class="primary" id="connectProvider">connect</button><button class="secondary" id="useHosted">use free hosted model</button><span class="connectionState" id="connectionState">not connected</span></div>
+        <div class="field full" id="modelField" style="margin-top:12px"><label>model</label><select id="modelSelect"><option value="">connect to load models</option></select><small>changing this switches the active model right away.</small></div>
+        <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted);font-size:11px;letter-spacing:.12em">advanced</summary>
+          <div class="settingsGrid" style="margin-top:12px">
+            <div class="field"><label>provider</label><select id="providerSelect"><option value="asherin">asherin hosted (free · no key)</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="openai-compatible">OpenAI compatible</option><option value="ollama">Ollama local</option></select></div>
+            <div class="field"><label>base URL</label><input id="baseUrl" spellcheck="false"></div>
+            <div class="field"><label>agent control policy</label><select id="controlPolicy"><option value="safe-auto">auto execute read and view actions</option><option value="approve-all">require approval for every action</option></select></div>
+            <div class="field"><label>&nbsp;</label><button class="secondary" id="saveModel">use selected model</button></div>
+          </div>
+        </details>
         <div class="developerAccess"><div><strong>developer code access</strong><span>allows the AI to read only allowlisted UI files, stage exact patches, then apply them only after approval with backup + automated tests + rollback on failure.</span></div><span class="connectionState" id="developerStatus">checking…</span></div>
+
         <div class="notice"><strong>redesign authority</strong> -> normal engineering tools cannot edit code. code editing is disabled by default and must be explicitly enabled when starting the local server with <code>ASHERIN_ALLOW_CODE_EDIT=1</code>.</div>
       </div>
     </div>
@@ -1733,23 +1739,50 @@ async function providerStatus() {
   renderChat();
 }
 
+function detectProvider(key) {
+  const k = (key || '').trim();
+  if (!k) return { provider: 'asherin', label: 'free asherin hosted model · no key needed' };
+  if (k.startsWith('sk-ant-')) return { provider: 'anthropic', label: 'detected anthropic' };
+  if (k.startsWith('sk-or-')) return { provider: 'openai-compatible', baseUrl: 'https://openrouter.ai/api/v1', label: 'detected openrouter' };
+  if (/^AIza[0-9A-Za-z_-]{10,}$/.test(k)) return { provider: 'google', label: 'detected google gemini' };
+  if (k.startsWith('sk-') || k.startsWith('sess-')) return { provider: 'openai', label: 'detected openai' };
+  return { provider: 'openai-compatible', label: 'unrecognised key shape — using an openai compatible endpoint, set the base URL under advanced' };
+}
+
+function syncDetectedProvider() {
+  const d = detectProvider($('#apiKey').value);
+  $('#providerSelect').value = d.provider;
+  $('#baseUrl').value = d.baseUrl || PROVIDER_DEFAULTS[d.provider] || '';
+  $('#keyHint').textContent = d.label;
+  return d;
+}
+
 async function connectProvider() {
-  const provider = $('#providerSelect').value, apiKey = $('#apiKey').value, baseUrl = $('#baseUrl').value.trim() || PROVIDER_DEFAULTS[provider]; $('#connectionState').textContent = 'connecting…'; $('#connectionState').className = 'connectionState';
+  const detected = syncDetectedProvider();
+  const provider = detected.provider, apiKey = $('#apiKey').value.trim(), baseUrl = $('#baseUrl').value.trim() || PROVIDER_DEFAULTS[provider]; $('#connectionState').textContent = 'connecting…'; $('#connectionState').className = 'connectionState';
   try {
     const res = await fetch('/api/provider/connect', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ provider, apiKey, baseUrl }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'provider connection failed');
     state.ai.connected = true; state.ai.provider = provider; state.ai.baseUrl = data.baseUrl || baseUrl; $('#apiKey').value = '';
     const modelSelect = $('#modelSelect'); modelSelect.replaceChildren(); (data.models || []).forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.label || m.id; modelSelect.append(o); });
     if (!data.models?.length) { const o = document.createElement('option'); o.value = ''; o.textContent = 'no compatible models returned'; modelSelect.append(o); }
     if (state.ai.model && data.models?.some(m => m.id === state.ai.model)) modelSelect.value = state.ai.model;
-    $('#connectionState').textContent = `${data.models?.length || 0} live models discovered`; $('#connectionState').className = 'connectionState ok'; renderChat();
+    const first = modelSelect.value || data.models?.[0]?.id || '';
+    if (first) { modelSelect.value = first; await activateModel(first); }
+    else { $('#connectionState').textContent = 'connected · no models returned'; $('#connectionState').className = 'connectionState bad'; }
+    renderChat();
   } catch (error) { state.ai.connected = false; $('#connectionState').textContent = error.message; $('#connectionState').className = 'connectionState bad'; renderChat(); }
+}
+
+async function activateModel(model) {
+  if (!model) return;
+  state.ai.model = model; state.ai.controlPolicy = $('#controlPolicy').value; storageSet('asherin.ai.controlPolicy', state.ai.controlPolicy);
+  try { await fetch('/api/provider/active', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ model }) }); } catch {}
+  $('#connectionState').textContent = `ready · ${state.ai.provider} · ${model}`; $('#connectionState').className = 'connectionState ok'; renderChat();
 }
 
 async function saveActiveModel() {
   const model = $('#modelSelect').value; if (!state.ai.connected || !model) return toast('connect and choose a model');
-  state.ai.model = model; state.ai.controlPolicy = $('#controlPolicy').value; storageSet('asherin.ai.controlPolicy', state.ai.controlPolicy);
-  try { await fetch('/api/provider/active', { method: 'POST', headers: apiHeaders(true), body: JSON.stringify({ model }) }); } catch {}
-  $('#connectionState').textContent = `active · ${model}`; $('#connectionState').className = 'connectionState ok'; renderChat(); closeModal('settingsModal');
+  await activateModel(model); closeModal('settingsModal');
 }
 
 function renderAudit() {
@@ -1806,6 +1839,11 @@ function bindUI() {
   $('#branchSelect').addEventListener('change', e => { state.chat.activeId = e.target.value; saveChat(); renderChat(); }); $('#newBranch').addEventListener('click', () => createBranch('new branch'));
   $('#sendChat').addEventListener('click', sendChat); $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } });
   $('#providerSelect').addEventListener('change', e => { $('#baseUrl').value = PROVIDER_DEFAULTS[e.target.value] || ''; }); $('#controlPolicy').value = state.ai.controlPolicy; $('#connectProvider').addEventListener('click', connectProvider); $('#saveModel').addEventListener('click', saveActiveModel);
+  $('#apiKey').addEventListener('input', syncDetectedProvider);
+  $('#apiKey').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); connectProvider(); } });
+  $('#useHosted').addEventListener('click', () => { $('#apiKey').value = ''; syncDetectedProvider(); connectProvider(); });
+  $('#modelSelect').addEventListener('change', e => { if (state.ai.connected && e.target.value) activateModel(e.target.value); });
+  syncDetectedProvider();
   document.addEventListener('keydown', e => {
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName) || e.target?.isContentEditable;
     if (e.key === 'Escape') { $$('.modal').forEach(m => m.hidden = true); return; }
