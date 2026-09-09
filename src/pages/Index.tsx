@@ -4,6 +4,7 @@ import { ArrowRight, Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 import Header from "@/components/Header";
+import InstallButton from "@/components/InstallButton";
 import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
 import SubscriptionPlans from "@/components/SubscriptionPlans";
@@ -258,37 +259,41 @@ const Index = () => {
             asherin tries to give you the fuller picture, sourced, and honest about what it does not know.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
-            {user ? (
+          <div className="mt-10 flex flex-col items-start gap-5">
+            <InstallButton />
+            <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+              windows · macOS · linux · one click, native install, auto-updates
+            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
+                >
+                  go to dashboard
+                </Link>
+              ) : (
+                <button
+                  onClick={openSignup}
+                  className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
+                >
+                  create account
+                </button>
+              )}
               <Link
-                to="/dashboard"
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
+                to="/pricing"
+                className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
               >
-                go to dashboard
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                pricing
               </Link>
-            ) : (
-              <button
-                onClick={openSignup}
-                className="group inline-flex items-center gap-2.5 rounded-xl bg-foreground/5 backdrop-blur-xl px-8 py-4 text-sm font-medium tracking-wide text-foreground border border-foreground/15 transition-colors hover:bg-foreground/10 hover:border-foreground/25"
+              {/* full document load to the standalone static page, not an SPA route */}
+              <a
+                href="https://asherin.com/asherin.ide/"
+                className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
               >
-                create account
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            )}
-            <Link
-              to="/pricing"
-              className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
-            >
-              pricing
-            </Link>
-            {/* full document load to the standalone static page, not an SPA route */}
-            <a
-              href="https://asherin.com/asherin.ide/"
-              className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
-            >
-              asherin.ide
-            </a>
+                asherin.ide
+              </a>
+            </div>
           </div>
           <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
             rooms on a seat: chat, asherin.cyber, asherin.eye, asherin.defender, asherin.arvision,
