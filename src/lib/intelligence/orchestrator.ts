@@ -33,6 +33,10 @@ import { validate } from "./validator";
 import { needsDiscovery, discover, readFeedback, adaptFromFeedback } from "./creator";
 import { gateMemory, gatePattern } from "./learningGate";
 import { recordSuccess, recordFailure } from "./patternLifecycle";
+import { routeIntent, type IntentRoute } from "./intentRouter";
+import { selectLoop, renderLoop, type TransformPlan } from "./transformLoop";
+import { analyzeFeedback, repairProcedure, type FeedbackAnalysis } from "./feedbackAnalyzer";
+import { buildGovernance, assessQuarantine, applyQuarantine, recordAudit } from "./governance";
 import type {
   ConversationState,
   IntelligenceSettings,
@@ -64,6 +68,10 @@ export interface TurnResult {
   discoveryRan: boolean;
   patternsUsed: string[];
   candidateCreated: string | null;
+  route: IntentRoute;
+  loop: TransformPlan;
+  /** present only when this turn carried a correction. */
+  feedback?: FeedbackAnalysis;
 }
 
 /** everything completeTurn needs to finish the turn, captured before the model ran. */
@@ -78,6 +86,10 @@ export interface PreparedTurn {
   decisions: LearningDecision[];
   discoveryRan: boolean;
   candidate: PatternObject | null;
+  /** which lane this turn was routed into, and why. */
+  route: IntentRoute;
+  /** the transformation loop the answer must be produced through. */
+  loop: TransformPlan;
   /** the bounded brief that may be handed to a model — never contains credentials. */
   composed: string;
 }
@@ -107,6 +119,24 @@ export async function prepareTurn(input: TurnInput): Promise<PreparedTurn> {
     patterns,
   });
 
+  // ---- intent routing and the transformation loop ----
+  // the router picks the lane; the loop decides which direction the reasoning
+  // runs and which flaw classes this turn is responsible for catching.
+  const route = routeIntent(task, { message: input.message, hasImageInput: input.hasImageInput });
+  const loop = selectLoop(route.loop, {
+    hasArtefact: /```|\.tsx?\b|\.sql\b|error|stack/i.test(input.message),
+    // this runtime cannot execute the operator's code, so test stages are
+    // marked blocked rather than narrated as if they had run.
+    canRunTests: false,
+  });
+  decisions.push({
+    stage: "classify",
+    decision: "recorded",
+    subjectType: "outcome",
+    reason: `routed to ${route.lane}/${route.specialisation} on the ${route.loop} loop: ${route.reasons.join("; ")}`,
+    detail: { lane: route.lane, specialisation: route.specialisation, loop: route.loop },
+  });
+
   // ---- discovery: only when retrieval genuinely failed to cover the task ----
   let discoveryRan = false;
   let candidate: PatternObject | null = null;
@@ -114,7 +144,17 @@ export async function prepareTurn(input: TurnInput): Promise<PreparedTurn> {
   if (trigger) {
     const result = discover(task, context.patterns, patterns, trigger);
     discoveryRan = true;
-    candidate = result.candidate;
+    // a discovered candidate is born with provenance, not anonymously.
+    candidate = result.candidate
+      ? {
+          ...result.candidate,
+          governance: buildGovernance(result.candidate, {
+            creatorEvent: `discovery (${trigger}) during a ${route.lane} turn`,
+            conversationId: input.conversationId,
+            projectId: input.projectId ?? null,
+          }),
+        }
+      : null;
     decisions.push({
       stage: "observe",
       decision: "recorded",
@@ -134,7 +174,9 @@ export async function prepareTurn(input: TurnInput): Promise<PreparedTurn> {
     decisions,
     discoveryRan,
     candidate,
-    composed: composeModelContext(context),
+    route,
+    loop,
+    composed: `${composeModelContext(context)}\n\n${renderLoop(loop)}`,
   };
 }
 
@@ -160,23 +202,92 @@ export async function completeTurn(prepared: PreparedTurn, outcome: TurnOutcome)
   // ---- feedback signal from this message ----
   const signal = readFeedback(input.message);
   let candidateCreated: string | null = null;
+  let analysis: FeedbackAnalysis | undefined;
 
   if (signal.polarity === "negative") {
+    const repeatCount = conversation.feedback.filter((f) => f.polarity === "negative").length + 1;
+
+    // attribution first: which layer produced the wrong result, and how deep
+    // does the change belong. obeying the sentence is the shallowest option.
+    analysis = analyzeFeedback(signal, {
+      hasProject: !!input.projectId,
+      repeatCount,
+      modality: task.modality,
+    });
+    decisions.push({
+      stage: "classify",
+      decision: "recorded",
+      subjectType: "outcome",
+      reason: `cause ${analysis.causeType} → ${analysis.adaptationLevel} adaptation at ${analysis.scope} scope: ${analysis.reasons.join("; ")}`,
+      detail: {
+        cause: analysis.causeType,
+        adaptationLevel: analysis.adaptationLevel,
+        behaviour: analysis.affectedBehaviour,
+        confidence: analysis.confidence,
+      },
+    });
+
     const adaptation = adaptFromFeedback(signal, {
       hasProject: !!input.projectId,
-      repeatCount: conversation.feedback.filter((f) => f.polarity === "negative").length + 1,
+      repeatCount,
       conversationId: input.conversationId,
     });
-    if (adaptation.candidate) {
-      const gated = gatePattern(adaptation.candidate, { settings, validation });
+
+    // a "response" level adaptation changes this answer only — nothing durable
+    // is written from a single, unattributed complaint.
+    const durable = analysis.adaptationLevel !== "response" && !analysis.needsClarification;
+    if (adaptation.candidate && durable) {
+      const repaired: PatternObject = {
+        ...adaptation.candidate,
+        scope: analysis.scope,
+        name: `${analysis.causeType}: ${analysis.affectedBehaviour}`.slice(0, 110),
+        description:
+          analysis.adaptationLevel === "architecture"
+            ? "workflow-level repair — changes how this class of task is approached, not just the wording"
+            : "reusable repair derived from a repeated correction",
+        abstractionLevel: analysis.adaptationLevel === "architecture" ? "meta" : "operational",
+        mechanism: `when a ${task.modality} task touches ${analysis.affectedBehaviour}, run this before answering`,
+        procedure: repairProcedure(analysis),
+        confidence: analysis.confidence,
+      };
+      repaired.governance = buildGovernance(repaired, {
+        creatorEvent: `${analysis.adaptationLevel} adaptation after ${repeatCount} correction(s) attributed to ${analysis.causeType}`,
+        conversationId: input.conversationId,
+        projectId: input.projectId ?? null,
+      });
+
+      const gated = gatePattern(repaired, { settings, validation });
       decisions.push(...gated.decisions);
       if (gated.value && settings.learningEnabled) {
-        const saved = await upsertPattern(gated.value);
+        // governance runs last: a pattern that contradicts a standing rule or
+        // has no provenance is kept but never activated.
+        const verdict = assessQuarantine(gated.value, { standingRules: userMemory });
+        const finalPattern = verdict.quarantine
+          ? applyQuarantine(gated.value, verdict)
+          : { ...gated.value, governance: recordAudit(gated.value.governance, "promoted", "passed the learning gate") };
+        if (verdict.quarantine) {
+          decisions.push({
+            stage: "validate",
+            decision: "held",
+            subjectType: "pattern",
+            reason: `quarantined: ${verdict.reasons.join("; ")}`,
+          });
+        }
+        const saved = await upsertPattern(finalPattern);
         if (saved?.id) {
           candidateCreated = saved.id;
-          await snapshotPatternVersion(saved, "created from a user correction");
+          await snapshotPatternVersion(saved, `created from a ${analysis.causeType} correction`);
         }
       }
+    } else if (adaptation.candidate) {
+      decisions.push({
+        stage: "policy",
+        decision: "held",
+        subjectType: "pattern",
+        reason: analysis.needsClarification
+          ? "correction recorded but its cause could not be identified — nothing durable written"
+          : "first observation — applied to this answer only, not stored as a pattern",
+      });
     }
 
     // the correction is also a memory proposal, judged on its own terms.
@@ -251,6 +362,9 @@ export async function completeTurn(prepared: PreparedTurn, outcome: TurnOutcome)
     discoveryRan: prepared.discoveryRan,
     patternsUsed: context.patterns.map((r) => r.pattern.slug),
     candidateCreated,
+    route: prepared.route,
+    loop: prepared.loop,
+    feedback: analysis,
   };
 }
 

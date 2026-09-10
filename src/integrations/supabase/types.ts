@@ -523,6 +523,7 @@ export type Database = {
           failure_count: number
           failure_modes: Json
           family: string | null
+          governance: Json
           id: string
           inputs: Json
           mechanism: string | null
@@ -556,6 +557,7 @@ export type Database = {
           failure_count?: number
           failure_modes?: Json
           family?: string | null
+          governance?: Json
           id?: string
           inputs?: Json
           mechanism?: string | null
@@ -589,6 +591,7 @@ export type Database = {
           failure_count?: number
           failure_modes?: Json
           family?: string | null
+          governance?: Json
           id?: string
           inputs?: Json
           mechanism?: string | null

@@ -373,6 +373,10 @@ function toPattern(row: Record<string, unknown>): PatternObject {
     status: (row.status as PatternStatus) ?? "candidate",
     source: (row.source as PatternSource) ?? "conversation",
     version: Number(row.version ?? 1),
+    governance:
+      row.governance && typeof row.governance === "object" && Object.keys(row.governance as object).length
+        ? (row.governance as PatternObject["governance"])
+        : undefined,
     createdAt: (row.created_at as string) ?? undefined,
     updatedAt: (row.updated_at as string) ?? undefined,
   };
@@ -408,6 +412,7 @@ function patternRow(p: PatternObject, user: string) {
     status: p.status,
     source: p.source,
     version: p.version,
+    governance: (p.governance ?? {}) as unknown as never,
   };
 }
 

@@ -12,6 +12,7 @@ const STATUS_WEIGHT: Record<string, number> = {
   candidate: 0.35,
   observed: 0.15,
   failed: 0.05,
+  quarantined: 0,
   superseded: 0,
   archived: 0,
 };
@@ -84,7 +85,8 @@ export function retrievePatterns(all: PatternObject[], ctx: RetrievalContext): R
   const limit = ctx.limit ?? 7;
   return all
     .filter((p) => scopeVisible(p, { conversationId: ctx.conversationId, projectId: ctx.projectId }))
-    .filter((p) => p.status !== "archived" && p.status !== "superseded")
+    // quarantined patterns are kept for audit but must never influence an answer.
+    .filter((p) => p.status !== "archived" && p.status !== "superseded" && p.status !== "quarantined")
     .map((p) => {
       const { score, why } = scorePattern(p, ctx);
       return { pattern: p, relevance: score, why };

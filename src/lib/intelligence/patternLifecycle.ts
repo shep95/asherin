@@ -3,13 +3,16 @@
 
 import type { EvidenceQuality, PatternObject, PatternStatus } from "./types";
 
+// quarantine is reachable from every live state and is reversible only back to
+// candidate — a quarantined pattern must re-earn its evidence, never resume as active.
 const ALLOWED: Record<PatternStatus, PatternStatus[]> = {
-  observed: ["candidate", "archived"],
-  candidate: ["testing", "failed", "archived"],
-  testing: ["validated", "failed", "candidate"],
-  validated: ["active", "failed", "archived"],
-  active: ["refined", "superseded", "failed", "archived"],
-  refined: ["active", "superseded", "failed", "archived"],
+  observed: ["candidate", "quarantined", "archived"],
+  candidate: ["testing", "failed", "quarantined", "archived"],
+  testing: ["validated", "failed", "candidate", "quarantined"],
+  validated: ["active", "failed", "quarantined", "archived"],
+  active: ["refined", "superseded", "failed", "quarantined", "archived"],
+  refined: ["active", "superseded", "failed", "quarantined", "archived"],
+  quarantined: ["candidate", "failed", "archived"],
   superseded: ["archived"],
   failed: ["candidate", "archived"],
   archived: [],
