@@ -71,7 +71,6 @@ export async function streamChat({
   onThinkingStart?: () => void;
   onThinkingDelta?: (text: string) => void;
   onThinkingDone?: (fullThinking: string) => void;
-  intelligenceContext?: string;
 }) {
   // Transform attachments for the backend
   const apiMessages = messages.map((m) => {
@@ -227,6 +226,7 @@ export async function streamChat({
             byokProvider,
             byokModel,
             brainContext,
+            intelligenceContext,
             skillInjection,
             swarmInjection,
             activeAgentId,
