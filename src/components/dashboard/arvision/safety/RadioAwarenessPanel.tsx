@@ -23,9 +23,11 @@ const modeLabel = (r: BleDeviceRecord) => {
 
 const RadioAwarenessPanel = ({
   snapshot,
+  allowlist,
   onAllowlist,
 }: {
   snapshot: SafetySnapshot;
+  allowlist: BleAllowlistEntry[];
   onAllowlist: (entries: BleAllowlistEntry[]) => void;
 }) => {
   const [selected, setSelected] = useState<string | null>(null);
@@ -40,7 +42,7 @@ const RadioAwarenessPanel = ({
       label: label.trim(),
       note: `added by an operator on ${new Date().toISOString()}`,
     };
-    onAllowlist([...(snapshot.devices.length ? [] : []), ...allowlistOf(snapshot), entry]);
+    onAllowlist([...allowlist.filter((e) => e.match !== entry.match), entry]);
     setLabel("");
   };
 
@@ -181,17 +183,5 @@ const RadioAwarenessPanel = ({
     </section>
   );
 };
-
-/** Allowlist entries are held by the hub; this reads them off the labelled rows. */
-function allowlistOf(snapshot: SafetySnapshot): BleAllowlistEntry[] {
-  const seen = new Map<string, BleAllowlistEntry>();
-  for (const d of snapshot.devices) {
-    if (d.knownLabel) {
-      const match = d.addresses[d.addresses.length - 1] ?? d.key;
-      seen.set(match, { match, label: d.knownLabel, note: "existing allowlist entry" });
-    }
-  }
-  return [...seen.values()];
-}
 
 export default RadioAwarenessPanel;
