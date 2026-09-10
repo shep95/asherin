@@ -345,12 +345,13 @@ export class VisionEventEngine {
   private toFiring(event: VisionEvent, frame: VisionFrameInput): RuleFiring | null {
     const reporting = EVENT_REPORTING[event.type];
     if (!reporting) return null;
-    const seconds = Math.round((event.updatedAtMs - event.openedAtMs) / 1000);
-    const value = reporting.unit === "seconds" ? Math.max(1, seconds || 1) : 1;
     return {
       ruleId: reporting.ruleId,
       signal: reporting.signal,
-      value: event.type === "crowd_formation" ? event.trackIds.length : value,
+      // the measurement itself, in the rule's own unit. a rule compares against
+      // this, so an event that has only just opened reports what it measured
+      // rather than how long it has been open.
+      value: event.value,
       atMs: event.openedAtMs,
       zoneId: event.zoneId,
       provenance: `${frame.cameraLabel} · on-device detection`,
@@ -527,6 +528,8 @@ export class VisionEventEngine {
           member.entryFired = true;
           this.raise(ctx, {
             type: "restricted_entry",
+            value: 1,
+            valueUnit: "count",
             key: `restricted:${zone.id}:${t.id}`,
             zone,
             trackIds: [t.id],
@@ -546,6 +549,8 @@ export class VisionEventEngine {
           member.dwellFired = true;
           this.raise(ctx, {
             type: "extended_dwell",
+            value: Math.round(dwellMs / 1000),
+            valueUnit: "seconds",
             key: `dwell:${zone.id}:${t.id}`,
             zone,
             trackIds: [t.id],
@@ -581,6 +586,8 @@ export class VisionEventEngine {
     if (sustained < cfg.runSustainMs) return;
     this.raise(ctx, {
       type: "unusual_movement",
+      value: Math.round(sustained / 1000),
+      valueUnit: "seconds",
       key: `run:${zone.id}:${t.id}`,
       zone,
       trackIds: [t.id],
@@ -638,6 +645,8 @@ export class VisionEventEngine {
 
     this.raise(ctx, {
       type: "barrier_crossing",
+      value: 1,
+      valueUnit: "count",
       key: `barrier:${zone.id}:${t.id}`,
       zone,
       trackIds: [t.id],
@@ -710,6 +719,8 @@ export class VisionEventEngine {
         this.raise(ctx, {
           type,
           key: `retrieved:${obj.objectId}:${frame.atMs}`,
+          value: 1,
+          valueUnit: "count",
           zone: null,
           trackIds: [nearest.track.id],
           objectId: obj.objectId,
@@ -758,6 +769,8 @@ export class VisionEventEngine {
       obj.outcome = "unattended";
       const ev = this.raise(ctx, {
         type: "object_left",
+        value: Math.round(separatedMs / 1000),
+        valueUnit: "seconds",
         key: `left:${obj.objectId}`,
         zone: this.zoneAtPoint(frame.cameraId, footPoint(obj.box)),
         trackIds: obj.ownerTrackId ? [obj.ownerTrackId] : [],
@@ -831,6 +844,8 @@ export class VisionEventEngine {
         if (prior && closingRate >= cfg.rapidApproachBodySpeed && dist <= cfg.proximityBodies * 1.6) {
           this.raise(ctx, {
             type: "rapid_approach",
+            value: 1,
+            valueUnit: "count",
             key: `approach:${key}`,
             zone: this.zoneAtPoint(frame.cameraId, a.foot),
             trackIds: [a.id, b.id],
@@ -852,6 +867,8 @@ export class VisionEventEngine {
           if (held >= cfg.proximityDurationMs && pair.motionEnergy > 0.25) {
             this.raise(ctx, {
               type: "prolonged_proximity",
+              value: Math.round(held / 1000),
+              valueUnit: "seconds",
               key: `proximity:${key}`,
               zone: this.zoneAtPoint(frame.cameraId, a.foot),
               trackIds: [a.id, b.id],
@@ -873,6 +890,8 @@ export class VisionEventEngine {
           if (poseBacked && impulse >= cfg.contactImpulse && dist <= cfg.proximityBodies * 0.8) {
             this.raise(ctx, {
               type: "contact_impulse",
+              value: 1,
+              valueUnit: "count",
               key: `contact:${key}`,
               zone: this.zoneAtPoint(frame.cameraId, a.foot),
               trackIds: [a.id, b.id],
@@ -901,6 +920,8 @@ export class VisionEventEngine {
           if (held >= cfg.chaseSustainMs) {
             this.raise(ctx, {
               type: "chase_like_trajectory",
+              value: Math.round(held / 1000),
+              valueUnit: "seconds",
               key: `chase:${key}`,
               zone: this.zoneAtPoint(frame.cameraId, a.foot),
               trackIds: [a.id, b.id],
@@ -961,6 +982,8 @@ export class VisionEventEngine {
 
       this.raise(ctx, {
         type: "person_on_ground",
+        value: Math.round(held / 1000),
+        valueUnit: "seconds",
         key: `ground:${t.id}`,
         zone: this.zoneAtPoint(frame.cameraId, t.foot),
         trackIds: [t.id],
@@ -999,6 +1022,8 @@ export class VisionEventEngine {
       const boxes = unionBox(inside.map((t) => t.box));
       this.raise(ctx, {
         type: "crowd_formation",
+        value: inside.length,
+        valueUnit: "count",
         key: `crowd:${zone.id}`,
         zone,
         trackIds: inside.map((t) => t.id),
@@ -1077,6 +1102,8 @@ export class VisionEventEngine {
       detail: spec.detail,
       box: spec.box,
       associationCertain: spec.associationCertain,
+      value: spec.value,
+      valueUnit: spec.valueUnit,
       incidentId: null,
     };
     this.events.set(spec.key, event);
@@ -1142,6 +1169,9 @@ interface RaiseSpec {
   box: NormBox | null;
   associationCertain: boolean;
   detail: string;
+  /** the measurement that triggered this, in `valueUnit`. */
+  value: number;
+  valueUnit: "count" | "seconds";
   parts: EvidencePart[];
   /** printed instead of the generic line when the event is below the confidence floor. */
   suppressionNote?: string;
