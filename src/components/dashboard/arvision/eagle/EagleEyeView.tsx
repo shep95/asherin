@@ -46,6 +46,7 @@ import {
 import RadioIntelPanel from "./RadioIntelPanel";
 import FabricConsolePanel from "./FabricConsolePanel";
 import OperationsPanel from "./OperationsPanel";
+import CapabilityMatrixPanel from "./CapabilityMatrixPanel";
 import { visionSafety } from "@/lib/arvision/vision/bridge";
 import { toVisionFrame } from "@/lib/arvision/vision/adapt";
 import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
@@ -966,6 +967,7 @@ export default function EagleEyeView() {
           )}
 
           <OperationsPanel />
+          <CapabilityMatrixPanel localInferenceReady={modelStatus === "ready"} />
           <FabricConsolePanel />
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-light text-white/45">

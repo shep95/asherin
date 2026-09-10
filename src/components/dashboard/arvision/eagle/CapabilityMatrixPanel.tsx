@@ -71,7 +71,7 @@ export default function CapabilityMatrixPanel({ localInferenceReady = false }: {
         sensor,
         declared: null,
         services,
-        localInferenceReady: false,
+        localInferenceReady,
         edgeConnected,
       });
     });
@@ -84,13 +84,13 @@ export default function CapabilityMatrixPanel({ localInferenceReady = false }: {
           sensor: s,
           declared: null,
           services,
-          localInferenceReady: false,
+          localInferenceReady,
           edgeConnected,
         }),
       );
     }
     return out;
-  }, [site.devices, snapshot.sensors, services, edgeConnected]);
+  }, [site.devices, snapshot.sensors, services, edgeConnected, localInferenceReady]);
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
