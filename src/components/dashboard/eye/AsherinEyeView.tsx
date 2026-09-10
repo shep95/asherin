@@ -911,6 +911,9 @@ const AsherinEyeView = () => {
     // one load token per layer: a slow answer that arrives after a newer one
     // must never repaint the older rows over the newer ones.
     const loadToken = {};
+    // when the feed answers out of its own stale cache we record why, so the
+    // chip can say "stale" even though the request itself succeeded.
+    const upstreamStale = {};
     let selected = null;
     const chatLog = [];
 
@@ -1218,6 +1221,7 @@ const AsherinEyeView = () => {
         const rows = await loadLayer(id, () => loadToken[id] === token);
         if (loadToken[id] !== token) return null;
         health.ok(id, { rows: typeof rows === "number" ? rows : null });
+        if (upstreamStale[id]) health.fail(id, upstreamStale[id]);
         paintLayerState(id);
         return rows;
       } catch (e) {
@@ -2787,7 +2791,7 @@ const AsherinEyeView = () => {
         setCamWall(true);
       }
       // an upstream that answered from its own stale cache is stale here too.
-      if (j.fresh === false) health.fail(id, `upstream stale ${Math.round((j.ageMs || 0) / 1000)}s`);
+      upstreamStale[id] = j.fresh === false ? `upstream cache ${Math.round((j.ageMs || 0) / 1000)}s old` : null;
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
