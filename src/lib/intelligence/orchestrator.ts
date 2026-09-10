@@ -4,6 +4,13 @@
 // call the model, validate the output, then run the learning gate. learning is
 // always last and always gated: the model proposes, this file decides, and the
 // database records why.
+//
+// the turn is split into two phases so the live streaming chat path can use it:
+//   prepareTurn  — everything before the model call (load, frame, retrieve,
+//                  discover, compose). returns a PreparedTurn handle.
+//   completeTurn — everything after the model answered (validate, feedback,
+//                  gates, outcomes, conversation state, audit).
+// runTurn composes both for non-streaming callers and tests.
 
 import {
   loadSettings,
@@ -28,9 +35,12 @@ import { gateMemory, gatePattern } from "./learningGate";
 import { recordSuccess, recordFailure } from "./patternLifecycle";
 import type {
   ConversationState,
+  IntelligenceSettings,
   LearningDecision,
+  MemoryRecord,
   PatternObject,
   RuntimeContext,
+  TaskFrame,
   ValidationReport,
 } from "./types";
 
@@ -56,7 +66,23 @@ export interface TurnResult {
   candidateCreated: string | null;
 }
 
-export async function runTurn(input: TurnInput): Promise<TurnResult> {
+/** everything completeTurn needs to finish the turn, captured before the model ran. */
+export interface PreparedTurn {
+  input: TurnInput;
+  settings: IntelligenceSettings;
+  conversation: ConversationState;
+  task: TaskFrame;
+  context: RuntimeContext;
+  userMemory: MemoryRecord[];
+  projectMemory: MemoryRecord[];
+  decisions: LearningDecision[];
+  discoveryRan: boolean;
+  candidate: PatternObject | null;
+  /** the bounded brief that may be handed to a model — never contains credentials. */
+  composed: string;
+}
+
+export async function prepareTurn(input: TurnInput): Promise<PreparedTurn> {
   const decisions: LearningDecision[] = [];
 
   const [settings, conversation, userMemory, patterns] = await Promise.all([
@@ -70,7 +96,6 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
   const task = frameTask(input.message, {
     priorGoal: conversation.goal,
   });
-
 
   const context = resolveContext({
     conversation,
@@ -98,33 +123,39 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     });
   }
 
-  const composed = composeModelContext(context);
+  return {
+    input,
+    settings,
+    conversation,
+    task,
+    context,
+    userMemory,
+    projectMemory,
+    decisions,
+    discoveryRan,
+    candidate,
+    composed: composeModelContext(context),
+  };
+}
 
-  // ---- model ----
-  let text = "";
-  let ok = true;
-  let unavailableReason: string | undefined;
+export interface TurnOutcome {
+  ok: boolean;
+  text?: string;
+  unavailableReason?: string;
+}
 
-  if (!input.dryRun) {
-    const binding = await resolveBinding();
-    const response = await invokeModel(binding, {
-      systemContext: composed,
-      message: input.message,
-      conversationId: input.conversationId,
-      modality: task.modality,
-      hasImageInput: input.hasImageInput,
-    });
-    if (response.ok === true) {
-      text = response.text;
-    } else {
-      ok = false;
-      unavailableReason = response.reason;
-    }
-
-  }
+export async function completeTurn(prepared: PreparedTurn, outcome: TurnOutcome): Promise<TurnResult> {
+  const { input, settings, conversation, task, context, userMemory, projectMemory } = prepared;
+  const decisions = prepared.decisions;
+  const text = outcome.text ?? "";
+  const ok = outcome.ok;
+  const unavailableReason = outcome.unavailableReason;
 
   // ---- validation ----
-  const validation = ok && !input.dryRun ? validate({ task, output: text, activeRules: context.userMemory.map((m) => m.content) }) : undefined;
+  const validation =
+    ok && !input.dryRun
+      ? validate({ task, output: text, activeRules: context.userMemory.map((m) => m.content) })
+      : undefined;
 
   // ---- feedback signal from this message ----
   const signal = readFeedback(input.message);
@@ -200,7 +231,9 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     constraints: Array.from(new Set([...conversation.constraints, ...task.constraints])).slice(-30),
     unresolvedQuestions: Array.from(new Set([...conversation.unresolvedQuestions, ...task.unknowns])).slice(-20),
     patternsUsed: Array.from(new Set([...conversation.patternsUsed, ...context.patterns.map((r) => r.pattern.slug)])).slice(-40),
-    patternsCreated: candidate ? Array.from(new Set([...conversation.patternsCreated, candidate.slug])) : conversation.patternsCreated,
+    patternsCreated: prepared.candidate
+      ? Array.from(new Set([...conversation.patternsCreated, prepared.candidate.slug]))
+      : conversation.patternsCreated,
     feedback: [...conversation.feedback, signal].slice(-30),
     confidence: ok ? Math.min(0.95, conversation.confidence + 0.05) : Math.max(0.1, conversation.confidence - 0.1),
   };
@@ -212,11 +245,34 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
     text,
     unavailableReason,
     context,
-    composed,
+    composed: prepared.composed,
     validation,
     decisions,
-    discoveryRan,
+    discoveryRan: prepared.discoveryRan,
     patternsUsed: context.patterns.map((r) => r.pattern.slug),
     candidateCreated,
   };
+}
+
+/** non-streaming composition: prepare, invoke the model through the gateway, complete. */
+export async function runTurn(input: TurnInput): Promise<TurnResult> {
+  const prepared = await prepareTurn(input);
+
+  if (input.dryRun) {
+    return completeTurn(prepared, { ok: true, text: "" });
+  }
+
+  const binding = await resolveBinding();
+  const response = await invokeModel(binding, {
+    systemContext: prepared.composed,
+    message: input.message,
+    conversationId: input.conversationId,
+    modality: prepared.task.modality,
+    hasImageInput: input.hasImageInput,
+  });
+
+  if (response.ok === true) {
+    return completeTurn(prepared, { ok: true, text: response.text });
+  }
+  return completeTurn(prepared, { ok: false, unavailableReason: response.reason });
 }

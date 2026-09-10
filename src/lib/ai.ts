@@ -37,6 +37,7 @@ export async function streamChat({
   depth,
   userProfile,
   brainContext,
+  intelligenceContext,
   conversationId,
   turnId,
   signal,
@@ -54,6 +55,8 @@ export async function streamChat({
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
+  /** bounded brief composed by the intelligence orchestrator (memory + procedures). */
+  intelligenceContext?: string;
   conversationId?: string | null;
   /** Assistant message id for this turn — stamped on every Connect trace row. */
   turnId?: string | null;
@@ -223,6 +226,7 @@ export async function streamChat({
             byokProvider,
             byokModel,
             brainContext,
+            intelligenceContext,
             skillInjection,
             swarmInjection,
             activeAgentId,

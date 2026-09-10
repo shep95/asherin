@@ -1323,6 +1323,34 @@ const Dashboard = () => {
       console.error("investigation grounding skipped:", e);
     }
 
+    // ── INTELLIGENCE TURN ───────────────────────────────────────────
+    // memory + procedure retrieval runs before the model sees anything; the
+    // learning half runs in onDone / catch after the answer lands. a failure
+    // here never blocks the message — the chat works without it.
+    let preparedTurn: import("@/lib/intelligence/orchestrator").PreparedTurn | null = null;
+    let intelligenceContext: string | undefined;
+    try {
+      const { prepareTurn } = await import("@/lib/intelligence/orchestrator");
+      preparedTurn = await prepareTurn({
+        conversationId: convId,
+        message: content,
+        hasImageInput: !!attachments?.length,
+      });
+      if (preparedTurn.composed.trim()) intelligenceContext = preparedTurn.composed;
+      if (preparedTurn.discoveryRan) {
+        thinkingStore.step(assistantId, "learning", "no covering procedure — drafted a hypothesis", "done");
+      } else if (preparedTurn.context.patterns.length > 0) {
+        thinkingStore.step(
+          assistantId,
+          "memory",
+          `${preparedTurn.context.patterns.length} procedure(s) in context`,
+          "done",
+        );
+      }
+    } catch (e) {
+      console.error("intelligence prepare skipped:", e);
+    }
+
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
     if (activeBrainId) {
@@ -1442,6 +1470,7 @@ const Dashboard = () => {
         depth,
         userProfile,
         brainContext,
+        intelligenceContext,
         conversationId: convId,
         turnId: assistantId,
         signal: controller.signal,
@@ -1567,6 +1596,13 @@ const Dashboard = () => {
           } catch {
             /* suggestions are non-critical */
           }
+          // learning half of the turn — gated, audited, never blocks the UI.
+          const completedTurn = preparedTurn;
+          if (completedTurn) {
+            void import("@/lib/intelligence/orchestrator")
+              .then(({ completeTurn }) => completeTurn(completedTurn, { ok: true, text: assistantContent }))
+              .catch((e) => console.error("intelligence complete skipped:", e));
+          }
           pushNotification({
             title: "Asherin responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
@@ -1580,6 +1616,19 @@ const Dashboard = () => {
       setIsStreaming(false);
       isStreamingRef.current = false;
       thinkingStore.finish(assistantId);
+      // record the failed turn so pattern outcomes stay honest.
+      const failedTurn = preparedTurn;
+      if (failedTurn) {
+        void import("@/lib/intelligence/orchestrator")
+          .then(({ completeTurn }) =>
+            completeTurn(failedTurn, {
+              ok: false,
+              text: assistantContent,
+              unavailableReason: e?.name === "AbortError" ? "stopped by operator" : String(e?.message || e),
+            }),
+          )
+          .catch((err) => console.error("intelligence complete skipped:", err));
+      }
       if (e.name === "AbortError") {
         if (assistantContent) {
           try {

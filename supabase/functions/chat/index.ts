@@ -1112,6 +1112,7 @@ serve(async (req) => {
 
       brainContext,
       taskDirective,
+      intelligenceContext: _intelligenceContext,
       skillInjection,
       swarmInjection,
       activeAgentId,
@@ -1127,6 +1128,19 @@ serve(async (req) => {
     let byokProvider: string | undefined = _bodyByokProvider;
     let byokModel: string | undefined = _bodyByokModel;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
+    // Intelligence orchestrator brief (operator memory + procedures retrieved
+    // for this turn). Bounded and treated as untrusted context, never as
+    // instructions that override system rules — and never a place credentials
+    // may travel, so key-shaped content is dropped outright.
+    const intelligenceContext =
+      typeof _intelligenceContext === "string" &&
+      _intelligenceContext.length > 0 &&
+      _intelligenceContext.length <= 8000 &&
+      !/\b(sk|pk|rk)[-_][A-Za-z0-9]{12,}|AIza[0-9A-Za-z_-]{20,}|-----BEGIN[^-]{0,40}PRIVATE KEY-----/.test(
+        _intelligenceContext,
+      )
+        ? _intelligenceContext
+        : "";
 
     // ── BYOK: use the key resolved from the caller's own locker ──
     let userApiKey: string | null = null;
@@ -2941,6 +2955,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
       vaultContextStr,
       brainContextStr,
       skillInjection ? `\n${skillInjection}` : "",
+      intelligenceContext
+        ? `\n[OPERATOR MEMORY & PROCEDURES — retrieved for this turn. standing rules and relevant procedures from the operator's own saved memory; candidates are hypotheses, not facts.]\n${intelligenceContext}`
+        : "",
       swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       DEFENSIVE_SECURITY_REALISM_STATE,
       artifactForensicsBrief,
