@@ -196,6 +196,8 @@ export interface VisionStepResult {
 
 const HISTORY_LIMIT = 80;
 const TRACK_DROP_MISSES = 45;
+/** misses after which an object's association to a track can no longer be asserted. */
+const CONTINUITY_BREAK_MISSES = 8;
 const OBJECT_DROP_MISSES = 30;
 
 function clamp01(n: number): number {
@@ -731,7 +733,10 @@ export class VisionEventEngine {
         // the association survives as a record of what was measured, but it
         // stops being certain the moment continuity breaks.
         obj.associationCertain = false;
-        if (!owner) obj.ownerContinuityLost = true;
+        // continuity is only "broken" once the associated track has been out of
+        // sight long enough that re-identifying it is guesswork. a one or two
+        // frame occlusion is not that.
+        if (!owner || owner.missStreak >= CONTINUITY_BREAK_MISSES) obj.ownerContinuityLost = true;
       }
 
       const separation = owner && owner.missStreak === 0 ? boxGapBodies(obj.box, owner.box, owner.box) : Infinity;
