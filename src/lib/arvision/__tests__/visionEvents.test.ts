@@ -414,6 +414,10 @@ describe("retrieval after track loss", () => {
     expect(types).toContain("object_retrieved_association_unknown");
     expect(types).not.toContain("object_retrieved_different_track");
     expect(detail).toContain("unknown");
-    expect(engine.custody().find((c) => c.objectId === "obj1")?.outcome ?? "").toBe("retrieved_unknown");
+    // once someone is standing with it again the object is attended, but the
+    // association is still not something the engine can assert.
+    const record = engine.custody().find((c) => c.objectId === "obj1");
+    expect(record?.present).toBe(true);
+    expect(record?.associationCertain).toBe(false);
   });
 });
