@@ -222,7 +222,7 @@ describe("radio never becomes a person", () => {
   });
 
   it("attributes only when a named human asserts the link", () => {
-    const link = assertHumanLink(sighting(), track(T, "lobby"), "operator 12ab", "badge handover witnessed at the desk");
+    const link = assertHumanLink([sighting(), track(T, "lobby")], "operator 12ab", "badge handover witnessed at the desk");
     expect(link.attribution).toBe("human_asserted");
     expect(link.assertedBy).toBe("operator 12ab");
   });
