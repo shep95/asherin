@@ -9,6 +9,7 @@
 // If no bridge endpoint is configured, this adapter reports itself unreachable
 // and publishes nothing. It never synthesises a sensor so a panel can look busy.
 
+import type { BleObservation, BleScanner } from "../../ble/types";
 import type {
   AdapterStatus,
   PointCloudChunk,
