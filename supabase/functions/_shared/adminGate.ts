@@ -24,8 +24,8 @@ export const BYOK_REQUIRED_BODY = {
 // See https://docs.venice.ai/api-reference/models
 const VENICE_FREE_MODEL = "mistral-31-24b";
 
-/** Returns the authenticated caller's email, or null if anon / invalid. */
-export async function getCallerEmail(req: Request): Promise<string | null> {
+/** Verified caller identity (id + email), or null if anon / invalid. */
+export async function getCaller(req: Request): Promise<{ id: string; email: string | null } | null> {
   const auth = req.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return null;
@@ -36,11 +36,18 @@ export async function getCallerEmail(req: Request): Promise<string | null> {
       { auth: { persistSession: false } },
     );
     const { data } = await sb.auth.getUser(token);
-    return (data?.user?.email || null)?.toLowerCase() ?? null;
+    if (!data?.user?.id) return null;
+    return { id: data.user.id, email: (data.user.email || "").toLowerCase() || null };
   } catch {
     return null;
   }
 }
+
+/** Returns the authenticated caller's email, or null if anon / invalid. */
+export async function getCallerEmail(req: Request): Promise<string | null> {
+  return (await getCaller(req))?.email ?? null;
+}
+
 
 /**
  * Staff identity check — the single implementation. constants.ts re-exports
