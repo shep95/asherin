@@ -38,11 +38,16 @@ export function frameTask(userText: string, hints: { priorGoal?: string } = {}):
   }
   modalities.sort((a, b) => b.hits - a.hits);
 
+  // "mixed" is only honest when no single modality dominates. a clear leader
+  // stays a clear leader even if a few weaker signals also fired.
+  const dominant = modalities[0];
+  const tiedLeaders = modalities.filter((m) => m.hits === dominant?.hits).length;
   const modality: TaskModality = modalities.length === 0
     ? "conversation"
-    : modalities.length > 2
+    : tiedLeaders >= 3
       ? "mixed"
-      : modalities[0].modality;
+      : dominant.modality;
+
 
   const domains = modalities.length ? Array.from(new Set(modalities.map((m) => m.domain))) : ["general"];
 
