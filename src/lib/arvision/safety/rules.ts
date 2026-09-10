@@ -24,7 +24,18 @@ export type ObservableSignal =
   | "camera_obstructed"
   | "camera_moved"
   | "unregistered_radio_in_zone"
-  | "radio_dwell_exceeded";
+  | "radio_dwell_exceeded"
+  // ---- signals produced by the on-device camera event engine --------------
+  // every one of these is a measurement of where bodies and objects were, and
+  // how they moved. none of them reads a face, a trait, or an intention.
+  | "restricted_zone_entry"
+  | "barrier_crossing"
+  | "unusual_movement"
+  | "prolonged_proximity"
+  | "physical_contact_impulse"
+  | "rapid_approach"
+  | "chase_like_trajectory"
+  | "person_on_ground";
 
 /**
  * Signals that must never influence severity. Enforced at runtime — a rule

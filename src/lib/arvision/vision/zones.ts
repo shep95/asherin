@@ -91,6 +91,27 @@ export function sideOfLine(p: Point, a: Point, b: Point): number {
   return cross > 0 ? 1 : -1;
 }
 
+/**
+ * Do two segments actually cross? A side flip alone is not a crossing — a track
+ * can walk around the end of a short barrier and flip sides without ever going
+ * over it, so the path travelled must intersect the drawn segment itself.
+ */
+export function segmentsIntersect(p1: Point, p2: Point, q1: Point, q2: Point): boolean {
+  const d1 = sideOfLine(p1, q1, q2);
+  const d2 = sideOfLine(p2, q1, q2);
+  const d3 = sideOfLine(q1, p1, p2);
+  const d4 = sideOfLine(q2, p1, p2);
+  if (d1 !== d2 && d3 !== d4) return true;
+  // collinear touching counts, so a track that walks exactly along the line and
+  // steps over it is not silently dropped.
+  return (
+    (d1 === 0 && onSegment(p1, q1, q2)) ||
+    (d2 === 0 && onSegment(p2, q1, q2)) ||
+    (d3 === 0 && onSegment(q1, p1, p2)) ||
+    (d4 === 0 && onSegment(q2, p1, p2))
+  );
+}
+
 export function zoneCentroid(zone: SafetyZone): Point {
   const n = zone.polygon.length || 1;
   return {
