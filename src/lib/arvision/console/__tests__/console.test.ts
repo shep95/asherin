@@ -242,7 +242,7 @@ describe("alert queue", () => {
   });
 
   it("no forbidden person-level signal is allowed into a card", () => {
-    for (const s of ["emotion", "gaze", "body language", "ethnicity", "dangerousness"]) {
+    for (const s of ["emotion", "gaze", "body_language", "ethnicity", "criminality", "threat_of_person"]) {
       expect(isForbiddenSignal(s)).toBe(true);
     }
   });
