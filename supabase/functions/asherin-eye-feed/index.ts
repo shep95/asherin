@@ -1264,7 +1264,7 @@ async function route(params: Record<string, unknown>) {
         lat: clampLat(aLat),
         lon: wrapLon(aLon),
         ring: r.geometry.coordinates.map((p) => ({ lon: Number(p[0]), lat: Number(p[1]) })),
-        note: `osrm ${Math.round((r.distance || 0) / 1000)} km · ${wind} · sci-fi quantum routing rewritten as public path + weather cost · not a quantum computer`,
+        note: `osrm ${Math.round((r.distance || 0) / 1000)} km · ${wind} · public road path re-costed by forecast weather · routing + weather cost only`,
       },
     ],
     source: "osrm public router + open-meteo",

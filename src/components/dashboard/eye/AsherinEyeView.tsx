@@ -132,7 +132,7 @@ const LAYER_ROWS = [
   {
     id: "route",
     label: "unstable route",
-    honesty: "osrm + open-meteo wind/precip as cost · sci-fi quantum routing rewritten · not a quantum computer",
+    honesty: "osrm public road route re-costed by open-meteo wind/precip · routing + weather cost only, no prediction",
     keyed: false,
   },
   {
@@ -434,7 +434,7 @@ const EYE_HUD_CSS = `
     max-width:min(320px, calc(100cqi - 2 * var(--pad))); pointer-events:none;
   }
   #note:empty { display:none; }
-  #detect { position:absolute; inset:0; z-index:5; pointer-events:none; width:100%; height:100%; }
+  #trackbox { position:absolute; inset:0; z-index:5; pointer-events:none; width:100%; height:100%; }
 
   /* ── the dock: asherin.eye speaks through a conversation, and the
      navigation is the quiet rail underneath it ─────────────────────── */
@@ -886,7 +886,7 @@ const AsherinEyeView = () => {
         viewer?.resize();
       } catch {}
       const box = root.querySelector(".eye-root") || root;
-      const cv = root.querySelector("#detect");
+      const cv = root.querySelector("#trackbox");
       if (cv && box) {
         const w = Math.max(1, box.clientWidth);
         const h = Math.max(1, box.clientHeight);
@@ -921,7 +921,7 @@ const AsherinEyeView = () => {
       <style>${EYE_HUD_CSS}</style>
       <div class="eye-root">
         <div id="eye-stage"></div>
-        <canvas id="detect"></canvas>
+        <canvas id="trackbox"></canvas>
         <div class="glass misb">
           <div><b>asherin.eye</b></div>
           <div class="m" id="hud-line">loading globe…</div>
@@ -3272,7 +3272,7 @@ const AsherinEyeView = () => {
     }
 
     function drawDetect(on) {
-      const cv = $("#detect");
+      const cv = $("#trackbox");
       if (!cv || !viewer) return;
       const box = root.querySelector(".eye-root") || root;
       cv.width = box.clientWidth;
