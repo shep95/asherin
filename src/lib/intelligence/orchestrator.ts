@@ -69,8 +69,8 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
 
   const task = frameTask(input.message, {
     priorGoal: conversation.goal,
-    priorDomains: [],
   });
+
 
   const context = resolveContext({
     conversation,
