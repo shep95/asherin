@@ -70,7 +70,9 @@ export const EVENT_REPORTING: Record<VisionEventType, Reporting | null> = {
   object_left: { ruleId: "left_object", signal: "object_left_behind", unit: "seconds" },
   object_retrieved_same_track: null,
   object_retrieved_different_track: null,
+  object_retrieved_association_unknown: null,
   restricted_entry: { ruleId: "restricted_entry", signal: "restricted_zone_entry", unit: "count" },
+  restricted_exit: null,
   barrier_crossing: { ruleId: "barrier_cross", signal: "barrier_crossing", unit: "count" },
   unusual_movement: { ruleId: "unusual_motion", signal: "unusual_movement", unit: "seconds" },
   prolonged_proximity: { ruleId: "prolonged_proximity", signal: "prolonged_proximity", unit: "seconds" },
@@ -87,7 +89,9 @@ export const EVENT_LABEL: Record<VisionEventType, string> = {
   object_left: "object left unattended",
   object_retrieved_same_track: "object retrieved by the associated track",
   object_retrieved_different_track: "object retrieved by a different track",
+  object_retrieved_association_unknown: "object retrieved, retriever association unknown",
   restricted_entry: "entry into a restricted zone",
+  restricted_exit: "exit from a restricted zone",
   barrier_crossing: "crossing over a barrier",
   unusual_movement: "sustained running in a walking-only zone",
   prolonged_proximity: "possible prolonged confrontation",
@@ -164,6 +168,8 @@ interface ObjectState {
   ownerSinceMs: number | null;
   ownerFrames: number;
   associationCertain: boolean;
+  /** set once the associated track stopped being continuously observable. */
+  ownerContinuityLost: boolean;
   separatedSinceMs: number | null;
   unattendedSinceMs: number | null;
   leftEventId: string | null;
