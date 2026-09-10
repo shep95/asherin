@@ -24,7 +24,18 @@ export type ObservableSignal =
   | "camera_obstructed"
   | "camera_moved"
   | "unregistered_radio_in_zone"
-  | "radio_dwell_exceeded";
+  | "radio_dwell_exceeded"
+  // ---- signals produced by the on-device camera event engine --------------
+  // every one of these is a measurement of where bodies and objects were, and
+  // how they moved. none of them reads a face, a trait, or an intention.
+  | "restricted_zone_entry"
+  | "barrier_crossing"
+  | "unusual_movement"
+  | "prolonged_proximity"
+  | "physical_contact_impulse"
+  | "rapid_approach"
+  | "chase_like_trajectory"
+  | "person_on_ground";
 
 /**
  * Signals that must never influence severity. Enforced at runtime — a rule
@@ -140,5 +151,20 @@ export function defaultRules(): SafetyRule[] {
     { id: "camera_blocked", label: "camera obstructed", signal: "camera_obstructed", zoneId: null, threshold: 20, unit: "s", weight: 0.35, dedupeWindowMs: 300_000, enabled: true, rationale: "a blinded camera is a coverage failure" },
     { id: "camera_moved", label: "camera moved from its surveyed pose", signal: "camera_moved", zoneId: null, threshold: 5, unit: "°", weight: 0.3, dedupeWindowMs: 300_000, enabled: true, rationale: "a moved camera invalidates every registered coordinate" },
     { id: "radio_dwell", label: "unregistered radio dwelling in a restricted zone", signal: "radio_dwell_exceeded", zoneId: null, threshold: 600, unit: "s", weight: 0.25, dedupeWindowMs: 900_000, enabled: false, rationale: "long presence of equipment not on the site allowlist is worth a look. disabled by default because address rotation makes dwell unreliable" },
+
+    // ---- camera event engine ------------------------------------------------
+    // these fire only from measurements taken on real frames by the on-device
+    // models. with no camera attached, none of them can fire, and the console
+    // says the detector is unavailable rather than showing a quiet, empty list.
+    { id: "restricted_entry", label: "entry into a restricted zone", signal: "restricted_zone_entry", zoneId: null, threshold: 1, unit: " event", weight: 0.5, dedupeWindowMs: 120_000, enabled: true, rationale: "an administrator drew this area as one nobody should walk into while it is closed" },
+    { id: "barrier_cross", label: "crossing over a barrier", signal: "barrier_crossing", zoneId: null, threshold: 1, unit: " event", weight: 0.6, dedupeWindowMs: 120_000, enabled: true, rationale: "going over a gate rather than through it defeats the boundary the gate exists to make" },
+    { id: "unusual_motion", label: "sustained running in a walking-only zone", signal: "unusual_movement", zoneId: null, threshold: 2, unit: "s", weight: 0.25, dedupeWindowMs: 120_000, enabled: true, rationale: "running where the site expects walking is worth a look, whatever the reason turns out to be" },
+    { id: "prolonged_proximity", label: "possible prolonged confrontation", signal: "prolonged_proximity", zoneId: null, threshold: 45, unit: "s", weight: 0.35, dedupeWindowMs: 300_000, enabled: true, rationale: "sustained close range with continuous movement between two tracks. a person decides what it was" },
+    { id: "contact_impulse", label: "possible physical contact between two tracks", signal: "physical_contact_impulse", zoneId: null, threshold: 1, unit: " event", weight: 0.5, dedupeWindowMs: 120_000, enabled: true, rationale: "a sharp motion at contact range may need someone to look now rather than later" },
+    { id: "crowd_formation", label: "crowd formation above the configured occupancy", signal: "crowd_density_exceeded", zoneId: null, threshold: 4, unit: " tracks", weight: 0.3, dedupeWindowMs: 300_000, enabled: true, rationale: "occupancy above the fire or egress limit for this area" },
+    { id: "extended_dwell", label: "extended dwell in a monitored zone", signal: "zone_dwell_exceeded", zoneId: null, threshold: 300, unit: "s", weight: 0.25, dedupeWindowMs: 600_000, enabled: true, rationale: "long presence in a place people normally pass through" },
+    { id: "rapid_approach", label: "rapid approach between two tracks", signal: "rapid_approach", zoneId: null, threshold: 1, unit: " event", weight: 0.3, dedupeWindowMs: 120_000, enabled: true, rationale: "two shapes closing fast is worth a glance at the live view" },
+    { id: "chase_like", label: "sustained pursuit-like movement", signal: "chase_like_trajectory", zoneId: null, threshold: 3, unit: "s", weight: 0.4, dedupeWindowMs: 180_000, enabled: true, rationale: "two tracks running at a held separation. it reads the same whether they are running together or one is following" },
+    { id: "person_on_ground", label: "person on the ground", signal: "person_on_ground", zoneId: null, threshold: 8, unit: "s", weight: 0.7, dedupeWindowMs: 180_000, enabled: true, rationale: "somebody may need help. this is the one event on this list where the right response is to send a person, not to review a clip later" },
   ];
 }

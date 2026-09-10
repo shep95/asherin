@@ -44,6 +44,12 @@ import {
   proximityBandFor, pruneSightings, startPassiveScan, type RadioSighting,
 } from "./radioScan";
 import RadioIntelPanel from "./RadioIntelPanel";
+import { visionSafety } from "@/lib/arvision/vision/bridge";
+import { toVisionFrame } from "@/lib/arvision/vision/adapt";
+import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
+import { safetyHub } from "@/lib/arvision/safety/hub";
+import type { VisionEvent } from "@/lib/arvision/vision/types";
+import { zoneActiveAt } from "@/lib/arvision/vision/zones";
 import type { LedgerInput } from "./radioLedger";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
@@ -96,6 +102,10 @@ interface Runtime {
   lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
+  /** the events the configured safety machines currently hold open for this camera. */
+  safetyEvents: VisionEvent[];
+  /** last time an original frame was handed to the evidence buffer. */
+  lastEvidencePushMs: number;
 }
 
 interface TileState {
@@ -353,7 +363,12 @@ export default function EagleEyeView() {
         lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
+        safetyEvents: [],
+        lastEvidencePushMs: 0,
       });
+      // the safety layer is told a real camera exists before any frame arrives,
+      // so an operator can tell "watching, nothing seen" from "not watching".
+      visionSafety().declareCamera(device.deviceId, label, "model_loading", "camera open, waiting for the detection models");
       setTiles((t) => t.map((x) => (x.deviceId === device.deviceId ? { ...x, status: "live" } : x)));
       setPermission("granted");
     } catch (e) {
@@ -369,6 +384,7 @@ export default function EagleEyeView() {
       closeStream(rt.stream);
       rt.video.srcObject = null;
       runtimes.current.delete(deviceId);
+      visionSafety().releaseCamera(deviceId);
     }
     setTiles((t) => t.filter((x) => x.deviceId !== deviceId));
   }, []);
@@ -456,6 +472,46 @@ export default function EagleEyeView() {
         );
         rt.entities = out.updatedEntities;
         rt.lastObjects = [...det.objects, ...det.vehicles];
+
+        // the configured safety layer: zones, custody, dwell, crowding, falls.
+        // it consumes the same detections, keeps its own temporal state, and
+        // raises only events with a measured value behind them.
+        const visionFrame = toVisionFrame({
+          atMs: Date.now(),
+          cameraId: deviceId,
+          cameraLabel: rt.config.label,
+          frameWidth: frame.width,
+          frameHeight: frame.height,
+          persons: det.persons,
+          objects: [...det.objects, ...det.vehicles],
+        });
+        // the original frame goes to the evidence buffer before any overlay is
+        // drawn on it, at a cadence the buffer can hold rather than every pass.
+        const nowMs = visionFrame.atMs;
+        if (nowMs - rt.lastEvidencePushMs >= 500) {
+          rt.lastEvidencePushMs = nowMs;
+          try {
+            safetyHub().pushFrame({
+              atMs: nowMs,
+              sourceId: deviceId,
+              width: frame.width,
+              height: frame.height,
+              dataUrl: frame.toDataURL("image/jpeg", 0.55),
+              // enough to redraw the overlay over this exact frame later: the
+              // pixels stay original, the drawing is data beside them.
+              overlay: {
+                cameraLabel: rt.config.label,
+                zones: visionSafety().getZones().map((z) => ({ id: z.id, label: z.label, kind: z.kind, polygon: z.polygon })),
+                events: rt.safetyEvents.map((e) => ({ id: e.id, type: e.type, box: e.box, value: e.value, unit: e.valueUnit })),
+              },
+            });
+          } catch {
+            // an encoder that refuses simply means no pre-roll for this frame.
+          }
+        }
+        const visionResult = await visionSafety().ingest(visionFrame, det.inferenceMs);
+        rt.safetyEvents = visionResult.active.filter((e) => e.cameraId === deviceId);
+
         drawOverlay(rt, det.persons.map((p) => ({ trackId: p.trackId, box: p.boundingBox })), frame.width, frame.height);
 
         if (!capturingRef.current) {
@@ -480,7 +536,9 @@ export default function EagleEyeView() {
         setTiles((t) => t.map((x) => (x.deviceId === deviceId ? { ...x, personCount: rt.personCount, inferenceMs: Math.round(rt.lastInferenceMs) } : x)));
       }
     } catch (e) {
-      setModelError(e instanceof Error ? e.message : "the detection pass failed");
+      const msg = e instanceof Error ? e.message : "the detection pass failed";
+      setModelError(msg);
+      for (const [deviceId, rt] of runtimes.current) visionSafety().reportFailure(deviceId, rt.config.label, msg);
     } finally {
       busyRef.current = false;
       if (runningRef.current) loopRef.current = window.setTimeout(() => void tick(), 220);
@@ -508,6 +566,67 @@ export default function EagleEyeView() {
       ctx.fillStyle = TIER_STYLE[tier].ring;
       ctx.fillText(label, b.box.x + 5, Math.max(11, b.box.y - 5));
     }
+    // the configured zones, drawn where the administrator put them, so the
+    // operator can see the geometry a restricted-entry event was measured
+    // against instead of trusting a label.
+    const zones = visionSafety().getZones().filter((z) => z.enabled && (!z.cameraId || z.cameraId === rt.config.cameraId || z.cameraId === rt.config.label));
+    const zoneAt = Date.now();
+    for (const zone of zones) {
+      if (zone.polygon.length < 2) continue;
+      const active = zoneActiveAt(zone, new Date(zoneAt));
+      ctx.beginPath();
+      zone.polygon.forEach((pt, i) => {
+        const x = pt.x * w;
+        const y = pt.y * h;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      const barrier = zone.kind === "barrier";
+      if (!barrier) ctx.closePath();
+      ctx.strokeStyle = active ? (barrier ? "rgba(251,191,36,0.75)" : "rgba(56,189,248,0.6)") : "rgba(255,255,255,0.2)";
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.setLineDash(active ? [] : [4, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (!barrier && active) {
+        ctx.fillStyle = zone.kind === "restricted" ? "rgba(239,68,68,0.08)" : "rgba(56,189,248,0.06)";
+        ctx.fill();
+      }
+      const anchor = zone.polygon[0];
+      ctx.font = "11px ui-monospace, monospace";
+      const zl = `${zone.label} · ${zone.kind}${active ? "" : " · outside schedule"}`;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(anchor.x * w, Math.max(0, anchor.y * h - 16), ctx.measureText(zl).width + 8, 15);
+      ctx.fillStyle = active ? "rgba(186,230,253,0.9)" : "rgba(255,255,255,0.5)";
+      ctx.fillText(zl, anchor.x * w + 4, Math.max(11, anchor.y * h - 4));
+    }
+
+    // live safety events, anchored to the thing that was measured. the label is
+    // the observation and its measurement — never a judgement about a person.
+    for (const ev of rt.safetyEvents) {
+      if (!ev.box) continue;
+      const x = ev.box.x * w;
+      const y = ev.box.y * h;
+      const bw = ev.box.width * w;
+      const bh = ev.box.height * h;
+      // a weakly-evidenced or uncertainly-associated event is drawn dashed and
+      // amber, so the operator can see how sure the measurement is at a glance.
+      const tentative = ev.confidence < 0.6 || !ev.associationCertain;
+      const colour = tentative ? "rgba(251,191,36,0.9)" : "rgba(248,113,113,0.95)";
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 2;
+      ctx.setLineDash(tentative ? [6, 4] : []);
+      ctx.strokeRect(x, y, bw, bh);
+      ctx.setLineDash([]);
+      const unit = ev.valueUnit === "seconds" ? "s" : "";
+      const label = `${EVENT_LABEL[ev.type]} · ${ev.value}${unit} · ${Math.round(ev.confidence * 100)}%${ev.associationCertain ? "" : " · association uncertain"}`;
+      ctx.font = "11px ui-monospace, monospace";
+      const tw = ctx.measureText(label).width + 10;
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(x, Math.max(0, y - 34), tw, 16);
+      ctx.fillStyle = colour;
+      ctx.fillText(label, x + 5, Math.max(11, y - 22));
+    }
+
     // the object pass the optical hud draws too: coco-ssd classes with the
     // engine's abandoned flag. objects are named, never people.
     for (const obj of rt.lastObjects) {
