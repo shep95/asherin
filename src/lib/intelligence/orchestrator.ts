@@ -27,7 +27,6 @@ import {
   bumpMemoryEvidence,
 } from "./store";
 import { frameTask } from "./taskFrame";
-import type { TaskFrame } from "./taskFrame";
 import { resolveContext, composeModelContext } from "./contextResolver";
 import { resolveBinding, invokeModel } from "./modelGateway";
 import { validate } from "./validator";
@@ -35,12 +34,13 @@ import { needsDiscovery, discover, readFeedback, adaptFromFeedback } from "./cre
 import { gateMemory, gatePattern } from "./learningGate";
 import { recordSuccess, recordFailure } from "./patternLifecycle";
 import type {
-  AiSettings,
   ConversationState,
+  IntelligenceSettings,
   LearningDecision,
-  MemoryItem,
+  MemoryRecord,
   PatternObject,
   RuntimeContext,
+  TaskFrame,
   ValidationReport,
 } from "./types";
 
