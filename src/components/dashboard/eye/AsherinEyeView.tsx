@@ -1792,9 +1792,20 @@ const AsherinEyeView = () => {
       }
       const m = ent.asherin || {};
       // airframe is a read of the icao type code / emitter category, so it is
-      // shown as a silhouette guess rather than a confirmed tail record.
-      const frame = m.airframe ? ` · ${String(m.airframe)} silhouette` : "";
-      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
+      // shown as a model class rather than a confirmed tail record.
+      const frame = m.airframe ? ` · ${String(m.airframe)} model class` : "";
+      // built as text nodes: a label, note or credit arrives from a public
+      // feed and is untrusted string data, never markup.
+      card.textContent = "";
+      const title = document.createElement("b");
+      title.textContent = String(ent.name || m.label || "asset").slice(0, 48);
+      const where = document.createElement("div");
+      where.className = "m";
+      where.textContent = `${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}`;
+      const note = document.createElement("div");
+      note.className = "m";
+      note.textContent = String(m.note || limitationFor(m.kind === "military" ? "military" : m.kind || "")).slice(0, 180);
+      card.append(title, where, note);
       card.style.display = "block";
       const box = root.querySelector(".eye-root") || root;
       const cw = box.clientWidth || 1;
