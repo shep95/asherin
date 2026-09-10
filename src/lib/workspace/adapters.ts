@@ -88,10 +88,9 @@ function observationTitle(o: FabricObservation): string {
       return "location fix";
     case "service_health":
       return "service health";
-    default:
-      return String(o.type);
   }
 }
+
 
 function inWindow(atMs: number, w?: { fromMs: number; toMs: number } | null) {
   return !w || (atMs >= w.fromMs && atMs <= w.toMs);
