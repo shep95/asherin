@@ -739,13 +739,25 @@ export class VisionEventEngine {
       // ---- retrieval closes an open "left" event ---------------------------
       if (obj.leftEventId && nearest && nearest.gap <= cfg.retrievalSeparationBodies) {
         const sameTrack = nearest.track.id === obj.ownerTrackId;
-        const type: VisionEventType = sameTrack
-          ? "object_retrieved_same_track"
-          : "object_retrieved_different_track";
-        obj.outcome = sameTrack ? "retrieved_same" : "retrieved_different";
-        this.resolveById(obj.leftEventId, frame.atMs, ctx, sameTrack
-          ? "the associated track returned and came back within retrieval distance"
-          : "a different tracked shape came within retrieval distance");
+        // continuity: when the associated track was dropped entirely, or nothing
+        // was ever associated, the engine cannot say whether this is the same
+        // shape returning. it says so instead of guessing.
+        const unknownAssociation = !sameTrack && (obj.ownerTrackId === null || obj.ownerContinuityLost);
+        const type: VisionEventType = unknownAssociation
+          ? "object_retrieved_association_unknown"
+          : sameTrack
+            ? "object_retrieved_same_track"
+            : "object_retrieved_different_track";
+        obj.outcome = unknownAssociation
+          ? "retrieved_unknown"
+          : sameTrack
+            ? "retrieved_same"
+            : "retrieved_different";
+        this.resolveById(obj.leftEventId, frame.atMs, ctx, unknownAssociation
+          ? "a tracked shape came within retrieval distance, with no continuous association to compare it against"
+          : sameTrack
+            ? "the associated track returned and came back within retrieval distance"
+            : "a different tracked shape came within retrieval distance");
         this.raise(ctx, {
           type,
           key: `retrieved:${obj.objectId}:${frame.atMs}`,
