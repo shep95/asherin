@@ -106,11 +106,11 @@ export default function OperationsPanel() {
       id: `${b.id}_${idx}`,
       incidentId: b.incidentId,
       atMs: f.atMs,
-      storage: (b.storage === "backend" ? "backend" : b.storage === "indexeddb" ? "indexeddb" : "memory") as EvidenceFrameRef["storage"],
+      storage: (b.storage === "backend" ? "backend" : "memory") as EvidenceFrameRef["storage"],
       role: (idx === 0 ? "pre" : idx === 1 ? "trigger" : "during") as EvidenceFrameRef["role"],
       annotations: [],
       sourceDeviceId: null,
-      provenance: b.provenance ?? "",
+      provenance: b.notes ?? "",
     })),
   ), [safety.bundles]);
 
