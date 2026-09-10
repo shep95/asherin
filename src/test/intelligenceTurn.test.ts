@@ -42,7 +42,8 @@ const standingRule: MemoryRecord = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  storeMock.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS });
+  // memory is opt-in by default; these turns exercise it, so enable it.
+  storeMock.loadSettings.mockResolvedValue({ ...DEFAULT_SETTINGS, memoryEnabled: true });
   storeMock.loadConversationState.mockResolvedValue(emptyConversationState("conv-1", null));
   storeMock.loadUserMemory.mockResolvedValue([standingRule]);
   storeMock.loadPatterns.mockResolvedValue([{ ...SEED_PATTERNS[0], id: "p1" }]);
