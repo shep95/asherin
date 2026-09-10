@@ -69,12 +69,12 @@ export interface TurnResult {
 /** everything completeTurn needs to finish the turn, captured before the model ran. */
 export interface PreparedTurn {
   input: TurnInput;
-  settings: AiSettings;
+  settings: IntelligenceSettings;
   conversation: ConversationState;
   task: TaskFrame;
   context: RuntimeContext;
-  userMemory: MemoryItem[];
-  projectMemory: MemoryItem[];
+  userMemory: MemoryRecord[];
+  projectMemory: MemoryRecord[];
   decisions: LearningDecision[];
   discoveryRan: boolean;
   candidate: PatternObject | null;
