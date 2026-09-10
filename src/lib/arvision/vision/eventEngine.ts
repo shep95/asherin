@@ -1142,6 +1142,12 @@ export class VisionEventEngine {
     return event;
   }
 
+  private resolveKey(key: string, atMs: number, ctx: StepContext, reason: string) {
+    const e = this.events.get(key);
+    if (!e || e.state !== "open") return;
+    this.resolveById(e.id, atMs, ctx, reason);
+  }
+
   private resolveById(eventId: string, atMs: number, ctx: StepContext, reason: string) {
     for (const [key, e] of this.events) {
       if (e.id !== eventId || e.state !== "open") continue;
