@@ -47,6 +47,7 @@ import RadioIntelPanel from "./RadioIntelPanel";
 import FabricConsolePanel from "./FabricConsolePanel";
 import OperationsPanel from "./OperationsPanel";
 import CapabilityMatrixPanel from "./CapabilityMatrixPanel";
+import SpatialPanel from "./SpatialPanel";
 import { visionSafety } from "@/lib/arvision/vision/bridge";
 import { toVisionFrame } from "@/lib/arvision/vision/adapt";
 import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
@@ -967,6 +968,7 @@ export default function EagleEyeView() {
           )}
 
           <OperationsPanel />
+          <SpatialPanel />
           <CapabilityMatrixPanel localInferenceReady={modelStatus === "ready"} />
           <FabricConsolePanel />
 
