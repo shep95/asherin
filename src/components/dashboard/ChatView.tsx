@@ -1,4 +1,8 @@
-import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense, lazy } from "react";
+import { useChatWorkspace } from "@/lib/workspace/useChatWorkspace";
+
+const WorkspacePanel = lazy(() => import("@/components/dashboard/workspace/WorkspacePanel"));
+
 import { supabase } from "@/integrations/supabase/client";
 import BrainsManager from "./BrainsManager";
 import { Link } from "react-router-dom";
@@ -569,7 +573,18 @@ const ChatView = ({
     };
   }, [branchMessages, propertyMaps, isStreaming, lastMsgId]);
 
+  // ── Chat as a workspace ───────────────────────────────────────────────────
+  // The turn is planned only after streaming ends, and only when the request
+  // genuinely needs a subsystem. Everything else stays plain prose.
+  const { plans: workspacePlans, visible: workspaceVisible } = useChatWorkspace({
+    messages: branchMessages,
+    isStreaming,
+    conversationId: conversation.id,
+    hasResearchProvider: true,
+  });
+
   // Listen for cross-component jump signals (e.g. sidebar hover preview)
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -825,7 +840,13 @@ const ChatView = ({
                                 return null;
                               }
                             })()}
+                            {workspacePlans[msg.id] ? (
+                              <Suspense fallback={null}>
+                                <WorkspacePanel plan={workspacePlans[msg.id]} visible={workspaceVisible} />
+                              </Suspense>
+                            ) : null}
                           </>
+
                         ) : editingId === msg.id ? (
                           /* Cursor-style edit of the last user turn: change it and resend. */
                           <div className="min-w-[240px] sm:min-w-[360px]">
