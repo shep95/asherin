@@ -36,12 +36,15 @@ export function rankMemories(memories: MemoryRecord[], query: string, limit: num
       words.forEach((w) => {
         if (bag.has(w)) overlap += 1;
       });
-      // standing rules ("never", "prefer") apply broadly, so they keep a floor.
+      // standing rules ("never", "prefer", output style) apply broadly; every
+      // other memory must actually touch the question, or it is noise.
       const alwaysOn = m.kind === "never" || m.kind === "prefer" || m.kind === "output";
+      if (overlap === 0 && !alwaysOn) return { m, score: 0 };
       const score = overlap + (alwaysOn ? 1.5 : 0) + m.confidence;
       return { m, score };
     })
     .filter((r) => r.score > 0.6)
+
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((r) => r.m);
