@@ -8,6 +8,7 @@ import { accuracyBand, movementBetween, type LocationFix, type MovementState } f
 import { acquireFix, geoErrorText, ipFix, reverseGeocode, watchPosition } from "@/lib/sentinel/location/sources";
 import { attachFix, buildTrail, type RadioSighting } from "@/lib/sentinel/location/trackers";
 import { logLocation, logRadio, registerDevice } from "@/lib/sentinel/audio/sync";
+import { publishSentinelLocation, publishSentinelRadio } from "@/lib/fabric/bridges/sentinelFabric";
 
 /**
  * asherin.sentinel — the environment room.
