@@ -70,7 +70,9 @@ export const EVENT_REPORTING: Record<VisionEventType, Reporting | null> = {
   object_left: { ruleId: "left_object", signal: "object_left_behind", unit: "seconds" },
   object_retrieved_same_track: null,
   object_retrieved_different_track: null,
+  object_retrieved_association_unknown: null,
   restricted_entry: { ruleId: "restricted_entry", signal: "restricted_zone_entry", unit: "count" },
+  restricted_exit: null,
   barrier_crossing: { ruleId: "barrier_cross", signal: "barrier_crossing", unit: "count" },
   unusual_movement: { ruleId: "unusual_motion", signal: "unusual_movement", unit: "seconds" },
   prolonged_proximity: { ruleId: "prolonged_proximity", signal: "prolonged_proximity", unit: "seconds" },
@@ -87,7 +89,9 @@ export const EVENT_LABEL: Record<VisionEventType, string> = {
   object_left: "object left unattended",
   object_retrieved_same_track: "object retrieved by the associated track",
   object_retrieved_different_track: "object retrieved by a different track",
+  object_retrieved_association_unknown: "object retrieved, retriever association unknown",
   restricted_entry: "entry into a restricted zone",
+  restricted_exit: "exit from a restricted zone",
   barrier_crossing: "crossing over a barrier",
   unusual_movement: "sustained running in a walking-only zone",
   prolonged_proximity: "possible prolonged confrontation",
@@ -164,6 +168,8 @@ interface ObjectState {
   ownerSinceMs: number | null;
   ownerFrames: number;
   associationCertain: boolean;
+  /** set once the associated track stopped being continuously observable. */
+  ownerContinuityLost: boolean;
   separatedSinceMs: number | null;
   unattendedSinceMs: number | null;
   leftEventId: string | null;
@@ -190,6 +196,8 @@ export interface VisionStepResult {
 
 const HISTORY_LIMIT = 80;
 const TRACK_DROP_MISSES = 45;
+/** misses after which an object's association to a track can no longer be asserted. */
+const CONTINUITY_BREAK_MISSES = 8;
 const OBJECT_DROP_MISSES = 30;
 
 function clamp01(n: number): number {
@@ -464,6 +472,7 @@ export class VisionEventEngine {
           ownerSinceMs: null,
           ownerFrames: 0,
           associationCertain: false,
+          ownerContinuityLost: false,
           separatedSinceMs: null,
           unattendedSinceMs: null,
           leftEventId: null,
@@ -507,7 +516,30 @@ export class VisionEventEngine {
         const member = t.zones.get(zone.id);
 
         if (!inside) {
-          if (member) t.zones.delete(zone.id);
+          if (member) {
+            // exit is measured, not inferred: the same foot point that put the
+            // track inside the polygon is now outside it.
+            if (zone.kind === "restricted" && member.entryFired) {
+              const heldMs = frame.atMs - (member.countedFromMs ?? member.enteredAtMs);
+              this.resolveKey(`restricted:${zone.id}:${t.id}`, frame.atMs, ctx, "the track's foot point left the polygon");
+              this.raise(ctx, {
+                type: "restricted_exit",
+                value: Math.round(heldMs / 1000),
+                valueUnit: "seconds",
+                key: `restricted_exit:${zone.id}:${t.id}:${frame.atMs}`,
+                zone,
+                trackIds: [t.id],
+                box: t.box,
+                associationCertain: true,
+                detail: `track ${t.id.slice(0, 10)} left "${zone.label}" after ${Math.round(heldMs / 1000)}s inside it. exit closes the entry event for the same temporary track; it says nothing about where the track went next.`,
+                parts: [
+                  ...trackQuality(t, this.config),
+                  { label: "foot position measured outside the drawn polygon", value: 1, weight: 2 },
+                ],
+              });
+            }
+            t.zones.delete(zone.id);
+          }
           continue;
         }
         if (!member) {
@@ -701,6 +733,10 @@ export class VisionEventEngine {
         // the association survives as a record of what was measured, but it
         // stops being certain the moment continuity breaks.
         obj.associationCertain = false;
+        // continuity is only "broken" once the associated track has been out of
+        // sight long enough that re-identifying it is guesswork. a one or two
+        // frame occlusion is not that.
+        if (!owner || owner.missStreak >= CONTINUITY_BREAK_MISSES) obj.ownerContinuityLost = true;
       }
 
       const separation = owner && owner.missStreak === 0 ? boxGapBodies(obj.box, owner.box, owner.box) : Infinity;
@@ -709,13 +745,25 @@ export class VisionEventEngine {
       // ---- retrieval closes an open "left" event ---------------------------
       if (obj.leftEventId && nearest && nearest.gap <= cfg.retrievalSeparationBodies) {
         const sameTrack = nearest.track.id === obj.ownerTrackId;
-        const type: VisionEventType = sameTrack
-          ? "object_retrieved_same_track"
-          : "object_retrieved_different_track";
-        obj.outcome = sameTrack ? "retrieved_same" : "retrieved_different";
-        this.resolveById(obj.leftEventId, frame.atMs, ctx, sameTrack
-          ? "the associated track returned and came back within retrieval distance"
-          : "a different tracked shape came within retrieval distance");
+        // continuity: when the associated track was dropped entirely, or nothing
+        // was ever associated, the engine cannot say whether this is the same
+        // shape returning. it says so instead of guessing.
+        const unknownAssociation = !sameTrack && (obj.ownerTrackId === null || obj.ownerContinuityLost);
+        const type: VisionEventType = unknownAssociation
+          ? "object_retrieved_association_unknown"
+          : sameTrack
+            ? "object_retrieved_same_track"
+            : "object_retrieved_different_track";
+        obj.outcome = unknownAssociation
+          ? "retrieved_unknown"
+          : sameTrack
+            ? "retrieved_same"
+            : "retrieved_different";
+        this.resolveById(obj.leftEventId, frame.atMs, ctx, unknownAssociation
+          ? "a tracked shape came within retrieval distance, with no continuous association to compare it against"
+          : sameTrack
+            ? "the associated track returned and came back within retrieval distance"
+            : "a different tracked shape came within retrieval distance");
         this.raise(ctx, {
           type,
           key: `retrieved:${obj.objectId}:${frame.atMs}`,
@@ -725,16 +773,22 @@ export class VisionEventEngine {
           trackIds: [nearest.track.id],
           objectId: obj.objectId,
           box: obj.box,
-          associationCertain: sameTrack ? obj.associationCertain : true,
-          detail: sameTrack
-            ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, the same temporary track it was associated with when it was set down.${obj.associationCertain ? "" : " that association was already marked uncertain because tracking continuity broke earlier, so treat this as the most likely reading rather than a fact."}`
-            : `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, which is not the track it was associated with (${obj.ownerTrackId ? obj.ownerTrackId.slice(0, 10) : "none recorded"}). different temporary tracks may or may not be different people — this camera cannot tell, and does not try.`,
+          associationCertain: unknownAssociation ? false : sameTrack ? obj.associationCertain : true,
+          detail: unknownAssociation
+            ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}. ${obj.ownerTrackId ? `the track it was associated with (${obj.ownerTrackId.slice(0, 10)}) was lost before this, so continuity is broken` : "nothing was ever associated with it while it sat there"} — the retriever association is unknown, not different and not the same.`
+            : sameTrack
+              ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, the same temporary track it was associated with when it was set down.${obj.associationCertain ? "" : " that association was already marked uncertain because tracking continuity broke earlier, so treat this as the most likely reading rather than a fact."}`
+              : `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, which is not the track it was associated with (${obj.ownerTrackId ? obj.ownerTrackId.slice(0, 10) : "none recorded"}). different temporary tracks may or may not be different people — this camera cannot tell, and does not try.`,
           parts: [
             ...trackQuality(nearest.track, cfg),
             { label: "retrieval distance measured against the configured threshold", value: 1, weight: 2 },
             {
-              label: sameTrack ? "track identity matched the recorded association" : "track identity differed from the recorded association",
-              value: sameTrack ? (obj.associationCertain ? 1 : 0.5) : 1,
+              label: unknownAssociation
+                ? "tracking continuity was broken, so no identity comparison was possible"
+                : sameTrack
+                  ? "track identity matched the recorded association"
+                  : "track identity differed from the recorded association",
+              value: unknownAssociation ? 0.4 : sameTrack ? (obj.associationCertain ? 1 : 0.5) : 1,
               weight: 2,
             },
           ],
@@ -1110,6 +1164,12 @@ export class VisionEventEngine {
     this.lastFired.set(spec.key, frame.atMs);
     ctx.changed.push(event);
     return event;
+  }
+
+  private resolveKey(key: string, atMs: number, ctx: StepContext, reason: string) {
+    const e = this.events.get(key);
+    if (!e || e.state !== "open") return;
+    this.resolveById(e.id, atMs, ctx, reason);
   }
 
   private resolveById(eventId: string, atMs: number, ctx: StepContext, reason: string) {

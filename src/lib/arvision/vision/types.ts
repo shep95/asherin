@@ -58,7 +58,9 @@ export type VisionEventType =
   | "object_left"
   | "object_retrieved_same_track"
   | "object_retrieved_different_track"
+  | "object_retrieved_association_unknown"
   | "restricted_entry"
+  | "restricted_exit"
   | "barrier_crossing"
   | "unusual_movement"
   | "prolonged_proximity"
@@ -112,7 +114,13 @@ export interface CustodyRecord {
   associationCertain: boolean;
   unattendedSinceMs: number | null;
   present: boolean;
-  outcome: "attended" | "unattended" | "retrieved_same" | "retrieved_different" | "removed_unknown";
+  outcome:
+    | "attended"
+    | "unattended"
+    | "retrieved_same"
+    | "retrieved_different"
+    | "retrieved_unknown"
+    | "removed_unknown";
   box: NormBox;
 }
 
