@@ -1137,8 +1137,9 @@ serve(async (req) => {
       mode,
       depth,
       userProfile,
-      byokProvider,
-      byokModel,
+      byokProvider: _bodyByokProvider,
+      byokModel: _bodyByokModel,
+
       brainContext,
       taskDirective,
       skillInjection,
