@@ -1112,6 +1112,7 @@ serve(async (req) => {
 
       brainContext,
       taskDirective,
+      intelligenceContext: _intelligenceContext,
       skillInjection,
       swarmInjection,
       activeAgentId,
