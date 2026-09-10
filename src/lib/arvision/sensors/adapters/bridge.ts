@@ -9,6 +9,7 @@
 // If no bridge endpoint is configured, this adapter reports itself unreachable
 // and publishes nothing. It never synthesises a sensor so a panel can look busy.
 
+import type { BleObservation, BleScanner } from "../../ble/types";
 import type {
   AdapterStatus,
   PointCloudChunk,
@@ -59,7 +60,100 @@ export type BridgeMessage =
       positions: string;
       colors?: string | null;
     }
-  | { type: "status"; sensorId: string; health: SensorDescriptor["health"]; detail: string };
+  | { type: "status"; sensorId: string; health: SensorDescriptor["health"]; detail: string }
+  // ---- passive radio awareness -------------------------------------------
+  // Only an authorized edge scanner may publish these. The browser never
+  // fabricates an advertisement, and Web Bluetooth is not accepted as a source
+  // here because a tab cannot prove which receiver heard what, or where that
+  // receiver is standing.
+  | { type: "ble_scanners"; scanners: BridgeScannerDecl[] }
+  | { type: "ble_observation"; observation: BridgeBleObservation }
+  // ---- detector health and evidence storage ------------------------------
+  | { type: "detector_health"; detectorId: string; label?: string; runtime?: string; expectedIntervalMs?: number; atMs: number; note?: string }
+  | { type: "evidence_status"; configured: boolean; detail: string; retentionMs?: number };
+
+export interface BridgeScannerDecl {
+  id: string;
+  label: string;
+  position?: { x: number; y: number; z: number } | null;
+  positionAccuracyM?: number | null;
+  txRefDbm?: number | null;
+  pathLossN?: number | null;
+  zoneId?: string | null;
+}
+
+export interface BridgeBleObservation {
+  scannerId: string;
+  atMs: number;
+  address?: string | null;
+  addressType?: string;
+  rssi: number;
+  txPower?: number | null;
+  localName?: string | null;
+  serviceUuids?: string[];
+  manufacturerIds?: number[];
+  serviceDataKeys?: string[];
+  appearance?: number | null;
+}
+
+const ADDRESS_TYPES = new Set(["public", "random_static", "random_resolvable", "random_nonresolvable", "unknown"]);
+
+/** Every field is checked; a malformed packet is discarded, never coerced. */
+export function parseBleObservation(raw: unknown, receivedAtMs: number): BleObservation | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.scannerId !== "string" || !o.scannerId) return null;
+  if (typeof o.rssi !== "number" || !Number.isFinite(o.rssi) || o.rssi > 20 || o.rssi < -140) return null;
+  const atMs = typeof o.atMs === "number" && Number.isFinite(o.atMs) ? o.atMs : receivedAtMs;
+  const addressType = typeof o.addressType === "string" && ADDRESS_TYPES.has(o.addressType)
+    ? (o.addressType as BleObservation["addressType"])
+    : "unknown";
+  return {
+    scannerId: o.scannerId,
+    atMs,
+    receivedAtMs,
+    address: typeof o.address === "string" && o.address ? o.address.toUpperCase() : null,
+    addressType,
+    rssi: o.rssi,
+    txPower: typeof o.txPower === "number" ? o.txPower : null,
+    localName: typeof o.localName === "string" && o.localName ? o.localName.slice(0, 64) : null,
+    serviceUuids: Array.isArray(o.serviceUuids) ? o.serviceUuids.filter((u): u is string => typeof u === "string").slice(0, 16) : [],
+    manufacturerIds: Array.isArray(o.manufacturerIds)
+      ? o.manufacturerIds.filter((n): n is number => typeof n === "number" && Number.isInteger(n)).slice(0, 8)
+      : [],
+    serviceDataKeys: Array.isArray(o.serviceDataKeys) ? o.serviceDataKeys.filter((u): u is string => typeof u === "string").slice(0, 16) : [],
+    appearance: typeof o.appearance === "number" ? o.appearance : null,
+    provenance: `edge bridge scanner ${o.scannerId}`,
+  };
+}
+
+export function parseScannerDecl(raw: unknown): BleScanner | null {
+  if (!raw || typeof raw !== "object") return null;
+  const s = raw as Record<string, unknown>;
+  if (typeof s.id !== "string" || !s.id) return null;
+  const pos = s.position as { x?: unknown; y?: unknown; z?: unknown } | null | undefined;
+  const position =
+    pos && typeof pos.x === "number" && typeof pos.y === "number" && typeof pos.z === "number"
+      ? { x: pos.x, y: pos.y, z: pos.z }
+      : null;
+  const txRefDbm = typeof s.txRefDbm === "number" ? s.txRefDbm : null;
+  const pathLossN = typeof s.pathLossN === "number" ? s.pathLossN : null;
+  return {
+    id: s.id,
+    label: typeof s.label === "string" && s.label ? s.label : s.id,
+    position,
+    positionAccuracyM: typeof s.positionAccuracyM === "number" ? s.positionAccuracyM : null,
+    txRefDbm,
+    pathLossN,
+    // calibration is a measured fact, so it is derived, never declared.
+    calibrated: txRefDbm !== null && pathLossN !== null,
+    zoneId: typeof s.zoneId === "string" ? s.zoneId : null,
+    lastObservationMs: null,
+    health: "live",
+    adapter: BRIDGE_ADAPTER_ID,
+  };
+}
+
 
 export function bridgeEndpoint(): string | null {
   const raw = (import.meta.env.VITE_ARVISION_BRIDGE_URL as string | undefined) ?? "";
@@ -134,6 +228,10 @@ export interface BridgeEvents {
   onPointCloud: (chunk: PointCloudChunk) => void;
   onStatus: (status: AdapterStatus) => void;
   onSensorStatus: (sensorId: string, health: SensorDescriptor["health"], detail: string) => void;
+  onBleScanners?: (scanners: BleScanner[]) => void;
+  onBleObservation?: (observation: BleObservation) => void;
+  onDetectorHealth?: (payload: { detectorId: string; label?: string; runtime?: string; expectedIntervalMs?: number; atMs: number; note?: string }) => void;
+  onEvidenceStatus?: (payload: { configured: boolean; detail: string; retentionMs: number }) => void;
 }
 
 /**
@@ -221,8 +319,25 @@ export class EdgeBridgeClient {
       this.events.onPointCloud(decodePointCloud(msg));
     } else if (msg.type === "status") {
       this.events.onSensorStatus(`bridge:${msg.sensorId}`, msg.health, msg.detail);
+    } else if (msg.type === "ble_scanners") {
+      const parsed = (Array.isArray(msg.scanners) ? msg.scanners : [])
+        .map(parseScannerDecl)
+        .filter((s): s is BleScanner => s !== null);
+      if (parsed.length) this.events.onBleScanners?.(parsed);
+    } else if (msg.type === "ble_observation") {
+      const obs = parseBleObservation(msg.observation, Date.now());
+      if (obs) this.events.onBleObservation?.(obs);
+    } else if (msg.type === "detector_health") {
+      if (typeof msg.detectorId === "string" && msg.detectorId) this.events.onDetectorHealth?.(msg);
+    } else if (msg.type === "evidence_status") {
+      this.events.onEvidenceStatus?.({
+        configured: msg.configured === true,
+        detail: typeof msg.detail === "string" ? msg.detail : "the edge node reported evidence storage without a description",
+        retentionMs: typeof msg.retentionMs === "number" ? msg.retentionMs : 0,
+      });
     }
   }
+
 
   disconnect() {
     this.closed = true;
