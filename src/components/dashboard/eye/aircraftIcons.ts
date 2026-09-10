@@ -1,7 +1,12 @@
 // src/data/aircraftIcons.js
 /**
- * Nose-up white aircraft silhouettes, one per classifyAircraft() kind, as SVG
- * data URIs for Cesium billboards.
+ * Nose-up white aircraft glyphs, one per classifyAircraft() kind, as SVG data
+ * URIs for Cesium billboards.
+ *
+ * TRUTH NOTE: these are CLASS visualisations, not airframe geometry. The kind
+ * comes from an icao type/category hint in the public feed, so a glyph says
+ * "the feed called this a wide-body" — never "this is the exact aircraft you
+ * are looking at". Nothing here is imagery, a model scan, or a measurement.
  *
  * FIDELITY NOTE (2026-07-02): redrawn at a 96×96 viewBox (glyph centered at
  * 48,48) instead of the old 32×32. The billboards themselves are still added at
@@ -196,11 +201,11 @@ const BODIES = {
     <circle cx="28" cy="21" r="4.6" fill="#dceaf8" fill-opacity="0.52"/>
     <circle cx="0" cy="6" r="3.4" fill="#dceaf8" fill-opacity="0.26"/>`,
 
-  // ── TR-3B, thermal-reactive variant. Same cold airframe, but the three
-  //    corner emitters + the centre one render HOT: near-white cores inside a
-  //    baked radial glow, so the FLIR/NVG luminance mapping (and any bloom)
-  //    lights them up while the hull stays cold. Selected by the layers
-  //    whenever their `irBoost` style param is on (surveillance/thermal/nvg).
+  // ── TR-3B, bright-emitter variant of the same folklore glyph. The three
+  //    corner emitters + the centre one are drawn near-white inside a baked
+  //    radial glow so the false-colour and night-vision RENDER styles pick them
+  //    out. Nothing infrared is involved: it is a brighter drawing, chosen when
+  //    a layer passes the `irBoost` style param.
   tr3bHot: `
     <defs>
       <radialGradient id="tr3bGlow">
