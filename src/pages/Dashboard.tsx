@@ -252,6 +252,8 @@ const Dashboard = () => {
   };
   const initialView: DashboardView = resolveView(viewParam) ?? "chat";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
+  // The investigation bound to the current chat, if a research turn opened one.
+  const [activeInvestigationId, setActiveInvestigationId] = useState<string | null>(null);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
   // The code workspace can hand the operator back to the mouth. One chat only —
   // the workspace never hosts a transcript of its own.
