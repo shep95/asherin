@@ -1844,6 +1844,164 @@ const AsherinEyeView = () => {
       if (win) setHoverCard(ent, win);
     }
 
+    // ── selected-object inspector ───────────────────────────────────────────
+    // clicking used to only start a camera mode. now a click is a persistent
+    // selection with one contextual panel: the fields the feed really sent, the
+    // provenance and freshness of the layer behind it, and only the actions
+    // that can actually run right now. a disabled action says why.
+    function inspectorMeta(ent) {
+      const m = { ...(ent.asherin || {}) };
+      const s = samples[ent.id];
+      if (s) {
+        const r = reckon(s, Date.now());
+        m.lat = r.lat;
+        m.lon = r.lon;
+        m.alt = s.alt;
+        m.speed = s.speed;
+        m.heading = s.heading;
+      }
+      if (!m.hex) {
+        const tail = String(ent.id || "").split(":")[1] || "";
+        if (/^[a-fA-F0-9]{6}$/.test(tail)) m.hex = tail.toLowerCase();
+      }
+      if (!m.label) m.label = ent.name;
+      return m;
+    }
+
+    function renderInspector() {
+      const panel = $("#inspect");
+      if (!panel) return;
+      const btn = $("#btn-inspect");
+      if (!selected) {
+        panel.hidden = true;
+        panel.classList.remove("open");
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.remove("on");
+          btn.title = "select an object on the globe first";
+        }
+        return;
+      }
+      const meta = inspectorMeta(selected);
+      const kindId = meta.kind === "military" ? "military" : meta.kind;
+      const model = buildInspector(meta, {
+        health: kindId ? health.snapshot(kindId) : null,
+        historyPoints: (pathHist[selected.id] || []).length,
+        canMeasure: !!measureMode,
+        canFly: !!viewer,
+      });
+      $("#insp-title").textContent = model.title;
+      $("#insp-kind").textContent = model.kindLabel;
+      const chip = $("#insp-chip");
+      chip.textContent = model.chip;
+      chip.className =
+        "chip " +
+        ({ live: "live", derived: "derived", visualization: "render", stale: "stale", degraded: "degraded", requires_key: "keyed" }[
+          model.state
+        ] || "");
+      const fieldHost = $("#insp-fields");
+      fieldHost.textContent = "";
+      model.fields.forEach((f) => {
+        const row = document.createElement("div");
+        row.className = "f" + (f.unknown ? " unknown" : "");
+        const k = document.createElement("span");
+        k.textContent = f.k;
+        const v = document.createElement("span");
+        v.textContent = f.v;
+        row.append(k, v);
+        fieldHost.appendChild(row);
+      });
+      const acts = $("#insp-acts");
+      acts.textContent = "";
+      model.actions.forEach((a) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = a.label;
+        b.disabled = !a.enabled;
+        if (a.reason) b.title = a.reason;
+        b.onclick = () => runInspectorAction(a.id, model, meta);
+        acts.appendChild(b);
+      });
+      $("#insp-limit").textContent = model.limitation;
+      panel.hidden = false;
+      panel.classList.add("open");
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.add("on");
+        btn.title = model.title;
+      }
+      const group = $("#track-group");
+      if (group) group.hidden = !(meta.kind === "flights" || meta.kind === "military");
+    }
+
+    function selectEntity(ent) {
+      selected = ent || null;
+      renderInspector();
+    }
+
+    function closeInspector() {
+      const panel = $("#inspect");
+      if (panel) {
+        panel.hidden = true;
+        panel.classList.remove("open");
+      }
+      const btn = $("#btn-inspect");
+      if (btn) btn.classList.remove("on");
+    }
+
+    async function runInspectorAction(id, model, meta) {
+      const lat = Number(meta.lat);
+      const lon = Number(meta.lon);
+      if (id === "fly" && Number.isFinite(lat) && Number.isFinite(lon)) {
+        flyTo(lat, lon, Math.max(2000, Number(meta.alt) || 0) + 12000);
+        return;
+      }
+      if (id === "measure") {
+        measurePts = [{ lat, lon }];
+        setNote(`measuring from ${model.title} · click the second point`);
+        return;
+      }
+      if (id === "nearby") {
+        nearbyReport(lat, lon, model.title);
+        return;
+      }
+      if (id === "track") {
+        applyCamMode(camMode);
+        return;
+      }
+      if (id === "history") {
+        setTrails(true);
+        setNote(`${model.title} · ${(pathHist[selected?.id] || []).length} fixes observed this session`);
+        return;
+      }
+      if (id === "source" && model.url) {
+        window.open(model.url, "_blank", "noopener,noreferrer");
+      }
+    }
+
+    /** what the layers you already enabled hold within 50 km of a point. */
+    function nearbyReport(lat, lon, title) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const found = [];
+      Object.keys(ds).forEach((id) => {
+        if (!layerOn[id]) return;
+        let count = 0;
+        ds[id].entities.values.forEach((e) => {
+          const m = e.asherin;
+          if (!m || !Number.isFinite(Number(m.lat))) return;
+          if (rangeM({ lat, lon }, { lat: Number(m.lat), lon: Number(m.lon) }) <= 50_000) count += 1;
+        });
+        if (count) found.push(`${count} ${id}`);
+      });
+      const line = found.length
+        ? `within 50 km of ${title}: ${found.join(" · ")} · only the layers you have enabled were searched`
+        : `no entity from the layers you have enabled sits within 50 km of ${title} · this is not a statement about what is there`;
+      setNote(line);
+      chatLog.push({ role: "eye", text: line });
+      paintChat();
+    }
+
+
     function clearAtmo() {
       const C = window.Cesium;
       if (atmoLayer && viewer) {
