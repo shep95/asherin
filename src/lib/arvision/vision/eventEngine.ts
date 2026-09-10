@@ -513,7 +513,30 @@ export class VisionEventEngine {
         const member = t.zones.get(zone.id);
 
         if (!inside) {
-          if (member) t.zones.delete(zone.id);
+          if (member) {
+            // exit is measured, not inferred: the same foot point that put the
+            // track inside the polygon is now outside it.
+            if (zone.kind === "restricted" && member.entryFired) {
+              const heldMs = frame.atMs - (member.countedFromMs ?? member.enteredAtMs);
+              this.resolveKey(`restricted:${zone.id}:${t.id}`, frame.atMs, ctx, "the track's foot point left the polygon");
+              this.raise(ctx, {
+                type: "restricted_exit",
+                value: Math.round(heldMs / 1000),
+                valueUnit: "seconds",
+                key: `restricted_exit:${zone.id}:${t.id}:${frame.atMs}`,
+                zone,
+                trackIds: [t.id],
+                box: t.box,
+                associationCertain: true,
+                detail: `track ${t.id.slice(0, 10)} left "${zone.label}" after ${Math.round(heldMs / 1000)}s inside it. exit closes the entry event for the same temporary track; it says nothing about where the track went next.`,
+                parts: [
+                  ...trackQuality(t, this.config),
+                  { label: "foot position measured outside the drawn polygon", value: 1, weight: 2 },
+                ],
+              });
+            }
+            t.zones.delete(zone.id);
+          }
           continue;
         }
         if (!member) {
@@ -707,6 +730,7 @@ export class VisionEventEngine {
         // the association survives as a record of what was measured, but it
         // stops being certain the moment continuity breaks.
         obj.associationCertain = false;
+        if (!owner) obj.ownerContinuityLost = true;
       }
 
       const separation = owner && owner.missStreak === 0 ? boxGapBodies(obj.box, owner.box, owner.box) : Infinity;
