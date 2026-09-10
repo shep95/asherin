@@ -17,7 +17,7 @@ function sensor(over: Partial<SensorDescriptor>): SensorDescriptor {
     transport: over.transport ?? "browser-media",
     health: over.health ?? "live",
     measurable: over.measurable ?? false,
-    calibration: over.calibration ?? { state: "none" },
+    calibration: over.calibration ?? { state: "none", detail: "no calibration loaded" },
     ...over,
   } as SensorDescriptor;
 }
@@ -39,7 +39,7 @@ describe("mode gating", () => {
 
   it("refuses temperature on uncalibrated radiometric thermal", () => {
     const modes = evaluateModes([
-      sensor({ id: "t", modality: "thermal_radiometric", measurable: true, calibration: { state: "none" } }),
+      sensor({ id: "t", modality: "thermal_radiometric", measurable: true, calibration: { state: "none", detail: "no calibration loaded" } }),
     ]);
     expect(modes.find((m) => m.mode.id === "temperature")?.enabled).toBe(false);
   });
