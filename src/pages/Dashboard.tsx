@@ -1616,6 +1616,19 @@ const Dashboard = () => {
       setIsStreaming(false);
       isStreamingRef.current = false;
       thinkingStore.finish(assistantId);
+      // record the failed turn so pattern outcomes stay honest.
+      const failedTurn = preparedTurn;
+      if (failedTurn) {
+        void import("@/lib/intelligence/orchestrator")
+          .then(({ completeTurn }) =>
+            completeTurn(failedTurn, {
+              ok: false,
+              text: assistantContent,
+              unavailableReason: e?.name === "AbortError" ? "stopped by operator" : String(e?.message || e),
+            }),
+          )
+          .catch((err) => console.error("intelligence complete skipped:", err));
+      }
       if (e.name === "AbortError") {
         if (assistantContent) {
           try {
