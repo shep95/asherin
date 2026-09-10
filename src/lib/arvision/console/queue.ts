@@ -35,6 +35,18 @@ export function transition(
   return { item: { ...item, status: to, actor, statusAtMs: atMs }, changed: true, reason: "" };
 }
 
+/** Provenance strings are written as "camera:<id>" / "track:<id>" by the
+ * detectors. Anything else yields null rather than a guessed identifier. */
+export function deviceIdOf(provenance: string | null): string | null {
+  const m = provenance?.match(/camera:([\w-]+)/);
+  return m ? m[1] : null;
+}
+
+export function trackIdOf(provenance: string | null): string | null {
+  const m = provenance?.match(/track:([\w-]+)/);
+  return m ? m[1] : null;
+}
+
 /** Review state from the incident ledger mapped onto the operations queue. */
 function statusFor(incident: Incident): QueueStatus {
   switch (incident.review) {
@@ -52,25 +64,26 @@ function statusFor(incident: Incident): QueueStatus {
  */
 export function toQueueItems(incidents: Incident[]): QueueItem[] {
   return incidents.map((i) => {
-    const signals: string[] = [];
-    const missing: string[] = [];
-    for (const f of i.firings) {
-      for (const line of f.evidence ?? []) signals.push(line);
-      for (const line of (f as { missing?: string[] }).missing ?? []) missing.push(line);
-    }
+    // the only signals a card may show are the ones the rule actually used:
+    // its observable signal name, the measured value, and what produced it.
+    const signals = [...new Set(i.firings.map(
+      (f) => `${f.signal} = ${f.value} (${f.provenance})`,
+    ))];
+    // inputs the severity model refused to count, printed so a weak card looks weak.
+    const missing = [...new Set(i.severity?.rejected ?? [])];
     const quality = typeof i.severity?.score === "number" ? i.severity.score : null;
     return {
       incidentId: i.id,
       eventType: i.ruleId,
       label: i.label,
-      deviceId: (i.firings[0] as { deviceId?: string } | undefined)?.deviceId ?? null,
+      deviceId: deviceIdOf(i.firings[0]?.provenance ?? null),
       zoneId: i.zoneId,
       openedAtMs: i.openedAtMs,
       lastFiringMs: i.lastFiringMs,
       quality,
       signals: [...new Set(signals)],
       missing: [...new Set(missing)],
-      trackIds: [...new Set(i.firings.flatMap((f) => (f as { trackIds?: string[] }).trackIds ?? []))],
+      trackIds: [...new Set(i.firings.map((f) => trackIdOf(f.provenance)).filter((t): t is string => !!t))],
       evidenceId: i.evidenceId,
       evidenceState: i.evidenceState,
       status: statusFor(i),
