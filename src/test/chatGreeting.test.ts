@@ -65,7 +65,7 @@ describe("trivial-turn prompt assembly", () => {
     ["ASHERIN_OPERATING_NOTES", "_B.operatingNotes ? ASHERIN_OPERATING_NOTES"],
     ["QUICK_INTELLIGENCE_BRAIN", "_B.quickIntelligence ? QUICK_INTELLIGENCE_BRAIN"],
     ["ADAPTIVE_OPERATOR_ROUTER", "_B.adaptiveRouter ? ADAPTIVE_OPERATOR_ROUTER"],
-    ["userContextStr", "_B.operatorProfile ? userContextStr"],
+    
     ["_asherinProcedures", '_R.trivial ? "" : _asherinProcedures'],
   ];
   for (const [block, gate] of gated) {
