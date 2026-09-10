@@ -216,6 +216,7 @@ export default function EnvironmentPanel() {
     setFix(next);
     setTrail((t) => [...t, next].slice(-MAX_TRAIL));
     pendingFixRef.current.push(next);
+    publishSentinelLocation(next, placeRef.current);
     setLocError(null);
     setLocationGaps((gaps) =>
       gaps.map((g) => (g.to === null ? { ...g, to: next.at } : g)),
