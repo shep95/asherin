@@ -97,7 +97,21 @@ const AsherinArVisionView = () => {
             <EagleEyeView />
           </Suspense>
         </div>
+        {layer === "sensors" && (
+          <div className="absolute inset-0">
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-[12px] font-light text-white/45">
+                  loading sensors layer
+                </div>
+              }
+            >
+              <SensorsView />
+            </Suspense>
+          </div>
+        )}
       </div>
+
     </div>
   );
 };
