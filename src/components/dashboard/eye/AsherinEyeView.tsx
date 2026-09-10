@@ -937,22 +937,26 @@ const AsherinEyeView = () => {
               </div>
               <div class="sheet-card">
                 <h2>what these are</h2>
-                <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">photoreal 3d tiles</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">local 3d geometry</span><span>openstreetmap footprints extruded in the browser · generated blocks, not captured photogrammetry</span></div>
                 <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
-                <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
-                <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
-                <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-                <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
-                <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
-                <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
-                <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
-                <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
-                <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
-                <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
-                <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
-                <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
-                <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
-                <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+                <div class="row"><span class="k">airframe model</span><span>a model class picked from the icao type code or emitter category · a stand-in, never the exact geometry of that tail number</span></div>
+                <div class="row"><span class="k">track box</span><span>a reticle drawn on the contact you selected · there is no object detector on this view</span></div>
+                <div class="row"><span class="k">false colour</span><span>iron palette over the brightness of map imagery · no infrared sensor, no temperature anywhere here</span></div>
+                <div class="row"><span class="k">green tint</span><span>a colour filter on the daylight render · not an image intensifier</span></div>
+                <div class="row"><span class="k">place pins</span><span>a typed place resolved by a public geocoder and pinned · no search results page</span></div>
+                <div class="row"><span class="k">place dossier</span><span>public indexes shown source by source · not deeds, not occupancy, not criminal records · unknown stays unknown</span></div>
+                <div class="row"><span class="k">trail</span><span>fixes this session observed from ads-b, geodesic · track history draws the nearest 90 contacts</span></div>
+                <div class="row"><span class="k">camera modes</span><span>chase · orbit · nadir · tour</span></div>
+                <div class="row"><span class="k">satellites</span><span>celestrak tle propagated to now · accuracy decays with epoch age</span></div>
+                <div class="row"><span class="k">atmosphere</span><span>gibs ozone imagery on a shell whose height is illustrative and scaled by the noaa kp index · not a measured profile</span></div>
+                <div class="row"><span class="k">territories</span><span>cartographic outlines · disputed borders are not adjudicated here</span></div>
+                <div class="row"><span class="k">coverage gaps</span><span>cells where the layers you enabled returned little public data · never a blackout, jamming or intercept finding</span></div>
+                <div class="row"><span class="k">density grid</span><span>ads-b fixes this deployment recorded, per 0.25° cell · a thin cell means less was observed, not that aircraft avoid it</span></div>
+                <div class="row"><span class="k">plate motion</span><span>pb2002 edges with published rates · metres per century, not a forecast of future coastlines</span></div>
+                <div class="row"><span class="k">weather-weighted route</span><span>an osrm driving route re-costed by forecast wind and rain · no quantum or predictive routing exists here</span></div>
+                <div class="row"><span class="k">public cameras</span><span>frames agencies publish openly · nothing is accessed without permission</span></div>
+                <div class="row"><span class="k">photo pin</span><span>gps tags read in your browser from an image you supplied · a stripped photo stays unplaceable</span></div>
               </div>
               <div class="sheet-card" style="margin-bottom:0">
                 <h2>attribution</h2>
