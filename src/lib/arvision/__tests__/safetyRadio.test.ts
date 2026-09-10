@@ -344,7 +344,7 @@ describe("evidence capture", () => {
   it("says so plainly when nothing was buffered", async () => {
     const out = await captureEvidence(new RollingFrameBuffer(), "inc1", 1000, UNCONFIGURED_STORAGE);
     expect(out.ok).toBe(false);
-    if (!out.ok) expect(out.state).toBe("no_frames");
+    expect(out.state).toBe("no_frames");
   });
 
   it("marks a capture session only when no storage backend exists", async () => {
@@ -352,7 +352,8 @@ describe("evidence capture", () => {
     buf.push(frame(1000));
     const out = await captureEvidence(buf, "inc1", 1000, UNCONFIGURED_STORAGE);
     expect(out.ok).toBe(true);
-    if (out.ok) {
+    expect(out.bundle).not.toBeNull();
+    if (out.bundle) {
       expect(out.bundle.storage).toBe("session_only");
       expect(out.bundle.retentionUntilMs).toBe(0);
       expect(out.detail).toMatch(/not retained/);
@@ -372,7 +373,7 @@ describe("evidence capture", () => {
     };
     const out = await captureEvidence(buf, "inc1", 1000, failing);
     expect(out.ok).toBe(false);
-    if (!out.ok) expect(out.reason).toMatch(/quota exceeded/);
+    expect(out.reason).toMatch(/quota exceeded/);
   });
 
   it("drops bundles past their retention deadline but keeps session only ones", () => {

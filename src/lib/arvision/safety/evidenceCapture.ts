@@ -38,9 +38,16 @@ export interface EvidenceBundle {
   notes: string;
 }
 
-export type CaptureOutcome =
-  | { ok: true; bundle: EvidenceBundle; detail: string }
-  | { ok: false; reason: string; state: "not_configured" | "no_frames" | "failed" };
+export interface CaptureOutcome {
+  ok: boolean;
+  /** present only when ok. */
+  bundle: EvidenceBundle | null;
+  /** what happened, in the operator's words. */
+  detail: string;
+  /** why it did not happen. null when it did. */
+  reason: string | null;
+  state: "stored" | "session_only" | "no_frames" | "failed";
+}
 
 export interface RollingBufferOptions {
   /** seconds of history kept before a trigger. */
@@ -138,11 +145,9 @@ export async function captureEvidence(
 ): Promise<CaptureOutcome> {
   const frames = buffer.window(triggerAtMs);
   if (frames.length === 0) {
-    return {
-      ok: false,
-      state: "no_frames",
-      reason: "no camera frames were buffered around this trigger, so there is nothing to store. the capture buffer runs only while a camera stream is open.",
-    };
+    const reason =
+      "no camera frames were buffered around this trigger, so there is nothing to store. the capture buffer runs only while a camera stream is open.";
+    return { ok: false, bundle: null, detail: reason, reason, state: "no_frames" };
   }
   const settings = buffer.settings();
   seq += 1;
@@ -164,16 +169,19 @@ export async function captureEvidence(
     return {
       ok: true,
       bundle,
+      reason: null,
+      state: "session_only",
       detail: `${frames.length} original frames were captured in this tab. ${UNCONFIGURED_STORAGE.detail}`,
     };
   }
 
   try {
     const result = await storage.put(bundle);
-    if (!result.ok) return { ok: false, state: "failed", reason: result.detail };
-    return { ok: true, bundle, detail: result.detail };
+    if (!result.ok) return { ok: false, bundle: null, detail: result.detail, reason: result.detail, state: "failed" };
+    return { ok: true, bundle, detail: result.detail, reason: null, state: "stored" };
   } catch (e) {
-    return { ok: false, state: "failed", reason: `the storage backend rejected the capture: ${(e as Error).message}` };
+    const reason = `the storage backend rejected the capture: ${(e as Error).message}`;
+    return { ok: false, bundle: null, detail: reason, reason, state: "failed" };
   }
 }
 

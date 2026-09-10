@@ -198,11 +198,11 @@ export class SafetyHub {
     if (created) {
       this.incidentStore.attachEvidence(incident.id, null, "requested", "capturing the buffered frames around this trigger");
       const outcome = await captureEvidence(this.buffer, incident.id, firing.atMs, this.storage);
-      if (outcome.ok) {
+      if (outcome.ok && outcome.bundle) {
         this.bundles = applyRetention([outcome.bundle, ...this.bundles].slice(0, 50), Date.now());
         this.incidentStore.attachEvidence(incident.id, outcome.bundle.id, "stored", outcome.detail);
       } else {
-        this.incidentStore.attachEvidence(incident.id, null, "unavailable", outcome.reason);
+        this.incidentStore.attachEvidence(incident.id, null, "unavailable", outcome.reason ?? outcome.detail);
       }
     }
     this.emit();
