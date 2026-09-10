@@ -84,6 +84,14 @@ export const NAV_INTENTS: NavIntent[] = [
     group: "Workspace",
   },
   {
+    view: "investigations",
+    label: "investigations",
+    codename: "investigations",
+    blurb: "multi-hop osint research with provenance, contradictions, gaps and next-best hops",
+    keywords: ["investigation", "investigations", "osint", "research", "due diligence", "background", "evidence", "provenance", "dossier", "trace"],
+    group: "Workspace",
+  },
+  {
     view: "asherin-sentinel",
     label: "asherin.sentinel",
     codename: "asherin.sentinel",
