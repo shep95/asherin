@@ -7,7 +7,7 @@
 import type { TaskFrame, TaskModality } from "./types";
 
 const MODALITY_SIGNALS: { modality: TaskModality; re: RegExp; domain: string }[] = [
-  { modality: "debugging", re: /\b(bug|broken|error|fails?|crash|regress|stack trace|not working)\b/i, domain: "debugging" },
+  { modality: "debugging", re: /\b(bug|broken|error|fail\w*|crash\w*|regress\w*|stack trace|not working|throws?)\b/i, domain: "debugging" },
   { modality: "code", re: /\b(code|function|component|refactor|implement|typescript|sql|api|deploy)\b/i, domain: "software" },
   { modality: "research", re: /\b(research|sources?|investigate|osint|evidence|verify|corroborat)\b/i, domain: "research" },
   { modality: "writing", re: /\b(write|draft|essay|article|copy|rewrite|edit this text)\b/i, domain: "writing" },
