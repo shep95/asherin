@@ -967,6 +967,7 @@ export default function EagleEyeView() {
           )}
 
           <OperationsPanel />
+          <SpatialPanel />
           <CapabilityMatrixPanel localInferenceReady={modelStatus === "ready"} />
           <FabricConsolePanel />
 
