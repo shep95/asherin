@@ -1,4 +1,8 @@
-import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, Suspense, lazy } from "react";
+import { useChatWorkspace } from "@/lib/workspace/useChatWorkspace";
+
+const WorkspacePanel = lazy(() => import("@/components/dashboard/workspace/WorkspacePanel"));
+
 import { supabase } from "@/integrations/supabase/client";
 import BrainsManager from "./BrainsManager";
 import { Link } from "react-router-dom";
