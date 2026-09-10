@@ -2527,15 +2527,33 @@ const AsherinEyeView = () => {
         }))
         .filter((r) => r.id && Number.isFinite(r.lat) && Number.isFinite(r.lon));
       if (!rows.length) return;
+      const b = $("#btn-record");
       try {
         const j = await authedJson("asherin-eye-record", { op: "record", rows: rows.slice(0, 600) });
+        // the function answers 200 with an { error } body on a write failure,
+        // so a bare "did it throw" check would have called that a success.
+        if (j.error) throw new Error(String(j.error));
+        health.ok("recorder", { rows: j.recorded || 0 });
         if (j.recorded) {
           recordedTotal += j.recorded;
-          const b = $("#btn-record");
-          if (b) b.textContent = `recording · ${recordedTotal.toLocaleString()}`;
+          if (b) {
+            b.textContent = `recording · ${recordedTotal.toLocaleString()}`;
+            b.classList.remove("bad");
+            b.title = "opt-in · counts the contacts already on your screen into the shared density grid";
+          }
         }
-      } catch {
-        /* a recorder outage must never break the globe */
+      } catch (e) {
+        // a recorder outage must never break the globe, but it must never look
+        // like a successful write either.
+        health.fail("recorder", e);
+        if (b) {
+          b.textContent = "recorder degraded";
+          b.classList.add("bad");
+          b.title = `last write failed: ${health.get("recorder").lastError}`;
+        }
+        if (health.get("recorder").fails === 1) {
+          setNote(`recorder: ${health.get("recorder").lastError} · nothing was written`);
+        }
       }
     }
 
@@ -3164,6 +3182,10 @@ const AsherinEyeView = () => {
     function releaseTrack() {
       tracked = null;
       modelOn = false;
+      selected = null;
+      renderInspector();
+      const group = $("#track-group");
+      if (group) group.hidden = true;
       viewer.trackedEntity = undefined;
       if (trail) {
         viewer.entities.remove(trail);
@@ -3578,15 +3600,16 @@ const AsherinEyeView = () => {
         if (keys.google) {
           const tiles = await CesiumG.createGooglePhotorealistic3DTileset();
           viewer.scene.primitives.add(tiles);
-          status.photoreal = "google 3d tiles · bound";
+          status.photoreal = "google photorealistic 3d tiles · streaming";
           status.map = "photoreal";
         } else {
           applyGlobe("sat");
-          status.photoreal = "unavailable until a maps key is bound in connect";
+          status.photoreal =
+            "unavailable · needs a maps key bound in connect · showing flat satellite imagery, local geometry stays browser-extruded openstreetmap";
         }
       } catch (e) {
         applyGlobe("osm");
-        status.photoreal = "photoreal failed · osm globe";
+        status.photoreal = "photoreal tiles failed · fell back to the osm globe";
       }
 
       const layerHost = $("#layer-btns");
@@ -3653,7 +3676,10 @@ const AsherinEyeView = () => {
         b.type = "button";
         b.className = "tog" + (s === "normal" ? " on" : "");
         b.dataset.style = s;
-        b.textContent = `${i + 1} ${s}`;
+        const cap = capabilityFor(`style:${s}`);
+        b.textContent = `${i + 1} ${cap?.label || s}`;
+        // every style is a render, and its tooltip says exactly that.
+        b.title = cap?.limitation || "render only";
         b.onclick = () => applyStyle(s);
         styleHost.appendChild(b);
       });
@@ -3664,6 +3690,7 @@ const AsherinEyeView = () => {
         const ent = picked?.id;
         if (ent?.asherin?.kind === "lands") {
           highlightCountry(ent);
+          selectEntity(ent);
           return;
         }
         if (ent?.asherin?.kind === "cameras") {
@@ -3674,11 +3701,13 @@ const AsherinEyeView = () => {
           }
           setCamWall(true, key);
           hoverEnt = ent;
+          selectEntity(ent);
           pinHoverCard();
           return;
         }
         if (ent && ent.asherin) {
           hoverEnt = ent;
+          selectEntity(ent);
           trackEntity(ent);
           pinHoverCard();
         } else releaseTrack();
@@ -3749,7 +3778,7 @@ const AsherinEyeView = () => {
         if (!camRows.length) {
           setNote("pulling open agency camera catalogues in view…");
           try {
-            await loadLayer("cameras");
+            await runLayerLoad("cameras");
             root.querySelectorAll("#layer-btns .tog").forEach((b) => {
               if (b.dataset.layer === "cameras") b.classList.add("on");
             });
@@ -3774,9 +3803,30 @@ const AsherinEyeView = () => {
         refreshContacts();
       };
       let detectOn = false;
-      $("#btn-detect").onclick = () => {
+      // this reticle follows the contact the operator selected. it is not an
+      // object detector, and the label no longer implies one.
+      $("#btn-trackbox").onclick = () => {
         detectOn = !detectOn;
-        $("#btn-detect").classList.toggle("on", detectOn);
+        $("#btn-trackbox").classList.toggle("on", detectOn);
+        setNote(
+          detectOn
+            ? "track box on · a reticle on the contact you selected · no object detection runs on this view"
+            : "track box off",
+        );
+      };
+      $("#insp-close").onclick = () => closeInspector();
+      $("#btn-inspect").onclick = () => {
+        const panel = $("#inspect");
+        if (!selected) return;
+        if (panel.classList.contains("open")) closeInspector();
+        else renderInspector();
+      };
+      const toolsMenu = $("#tools-menu");
+      $("#btn-tools").onclick = () => {
+        const open = toolsMenu.hidden;
+        toolsMenu.hidden = !open;
+        $("#btn-tools").classList.toggle("on", open);
+        $("#btn-tools").setAttribute("aria-expanded", String(open));
       };
       bindWhiteboard();
       $("#btn-draw").onclick = () => {
@@ -3891,6 +3941,7 @@ const AsherinEyeView = () => {
 
       pollers.push(
         setInterval(() => {
+          if (document.hidden) return;
           setHud();
           refreshContacts();
           refreshHangar();
@@ -3900,10 +3951,23 @@ const AsherinEyeView = () => {
         }, 250),
       );
       pollers.push(setInterval(syncTrails, 1500));
+      // the inspector is a slower surface than the render loop: one second is
+      // enough for altitude and freshness to stay honest without re-laying out
+      // the panel four times a second.
       pollers.push(
         setInterval(() => {
-          if (layerOn.flights) loadLayer("flights").catch(() => {});
-          if (layerOn.military) loadLayer("military").catch(() => {});
+          if (document.hidden || !selected) return;
+          renderInspector();
+          paintAllLayerStates();
+        }, 1000),
+      );
+      pollers.push(
+        setInterval(() => {
+          // a hidden tab burns quota and paints nothing; the chips carry the
+          // gap when it comes back.
+          if (document.hidden) return;
+          if (layerOn.flights) runLayerLoad("flights", { quiet: true }).catch(() => {});
+          if (layerOn.military) runLayerLoad("military", { quiet: true }).catch(() => {});
           
         }, 12000),
       );
