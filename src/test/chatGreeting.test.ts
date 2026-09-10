@@ -92,8 +92,11 @@ describe("trivial-turn prompt assembly", () => {
     }
   });
 
-  it("strips network telemetry out of remembered traits", () => {
-    expect(CHAT_SRC).toContain("TELEMETRY_KEY");
-    expect(CHAT_SRC).toContain("TELEMETRY_VALUE");
+  it("carries no inferred operator-trait block that network telemetry could leak into", () => {
+    // The inferred-profile/trait list was retired; the safety property now holds
+    // because the block does not exist, not because it is filtered.
+    expect(CHAT_SRC).not.toContain("userContextStr");
+    expect(CHAT_SRC).not.toContain("inferredProfile");
   });
+
 });
