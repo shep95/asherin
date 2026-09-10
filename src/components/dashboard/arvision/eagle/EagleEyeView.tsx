@@ -44,6 +44,12 @@ import {
   proximityBandFor, pruneSightings, startPassiveScan, type RadioSighting,
 } from "./radioScan";
 import RadioIntelPanel from "./RadioIntelPanel";
+import { visionSafety } from "@/lib/arvision/vision/bridge";
+import { toVisionFrame } from "@/lib/arvision/vision/adapt";
+import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
+import { safetyHub } from "@/lib/arvision/safety/hub";
+import type { VisionEvent } from "@/lib/arvision/vision/types";
+import { pointInPolygon, zoneActiveAt, type SafetyZone } from "@/lib/arvision/vision/zones";
 import type { LedgerInput } from "./radioLedger";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
@@ -96,6 +102,10 @@ interface Runtime {
   lastObjects: DetectedObject[];
   lastInferenceMs: number;
   personCount: number;
+  /** the events the configured safety machines currently hold open for this camera. */
+  safetyEvents: VisionEvent[];
+  /** last time an original frame was handed to the evidence buffer. */
+  lastEvidencePushMs: number;
 }
 
 interface TileState {
@@ -353,7 +363,12 @@ export default function EagleEyeView() {
         lastObjects: [],
         lastInferenceMs: 0,
         personCount: 0,
+        safetyEvents: [],
+        lastEvidencePushMs: 0,
       });
+      // the safety layer is told a real camera exists before any frame arrives,
+      // so an operator can tell "watching, nothing seen" from "not watching".
+      visionSafety().declareCamera(device.deviceId, label, "model_loading", "camera open, waiting for the detection models");
       setTiles((t) => t.map((x) => (x.deviceId === device.deviceId ? { ...x, status: "live" } : x)));
       setPermission("granted");
     } catch (e) {
@@ -369,6 +384,7 @@ export default function EagleEyeView() {
       closeStream(rt.stream);
       rt.video.srcObject = null;
       runtimes.current.delete(deviceId);
+      visionSafety().releaseCamera(deviceId);
     }
     setTiles((t) => t.filter((x) => x.deviceId !== deviceId));
   }, []);
@@ -456,6 +472,39 @@ export default function EagleEyeView() {
         );
         rt.entities = out.updatedEntities;
         rt.lastObjects = [...det.objects, ...det.vehicles];
+
+        // the configured safety layer: zones, custody, dwell, crowding, falls.
+        // it consumes the same detections, keeps its own temporal state, and
+        // raises only events with a measured value behind them.
+        const visionFrame = toVisionFrame({
+          atMs: Date.now(),
+          cameraId: deviceId,
+          cameraLabel: rt.config.label,
+          frameWidth: frame.width,
+          frameHeight: frame.height,
+          persons: det.persons,
+          objects: [...det.objects, ...det.vehicles],
+        });
+        // the original frame goes to the evidence buffer before any overlay is
+        // drawn on it, at a cadence the buffer can hold rather than every pass.
+        const nowMs = visionFrame.atMs;
+        if (nowMs - rt.lastEvidencePushMs >= 500) {
+          rt.lastEvidencePushMs = nowMs;
+          try {
+            safetyHub().pushFrame({
+              atMs: nowMs,
+              sourceId: deviceId,
+              width: frame.width,
+              height: frame.height,
+              dataUrl: frame.toDataURL("image/jpeg", 0.55),
+            });
+          } catch {
+            // an encoder that refuses simply means no pre-roll for this frame.
+          }
+        }
+        const visionResult = await visionSafety().ingest(visionFrame, det.inferenceMs);
+        rt.safetyEvents = visionResult.active.filter((e) => e.cameraId === deviceId);
+
         drawOverlay(rt, det.persons.map((p) => ({ trackId: p.trackId, box: p.boundingBox })), frame.width, frame.height);
 
         if (!capturingRef.current) {
@@ -480,7 +529,9 @@ export default function EagleEyeView() {
         setTiles((t) => t.map((x) => (x.deviceId === deviceId ? { ...x, personCount: rt.personCount, inferenceMs: Math.round(rt.lastInferenceMs) } : x)));
       }
     } catch (e) {
-      setModelError(e instanceof Error ? e.message : "the detection pass failed");
+      const msg = e instanceof Error ? e.message : "the detection pass failed";
+      setModelError(msg);
+      for (const [deviceId, rt] of runtimes.current) visionSafety().reportFailure(deviceId, rt.config.label, msg);
     } finally {
       busyRef.current = false;
       if (runningRef.current) loopRef.current = window.setTimeout(() => void tick(), 220);
