@@ -16,14 +16,17 @@ export const MEMORY_KINDS: { id: MemoryKind; label: string; hint: string }[] = [
 ];
 
 const SECRET_SHAPES: { re: RegExp; why: string }[] = [
-  { re: /\b(sk|pk|rk)[-_][A-Za-z0-9]{12,}/i, why: "that looks like an api key" },
+  // key prefixes commonly carry internal hyphens (sk-live-…, sk-proj-…), so the
+  // body is matched loosely rather than as one alphanumeric run.
+  { re: /\b(sk|pk|rk)[-_][A-Za-z0-9_-]{12,}/i, why: "that looks like an api key" },
   { re: /\bAIza[0-9A-Za-z_\-]{20,}\b/, why: "that looks like a google api key" },
   { re: /\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b/, why: "that looks like a token" },
   { re: /\b(gh[pousr]|xox[bpa])[-_][A-Za-z0-9]{12,}/i, why: "that looks like an access token" },
-  { re: /(password|passphrase|secret|api[ _-]?key|token|totp|otp|seed phrase|mnemonic|private key)\s*[:=]\s*\S+/i, why: "credentials belong in Guardian Vault, not memory" },
+  { re: /(password|passphrase|secret|api[ _-]?key|token|totp|otp|seed phrase|mnemonic|private key)\s*(is|are|=|:)\s*\S+/i, why: "credentials belong in Guardian Vault, not memory" },
   { re: /-----BEGIN[^-]{0,40}PRIVATE KEY-----/, why: "that is a private key" },
   { re: /\b\d{13,19}\b(?=[^\d]*(cvv|exp|card))/i, why: "that looks like card data" },
 ];
+
 
 export interface MemoryGuardResult {
   ok: boolean;

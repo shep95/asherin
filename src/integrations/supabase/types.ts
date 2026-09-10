@@ -156,6 +156,685 @@ export type Database = {
           },
         ]
       }
+      ai_conversation_state: {
+        Row: {
+          active_topic: string | null
+          artifacts: Json
+          assumptions: Json
+          confidence: number
+          constraints: Json
+          conversation_id: string
+          created_at: string
+          current_state: string
+          decisions: Json
+          feedback: Json
+          goal: string | null
+          id: string
+          patterns_created: Json
+          patterns_rejected: Json
+          patterns_used: Json
+          preferences_observed: Json
+          project_id: string | null
+          unresolved_questions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_topic?: string | null
+          artifacts?: Json
+          assumptions?: Json
+          confidence?: number
+          constraints?: Json
+          conversation_id: string
+          created_at?: string
+          current_state?: string
+          decisions?: Json
+          feedback?: Json
+          goal?: string | null
+          id?: string
+          patterns_created?: Json
+          patterns_rejected?: Json
+          patterns_used?: Json
+          preferences_observed?: Json
+          project_id?: string | null
+          unresolved_questions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_topic?: string | null
+          artifacts?: Json
+          assumptions?: Json
+          confidence?: number
+          constraints?: Json
+          conversation_id?: string
+          created_at?: string
+          current_state?: string
+          decisions?: Json
+          feedback?: Json
+          goal?: string | null
+          id?: string
+          patterns_created?: Json
+          patterns_rejected?: Json
+          patterns_used?: Json
+          preferences_observed?: Json
+          project_id?: string | null
+          unresolved_questions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_global_candidate: {
+        Row: {
+          abstraction_level: string
+          constraints: Json
+          created_at: string
+          domain: string
+          evidence_score: number
+          failure_modes: Json
+          fingerprint: string
+          id: string
+          independent_sources: number
+          mechanism: string
+          name: string
+          period: string | null
+          privacy_checked: boolean
+          procedure: Json
+          review_notes: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          abstraction_level?: string
+          constraints?: Json
+          created_at?: string
+          domain?: string
+          evidence_score?: number
+          failure_modes?: Json
+          fingerprint: string
+          id?: string
+          independent_sources?: number
+          mechanism: string
+          name: string
+          period?: string | null
+          privacy_checked?: boolean
+          procedure?: Json
+          review_notes?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          abstraction_level?: string
+          constraints?: Json
+          created_at?: string
+          domain?: string
+          evidence_score?: number
+          failure_modes?: Json
+          fingerprint?: string
+          id?: string
+          independent_sources?: number
+          mechanism?: string
+          name?: string
+          period?: string | null
+          privacy_checked?: boolean
+          procedure?: Json
+          review_notes?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_global_manifest: {
+        Row: {
+          created_at: string
+          detail: Json
+          duplicates_merged: number
+          evaluated: number
+          experimental: number
+          id: string
+          new_candidates: number
+          period: string
+          promoted: number
+          refined: number
+          rejected: number
+          retired: number
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          duplicates_merged?: number
+          evaluated?: number
+          experimental?: number
+          id?: string
+          new_candidates?: number
+          period: string
+          promoted?: number
+          refined?: number
+          rejected?: number
+          retired?: number
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          duplicates_merged?: number
+          evaluated?: number
+          experimental?: number
+          id?: string
+          new_candidates?: number
+          period?: string
+          promoted?: number
+          refined?: number
+          rejected?: number
+          retired?: number
+        }
+        Relationships: []
+      }
+      ai_global_pattern: {
+        Row: {
+          constraints: Json
+          created_at: string
+          domain: string
+          evaluation: Json
+          failure_modes: Json
+          fingerprint: string
+          id: string
+          layer: string
+          mechanism: string
+          name: string
+          procedure: Json
+          retired_reason: string | null
+          supersedes_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          constraints?: Json
+          created_at?: string
+          domain?: string
+          evaluation?: Json
+          failure_modes?: Json
+          fingerprint: string
+          id?: string
+          layer?: string
+          mechanism: string
+          name: string
+          procedure?: Json
+          retired_reason?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          constraints?: Json
+          created_at?: string
+          domain?: string
+          evaluation?: Json
+          failure_modes?: Json
+          fingerprint?: string
+          id?: string
+          layer?: string
+          mechanism?: string
+          name?: string
+          procedure?: Json
+          retired_reason?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      ai_intelligence_settings: {
+        Row: {
+          created_at: string
+          global_contribution_enabled: boolean
+          learning_enabled: boolean
+          memory_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          global_contribution_enabled?: boolean
+          learning_enabled?: boolean
+          memory_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          global_contribution_enabled?: boolean
+          learning_enabled?: boolean
+          memory_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_learning_event: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          decision: string
+          detail: Json
+          id: string
+          reason: string | null
+          stage: string
+          subject_id: string | null
+          subject_type: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          decision: string
+          detail?: Json
+          id?: string
+          reason?: string | null
+          stage: string
+          subject_id?: string | null
+          subject_type: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          decision?: string
+          detail?: Json
+          id?: string
+          reason?: string | null
+          stage?: string
+          subject_id?: string | null
+          subject_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_memory_candidate: {
+        Row: {
+          confidence: number
+          content: string
+          conversation_id: string | null
+          created_at: string
+          decision_reason: string | null
+          evidence: Json
+          id: string
+          kind: string
+          project_id: string | null
+          promoted_id: string | null
+          promoted_to: string | null
+          proposed_scope: string
+          rationale: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          evidence?: Json
+          id?: string
+          kind?: string
+          project_id?: string | null
+          promoted_id?: string | null
+          promoted_to?: string | null
+          proposed_scope?: string
+          rationale?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          evidence?: Json
+          id?: string
+          kind?: string
+          project_id?: string | null
+          promoted_id?: string | null
+          promoted_to?: string | null
+          proposed_scope?: string
+          rationale?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_pattern: {
+        Row: {
+          abstraction_level: string
+          confidence: number
+          constraints: Json
+          contexts_used: Json
+          conversation_id: string | null
+          created_at: string
+          description: string | null
+          domain: string
+          evidence: Json
+          evidence_quality: string
+          expected_output: string | null
+          failure_count: number
+          failure_modes: Json
+          family: string | null
+          id: string
+          inputs: Json
+          mechanism: string | null
+          name: string
+          preconditions: Json
+          procedure: Json
+          project_id: string | null
+          scope: string
+          slug: string
+          source: string
+          status: string
+          subdomain: string | null
+          success_count: number
+          trigger_terms: string[]
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          abstraction_level?: string
+          confidence?: number
+          constraints?: Json
+          contexts_used?: Json
+          conversation_id?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string
+          evidence?: Json
+          evidence_quality?: string
+          expected_output?: string | null
+          failure_count?: number
+          failure_modes?: Json
+          family?: string | null
+          id?: string
+          inputs?: Json
+          mechanism?: string | null
+          name: string
+          preconditions?: Json
+          procedure?: Json
+          project_id?: string | null
+          scope?: string
+          slug: string
+          source?: string
+          status?: string
+          subdomain?: string | null
+          success_count?: number
+          trigger_terms?: string[]
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          abstraction_level?: string
+          confidence?: number
+          constraints?: Json
+          contexts_used?: Json
+          conversation_id?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string
+          evidence?: Json
+          evidence_quality?: string
+          expected_output?: string | null
+          failure_count?: number
+          failure_modes?: Json
+          family?: string | null
+          id?: string
+          inputs?: Json
+          mechanism?: string | null
+          name?: string
+          preconditions?: Json
+          procedure?: Json
+          project_id?: string | null
+          scope?: string
+          slug?: string
+          source?: string
+          status?: string
+          subdomain?: string | null
+          success_count?: number
+          trigger_terms?: string[]
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      ai_pattern_edge: {
+        Row: {
+          created_at: string
+          from_pattern_id: string
+          id: string
+          note: string | null
+          relation: string
+          to_pattern_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_pattern_id: string
+          id?: string
+          note?: string | null
+          relation: string
+          to_pattern_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_pattern_id?: string
+          id?: string
+          note?: string | null
+          relation?: string
+          to_pattern_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_pattern_edge_from_pattern_id_fkey"
+            columns: ["from_pattern_id"]
+            isOneToOne: false
+            referencedRelation: "ai_pattern"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_pattern_edge_to_pattern_id_fkey"
+            columns: ["to_pattern_id"]
+            isOneToOne: false
+            referencedRelation: "ai_pattern"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_pattern_outcome: {
+        Row: {
+          context: Json
+          conversation_id: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          pattern_id: string
+          result: string
+          signal: string | null
+          user_id: string
+        }
+        Insert: {
+          context?: Json
+          conversation_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          pattern_id: string
+          result: string
+          signal?: string | null
+          user_id: string
+        }
+        Update: {
+          context?: Json
+          conversation_id?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          pattern_id?: string
+          result?: string
+          signal?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_pattern_outcome_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "ai_pattern"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_pattern_version: {
+        Row: {
+          created_at: string
+          id: string
+          pattern_id: string
+          reason: string | null
+          snapshot: Json
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pattern_id: string
+          reason?: string | null
+          snapshot: Json
+          user_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pattern_id?: string
+          reason?: string | null
+          snapshot?: Json
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_pattern_version_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "ai_pattern"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_project_memory: {
+        Row: {
+          confidence: number
+          content: string
+          created_at: string
+          evidence_count: number
+          id: string
+          kind: string
+          project_id: string
+          rationale: string | null
+          source: string
+          source_conversation_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          content: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          kind?: string
+          project_id: string
+          rationale?: string | null
+          source?: string
+          source_conversation_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          content?: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          kind?: string
+          project_id?: string
+          rationale?: string | null
+          source?: string
+          source_conversation_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_user_memory: {
+        Row: {
+          confidence: number
+          content: string
+          created_at: string
+          evidence_count: number
+          id: string
+          kind: string
+          last_used_at: string | null
+          rationale: string | null
+          scope: string
+          source: string
+          source_conversation_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          content: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          kind?: string
+          last_used_at?: string | null
+          rationale?: string | null
+          scope?: string
+          source?: string
+          source_conversation_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          content?: string
+          created_at?: string
+          evidence_count?: number
+          id?: string
+          kind?: string
+          last_used_at?: string | null
+          rationale?: string | null
+          scope?: string
+          source?: string
+          source_conversation_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       algorithm_chat_usage: {
         Row: {
           bucket_key: string

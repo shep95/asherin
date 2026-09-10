@@ -65,7 +65,7 @@ describe("trivial-turn prompt assembly", () => {
     ["ASHERIN_OPERATING_NOTES", "_B.operatingNotes ? ASHERIN_OPERATING_NOTES"],
     ["QUICK_INTELLIGENCE_BRAIN", "_B.quickIntelligence ? QUICK_INTELLIGENCE_BRAIN"],
     ["ADAPTIVE_OPERATOR_ROUTER", "_B.adaptiveRouter ? ADAPTIVE_OPERATOR_ROUTER"],
-    ["userContextStr", "_B.operatorProfile ? userContextStr"],
+    
     ["_asherinProcedures", '_R.trivial ? "" : _asherinProcedures'],
   ];
   for (const [block, gate] of gated) {
@@ -92,8 +92,11 @@ describe("trivial-turn prompt assembly", () => {
     }
   });
 
-  it("strips network telemetry out of remembered traits", () => {
-    expect(CHAT_SRC).toContain("TELEMETRY_KEY");
-    expect(CHAT_SRC).toContain("TELEMETRY_VALUE");
+  it("carries no inferred operator-trait block that network telemetry could leak into", () => {
+    // The inferred-profile/trait list was retired; the safety property now holds
+    // because the block does not exist, not because it is filtered.
+    expect(CHAT_SRC).not.toContain("userContextStr");
+    expect(CHAT_SRC).not.toContain("inferredProfile");
   });
+
 });
