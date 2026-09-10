@@ -14,10 +14,15 @@ import IncidentTimelinePanel from "./IncidentTimelinePanel";
 import DetectorHealthPanel from "./DetectorHealthPanel";
 import EvidencePanel from "./EvidencePanel";
 import SafetyRulesPanel from "./SafetyRulesPanel";
+import VisionEventsPanel from "./VisionEventsPanel";
+import ZoneEditorPanel from "./ZoneEditorPanel";
+import StaffNotificationsPanel from "./StaffNotificationsPanel";
+import { useVisionSafety } from "@/hooks/useVisionSafety";
 
 const SafetyView = () => {
   const { user } = useAuth();
   const { snapshot, review, setRules, setAllowlist, deleteBundle } = useSafetyConsole();
+  const vision = useVisionSafety();
   const operator = user?.id ? `operator ${user.id.slice(0, 8)}` : "unauthenticated session";
   const allowlist = useMemo(() => safetyHub().getAllowlist(), [snapshot.atMs]);
 
@@ -32,14 +37,28 @@ const SafetyView = () => {
           </p>
         </section>
 
+        <VisionEventsPanel snapshot={vision.snapshot} />
+        <ZoneEditorPanel
+          zones={vision.snapshot.zones}
+          cameras={vision.snapshot.cameras.map((c) => ({ cameraId: c.cameraId, cameraLabel: c.cameraLabel }))}
+          onChange={vision.setZones}
+        />
+        <StaffNotificationsPanel
+          notifications={vision.notifications}
+          channels={vision.channels}
+          onChannel={vision.setChannel}
+          onRead={vision.markRead}
+          onAcknowledge={vision.acknowledge}
+        />
         <RadioAwarenessPanel snapshot={snapshot} allowlist={allowlist} onAllowlist={setAllowlist} />
         <IncidentTimelinePanel
           incidents={snapshot.incidents}
           operator={operator}
           onReview={(id, state, note) => review(id, state, operator, note)}
-          onOpenEvidence={() => undefined}
+          onOpenEvidence={() => document.getElementById("arvision-evidence")?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
         <DetectorHealthPanel detectors={snapshot.detectors} />
+        <div id="arvision-evidence" />
         <EvidencePanel
           bundles={snapshot.bundles}
           storage={snapshot.storage}
