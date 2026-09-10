@@ -284,13 +284,6 @@ const Index = () => {
               >
                 pricing
               </Link>
-              {/* full document load to the standalone static page, not an SPA route */}
-              <a
-                href="https://asherin.com/asherin.ide/"
-                className="inline-flex items-center min-h-[44px] px-1 text-xs tracking-[0.22em] uppercase font-light text-muted-foreground/80 transition-colors hover:text-foreground"
-              >
-                asherin.ide
-              </a>
             </div>
           </div>
           <p className="mt-14 max-w-2xl text-sm font-extralight leading-relaxed text-muted-foreground">
@@ -309,7 +302,7 @@ const Index = () => {
               free to use software.
             </h2>
             <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">
-              two asherin workspaces you can open immediately. no account or subscription required.
+              an asherin workspace you can open immediately. no account or subscription required.
             </p>
           </div>
 
@@ -328,21 +321,6 @@ const Index = () => {
               </p>
               <p className="mt-5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/70">no login · no ai · local only</p>
             </Link>
-
-            <a
-              href="https://asherin.com/asherin.ide/"
-              className="group flex min-h-64 flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.04] p-7 backdrop-blur-xl transition-colors hover:border-foreground/25 hover:bg-foreground/[0.07] sm:p-8"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-light uppercase tracking-[0.25em] text-muted-foreground">building workspace</span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-              </div>
-              <h3 className="mt-auto font-display text-3xl font-light text-foreground">asherin.ide</h3>
-              <p className="mt-3 max-w-md text-sm font-extralight leading-relaxed text-muted-foreground">
-                a quiet place to write, organize, and build software directly from the browser.
-              </p>
-              <p className="mt-5 text-[10px] font-light uppercase tracking-[0.22em] text-foreground/70">open workspace · free to use</p>
-            </a>
 
           </div>
 
