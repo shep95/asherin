@@ -17,7 +17,7 @@ import { DEFAULT_MODEL } from "./keyResolution.ts";
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
   message:
-    "Bring your own AI key to use the Zophiel Engine. Open the BYOK panel and add your Gemini key.",
+    "Bring your own AI key to use the Zophiel Engine. Open Settings → AI Keys and add a provider key.",
 };
 
 /** Verified caller identity (id + email), or null if anon / invalid. */
