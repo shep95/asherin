@@ -49,7 +49,7 @@ import { toVisionFrame } from "@/lib/arvision/vision/adapt";
 import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
 import { safetyHub } from "@/lib/arvision/safety/hub";
 import type { VisionEvent } from "@/lib/arvision/vision/types";
-import { pointInPolygon, zoneActiveAt, type SafetyZone } from "@/lib/arvision/vision/zones";
+import { zoneActiveAt } from "@/lib/arvision/vision/zones";
 import type { LedgerInput } from "./radioLedger";
 
 const TIER_STYLE: Record<ThreatTier, { ring: string; text: string; chip: string }> = {
@@ -497,6 +497,13 @@ export default function EagleEyeView() {
               width: frame.width,
               height: frame.height,
               dataUrl: frame.toDataURL("image/jpeg", 0.55),
+              // enough to redraw the overlay over this exact frame later: the
+              // pixels stay original, the drawing is data beside them.
+              overlay: {
+                cameraLabel: rt.config.label,
+                zones: visionSafety().getZones().map((z) => ({ id: z.id, label: z.label, kind: z.kind, polygon: z.polygon })),
+                events: rt.safetyEvents.map((e) => ({ id: e.id, type: e.type, box: e.box, value: e.value, unit: e.valueUnit })),
+              },
             });
           } catch {
             // an encoder that refuses simply means no pre-roll for this frame.
@@ -562,13 +569,13 @@ export default function EagleEyeView() {
     // the configured zones, drawn where the administrator put them, so the
     // operator can see the geometry a restricted-entry event was measured
     // against instead of trusting a label.
-    const zones = visionSafety().getZones().filter((z) => z.cameraId === rt.config.cameraId || z.cameraId === rt.config.label || !z.cameraId);
+    const zones = visionSafety().getZones().filter((z) => z.enabled && (!z.cameraId || z.cameraId === rt.config.cameraId || z.cameraId === rt.config.label));
     const zoneAt = Date.now();
     for (const zone of zones) {
-      if (zone.points.length < 2) continue;
+      if (zone.polygon.length < 2) continue;
       const active = zoneActiveAt(zone, new Date(zoneAt));
       ctx.beginPath();
-      zone.points.forEach((pt, i) => {
+      zone.polygon.forEach((pt, i) => {
         const x = pt.x * w;
         const y = pt.y * h;
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -584,9 +591,9 @@ export default function EagleEyeView() {
         ctx.fillStyle = zone.kind === "restricted" ? "rgba(239,68,68,0.08)" : "rgba(56,189,248,0.06)";
         ctx.fill();
       }
-      const anchor = zone.points[0];
+      const anchor = zone.polygon[0];
       ctx.font = "11px ui-monospace, monospace";
-      const zl = `${zone.name} · ${zone.kind}${active ? "" : " · outside schedule"}`;
+      const zl = `${zone.label} · ${zone.kind}${active ? "" : " · outside schedule"}`;
       ctx.fillStyle = "rgba(0,0,0,0.6)";
       ctx.fillRect(anchor.x * w, Math.max(0, anchor.y * h - 16), ctx.measureText(zl).width + 8, 15);
       ctx.fillStyle = active ? "rgba(186,230,253,0.9)" : "rgba(255,255,255,0.5)";
@@ -601,10 +608,13 @@ export default function EagleEyeView() {
       const y = ev.box.y * h;
       const bw = ev.box.width * w;
       const bh = ev.box.height * h;
-      const colour = ev.state === "possible" ? "rgba(251,191,36,0.9)" : "rgba(248,113,113,0.95)";
+      // a weakly-evidenced or uncertainly-associated event is drawn dashed and
+      // amber, so the operator can see how sure the measurement is at a glance.
+      const tentative = ev.confidence < 0.6 || !ev.associationCertain;
+      const colour = tentative ? "rgba(251,191,36,0.9)" : "rgba(248,113,113,0.95)";
       ctx.strokeStyle = colour;
       ctx.lineWidth = 2;
-      ctx.setLineDash(ev.state === "possible" ? [6, 4] : []);
+      ctx.setLineDash(tentative ? [6, 4] : []);
       ctx.strokeRect(x, y, bw, bh);
       ctx.setLineDash([]);
       const unit = ev.valueUnit === "seconds" ? "s" : "";
