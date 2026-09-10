@@ -320,3 +320,6 @@ verify_jwt = false
 
 [functions.soren-ai]
 verify_jwt = false
+
+[functions.osint-investigate]
+verify_jwt = true
