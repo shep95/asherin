@@ -559,6 +559,64 @@ export default function EagleEyeView() {
       ctx.fillStyle = TIER_STYLE[tier].ring;
       ctx.fillText(label, b.box.x + 5, Math.max(11, b.box.y - 5));
     }
+    // the configured zones, drawn where the administrator put them, so the
+    // operator can see the geometry a restricted-entry event was measured
+    // against instead of trusting a label.
+    const zones = visionSafety().getZones().filter((z) => z.cameraId === rt.config.cameraId || z.cameraId === rt.config.label || !z.cameraId);
+    const zoneAt = Date.now();
+    for (const zone of zones) {
+      if (zone.points.length < 2) continue;
+      const active = zoneActiveAt(zone, new Date(zoneAt));
+      ctx.beginPath();
+      zone.points.forEach((pt, i) => {
+        const x = pt.x * w;
+        const y = pt.y * h;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      const barrier = zone.kind === "barrier";
+      if (!barrier) ctx.closePath();
+      ctx.strokeStyle = active ? (barrier ? "rgba(251,191,36,0.75)" : "rgba(56,189,248,0.6)") : "rgba(255,255,255,0.2)";
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.setLineDash(active ? [] : [4, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (!barrier && active) {
+        ctx.fillStyle = zone.kind === "restricted" ? "rgba(239,68,68,0.08)" : "rgba(56,189,248,0.06)";
+        ctx.fill();
+      }
+      const anchor = zone.points[0];
+      ctx.font = "11px ui-monospace, monospace";
+      const zl = `${zone.name} · ${zone.kind}${active ? "" : " · outside schedule"}`;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillRect(anchor.x * w, Math.max(0, anchor.y * h - 16), ctx.measureText(zl).width + 8, 15);
+      ctx.fillStyle = active ? "rgba(186,230,253,0.9)" : "rgba(255,255,255,0.5)";
+      ctx.fillText(zl, anchor.x * w + 4, Math.max(11, anchor.y * h - 4));
+    }
+
+    // live safety events, anchored to the thing that was measured. the label is
+    // the observation and its measurement — never a judgement about a person.
+    for (const ev of rt.safetyEvents) {
+      if (!ev.box) continue;
+      const x = ev.box.x * w;
+      const y = ev.box.y * h;
+      const bw = ev.box.width * w;
+      const bh = ev.box.height * h;
+      const colour = ev.state === "possible" ? "rgba(251,191,36,0.9)" : "rgba(248,113,113,0.95)";
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 2;
+      ctx.setLineDash(ev.state === "possible" ? [6, 4] : []);
+      ctx.strokeRect(x, y, bw, bh);
+      ctx.setLineDash([]);
+      const unit = ev.valueUnit === "seconds" ? "s" : "";
+      const label = `${EVENT_LABEL[ev.type]} · ${ev.value}${unit} · ${Math.round(ev.confidence * 100)}%${ev.associationCertain ? "" : " · association uncertain"}`;
+      ctx.font = "11px ui-monospace, monospace";
+      const tw = ctx.measureText(label).width + 10;
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(x, Math.max(0, y - 34), tw, 16);
+      ctx.fillStyle = colour;
+      ctx.fillText(label, x + 5, Math.max(11, y - 22));
+    }
+
     // the object pass the optical hud draws too: coco-ssd classes with the
     // engine's abandoned flag. objects are named, never people.
     for (const obj of rt.lastObjects) {
