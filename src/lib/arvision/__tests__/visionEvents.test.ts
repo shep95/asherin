@@ -234,12 +234,12 @@ describe("object custody", () => {
     let t = T0;
     for (let i = 0; i < 10; i += 1) engine.step(frame(t + i * 400, [person("owner", 100, 400)], bag(120, 560)));
     t += 4000;
-    for (let i = 0; i < 20; i += 1) engine.step(frame(t + i * 400, [person("owner", 600, 400)], bag(120, 560)));
+    for (let i = 0; i < 20; i += 1) engine.step(frame(t + i * 400, [person("owner", 900, 400)], bag(120, 560)));
     t += 8000;
     // a different track walks up to the bag.
     const types: string[] = [];
     for (let i = 0; i < 10; i += 1) {
-      const out = engine.step(frame(t + i * 400, [person("owner", 600, 400), person("stranger", 110, 400)], bag(120, 560)));
+      const out = engine.step(frame(t + i * 400, [person("owner", 900, 400), person("stranger", 110, 400)], bag(120, 560)));
       out.changed.forEach((e) => types.push(e.type));
     }
     expect(types).toContain("object_retrieved_different_track");
