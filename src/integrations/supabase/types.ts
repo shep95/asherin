@@ -9912,6 +9912,769 @@ export type Database = {
         }
         Relationships: []
       }
+      osint_claims: {
+        Row: {
+          claim_kind: string
+          confidence: number
+          confidence_reason: string | null
+          created_at: string
+          id: string
+          investigation_id: string
+          last_verified_at: string | null
+          object_entity_id: string | null
+          object_value: string | null
+          origin: string
+          predicate: string
+          statement: string
+          status: string
+          subject_entity_id: string | null
+          updated_at: string
+          user_id: string
+          valid_from: string | null
+          valid_to: string | null
+          volatility: string
+        }
+        Insert: {
+          claim_kind?: string
+          confidence?: number
+          confidence_reason?: string | null
+          created_at?: string
+          id?: string
+          investigation_id: string
+          last_verified_at?: string | null
+          object_entity_id?: string | null
+          object_value?: string | null
+          origin?: string
+          predicate: string
+          statement: string
+          status?: string
+          subject_entity_id?: string | null
+          updated_at?: string
+          user_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+          volatility?: string
+        }
+        Update: {
+          claim_kind?: string
+          confidence?: number
+          confidence_reason?: string | null
+          created_at?: string
+          id?: string
+          investigation_id?: string
+          last_verified_at?: string | null
+          object_entity_id?: string | null
+          object_value?: string | null
+          origin?: string
+          predicate?: string
+          statement?: string
+          status?: string
+          subject_entity_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          volatility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_claims_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_claims_object_entity_id_fkey"
+            columns: ["object_entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_claims_subject_entity_id_fkey"
+            columns: ["subject_entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_contradictions: {
+        Row: {
+          claim_a: string
+          claim_b: string
+          created_at: string
+          dimension: string
+          id: string
+          investigation_id: string
+          resolution: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          claim_a: string
+          claim_b: string
+          created_at?: string
+          dimension?: string
+          id?: string
+          investigation_id: string
+          resolution?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          claim_a?: string
+          claim_b?: string
+          created_at?: string
+          dimension?: string
+          id?: string
+          investigation_id?: string
+          resolution?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_contradictions_claim_a_fkey"
+            columns: ["claim_a"]
+            isOneToOne: false
+            referencedRelation: "osint_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_contradictions_claim_b_fkey"
+            columns: ["claim_b"]
+            isOneToOne: false
+            referencedRelation: "osint_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_contradictions_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_documents: {
+        Row: {
+          byte_size: number | null
+          created_at: string
+          filename: string
+          id: string
+          investigation_id: string
+          mime_type: string | null
+          parse_error: string | null
+          parse_status: string
+          source_id: string | null
+          storage_path: string | null
+          text_excerpt: string | null
+          user_id: string
+        }
+        Insert: {
+          byte_size?: number | null
+          created_at?: string
+          filename: string
+          id?: string
+          investigation_id: string
+          mime_type?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          source_id?: string | null
+          storage_path?: string | null
+          text_excerpt?: string | null
+          user_id: string
+        }
+        Update: {
+          byte_size?: number | null
+          created_at?: string
+          filename?: string
+          id?: string
+          investigation_id?: string
+          mime_type?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          source_id?: string | null
+          storage_path?: string | null
+          text_excerpt?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_documents_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "osint_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_entities: {
+        Row: {
+          aliases: string[]
+          attributes: Json
+          canonical: string
+          confidence: number
+          first_seen: string
+          id: string
+          investigation_id: string
+          kind: string
+          label: string
+          last_seen: string
+          merged_into: string | null
+          origin: string
+          resolution_state: string
+          user_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          attributes?: Json
+          canonical: string
+          confidence?: number
+          first_seen?: string
+          id?: string
+          investigation_id: string
+          kind: string
+          label: string
+          last_seen?: string
+          merged_into?: string | null
+          origin?: string
+          resolution_state?: string
+          user_id: string
+        }
+        Update: {
+          aliases?: string[]
+          attributes?: Json
+          canonical?: string
+          confidence?: number
+          first_seen?: string
+          id?: string
+          investigation_id?: string
+          kind?: string
+          label?: string
+          last_seen?: string
+          merged_into?: string | null
+          origin?: string
+          resolution_state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_entities_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_entities_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_events: {
+        Row: {
+          claim_id: string | null
+          created_at: string
+          date_precision: string
+          description: string | null
+          entity_id: string | null
+          id: string
+          investigation_id: string
+          label: string
+          occurred_at: string | null
+          origin: string
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          claim_id?: string | null
+          created_at?: string
+          date_precision?: string
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          investigation_id: string
+          label: string
+          occurred_at?: string | null
+          origin?: string
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          claim_id?: string | null
+          created_at?: string
+          date_precision?: string
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          investigation_id?: string
+          label?: string
+          occurred_at?: string | null
+          origin?: string
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_events_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "osint_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_events_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_events_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "osint_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_evidence: {
+        Row: {
+          authority_tier: number
+          claim_id: string
+          created_at: string
+          document_id: string | null
+          excerpt: string | null
+          id: string
+          investigation_id: string
+          locator: string | null
+          notes: string | null
+          retrieved_at: string
+          source_id: string | null
+          stance: string
+          user_id: string
+        }
+        Insert: {
+          authority_tier?: number
+          claim_id: string
+          created_at?: string
+          document_id?: string | null
+          excerpt?: string | null
+          id?: string
+          investigation_id: string
+          locator?: string | null
+          notes?: string | null
+          retrieved_at?: string
+          source_id?: string | null
+          stance: string
+          user_id: string
+        }
+        Update: {
+          authority_tier?: number
+          claim_id?: string
+          created_at?: string
+          document_id?: string | null
+          excerpt?: string | null
+          id?: string
+          investigation_id?: string
+          locator?: string | null
+          notes?: string | null
+          retrieved_at?: string
+          source_id?: string | null
+          stance?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_evidence_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "osint_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_evidence_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "osint_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_evidence_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_evidence_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "osint_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_gaps: {
+        Row: {
+          created_at: string
+          description: string
+          gap_type: string
+          id: string
+          investigation_id: string
+          priority: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          gap_type?: string
+          id?: string
+          investigation_id: string
+          priority?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          gap_type?: string
+          id?: string
+          investigation_id?: string
+          priority?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_gaps_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_hops: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          hop_number: number
+          id: string
+          investigation_id: string
+          objective: string
+          phase: string
+          provider_state: Json
+          rationale: string | null
+          started_at: string | null
+          stats: Json
+          status: string
+          target_entity_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          hop_number?: number
+          id?: string
+          investigation_id: string
+          objective: string
+          phase?: string
+          provider_state?: Json
+          rationale?: string | null
+          started_at?: string | null
+          stats?: Json
+          status?: string
+          target_entity_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          hop_number?: number
+          id?: string
+          investigation_id?: string
+          objective?: string
+          phase?: string
+          provider_state?: Json
+          rationale?: string | null
+          started_at?: string | null
+          stats?: Json
+          status?: string
+          target_entity_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_hops_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_hops_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_identifiers: {
+        Row: {
+          created_at: string
+          entity_id: string
+          id: string
+          investigation_id: string
+          kind: string
+          source_id: string | null
+          user_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          id?: string
+          investigation_id: string
+          kind: string
+          source_id?: string | null
+          user_id: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          id?: string
+          investigation_id?: string
+          kind?: string
+          source_id?: string | null
+          user_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_identifiers_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_identifiers_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_identifiers_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "osint_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_investigations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          last_hop_at: string | null
+          provider_state: Json
+          question: string
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          last_hop_at?: string | null
+          provider_state?: Json
+          question: string
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          last_hop_at?: string | null
+          provider_state?: Json
+          question?: string
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      osint_relationships: {
+        Row: {
+          claim_id: string | null
+          confidence: number
+          created_at: string
+          from_entity_id: string
+          id: string
+          investigation_id: string
+          relation_type: string
+          status: string
+          to_entity_id: string
+          user_id: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          claim_id?: string | null
+          confidence?: number
+          created_at?: string
+          from_entity_id: string
+          id?: string
+          investigation_id: string
+          relation_type: string
+          status?: string
+          to_entity_id: string
+          user_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          claim_id?: string | null
+          confidence?: number
+          created_at?: string
+          from_entity_id?: string
+          id?: string
+          investigation_id?: string
+          relation_type?: string
+          status?: string
+          to_entity_id?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_relationships_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "osint_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_relationships_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_relationships_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "osint_relationships_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "osint_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      osint_sources: {
+        Row: {
+          authority_reason: string | null
+          authority_tier: number
+          created_at: string
+          id: string
+          investigation_id: string
+          provider: string | null
+          published_at: string | null
+          publisher: string | null
+          retrieved_at: string
+          search_rank: number | null
+          source_type: string
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          authority_reason?: string | null
+          authority_tier?: number
+          created_at?: string
+          id?: string
+          investigation_id: string
+          provider?: string | null
+          published_at?: string | null
+          publisher?: string | null
+          retrieved_at?: string
+          search_rank?: number | null
+          source_type?: string
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          authority_reason?: string | null
+          authority_tier?: number
+          created_at?: string
+          id?: string
+          investigation_id?: string
+          provider?: string | null
+          published_at?: string | null
+          publisher?: string | null
+          retrieved_at?: string
+          search_rank?: number | null
+          source_type?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "osint_sources_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "osint_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_view_events: {
         Row: {
           created_at: string

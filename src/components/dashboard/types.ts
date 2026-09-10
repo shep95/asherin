@@ -149,4 +149,5 @@ export type DashboardView =
   | "asherin-eye"
   | "asherin-sentinel"
   | "asherin-health"
+  | "investigations"
   | "shepherd";

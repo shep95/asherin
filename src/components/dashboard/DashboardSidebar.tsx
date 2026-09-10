@@ -120,6 +120,7 @@ const VIEW_ICON: Record<string, React.ElementType> = {
   "asherin-eye": ScanEye,
   "asherin-sentinel": Ear,
   "asherin-health": HeartPulse,
+  investigations: Search,
   "video-intelligence": Crosshair,
   search: Zap,
   nomad: Crosshair,

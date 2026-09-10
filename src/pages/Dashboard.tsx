@@ -69,6 +69,7 @@ const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/d
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
 const AsherinHealthView = lazyWithRetry(() => import("@/components/dashboard/health/AsherinHealthView"));
+const InvestigationWorkspace = lazyWithRetry(() => import("@/components/dashboard/investigation/InvestigationWorkspace"));
 const SentinelView = lazyWithRetry(() => import("@/components/dashboard/sentinel/SentinelView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
@@ -224,6 +225,7 @@ const Dashboard = () => {
     "asherin-eye",
     "asherin-sentinel",
     "asherin-health",
+    "investigations",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -240,6 +242,8 @@ const Dashboard = () => {
     "asherin.sentinel": "asherin-sentinel",
     asherinx: "ghost-engine",
     "asherinx-eng": "ghost-engine",
+    investigation: "investigations",
+    osint: "investigations",
     pages: "pdf-generator",
     "asherin-pages": "pdf-generator",
   };
@@ -252,6 +256,8 @@ const Dashboard = () => {
   };
   const initialView: DashboardView = resolveView(viewParam) ?? "chat";
   const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>(initialView);
+  // The investigation bound to the current chat, if a research turn opened one.
+  const [activeInvestigationId, setActiveInvestigationId] = useState<string | null>(null);
   const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
   // The code workspace can hand the operator back to the mouth. One chat only —
   // the workspace never hosts a transcript of its own.
@@ -1299,6 +1305,24 @@ const Dashboard = () => {
         attachments: m.attachments,
       }));
 
+    // ── INVESTIGATION GROUNDING ───────────────────────────────────────
+    // Only a research request or an investigation follow-up is touched here;
+    // every other turn passes through with its content unchanged.
+    try {
+      const { applyInvestigationTurn } = await import("@/lib/investigation/chatHook");
+      const turn = await applyInvestigationTurn(content, convId);
+      if (turn.applied && history.length) {
+        const last = history[history.length - 1];
+        if (last.role === "user") last.content = turn.content;
+        setActiveInvestigationId(turn.investigationId);
+      }
+      if (turn.notice) {
+        thinkingStore.step(assistantId, "investigation", turn.notice, "done");
+      }
+    } catch (e) {
+      console.error("investigation grounding skipped:", e);
+    }
+
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
     if (activeBrainId) {
@@ -1922,6 +1946,17 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
+      case "investigations":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <InvestigationWorkspace
+                investigationId={activeInvestigationId}
+                onSelect={setActiveInvestigationId}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        );
       case "asherin-defender":
         return gatedView(
           "asherin-defender",
