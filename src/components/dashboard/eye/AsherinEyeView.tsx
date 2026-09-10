@@ -3639,6 +3639,11 @@ const AsherinEyeView = () => {
         b.dataset.layer = row.id;
         b.textContent = row.keyed ? `${row.label} · needs key` : row.label;
         b.title = row.honesty;
+        // every layer carries its own provenance + freshness line, so a stale
+        // or failed feed is visibly different from a live one at the toggle.
+        const state = document.createElement("span");
+        state.className = "lstate";
+        b.appendChild(state);
         b.onclick = () => {
           if (row.keyed) {
             setNote(row.honesty);
@@ -3648,6 +3653,7 @@ const AsherinEyeView = () => {
         };
         gridFor(row.id).appendChild(b);
       });
+      paintAllLayerStates();
       {
         // track history is a rendering choice over the flight layers, not a
         // feed of its own — so it sits with the layers but carries no data id.
