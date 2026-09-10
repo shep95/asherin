@@ -60,7 +60,7 @@ const PLANS = [
         title: "read and build",
         items: [
           "asherin.health, your own anatomy and records, read locally, never a diagnosis",
-          "asherin.ide, asherin.agents, asherin.snippets, asherin.design",
+          "asherin.agents, asherin.snippets, asherin.design",
           "asherin.pages, asherin.slides, asherin.ebook, whiteboard",
         ],
       },
