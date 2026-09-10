@@ -767,16 +767,22 @@ export class VisionEventEngine {
           trackIds: [nearest.track.id],
           objectId: obj.objectId,
           box: obj.box,
-          associationCertain: sameTrack ? obj.associationCertain : true,
-          detail: sameTrack
-            ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, the same temporary track it was associated with when it was set down.${obj.associationCertain ? "" : " that association was already marked uncertain because tracking continuity broke earlier, so treat this as the most likely reading rather than a fact."}`
-            : `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, which is not the track it was associated with (${obj.ownerTrackId ? obj.ownerTrackId.slice(0, 10) : "none recorded"}). different temporary tracks may or may not be different people — this camera cannot tell, and does not try.`,
+          associationCertain: unknownAssociation ? false : sameTrack ? obj.associationCertain : true,
+          detail: unknownAssociation
+            ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}. ${obj.ownerTrackId ? `the track it was associated with (${obj.ownerTrackId.slice(0, 10)}) was lost before this, so continuity is broken` : "nothing was ever associated with it while it sat there"} — the retriever association is unknown, not different and not the same.`
+            : sameTrack
+              ? `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, the same temporary track it was associated with when it was set down.${obj.associationCertain ? "" : " that association was already marked uncertain because tracking continuity broke earlier, so treat this as the most likely reading rather than a fact."}`
+              : `the ${obj.label} was picked up by track ${nearest.track.id.slice(0, 10)}, which is not the track it was associated with (${obj.ownerTrackId ? obj.ownerTrackId.slice(0, 10) : "none recorded"}). different temporary tracks may or may not be different people — this camera cannot tell, and does not try.`,
           parts: [
             ...trackQuality(nearest.track, cfg),
             { label: "retrieval distance measured against the configured threshold", value: 1, weight: 2 },
             {
-              label: sameTrack ? "track identity matched the recorded association" : "track identity differed from the recorded association",
-              value: sameTrack ? (obj.associationCertain ? 1 : 0.5) : 1,
+              label: unknownAssociation
+                ? "tracking continuity was broken, so no identity comparison was possible"
+                : sameTrack
+                  ? "track identity matched the recorded association"
+                  : "track identity differed from the recorded association",
+              value: unknownAssociation ? 0.4 : sameTrack ? (obj.associationCertain ? 1 : 0.5) : 1,
               weight: 2,
             },
           ],
