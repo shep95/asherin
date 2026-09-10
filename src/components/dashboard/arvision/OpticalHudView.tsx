@@ -1357,7 +1357,7 @@ function bootArvision(wrap, root, emitPull) {
       },
       D_ANOMALY_REPORT: { motion_spike: S.motion > 0.18, dark: S.luma < 0.12, blown: S.luma > 0.88 },
       E_OBSTRUCTION_LOG: S.obstruction,
-      OVERALL_CONFIDENCE: S.faces || S.objects.length ? "medium" : "low",
+      OVERALL_CONFIDENCE: "not scored — no calibrated inference backend is attached to this capture",
       misb_analog: misbFields(),
       identity: S.identity,
       classes: S.classes,
@@ -1391,6 +1391,7 @@ function bootArvision(wrap, root, emitPull) {
       PlatformPitch: S.beta,
       PlatformRoll: S.gamma,
       HorizontalFOV: S.hfov,
+      HorizontalFOVSource: S.hfovSource || "not reported by this camera",
       FrameCenter: "CANNOT_RESOLVE unless outdoor GNSS+horizon+signage",
       analog: true,
       standard: "MISB ST 0601 field names — device IMU/GNSS analog, not airborne KLV",
@@ -1813,7 +1814,7 @@ function bootArvision(wrap, root, emitPull) {
     const lat = S.lat != null ? S.lat.toFixed(5) : "CANNOT_RESOLVE";
     const lon = S.lon != null ? S.lon.toFixed(5) : "CANNOT_RESOLVE";
     const hdg = S.heading != null ? Math.round(S.heading) + "°" : "no mag";
-    const fov = S.hfov ? Math.round(S.hfov) + "° analog" : "—";
+    const fov = S.hfov ? Math.round(S.hfov) + "° measured" : "fov not reported";
     misbEl.innerHTML =
       "<b>" +
       new Date().toISOString().slice(11, 19) +
