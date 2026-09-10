@@ -13,6 +13,12 @@
 
 import { safetyHub } from "../safety/hub";
 import { safetyNotifier } from "../safety/notify";
+import {
+  publishCameraStatus,
+  publishVisionEvents,
+  publishVisionFrame,
+  releaseCameraSensor,
+} from "@/lib/fabric/bridges/visionFabric";
 import { VisionEventEngine, type SuppressedEvent, type VisionStepResult } from "./eventEngine";
 import { loadZones, saveZones, type SafetyZone, type ZoneProblem } from "./zones";
 import type { CustodyRecord, VisionEngineConfig, VisionEvent, VisionFrameInput } from "./types";
