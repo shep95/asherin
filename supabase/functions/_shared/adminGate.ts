@@ -1,5 +1,5 @@
-// Strict BYOK gate — only staff identities may consume the platform Gemini
-// key. Every other caller MUST ship a valid BYOK config or get a clean 403.
+// Strict BYOK gate — NO caller may consume a platform model key. Staff and
+// non-staff alike MUST ship a valid BYOK config or get a clean 403.
 //
 // Staff recognition is a SHA-256 digest match (identityHash.ts). No mailbox
 // appears in this file, in any comment, in any log line, or in any response
@@ -17,12 +17,8 @@ import { DEFAULT_MODEL } from "./keyResolution.ts";
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
   message:
-    "Bring your own AI key to use the Zophiel Engine. Open the BYOK panel and add your Gemini key.",
+    "Bring your own AI key to use the Zophiel Engine. Open Settings → AI Keys and add a provider key.",
 };
-
-// Cheapest uncensored Venice model that handles code + vision.
-// See https://docs.venice.ai/api-reference/models
-const VENICE_FREE_MODEL = "mistral-31-24b";
 
 /** Verified caller identity (id + email), or null if anon / invalid. */
 export async function getCaller(req: Request): Promise<{ id: string; email: string | null } | null> {
@@ -58,9 +54,9 @@ export function isAdminEmail(email: string | null): boolean {
 }
 
 export interface KeyResolution {
-  /** "admin": use the platform GEMINI_API_KEY. "byok": use the user's config. */
+  /** Always "byok" — the platform key path was removed. */
   mode: "admin" | "byok";
-  /** Present when mode === "admin". */
+  /** Never set. Retained so existing callers keep type-checking. */
   geminiKey?: string;
   /** Present when mode === "byok". */
   byok?: ZophielByokConfig;
@@ -68,8 +64,7 @@ export interface KeyResolution {
 
 /**
  * Resolves which key path to use.
- * - Admin caller: may use platform key (or BYOK if they sent one — BYOK wins).
- * - Anyone else: MUST send a valid BYOK config, or this throws.
+ * - Every caller MUST send (or have saved) a valid BYOK config, or this throws.
  *
  * Throws an Error with `.status = 403` and `.code = "BYOK_REQUIRED"` when the
  * non-admin caller did not provide a usable BYOK config.
@@ -149,50 +144,16 @@ export async function storedByokForUser(userId: string): Promise<ZophielByokConf
  * the owner's email, not the missing JWT, decides the key.
  */
 export async function resolveKeyForEmail(
-  email: string | null,
+  _email: string | null,
   byok: unknown,
-  opts: { strict?: boolean } = {},
+  _opts: { strict?: boolean } = {},
 ): Promise<KeyResolution> {
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
-  const isInternalTeam = isAdminEmail(email);
 
-  // BYOK always wins — a key the caller supplied is an explicit instruction.
+  // BYOK is the ONLY accepted source. There is no platform key path here:
+  // staff do not fall back to a platform Gemini key and non-staff do not fall
+  // back to a platform Venice key. `email` is no longer consulted for routing.
   if (validByok) return { mode: "byok", byok: validByok };
-
-  // Staff without any key of their own fall back to the platform Gemini key so
-  // no internal surface ever prompts them for one.
-  if (isInternalTeam) {
-    const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
-    if (geminiKey) return { mode: "admin", geminiKey };
-  }
-
-
-  // BYOK always wins for everyone else.
-  if (validByok) return { mode: "byok", byok: validByok };
-
-  // Strict mode (Zerlal, Video Intelligence): no platform fallback.
-  if (opts.strict) {
-    const e: any = new Error("BYOK_REQUIRED");
-    e.status = 403;
-    e.code = "BYOK_REQUIRED";
-    throw e;
-  }
-
-  // Free-tier fallback: route AUTHENTICATED callers without BYOK through the
-  // platform Venice key. Anonymous (no JWT) callers MUST NOT reach this path —
-  // otherwise any unauthenticated HTTP client can consume the platform Venice
-  // budget without limit (billing DoS).
-  const veniceKey = Deno.env.get("VENICE_API_KEY") || "";
-  if (veniceKey && email) {
-    return {
-      mode: "byok",
-      byok: {
-        provider: "venice",
-        model: VENICE_FREE_MODEL,
-        apiKey: veniceKey,
-      },
-    };
-  }
 
   const e: any = new Error("BYOK_REQUIRED");
   e.status = 403;

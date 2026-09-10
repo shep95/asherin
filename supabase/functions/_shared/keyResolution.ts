@@ -25,7 +25,8 @@ export const PROVIDER_ENV: Readonly<Record<string, readonly string[]>> = {
   together: ["TOGETHER_API_KEY"],
   deepseek: ["DEEPSEEK_API_KEY"],
   huggingface: ["HF_TOKEN"],
-  venice: ["VENICE_API_KEY"],
+  // venice is BYOK-only: the platform never holds a Venice key for users.
+  venice: [],
   perplexity: ["PERPLEXITY_API_KEY"],
 };
 
@@ -75,7 +76,6 @@ export const MODEL_PRIORITY: readonly string[] = [
   "mistral",
   "together",
   "deepseek",
-  "venice",
 ];
 
 const env = (name: string): string => (Deno.env.get(name) || "").trim();

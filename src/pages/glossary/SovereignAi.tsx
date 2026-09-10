@@ -143,9 +143,8 @@ const SovereignAi = () => (
       Asherin implements Sovereign AI by default for any operator who brings a
       key. BYOK traffic flows directly from the operator's machine to the
       chosen provider, with platform-side prompt mutation set to zero.
-      Operators without a key are served a Venice-AI uncensored fallback at
-      platform cost, a transitional courtesy, not the sovereign path.
-      Sovereignty is opt-in by adding your own key.
+      Operators without a key get no model access, there is no platform-paid
+      fallback. Sovereignty is the only path.
     </p>
 
     <FaqJsonLd
@@ -161,7 +160,7 @@ const SovereignAi = () => (
         },
         {
           q: "Is Asherin a Sovereign AI platform?",
-          a: "Asherin implements Sovereign AI for any operator who brings their own API key. BYOK traffic is routed directly to the chosen vendor with zero platform-side prompt mutation. Operators without a key use a Venice-AI uncensored fallback at platform cost.",
+          a: "Asherin implements Sovereign AI for any operator who brings their own API key. BYOK traffic is routed directly to the chosen vendor with zero platform-side prompt mutation. Operators without a key get no model access, there is no platform-paid fallback.",
         },
         {
           q: "What is the difference between Sovereign AI and self-hosted AI?",

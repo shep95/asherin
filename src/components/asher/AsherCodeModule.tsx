@@ -40,7 +40,7 @@ import {
   type PlannedChange,
   type IdeCommand,
 } from "@/components/ide-shared";
-import { changedFiles, attachCursorFeatures } from "@/lib/ide";
+import { changedFiles, attachInlineEditFeatures } from "@/lib/ide";
 const wallpaperAureon = "/wallpapers/wallpaper-aureon.webp";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
@@ -2632,7 +2632,7 @@ export default function AsherCodeModule() {
                       onMount={(editor, monaco) => {
                         editorRef.current = editor;
                         monacoRef.current = monaco;
-                        const detach = attachCursorFeatures(editor, monaco, {
+                        const detach = attachInlineEditFeatures(editor, monaco, {
                           getFile: () => {
                             const f = activeFileRefAsher.current;
                             return f ? { id: f.id, name: f.path, language: f.language, content: activeContentRefAsher.current } : null;

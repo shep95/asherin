@@ -14,12 +14,6 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { resolveKey, byokErrorResponse } from "../_shared/adminGate.ts";
 import { callByokJsonWithRetry, isValidByok, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
-const VENICE_FALLBACK: ZophielByokConfig = {
-  provider: "venice",
-  model: "mistral-31-24b",
-  apiKey: Deno.env.get("VENICE_API_KEY") || "",
-};
-
 interface DorkHit { title: string; url: string; snippet: string }
 interface DorkBucket { query: string; rationale: string; hits: DorkHit[] }
 
@@ -128,16 +122,7 @@ async function planWithFallback(
       errors.push(`byok: ${e.message}`);
     }
   }
-  if (VENICE_FALLBACK.apiKey) {
-    try {
-      const raw = await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
-        timeoutMs: 35_000, temperature: 0.5, maxOutputTokens: 4096, jsonMode: true, attempts: 2,
-      });
-      return { raw, via: "venice_fallback" };
-    } catch (e: any) {
-      errors.push(`venice: ${e.message}`);
-    }
-  }
+  // No platform model fallback: the caller's own key is the only model path.
   const err: any = new Error(`all_providers_failed: ${errors.join(" | ")}`);
   err.status = 502;
   throw err;
@@ -161,14 +146,7 @@ async function briefWithFallback(
       });
     } catch (e: any) { console.error("[dork] brief byok failed:", e.message); }
   }
-  if (VENICE_FALLBACK.apiKey) {
-    try {
-      return await callByokJsonWithRetry(VENICE_FALLBACK, system, user, {
-        timeoutMs: 45_000, temperature: 0.4, maxOutputTokens: 1800, jsonMode: false, attempts: 2,
-      });
-    } catch (e: any) { console.error("[dork] brief venice failed:", e.message); }
-  }
-  return "_Brief generation failed — review the buckets manually._";
+  return "_Brief generation failed — add your own provider key in Settings → AI Keys and retry._";
 }
 
 function decodeEntities(text: string): string {

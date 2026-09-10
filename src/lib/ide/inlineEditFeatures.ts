@@ -22,7 +22,7 @@
 //     and looks nothing like the rest of the glass UI.
 //
 // NEW NARRATIVE (implemented below):
-//   - Single `attachCursorFeatures(editor, monaco, opts)` call
+//   - Single `attachInlineEditFeatures(editor, monaco, opts)` call
 //     from any Monaco mount installs all three moves + owns the
 //     glass floating input widget for Cmd+K.
 //   - Ghost text is debounced 450 ms and cancelled on typing.
@@ -35,15 +35,15 @@ import type { editor as MonacoEditor, IDisposable, Position, Range } from "monac
 import type { Monaco } from "@monaco-editor/react";
 import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 
-export interface CursorFeaturesFile {
+export interface InlineEditFile {
   id?: string;
   name: string;
   language?: string;
   content?: string;
 }
 
-export interface CursorFeaturesOptions {
-  getFile: () => CursorFeaturesFile | null;
+export interface InlineEditOptions {
+  getFile: () => InlineEditFile | null;
   /** Return {provider, model} for BYOK routing. */
   getByok?: () => { provider: string; model: string } | null;
   /** Enable inline ghost-text completions (default true). */
@@ -82,10 +82,10 @@ export function onAddToChat(handler: (p: SendToChatPayload) => void): () => void
 }
 
 /* ── Public: install all Cursor-style features ─────────── */
-export function attachCursorFeatures(
+export function attachInlineEditFeatures(
   editor: MonacoEditor.IStandaloneCodeEditor,
   monaco: Monaco,
-  opts: CursorFeaturesOptions,
+  opts: InlineEditOptions,
 ): () => void {
   const disposers: Array<() => void> = [];
 
@@ -107,7 +107,7 @@ export function attachCursorFeatures(
 function installInlineEditWidget(
   editor: MonacoEditor.IStandaloneCodeEditor,
   monaco: Monaco,
-  opts: CursorFeaturesOptions,
+  opts: InlineEditOptions,
 ): () => void {
   let widget: MonacoEditor.IContentWidget | null = null;
   let inputEl: HTMLInputElement | null = null;
@@ -202,7 +202,7 @@ function installInlineEditWidget(
 async function applyInlineEdit(
   editor: MonacoEditor.IStandaloneCodeEditor,
   monaco: Monaco,
-  opts: CursorFeaturesOptions,
+  opts: InlineEditOptions,
   instruction: string,
   onStart: () => void,
 ) {
@@ -244,7 +244,7 @@ async function applyInlineEdit(
 function installAddToChat(
   editor: MonacoEditor.IStandaloneCodeEditor,
   monaco: Monaco,
-  opts: CursorFeaturesOptions,
+  opts: InlineEditOptions,
 ): () => void {
   const action = editor.addAction({
     id: "aureon.addToChat",
@@ -277,7 +277,7 @@ function installAddToChat(
 function installGhostCompletions(
   editor: MonacoEditor.IStandaloneCodeEditor,
   monaco: Monaco,
-  opts: CursorFeaturesOptions,
+  opts: InlineEditOptions,
 ): () => void {
   const debounce = Math.max(150, opts.ghostDebounceMs ?? 450);
   let inflight: AbortController | null = null;

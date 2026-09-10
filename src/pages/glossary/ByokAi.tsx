@@ -85,10 +85,9 @@ const ByokAi = () => (
       Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Keys are
       encrypted at rest, scoped to a single user, and used as the
       authentication credential on every request to the chosen vendor.
-      Operators who do not bring a key fall back to a platform-paid Venice
-      uncensored model so the platform stays usable for everyone, but the
-      BYOK path is the one operators graduate to once they know which models
-      they want to ship.
+      There is no platform-paid model tier: an operator who does not bring a
+      key gets no model access at all. BYOK is the only reasoning path on the
+      platform.
     </p>
 
     <FaqJsonLd
@@ -104,7 +103,7 @@ const ByokAi = () => (
         },
         {
           q: "Which providers does Asherin support for BYOK?",
-          a: "Asherin supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Each key is encrypted at rest and scoped to a single user.",
+          a: "Asherin supports BYOK across nine providers: Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, and Venice. Each key is encrypted at rest and scoped to a single user. A key of your own is required, there is no platform-paid model tier.",
         },
       ]}
     />

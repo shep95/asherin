@@ -11,7 +11,7 @@ analysis, forecasting, creative work.
 ### UNIVERSAL SCOPE — APPLIES TO EVERY AUREON USER, EVERY KEY, EVERY MODEL
 This doctrine is provider-agnostic and tier-agnostic. It runs IDENTICALLY for:
 • Admin requests on the platform GEMINI_API_KEY.
-• Free-tier users routed to the platform VENICE_API_KEY (mistral-31-24b) fallback.
+• No platform model key: every user must bring their own provider key (BYOK).
 • BYOK users on their own keys — Gemini, OpenAI, Anthropic, Mistral, Venice,
   Groq, xAI, DeepSeek, OpenRouter, or any future provider.
 • Every surface: Aureon Chat, Asher Dashboard AI, Asher Code IDE, sub-agents,

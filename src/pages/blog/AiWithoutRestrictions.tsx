@@ -112,11 +112,10 @@ const AiWithoutRestrictions = () => (
 
     <h2>Asherin&apos;s default path</h2>
     <p>
-      Asherin ships Venice <code>mistral-31-24b</code> as the free-tier
-      default. No account at venice.ai needed, no key to paste, no monthly
-      subscription. Operators who want a different vendor bring their
-      key, Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, or
-      OpenRouter. Either path has zero platform-side refusal layer.
+      Asherin runs every call on the operator&apos;s own key. Bring Venice
+      <code>mistral-31-24b</code> if you want an uncensored stack, or Gemini,
+      OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, or OpenRouter. There is no
+      platform-paid tier and no platform-side refusal layer.
       The operator workflow stops being a fight against the tool and goes
       back to being a fight with the actual problem.
     </p>
@@ -126,11 +125,11 @@ const AiWithoutRestrictions = () => (
       items={[
         {
           q: "Which AI has no restrictions in 2026?",
-          a: "The leading uncensored model stacks are Venice mistral-31-24b (the platform-paid default inside Asherin), self-hosted Mistral Large, and quantized DeepSeek variants. Each is engineered to behave consistently across long sessions rather than regressing toward refusal.",
+          a: "The leading uncensored model stacks are Venice mistral-31-24b (usable inside Asherin with your own Venice key), self-hosted Mistral Large, and quantized DeepSeek variants. Each is engineered to behave consistently across long sessions rather than regressing toward refusal.",
         },
         {
           q: "Is there a free uncensored AI?",
-          a: "Yes. Asherin ships Venice mistral-31-24b as the free-tier default, no account, no key, no subscription. Operators who want to use a different vendor bring their own key.",
+          a: "Asherin has no free model tier. Every operator brings their own provider key, including uncensored options such as Venice mistral-31-24b.",
         },
         {
           q: "How do I prompt an uncensored AI?",
@@ -149,11 +148,6 @@ const AiWithoutRestrictions = () => (
           to: "/glossary/uncensored-ai",
           label: "Uncensored AI, full definition",
           description: "The precise definition this workflow is built on.",
-        },
-        {
-          to: "/blog/venice-integration",
-          label: "Venice AI inside Asherin",
-          description: "How the platform-paid uncensored default is wired in.",
         },
         {
           to: "/glossary/sovereign-ai",

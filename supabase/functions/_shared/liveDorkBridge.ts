@@ -114,7 +114,7 @@ export async function runLiveDork(
   };
 }
 
-export async function runCursorDorkSwarm(subject: string, opts?: { deadlineMs?: number }): Promise<{ block: string }> {
+export async function runDorkSwarm(subject: string, opts?: { deadlineMs?: number }): Promise<{ block: string }> {
   const deadline = Math.max(800, Math.min(opts?.deadlineMs ?? 1800, 2000));
   const started = Date.now();
   const s = String(subject || "")

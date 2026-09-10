@@ -496,13 +496,9 @@ plan it.`;
     try {
       raw = await askModel(cfg);
     } catch (first) {
-      // A denied or throttled primary key must not take the whole organ down:
-      // the plan is small, structured work that any competent model can do, so
-      // the platform fallback answers rather than the globe going mute. The
-      // original refusal still surfaces if the fallback is absent too.
-      const venice = Deno.env.get("VENICE_API_KEY") || "";
-      if (!venice || cfg.provider === "venice") throw first;
-      raw = await askModel({ provider: "venice", model: "mistral-31-24b", apiKey: venice });
+      // No platform fallback exists: the caller's own key is the only model
+      // path, so a denial surfaces honestly instead of being masked.
+      throw first;
     }
     plan = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? "{}") as Record<string, unknown>;
   } catch (e) {

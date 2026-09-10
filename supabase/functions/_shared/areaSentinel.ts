@@ -31,14 +31,14 @@ export interface AreaCfg {
   apiKey: string;
 }
 
-/** Platform key for unattended runs. No request exists, so adminGate's
- *  request-scoped resolution cannot be used; the cron is the platform. */
-export function platformAreaCfg(): AreaCfg | null {
-  const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
-  if (gemini) return { provider: "google", model: "gemini-flash-latest", apiKey: gemini };
-  const venice = Deno.env.get("VENICE_API_KEY") || "";
-  if (venice) return { provider: "venice", model: "mistral-31-24b", apiKey: venice };
-  return null;
+/** Unattended runs have no request, so the model key is the WATCHED USER's own
+ *  saved provider key. There is no platform key path: a user with an empty
+ *  locker gets no model assessment rather than a platform-funded one. */
+export async function areaCfgForUser(userId: string): Promise<AreaCfg | null> {
+  const { storedByokForUser } = await import("./adminGate.ts");
+  const byok = await storedByokForUser(userId);
+  if (!byok?.apiKey) return null;
+  return { provider: byok.provider, model: byok.model, apiKey: byok.apiKey };
 }
 
 const RISK_LEVELS = ["LOW", "ELEVATED", "HIGH", "SEVERE", "UNKNOWN"];
