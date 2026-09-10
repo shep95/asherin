@@ -2643,7 +2643,10 @@ export default function AsherCodeModule() {
                               const p = c ? JSON.parse(c) : null;
                               if (p?.provider && p.provider !== "default" && p?.model) return { provider: p.provider, model: p.model };
                             } catch { /* noop */ }
-                            return { provider: "google", model: "gemini-2.5-flash" };
+                            // No saved selection → backend resolves the user's
+                            // own key rather than forcing a removed provider.
+                            return null;
+
                           },
                         });
                         editor.onDidDispose(() => { try { detach(); } catch { /* noop */ } });
