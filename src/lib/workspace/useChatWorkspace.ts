@@ -67,13 +67,14 @@ export function useChatWorkspace(opts: {
     const plan = planWorkspace(input);
     setPlans((p) => ({ ...p, [lastAssistant.id]: plan }));
 
-    const controller = new AbortController();
-    void runLanes(plan, buildRunners(plan, { message: question, conversationId }), controller.signal)
+    // No abort on cleanup: this effect re-runs on every render, and the
+    // attempted set already guarantees one run per turn. Aborting here would
+    // kill the lanes it just started.
+    void runLanes(plan, buildRunners(plan, { message: question, conversationId }))
       .then((resolved) => setPlans((p) => ({ ...p, [lastAssistant.id]: resolved })))
       .catch(() => {
-        /* runLanes already folds failures into degraded surfaces */
+        /* runLanes folds failures into degraded surfaces itself */
       });
-    return () => controller.abort();
   }, [messages, isStreaming, conversationId, hasResearchProvider, enabled]);
 
   return { plans, visible };
