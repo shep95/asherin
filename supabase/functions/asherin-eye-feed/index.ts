@@ -935,6 +935,32 @@ async function property(params: Record<string, unknown>) {
   };
 }
 
+// ssrf guard. the caller hands us a url, so the only safe posture is to refuse
+// anything that resolves inside the deployment: loopback, link-local, the cloud
+// metadata address and the rfc1918 ranges. a literal ip is checked numerically;
+// a name is checked for the internal suffixes that never belong to a public page.
+// this was previously called but never defined, so every webmeta request threw.
+function blockedHost(host: string): boolean {
+  const h = String(host || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (!h) return true;
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (/\.(local|internal|intranet|lan|home|corp)$/.test(h)) return true;
+  if (h === "metadata.google.internal") return true;
+  // ipv6 loopback / unique-local / link-local
+  if (h === "::1" || /^f[cd][0-9a-f]{2}:/.test(h) || /^fe80:/.test(h)) return true;
+  const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // cgnat
+    if (a >= 224) return true; // multicast + reserved
+  }
+  return false;
+}
+
 async function webmeta(params: Record<string, unknown>) {
   const raw = text(params.url, 400);
   let u: URL;

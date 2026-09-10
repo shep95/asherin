@@ -22,6 +22,12 @@ import {
   pathLengthM,
   rangeM,
 } from "./measure";
+// the truth layer: what each control actually is, how fresh each feed is, and
+// what the selected object honestly carries. nothing on this globe is allowed
+// to look more certain than its source.
+import { capabilityFor, chipFor, limitationFor, stateFor, stateWord } from "./capability";
+import { createHealthRegistry, healthLabel } from "./health";
+import { buildInspector } from "./inspector";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
@@ -56,7 +62,10 @@ const HUB = "http://127.0.0.1:8768/log";
 // loopback http — unreachable (mixed content) from an https page.
 const HUB_REACHABLE = typeof window !== "undefined" && window.location.protocol === "http:";
 
-const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
+// render styles only. "falsecolor" was called "flir" — it is an iron palette
+// mapped onto the brightness of map imagery, with no infrared sensor anywhere
+// in the path, so it no longer wears a thermal camera's name.
+const STYLES = ["normal", "crt", "nvg", "falsecolor", "saturation", "noir"];
 const GLOBES = ["osm", "dark", "sat"];
 
 const LAYER_ROWS = [
@@ -502,6 +511,55 @@ const EYE_HUD_CSS = `
   #hover-card b { display:block; color:var(--accent); font-weight:400; margin-bottom:4px; overflow-wrap:anywhere; }
   #hover-card .m { color:var(--mute); overflow-wrap:anywhere; }
 
+  /* selected-object inspector: click is persistent, hover stays a glance. */
+  .inspect {
+    position:absolute; z-index:13; display:none; flex-direction:column;
+    right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t) + 64px);
+    width:min(320px, calc(100cqi - 2 * var(--pad))); max-height:min(52cqh, 460px);
+    padding:clamp(10px, 1.3cqi, 14px); gap:8px; overflow:auto;
+    font:300 clamp(10px, 1.05cqi, 11.5px)/1.5 inherit; color:var(--ink);
+  }
+  .inspect.open { display:flex; }
+  .inspect-head { display:flex; align-items:flex-start; gap:8px; justify-content:space-between; }
+  .inspect-head b { font-weight:400; color:var(--accent); overflow-wrap:anywhere; }
+  .inspect .sub { color:var(--mute); letter-spacing:.04em; }
+  .chip {
+    display:inline-flex; align-items:center; gap:5px; align-self:flex-start;
+    border:1px solid var(--line); border-radius:999px; padding:3px 9px;
+    color:var(--mute); font-size:10px; letter-spacing:.05em;
+  }
+  .chip::before { content:""; width:6px; height:6px; border-radius:50%; background:hsl(var(--foreground) / .35); }
+  .chip.live::before { background:#4ade80; }
+  .chip.derived::before { background:#7dd3fc; }
+  .chip.render::before { background:#c4b5fd; }
+  .chip.stale::before { background:#fbbf24; }
+  .chip.degraded::before { background:#f87171; }
+  .chip.keyed::before { background:#a8a29e; }
+  .inspect .f { display:flex; justify-content:space-between; gap:10px; border-top:1px solid var(--line-soft); padding-top:5px; }
+  .inspect .f span:first-child { color:var(--mute); }
+  .inspect .f.unknown span:last-child { color:hsl(var(--foreground) / .38); font-style:italic; }
+  .inspect .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .inspect .acts button {
+    cursor:pointer; border:1px solid var(--line-soft); border-radius:999px; padding:6px 11px; min-height:32px;
+    background:transparent; color:hsl(var(--foreground) / .6); font:300 10.5px/1 inherit; letter-spacing:.04em;
+  }
+  .inspect .acts button:hover:not(:disabled) { color:var(--ink); border-color:hsl(var(--foreground) / .22); }
+  .inspect .acts button:disabled { opacity:.34; cursor:not-allowed; }
+  .inspect .limit { color:var(--mute); border-top:1px solid var(--line-soft); padding-top:6px; }
+  .eye-root :focus-visible { outline:1px solid var(--accent); outline-offset:2px; }
+
+  /* layer rows carry their own provenance + freshness instead of one global note */
+  .lstate { display:block; margin-top:3px; font-size:9.5px; letter-spacing:.03em; color:hsl(var(--foreground) / .38); text-transform:none; }
+  .tog.bad { border-color:hsl(0 72% 62% / .45); }
+  .tog.aged { border-color:hsl(38 92% 55% / .4); }
+
+  .dock-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .tools-menu {
+    display:flex; flex-wrap:wrap; gap:6px; width:100%; padding:8px 0 0; margin-top:2px;
+    border-top:1px solid var(--line-soft);
+  }
+  .tools-menu[hidden] { display:none; }
+
   #glitch {
     position:absolute; inset:0; z-index:7; pointer-events:none; display:none;
     background:
@@ -759,7 +817,8 @@ function shaderFor(style, Cesium) {
         float l=dot(c,vec3(0.3,0.59,0.11)); vec2 uv=v_textureCoordinates-0.5;
         float vig=smoothstep(0.85,0.15,length(uv));
         out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,s.a); }`,
-    flir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
+    // iron palette over rendered map brightness. no sensor, no temperature.
+    falsecolor: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
       void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float t=dot(c,vec3(0.3,0.59,0.11)); vec3 iron=mix(vec3(0.0,0.0,0.12),vec3(1.0,0.85,0.2),t);
         iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,s.a); }`,
@@ -845,6 +904,17 @@ const AsherinEyeView = () => {
     const ds = {};
     const samples = {};
     const status = { photoreal: "pending", voice: "off", style: "normal", map: "osm" };
+    // per-layer health. a poll that fails no longer disappears into a bare
+    // catch — the layer chip goes red and says what broke, and the pins that
+    // are still on screen stop pretending to be current.
+    const health = createHealthRegistry();
+    // one load token per layer: a slow answer that arrives after a newer one
+    // must never repaint the older rows over the newer ones.
+    const loadToken = {};
+    // when the feed answers out of its own stale cache we record why, so the
+    // chip can say "stale" even though the request itself succeeded.
+    const upstreamStale = {};
+    let selected = null;
     const chatLog = [];
 
     const html = `
@@ -878,22 +948,26 @@ const AsherinEyeView = () => {
               </div>
               <div class="sheet-card">
                 <h2>what these are</h2>
-                <div class="row"><span class="k">photoreal 3d</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">photoreal 3d tiles</span><span id="pr-status">…</span></div>
+                <div class="row"><span class="k">local 3d geometry</span><span>openstreetmap footprints extruded in the browser · generated blocks, not captured photogrammetry</span></div>
                 <div class="row"><span class="k">cables</span><span>omitted · non-commercial license</span></div>
-                <div class="row"><span class="k">3d hangar</span><span>cesium sample airframe · class-scaled · live follow</span></div>
-                <div class="row"><span class="k">engine</span><span>places pin on the globe · no serp</span></div>
-                <div class="row"><span class="k">property</span><span>command · z19 fly + public osm/census/wiki dossier · not a deed office</span></div>
-                <div class="row"><span class="k">trail</span><span>session historic from live ads-b fixes · geodesic · track history draws the nearest 90 contacts</span></div>
-                <div class="row"><span class="k">airframes</span><span>silhouette per icao type / emitter category · airliner, widebody, quadjet, turboprop, bizjet, light, glider, fast jet, uav, helicopter</span></div>
-                <div class="row"><span class="k">camera</span><span>chase · orbit · nadir · tour (zip scene director class)</span></div>
-                <div class="row"><span class="k">satellites</span><span>celestrak orbits + coverage cones · gev class</span></div>
-                <div class="row"><span class="k">atmosphere</span><span>gibs ozone + kp-scaled iono shell · not floating lab glass from a tweet</span></div>
-                <div class="row"><span class="k">territories</span><span>click a country · ice highlight · not a red-threat costume</span></div>
-                <div class="row"><span class="k">hover card</span><span>public fields sit above the asset · not a kinetic pop</span></div>
-                <div class="row"><span class="k">zones / dark / brittle</span><span>air quality · sparse public data · osm infra · not intercept</span></div>
-                <div class="row"><span class="k">future land</span><span>plate edges · meters per century · not invented coastlines</span></div>
-                <div class="row"><span class="k">unstable route</span><span>osrm + weather cost · quantum routing rewritten</span></div>
-                <div class="row"><span class="k">exif pin</span><span>drop an image you own · gps if present · stripped stays stripped</span></div>
+                <div class="row"><span class="k">airframe model</span><span>a model class picked from the icao type code or emitter category · a stand-in, never the exact geometry of that tail number</span></div>
+                <div class="row"><span class="k">track box</span><span>a reticle drawn on the contact you selected · there is no object detector on this view</span></div>
+                <div class="row"><span class="k">false colour</span><span>iron palette over the brightness of map imagery · no infrared sensor, no temperature anywhere here</span></div>
+                <div class="row"><span class="k">green tint</span><span>a colour filter on the daylight render · not an image intensifier</span></div>
+                <div class="row"><span class="k">place pins</span><span>a typed place resolved by a public geocoder and pinned · no search results page</span></div>
+                <div class="row"><span class="k">place dossier</span><span>public indexes shown source by source · not deeds, not occupancy, not criminal records · unknown stays unknown</span></div>
+                <div class="row"><span class="k">trail</span><span>fixes this session observed from ads-b, geodesic · track history draws the nearest 90 contacts</span></div>
+                <div class="row"><span class="k">camera modes</span><span>chase · orbit · nadir · tour</span></div>
+                <div class="row"><span class="k">satellites</span><span>celestrak tle propagated to now · accuracy decays with epoch age</span></div>
+                <div class="row"><span class="k">atmosphere</span><span>gibs ozone imagery on a shell whose height is illustrative and scaled by the noaa kp index · not a measured profile</span></div>
+                <div class="row"><span class="k">territories</span><span>cartographic outlines · disputed borders are not adjudicated here</span></div>
+                <div class="row"><span class="k">coverage gaps</span><span>cells where the layers you enabled returned little public data · never a blackout, jamming or intercept finding</span></div>
+                <div class="row"><span class="k">density grid</span><span>ads-b fixes this deployment recorded, per 0.25° cell · a thin cell means less was observed, not that aircraft avoid it</span></div>
+                <div class="row"><span class="k">plate motion</span><span>pb2002 edges with published rates · metres per century, not a forecast of future coastlines</span></div>
+                <div class="row"><span class="k">weather-weighted route</span><span>an osrm driving route re-costed by forecast wind and rain · no quantum or predictive routing exists here</span></div>
+                <div class="row"><span class="k">public cameras</span><span>frames agencies publish openly · nothing is accessed without permission</span></div>
+                <div class="row"><span class="k">photo pin</span><span>gps tags read in your browser from an image you supplied · a stripped photo stays unplaceable</span></div>
               </div>
               <div class="sheet-card" style="margin-bottom:0">
                 <h2>attribution</h2>
@@ -917,6 +991,19 @@ const AsherinEyeView = () => {
           <div class="camwall-foot" id="camwall-foot"></div>
         </div>
         <div class="glass hover-card" id="hover-card"></div>
+        <aside class="glass inspect" id="inspect" aria-label="selected object" hidden>
+          <div class="inspect-head">
+            <div>
+              <b id="insp-title">nothing selected</b>
+              <div class="sub" id="insp-kind"></div>
+            </div>
+            <button type="button" class="sheet-close" id="insp-close" style="display:block">close</button>
+          </div>
+          <span class="chip" id="insp-chip"></span>
+          <div id="insp-fields"></div>
+          <div class="acts" id="insp-acts"></div>
+          <div class="limit" id="insp-limit"></div>
+        </aside>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
@@ -931,22 +1018,29 @@ const AsherinEyeView = () => {
             <button type="button" class="cmd" id="cmd-property">property</button>
             <span class="dock-sep"></span>
             <button type="button" class="nav" id="btn-layers">layers</button>
-            <button type="button" class="nav" id="btn-contacts">contacts</button>
-            <button type="button" class="nav" id="btn-camwall">cameras</button>
-            <button type="button" class="nav" id="btn-cockpit">cockpit</button>
-            <button type="button" class="nav" id="btn-chase">chase</button>
-            <button type="button" class="nav" id="btn-orbit">orbit</button>
-            <button type="button" class="nav" id="btn-nadir">nadir</button>
-            <button type="button" class="nav" id="btn-tour">tour</button>
-            <button type="button" class="nav" id="btn-detect">detect</button>
-            <button type="button" class="nav" id="btn-draw">draw</button>
+            <button type="button" class="nav" id="btn-inspect" disabled title="select an object on the globe first">selected</button>
             <button type="button" class="nav" id="btn-measure">measure</button>
-            <button type="button" class="nav" id="btn-clear-board">clear board</button>
-            <button type="button" class="nav" id="btn-record">record</button>
-            <button type="button" class="nav" id="btn-voice">voice</button>
-            <button type="button" class="nav" id="btn-share">share</button>
-            <button type="button" class="nav" id="btn-exif">pin photo</button>
-            <button type="button" class="nav" id="btn-reset">reset globe</button>
+            <button type="button" class="nav" id="btn-draw">draw</button>
+            <span class="dock-sep"></span>
+            <span class="dock-group" id="track-group" hidden>
+              <button type="button" class="nav" id="btn-chase">chase</button>
+              <button type="button" class="nav" id="btn-orbit">orbit</button>
+              <button type="button" class="nav" id="btn-nadir">nadir</button>
+              <button type="button" class="nav" id="btn-cockpit">cockpit</button>
+              <button type="button" class="nav" id="btn-trackbox" title="draws a reticle on the contact you selected · not an object detector">track box</button>
+            </span>
+            <button type="button" class="nav" id="btn-tools" aria-expanded="false" aria-controls="tools-menu">tools</button>
+            <div class="tools-menu" id="tools-menu" hidden>
+              <button type="button" class="nav" id="btn-contacts">contacts</button>
+              <button type="button" class="nav" id="btn-camwall">cameras</button>
+              <button type="button" class="nav" id="btn-tour">tour</button>
+              <button type="button" class="nav" id="btn-clear-board">clear board</button>
+              <button type="button" class="nav" id="btn-record">record</button>
+              <button type="button" class="nav" id="btn-voice">voice</button>
+              <button type="button" class="nav" id="btn-share">share</button>
+              <button type="button" class="nav" id="btn-exif">pin photo</button>
+              <button type="button" class="nav" id="btn-reset">reset globe</button>
+            </div>
           </div>
         </div>
       </div>`;
@@ -1092,6 +1186,54 @@ const AsherinEyeView = () => {
       }
     }
 
+    // one place where the truth chip under a layer button is repainted, so the
+    // sheet never disagrees with what the feed just did.
+    function paintLayerState(id) {
+      const snap = health.snapshot(id);
+      const btn = root.querySelector(`#layer-btns .tog[data-layer="${id}"]`);
+      if (!btn) return;
+      const cap = capabilityFor(id);
+      const state = stateFor(id, snap);
+      const line = btn.querySelector(".lstate");
+      if (line) {
+        line.textContent =
+          state === "requires_key"
+            ? `${cap?.provider || "external"} · needs key`
+            : `${cap?.provider || (cap?.origin === "render" ? "rendered here" : "computed here")} · ${stateWord(state)}${
+                snap.freshness === "never" ? "" : ` · ${healthLabel(snap)}`
+              }`;
+      }
+      btn.classList.toggle("bad", state === "degraded");
+      btn.classList.toggle("aged", state === "stale");
+      btn.title = `${cap?.limitation || ""}${snap.lastError ? ` · last error: ${snap.lastError}` : ""}`;
+    }
+
+    function paintAllLayerStates() {
+      LAYER_ROWS.forEach((r) => paintLayerState(r.id));
+    }
+
+    /** every layer read goes through here: health in, stale answers dropped. */
+    async function runLayerLoad(id, { quiet = false } = {}) {
+      const token = (loadToken[id] = (loadToken[id] || 0) + 1);
+      health.begin(id);
+      paintLayerState(id);
+      try {
+        const rows = await loadLayer(id, () => loadToken[id] === token);
+        if (loadToken[id] !== token) return null;
+        health.ok(id, { rows: typeof rows === "number" ? rows : null });
+        if (upstreamStale[id]) health.fail(id, upstreamStale[id]);
+        paintLayerState(id);
+        return rows;
+      } catch (e) {
+        if (loadToken[id] !== token) return null;
+        health.fail(id, e);
+        paintLayerState(id);
+        // the first failure speaks; the retries stay quiet and let the chip carry it.
+        if (!quiet && health.get(id).fails === 1) setNote(`${id}: ${e?.message || e}`);
+        throw e;
+      }
+    }
+
     async function enableLayer(id, on) {
       layerOn[id] = on;
       root.querySelectorAll("#layer-btns .tog").forEach((b) => {
@@ -1100,14 +1242,16 @@ const AsherinEyeView = () => {
       if (!on) {
         if (id === "atmo") clearAtmo();
         clearDs(id);
+        health.reset(id);
+        paintLayerState(id);
         return;
       }
       setNote(`loading ${id}…`);
       try {
-        await loadLayer(id);
+        await runLayerLoad(id);
         setNote("");
-      } catch (e) {
-        setNote(`${id}: ${e.message || e}`);
+      } catch {
+        /* runLayerLoad already spoke once and marked the layer degraded */
       }
       writeShare();
     }
@@ -1648,9 +1792,20 @@ const AsherinEyeView = () => {
       }
       const m = ent.asherin || {};
       // airframe is a read of the icao type code / emitter category, so it is
-      // shown as a silhouette guess rather than a confirmed tail record.
-      const frame = m.airframe ? ` · ${String(m.airframe)} silhouette` : "";
-      card.innerHTML = `<b>${String(ent.name || m.label || "asset").slice(0, 48)}</b><div class="m">${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}</div><div class="m">${String(m.note || "public index").slice(0, 180)}</div>`;
+      // shown as a model class rather than a confirmed tail record.
+      const frame = m.airframe ? ` · ${String(m.airframe)} model class` : "";
+      // built as text nodes: a label, note or credit arrives from a public
+      // feed and is untrusted string data, never markup.
+      card.textContent = "";
+      const title = document.createElement("b");
+      title.textContent = String(ent.name || m.label || "asset").slice(0, 48);
+      const where = document.createElement("div");
+      where.className = "m";
+      where.textContent = `${m.kind || ""}${frame} · ${Number(m.lat || 0).toFixed(3)}, ${Number(m.lon || 0).toFixed(3)}`;
+      const note = document.createElement("div");
+      note.className = "m";
+      note.textContent = String(m.note || limitationFor(m.kind === "military" ? "military" : m.kind || "")).slice(0, 180);
+      card.append(title, where, note);
       card.style.display = "block";
       const box = root.querySelector(".eye-root") || root;
       const cw = box.clientWidth || 1;
@@ -1688,6 +1843,164 @@ const AsherinEyeView = () => {
       const win = toWindowXY(p);
       if (win) setHoverCard(ent, win);
     }
+
+    // ── selected-object inspector ───────────────────────────────────────────
+    // clicking used to only start a camera mode. now a click is a persistent
+    // selection with one contextual panel: the fields the feed really sent, the
+    // provenance and freshness of the layer behind it, and only the actions
+    // that can actually run right now. a disabled action says why.
+    function inspectorMeta(ent) {
+      const m = { ...(ent.asherin || {}) };
+      const s = samples[ent.id];
+      if (s) {
+        const r = reckon(s, Date.now());
+        m.lat = r.lat;
+        m.lon = r.lon;
+        m.alt = s.alt;
+        m.speed = s.speed;
+        m.heading = s.heading;
+      }
+      if (!m.hex) {
+        const tail = String(ent.id || "").split(":")[1] || "";
+        if (/^[a-fA-F0-9]{6}$/.test(tail)) m.hex = tail.toLowerCase();
+      }
+      if (!m.label) m.label = ent.name;
+      return m;
+    }
+
+    function renderInspector() {
+      const panel = $("#inspect");
+      if (!panel) return;
+      const btn = $("#btn-inspect");
+      if (!selected) {
+        panel.hidden = true;
+        panel.classList.remove("open");
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.remove("on");
+          btn.title = "select an object on the globe first";
+        }
+        return;
+      }
+      const meta = inspectorMeta(selected);
+      const kindId = meta.kind === "military" ? "military" : meta.kind;
+      const model = buildInspector(meta, {
+        health: kindId ? health.snapshot(kindId) : null,
+        historyPoints: (pathHist[selected.id] || []).length,
+        canMeasure: !!measureMode,
+        canFly: !!viewer,
+      });
+      $("#insp-title").textContent = model.title;
+      $("#insp-kind").textContent = model.kindLabel;
+      const chip = $("#insp-chip");
+      chip.textContent = model.chip;
+      chip.className =
+        "chip " +
+        ({ live: "live", derived: "derived", visualization: "render", stale: "stale", degraded: "degraded", requires_key: "keyed" }[
+          model.state
+        ] || "");
+      const fieldHost = $("#insp-fields");
+      fieldHost.textContent = "";
+      model.fields.forEach((f) => {
+        const row = document.createElement("div");
+        row.className = "f" + (f.unknown ? " unknown" : "");
+        const k = document.createElement("span");
+        k.textContent = f.k;
+        const v = document.createElement("span");
+        v.textContent = f.v;
+        row.append(k, v);
+        fieldHost.appendChild(row);
+      });
+      const acts = $("#insp-acts");
+      acts.textContent = "";
+      model.actions.forEach((a) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = a.label;
+        b.disabled = !a.enabled;
+        if (a.reason) b.title = a.reason;
+        b.onclick = () => runInspectorAction(a.id, model, meta);
+        acts.appendChild(b);
+      });
+      $("#insp-limit").textContent = model.limitation;
+      panel.hidden = false;
+      panel.classList.add("open");
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.add("on");
+        btn.title = model.title;
+      }
+      const group = $("#track-group");
+      if (group) group.hidden = !(meta.kind === "flights" || meta.kind === "military");
+    }
+
+    function selectEntity(ent) {
+      selected = ent || null;
+      renderInspector();
+    }
+
+    function closeInspector() {
+      const panel = $("#inspect");
+      if (panel) {
+        panel.hidden = true;
+        panel.classList.remove("open");
+      }
+      const btn = $("#btn-inspect");
+      if (btn) btn.classList.remove("on");
+    }
+
+    async function runInspectorAction(id, model, meta) {
+      const lat = Number(meta.lat);
+      const lon = Number(meta.lon);
+      if (id === "fly" && Number.isFinite(lat) && Number.isFinite(lon)) {
+        flyTo(lat, lon, Math.max(2000, Number(meta.alt) || 0) + 12000);
+        return;
+      }
+      if (id === "measure") {
+        measurePts = [{ lat, lon }];
+        setNote(`measuring from ${model.title} · click the second point`);
+        return;
+      }
+      if (id === "nearby") {
+        nearbyReport(lat, lon, model.title);
+        return;
+      }
+      if (id === "track") {
+        applyCamMode(camMode);
+        return;
+      }
+      if (id === "history") {
+        setTrails(true);
+        setNote(`${model.title} · ${(pathHist[selected?.id] || []).length} fixes observed this session`);
+        return;
+      }
+      if (id === "source" && model.url) {
+        window.open(model.url, "_blank", "noopener,noreferrer");
+      }
+    }
+
+    /** what the layers you already enabled hold within 50 km of a point. */
+    function nearbyReport(lat, lon, title) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const found = [];
+      Object.keys(ds).forEach((id) => {
+        if (!layerOn[id]) return;
+        let count = 0;
+        ds[id].entities.values.forEach((e) => {
+          const m = e.asherin;
+          if (!m || !Number.isFinite(Number(m.lat))) return;
+          if (rangeM({ lat, lon }, { lat: Number(m.lat), lon: Number(m.lon) }) <= 50_000) count += 1;
+        });
+        if (count) found.push(`${count} ${id}`);
+      });
+      const line = found.length
+        ? `within 50 km of ${title}: ${found.join(" · ")} · only the layers you have enabled were searched`
+        : `no entity from the layers you have enabled sits within 50 km of ${title} · this is not a statement about what is there`;
+      setNote(line);
+      chatLog.push({ role: "eye", text: line });
+      paintChat();
+    }
+
 
     function clearAtmo() {
       const C = window.Cesium;
@@ -2214,15 +2527,33 @@ const AsherinEyeView = () => {
         }))
         .filter((r) => r.id && Number.isFinite(r.lat) && Number.isFinite(r.lon));
       if (!rows.length) return;
+      const b = $("#btn-record");
       try {
         const j = await authedJson("asherin-eye-record", { op: "record", rows: rows.slice(0, 600) });
+        // the function answers 200 with an { error } body on a write failure,
+        // so a bare "did it throw" check would have called that a success.
+        if (j.error) throw new Error(String(j.error));
+        health.ok("recorder", { rows: j.recorded || 0 });
         if (j.recorded) {
           recordedTotal += j.recorded;
-          const b = $("#btn-record");
-          if (b) b.textContent = `recording · ${recordedTotal.toLocaleString()}`;
+          if (b) {
+            b.textContent = `recording · ${recordedTotal.toLocaleString()}`;
+            b.classList.remove("bad");
+            b.title = "opt-in · counts the contacts already on your screen into the shared density grid";
+          }
         }
-      } catch {
-        /* a recorder outage must never break the globe */
+      } catch (e) {
+        // a recorder outage must never break the globe, but it must never look
+        // like a successful write either.
+        health.fail("recorder", e);
+        if (b) {
+          b.textContent = "recorder degraded";
+          b.classList.add("bad");
+          b.title = `last write failed: ${health.get("recorder").lastError}`;
+        }
+        if (health.get("recorder").fails === 1) {
+          setNote(`recorder: ${health.get("recorder").lastError} · nothing was written`);
+        }
       }
     }
 
@@ -2604,51 +2935,34 @@ const AsherinEyeView = () => {
       cleanups.push(() => window.removeEventListener("keydown", onKey));
     }
 
-    async function loadLayer(id) {
+    // `alive` is the caller's freshness gate: if a newer read for the same
+    // layer started while this one was in flight, we hand back without
+    // repainting, so the older answer can never overwrite the newer one.
+    async function loadLayer(id, alive = () => true) {
       if (id === "ships" || id === "fires" || id === "traffic") {
         throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
       }
       if (id === "spaceweather") {
         const j = await eyeFeed("spaceweather");
+        if (!alive()) return null;
         setNote(`planetary k-index ${j.rows?.[0]?.kp} · ${j.source || "noaa"}`);
-        return;
+        return j.rows?.length || 0;
       }
       if (id === "engine") {
         setNote("asherin.engine is the chat + pins. type a place. this is not a search results page.");
-        return;
+        return 0;
       }
-      if (id === "sats") {
-        await loadSats();
-        return;
-      }
-      if (id === "atmo") {
-        await loadAtmo();
-        return;
-      }
-      if (id === "lands") {
-        await loadLands();
-        return;
-      }
-      if (id === "dark") {
-        loadDark();
-        return;
-      }
-      if (id === "future") {
-        await loadFuture();
-        return;
-      }
+      if (id === "sats") return (await loadSats()) ?? null;
+      if (id === "atmo") return (await loadAtmo()) ?? null;
+      if (id === "lands") return (await loadLands()) ?? null;
+      if (id === "dark") return loadDark() ?? null;
+      if (id === "future") return (await loadFuture()) ?? null;
       if (id === "route") {
         setNote("type route to <place> in chat · osrm public drive path + weather cost");
-        return;
+        return 0;
       }
-      if (id === "buildings") {
-        await loadBuildings(true);
-        return;
-      }
-      if (id === "avoid") {
-        await loadAvoidance();
-        return;
-      }
+      if (id === "buildings") return (await loadBuildings(true)) ?? null;
+      if (id === "avoid") return (await loadAvoidance()) ?? null;
       const cam = viewer?.camera?.positionCartographic;
       const params = {};
       if (cam && window.Cesium) {
@@ -2657,15 +2971,19 @@ const AsherinEyeView = () => {
       }
       const feedName = id === "cameras" ? "cameras" : id === "zones" ? "airgrid" : id;
       const j = await eyeFeed(feedName, params);
+      if (!alive()) return null;
       if (id === "cameras") {
         camRows = (j.rows || []).filter((r) => r && r.image);
         if (!camRows.some((c) => c.id === camFocusId)) camFocusId = camRows[0]?.id || null;
         setCamWall(true);
       }
+      // an upstream that answered from its own stale cache is stale here too.
+      upstreamStale[id] = j.fresh === false ? `upstream cache ${Math.round((j.ageMs || 0) / 1000)}s old` : null;
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
       plotRows(id, j.rows, note);
+      return (j.rows || []).length;
     }
 
     // ── track history ───────────────────────────────────────────────────────
@@ -2864,6 +3182,10 @@ const AsherinEyeView = () => {
     function releaseTrack() {
       tracked = null;
       modelOn = false;
+      selected = null;
+      renderInspector();
+      const group = $("#track-group");
+      if (group) group.hidden = true;
       viewer.trackedEntity = undefined;
       if (trail) {
         viewer.entities.remove(trail);
@@ -3278,15 +3600,16 @@ const AsherinEyeView = () => {
         if (keys.google) {
           const tiles = await CesiumG.createGooglePhotorealistic3DTileset();
           viewer.scene.primitives.add(tiles);
-          status.photoreal = "google 3d tiles · bound";
+          status.photoreal = "google photorealistic 3d tiles · streaming";
           status.map = "photoreal";
         } else {
           applyGlobe("sat");
-          status.photoreal = "unavailable until a maps key is bound in connect";
+          status.photoreal =
+            "unavailable · needs a maps key bound in connect · showing flat satellite imagery, local geometry stays browser-extruded openstreetmap";
         }
       } catch (e) {
         applyGlobe("osm");
-        status.photoreal = "photoreal failed · osm globe";
+        status.photoreal = "photoreal tiles failed · fell back to the osm globe";
       }
 
       const layerHost = $("#layer-btns");
@@ -3316,6 +3639,11 @@ const AsherinEyeView = () => {
         b.dataset.layer = row.id;
         b.textContent = row.keyed ? `${row.label} · needs key` : row.label;
         b.title = row.honesty;
+        // every layer carries its own provenance + freshness line, so a stale
+        // or failed feed is visibly different from a live one at the toggle.
+        const state = document.createElement("span");
+        state.className = "lstate";
+        b.appendChild(state);
         b.onclick = () => {
           if (row.keyed) {
             setNote(row.honesty);
@@ -3325,6 +3653,7 @@ const AsherinEyeView = () => {
         };
         gridFor(row.id).appendChild(b);
       });
+      paintAllLayerStates();
       {
         // track history is a rendering choice over the flight layers, not a
         // feed of its own — so it sits with the layers but carries no data id.
@@ -3353,7 +3682,10 @@ const AsherinEyeView = () => {
         b.type = "button";
         b.className = "tog" + (s === "normal" ? " on" : "");
         b.dataset.style = s;
-        b.textContent = `${i + 1} ${s}`;
+        const cap = capabilityFor(`style:${s}`);
+        b.textContent = `${i + 1} ${cap?.label || s}`;
+        // every style is a render, and its tooltip says exactly that.
+        b.title = cap?.limitation || "render only";
         b.onclick = () => applyStyle(s);
         styleHost.appendChild(b);
       });
@@ -3364,6 +3696,7 @@ const AsherinEyeView = () => {
         const ent = picked?.id;
         if (ent?.asherin?.kind === "lands") {
           highlightCountry(ent);
+          selectEntity(ent);
           return;
         }
         if (ent?.asherin?.kind === "cameras") {
@@ -3374,11 +3707,13 @@ const AsherinEyeView = () => {
           }
           setCamWall(true, key);
           hoverEnt = ent;
+          selectEntity(ent);
           pinHoverCard();
           return;
         }
         if (ent && ent.asherin) {
           hoverEnt = ent;
+          selectEntity(ent);
           trackEntity(ent);
           pinHoverCard();
         } else releaseTrack();
@@ -3449,7 +3784,7 @@ const AsherinEyeView = () => {
         if (!camRows.length) {
           setNote("pulling open agency camera catalogues in view…");
           try {
-            await loadLayer("cameras");
+            await runLayerLoad("cameras");
             root.querySelectorAll("#layer-btns .tog").forEach((b) => {
               if (b.dataset.layer === "cameras") b.classList.add("on");
             });
@@ -3474,9 +3809,30 @@ const AsherinEyeView = () => {
         refreshContacts();
       };
       let detectOn = false;
-      $("#btn-detect").onclick = () => {
+      // this reticle follows the contact the operator selected. it is not an
+      // object detector, and the label no longer implies one.
+      $("#btn-trackbox").onclick = () => {
         detectOn = !detectOn;
-        $("#btn-detect").classList.toggle("on", detectOn);
+        $("#btn-trackbox").classList.toggle("on", detectOn);
+        setNote(
+          detectOn
+            ? "track box on · a reticle on the contact you selected · no object detection runs on this view"
+            : "track box off",
+        );
+      };
+      $("#insp-close").onclick = () => closeInspector();
+      $("#btn-inspect").onclick = () => {
+        const panel = $("#inspect");
+        if (!selected) return;
+        if (panel.classList.contains("open")) closeInspector();
+        else renderInspector();
+      };
+      const toolsMenu = $("#tools-menu");
+      $("#btn-tools").onclick = () => {
+        const open = toolsMenu.hidden;
+        toolsMenu.hidden = !open;
+        $("#btn-tools").classList.toggle("on", open);
+        $("#btn-tools").setAttribute("aria-expanded", String(open));
       };
       bindWhiteboard();
       $("#btn-draw").onclick = () => {
@@ -3591,6 +3947,7 @@ const AsherinEyeView = () => {
 
       pollers.push(
         setInterval(() => {
+          if (document.hidden) return;
           setHud();
           refreshContacts();
           refreshHangar();
@@ -3600,10 +3957,23 @@ const AsherinEyeView = () => {
         }, 250),
       );
       pollers.push(setInterval(syncTrails, 1500));
+      // the inspector is a slower surface than the render loop: one second is
+      // enough for altitude and freshness to stay honest without re-laying out
+      // the panel four times a second.
       pollers.push(
         setInterval(() => {
-          if (layerOn.flights) loadLayer("flights").catch(() => {});
-          if (layerOn.military) loadLayer("military").catch(() => {});
+          if (document.hidden || !selected) return;
+          renderInspector();
+          paintAllLayerStates();
+        }, 1000),
+      );
+      pollers.push(
+        setInterval(() => {
+          // a hidden tab burns quota and paints nothing; the chips carry the
+          // gap when it comes back.
+          if (document.hidden) return;
+          if (layerOn.flights) runLayerLoad("flights", { quiet: true }).catch(() => {});
+          if (layerOn.military) runLayerLoad("military", { quiet: true }).catch(() => {});
           
         }, 12000),
       );
