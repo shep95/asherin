@@ -1299,6 +1299,24 @@ const Dashboard = () => {
         attachments: m.attachments,
       }));
 
+    // ── INVESTIGATION GROUNDING ───────────────────────────────────────
+    // Only a research request or an investigation follow-up is touched here;
+    // every other turn passes through with its content unchanged.
+    try {
+      const { applyInvestigationTurn } = await import("@/lib/investigation/chatHook");
+      const turn = await applyInvestigationTurn(content, convId);
+      if (turn.applied && history.length) {
+        const last = history[history.length - 1];
+        if (last.role === "user") last.content = turn.content;
+        setActiveInvestigationId(turn.investigationId);
+      }
+      if (turn.notice) {
+        thinkingStore.step(assistantId, "investigation", turn.notice, "done");
+      }
+    } catch (e) {
+      console.error("investigation grounding skipped:", e);
+    }
+
     // ── BRAIN CONTEXT ─────────────────────────────────────────────────
     let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
     if (activeBrainId) {
