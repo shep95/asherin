@@ -153,7 +153,8 @@ describe("entity resolution", () => {
   });
 
   it("keeps a similar name as a candidate rather than merging it", () => {
-    const d = decideResolution({ kind: "company", label: "Acme Holdings International" }, [acme], ids);
+    // Same normalized name, no shared identifier — still only a candidate.
+    const d = decideResolution({ kind: "company", label: "Acme Group" }, [acme], ids);
     expect(d.action).toBe("candidate");
     expect(d.entityId).toBeNull();
     expect(d.candidates[0].decisive).toBe(false);
