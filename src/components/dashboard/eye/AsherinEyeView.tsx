@@ -22,6 +22,12 @@ import {
   pathLengthM,
   rangeM,
 } from "./measure";
+// the truth layer: what each control actually is, how fresh each feed is, and
+// what the selected object honestly carries. nothing on this globe is allowed
+// to look more certain than its source.
+import { capabilityFor, chipFor, limitationFor, stateFor, stateWord } from "./capability";
+import { createHealthRegistry, healthLabel } from "./health";
+import { buildInspector } from "./inspector";
 
 const CESIUM_BASE = "https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/";
 const SAT_JS = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
@@ -56,7 +62,10 @@ const HUB = "http://127.0.0.1:8768/log";
 // loopback http — unreachable (mixed content) from an https page.
 const HUB_REACHABLE = typeof window !== "undefined" && window.location.protocol === "http:";
 
-const STYLES = ["normal", "crt", "nvg", "flir", "saturation", "noir"];
+// render styles only. "falsecolor" was called "flir" — it is an iron palette
+// mapped onto the brightness of map imagery, with no infrared sensor anywhere
+// in the path, so it no longer wears a thermal camera's name.
+const STYLES = ["normal", "crt", "nvg", "falsecolor", "saturation", "noir"];
 const GLOBES = ["osm", "dark", "sat"];
 
 const LAYER_ROWS = [
@@ -502,6 +511,55 @@ const EYE_HUD_CSS = `
   #hover-card b { display:block; color:var(--accent); font-weight:400; margin-bottom:4px; overflow-wrap:anywhere; }
   #hover-card .m { color:var(--mute); overflow-wrap:anywhere; }
 
+  /* selected-object inspector: click is persistent, hover stays a glance. */
+  .inspect {
+    position:absolute; z-index:13; display:none; flex-direction:column;
+    right:calc(var(--pad) + var(--safe-r)); top:calc(var(--pad) + var(--safe-t) + 64px);
+    width:min(320px, calc(100cqi - 2 * var(--pad))); max-height:min(52cqh, 460px);
+    padding:clamp(10px, 1.3cqi, 14px); gap:8px; overflow:auto;
+    font:300 clamp(10px, 1.05cqi, 11.5px)/1.5 inherit; color:var(--ink);
+  }
+  .inspect.open { display:flex; }
+  .inspect-head { display:flex; align-items:flex-start; gap:8px; justify-content:space-between; }
+  .inspect-head b { font-weight:400; color:var(--accent); overflow-wrap:anywhere; }
+  .inspect .sub { color:var(--mute); letter-spacing:.04em; }
+  .chip {
+    display:inline-flex; align-items:center; gap:5px; align-self:flex-start;
+    border:1px solid var(--line); border-radius:999px; padding:3px 9px;
+    color:var(--mute); font-size:10px; letter-spacing:.05em;
+  }
+  .chip::before { content:""; width:6px; height:6px; border-radius:50%; background:hsl(var(--foreground) / .35); }
+  .chip.live::before { background:#4ade80; }
+  .chip.derived::before { background:#7dd3fc; }
+  .chip.render::before { background:#c4b5fd; }
+  .chip.stale::before { background:#fbbf24; }
+  .chip.degraded::before { background:#f87171; }
+  .chip.keyed::before { background:#a8a29e; }
+  .inspect .f { display:flex; justify-content:space-between; gap:10px; border-top:1px solid var(--line-soft); padding-top:5px; }
+  .inspect .f span:first-child { color:var(--mute); }
+  .inspect .f.unknown span:last-child { color:hsl(var(--foreground) / .38); font-style:italic; }
+  .inspect .acts { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .inspect .acts button {
+    cursor:pointer; border:1px solid var(--line-soft); border-radius:999px; padding:6px 11px; min-height:32px;
+    background:transparent; color:hsl(var(--foreground) / .6); font:300 10.5px/1 inherit; letter-spacing:.04em;
+  }
+  .inspect .acts button:hover:not(:disabled) { color:var(--ink); border-color:hsl(var(--foreground) / .22); }
+  .inspect .acts button:disabled { opacity:.34; cursor:not-allowed; }
+  .inspect .limit { color:var(--mute); border-top:1px solid var(--line-soft); padding-top:6px; }
+  .eye-root :focus-visible { outline:1px solid var(--accent); outline-offset:2px; }
+
+  /* layer rows carry their own provenance + freshness instead of one global note */
+  .lstate { display:block; margin-top:3px; font-size:9.5px; letter-spacing:.03em; color:hsl(var(--foreground) / .38); text-transform:none; }
+  .tog.bad { border-color:hsl(0 72% 62% / .45); }
+  .tog.aged { border-color:hsl(38 92% 55% / .4); }
+
+  .dock-group { display:flex; gap:6px; flex-wrap:wrap; }
+  .tools-menu {
+    display:flex; flex-wrap:wrap; gap:6px; width:100%; padding:8px 0 0; margin-top:2px;
+    border-top:1px solid var(--line-soft);
+  }
+  .tools-menu[hidden] { display:none; }
+
   #glitch {
     position:absolute; inset:0; z-index:7; pointer-events:none; display:none;
     background:
@@ -759,7 +817,8 @@ function shaderFor(style, Cesium) {
         float l=dot(c,vec3(0.3,0.59,0.11)); vec2 uv=v_textureCoordinates-0.5;
         float vig=smoothstep(0.85,0.15,length(uv));
         out_FragColor=vec4(vec3(0.05,l*1.35,0.08)*vig,s.a); }`,
-    flir: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
+    // iron palette over rendered map brightness. no sensor, no temperature.
+    falsecolor: `uniform sampler2D colorTexture; in vec2 v_textureCoordinates;
       void main() { vec4 s=texture(colorTexture,v_textureCoordinates); vec3 c=s.rgb;
         float t=dot(c,vec3(0.3,0.59,0.11)); vec3 iron=mix(vec3(0.0,0.0,0.12),vec3(1.0,0.85,0.2),t);
         iron=mix(iron,vec3(1.0),smoothstep(0.7,1.0,t)); out_FragColor=vec4(iron,s.a); }`,
