@@ -94,6 +94,9 @@ export interface VisionEvent {
   box: NormBox | null;
   /** false when tracking continuity was lost and association can only be a guess. */
   associationCertain: boolean;
+  /** the measurement that opened this event, in `valueUnit`. what a rule compares against. */
+  value: number;
+  valueUnit: "count" | "seconds";
   /** the incident this event was reported into, when a rule accepted it. */
   incidentId: string | null;
 }
