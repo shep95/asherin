@@ -58,7 +58,7 @@ describe("auto selection", () => {
 
 describe("world model", () => {
   it("lists prerequisites when nothing spatial is connected", () => {
-    expect(missingPrerequisites([]).length).toBeGreaterThan(0);
+    expect(missingPrerequisites([], 0).length).toBeGreaterThan(0);
   });
 });
 
