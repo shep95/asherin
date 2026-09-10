@@ -145,11 +145,15 @@ export class VisionSafetyBridge {
       framesAnalysed: prior?.framesAnalysed ?? 0,
       lastInferenceMs: prior?.lastInferenceMs ?? null,
     });
+    // the shared fabric learns about a camera when the camera pipeline learns
+    // about it, including the states where it can see nothing at all.
+    publishCameraStatus([this.cameras.get(cameraId)!]);
     this.emit();
   }
 
   releaseCamera(cameraId: string) {
     this.cameras.delete(cameraId);
+    releaseCameraSensor(cameraId);
     this.emit();
   }
 
@@ -173,6 +177,12 @@ export class VisionSafetyBridge {
     const result = this.engine.step(frame);
     this.suppressed = [...this.suppressed, ...result.suppressed].slice(-80);
     this.zoneProblems = result.zoneProblems;
+
+    // one normalized copy of this frame's tracks and of whatever the engine
+    // decided, so sentinel and eagle.eye read the same record this console does.
+    publishCameraStatus([this.cameras.get(frame.cameraId)!]);
+    publishVisionFrame(frame, inferenceMs);
+    publishVisionEvents(this.engine.activeEvents());
 
     // the detector proves it is alive on its own cadence, so a camera that has
     // gone quiet looks different from a camera with nothing to report.
