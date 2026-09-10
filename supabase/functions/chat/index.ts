@@ -1060,24 +1060,25 @@ serve(async (req) => {
     }
 
     if (!incomingByok) {
-      // ADMIN-FIRST: admin team always routes through the platform Gemini key
-      // (matches the hard-coded admin bypass). Saving a personal key in
-      // Settings → AI Keys must NOT silently swap the admin's model/personality.
-      // Non-admin path falls through to stored BYOK → Venice free-tier.
+      // A key the caller saved in Settings → AI Keys wins for EVERYONE, staff
+      // included: deleting a provider there must actually stop that provider
+      // from being called. Only when the locker is empty does staff fall back
+      // to the platform Gemini key, then non-staff to the Venice free tier.
       const resolved = await resolveKey(req, null).catch(() => null);
-      const adminRouted = resolved && resolved.mode === "admin" && resolved.geminiKey;
+      const storedByok = await resolveStoredByok(req, _hasAttachments);
+      const adminRouted = !storedByok && resolved && resolved.mode === "admin" && resolved.geminiKey;
 
-      if (adminRouted) {
+      if (storedByok) {
+        _parsedBody.byokProvider = storedByok.provider;
+        _parsedBody.byokModel = storedByok.model;
+        _injectedKey = storedByok.apiKey;
+      } else if (adminRouted) {
         _parsedBody.byokProvider = "google";
         _parsedBody.byokModel = "gemini-flash-latest";
         _injectedKey = resolved!.geminiKey!;
       } else {
-        const storedByok = await resolveStoredByok(req, _hasAttachments);
-        if (storedByok) {
-          _parsedBody.byokProvider = storedByok.provider;
-          _parsedBody.byokModel = storedByok.model;
-          _injectedKey = storedByok.apiKey;
-        } else if (_hasAttachments) {
+        if (_hasAttachments) {
+
           return new Response(
             JSON.stringify({
               error:
