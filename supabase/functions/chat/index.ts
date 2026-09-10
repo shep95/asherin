@@ -1195,7 +1195,11 @@ serve(async (req) => {
       if (!useByok) {
         // The cached selection points at a provider whose key no longer exists.
         // Use the key the user DOES have rather than calling a deleted one.
-        const fallback = await resolveStoredByok(req, _hasAttachmentsBody);
+        const needsVision =
+          Array.isArray(messages) &&
+          messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
+        const fallback = await resolveStoredByok(req, needsVision);
+
         if (fallback) {
           byokProvider = fallback.provider;
           byokModel = fallback.model;
