@@ -739,6 +739,7 @@ export class VisionEventEngine {
 
       // ---- retrieval closes an open "left" event ---------------------------
       if (obj.leftEventId && nearest && nearest.gap <= cfg.retrievalSeparationBodies) {
+        if (process.env.DBG) console.log("RET", obj.ownerTrackId, obj.ownerContinuityLost, nearest.track.id);
         const sameTrack = nearest.track.id === obj.ownerTrackId;
         // continuity: when the associated track was dropped entirely, or nothing
         // was ever associated, the engine cannot say whether this is the same
