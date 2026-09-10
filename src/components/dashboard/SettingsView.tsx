@@ -10,6 +10,7 @@ import { useGitHub } from "@/hooks/useGitHub";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
 import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
+import IntelligenceSettings from "./settings/IntelligenceSettings";
 
 import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
@@ -816,6 +817,9 @@ const SettingsView = () => {
 
         {/* AI Model Keys (BYOK) */}
         <AIKeysSettings />
+
+        {/* Memory & learning */}
+        <IntelligenceSettings />
 
         {/* GitHub Integration */}
         <GitHubSettings />
