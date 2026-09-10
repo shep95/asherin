@@ -354,3 +354,66 @@ describe("pose translation", () => {
     expect(summary?.usable).toBe(false);
   });
 });
+
+describe("restricted zone exit", () => {
+  const polygon = [
+    { x: 0.6, y: 0.0 },
+    { x: 1.0, y: 0.0 },
+    { x: 1.0, y: 1.0 },
+    { x: 0.6, y: 1.0 },
+  ];
+
+  it("closes the entry event and records an exit when the foot point leaves the polygon", () => {
+    const engine = new VisionEventEngine();
+    engine.setZones([{ ...newZone("cam1", "restricted", polygon), gracePeriodMs: 0 }]);
+    let t = settle(engine, [person("t1", 100, 700)]);
+    const inside = run(engine, Array.from({ length: 8 }, (_, i) => frame(t + i * 500, [person("t1", 700, 700)])));
+    expect(inside).toContain("restricted_entry");
+    t += 4000;
+
+    const types: string[] = [];
+    for (let i = 0; i < 4; i += 1) {
+      const out = engine.step(frame(t + i * 500, [person("t1", 100, 700)]));
+      out.changed.forEach((e) => types.push(e.type));
+    }
+    expect(types).toContain("restricted_exit");
+    expect(engine.activeEvents().filter((e) => e.type === "restricted_entry").length).toBe(0);
+  });
+
+  it("does not report an exit for a track that never entered", () => {
+    const engine = new VisionEventEngine();
+    engine.setZones([{ ...newZone("cam1", "restricted", polygon), gracePeriodMs: 0 }]);
+    const t = settle(engine, [person("t1", 100, 700)]);
+    const fired = run(engine, Array.from({ length: 10 }, (_, i) => frame(t + i * 500, [person("t1", 100 + i, 700)])));
+    expect(fired).not.toContain("restricted_exit");
+  });
+});
+
+describe("retrieval after track loss", () => {
+  const bag = (x: number, y: number) => [{ objectId: "obj1", label: "backpack", box: { x, y, width: 60, height: 60 } }];
+
+  it("records the retriever association as unknown once the associated track was dropped", () => {
+    const engine = new VisionEventEngine({ abandonDwellMs: 3000 });
+    let t = T0;
+    for (let i = 0; i < 10; i += 1) engine.step(frame(t + i * 400, [person("owner", 100, 400)], bag(120, 560)));
+    t += 4000;
+    // the owner leaves the frame entirely — every frame below has no tracks at
+    // all, so the tracker drops it and continuity is gone.
+    for (let i = 0; i < 20; i += 1) engine.step(frame(t + i * 400, [], bag(120, 560)));
+    t += 8000;
+
+    const types: string[] = [];
+    let detail = "";
+    for (let i = 0; i < 10; i += 1) {
+      const out = engine.step(frame(t + i * 400, [person("later", 110, 400)], bag(120, 560)));
+      out.changed.forEach((e) => {
+        types.push(e.type);
+        if (e.type === "object_retrieved_association_unknown") detail = e.detail;
+      });
+    }
+    expect(types).toContain("object_retrieved_association_unknown");
+    expect(types).not.toContain("object_retrieved_different_track");
+    expect(detail).toContain("unknown");
+    expect(engine.custody().find((c) => c.objectId === "obj1")?.outcome ?? "").toBe("retrieved_unknown");
+  });
+});
