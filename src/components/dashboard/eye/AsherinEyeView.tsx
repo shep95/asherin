@@ -904,6 +904,14 @@ const AsherinEyeView = () => {
     const ds = {};
     const samples = {};
     const status = { photoreal: "pending", voice: "off", style: "normal", map: "osm" };
+    // per-layer health. a poll that fails no longer disappears into a bare
+    // catch — the layer chip goes red and says what broke, and the pins that
+    // are still on screen stop pretending to be current.
+    const health = createHealthRegistry();
+    // one load token per layer: a slow answer that arrives after a newer one
+    // must never repaint the older rows over the newer ones.
+    const loadToken = {};
+    let selected = null;
     const chatLog = [];
 
     const html = `
