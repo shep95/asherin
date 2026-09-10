@@ -97,15 +97,25 @@ export class SensorRegistry {
 
   connectBridge() {
     if (this.bridge) return;
+    // The safety hub is fed from the same socket rather than a second one: two
+    // connections would double the edge node's load and could disagree about
+    // which packets arrived.
+    const hub = safetyHub();
     this.bridge = new EdgeBridgeClient({
       onSensors: (sensors) => this.replaceAdapterSensors("edge_bridge", sensors),
       onSample: (id, atMs, quality) => this.markSample(id, atMs, quality),
       onPointCloud: (chunk) => this.onCloud?.(chunk),
       onStatus: (status) => this.setAdapterStatus(status),
       onSensorStatus: (id, health, detail) => this.setSensorHealth(id, health, detail),
+      onBleScanners: (scanners) => hub.setScanners(scanners),
+      onBleObservation: (observation) => hub.ingestObservation(observation),
+      onDetectorHealth: (payload) => hub.reportDetector(payload),
+      onEvidenceStatus: (payload) => hub.setStorage(payload),
     });
+    hub.start();
     this.bridge.connect();
   }
+
 
   async open(sensorId: string): Promise<void> {
     const s = this.sensors.get(sensorId);
