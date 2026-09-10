@@ -54,6 +54,8 @@ export async function streamChat({
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
+  /** bounded brief composed by the intelligence orchestrator (memory + procedures). */
+  intelligenceContext?: string;
   conversationId?: string | null;
   /** Assistant message id for this turn — stamped on every Connect trace row. */
   turnId?: string | null;
@@ -68,6 +70,7 @@ export async function streamChat({
   onThinkingStart?: () => void;
   onThinkingDelta?: (text: string) => void;
   onThinkingDone?: (fullThinking: string) => void;
+  intelligenceContext?: string;
 }) {
   // Transform attachments for the backend
   const apiMessages = messages.map((m) => {
