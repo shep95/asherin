@@ -417,8 +417,8 @@ export default function EagleEyeView() {
     setRecords((r) => [record, ...r].slice(0, 200));
     setAlerted((a) => ({ ...a, [deviceId]: Date.now() }));
     setFlags((f) => ({ ...f, [deviceId]: { tier: record.tier, score: record.score, at: Date.now() } }));
-    toast.warning(`${event.threatTier} pattern on ${rt.config.label}`, {
-      description: `${event.patternsTriggered.slice(0, 3).join(", ") || "pattern set recorded"} — captured for human review`,
+    toast.warning(`${event.threatTier} observable event on ${rt.config.label}`, {
+      description: `${event.patternsTriggered.slice(0, 3).join(", ") || "observation recorded"} — captured for human review`,
     });
   }, []);
 
@@ -861,7 +861,7 @@ export default function EagleEyeView() {
           </div>
           <div className="flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-2.5 py-2 text-[10.5px] font-light leading-relaxed text-amber-100/75">
             <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>patterns are a prompt to look, never a finding of intent or guilt. confirm an event yourself before it leaves this device.</span>
+            <span>severity describes an observed event — a restricted zone entry, an object left behind, a prolonged stop — never a person. nothing here infers intent, character, dangerousness or identity from a face, a body or an appearance. confirm an event yourself before it leaves this device.</span>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
             {records.length === 0 && <div className="pt-6 text-center text-[11.5px] font-light text-white/35">nothing recorded yet</div>}
