@@ -117,13 +117,6 @@ const TOOLS: Tool[] = [
     icon: Layers,
   },
   {
-    name: "asherin.ide + agents",
-    line: "edit, review, then land",
-    detail:
-      "repository-aware editing with diff approval, plus agent runs you review before anything is written. nothing lands without your yes.",
-    icon: Hammer,
-  },
-  {
     name: "guardian vault",
     line: "credentials and documents",
     detail: "encrypted storage scoped to your account, with breach lookups against public indexes.",
@@ -183,7 +176,7 @@ const Software = () => {
       "@type": "CollectionPage",
       name: "asherin, software",
        description:
-         "rooms on a seat: chat, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.ide, library, projects, memory, vault. $18/mo. pro at $79/mo adds asherin.data, asherin.cyber and asherin.knowledge.",
+         "rooms on a seat: chat, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, library, projects, memory, vault. $18/mo. pro at $79/mo adds asherin.data, asherin.cyber and asherin.knowledge.",
       url: "https://asherin.com/software",
     });
     document.head.appendChild(el);

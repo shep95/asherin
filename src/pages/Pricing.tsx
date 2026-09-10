@@ -20,7 +20,7 @@ const URL = "https://asherin.com/pricing";
 const FAQ = [
   {
     q: "How much does Asherin cost?",
-    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health, asherin.ide and the workspace. Asherin Pro is $79 per month, raises the limits on all of it, and adds asherin.data, asherin.cyber and asherin.knowledge. Enterprise is custom-priced per organization.",
+    a: "Asherin is $18 per month and includes every room in the platform: chat with directive profiles, asherin.search, asherin.eye, asherin.arvision with eagle.eye, asherin.defender, asherin.sentinel, asherin.health and the workspace. Asherin Pro is $79 per month, raises the limits on all of it, and adds asherin.data, asherin.cyber and asherin.knowledge. Enterprise is custom-priced per organization.",
   },
   {
     q: "What is the difference between Asherin and Asherin Pro?",
@@ -238,7 +238,7 @@ const Pricing = () => {
                     ["asherin.data, ask your own files", "-", "✓", "✓"],
                     ["asherin.cyber, passive domain context", "-", "✓", "✓"],
                     ["asherin.knowledge, your own ingested sources", "-", "✓", "✓"],
-                    ["asherin.ide, agents and snippets", "✓", "✓", "✓"],
+                    
                     ["Directive profiles, your own instructions", "✓", "✓", "✓"],
                     ["Persistent memory, account-scoped at rest, TLS in transit, export/delete", "✓", "✓", "✓"],
                     ["BYOK (9 providers)", "✓", "✓", "✓"],
