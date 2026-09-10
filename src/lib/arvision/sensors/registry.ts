@@ -8,6 +8,7 @@
 import type { AdapterStatus, PointCloudChunk, RegistrySnapshot, SensorDescriptor } from "./types";
 import { discoverBrowserSensors, closeBrowserVideo, openBrowserVideo } from "./adapters/browserMedia";
 import { EdgeBridgeClient } from "./adapters/bridge";
+import { safetyHub } from "../safety/hub";
 
 /** a stream with no sample inside this window is stale, not live. */
 export const STALE_AFTER_MS = 5_000;
