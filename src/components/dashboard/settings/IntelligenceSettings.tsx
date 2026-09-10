@@ -262,7 +262,7 @@ export default function IntelligenceSettings() {
             disabled={busy || !draft.trim()}
             className="px-3 py-2 rounded-lg border border-border/30 text-xs hover:bg-foreground/5 disabled:opacity-40"
           >
-            save
+            save rule
           </button>
         </div>
       </div>
