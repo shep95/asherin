@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { bootSentinel } from "@/lib/sentinel/alwaysOn";
 import { bootOpLayer } from "@/lib/op/opDaemon";
+import { bootSentinelFabric } from "@/lib/fabric/bridges/sentinelFabric";
 
 /**
  * Mounts once inside the app shell and hands control to the always-on sentinel
