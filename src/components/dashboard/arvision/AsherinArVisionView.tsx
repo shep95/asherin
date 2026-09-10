@@ -9,7 +9,7 @@
 // owns its own scrolling.
 
 import { Suspense, useState } from "react";
-import { Cpu, Eye, Radar, ScanEye } from "lucide-react";
+import { Cpu, Eye, Radar, ScanEye, ShieldCheck } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import OpticalHudView from "./OpticalHudView";
 
@@ -23,15 +23,20 @@ const EagleEyeView = lazyWithRetry(() => import("./eagle/EagleEyeView"), "arvisi
 // The sensors layer is the room's honesty surface: connected hardware, the
 // modes that hardware can physically serve, and where the pipeline stops.
 const SensorsView = lazyWithRetry(() => import("./sensors/SensorsView"), "arvision-sensors");
+// The safety layer holds the claims that must never be guessed: what the radios
+// in the building broadcast, which configured thresholds were exceeded, whether
+// the detectors behind them are alive, and where evidence actually goes.
+const SafetyView = lazyWithRetry(() => import("./safety/SafetyView"), "arvision-safety");
 
 
-type Layer = "optical" | "spatial" | "eagle" | "sensors";
+type Layer = "optical" | "spatial" | "eagle" | "sensors" | "safety";
 
 const LAYERS: { id: Layer; label: string; hint: string; icon: typeof Eye }[] = [
   { id: "optical", label: "optical", hint: "camera head up display", icon: Eye },
   { id: "spatial", label: "spatial", hint: "map, route, session, see through", icon: Radar },
   { id: "eagle", label: "eagle.eye", hint: "multi camera behavioural watch with reviewable evidence", icon: ScanEye },
   { id: "sensors", label: "sensors", hint: "connected streams, capabilities, fusion state, services", icon: Cpu },
+  { id: "safety", label: "safety", hint: "passive radio awareness, event rules, incidents, evidence", icon: ShieldCheck },
 ];
 
 
@@ -107,6 +112,19 @@ const AsherinArVisionView = () => {
               }
             >
               <SensorsView />
+            </Suspense>
+          </div>
+        )}
+        {layer === "safety" && (
+          <div className="absolute inset-0">
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-[12px] font-light text-white/45">
+                  loading safety layer
+                </div>
+              }
+            >
+              <SafetyView />
             </Suspense>
           </div>
         )}
