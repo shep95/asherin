@@ -160,7 +160,7 @@ export const EYE_CAPABILITIES: Record<string, Capability> = {
   lands: cap({
     id: "lands",
     label: "territories",
-    base: "public_feed" as never as "live",
+    base: "live",
     origin: "public_feed",
     provider: "world-atlas admin outlines",
     limitation: "cartographic borders; disputed boundaries are not adjudicated here",
