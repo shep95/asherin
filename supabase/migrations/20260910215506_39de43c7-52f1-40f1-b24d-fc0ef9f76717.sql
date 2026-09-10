@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_pattern ADD COLUMN IF NOT EXISTS governance jsonb NOT NULL DEFAULT '{}'::jsonb;

@@ -7,7 +7,7 @@
 
 import type { LearningScope } from "./types";
 
-const ORDER: LearningScope[] = ["task", "conversation", "project", "user", "domain", "global"];
+const ORDER: LearningScope[] = ["ephemeral", "task", "conversation", "project", "user", "domain", "global"];
 
 export function scopeRank(scope: LearningScope): number {
   return ORDER.indexOf(scope);
@@ -29,6 +29,8 @@ export function scopeVisible(
   ctx: { conversationId: string; projectId?: string | null },
 ): boolean {
   switch (item.scope) {
+    case "ephemeral":
+      return false; // one response only — never read back
     case "task":
       return false; // task scope never survives its own turn
     case "conversation":

@@ -5,8 +5,16 @@
 // the user vault holds, what a pattern is, and what the learning gate decides.
 // the model is a replaceable reasoning capability, never the database.
 
-/** where a learned item is allowed to apply. never auto-converted upward. */
-export type LearningScope = "task" | "conversation" | "project" | "user" | "domain" | "global";
+/** where a learned item is allowed to apply. never auto-converted upward.
+ *  "ephemeral" lives for one response, "global" is the system-wide scope. */
+export type LearningScope =
+  | "ephemeral"
+  | "task"
+  | "conversation"
+  | "project"
+  | "user"
+  | "domain"
+  | "global";
 
 /** epistemic state of any knowledge item. unknown is a real state. */
 export type KnowledgeState =
@@ -29,6 +37,7 @@ export type PatternStatus =
   | "validated"
   | "active"
   | "refined"
+  | "quarantined"
   | "superseded"
   | "failed"
   | "archived";
@@ -101,6 +110,9 @@ export interface PatternObject {
   status: PatternStatus;
   source: PatternSource;
   version: number;
+
+  /** provenance, permissions, review date and audit trail. see governance.ts. */
+  governance?: import("./governance").PatternGovernance;
 
   createdAt?: string;
   updatedAt?: string;
