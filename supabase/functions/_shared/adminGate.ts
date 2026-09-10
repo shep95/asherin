@@ -11,6 +11,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { isStaffEmail } from "./identityHash.ts";
+import { DEFAULT_MODEL } from "./keyResolution.ts";
+
 
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
