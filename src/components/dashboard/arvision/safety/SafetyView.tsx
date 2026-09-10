@@ -18,6 +18,7 @@ import VisionEventsPanel from "./VisionEventsPanel";
 import ZoneEditorPanel from "./ZoneEditorPanel";
 import StaffNotificationsPanel from "./StaffNotificationsPanel";
 import { useVisionSafety } from "@/hooks/useVisionSafety";
+import CrossModalPanel from "./CrossModalPanel";
 
 const SafetyView = () => {
   const { user } = useAuth();
@@ -50,6 +51,7 @@ const SafetyView = () => {
           onRead={vision.markRead}
           onAcknowledge={vision.acknowledge}
         />
+        <CrossModalPanel zones={vision.snapshot.zones} operator={operator} />
         <RadioAwarenessPanel snapshot={snapshot} allowlist={allowlist} onAllowlist={setAllowlist} />
         <IncidentTimelinePanel
           incidents={snapshot.incidents}

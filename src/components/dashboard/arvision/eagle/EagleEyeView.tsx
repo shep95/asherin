@@ -44,6 +44,7 @@ import {
   proximityBandFor, pruneSightings, startPassiveScan, type RadioSighting,
 } from "./radioScan";
 import RadioIntelPanel from "./RadioIntelPanel";
+import FabricConsolePanel from "./FabricConsolePanel";
 import { visionSafety } from "@/lib/arvision/vision/bridge";
 import { toVisionFrame } from "@/lib/arvision/vision/adapt";
 import { EVENT_LABEL } from "@/lib/arvision/vision/eventEngine";
@@ -962,6 +963,8 @@ export default function EagleEyeView() {
               pickSupported={bluetoothSupported()}
             />
           )}
+
+          <FabricConsolePanel />
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-white/10 bg-white/[0.02] px-3 py-2 text-[11px] font-light text-white/45">
             <span>{running ? "watching" : "idle"} · {tiles.filter((t) => t.status === "live").length} live camera{tiles.length === 1 ? "" : "s"}</span>

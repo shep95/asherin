@@ -8,6 +8,7 @@ import { accuracyBand, movementBetween, type LocationFix, type MovementState } f
 import { acquireFix, geoErrorText, ipFix, reverseGeocode, watchPosition } from "@/lib/sentinel/location/sources";
 import { attachFix, buildTrail, type RadioSighting } from "@/lib/sentinel/location/trackers";
 import { logLocation, logRadio, registerDevice } from "@/lib/sentinel/audio/sync";
+import { publishSentinelLocation, publishSentinelRadio } from "@/lib/fabric/bridges/sentinelFabric";
 
 /**
  * asherin.sentinel — the environment room.
@@ -120,6 +121,9 @@ export default function EnvironmentPanel() {
         );
         if (bucket.length > MAX_TRAIL) bucket.splice(0, bucket.length - MAX_TRAIL);
         sightingsRef.current.set(record.key, bucket);
+        // the same sighting, normalized once, so eagle.eye and arvision read
+        // this receiver without opening a second radio.
+        publishSentinelRadio(record, radioLabel(record), handleRef.current?.source ?? "unknown receiver");
       }
     }, 1_000);
     return () => window.clearInterval(timer);
@@ -212,6 +216,7 @@ export default function EnvironmentPanel() {
     setFix(next);
     setTrail((t) => [...t, next].slice(-MAX_TRAIL));
     pendingFixRef.current.push(next);
+    publishSentinelLocation(next, placeRef.current);
     setLocError(null);
     setLocationGaps((gaps) =>
       gaps.map((g) => (g.to === null ? { ...g, to: next.at } : g)),
