@@ -37,6 +37,7 @@ export async function streamChat({
   depth,
   userProfile,
   brainContext,
+  intelligenceContext,
   conversationId,
   turnId,
   signal,
