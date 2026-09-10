@@ -306,7 +306,13 @@ export interface SiteZone {
   name: string;
   kind: "restricted" | "public" | "perimeter" | "storage" | "entry";
   note: string;
+  /** operator-entered building name. null when the operator never entered one —
+   * the console prints "unassigned" rather than inventing a structure. */
+  building?: string | null;
+  /** operator-entered floor label, same rule. */
+  floor?: string | null;
 }
+
 
 export interface AuthorizedDevice {
   id: string;
