@@ -569,7 +569,18 @@ const ChatView = ({
     };
   }, [branchMessages, propertyMaps, isStreaming, lastMsgId]);
 
+  // ── Chat as a workspace ───────────────────────────────────────────────────
+  // The turn is planned only after streaming ends, and only when the request
+  // genuinely needs a subsystem. Everything else stays plain prose.
+  const { plans: workspacePlans, visible: workspaceVisible } = useChatWorkspace({
+    messages: branchMessages,
+    isStreaming,
+    conversationId: conversation.id,
+    hasResearchProvider: true,
+  });
+
   // Listen for cross-component jump signals (e.g. sidebar hover preview)
+
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
