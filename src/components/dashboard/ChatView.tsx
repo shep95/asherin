@@ -825,7 +825,13 @@ const ChatView = ({
                                 return null;
                               }
                             })()}
+                            {workspacePlans[msg.id] ? (
+                              <Suspense fallback={null}>
+                                <WorkspacePanel plan={workspacePlans[msg.id]} visible={workspaceVisible} />
+                              </Suspense>
+                            ) : null}
                           </>
+
                         ) : editingId === msg.id ? (
                           /* Cursor-style edit of the last user turn: change it and resend. */
                           <div className="min-w-[240px] sm:min-w-[360px]">
