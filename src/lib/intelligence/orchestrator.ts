@@ -1,0 +1,221 @@
+// orchestrator — one turn, end to end.
+//
+// order matters and is fixed: frame the task, retrieve within budget, compose,
+// call the model, validate the output, then run the learning gate. learning is
+// always last and always gated: the model proposes, this file decides, and the
+// database records why.
+
+import {
+  loadSettings,
+  loadConversationState,
+  saveConversationState,
+  loadUserMemory,
+  loadProjectMemory,
+  loadPatterns,
+  insertMemoryCandidate,
+  upsertPattern,
+  snapshotPatternVersion,
+  recordOutcome,
+  recordLearningDecisions,
+  bumpMemoryEvidence,
+} from "./store";
+import { frameTask } from "./taskFrame";
+import { resolveContext, composeModelContext } from "./contextResolver";
+import { resolveBinding, invokeModel } from "./modelGateway";
+import { validate } from "./validator";
+import { needsDiscovery, discover, readFeedback, adaptFromFeedback } from "./creator";
+import { gateMemory, gatePattern } from "./learningGate";
+import { recordSuccess, recordFailure } from "./patternLifecycle";
+import type {
+  ConversationState,
+  LearningDecision,
+  PatternObject,
+  RuntimeContext,
+  ValidationReport,
+} from "./types";
+
+export interface TurnInput {
+  conversationId: string;
+  projectId?: string | null;
+  message: string;
+  hasImageInput?: boolean;
+  /** when true, nothing is sent to a model — used by tests and dry runs. */
+  dryRun?: boolean;
+}
+
+export interface TurnResult {
+  ok: boolean;
+  text: string;
+  unavailableReason?: string;
+  context: RuntimeContext;
+  composed: string;
+  validation?: ValidationReport;
+  decisions: LearningDecision[];
+  discoveryRan: boolean;
+  patternsUsed: string[];
+  candidateCreated: string | null;
+}
+
+export async function runTurn(input: TurnInput): Promise<TurnResult> {
+  const decisions: LearningDecision[] = [];
+
+  const [settings, conversation, userMemory, patterns] = await Promise.all([
+    loadSettings(),
+    loadConversationState(input.conversationId, input.projectId),
+    loadUserMemory(),
+    loadPatterns(),
+  ]);
+  const projectMemory = input.projectId ? await loadProjectMemory(input.projectId) : [];
+
+  const task = frameTask(input.message, {
+    priorGoal: conversation.goal,
+    priorDomains: [],
+  });
+
+  const context = resolveContext({
+    conversation,
+    task,
+    query: input.message,
+    settings,
+    userMemory,
+    projectMemory,
+    patterns,
+  });
+
+  // ---- discovery: only when retrieval genuinely failed to cover the task ----
+  let discoveryRan = false;
+  let candidate: PatternObject | null = null;
+  const trigger = needsDiscovery(context.coverage);
+  if (trigger) {
+    const result = discover(task, context.patterns, patterns, trigger);
+    discoveryRan = true;
+    candidate = result.candidate;
+    decisions.push({
+      stage: "observe",
+      decision: "recorded",
+      subjectType: "pattern",
+      reason: `discovery ran (${trigger}): ${result.notes.join("; ") || "no transferable mechanism found"}`,
+    });
+  }
+
+  const composed = composeModelContext(context);
+
+  // ---- model ----
+  let text = "";
+  let ok = true;
+  let unavailableReason: string | undefined;
+
+  if (!input.dryRun) {
+    const binding = await resolveBinding();
+    const response = await invokeModel(binding, {
+      systemContext: composed,
+      message: input.message,
+      conversationId: input.conversationId,
+      modality: task.modality,
+      hasImageInput: input.hasImageInput,
+    });
+    if (response.ok) {
+      text = response.text;
+    } else {
+      ok = false;
+      unavailableReason = response.reason;
+    }
+  }
+
+  // ---- validation ----
+  const validation = ok && !input.dryRun ? validate({ task, output: text, activeRules: context.userMemory.map((m) => m.content) }) : undefined;
+
+  // ---- feedback signal from this message ----
+  const signal = readFeedback(input.message);
+  let candidateCreated: string | null = null;
+
+  if (signal.polarity === "negative") {
+    const adaptation = adaptFromFeedback(signal, {
+      hasProject: !!input.projectId,
+      repeatCount: conversation.feedback.filter((f) => f.polarity === "negative").length + 1,
+      conversationId: input.conversationId,
+    });
+    if (adaptation.candidate) {
+      const gated = gatePattern(adaptation.candidate, { settings, validation });
+      decisions.push(...gated.decisions);
+      if (gated.value && settings.learningEnabled) {
+        const saved = await upsertPattern(gated.value);
+        if (saved?.id) {
+          candidateCreated = saved.id;
+          await snapshotPatternVersion(saved, "created from a user correction");
+        }
+      }
+    }
+
+    // the correction is also a memory proposal, judged on its own terms.
+    const memGate = gateMemory(
+      { content: signal.text, kind: "never", conversationId: input.conversationId, projectId: input.projectId ?? null },
+      { settings, hasProject: !!input.projectId, existing: [...userMemory, ...projectMemory] },
+    );
+    decisions.push(...memGate.decisions);
+    if (memGate.value && settings.learningEnabled && settings.memoryEnabled) {
+      await insertMemoryCandidate({ ...memGate.value, conversationId: input.conversationId });
+    }
+    // a repeat of an existing rule strengthens it rather than duplicating it.
+    const dup = [...userMemory, ...projectMemory].find(
+      (m) => m.content.trim().toLowerCase() === signal.text.trim().toLowerCase(),
+    );
+    if (dup?.id) {
+      await bumpMemoryEvidence(
+        dup.projectId ? "ai_project_memory" : "ai_user_memory",
+        dup.id,
+        dup.evidenceCount + 1,
+        Math.min(0.95, dup.confidence + 0.1),
+      );
+    }
+  }
+
+  // ---- outcomes for every pattern actually used ----
+  if (!input.dryRun && settings.learningEnabled) {
+    for (const r of context.patterns) {
+      if (!r.pattern.id) continue;
+      const result = !ok ? "unknown" : validation?.verdict === "needs_revision" ? "failure" : "success";
+      await recordOutcome({
+        patternId: r.pattern.id,
+        conversationId: input.conversationId,
+        result,
+        signal: "validator",
+        detail: validation?.verdict ?? unavailableReason ?? "",
+        context: { modality: task.modality, domain: task.domains[0] ?? "general" },
+      });
+      if (result === "success") {
+        await upsertPattern(recordSuccess(r.pattern, task.domains[0] ?? "general"));
+      } else if (result === "failure") {
+        await upsertPattern(recordFailure(r.pattern, `validation flagged the output for ${task.modality}`));
+      }
+    }
+  }
+
+  // ---- conversation state ----
+  const nextState: ConversationState = {
+    ...conversation,
+    goal: conversation.goal ?? task.goal,
+    activeTopic: task.domains[0] ?? conversation.activeTopic,
+    constraints: Array.from(new Set([...conversation.constraints, ...task.constraints])).slice(-30),
+    unresolvedQuestions: Array.from(new Set([...conversation.unresolvedQuestions, ...task.unknowns])).slice(-20),
+    patternsUsed: Array.from(new Set([...conversation.patternsUsed, ...context.patterns.map((r) => r.pattern.slug)])).slice(-40),
+    patternsCreated: candidate ? Array.from(new Set([...conversation.patternsCreated, candidate.slug])) : conversation.patternsCreated,
+    feedback: [...conversation.feedback, signal].slice(-30),
+    confidence: ok ? Math.min(0.95, conversation.confidence + 0.05) : Math.max(0.1, conversation.confidence - 0.1),
+  };
+  await saveConversationState(nextState);
+  await recordLearningDecisions(input.conversationId, decisions);
+
+  return {
+    ok,
+    text,
+    unavailableReason,
+    context,
+    composed,
+    validation,
+    decisions,
+    discoveryRan,
+    patternsUsed: context.patterns.map((r) => r.pattern.slug),
+    candidateCreated,
+  };
+}
