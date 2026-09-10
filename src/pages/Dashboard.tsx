@@ -69,6 +69,7 @@ const AsherinDefenderView = lazyWithRetry(() => import("@/components/dashboard/d
 const AsherinArVisionView = lazyWithRetry(() => import("@/components/dashboard/arvision/AsherinArVisionView"));
 const AsherinEyeView = lazyWithRetry(() => import("@/components/dashboard/eye/AsherinEyeView"));
 const AsherinHealthView = lazyWithRetry(() => import("@/components/dashboard/health/AsherinHealthView"));
+const InvestigationWorkspace = lazyWithRetry(() => import("@/components/dashboard/investigation/InvestigationWorkspace"));
 const SentinelView = lazyWithRetry(() => import("@/components/dashboard/sentinel/SentinelView"));
 
 const FileScrapperView = lazyWithRetry(() => import("@/components/dashboard/scrapper/FileScrapperView"));
@@ -1945,6 +1946,17 @@ const Dashboard = () => {
     }
 
     switch (activeView) {
+      case "investigations":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <InvestigationWorkspace
+                investigationId={activeInvestigationId}
+                onSelect={setActiveInvestigationId}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        );
       case "asherin-defender":
         return gatedView(
           "asherin-defender",
