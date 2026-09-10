@@ -1183,6 +1183,53 @@ const AsherinEyeView = () => {
       }
     }
 
+    // one place where the truth chip under a layer button is repainted, so the
+    // sheet never disagrees with what the feed just did.
+    function paintLayerState(id) {
+      const snap = health.snapshot(id);
+      const btn = root.querySelector(`#layer-btns .tog[data-layer="${id}"]`);
+      if (!btn) return;
+      const cap = capabilityFor(id);
+      const state = stateFor(id, snap);
+      const line = btn.querySelector(".lstate");
+      if (line) {
+        line.textContent =
+          state === "requires_key"
+            ? `${cap?.provider || "external"} · needs key`
+            : `${cap?.provider || (cap?.origin === "render" ? "rendered here" : "computed here")} · ${stateWord(state)}${
+                snap.freshness === "never" ? "" : ` · ${healthLabel(snap)}`
+              }`;
+      }
+      btn.classList.toggle("bad", state === "degraded");
+      btn.classList.toggle("aged", state === "stale");
+      btn.title = `${cap?.limitation || ""}${snap.lastError ? ` · last error: ${snap.lastError}` : ""}`;
+    }
+
+    function paintAllLayerStates() {
+      LAYER_ROWS.forEach((r) => paintLayerState(r.id));
+    }
+
+    /** every layer read goes through here: health in, stale answers dropped. */
+    async function runLayerLoad(id, { quiet = false } = {}) {
+      const token = (loadToken[id] = (loadToken[id] || 0) + 1);
+      health.begin(id);
+      paintLayerState(id);
+      try {
+        const rows = await loadLayer(id, () => loadToken[id] === token);
+        if (loadToken[id] !== token) return null;
+        health.ok(id, { rows: typeof rows === "number" ? rows : null });
+        paintLayerState(id);
+        return rows;
+      } catch (e) {
+        if (loadToken[id] !== token) return null;
+        health.fail(id, e);
+        paintLayerState(id);
+        // the first failure speaks; the retries stay quiet and let the chip carry it.
+        if (!quiet && health.get(id).fails === 1) setNote(`${id}: ${e?.message || e}`);
+        throw e;
+      }
+    }
+
     async function enableLayer(id, on) {
       layerOn[id] = on;
       root.querySelectorAll("#layer-btns .tog").forEach((b) => {
@@ -1191,14 +1238,16 @@ const AsherinEyeView = () => {
       if (!on) {
         if (id === "atmo") clearAtmo();
         clearDs(id);
+        health.reset(id);
+        paintLayerState(id);
         return;
       }
       setNote(`loading ${id}…`);
       try {
-        await loadLayer(id);
+        await runLayerLoad(id);
         setNote("");
-      } catch (e) {
-        setNote(`${id}: ${e.message || e}`);
+      } catch {
+        /* runLayerLoad already spoke once and marked the layer degraded */
       }
       writeShare();
     }
