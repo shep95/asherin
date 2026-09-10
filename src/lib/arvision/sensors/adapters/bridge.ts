@@ -228,6 +228,10 @@ export interface BridgeEvents {
   onPointCloud: (chunk: PointCloudChunk) => void;
   onStatus: (status: AdapterStatus) => void;
   onSensorStatus: (sensorId: string, health: SensorDescriptor["health"], detail: string) => void;
+  onBleScanners?: (scanners: BleScanner[]) => void;
+  onBleObservation?: (observation: BleObservation) => void;
+  onDetectorHealth?: (payload: { detectorId: string; label?: string; runtime?: string; expectedIntervalMs?: number; atMs: number; note?: string }) => void;
+  onEvidenceStatus?: (payload: { configured: boolean; detail: string; retentionMs: number }) => void;
 }
 
 /**
