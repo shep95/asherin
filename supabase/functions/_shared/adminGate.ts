@@ -11,6 +11,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { isValidByok, type ZophielByokConfig } from "./zophielByokRouter.ts";
 import { isStaffEmail } from "./identityHash.ts";
+import { DEFAULT_MODEL } from "./keyResolution.ts";
+
 
 export const BYOK_REQUIRED_BODY = {
   error: "BYOK_REQUIRED",
@@ -22,8 +24,8 @@ export const BYOK_REQUIRED_BODY = {
 // See https://docs.venice.ai/api-reference/models
 const VENICE_FREE_MODEL = "mistral-31-24b";
 
-/** Returns the authenticated caller's email, or null if anon / invalid. */
-export async function getCallerEmail(req: Request): Promise<string | null> {
+/** Verified caller identity (id + email), or null if anon / invalid. */
+export async function getCaller(req: Request): Promise<{ id: string; email: string | null } | null> {
   const auth = req.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return null;
@@ -34,11 +36,18 @@ export async function getCallerEmail(req: Request): Promise<string | null> {
       { auth: { persistSession: false } },
     );
     const { data } = await sb.auth.getUser(token);
-    return (data?.user?.email || null)?.toLowerCase() ?? null;
+    if (!data?.user?.id) return null;
+    return { id: data.user.id, email: (data.user.email || "").toLowerCase() || null };
   } catch {
     return null;
   }
 }
+
+/** Returns the authenticated caller's email, or null if anon / invalid. */
+export async function getCallerEmail(req: Request): Promise<string | null> {
+  return (await getCaller(req))?.email ?? null;
+}
+
 
 /**
  * Staff identity check — the single implementation. constants.ts re-exports
@@ -70,8 +79,68 @@ export async function resolveKey(
   byok: unknown,
   opts: { strict?: boolean } = {},
 ): Promise<KeyResolution> {
-  const email = await getCallerEmail(req);
-  return resolveKeyForEmail(email, byok, opts);
+  const caller = await getCaller(req);
+
+  // A key the caller EXPLICITLY saved in Settings → AI Keys outranks every
+  // platform key, staff included. Removing a provider there must actually stop
+  // that provider from being called.
+  if (!isValidByok(byok) && caller?.id) {
+    const stored = await storedByokForUser(caller.id);
+    if (stored) return { mode: "byok", byok: stored };
+  }
+
+  return resolveKeyForEmail(caller?.email ?? null, byok, opts);
+}
+
+/**
+ * The provider the signed-in user actually selected (or, absent a selection,
+ * the single active key they saved). Service-role read; never logged.
+ * Returns null when the locker is empty or unreadable — the caller then walks
+ * on to the platform/offline path instead of guessing a provider.
+ */
+export async function storedByokForUser(userId: string): Promise<ZophielByokConfig | null> {
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } },
+    );
+
+    const { data: keys } = await sb
+      .from("user_api_keys")
+      .select("provider, api_key, is_active")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    const active = (keys || []).filter(
+      (k: { api_key?: string }) => String(k.api_key || "").trim().length > 0,
+    ) as Array<{ provider: string; api_key: string }>;
+    if (!active.length) return null;
+
+    const { data: pref } = await sb
+      .from("user_model_preferences")
+      .select("active_provider, active_model")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const wanted = String((pref as { active_provider?: string } | null)?.active_provider || "");
+    const wantedModel = String((pref as { active_model?: string } | null)?.active_model || "");
+
+    // The selected provider only counts when a key for it still exists.
+    const chosen =
+      (wanted && wanted !== "default" && wanted !== "aureon"
+        ? active.find((k) => k.provider === wanted)
+        : null) || active[0];
+    if (!chosen) return null;
+
+    const model =
+      (chosen.provider === wanted && wantedModel && wantedModel !== "default"
+        ? wantedModel
+        : DEFAULT_MODEL[chosen.provider]) || "";
+    if (!model) return null;
+
+    return { provider: chosen.provider, model, apiKey: chosen.api_key } as ZophielByokConfig;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -87,14 +156,16 @@ export async function resolveKeyForEmail(
   const validByok = isValidByok(byok) ? (byok as ZophielByokConfig) : null;
   const isInternalTeam = isAdminEmail(email);
 
-  // Staff digests are never prompted for BYOK — always routed through the
-  // platform Gemini key, in BOTH normal and strict modes. No software they
-  // touch should ever ask them to supply a Gemini key.
+  // BYOK always wins — a key the caller supplied is an explicit instruction.
+  if (validByok) return { mode: "byok", byok: validByok };
+
+  // Staff without any key of their own fall back to the platform Gemini key so
+  // no internal surface ever prompts them for one.
   if (isInternalTeam) {
     const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
     if (geminiKey) return { mode: "admin", geminiKey };
-    // If platform key is missing, fall through so a team member's own BYOK still works.
   }
+
 
   // BYOK always wins for everyone else.
   if (validByok) return { mode: "byok", byok: validByok };

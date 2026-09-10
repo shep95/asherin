@@ -164,7 +164,10 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
             return { provider: parsed.provider, model: parsed.model };
           }
         } catch { /* ignore */ }
-        return { provider: "google", model: "gemini-2.5-flash" };
+        // No saved selection → let the backend resolve the user's own key
+        // instead of forcing a provider they may have removed.
+        return null;
+
       },
     });
     (editor as any).__aureonDetach = detach;

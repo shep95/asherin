@@ -1060,24 +1060,25 @@ serve(async (req) => {
     }
 
     if (!incomingByok) {
-      // ADMIN-FIRST: admin team always routes through the platform Gemini key
-      // (matches the hard-coded admin bypass). Saving a personal key in
-      // Settings → AI Keys must NOT silently swap the admin's model/personality.
-      // Non-admin path falls through to stored BYOK → Venice free-tier.
+      // A key the caller saved in Settings → AI Keys wins for EVERYONE, staff
+      // included: deleting a provider there must actually stop that provider
+      // from being called. Only when the locker is empty does staff fall back
+      // to the platform Gemini key, then non-staff to the Venice free tier.
       const resolved = await resolveKey(req, null).catch(() => null);
-      const adminRouted = resolved && resolved.mode === "admin" && resolved.geminiKey;
+      const storedByok = await resolveStoredByok(req, _hasAttachments);
+      const adminRouted = !storedByok && resolved && resolved.mode === "admin" && resolved.geminiKey;
 
-      if (adminRouted) {
+      if (storedByok) {
+        _parsedBody.byokProvider = storedByok.provider;
+        _parsedBody.byokModel = storedByok.model;
+        _injectedKey = storedByok.apiKey;
+      } else if (adminRouted) {
         _parsedBody.byokProvider = "google";
         _parsedBody.byokModel = "gemini-flash-latest";
         _injectedKey = resolved!.geminiKey!;
       } else {
-        const storedByok = await resolveStoredByok(req, _hasAttachments);
-        if (storedByok) {
-          _parsedBody.byokProvider = storedByok.provider;
-          _parsedBody.byokModel = storedByok.model;
-          _injectedKey = storedByok.apiKey;
-        } else if (_hasAttachments) {
+        if (_hasAttachments) {
+
           return new Response(
             JSON.stringify({
               error:
@@ -1136,8 +1137,9 @@ serve(async (req) => {
       mode,
       depth,
       userProfile,
-      byokProvider,
-      byokModel,
+      byokProvider: _bodyByokProvider,
+      byokModel: _bodyByokModel,
+
       brainContext,
       taskDirective,
       skillInjection,
@@ -1150,6 +1152,10 @@ serve(async (req) => {
       projectScope,
       vaultMode,
     } = _parsedBody;
+    // The requested provider can go stale (a key deleted in Settings after the
+    // browser cached the selection), so it must be reassignable.
+    let byokProvider: string | undefined = _bodyByokProvider;
+    let byokModel: string | undefined = _bodyByokModel;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1167,7 +1173,6 @@ serve(async (req) => {
           const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
           const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
           const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE);
-          const token = authHeader2.replace("Bearer ", "");
           const reqUser = await resolveCallerCached(authHeader2, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
           if (reqUser) {
             const { data: keyRow, error: keyErr } = await adminSb
@@ -1187,7 +1192,23 @@ serve(async (req) => {
           console.error("BYOK key lookup failed:", e);
         }
       }
+      if (!useByok) {
+        // The cached selection points at a provider whose key no longer exists.
+        // Use the key the user DOES have rather than calling a deleted one.
+        const needsVision =
+          Array.isArray(messages) &&
+          messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
+        const fallback = await resolveStoredByok(req, needsVision);
+
+        if (fallback) {
+          byokProvider = fallback.provider;
+          byokModel = fallback.model;
+          userApiKey = fallback.apiKey;
+          useByok = true;
+        }
+      }
     }
+
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
