@@ -184,8 +184,22 @@ export interface TemporalRecord {
 }
 
 // =============================================================================
-// SECTION 2 — RISK SCORING ENGINE
-// direct conversion of eagle risk_engine.py — weights preserved + extended
+// SECTION 2 — OBSERVABLE EVENT SEVERITY
+//
+// This section used to score people. It read body language — a hand near a
+// waistband, a wiped palm, a clenched fist, a squared stance, where someone was
+// looking — and turned it into a "threat" number about a human being. That is
+// intent inference from appearance, and no camera can do it. A nervous person,
+// a cold person, a disabled person and a person adjusting a belt all produce
+// the same pixels.
+//
+// What a camera CAN observe is an event: something entered a restricted zone, a
+// bag was left behind, an object was removed, someone stopped moving, a vehicle
+// is where vehicles do not belong. Severity below is computed from those
+// observable events only. The body-language fields remain on the input type so
+// existing callers keep compiling, but they carry weight zero and are never
+// allowed to raise a severity — they are recorded as context for a human
+// reviewer, nothing more.
 // =============================================================================
 
 export interface RiskSignalInput {
@@ -219,86 +233,70 @@ export interface RiskSignalInput {
   stationaryRunningVehicle: boolean;
 }
 
-const SIGNAL_WEIGHTS: Record<string, number> = {
-  // eagle original weights preserved exactly
-  danger_zone: 0.35,
-  restricted_zone: 0.35,
-  suspicious_item: 0.20,
-  dwell_time: 0.20,
-  interaction: 0.25,
-  erratic_motion: 0.10,
-  repeated_approach: 0.10,
-  // layer 2 hand
-  hand_concealment: 0.30,
-  weapon_check: 0.35,
-  arm_rigidity: 0.20,
-  fist_clenching: 0.15,
-  palm_wiping: 0.10,
-  // layer 3 gaze
-  rapid_scanning: 0.20,
-  gaze_fixation: 0.25,
-  camera_avoidance: 0.30,
-  // layer 4 environment
+/** Only observable events carry weight. Everything else is exactly zero. */
+export const EVENT_WEIGHTS: Record<string, number> = {
+  restricted_zone_entry: 0.35,
+  utility_zone_occupied: 0.25,
+  prolonged_dwell: 0.20,
   abandoned_object: 0.40,
-  utility_zone: 0.25,
-  // layer 5 temporal
-  same_time_recurrence: 0.30,
-  scout_return: 0.40,
-  // layer 6 group
-  non_social_coordination: 0.35,
-  distraction_action_pair: 0.45,
-  // layer 7 pre-violence
-  target_locking: 0.40,
-  confrontation_stance: 0.45,
-  escalation_chain_override: 0.80,
-  // layer 8 vehicle
-  vehicle_circling: 0.30,
-  stationary_vehicle: 0.25,
+  object_removed: 0.35,
+  stationary_running_vehicle: 0.20,
 };
 
+/**
+ * Body-language and gaze fields, kept for context in the record and explicitly
+ * excluded from severity. Named here so the exclusion is testable.
+ */
+export const NON_SCORING_SIGNALS = [
+  "handConcealmentActive",
+  "weaponCheckCount",
+  "armRigidityDetected",
+  "fistClenchingActive",
+  "palmWipingCount",
+  "rapidScanningActive",
+  "gazeFixationCount",
+  "cameraAvoidanceDetected",
+  "carryingSuspiciousItem",
+  "targetLockingActive",
+  "confrontationStanceDetected",
+  "nonSocialCoordination",
+  "distractionActionPair",
+  "sameTimeRecurrence",
+  "scoutReturnDetected",
+  "repeatedApproachCount",
+  "motionType",
+  "interactionCount",
+  "vehicleCirclingDetected",
+] as const;
+
+/** Severity of what was observed, 0..1. Never a judgement about a person. */
 export function calculateRiskScore(signals: RiskSignalInput): number {
   let total = 0.0;
-  const inUnauthorizedZone = signals.inDangerZone || signals.inRestrictedZone;
 
-  if (inUnauthorizedZone) total += SIGNAL_WEIGHTS.restricted_zone;
-  if (inUnauthorizedZone && signals.carryingSuspiciousItem) total += SIGNAL_WEIGHTS.suspicious_item;
-  if (signals.dwellTimeMs > signals.minDwellThresholdMs) total += SIGNAL_WEIGHTS.dwell_time;
-  if (signals.interactionCount > signals.maxInteractions) total += SIGNAL_WEIGHTS.interaction;
-  if (signals.motionType === "erratic") total += SIGNAL_WEIGHTS.erratic_motion;
-  if (signals.repeatedApproachCount > 2) total += SIGNAL_WEIGHTS.repeated_approach;
-  if (signals.handConcealmentActive) total += SIGNAL_WEIGHTS.hand_concealment;
-  if (signals.weaponCheckCount >= 2) total += SIGNAL_WEIGHTS.weapon_check;
-  if (signals.armRigidityDetected) total += SIGNAL_WEIGHTS.arm_rigidity;
-  if (signals.fistClenchingActive) total += SIGNAL_WEIGHTS.fist_clenching;
-  if (signals.palmWipingCount >= 2) total += SIGNAL_WEIGHTS.palm_wiping;
-  if (signals.rapidScanningActive) total += SIGNAL_WEIGHTS.rapid_scanning;
-  if (signals.gazeFixationCount >= 4) total += SIGNAL_WEIGHTS.gaze_fixation;
-  if (signals.cameraAvoidanceDetected) total += SIGNAL_WEIGHTS.camera_avoidance;
-  if (signals.abandonedObjectDetected) total += SIGNAL_WEIGHTS.abandoned_object;
-  if (signals.utilityZoneOccupied) total += SIGNAL_WEIGHTS.utility_zone;
-  if (signals.sameTimeRecurrence) total += SIGNAL_WEIGHTS.same_time_recurrence;
-  if (signals.scoutReturnDetected) total += SIGNAL_WEIGHTS.scout_return;
-  if (signals.nonSocialCoordination) total += SIGNAL_WEIGHTS.non_social_coordination;
-  if (signals.distractionActionPair) total += SIGNAL_WEIGHTS.distraction_action_pair;
-  if (signals.targetLockingActive) total += SIGNAL_WEIGHTS.target_locking;
-  if (signals.confrontationStanceDetected) total += SIGNAL_WEIGHTS.confrontation_stance;
-  if (signals.escalationChainStep >= 3) total += SIGNAL_WEIGHTS.escalation_chain_override;
-  if (signals.vehicleCirclingDetected) total += SIGNAL_WEIGHTS.vehicle_circling;
-  if (signals.stationaryRunningVehicle) total += SIGNAL_WEIGHTS.stationary_vehicle;
+  if (signals.inDangerZone || signals.inRestrictedZone) total += EVENT_WEIGHTS.restricted_zone_entry;
+  if (signals.utilityZoneOccupied) total += EVENT_WEIGHTS.utility_zone_occupied;
+  if (signals.dwellTimeMs > signals.minDwellThresholdMs) total += EVENT_WEIGHTS.prolonged_dwell;
+  if (signals.abandonedObjectDetected) total += EVENT_WEIGHTS.abandoned_object;
+  if (signals.stationaryRunningVehicle) total += EVENT_WEIGHTS.stationary_running_vehicle;
 
   return Math.round(Math.min(Math.max(total, 0.0), 1.0) * 100) / 100;
 }
 
+/**
+ * Severity band of an observed event. The escalation chain no longer overrides
+ * anything, because that chain was built from body language.
+ */
 export function scoreToTier(
   score: number,
-  escalationChainStep: number,
-  signalCount: number
+  _escalationChainStep: number,
+  _signalCount: number
 ): ThreatTier {
-  if (escalationChainStep >= 4 || score >= 0.85) return "critical";
-  if (escalationChainStep >= 3 || score >= 0.65 || signalCount >= 6) return "high";
-  if (score >= 0.35 || signalCount >= 2) return "elevated";
+  if (score >= 0.75) return "critical";
+  if (score >= 0.55) return "high";
+  if (score >= 0.3) return "elevated";
   return "observation";
 }
+
 
 // =============================================================================
 // SECTION 3 — ZONE RESOLUTION (POINT-IN-POLYGON)
