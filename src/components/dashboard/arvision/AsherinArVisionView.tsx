@@ -9,7 +9,7 @@
 // owns its own scrolling.
 
 import { Suspense, useState } from "react";
-import { Eye, Radar, ScanEye } from "lucide-react";
+import { Cpu, Eye, Radar, ScanEye } from "lucide-react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import OpticalHudView from "./OpticalHudView";
 
@@ -20,15 +20,20 @@ const SpatialView = lazyWithRetry(() => import("./spatial/SpatialView"), "arvisi
 // optical/spatial/eagle switches so nearby-radio monitoring and one-second
 // history do not reset merely because the operator changed the visible layer.
 const EagleEyeView = lazyWithRetry(() => import("./eagle/EagleEyeView"), "arvision-eagle");
+// The sensors layer is the room's honesty surface: connected hardware, the
+// modes that hardware can physically serve, and where the pipeline stops.
+const SensorsView = lazyWithRetry(() => import("./sensors/SensorsView"), "arvision-sensors");
 
 
-type Layer = "optical" | "spatial" | "eagle";
+type Layer = "optical" | "spatial" | "eagle" | "sensors";
 
 const LAYERS: { id: Layer; label: string; hint: string; icon: typeof Eye }[] = [
   { id: "optical", label: "optical", hint: "camera head up display", icon: Eye },
   { id: "spatial", label: "spatial", hint: "map, route, session, see through", icon: Radar },
   { id: "eagle", label: "eagle.eye", hint: "multi camera behavioural watch with reviewable evidence", icon: ScanEye },
+  { id: "sensors", label: "sensors", hint: "connected streams, capabilities, fusion state, services", icon: Cpu },
 ];
+
 
 const AsherinArVisionView = () => {
   const [layer, setLayer] = useState<Layer>("optical");
@@ -92,7 +97,21 @@ const AsherinArVisionView = () => {
             <EagleEyeView />
           </Suspense>
         </div>
+        {layer === "sensors" && (
+          <div className="absolute inset-0">
+            <Suspense
+              fallback={
+                <div className="flex h-full w-full items-center justify-center text-[12px] font-light text-white/45">
+                  loading sensors layer
+                </div>
+              }
+            >
+              <SensorsView />
+            </Suspense>
+          </div>
+        )}
       </div>
+
     </div>
   );
 };

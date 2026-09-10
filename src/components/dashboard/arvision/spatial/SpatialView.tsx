@@ -2,7 +2,7 @@
 // Everything the uploaded package does that a browser can honestly do:
 // camera positioning against a scanned map, indoor routing with spoken turn by
 // turn guidance, a live shared session carrying the same pose messages, and the
-// see-through silhouette layer for peers behind geometry.
+// peer occlusion hint, computed as a corridor test over the loaded map.
 //
 // What a browser cannot do is stated in the room rather than faked: there is no
 // scanned collision mesh and no wearable video link, so occlusion uses the
@@ -612,9 +612,24 @@ const SpatialView = () => {
                   localize from camera
                 </span>
               </button>
-              <button type="button" className={showSilhouettes ? chipOn : chip} onClick={() => setShowSilhouettes((v) => !v)}>
-                see through walls
+              <button
+                type="button"
+                className={showSilhouettes ? chipOn : chip}
+                onClick={() => setShowSilhouettes((v) => !v)}
+                title="peers whose line of sight leaves the walkable corridor are drawn as outlines. this is a corridor test over the loaded map, not a depth or wall measurement."
+              >
+                peer occlusion hint
               </button>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+              <p className="text-[11.5px] font-light text-white/70">3d reconstruction unavailable</p>
+              <p className="mt-1 text-[11px] font-light leading-relaxed text-white/40">
+                missing: a depth, stereo or lidar stream · extrinsic calibration between that sensor and this camera ·
+                point data actually arriving. a browser camera returns decoded colour frames only, so this layer plots a
+                measured position on a real map and never reconstructs geometry. the occlusion hint above is a corridor
+                test over the loaded map, not a wall.
+              </p>
             </div>
 
             {(localizeNote || vps) && (
