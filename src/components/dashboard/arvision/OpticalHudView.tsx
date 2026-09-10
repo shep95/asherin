@@ -782,11 +782,17 @@ function bootArvision(wrap, root, emitPull) {
     const s = _track.getSettings();
     if (s.facingMode) S.facing = s.facingMode;
     S.torch = false;
+    // field of view is only real when the track reports a focal length. an
+    // assumed 54 degrees looked like a measurement and was not one, so an
+    // uncalibrated lens now reports nothing at all.
     if (s.width && s.focalLength) {
       S.hfov = (2 * Math.atan(s.width / 2 / s.focalLength) * 180) / Math.PI;
-    } else if (s.width && s.height) {
-      S.hfov = 54;
+      S.hfovSource = "reported focal length";
+    } else {
+      S.hfov = null;
+      S.hfovSource = "not reported by this camera";
     }
+
     applyMirror();
     $("gate").hidden = true;
     note("");
