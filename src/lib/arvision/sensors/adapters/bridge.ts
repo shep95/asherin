@@ -319,8 +319,25 @@ export class EdgeBridgeClient {
       this.events.onPointCloud(decodePointCloud(msg));
     } else if (msg.type === "status") {
       this.events.onSensorStatus(`bridge:${msg.sensorId}`, msg.health, msg.detail);
+    } else if (msg.type === "ble_scanners") {
+      const parsed = (Array.isArray(msg.scanners) ? msg.scanners : [])
+        .map(parseScannerDecl)
+        .filter((s): s is BleScanner => s !== null);
+      if (parsed.length) this.events.onBleScanners?.(parsed);
+    } else if (msg.type === "ble_observation") {
+      const obs = parseBleObservation(msg.observation, Date.now());
+      if (obs) this.events.onBleObservation?.(obs);
+    } else if (msg.type === "detector_health") {
+      if (typeof msg.detectorId === "string" && msg.detectorId) this.events.onDetectorHealth?.(msg);
+    } else if (msg.type === "evidence_status") {
+      this.events.onEvidenceStatus?.({
+        configured: msg.configured === true,
+        detail: typeof msg.detail === "string" ? msg.detail : "the edge node reported evidence storage without a description",
+        retentionMs: typeof msg.retentionMs === "number" ? msg.retentionMs : 0,
+      });
     }
   }
+
 
   disconnect() {
     this.closed = true;
