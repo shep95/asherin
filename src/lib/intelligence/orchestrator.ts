@@ -114,12 +114,13 @@ export async function runTurn(input: TurnInput): Promise<TurnResult> {
       modality: task.modality,
       hasImageInput: input.hasImageInput,
     });
-    if (response.ok) {
+    if (response.ok === true) {
       text = response.text;
     } else {
       ok = false;
       unavailableReason = response.reason;
     }
+
   }
 
   // ---- validation ----
