@@ -9,6 +9,7 @@ import { sensorFabric } from "@/lib/fabric/fabric";
 import type { FabricObservation, FabricSensor } from "@/lib/fabric/types";
 import { loadPoses } from "@/lib/arvision/spatial3d/poses";
 import { geocodeAddress, detectAddresses } from "@/lib/propertyIntent";
+import { detectGeoIntent } from "@/lib/geoIntent";
 import { listInvestigations, loadSnapshot } from "@/lib/investigation/persistence";
 import type { InvestigationSnapshot } from "@/lib/investigation/types";
 import type { LaneRunner } from "./orchestrator";
@@ -343,7 +344,12 @@ export function geocodeMapRunner(message: string, extraPlaces: string[] = []): L
     kind: "map",
     emptyReason: "no place named in this request could be resolved to a coordinate",
     run: async (signal) => {
-      const named = [...detectAddresses(message).map((a) => a.raw), ...extraPlaces].slice(0, 6);
+      const geo = detectGeoIntent(message);
+      const named = [
+        ...detectAddresses(message).map((a) => a.raw),
+        ...(geo?.place ? [geo.place] : []),
+        ...extraPlaces,
+      ].slice(0, 6);
       const map: MapPayload = { markers: [], tracks: [], center: null, zoom: 13, unplotted: [] };
       for (const place of named) {
         if (signal.aborted) break;
