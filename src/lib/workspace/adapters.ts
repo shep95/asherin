@@ -84,8 +84,10 @@ function observationTitle(o: FabricObservation): string {
       return "speech event";
     case "coverage_gap":
       return "coverage gap";
-    case "location":
+    case "location_fix":
       return "location fix";
+    case "service_health":
+      return "service health";
     default:
       return String(o.type);
   }
@@ -113,7 +115,13 @@ export function sensorCardRunner(window?: { fromMs: number; toMs: number } | nul
           fields: [
             { label: "sensor", value: o.provenance.sensorId },
             { label: "subsystem", value: o.provenance.subsystem },
-            { label: "clock", value: o.provenance.clock?.state ?? "unstated" },
+            {
+              label: "clock",
+              value:
+                o.provenance.sourceClockMs === null
+                  ? "source asserts no clock"
+                  : `skew ${o.provenance.clockSkewMs ?? 0}ms`,
+            },
           ],
           provenance: fabricProvenance(o),
           anchor: { atMs: o.atMs, trackId: o.type === "visual_track" ? o.id : undefined },
