@@ -20,7 +20,7 @@ const PROVIDERS = [
   { name: "Groq", note: "Lowest-latency open-weights inference (Llama, DeepSeek, GPT-OSS via Groq). Billing to Groq." },
   { name: "DeepSeek", note: "DeepSeek-V3 / R1 reasoning. Billing to DeepSeek." },
   { name: "OpenRouter", note: "Aggregator key, routes to 200+ models across vendors. Billing to OpenRouter." },
-  { name: "Venice", note: "Uncensored mistral-31-24b default for operators without a paid key. Vision-capable." },
+  { name: "Venice", note: "Uncensored mistral-31-24b via your own Venice key. Vision-capable." },
 ];
 
 const FeatureByok = () => (
@@ -61,7 +61,7 @@ const FeatureByok = () => (
         </>
       }
       subheadline="BYOK, Bring Your Own Key, is the floor of Asherin's sovereign stack. Operators paste a key from any of nine providers, pay the vendor directly, and route every reasoning call through their own account. No platform proxy. No prompt mutation. No revoke risk from a third party."
-      tierLabel="Included on every paid tier · Free Venice fallback for non-BYOK users"
+      tierLabel="Included on every paid tier · Your own provider key required"
       capabilities={[
         {
           icon: Key,
@@ -188,7 +188,7 @@ const FeatureByok = () => (
             identifies you to Anthropic, etc. Asherin's BYOK is about
             sovereignty against the platform, not anonymity against the
             model vendor. For operators who need anonymity from the
-            vendor as well, the Venice fallback is the closest available
+            vendor as well, a Venice key of your own is the closest available
             primitive on the supported list; for true vendor anonymity,
             self-hosting an open-weights model on operator hardware is
             the correct architecture and BYOK is not a substitute.

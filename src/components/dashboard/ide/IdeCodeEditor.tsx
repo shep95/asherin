@@ -4,7 +4,7 @@ import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
-import { validateCode, attachCursorFeatures } from "@/lib/ide";
+import { validateCode, attachInlineEditFeatures } from "@/lib/ide";
 import { emitPull } from "@/lib/connect/emitPull";
 
 interface HoverFetcher {
@@ -142,7 +142,7 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
       setCursor({ line: e.position.lineNumber, col: e.position.column });
     });
     // Cursor / Claude-Code moves: ⌘K inline edit, ⌘L send-to-chat, Tab ghost completions.
-    const detach = attachCursorFeatures(editor, monaco, {
+    const detach = attachInlineEditFeatures(editor, monaco, {
       canWrite: () => canWriteRef.current,
       onWriteBlocked: (reason) => onWriteBlockedRef.current?.(reason),
       onInlineEditApplied: ({ path }) => {

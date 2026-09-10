@@ -158,9 +158,8 @@ const FeatureZophiel = () => {
                 BYOK key
               </a>{" "}
               route Zophiel reasoning through their own vendor account with
-              zero platform-side prompt mutation. Operators without a key get
-              the platform-paid Venice <code>mistral-31-24b</code> default. Either
-              path, the OSINT pipeline is the same.
+              zero platform-side prompt mutation. A key is required, there is
+              no platform-paid model fallback.
             </p>
 
             <FaqJsonLd

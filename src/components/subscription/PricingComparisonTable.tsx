@@ -26,7 +26,7 @@ const features: Feature[] = [
   { name: "Truth Mode", desc: "Adversarial truth-extraction with cross-validation across multiple frontier models.", aureon: true, pro: true, enterprise: true },
 
   // Core Capabilities
-  { name: "Direct answers", desc: "Analytical answers without corporate hedging. Model behaviour depends on the provider you route to, Gemini by default, Venice mistral-31-24b on the platform fallback, or your own key.", aureon: true, pro: true, enterprise: true },
+  { name: "Direct answers", desc: "Analytical answers without corporate hedging. Model behaviour depends on the provider key you bring; there is no platform-paid model.", aureon: true, pro: true, enterprise: true },
   { name: "Elite coding engine", desc: "Production-grade code with full repository context, refactoring and verification.", aureon: true, pro: true, enterprise: true },
   { name: "Multi-language output", desc: "Generate output in any major spoken or programming language at identical quality.", aureon: true, pro: true, enterprise: true },
   { name: "Response depth control", desc: "Pick concise, standard or maximum-depth answers per turn.", aureon: true, pro: true, enterprise: true },

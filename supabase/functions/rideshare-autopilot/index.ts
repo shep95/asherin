@@ -26,7 +26,6 @@ import { liveAccounts, harvestBodies, hasScope } from "../_shared/googleMesh.ts"
 import { gmailQuery, parseRideEmail, foldRides, type ParsedRideEmail } from "../_shared/rideshareIngest.ts";
 import { runDeepSweep, loadSettings, type GuardianSettings } from "../_shared/rideshareSweep.ts";
 import { fastPass, type RideInput } from "../_shared/rideshareGuardian.ts";
-import { isStaffEmail } from "../_shared/identityHash.ts";
 import { assessAreaByLabel, alertAreaRisk, ALERTING_LEVELS, type AreaAssessment } from "../_shared/areaRisk.ts";
 import { notifyIntel } from "../_shared/intelNotify.ts";
 import type { ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
@@ -53,17 +52,12 @@ const log = (step: string, detail?: unknown) =>
 const admin = (): SupabaseClient =>
   createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-/** Cron has no caller identity, so the model key is resolved from the rider's
- *  own account tier rather than a request header. */
-function cfgForEmail(email: string | null): ZophielByokConfig | null {
-  const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
-  if (isStaffEmail(email) && gemini) {
-    return { provider: "google", model: "gemini-flash-latest", apiKey: gemini };
-  }
-  const venice = Deno.env.get("VENICE_API_KEY") || "";
-  if (venice) return { provider: "venice", model: "mistral-31-24b", apiKey: venice };
-  if (gemini) return { provider: "google", model: "gemini-flash-latest", apiKey: gemini };
-  return null;
+/** Cron has no caller identity, so the model key is the rider's OWN saved key.
+ *  There is no platform Gemini path for staff and no platform Venice path for
+ *  anyone — a rider without a saved key is skipped with `no_model_key`. */
+async function cfgForRider(userId: string): Promise<ZophielByokConfig | null> {
+  const { storedByokForUser } = await import("../_shared/adminGate.ts");
+  return await storedByokForUser(userId);
 }
 
 interface RiderRow {
@@ -141,7 +135,7 @@ async function sweepRider(
   const userId = rider.user_id;
   const settings: GuardianSettings = await loadSettings(userId);
   const userEmail = await emailFor(sb, userId);
-  const cfg = cfgForEmail(userEmail);
+  const cfg = await cfgForRider(userId);
   if (!cfg) return { userId, status: "no_model_key" };
 
   const rides = await harvestRides(sb, userId, settings.lookback_hours ?? rider.lookback_hours ?? 24);

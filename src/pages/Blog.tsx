@@ -49,16 +49,6 @@ export const BLOG_POSTS: Post[] = [
     featured: true,
   },
   {
-    slug: "/blog/asherin-agent-sovereign-intelligence-layer",
-    title: "the asherin agent, a personal sovereign intelligence layer you can download free",
-    dek: "104 files, 43 thinking-pattern documents, 16 hook runners, and a doctrine that sits at the root of reasoning instead of on top of the output. full teardown of the package, its self-modification loop, its on-disk operator memory, and its honest limitations, with the whole archive free to download.",
-    tag: "Release",
-    published: "2026-08-12T02:12:50.000Z",
-    readTime: "14 min",
-    featured: true,
-    pinned: true,
-  },
-  {
     slug: "/blog/personalities-are-not-thinking-patterns",
     title: "personalities are not thinking patterns",
     dek: "the exact conversion, piece by piece: identity lines become capability text, domain lists become recognition lenses, tier ladders become reasoning budgets, and conduct moves from character morality to forbidden reasoning patterns. with diagrams of both loops.",
@@ -251,14 +241,6 @@ export const BLOG_POSTS: Post[] = [
     tag: "Operator Guide",
     published: "2026-06-19",
     readTime: "8 min",
-  },
-  {
-    slug: "/blog/venice-integration",
-    title: "Venice AI integration in Asherin, unfiltered intelligence, zero setup",
-    dek: "How Asherin ships Venice's uncensored stack to every operator by default, no key, no account, no monthly subscription.",
-    tag: "Integration",
-    published: "2026-06-14",
-    readTime: "6 min",
   },
 ];
 

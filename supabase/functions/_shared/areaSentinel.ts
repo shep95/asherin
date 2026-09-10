@@ -36,8 +36,6 @@ export interface AreaCfg {
 export function platformAreaCfg(): AreaCfg | null {
   const gemini = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
   if (gemini) return { provider: "google", model: "gemini-flash-latest", apiKey: gemini };
-  const venice = Deno.env.get("VENICE_API_KEY") || "";
-  if (venice) return { provider: "venice", model: "mistral-31-24b", apiKey: venice };
   return null;
 }
 

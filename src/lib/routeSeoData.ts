@@ -128,12 +128,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   },
 
   // --- Blog posts ---
-  "/blog/venice-integration": {
-    title: "Venice AI in asherin",
-    description: "how asherin routes traffic through venice ai when you have not brought your own key.",
-    ogType: "article",
-    datePublished: "2026-06-17",
-  },
   "/blog/what-is-ai-osint": {
     title: "What is AI OSINT?",
     description: "the four stages of an osint pipeline, and how to tell one apart from a search wrapper.",
@@ -261,12 +255,6 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     description: "researching statute across jurisdictions without inventing citations.",
     ogType: "article",
     datePublished: "2026-07-08",
-  },
-  "/blog/asherin-agent-sovereign-intelligence-layer": {
-    title: "The asherin agent layer",
-    description: "how the agent decides which tool to reach for, and what it refuses to do unattended.",
-    ogType: "article",
-    datePublished: "2026-08-11",
   },
   "/blog/personalities-are-not-thinking-patterns": {
     title: "Personalities are not thinking patterns",

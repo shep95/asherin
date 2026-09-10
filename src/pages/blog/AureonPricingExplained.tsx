@@ -126,8 +126,8 @@ const AureonPricingExplained = () => (
       <li>
         <strong>BYOK across nine providers</strong>, if you want to
         route through your own OpenAI, Anthropic, Google, Groq,
-        Together, Mistral, DeepSeek, xAI, or Venice key, the platform
-        does that with your key winning over the default.
+        Together, Mistral, DeepSeek, xAI, or Venice key. Your own key is
+        required for every reasoning call, there is no platform-paid model.
       </li>
     </ul>
 

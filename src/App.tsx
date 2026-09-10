@@ -208,7 +208,6 @@ function ForHub() {
 }
 
 const WhiteboardPage = lazy(() => import("./pages/WhiteboardPage"));
-const BlogVeniceIntegration = lazy(() => import("./pages/BlogVeniceIntegration"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogAsherFoldMemory = lazy(() => import("./pages/blog/AsherFoldMemory"));
 const SiteTraffic = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.SiteTraffic })));
@@ -250,7 +249,6 @@ const BlogHowAiPredictiveForecastingWorks = lazy(() => import("./pages/blog/HowA
 const BlogHowAureonUsesCseoResearch = lazy(() => import("./pages/blog/HowAureonUsesCseoResearch"));
 const BlogHowWeMakeAureonSoundHuman = lazy(() => import("./pages/blog/HowWeMakeAureonSoundHuman"));
 const BlogAiStackForIndianStartups = lazy(() => import("./pages/blog/AiStackForIndianStartups"));
-const BlogAsherinAgentSovereignLayer = lazy(() => import("./pages/blog/AsherinAgentSovereignLayer"));
 const BlogPersonalitiesToThinkingPatterns = lazy(() => import("./pages/blog/PersonalitiesToThinkingPatterns"));
 const GlossaryZeroDayConfidenceScoring = lazy(() => import("./pages/glossary/ZeroDayConfidenceScoring"));
 const GlossaryPredictiveIntelligenceAi = lazy(() => import("./pages/glossary/PredictiveIntelligenceAi"));
@@ -385,7 +383,6 @@ const AppShell = () => {
                       <Route path="/blog/paid-seat-free-door" element={<BlogPaidSeatFreeDoor />} />
                       <Route path="/blog/asher-fold-memory" element={<BlogAsherFoldMemory />} />
                       <Route path="/blog/comparison" element={<Navigate to="/software" replace />} />
-                      <Route path="/blog/venice-integration" element={<BlogVeniceIntegration />} />
                       <Route
                         path="/blog/uncensored-ai-text-generator-guide"
                         element={<Navigate to="/blog" replace />}
@@ -539,10 +536,6 @@ const AppShell = () => {
                       <Route path="/blog/how-aureon-uses-c-seo-research" element={<BlogHowAureonUsesCseoResearch />} />
                       <Route path="/blog/how-we-make-aureon-sound-human" element={<BlogHowWeMakeAureonSoundHuman />} />
                       <Route path="/blog/ai-stack-for-indian-startups" element={<BlogAiStackForIndianStartups />} />
-                      <Route
-                        path="/blog/asherin-agent-sovereign-intelligence-layer"
-                        element={<BlogAsherinAgentSovereignLayer />}
-                      />
                       <Route
                         path="/blog/personalities-are-not-thinking-patterns"
                         element={<BlogPersonalitiesToThinkingPatterns />}

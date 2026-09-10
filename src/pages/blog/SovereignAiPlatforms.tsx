@@ -55,13 +55,12 @@ const SovereignAiPlatforms = () => (
       have to commit to a vendor account before they can evaluate the
       platform.
     </p>
-    <h3>2. BYOK + uncensored fallback</h3>
+    <h3>2. BYOK-only</h3>
     <p>
-      The default model is an uncensored stack (typically Venice
-      mistral-31-24b in 2026) paid for by the platform. Operators graduate
-      to BYOK as they identify which vendor they want to ship on. This is
-      the pattern Asherin ships. It optimizes for &ldquo;works on the first
-      visit&rdquo; without compromising the sovereign path.
+      No platform-paid model at all: every reasoning call runs on a key the
+      operator brought, billed to the operator&apos;s own vendor account. This
+      is the pattern Asherin ships. It costs a setup step on the first visit
+      and buys a fully sovereign path with nothing to revoke.
     </p>
     <h3>3. Self-hosted</h3>
     <p>
@@ -108,11 +107,10 @@ const SovereignAiPlatforms = () => (
 
     <h2>Where Asherin sits on the map</h2>
     <p>
-      Asherin is the canonical BYOK + uncensored fallback platform. Nine BYOK
+      Asherin is the canonical BYOK-only platform. Nine BYOK
       providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI,
-      OpenRouter, Venice). Venice mistral-31-24b as the platform-paid
-      default for operators who haven&apos;t added a key. Zero platform-side
-      refusal layer on either path. End-to-end encrypted operator data with
+      OpenRouter, Venice). No platform-paid model for operators who
+      haven&apos;t added a key. Zero platform-side refusal layer. End-to-end encrypted operator data with
       key-revocation guarantees. The intelligence stack on top, Zophiel
       OSINT, NOMAD dossiers, AXRLEN predictive engine, ZERLAL vulnerability
       analysis, runs on the sovereign substrate, not as a layer that
@@ -139,7 +137,7 @@ const SovereignAiPlatforms = () => (
         },
         {
           q: "Is Asherin a sovereign AI platform?",
-          a: "Yes. Asherin ships the BYOK + uncensored fallback pattern: nine BYOK providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice) plus Venice mistral-31-24b as the platform-paid default. Zero platform-side refusal layer on either path.",
+          a: "Yes. Asherin ships the BYOK-only pattern: nine BYOK providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice) and no platform-paid model. Zero platform-side refusal layer.",
         },
         {
           q: "What's the cheapest way to get started with a sovereign AI platform?",
@@ -159,11 +157,6 @@ const SovereignAiPlatforms = () => (
           to: "/glossary/byok-ai",
           label: "BYOK AI, definition",
           description: "The key layer that underpins every sovereign architecture pattern.",
-        },
-        {
-          to: "/blog/venice-integration",
-          label: "Venice AI inside Asherin",
-          description: "How Asherin ships the platform-paid uncensored fallback.",
         },
       ]}
     />

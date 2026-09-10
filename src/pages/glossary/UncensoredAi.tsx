@@ -92,10 +92,10 @@ const UncensoredAi = () => (
 
     <h2>Asherin's stance</h2>
     <p>
-      Asherin ships an uncensored default for every free operator: Venice
-      AI&apos;s <code>mistral-31-24b</code>, served at platform cost. Operators
-      who bring their own key keep their choice of vendor and pay their
-      vendor directly. Asherin does not add a refusal layer on top of either
+      Asherin runs on the operator&apos;s own key only. There is no
+      platform-paid model: bring a key, keep your choice of vendor, including
+      an uncensored one such as Venice <code>mistral-31-24b</code>, and pay
+      that vendor directly. Asherin does not add a refusal layer on top of either
       path. The refusal you see is the refusal the model produced
       nothing more, nothing less.
     </p>
@@ -113,7 +113,7 @@ const UncensoredAi = () => (
         },
         {
           q: "Does Asherin offer uncensored AI?",
-          a: "Yes. Asherin defaults free operators to Venice AI's mistral-31-24b (uncensored, vision-capable, code-capable) at platform cost. Operators who bring their own provider key keep their choice of vendor with no platform-side refusal layer.",
+          a: "Asherin has no platform-paid model. Operators bring their own provider key, including uncensored options such as Venice mistral-31-24b, and keep their choice of vendor with no platform-side refusal layer.",
         },
       ]}
     />
@@ -129,11 +129,6 @@ const UncensoredAi = () => (
           to: "/blog/ai-without-restrictions",
           label: "AI without restrictions, operator guide",
           description: "The practical workflow for running unfiltered AI on real tasks.",
-        },
-        {
-          to: "/blog/venice-integration",
-          label: "Venice AI inside Asherin",
-          description: "How Asherin ships the Venice uncensored stack to every operator.",
         },
         {
           to: "/glossary/byok-ai",
