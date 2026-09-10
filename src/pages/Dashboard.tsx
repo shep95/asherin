@@ -224,6 +224,7 @@ const Dashboard = () => {
     "asherin-eye",
     "asherin-sentinel",
     "asherin-health",
+    "investigations",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -240,6 +241,8 @@ const Dashboard = () => {
     "asherin.sentinel": "asherin-sentinel",
     asherinx: "ghost-engine",
     "asherinx-eng": "ghost-engine",
+    investigation: "investigations",
+    osint: "investigations",
     pages: "pdf-generator",
     "asherin-pages": "pdf-generator",
   };

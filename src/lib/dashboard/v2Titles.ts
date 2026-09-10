@@ -29,6 +29,7 @@ const TITLES: Partial<Record<string, V2Title>> = {
   "asherin-health": { title: "asherin.health", subtitle: "your own anatomy, read from your own record.", canvas: true },
   "asherin-sentinel": { title: "asherin.sentinel", subtitle: "an ambient watch, honest about its reach." },
   google: { title: "google", subtitle: "your connected accounts, read on request." },
+  investigations: { title: "investigations", subtitle: "research that keeps its sources, conflicts and gaps." },
   search: { title: "search", subtitle: "sourced search with credibility tiers." },
   "knowledge-vault": { title: "knowledge", subtitle: "private files asherin can cite." },
   azplen: { title: "asherin.data", subtitle: "datasets, analysis and charts." },
