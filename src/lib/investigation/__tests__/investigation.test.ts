@@ -153,7 +153,7 @@ describe("entity resolution", () => {
   });
 
   it("keeps a similar name as a candidate rather than merging it", () => {
-    const d = decideResolution({ kind: "company", label: "Acme Holding Group" }, [acme], ids);
+    const d = decideResolution({ kind: "company", label: "Acme Holdings International" }, [acme], ids);
     expect(d.action).toBe("candidate");
     expect(d.entityId).toBeNull();
     expect(d.candidates[0].decisive).toBe(false);
