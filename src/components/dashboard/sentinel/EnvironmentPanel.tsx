@@ -121,6 +121,9 @@ export default function EnvironmentPanel() {
         );
         if (bucket.length > MAX_TRAIL) bucket.splice(0, bucket.length - MAX_TRAIL);
         sightingsRef.current.set(record.key, bucket);
+        // the same sighting, normalized once, so eagle.eye and arvision read
+        // this receiver without opening a second radio.
+        publishSentinelRadio(record, radioLabel(record), handleRef.current?.source ?? "unknown receiver");
       }
     }, 1_000);
     return () => window.clearInterval(timer);
