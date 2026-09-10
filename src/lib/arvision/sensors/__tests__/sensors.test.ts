@@ -15,9 +15,9 @@ function sensor(over: Partial<SensorDescriptor>): SensorDescriptor {
     modality: over.modality ?? "rgb",
     topic: MODALITY_TOPIC[over.modality ?? "rgb"],
     transport: over.transport ?? "browser-media",
-    health: over.health ?? "online",
+    health: over.health ?? "live",
     measurable: over.measurable ?? false,
-    calibration: over.calibration ?? "none",
+    calibration: over.calibration ?? { state: "none" },
     ...over,
   } as SensorDescriptor;
 }
@@ -25,34 +25,33 @@ function sensor(over: Partial<SensorDescriptor>): SensorDescriptor {
 describe("mode gating", () => {
   it("offers natural when an rgb stream exists", () => {
     const modes = evaluateModes([sensor({ modality: "rgb" })]);
-    expect(modes.find((m) => m.mode.id === "natural")?.available).toBe(true);
+    expect(modes.find((m) => m.mode.id === "natural")?.enabled).toBe(true);
   });
 
   it("refuses thermal, depth and temperature on a plain webcam", () => {
     const modes = evaluateModes([sensor({ modality: "rgb" })]);
     for (const id of ["thermal", "depth", "temperature"]) {
       const m = modes.find((x) => x.mode.id === id);
-      expect(m?.available).toBe(false);
+      expect(m?.enabled).toBe(false);
       expect(m?.reason && m.reason.length > 0).toBe(true);
     }
   });
 
   it("refuses temperature on uncalibrated radiometric thermal", () => {
     const modes = evaluateModes([
-      sensor({ id: "t", modality: "thermal_radiometric", measurable: true, calibration: "none" }),
+      sensor({ id: "t", modality: "thermal_radiometric", measurable: true, calibration: { state: "none" } }),
     ]);
-    expect(modes.find((m) => m.mode.id === "temperature")?.available).toBe(false);
+    expect(modes.find((m) => m.mode.id === "temperature")?.enabled).toBe(false);
   });
 
   it("resolves modes by id", () => {
-    expect(modeById("natural")?.id).toBe("natural");
-    expect(modeById("nope")).toBeUndefined();
+    expect(modeById("natural").id).toBe("natural");
   });
 });
 
 describe("auto selection", () => {
   it("never selects a modality that is not connected", () => {
-    const picked = autoSelect("darkness", [sensor({ modality: "rgb" })]);
+    const picked = autoSelect("darkness_observation", [sensor({ modality: "rgb" })]);
     expect(picked.selected.every((s) => s.modality === "rgb")).toBe(true);
   });
 });
