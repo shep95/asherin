@@ -470,6 +470,7 @@ export class VisionEventEngine {
           ownerSinceMs: null,
           ownerFrames: 0,
           associationCertain: false,
+          ownerContinuityLost: false,
           separatedSinceMs: null,
           unattendedSinceMs: null,
           leftEventId: null,
