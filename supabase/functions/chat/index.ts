@@ -2027,7 +2027,11 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           const ANON_L = Deno.env.get("SUPABASE_ANON_KEY") || "";
           const { createClient: ccL } = await import("https://esm.sh/@supabase/supabase-js@2");
           const loopUser = await resolveCallerCached(authHLoop, SB_URL_L, ANON_L);
-          if (loopUser) {
+          // The loop's sub-tools speak the gemini api. There is no platform key
+          // here: it may only ever run on the caller's OWN saved google key.
+          const loopKey =
+            useByok && (byokProvider === "google" || byokProvider === "gemini") ? (userApiKey || "") : "";
+          if (loopUser && loopKey) {
             console.log("[chat] Autonomous loop firing:", preTrig.subject, preTrig.kind);
             const adminL = ccL(SB_URL_L, SRK_L, { auth: { persistSession: false } });
             const { runAutonomousLoop } = await import("../_shared/autonomousLoop.ts");
@@ -2035,7 +2039,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
               runAutonomousLoop(loopText, {
                 supabase: adminL,
                 userId: loopUser.id,
-                geminiKey: Deno.env.get("GEMINI_API_KEY") || "",
+                geminiKey: loopKey,
                 supabaseAnonKey: ANON_L,
                 supabaseUrl: SB_URL_L,
               }),
