@@ -1152,6 +1152,10 @@ serve(async (req) => {
       projectScope,
       vaultMode,
     } = _parsedBody;
+    // The requested provider can go stale (a key deleted in Settings after the
+    // browser cached the selection), so it must be reassignable.
+    let byokProvider: string | undefined = _bodyByokProvider;
+    let byokModel: string | undefined = _bodyByokModel;
     const NUMBERED_BRAIN_ON = numberedFormat !== false; // default ON
 
     // ── BYOK: Use platform-injected key (admin/Venice) or load user's own ──
@@ -1169,7 +1173,6 @@ serve(async (req) => {
           const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
           const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
           const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE);
-          const token = authHeader2.replace("Bearer ", "");
           const reqUser = await resolveCallerCached(authHeader2, SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
           if (reqUser) {
             const { data: keyRow, error: keyErr } = await adminSb
@@ -1189,7 +1192,19 @@ serve(async (req) => {
           console.error("BYOK key lookup failed:", e);
         }
       }
+      if (!useByok) {
+        // The cached selection points at a provider whose key no longer exists.
+        // Use the key the user DOES have rather than calling a deleted one.
+        const fallback = await resolveStoredByok(req, _hasAttachmentsBody);
+        if (fallback) {
+          byokProvider = fallback.provider;
+          byokModel = fallback.model;
+          userApiKey = fallback.apiKey;
+          useByok = true;
+        }
+      }
     }
+
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
