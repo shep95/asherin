@@ -980,6 +980,19 @@ const AsherinEyeView = () => {
           <div class="camwall-foot" id="camwall-foot"></div>
         </div>
         <div class="glass hover-card" id="hover-card"></div>
+        <aside class="glass inspect" id="inspect" aria-label="selected object" hidden>
+          <div class="inspect-head">
+            <div>
+              <b id="insp-title">nothing selected</b>
+              <div class="sub" id="insp-kind"></div>
+            </div>
+            <button type="button" class="sheet-close" id="insp-close" style="display:block">close</button>
+          </div>
+          <span class="chip" id="insp-chip"></span>
+          <div id="insp-fields"></div>
+          <div class="acts" id="insp-acts"></div>
+          <div class="limit" id="insp-limit"></div>
+        </aside>
         <div id="glitch"></div>
         <input id="exif-file" type="file" accept="image/jpeg,image/jpg,image/png" hidden />
         <div class="glass note" id="note"></div>
@@ -994,22 +1007,29 @@ const AsherinEyeView = () => {
             <button type="button" class="cmd" id="cmd-property">property</button>
             <span class="dock-sep"></span>
             <button type="button" class="nav" id="btn-layers">layers</button>
-            <button type="button" class="nav" id="btn-contacts">contacts</button>
-            <button type="button" class="nav" id="btn-camwall">cameras</button>
-            <button type="button" class="nav" id="btn-cockpit">cockpit</button>
-            <button type="button" class="nav" id="btn-chase">chase</button>
-            <button type="button" class="nav" id="btn-orbit">orbit</button>
-            <button type="button" class="nav" id="btn-nadir">nadir</button>
-            <button type="button" class="nav" id="btn-tour">tour</button>
-            <button type="button" class="nav" id="btn-detect">detect</button>
-            <button type="button" class="nav" id="btn-draw">draw</button>
+            <button type="button" class="nav" id="btn-inspect" disabled title="select an object on the globe first">selected</button>
             <button type="button" class="nav" id="btn-measure">measure</button>
-            <button type="button" class="nav" id="btn-clear-board">clear board</button>
-            <button type="button" class="nav" id="btn-record">record</button>
-            <button type="button" class="nav" id="btn-voice">voice</button>
-            <button type="button" class="nav" id="btn-share">share</button>
-            <button type="button" class="nav" id="btn-exif">pin photo</button>
-            <button type="button" class="nav" id="btn-reset">reset globe</button>
+            <button type="button" class="nav" id="btn-draw">draw</button>
+            <span class="dock-sep"></span>
+            <span class="dock-group" id="track-group" hidden>
+              <button type="button" class="nav" id="btn-chase">chase</button>
+              <button type="button" class="nav" id="btn-orbit">orbit</button>
+              <button type="button" class="nav" id="btn-nadir">nadir</button>
+              <button type="button" class="nav" id="btn-cockpit">cockpit</button>
+              <button type="button" class="nav" id="btn-trackbox" title="draws a reticle on the contact you selected · not an object detector">track box</button>
+            </span>
+            <button type="button" class="nav" id="btn-tools" aria-expanded="false" aria-controls="tools-menu">tools</button>
+            <div class="tools-menu" id="tools-menu" hidden>
+              <button type="button" class="nav" id="btn-contacts">contacts</button>
+              <button type="button" class="nav" id="btn-camwall">cameras</button>
+              <button type="button" class="nav" id="btn-tour">tour</button>
+              <button type="button" class="nav" id="btn-clear-board">clear board</button>
+              <button type="button" class="nav" id="btn-record">record</button>
+              <button type="button" class="nav" id="btn-voice">voice</button>
+              <button type="button" class="nav" id="btn-share">share</button>
+              <button type="button" class="nav" id="btn-exif">pin photo</button>
+              <button type="button" class="nav" id="btn-reset">reset globe</button>
+            </div>
           </div>
         </div>
       </div>`;
