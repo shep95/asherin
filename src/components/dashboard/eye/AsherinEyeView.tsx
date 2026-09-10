@@ -2744,51 +2744,34 @@ const AsherinEyeView = () => {
       cleanups.push(() => window.removeEventListener("keydown", onKey));
     }
 
-    async function loadLayer(id) {
+    // `alive` is the caller's freshness gate: if a newer read for the same
+    // layer started while this one was in flight, we hand back without
+    // repainting, so the older answer can never overwrite the newer one.
+    async function loadLayer(id, alive = () => true) {
       if (id === "ships" || id === "fires" || id === "traffic") {
         throw new Error(LAYER_ROWS.find((x) => x.id === id).honesty);
       }
       if (id === "spaceweather") {
         const j = await eyeFeed("spaceweather");
+        if (!alive()) return null;
         setNote(`planetary k-index ${j.rows?.[0]?.kp} · ${j.source || "noaa"}`);
-        return;
+        return j.rows?.length || 0;
       }
       if (id === "engine") {
         setNote("asherin.engine is the chat + pins. type a place. this is not a search results page.");
-        return;
+        return 0;
       }
-      if (id === "sats") {
-        await loadSats();
-        return;
-      }
-      if (id === "atmo") {
-        await loadAtmo();
-        return;
-      }
-      if (id === "lands") {
-        await loadLands();
-        return;
-      }
-      if (id === "dark") {
-        loadDark();
-        return;
-      }
-      if (id === "future") {
-        await loadFuture();
-        return;
-      }
+      if (id === "sats") return (await loadSats()) ?? null;
+      if (id === "atmo") return (await loadAtmo()) ?? null;
+      if (id === "lands") return (await loadLands()) ?? null;
+      if (id === "dark") return loadDark() ?? null;
+      if (id === "future") return (await loadFuture()) ?? null;
       if (id === "route") {
         setNote("type route to <place> in chat · osrm public drive path + weather cost");
-        return;
+        return 0;
       }
-      if (id === "buildings") {
-        await loadBuildings(true);
-        return;
-      }
-      if (id === "avoid") {
-        await loadAvoidance();
-        return;
-      }
+      if (id === "buildings") return (await loadBuildings(true)) ?? null;
+      if (id === "avoid") return (await loadAvoidance()) ?? null;
       const cam = viewer?.camera?.positionCartographic;
       const params = {};
       if (cam && window.Cesium) {
@@ -2797,15 +2780,19 @@ const AsherinEyeView = () => {
       }
       const feedName = id === "cameras" ? "cameras" : id === "zones" ? "airgrid" : id;
       const j = await eyeFeed(feedName, params);
+      if (!alive()) return null;
       if (id === "cameras") {
         camRows = (j.rows || []).filter((r) => r && r.image);
         if (!camRows.some((c) => c.id === camFocusId)) camFocusId = camRows[0]?.id || null;
         setCamWall(true);
       }
+      // an upstream that answered from its own stale cache is stale here too.
+      if (j.fresh === false) health.fail(id, `upstream stale ${Math.round((j.ageMs || 0) / 1000)}s`);
       const note = [j.note, j.fresh === false ? `stale ${Math.round((j.ageMs || 0) / 1000)}s` : ""]
         .filter(Boolean)
         .join(" · ");
       plotRows(id, j.rows, note);
+      return (j.rows || []).length;
     }
 
     // ── track history ───────────────────────────────────────────────────────
