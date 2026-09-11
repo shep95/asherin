@@ -28,15 +28,19 @@ const ArtifactTestPane = ({
   versionId,
   sandbox,
   readOnly,
+  onRuns,
 }: {
   artifactId: string;
   versionId: string | null;
   sandbox: ArtifactSandbox;
   readOnly: boolean;
+  /** lets the workspace see what failed, so repairs can be scoped to it. */
+  onRuns?: (runs: ArtifactRun[]) => void;
 }) => {
   const { user } = useAuth();
   const [checks, setChecks] = useState<ArtifactCheck[]>([]);
   const [runs, setRuns] = useState<ArtifactRun[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ArtifactCheckKind>("no_runtime_error");
   const [expectation, setExpectation] = useState("");
@@ -46,14 +50,29 @@ const ArtifactTestPane = ({
     const [c, r] = await Promise.all([listChecks(artifactId), listRuns(artifactId)]);
     setChecks(c);
     setRuns(r);
-  }, [artifactId]);
+    onRuns?.(r);
+  }, [artifactId, onRuns]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const run = async () => {
+  /** which checks a run covers: everything, only the last failures, or a pick. */
+  const scope = useCallback(
+    (which: "all" | "failed" | "selected"): ArtifactCheck[] => {
+      if (which === "all") return checks;
+      if (which === "selected") return checks.filter((c) => selected.includes(c.id));
+      const lastFailed = new Set(
+        (runs[0]?.results ?? []).filter((r) => r.status !== "passed").map((r) => r.checkId),
+      );
+      return checks.filter((c) => lastFailed.has(c.id));
+    },
+    [checks, runs, selected],
+  );
+
+  const run = async (which: "all" | "failed" | "selected" = "all") => {
     if (!user) return;
+    const scoped = scope(which);
     setBusy(true);
     try {
       if (!sandbox.build.ok) {
@@ -66,20 +85,24 @@ const ArtifactTestPane = ({
           observations: [],
           unavailableReason: sandbox.build.unavailableReason ?? "the artifact could not be prepared to run",
         });
-        setRuns((prev) => [recorded, ...prev]);
+        setRuns((prev) => {
+          const next = [recorded, ...prev];
+          onRuns?.(next);
+          return next;
+        });
         toast.error("could not run", { description: recorded.unavailableReason ?? undefined });
         return;
       }
-      if (!checks.length) {
-        toast.error("add at least one check first");
+      if (!scoped.length) {
+        toast.error(which === "all" ? "add at least one check first" : "no checks match that selection");
         return;
       }
       sandbox.start();
       // let the frame load, execute and paint before it is questioned.
       await new Promise((r) => window.setTimeout(r, 1200));
-      const probes = await sandbox.probe(checks);
+      const probes = await sandbox.probe(scoped);
       const observations = sandbox.snapshot();
-      const results = evaluateChecks(checks, observations, probes);
+      const results = evaluateChecks(scoped, observations, probes);
       const recorded = await recordRun({
         artifactId,
         userId: user.id,
@@ -88,7 +111,11 @@ const ArtifactTestPane = ({
         results,
         observations,
       });
-      setRuns((prev) => [recorded, ...prev]);
+      setRuns((prev) => {
+        const next = [recorded, ...prev];
+        onRuns?.(next);
+        return next;
+      });
       toast[recorded.status === "passed" ? "success" : "error"](`run ${recorded.status}`);
     } catch (e) {
       toast.error("the run failed", { description: e instanceof Error ? e.message : "unknown failure" });
@@ -119,13 +146,28 @@ const ArtifactTestPane = ({
           <h2 className="text-sm tracking-wide text-foreground">checks</h2>
           <div className="flex-1" />
           <button
-            onClick={run}
+            onClick={() => void run("failed")}
+            disabled={busy || !runs[0]}
+            className="rounded-lg border border-border/30 px-2.5 py-1.5 text-[11px] disabled:opacity-40 hover:bg-card/40"
+          >
+            rerun failed
+          </button>
+          <button
+            onClick={() => void run("selected")}
+            disabled={busy || selected.length === 0}
+            className="rounded-lg border border-border/30 px-2.5 py-1.5 text-[11px] disabled:opacity-40 hover:bg-card/40"
+          >
+            run selected
+          </button>
+          <button
+            onClick={() => void run("all")}
             disabled={busy}
             className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] text-primary disabled:opacity-50 hover:bg-primary/10"
           >
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} run checks
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} run all
           </button>
         </div>
+
 
         {checks.length === 0 ? (
           <p className="text-xs text-muted-foreground">no checks yet — a run proves nothing until you state what should be true.</p>
@@ -134,7 +176,18 @@ const ArtifactTestPane = ({
             {checks.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/15 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-xs text-foreground">{c.name}</p>
+                  <label className="flex items-center gap-2 text-xs text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(c.id)}
+                      onChange={(e) =>
+                        setSelected((prev) => (e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)))
+                      }
+                      aria-label={`select check ${c.name}`}
+                      className="h-3 w-3 accent-primary"
+                    />
+                    {c.name}
+                  </label>
                   <p className="text-[11px] text-muted-foreground">
                     {CHECK_KIND_LABEL[c.kind]}
                     {c.expectation && ` — “${c.expectation}”`}

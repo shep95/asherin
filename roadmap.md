@@ -57,3 +57,19 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] checkpoints carry file contents so a restore brings the work back
 - [ ] phase 2: installation/permission UI, settings, update + rollback flows
 - [ ] project-wide database security-linter findings (109) still unresolved
+
+## asherin.software — phase 2 completion (2026-09-11)
+- [x] workspace modes as real routes (/dashboard/software/:artifactId/:mode) with preserved state, no reload
+- [x] top bar: editable name, lifecycle, version, save state, save/checkpoint/run
+- [x] monaco code surface: file tree, tabs, dirty markers, search/replace, selection capture, ctrl+s
+- [x] file model: create/rename/move/duplicate/soft-delete/restore, path traversal blocked, origin tracked
+- [x] drafts persisted (owner-scoped) with unsaved-work protection
+- [x] ai panel: bounded artifact context, change proposal + diff before applying, no chain-of-thought
+- [x] ai vs manual conflict detection with keep mine / apply / compare
+- [x] preview mode: sandboxed run, network denied, real console/render/error observations
+- [x] test mode: run all / rerun failed / run selected, results tied to a version
+- [x] console drawer merges real sandbox observations with workspace actions
+- [x] data + settings + history modes with truthful unavailable states; restore is forward-only
+- [x] verified live: created artifact, edited files, ran sandbox, passed/failed real checks, checkpoint, compare, restore, delete
+- [ ] phase 3: installation/permissions, adversarial testing, rollback automation
+- [ ] project-wide database security-linter findings (109) still unresolved

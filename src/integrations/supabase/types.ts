@@ -14431,6 +14431,41 @@ export type Database = {
           },
         ]
       }
+      software_artifact_draft: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          files: Json
+          id: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          files?: Json
+          id?: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          files?: Json
+          id?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_draft_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       software_artifact_event: {
         Row: {
           actor_user_id: string
@@ -14484,8 +14519,10 @@ export type Database = {
           artifact_id: string
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
           mime: string
+          origin: string
           owner_user_id: string
           path: string
           updated_at: string
@@ -14494,8 +14531,10 @@ export type Database = {
           artifact_id: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           mime?: string
+          origin?: string
           owner_user_id: string
           path: string
           updated_at?: string
@@ -14504,8 +14543,10 @@ export type Database = {
           artifact_id?: string
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           mime?: string
+          origin?: string
           owner_user_id?: string
           path?: string
           updated_at?: string
@@ -14609,6 +14650,7 @@ export type Database = {
       software_artifact_version: {
         Row: {
           artifact_id: string
+          branch: string
           change_summary: string | null
           created_at: string
           created_by: string
@@ -14621,10 +14663,13 @@ export type Database = {
           rollback_eligible: boolean
           source_ref: Json
           state_ref: Json
+          upstream_artifact_id: string | null
+          upstream_version_id: string | null
           validation_status: string
         }
         Insert: {
           artifact_id: string
+          branch?: string
           change_summary?: string | null
           created_at?: string
           created_by: string
@@ -14637,10 +14682,13 @@ export type Database = {
           rollback_eligible?: boolean
           source_ref?: Json
           state_ref?: Json
+          upstream_artifact_id?: string | null
+          upstream_version_id?: string | null
           validation_status?: string
         }
         Update: {
           artifact_id?: string
+          branch?: string
           change_summary?: string | null
           created_at?: string
           created_by?: string
@@ -14653,6 +14701,8 @@ export type Database = {
           rollback_eligible?: boolean
           source_ref?: Json
           state_ref?: Json
+          upstream_artifact_id?: string | null
+          upstream_version_id?: string | null
           validation_status?: string
         }
         Relationships: [

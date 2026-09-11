@@ -1,20 +1,18 @@
-// The software workspace shell.
+// The software workspace: one artifact, one room, several ways to work on it.
 //
-// It is not an IDE. It is the room an artifact lives in: what it is, what it
-// can do, what happened to it, and which version is current. Panes that later
-// phases fill in say so plainly instead of drawing an empty imitation.
+// It is not an IDE clone. The model is the easiest way to build here, and the
+// editor is there for when you want your own hands on it. What runs is what is
+// on screen — including your unsaved edits — and nothing claims to have run,
+// passed or been saved unless it actually did.
 
-import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Check, Loader2, RotateCcw, Save, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Loader2, Play, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactWorkspace, useSoftwareRegistry } from "@/contexts/SoftwareContext";
 import { useArtifactSandbox } from "@/hooks/useArtifactSandbox";
-import { listFiles, restoreFiles } from "@/lib/software/files";
-import type { ArtifactFile } from "@/lib/software/types";
-import ArtifactCodePane from "./ArtifactCodePane";
-import ArtifactPreviewPane from "./ArtifactPreviewPane";
-import ArtifactTestPane from "./ArtifactTestPane";
+import { useSoftwareWorkspace } from "@/hooks/useSoftwareWorkspace";
+import { restoreFiles, listRuns } from "@/lib/software/files";
 import {
   createVersion,
   deleteArtifact,
@@ -23,45 +21,78 @@ import {
   restoreVersion,
   setInstallationEnabled,
   uninstallArtifact,
+  updateArtifact,
 } from "@/lib/software/store";
-import { WORKSPACE_PANES, type WorkspacePane } from "@/lib/software/types";
+import { WORKSPACE_PANES, type ArtifactRun, type SoftwareVersion, type WorkspacePane } from "@/lib/software/types";
 import ArtifactStatusBadge from "./ArtifactStatusBadge";
+import ArtifactAiPanel from "./ArtifactAiPanel";
+import ArtifactConsole, { mergeConsole } from "./ArtifactConsole";
+import ArtifactDataPane from "./ArtifactDataPane";
+import ArtifactEditor from "./ArtifactEditor";
+import ArtifactFileRail from "./ArtifactFileRail";
+import ArtifactHistoryPane from "./ArtifactHistoryPane";
+import ArtifactPreviewPane from "./ArtifactPreviewPane";
+import ArtifactSettingsPane from "./ArtifactSettingsPane";
+import ArtifactTestPane from "./ArtifactTestPane";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
-/** What each pane can honestly do today. No pane pretends. */
-const PANE_STATE: Record<WorkspacePane, string> = {
-  build: "the model builds artifacts from chat today. this pane becomes the guided build surface in the next phase.",
-  code: "",
-  preview: "",
-  test: "",
-  data: "artifact-scoped storage is declared in the data manifest and is not provisioned in this phase.",
-  files: "",
-  history: "",
-  settings: "",
+const SAVE_LABEL: Record<string, string> = {
+  saved: "saved",
+  saving: "saving…",
+  unsaved: "unsaved changes",
+  save_failed: "save failed",
 };
 
-const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack: () => void }) => {
+const ArtifactWorkspace = ({
+  artifactId,
+  mode,
+  onMode,
+  onBack,
+}: {
+  artifactId: string;
+  mode?: string;
+  onMode: (mode: WorkspacePane) => void;
+  onBack: () => void;
+}) => {
   const { user } = useAuth();
   const { refresh } = useSoftwareRegistry();
   const ctx = useArtifactWorkspace(artifactId);
-  const [pane, setPane] = useState<WorkspacePane>("build");
+  const { artifact, versions, currentVersion, events, installation, role } = ctx;
+
+  const canWrite = role === "owner" || role === "admin" || role === "collaborator";
+  const isOwner = role === "owner";
+
+  const ws = useSoftwareWorkspace(artifactId, canWrite);
+  const sandbox = useArtifactSandbox(ws.workingFiles);
+
+  const pane: WorkspacePane = (WORKSPACE_PANES as readonly string[]).includes(mode ?? "")
+    ? (mode as WorkspacePane)
+    : "build";
+
   const [name, setName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [files, setFiles] = useState<ArtifactFile[]>([]);
-  const sandbox = useArtifactSandbox(files);
+  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [runs, setRuns] = useState<ArtifactRun[]>([]);
 
   useEffect(() => {
     let alive = true;
-    listFiles(artifactId)
-      .then((f) => alive && setFiles(f))
-      .catch(() => alive && setFiles([]));
+    listRuns(artifactId)
+      .then((r) => alive && setRuns(r))
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, [artifactId]);
 
-  const { artifact, versions, currentVersion, events, installation, role, permissions } = ctx;
+  const onError = useCallback(
+    (label: string, e: unknown) => {
+      const detail = e instanceof Error ? e.message : "unknown failure";
+      toast.error(label, { description: detail });
+      ws.note({ channel: "workspace", level: "error", message: `${label}: ${detail}` });
+    },
+    [ws],
+  );
 
   const guard = useCallback(
     async (label: string, fn: () => Promise<void>) => {
@@ -71,12 +102,55 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
         await ctx.reload();
         await refresh();
       } catch (e) {
-        toast.error(label, { description: e instanceof Error ? e.message : "unknown failure" });
+        onError(label, e);
       } finally {
         setBusy(false);
       }
     },
-    [ctx, refresh],
+    [ctx, onError, refresh],
+  );
+
+  // a checkpoint captures the files as saved, so a restore brings work back
+  // rather than a label of it. unsaved edits are written first, deliberately.
+  const checkpoint = useCallback(
+    (summary: string) =>
+      guard("could not create a checkpoint", async () => {
+        if (ws.dirtyPaths.length > 0) await ws.saveAll();
+        const files = await (async () => {
+          await ws.reload();
+          return ws.workingFiles;
+        })();
+        await createVersion({
+          artifactId,
+          userId: user!.id,
+          changeSummary: summary,
+          checkpoint: true,
+          sourceRef: { files: files.map((f) => ({ path: f.path, content: f.content })) },
+        });
+        toast.success("checkpoint saved");
+      }),
+    [artifactId, guard, user, ws],
+  );
+
+  const restore = useCallback(
+    (v: SoftwareVersion) =>
+      guard("restore failed", async () => {
+        await restoreVersion({ artifactId, userId: user!.id, version: v });
+        await restoreFiles({ artifactId, userId: user!.id, sourceRef: v.sourceRef });
+        await ws.reload();
+        toast.success(`restored v${v.displayVersion} as a new version — nothing was erased`);
+      }),
+    [artifactId, guard, user, ws],
+  );
+
+  const consoleLines = useMemo(() => mergeConsole(sandbox.observations, ws.log), [sandbox.observations, ws.log]);
+  const implicated = useMemo(
+    () =>
+      runs
+        .flatMap((r) => r.results)
+        .filter((r) => r.status === "failed")
+        .map((r) => r.name),
+    [runs],
   );
 
   if (ctx.loading) {
@@ -101,55 +175,99 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
   }
 
   const displayName = name ?? artifact.displayName;
+  const showRails = pane === "code" || pane === "files" || pane === "build";
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6">
-      <button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> software
-      </button>
-
-      <header className={`${card} mb-4 p-5`}>
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            value={displayName}
-            onChange={(e) => setName(e.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-xl font-extralight tracking-wide text-foreground outline-none"
-            aria-label="artifact name"
-          />
-          <ArtifactStatusBadge status={artifact.lifecycle} />
-          <span className="text-[11px] text-muted-foreground">
-            {currentVersion ? `v${currentVersion.displayVersion}` : "no version yet"}
-          </span>
-          <span className="text-[11px] text-muted-foreground">{artifact.visibility}</span>
-          <span className="text-[11px] text-muted-foreground">{role ?? "no access"}</span>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          identity {artifact.id} · renaming changes the label only, never this id, its route, its permissions or its history
-        </p>
-        {name !== null && name.trim() !== artifact.displayName && (
+    <div className="flex h-full min-h-0 flex-col">
+      {/* top bar — what this is, where it stands, and the three verbs. */}
+      <header className="flex flex-wrap items-center gap-3 border-b border-border/15 px-4 py-2.5">
+        <button
+          onClick={onBack}
+          aria-label="back to software"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> software
+        </button>
+        <span aria-hidden className="text-base">
+          {artifact.icon ?? "◈"}
+        </span>
+        <input
+          value={displayName}
+          onChange={(e) => setName(e.target.value)}
+          aria-label="artifact name"
+          className="min-w-[8rem] max-w-[16rem] flex-1 bg-transparent text-sm font-extralight tracking-wide text-foreground outline-none focus:underline"
+        />
+        {name !== null && name.trim() && name.trim() !== artifact.displayName && (
           <button
             disabled={busy}
             onClick={() =>
               guard("rename failed", async () => {
                 await renameArtifact(artifact.id, name, user!.id);
                 setName(null);
-                toast.success("renamed");
               })
             }
-            className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border/30 px-3 py-1.5 text-xs hover:bg-card/40"
+            className="rounded-lg border border-border/30 px-2 py-1 text-[11px] hover:bg-card/40"
           >
-            <Save className="h-3.5 w-3.5" /> save name
+            save name
           </button>
         )}
+        <ArtifactStatusBadge status={artifact.lifecycle} />
+        <span className="text-[11px] text-muted-foreground">
+          {currentVersion ? `v${currentVersion.displayVersion}` : "no version yet"}
+        </span>
+        <span
+          className={`text-[11px] ${
+            ws.saveState === "save_failed"
+              ? "text-destructive/90"
+              : ws.saveState === "saved"
+                ? "text-muted-foreground"
+                : "text-amber-300/90"
+          }`}
+        >
+          {SAVE_LABEL[ws.saveState]}
+        </span>
+        <div className="flex-1" />
+        {canWrite && (
+          <>
+            <button
+              disabled={busy || ws.dirtyPaths.length === 0}
+              onClick={() => void ws.saveAll().catch((e) => onError("could not save", e))}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/30 px-2.5 py-1 text-[11px] disabled:opacity-40 hover:bg-card/40"
+            >
+              <Save className="h-3.5 w-3.5" /> save
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => void checkpoint("manual checkpoint")}
+              className="rounded-lg border border-border/30 px-2.5 py-1 text-[11px] disabled:opacity-40 hover:bg-card/40"
+            >
+              checkpoint
+            </button>
+          </>
+        )}
+        <button
+          onClick={() => {
+            onMode("preview");
+            sandbox.start();
+          }}
+          disabled={!sandbox.build.ok}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-2.5 py-1 text-[11px] text-primary disabled:border-border/30 disabled:text-muted-foreground hover:bg-primary/10"
+        >
+          <Play className="h-3.5 w-3.5" /> run
+        </button>
       </header>
 
-      <nav className="mb-4 flex flex-wrap gap-2">
+      {/* modes */}
+      <nav aria-label="workspace modes" className="flex flex-wrap gap-1.5 border-b border-border/10 px-4 py-2">
         {WORKSPACE_PANES.map((p) => (
           <button
             key={p}
-            onClick={() => setPane(p)}
-            className={`rounded-lg border px-3 py-1.5 text-xs tracking-wide transition-colors ${
-              pane === p ? "border-primary/50 text-primary" : "border-border/25 text-muted-foreground hover:text-foreground"
+            onClick={() => onMode(p)}
+            aria-current={pane === p ? "page" : undefined}
+            className={`rounded-lg border px-2.5 py-1 text-[11px] tracking-wide transition-colors ${
+              pane === p
+                ? "border-primary/50 text-primary"
+                : "border-border/25 text-muted-foreground hover:text-foreground"
             }`}
           >
             {p}
@@ -157,153 +275,93 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
         ))}
       </nav>
 
-      {pane === "history" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className={`${card} p-5`}>
-            <h2 className="mb-3 text-sm tracking-wide text-foreground">versions</h2>
-            <button
-              disabled={busy}
-              onClick={() =>
-                guard("could not create a checkpoint", async () => {
-                  await createVersion({
-                    artifactId: artifact.id,
-                    userId: user!.id,
-                    changeSummary: "manual checkpoint",
-                    checkpoint: true,
-                    // the checkpoint carries the files themselves, so a restore
-                    // brings the work back rather than a label of it.
-                    sourceRef: { files: files.map((f) => ({ path: f.path, content: f.content })) },
-                  });
-                  toast.success("checkpoint saved");
-                })
-              }
-              className="mb-3 rounded-lg border border-border/30 px-3 py-1.5 text-xs hover:bg-card/40"
-            >
-              save a checkpoint
-            </button>
-            {versions.length === 0 ? (
-              <p className="text-xs text-muted-foreground">no versions yet — a checkpoint captures the current state.</p>
-            ) : (
-              <ul className="space-y-2">
-                {versions.map((v) => (
-                  <li key={v.id} className="flex items-center justify-between rounded-lg border border-border/15 px-3 py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-foreground">
-                        v{v.displayVersion}
-                        {v.id === currentVersion?.id && <span className="ml-2 text-primary">current</span>}
-                      </p>
-                      <p className="truncate text-[11px] text-muted-foreground">
-                        {v.changeSummary ?? "no summary"} · {v.validationStatus} · {v.releaseStatus}
-                      </p>
-                    </div>
-                    {v.rollbackEligible && v.id !== currentVersion?.id && (
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          guard("restore failed", async () => {
-                            await restoreVersion({ artifactId: artifact.id, userId: user!.id, version: v });
-                            const restored = await restoreFiles({
-                              artifactId: artifact.id,
-                              userId: user!.id,
-                              sourceRef: v.sourceRef,
-                            });
-                            setFiles(restored);
-                            toast.success(`restored v${v.displayVersion} as a new version`);
-                          })
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg border border-border/30 px-2 py-1 text-[11px] hover:bg-card/40"
-                      >
-                        <RotateCcw className="h-3 w-3" /> restore
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          {showRails && (
+            <aside className="w-full shrink-0 border-b border-border/10 lg:w-64 lg:border-b-0 lg:border-r">
+              <ArtifactFileRail ws={ws} canWrite={canWrite} onError={onError} />
+            </aside>
+          )}
 
-          <section className={`${card} p-5`}>
-            <h2 className="mb-3 text-sm tracking-wide text-foreground">activity</h2>
-            {events.length === 0 ? (
-              <p className="text-xs text-muted-foreground">nothing recorded yet.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {events.map((e) => (
-                  <li key={e.id} className="flex items-baseline justify-between gap-3 text-[11px]">
-                    <span className="text-foreground/80">{e.type}</span>
-                    <span className="text-muted-foreground">
-                      {e.result} · {new Date(e.createdAt).toLocaleString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              credentials, tokens and prompt content are never written to this history.
-            </p>
-          </section>
-        </div>
-      ) : pane === "settings" ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className={`${card} p-5`}>
-            <h2 className="mb-3 text-sm tracking-wide text-foreground">permissions</h2>
-            <p className="mb-2 text-xs text-muted-foreground">least privilege by default. a grant is always explicit.</p>
-            <ul className="space-y-1 text-[11px] text-muted-foreground">
-              {permissions.granted.map((g) => (
-                <li key={g} className="flex items-center gap-2 text-foreground/80">
-                  <Check className="h-3 w-3 text-primary" /> {g}
-                  {permissions.rationale?.[g] && <span className="text-muted-foreground">— {permissions.rationale[g]}</span>}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              network, storage, integrations, mcp and privileged actions stay denied until a later phase can enforce them
-              at run time.
-            </p>
-          </section>
-
-          <section className={`${card} p-5`}>
-            <h2 className="mb-3 text-sm tracking-wide text-foreground">installation</h2>
-            {installation ? (
-              <div className="space-y-3">
-                <p className="text-xs text-foreground/80">
-                  installed as “{installation.installedName}” · {installation.updateState.replace("_", " ")}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      guard("could not change this installation", async () => {
-                        await setInstallationEnabled(installation, !installation.enabled);
-                      })
-                    }
-                    className="rounded-lg border border-border/30 px-3 py-1.5 text-xs hover:bg-card/40"
-                  >
-                    {installation.enabled ? "disable" : "enable"}
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      guard("could not uninstall", async () => {
-                        await uninstallArtifact({ installation, actorUserId: user!.id });
-                        toast.success("uninstalled — the artifact and its versions are kept");
-                      })
-                    }
-                    className="rounded-lg border border-border/30 px-3 py-1.5 text-xs hover:bg-card/40"
-                  >
-                    uninstall
-                  </button>
+          <main className="min-h-0 flex-1 overflow-y-auto">
+            {pane === "build" && (
+              <div className="p-4">
+                <div className={`${card} p-5`}>
+                  <h2 className="mb-1 flex items-center gap-2 text-sm tracking-wide text-foreground">
+                    <Sparkles className="h-4 w-4 text-primary" /> build
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    describe the change in the panel on the right. asherin reads this artifact — its files, what you have
+                    selected, what it last reported — and proposes the change before writing anything.
+                  </p>
+                  <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+                    <li>{ws.files.length} file(s) · {ws.dirtyPaths.length} unsaved</li>
+                    <li>runtime: browser sandbox only — no server, no package installation, no network</li>
+                    <li>{versions.length} version(s) captured</li>
+                  </ul>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  installing is a deliberate step. nothing you build appears in your sidebar until you put it there.
-                </p>
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    guard("install failed", async () => {
+            )}
+
+            {(pane === "code" || pane === "files") && (
+              <ArtifactEditor ws={ws} canWrite={canWrite} onError={onError} />
+            )}
+
+            {pane === "preview" && (
+              <div className="p-4">
+                <ArtifactPreviewPane sandbox={sandbox} />
+              </div>
+            )}
+
+            {pane === "test" && (
+              <div className="p-4">
+                <ArtifactTestPane
+                  artifactId={artifact.id}
+                  versionId={currentVersion?.id ?? null}
+                  sandbox={sandbox}
+                  readOnly={!canWrite}
+                  onRuns={setRuns}
+                />
+              </div>
+            )}
+
+            {pane === "data" && (
+              <div className="p-4">
+                <ArtifactDataPane artifact={artifact} runs={runs} />
+              </div>
+            )}
+
+            {pane === "history" && (
+              <div className="p-4">
+                <ArtifactHistoryPane
+                  versions={versions}
+                  currentVersionId={currentVersion?.id ?? null}
+                  events={events}
+                  busy={busy}
+                  canWrite={canWrite}
+                  onCheckpoint={() => void checkpoint("manual checkpoint")}
+                  onRestore={(v) => void restore(v)}
+                />
+              </div>
+            )}
+
+            {pane === "settings" && (
+              <div className="p-4">
+                <ArtifactSettingsPane
+                  artifact={artifact}
+                  currentVersion={currentVersion}
+                  installation={installation}
+                  busy={busy}
+                  canWrite={canWrite}
+                  isOwner={isOwner}
+                  onSaveDetails={(patch) =>
+                    void guard("could not save details", async () => {
+                      await updateArtifact(artifact.id, patch, user!.id);
+                      toast.success("details saved");
+                    })
+                  }
+                  onInstall={() =>
+                    void guard("install failed", async () => {
                       await installArtifact({
                         userId: user!.id,
                         artifact,
@@ -313,60 +371,57 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
                       toast.success("installed and added to your sidebar");
                     })
                   }
-                  className="rounded-lg border border-primary/40 px-3 py-1.5 text-xs text-primary hover:bg-primary/10"
-                >
-                  install and add to my sidebar
-                </button>
+                  onToggleInstall={() =>
+                    void guard("could not change this installation", async () => {
+                      await setInstallationEnabled(installation!, !installation!.enabled);
+                    })
+                  }
+                  onUninstall={() =>
+                    void guard("could not uninstall", async () => {
+                      await uninstallArtifact({ installation: installation!, actorUserId: user!.id });
+                      toast.success("uninstalled — the artifact and its versions are kept");
+                    })
+                  }
+                  onDelete={() =>
+                    void guard("delete failed", async () => {
+                      if (!window.confirm("delete this artifact, its files, versions and history? this cannot be undone.")) return;
+                      await deleteArtifact(artifact.id);
+                      toast.success("artifact deleted");
+                      onBack();
+                    })
+                  }
+                />
               </div>
             )}
+          </main>
 
-            <button
-              disabled={busy}
-              onClick={() =>
-                guard("delete failed", async () => {
-                  await deleteArtifact(artifact.id);
-                  toast.success("artifact deleted");
-                  onBack();
-                })
-              }
-              className="mt-6 inline-flex items-center gap-2 text-[11px] text-destructive/80 hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> delete this artifact and everything under it
-            </button>
-          </section>
-        </div>
-      ) : pane === "code" || pane === "files" ? (
-        <ArtifactCodePane
-          artifactId={artifact.id}
-          files={files}
-          onFilesChanged={setFiles}
-          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
-        />
-      ) : pane === "preview" ? (
-        <ArtifactPreviewPane sandbox={sandbox} />
-      ) : pane === "test" ? (
-        <ArtifactTestPane
-          artifactId={artifact.id}
-          versionId={currentVersion?.id ?? null}
-          sandbox={sandbox}
-          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
-        />
-      ) : (
-        <section className={`${card} p-5`}>
-          <h2 className="mb-2 text-sm tracking-wide text-foreground">{pane}</h2>
-          <p className="text-xs text-muted-foreground">{PANE_STATE[pane]}</p>
-          {pane === "build" && (
-            <div className="mt-4 space-y-2 text-[11px] text-muted-foreground">
-              <p>type: {artifact.type}</p>
-              <p>files: {files.length}</p>
-              <p>runtime: {sandbox.build.ok ? "runnable in the sandbox" : `unavailable — ${sandbox.build.unavailableReason}`}</p>
-              <p>integrations declared: {artifact.integrationManifest.length}</p>
-              <p>dependencies declared: {artifact.dependencyManifest.length}</p>
-              <p>{ctx.pendingChanges ? "no version has been captured yet" : `${versions.length} version(s) recorded`}</p>
-            </div>
+          {(pane === "build" || pane === "code") && (
+            <aside className="w-full shrink-0 border-t border-border/10 lg:w-[22rem] lg:border-l lg:border-t-0">
+              <ArtifactAiPanel
+                artifact={artifact}
+                ws={ws}
+                canWrite={canWrite}
+                implicated={implicated}
+                onApplied={(paths) => {
+                  paths.forEach((p) => ws.open(p));
+                  setConsoleOpen(true);
+                }}
+              />
+            </aside>
           )}
-        </section>
-      )}
+        </div>
+
+        <ArtifactConsole
+          lines={consoleLines}
+          open={consoleOpen}
+          onToggle={() => setConsoleOpen((v) => !v)}
+          onClear={() => {
+            ws.clearLog();
+            sandbox.clear();
+          }}
+          running={sandbox.running}
+        />
+      </div>
     </div>
   );
 };

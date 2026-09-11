@@ -273,7 +273,12 @@ export interface ArtifactFile {
   content: string;
   mime: string;
   updatedAt: string;
+  /** who last wrote the content. a manual edit is never attributed to the model. */
+  origin: "user" | "ai" | "system";
+  /** set when the file was recycled. recycled files are recoverable, not gone. */
+  deletedAt: string | null;
 }
+
 
 export type ArtifactCheckKind =
   | "no_runtime_error"
