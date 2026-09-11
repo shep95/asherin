@@ -20,8 +20,11 @@ function mapFile(row: Loose): ArtifactFile {
     content: String(row.content ?? ""),
     mime: String(row.mime ?? "text/plain"),
     updatedAt: String(row.updated_at),
+    origin: (row.origin as ArtifactFile["origin"]) ?? "user",
+    deletedAt: (row.deleted_at as string) ?? null,
   };
 }
+
 
 function mapCheck(row: Loose): ArtifactCheck {
   return {
