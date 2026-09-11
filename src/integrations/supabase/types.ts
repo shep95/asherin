@@ -14309,6 +14309,353 @@ export type Database = {
         }
         Relationships: []
       }
+      software_artifact: {
+        Row: {
+          artifact_type: string
+          capabilities: Json
+          compatibility_requirements: Json
+          created_at: string
+          current_version_id: string | null
+          data_manifest: Json
+          dependency_manifest: Json
+          description: string | null
+          display_name: string
+          distribution_manifest: Json
+          icon: string | null
+          id: string
+          integration_manifest: Json
+          lifecycle_status: string
+          owner_user_id: string
+          permission_manifest: Json
+          provenance_manifest: Json
+          published_at: string | null
+          runtime_requirements: Json
+          runtime_session_id: string | null
+          slug: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          artifact_type?: string
+          capabilities?: Json
+          compatibility_requirements?: Json
+          created_at?: string
+          current_version_id?: string | null
+          data_manifest?: Json
+          dependency_manifest?: Json
+          description?: string | null
+          display_name?: string
+          distribution_manifest?: Json
+          icon?: string | null
+          id?: string
+          integration_manifest?: Json
+          lifecycle_status?: string
+          owner_user_id: string
+          permission_manifest?: Json
+          provenance_manifest?: Json
+          published_at?: string | null
+          runtime_requirements?: Json
+          runtime_session_id?: string | null
+          slug?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          artifact_type?: string
+          capabilities?: Json
+          compatibility_requirements?: Json
+          created_at?: string
+          current_version_id?: string | null
+          data_manifest?: Json
+          dependency_manifest?: Json
+          description?: string | null
+          display_name?: string
+          distribution_manifest?: Json
+          icon?: string | null
+          id?: string
+          integration_manifest?: Json
+          lifecycle_status?: string
+          owner_user_id?: string
+          permission_manifest?: Json
+          provenance_manifest?: Json
+          published_at?: string | null
+          runtime_requirements?: Json
+          runtime_session_id?: string | null
+          slug?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
+      software_artifact_event: {
+        Row: {
+          actor_user_id: string
+          artifact_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          result: string
+          version_id: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          artifact_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          result?: string
+          version_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          artifact_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          result?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_event_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_artifact_event_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_artifact_member: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_member_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_artifact_version: {
+        Row: {
+          artifact_id: string
+          change_summary: string | null
+          created_at: string
+          created_by: string
+          display_version: string
+          id: string
+          ordinal: number
+          owner_user_id: string
+          parent_version_id: string | null
+          release_status: string
+          rollback_eligible: boolean
+          source_ref: Json
+          state_ref: Json
+          validation_status: string
+        }
+        Insert: {
+          artifact_id: string
+          change_summary?: string | null
+          created_at?: string
+          created_by: string
+          display_version?: string
+          id?: string
+          ordinal: number
+          owner_user_id: string
+          parent_version_id?: string | null
+          release_status?: string
+          rollback_eligible?: boolean
+          source_ref?: Json
+          state_ref?: Json
+          validation_status?: string
+        }
+        Update: {
+          artifact_id?: string
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string
+          display_version?: string
+          id?: string
+          ordinal?: number
+          owner_user_id?: string
+          parent_version_id?: string | null
+          release_status?: string
+          rollback_eligible?: boolean
+          source_ref?: Json
+          state_ref?: Json
+          validation_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_version_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_artifact_version_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_installation: {
+        Row: {
+          artifact_id: string
+          artifact_version_id: string | null
+          configuration: Json
+          enabled: boolean
+          id: string
+          installed_at: string
+          installed_name: string
+          navigation_item_id: string | null
+          permission_grants: Json
+          update_state: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artifact_id: string
+          artifact_version_id?: string | null
+          configuration?: Json
+          enabled?: boolean
+          id?: string
+          installed_at?: string
+          installed_name: string
+          navigation_item_id?: string | null
+          permission_grants?: Json
+          update_state?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artifact_id?: string
+          artifact_version_id?: string | null
+          configuration?: Json
+          enabled?: boolean
+          id?: string
+          installed_at?: string
+          installed_name?: string
+          navigation_item_id?: string | null
+          permission_grants?: Json
+          update_state?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_installation_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_installation_artifact_version_id_fkey"
+            columns: ["artifact_version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_installation_navigation_item_id_fkey"
+            columns: ["navigation_item_id"]
+            isOneToOne: false
+            referencedRelation: "software_navigation_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_navigation_item: {
+        Row: {
+          artifact_id: string | null
+          configuration: Json
+          created_at: string
+          display_name: string
+          enabled: boolean
+          icon: string | null
+          id: string
+          owner_user_id: string
+          position: number
+          route: string
+          source: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          artifact_id?: string | null
+          configuration?: Json
+          created_at?: string
+          display_name: string
+          enabled?: boolean
+          icon?: string | null
+          id?: string
+          owner_user_id: string
+          position?: number
+          route: string
+          source?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          artifact_id?: string | null
+          configuration?: Json
+          created_at?: string
+          display_name?: string
+          enabled?: boolean
+          icon?: string | null
+          id?: string
+          owner_user_id?: string
+          position?: number
+          route?: string
+          source?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_navigation_item_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -17312,6 +17659,18 @@ export type Database = {
       soft_delete_row: {
         Args: { p_id: string; p_table: string }
         Returns: undefined
+      }
+      software_artifact_role: {
+        Args: { _artifact: string; _user: string }
+        Returns: string
+      }
+      software_can_contribute: {
+        Args: { _artifact: string; _user: string }
+        Returns: boolean
+      }
+      software_can_write: {
+        Args: { _artifact: string; _user: string }
+        Returns: boolean
       }
       team_seat_usage: { Args: { _team_id: string }; Returns: number }
       try_acquire_intel_slot: {
