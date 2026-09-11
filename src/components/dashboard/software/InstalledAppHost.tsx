@@ -46,6 +46,7 @@ import {
 import { providerForClass } from "@/lib/software/runtime";
 import type { ArtifactEvent, ArtifactFile, SoftwareVersion } from "@/lib/software/types";
 import { toast } from "sonner";
+import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
@@ -368,6 +369,14 @@ const InstalledAppHost = ({ artifactId, onBack }: { artifactId: string; onBack: 
                   : "no integrations"}
                 . a new capability in a later update has to be approved by you before it applies.
               </p>
+              <div className="mt-4 border-t border-border/20 pt-4">
+                <h3 className="mb-2 text-[11px] text-muted-foreground">outside services this app may use</h3>
+                <ArtifactIntegrationsPane
+                  artifactId={artifact.id}
+                  artifactName={artifact.displayName}
+                  installationId={installation?.id ?? null}
+                />
+              </div>
               <h3 className="mt-4 text-[11px] text-muted-foreground">recent activity</h3>
               <ul className="mt-1 space-y-1 text-[11px] text-muted-foreground">
                 {events.slice(0, 6).map((e) => (

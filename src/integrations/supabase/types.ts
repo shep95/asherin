@@ -14854,6 +14854,203 @@ export type Database = {
           },
         ]
       }
+      software_integration: {
+        Row: {
+          auth_type: string
+          capabilities: Json
+          compatibility: string | null
+          contract: Json
+          created_at: string
+          credential_ref: string | null
+          display_name: string
+          endpoint: string | null
+          health: string
+          health_detail: string | null
+          id: string
+          integration_type: string
+          last_checked_at: string | null
+          owner_user_id: string
+          provider: string
+          scopes: string[]
+          status: string
+          transport: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          auth_type?: string
+          capabilities?: Json
+          compatibility?: string | null
+          contract?: Json
+          created_at?: string
+          credential_ref?: string | null
+          display_name: string
+          endpoint?: string | null
+          health?: string
+          health_detail?: string | null
+          id?: string
+          integration_type?: string
+          last_checked_at?: string | null
+          owner_user_id?: string
+          provider: string
+          scopes?: string[]
+          status?: string
+          transport?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          auth_type?: string
+          capabilities?: Json
+          compatibility?: string | null
+          contract?: Json
+          created_at?: string
+          credential_ref?: string | null
+          display_name?: string
+          endpoint?: string | null
+          health?: string
+          health_detail?: string | null
+          id?: string
+          integration_type?: string
+          last_checked_at?: string | null
+          owner_user_id?: string
+          provider?: string
+          scopes?: string[]
+          status?: string
+          transport?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
+      software_integration_event: {
+        Row: {
+          artifact_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          grant_id: string | null
+          id: string
+          integration_id: string | null
+          operation: string | null
+          outcome: string
+          owner_user_id: string
+        }
+        Insert: {
+          artifact_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          grant_id?: string | null
+          id?: string
+          integration_id?: string | null
+          operation?: string | null
+          outcome?: string
+          owner_user_id?: string
+        }
+        Update: {
+          artifact_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          grant_id?: string | null
+          id?: string
+          integration_id?: string | null
+          operation?: string | null
+          outcome?: string
+          owner_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_integration_event_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_integration_event_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "software_integration_grant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_integration_event_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "software_integration"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_integration_grant: {
+        Row: {
+          approved_at: string | null
+          artifact_id: string
+          created_at: string
+          granted_scopes: string[]
+          granted_tools: string[]
+          id: string
+          installation_id: string | null
+          integration_id: string
+          owner_user_id: string
+          rationale: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          artifact_id: string
+          created_at?: string
+          granted_scopes?: string[]
+          granted_tools?: string[]
+          id?: string
+          installation_id?: string | null
+          integration_id: string
+          owner_user_id?: string
+          rationale?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          artifact_id?: string
+          created_at?: string
+          granted_scopes?: string[]
+          granted_tools?: string[]
+          id?: string
+          installation_id?: string | null
+          integration_id?: string
+          owner_user_id?: string
+          rationale?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_integration_grant_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_integration_grant_installation_id_fkey"
+            columns: ["installation_id"]
+            isOneToOne: false
+            referencedRelation: "software_installation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_integration_grant_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "software_integration"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       software_navigation_item: {
         Row: {
           artifact_id: string | null

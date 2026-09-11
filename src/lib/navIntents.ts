@@ -68,6 +68,14 @@ export const NAV_INTENTS: NavIntent[] = [
     group: "Build",
   },
   {
+    view: "integrations",
+    label: "asherin.connections",
+    codename: "asherin.connections",
+    blurb: "APIs and MCP servers you connected — health, permissions, activity",
+    keywords: ["integration", "integrations", "connection", "connections", "api", "mcp", "server", "connect", "webhook", "key"],
+    group: "Build",
+  },
+  {
     view: "asherin-arvision",
     label: "asherin.arvision",
     codename: "asherin.arvision",

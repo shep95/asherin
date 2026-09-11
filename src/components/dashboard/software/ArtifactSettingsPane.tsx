@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
 import type { PreflightReport } from "@/lib/software/install";
 import type {
+import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
   ArtifactType,
   ArtifactVisibility,
   Installation,
@@ -151,9 +152,21 @@ const ArtifactSettingsPane = ({
             ))}
           </ul>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            network, storage, integrations, mcp and privileged actions stay denied until a later phase can enforce them
-            at run time.
+            storage and privileged actions stay denied by default. access to an outside service is granted one
+            operation at a time, below.
           </p>
+        </section>
+
+        <section className={`${card} p-5`}>
+          <h2 className="mb-3 text-sm tracking-wide text-foreground">connections</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            what this app may reach outside asherin. it never holds a key — asherin makes the call for it.
+          </p>
+          <ArtifactIntegrationsPane
+            artifactId={artifact.id}
+            artifactName={artifact.displayName}
+            installationId={installation?.id ?? null}
+          />
         </section>
 
         <section className={`${card} p-5`}>

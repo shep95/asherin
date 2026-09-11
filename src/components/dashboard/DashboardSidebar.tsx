@@ -106,6 +106,7 @@ interface NavGroup {
 const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscribe" };
 
 // Icon mapping by view/route — keeps a consistent monochrome icon per intent.
+import { Plug } from "lucide-react";
 import { useNavigate as useRouterNavigate } from "react-router-dom";
 import { useSoftwareRegistry } from "@/contexts/SoftwareContext";
 import { SECTION_LABEL, appRoute, visibleItems } from "@/lib/software/navigation";
@@ -114,6 +115,7 @@ import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type Nav
 const VIEW_ICON: Record<string, React.ElementType> = {
   chat: MessagesSquare,
   software: Layers,
+  integrations: Plug,
   zali: Zap,
   "pdf-generator": FileText,
   whiteboard: Layers,

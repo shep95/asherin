@@ -94,3 +94,11 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - sidebar consumes the registry ("your apps" / "shared with you"); route `/dashboard/app/:artifactId`
 - tests: `src/test/softwareInstallation.test.ts` (17). all software tests: 88 passing. typecheck + build clean.
 - verified live: create → files → check run passes → preflight eligible → staged install → app runs in sandbox ("hello") → rename to "Stock Room" keeps route/identity → delete app + data with typed confirmation.
+
+## Phase 5 — integrations, mcp servers, secure capabilities (complete)
+- owner-scoped `software_integration`, `software_integration_grant`, `software_integration_event` with rls, grants, triggers; credential references only (uppercase secret names), never key values.
+- `src/lib/software/integrations.ts`: endpoint validation (https-only, loopback/private/link-local/metadata blocked), credential-ref validation, scope/tool authorization, rate ceilings, permission diffs, audit redaction, untrusted-result wrapping.
+- `supabase/functions/software-integration-gateway`: jwt owner auth, ownership checks, secret resolution by name, 15s abort, 512kb cap, redirects rejected, real health check, mcp tools/list discovery, granular operation + tool authorization, write confirmation, redacted audit.
+- ui: `/dashboard/integrations` connections health center (add, test, operations editor, mcp tool discovery, disable/revoke/delete, activity) and `ArtifactIntegrationsPane` in app settings + installed app host.
+- verified live: private endpoint rejected; open-meteo health 200 in 134ms; granted call returned real weather marked untrusted; ungranted operation denied; revoked connection blocked; missing secret reported as unavailable rather than faked. probe rows deleted.
+- tests: `src/test/softwareIntegrations.test.ts` (19). all software tests 107 pass, typecheck and build clean.
