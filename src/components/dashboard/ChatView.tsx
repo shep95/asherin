@@ -842,7 +842,12 @@ const ChatView = ({
                             })()}
                             {workspacePlans[msg.id] ? (
                               <Suspense fallback={null}>
-                                <WorkspacePanel plan={workspacePlans[msg.id]} visible={workspaceVisible} />
+                                <WorkspacePanel
+                                  plan={workspacePlans[msg.id]}
+                                  visible={workspaceVisible}
+                                  answer={msg.content}
+                                  conversationId={conversation.id}
+                                />
                               </Suspense>
                             ) : null}
                           </>
