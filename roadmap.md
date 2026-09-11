@@ -47,3 +47,13 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] advanced SEO, automated tests, and live desktop/mobile workflow verification
 
 - [x] Fix all current preview typecheck errors from observability log
+
+## asherin.software — phase 1 completion (2026-09-11)
+- [x] artifact files persisted per artifact (owner scoped, path-normalised, credential-safe)
+- [x] code pane: real editing, add/delete, starter page + script, unsaved marker, read-only for viewers
+- [x] preview pane: real sandbox execution with live console/error/render observations and stated limits
+- [x] html artifacts inline their own scripts/styles (the frame has no file server) and report unloadable references
+- [x] test pane: saved checks, dom probes, recorded run history, pass/fail/inconclusive without false passes
+- [x] checkpoints carry file contents so a restore brings the work back
+- [ ] phase 2: installation/permission UI, settings, update + rollback flows
+- [ ] project-wide database security-linter findings (109) still unresolved
