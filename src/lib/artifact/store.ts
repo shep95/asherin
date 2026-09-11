@@ -2,6 +2,7 @@
 // nothing here relies on the caller remembering to filter.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type {
   ArtifactContract,
   ArtifactSession,
@@ -18,6 +19,9 @@ async function uid(): Promise<string | null> {
 }
 
 type Row = Record<string, unknown>;
+
+/** serialise a domain value into the json column shape. */
+const j = (v: unknown): Json => JSON.parse(JSON.stringify(v ?? null)) as Json;
 
 function toSession(r: Row): ArtifactSession {
   return {
@@ -93,15 +97,15 @@ export async function saveContract(sessionId: string, version: number, contract:
     user_id: user,
     session_id: sessionId,
     version,
-    goals: contract.goals,
-    requirements: contract.requirements,
-    expected_behavior: contract.expectedBehavior,
-    interface: contract.interface,
-    constraints: contract.constraints,
-    invariants: contract.invariants,
-    acceptance: contract.acceptance,
-    test_model: contract.testModel,
-    audit,
+    goals: j(contract.goals),
+    requirements: j(contract.requirements),
+    expected_behavior: j(contract.expectedBehavior),
+    interface: j(contract.interface),
+    constraints: j(contract.constraints),
+    invariants: j(contract.invariants),
+    acceptance: j(contract.acceptance),
+    test_model: j(contract.testModel),
+    audit: j(audit),
   });
 }
 
@@ -113,10 +117,10 @@ export async function saveVersion(sessionId: string, version: ArtifactVersion): 
     session_id: sessionId,
     version: version.version,
     parent_version: version.parentVersion,
-    manifest: version.manifest as unknown as Row,
-    files: version.files as unknown as Row[],
-    dependencies: version.dependencies,
-    runtime_meta: version.runtimeMeta,
+    manifest: j(version.manifest),
+    files: j(version.files),
+    dependencies: j(version.dependencies),
+    runtime_meta: j(version.runtimeMeta),
     change_summary: version.changeSummary,
     reason: version.reason,
     feedback_source: version.feedbackSource,
@@ -158,7 +162,7 @@ export async function saveObservations(sessionId: string, version: number, obser
       source: o.source,
       level: o.level,
       message: o.message.slice(0, 2000),
-      detail: (o.detail ?? {}) as Row,
+      detail: j(o.detail ?? {}),
       observed_at: o.observedAt,
     })),
   );
@@ -172,8 +176,8 @@ export async function saveValidation(sessionId: string, version: number, validat
     session_id: sessionId,
     version,
     verdict: validation.verdict,
-    checks: validation.checks as unknown as Row[],
-    defects: validation.defects as unknown as Row[],
+    checks: j(validation.checks),
+    defects: j(validation.defects),
   });
 }
 
@@ -187,8 +191,8 @@ export async function saveRepair(sessionId: string, fromVersion: number, plan: R
     to_version: toVersion,
     scope: plan.scope,
     diagnosis: plan.diagnosis,
-    hypotheses: plan.hypotheses,
-    change_set: plan.targets,
+    hypotheses: j(plan.hypotheses),
+    change_set: j(plan.targets),
   });
 }
 
@@ -200,13 +204,13 @@ export async function saveExperience(record: ExperienceRecord, extra: { patternI
     session_id: record.sessionId,
     version: record.version,
     task: record.task.slice(0, 2000),
-    context: record.context as Row,
-    initial_model: record.initialModel as unknown as Row,
-    patterns_used: record.patternsUsed,
-    actions: record.actions,
-    observations: record.observations as unknown as Row[],
-    defects: record.defects as unknown as Row[],
-    repairs: record.repairs as unknown as Row[],
+    context: j(record.context),
+    initial_model: j(record.initialModel),
+    patterns_used: j(record.patternsUsed),
+    actions: j(record.actions),
+    observations: j(record.observations),
+    defects: j(record.defects),
+    repairs: j(record.repairs),
     user_feedback: record.userFeedback,
     outcome: record.outcome,
     pattern_id: extra.patternId ?? null,
