@@ -202,7 +202,11 @@ export interface NavigationItem {
   id: string;
   ownerUserId: string;
   artifactId: string | null;
+  /** the installation that owns this row. null for core/user rows. */
+  installationId: string | null;
   source: "user" | "installed";
+  /** which sidebar block it belongs to. core is never artifact-backed. */
+  section: "installed" | "shared" | "core";
   displayName: string;
   icon: string | null;
   route: string;

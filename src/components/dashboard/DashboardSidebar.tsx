@@ -44,6 +44,7 @@ import {
   Shield,
   Moon,
   Workflow,
+  Boxes,
   Wand2,
   PanelLeftClose,
   PanelLeftOpen,
@@ -105,6 +106,9 @@ interface NavGroup {
 const subscriptionNavItem: NavItem = { id: "subscription", icon: CreditCard, label: "Subscribe" };
 
 // Icon mapping by view/route — keeps a consistent monochrome icon per intent.
+import { useNavigate as useRouterNavigate } from "react-router-dom";
+import { useSoftwareRegistry } from "@/contexts/SoftwareContext";
+import { SECTION_LABEL, appRoute, visibleItems } from "@/lib/software/navigation";
 import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type NavIntent } from "@/lib/navIntents";
 
 const VIEW_ICON: Record<string, React.ElementType> = {
@@ -237,6 +241,8 @@ const DashboardSidebar = ({
   const { tierKey, subscribed } = useSubscription();
   const [search, setSearch] = useState("");
   const [softwareSearch, setSoftwareSearch] = useState("");
+  const routerNavigate = useRouterNavigate();
+  const { navigation: softwareNavigation } = useSoftwareRegistry();
   const [showConvos, setShowConvos] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [archivedConvos, setArchivedConvos] = useState<Conversation[]>([]);
@@ -309,7 +315,22 @@ const DashboardSidebar = ({
         },
       ]
     : [];
-  const allGroupsBase = [...filteredGroups, ...dynamicGroups];
+  // Installed applications come from the navigation registry, never from a
+  // hardcoded list. A row's id carries the artifact id, so a rename can never
+  // change where it points.
+  const installedGroups = (["installed", "shared"] as const)
+    .map((section) => ({
+      label: SECTION_LABEL[section],
+      blurb: section === "installed" ? "applications you added to asherin" : "applications shared with you",
+      items: visibleItems(softwareNavigation, section).map((n) => ({
+        id: `app:${n.artifactId}` as DashboardView,
+        icon: Boxes,
+        label: n.displayName,
+      })) as IntentNavItem[],
+    }))
+    .filter((g) => g.items.length > 0);
+
+  const allGroupsBase = [...filteredGroups, ...dynamicGroups, ...installedGroups];
   const swq = softwareSearch.trim().toLowerCase();
   const allGroups = swq
     ? allGroupsBase
@@ -834,6 +855,11 @@ const DashboardSidebar = ({
                   const isOpen = swq ? true : (expandedGroups[group.label] ?? false);
                   const hasActive = group.items.some((item) => activeView === item.id);
                   const navigate = (item: IntentNavItem) => {
+                    if (typeof item.id === "string" && item.id.startsWith("app:")) {
+                      routerNavigate(appRoute(item.id.slice(4)));
+                      onToggleSidebar();
+                      return;
+                    }
                     if (item.route) {
                       window.location.assign(item.route);
                     } else {
