@@ -76,6 +76,10 @@ function mapArtifact(row: Loose): SoftwareArtifact {
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
     publishedAt: (row.published_at as string) ?? null,
+    parentArtifactId: (row.parent_artifact_id as string) ?? null,
+    parentVersionId: (row.parent_version_id as string) ?? null,
+    forkedAt: (row.forked_at as string) ?? null,
+    forkSource: (row.fork_source as string) ?? null,
   };
 }
 

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
 import type { PreflightReport } from "@/lib/software/install";
 import type {
+  ArtifactRole,
   ArtifactType,
   ArtifactVisibility,
   Installation,
@@ -15,6 +16,7 @@ import type {
   SoftwareVersion,
 } from "@/lib/software/types";
 import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
+import ArtifactSharePane from "./ArtifactSharePane";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
@@ -28,6 +30,8 @@ const ArtifactSettingsPane = ({
   busy,
   canWrite,
   isOwner,
+  role,
+  onForked,
   onSaveDetails,
   onInstall,
   onToggleInstall,
@@ -41,6 +45,8 @@ const ArtifactSettingsPane = ({
   busy: boolean;
   canWrite: boolean;
   isOwner: boolean;
+  role: ArtifactRole | null;
+  onForked?: (artifactId: string) => void;
   onSaveDetails: (patch: { description: string | null; icon: string | null; visibility: ArtifactVisibility }) => void;
   onInstall: () => void;
   onToggleInstall: () => void;
@@ -234,6 +240,16 @@ const ArtifactSettingsPane = ({
             </button>
           )}
         </section>
+      </div>
+
+      <div className="lg:col-span-2">
+        <ArtifactSharePane
+          artifact={artifact}
+          currentVersion={currentVersion}
+          role={role}
+          isOwner={isOwner}
+          onForked={onForked}
+        />
       </div>
     </div>
   );
