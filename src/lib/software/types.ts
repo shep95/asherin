@@ -140,7 +140,7 @@ export interface IntegrationContract {
 
 /** Anything credential-shaped is refused before it can reach the database. */
 const CREDENTIAL_SHAPE =
-  /\b(sk|pk|rk)[-_][A-Za-z0-9]{12,}|AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|-----BEGIN[^-]{0,40}PRIVATE KEY-----/;
+  /\b(sk|pk|rk)[-_][A-Za-z0-9][A-Za-z0-9_-]{14,}|AIza[0-9A-Za-z_-]{20,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|-----BEGIN[^-]{0,40}PRIVATE KEY-----/;
 
 export function containsCredentialMaterial(value: unknown): boolean {
   return CREDENTIAL_SHAPE.test(typeof value === "string" ? value : JSON.stringify(value ?? ""));
