@@ -146,6 +146,19 @@ const ArtifactWorkspace = ({
     [artifactId, guard, user, ws],
   );
 
+  const installPreflight = useMemo(
+    () =>
+      artifact
+        ? preflight({
+            artifact,
+            files: ws.workingFiles,
+            lastRun: runs[0] ?? null,
+            runtimeClass: artifact.runtimeType ?? "client_browser",
+          })
+        : null,
+    [artifact, runs, ws.workingFiles],
+  );
+
   const consoleLines = useMemo(() => mergeConsole(sandbox.observations, ws.log), [sandbox.observations, ws.log]);
   const implicated = useMemo(
     () =>

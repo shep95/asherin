@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
+import type { PreflightReport } from "@/lib/software/install";
 import type {
   ArtifactType,
   ArtifactVisibility,
@@ -19,6 +20,7 @@ const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 const VISIBILITIES: ArtifactVisibility[] = ["private", "shared", "unlisted", "public"];
 
 const ArtifactSettingsPane = ({
+  preflight,
   artifact,
   currentVersion,
   installation,
@@ -31,6 +33,7 @@ const ArtifactSettingsPane = ({
   onUninstall,
   onDelete,
 }: {
+  preflight: PreflightReport | null;
   artifact: SoftwareArtifact;
   currentVersion: SoftwareVersion | null;
   installation: Installation | null;
@@ -182,8 +185,24 @@ const ArtifactSettingsPane = ({
               <p className="text-xs text-muted-foreground">
                 installing is a deliberate step. nothing you build appears in your sidebar until you put it there.
               </p>
+              {preflight && (
+                <div className="rounded-lg border border-border/20 bg-background/30 p-3">
+                  <p className={`text-[11px] ${preflight.eligible ? "text-primary" : "text-amber-400/90"}`}>
+                    preflight — {preflight.summary}
+                  </p>
+                  <ul className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
+                    {preflight.items
+                      .filter((i) => i.state !== "pass")
+                      .map((i) => (
+                        <li key={i.id}>
+                          {i.label} — {i.detail}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
               <button
-                disabled={busy || !isOwner}
+                disabled={busy || !isOwner || !preflight?.eligible}
                 onClick={onInstall}
                 className="rounded-lg border border-primary/40 px-3 py-1.5 text-xs text-primary disabled:opacity-40 hover:bg-primary/10"
               >
