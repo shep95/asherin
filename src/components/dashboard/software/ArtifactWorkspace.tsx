@@ -60,7 +60,7 @@ const ArtifactWorkspace = ({
   const ctx = useArtifactWorkspace(artifactId);
   const { artifact, versions, currentVersion, events, installation, role } = ctx;
 
-  const canWrite = role === "owner" || role === "maintainer" || role === "contributor";
+  const canWrite = role === "owner" || role === "admin" || role === "collaborator";
   const isOwner = role === "owner";
 
   const ws = useSoftwareWorkspace(artifactId, canWrite);

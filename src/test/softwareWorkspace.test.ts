@@ -26,7 +26,6 @@ const file = (path: string, content: string): ArtifactFile => ({
   mime: "text/plain",
   origin: "user",
   deletedAt: null,
-  createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 });
 
@@ -101,13 +100,13 @@ describe("defect classification", () => {
     name: "canvas renders",
     kind: "dom_selector_exists",
     expectation: "canvas",
-    createdAt: "2026-01-01T00:00:00.000Z",
+    enabled: true,
   };
 
   it("scopes a repair to the files named in the error", () => {
     const result: CheckResult = { checkId: "c1", name: check.name, status: "failed", detail: "no match" };
     const observations: RunObservation[] = [
-      { channel: "runtime", level: "error", message: "TypeError in game/snake.js", at: "2026-01-01T00:00:00.000Z" },
+      { channel: "runtime_error", level: "error", message: "TypeError in game/snake.js", at: "2026-01-01T00:00:00.000Z" },
     ];
     const defect = classifyDefect({ check, result, observations, files: [file("game/snake.js", "")] });
     expect(defect?.defectClass).toBe("missing_output");
