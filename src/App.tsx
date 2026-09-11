@@ -261,7 +261,6 @@ import RouteSessionTracker from "./components/RouteSessionTracker";
 import VisitLedgerTracker from "./components/VisitLedgerTracker";
 import AutoTripMount from "./components/AutoTripMount";
 import SentinelDaemon from "./components/dashboard/SentinelDaemon";
-import { SoftwareProvider } from "./contexts/SoftwareContext";
 import RouteSeo from "./components/RouteSeo";
 import HumbleTypography from "./components/HumbleTypography";
 // DonationBanner removed — Aureon now runs on a monthly subscription model.
@@ -595,12 +594,10 @@ const AppShell = () => {
                         />
                       ))}
                       <Route
-                        path="/dashboard/:view?/:artifactId?/:mode?"
+                        path="/dashboard/:view?"
                         element={
                           <ProtectedRoute>
-                            <SoftwareProvider>
-                              <Dashboard />
-                            </SoftwareProvider>
+                            <Dashboard />
                           </ProtectedRoute>
                         }
                       />

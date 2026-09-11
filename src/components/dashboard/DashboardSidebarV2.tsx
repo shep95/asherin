@@ -15,7 +15,6 @@ import SwipeableConversationItem from "./SwipeableConversationItem";
 import NotificationInbox from "./NotificationInbox";
 import type { ChatMode, Conversation, DashboardView } from "./types";
 import { NAV_INTENTS } from "@/lib/navIntents";
-import { useSoftwareRegistry } from "@/contexts/SoftwareContext";
 
 interface Props {
   conversations: Conversation[];
@@ -39,14 +38,12 @@ const V2_LABELS: Partial<Record<string, string>> = {
   "asherin-arvision": "asherin.arvision",
   "asherin-eye": "asherin.eye",
   "asherin-sentinel": "asherin.sentinel",
-  software: "asherin.software",
   memory: "asherin.vault",
   subscription: "Subscription",
 };
 
 /** The keep list, in reading order. Retired products have no dashboard row. */
 const V2_ORDER: DashboardView[] = [
-  "software",
   "asherin-defender",
   "asherin-arvision",
   "asherin-eye",
@@ -89,11 +86,6 @@ const DashboardSidebarV2 = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { subscribed } = useSubscription();
-  // installed artifacts are a separate registry — never hardcoded rows.
-  const { navigation, installations } = useSoftwareRegistry();
-  const installedRows = navigation.filter(
-    (n) => n.enabled && n.source === "installed" && installations.some((i) => i.artifactId === n.artifactId && i.enabled),
-  );
 
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -528,26 +520,6 @@ const DashboardSidebarV2 = ({
                 {row.label}
               </button>
             ))}
-            {installedRows.length > 0 && (
-              <>
-                <p className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-                  Installed
-                </p>
-                {installedRows.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.route}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.location.assign(item.route);
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground"
-                  >
-                    {item.displayName}
-                  </a>
-                ))}
-              </>
-            )}
           </div>
         </div>
       </aside>

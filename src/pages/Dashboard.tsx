@@ -29,11 +29,6 @@ import { DashboardUiProvider } from "@/lib/dashboardUiContext";
 import { getActiveScope } from "@/lib/projects/scope";
 import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
-const SoftwareView = lazyWithRetry(() => import("@/components/dashboard/software/SoftwareView"));
-const ArtifactWorkspace = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactWorkspace"));
-const ArtifactJoinView = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactJoinView"));
-const InstalledAppHost = lazyWithRetry(() => import("@/components/dashboard/software/InstalledAppHost"));
-const IntegrationsView = lazyWithRetry(() => import("@/components/dashboard/software/IntegrationsView"));
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
@@ -189,11 +184,7 @@ const Dashboard = () => {
   });
   const asherEmbed =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
-  const {
-    view: viewParam,
-    artifactId: artifactIdParam,
-    mode: workspaceModeParam,
-  } = useParams<{ view?: string; artifactId?: string; mode?: string }>();
+  const { view: viewParam } = useParams<{ view?: string }>();
   const navigate = useNavigate();
   const VALID_VIEWS: DashboardView[] = [
     "chat",
@@ -235,8 +226,6 @@ const Dashboard = () => {
     "asherin-sentinel",
     "asherin-health",
     "investigations",
-    "software",
-    "integrations",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -262,7 +251,6 @@ const Dashboard = () => {
     if (!raw) return null;
     if ((VALID_VIEWS as string[]).includes(raw)) return raw as DashboardView;
     if (VIEW_ALIASES[raw]) return VIEW_ALIASES[raw];
-    if (raw === "app") return "app" as DashboardView;
     if (raw.startsWith("agent:")) return raw as DashboardView;
     return null;
   };
@@ -2212,50 +2200,6 @@ const Dashboard = () => {
               <div className="h-full w-full min-h-0">
                 <WhiteboardView />
               </div>
-            </Suspense>
-          </ErrorBoundary>
-        );
-      case "app" as DashboardView:
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              {artifactIdParam ? (
-                <InstalledAppHost artifactId={artifactIdParam} onBack={() => navigate("/dashboard/software")} />
-              ) : (
-                <SoftwareView onOpen={(id) => navigate(`/dashboard/software/${id}`)} />
-              )}
-            </Suspense>
-          </ErrorBoundary>
-        );
-      case "integrations":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              <IntegrationsView />
-            </Suspense>
-          </ErrorBoundary>
-        );
-      case "software":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              {artifactIdParam === "invite" || artifactIdParam === "join" ? (
-                <ArtifactJoinView
-                  kind={artifactIdParam}
-                  token={workspaceModeParam}
-                  onOpen={(id) => navigate(`/dashboard/software/${id}`)}
-                  onBack={() => navigate("/dashboard/software")}
-                />
-              ) : artifactIdParam ? (
-                <ArtifactWorkspace
-                  artifactId={artifactIdParam}
-                  mode={workspaceModeParam}
-                  onMode={(m) => navigate(`/dashboard/software/${artifactIdParam}/${m}`, { replace: true })}
-                  onBack={() => navigate("/dashboard/software")}
-                />
-              ) : (
-                <SoftwareView onOpen={(id) => navigate(`/dashboard/software/${id}`)} />
-              )}
             </Suspense>
           </ErrorBoundary>
         );

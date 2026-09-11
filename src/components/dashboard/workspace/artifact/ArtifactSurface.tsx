@@ -12,7 +12,6 @@ import ArtifactStage from "./ArtifactStage";
 import ArtifactValidationReport from "./ArtifactValidationReport";
 import ArtifactVersions from "./ArtifactVersions";
 import ArtifactInspector from "./ArtifactInspector";
-import KeepAsApplication from "./KeepAsApplication";
 import { buildManifest, evaluateRun, extractFiles, modelRequest, recordExperience } from "@/lib/artifact/engine";
 import { nextVersion, rollbackTo } from "@/lib/artifact/versioning";
 import { normalise } from "@/lib/artifact/observer";
@@ -179,9 +178,6 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
           files={files}
           onObservation={onObservation}
         />
-      )}
-      {open === "stage" && (
-        <KeepAsApplication files={files} title={stage.contract.goals[0] ?? request.slice(0, 60)} request={request} />
       )}
       {open === "validation" && <ArtifactValidationReport validation={run.validation} repair={run.repair} />}
       {open === "versions" && (
