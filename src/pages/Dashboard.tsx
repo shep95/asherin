@@ -31,6 +31,7 @@ import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
 const SoftwareView = lazyWithRetry(() => import("@/components/dashboard/software/SoftwareView"));
 const ArtifactWorkspace = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactWorkspace"));
+const ArtifactJoinView = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactJoinView"));
 const InstalledAppHost = lazyWithRetry(() => import("@/components/dashboard/software/InstalledAppHost"));
 const IntegrationsView = lazyWithRetry(() => import("@/components/dashboard/software/IntegrationsView"));
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
@@ -2238,7 +2239,14 @@ const Dashboard = () => {
         return (
           <ErrorBoundary>
             <Suspense fallback={<LazyFallback />}>
-              {artifactIdParam ? (
+              {artifactIdParam === "invite" || artifactIdParam === "join" ? (
+                <ArtifactJoinView
+                  kind={artifactIdParam}
+                  token={workspaceModeParam}
+                  onOpen={(id) => navigate(`/dashboard/software/${id}`)}
+                  onBack={() => navigate("/dashboard/software")}
+                />
+              ) : artifactIdParam ? (
                 <ArtifactWorkspace
                   artifactId={artifactIdParam}
                   mode={workspaceModeParam}

@@ -6,6 +6,7 @@
 // passed or been saved unless it actually did.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +64,7 @@ const ArtifactWorkspace = ({
   const { user } = useAuth();
   const { refresh } = useSoftwareRegistry();
   const ctx = useArtifactWorkspace(artifactId);
+  const navigate = useNavigate();
   const { artifact, versions, currentVersion, events, installation, role } = ctx;
 
   const canWrite = role === "owner" || role === "admin" || role === "collaborator";
@@ -421,6 +423,8 @@ const ArtifactWorkspace = ({
                   busy={busy}
                   canWrite={canWrite}
                   isOwner={isOwner}
+                  role={role}
+                  onForked={(id) => navigate(`/dashboard/software/${id}/build`)}
                   onSaveDetails={(patch) =>
                     void guard("could not save details", async () => {
                       await updateArtifact(artifact.id, patch, user!.id);

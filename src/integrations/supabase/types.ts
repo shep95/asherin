@@ -14322,11 +14322,15 @@ export type Database = {
           display_name: string
           distribution_manifest: Json
           entrypoint: string | null
+          fork_source: string | null
+          forked_at: string | null
           icon: string | null
           id: string
           integration_manifest: Json
           lifecycle_status: string
           owner_user_id: string
+          parent_artifact_id: string | null
+          parent_version_id: string | null
           permission_manifest: Json
           provenance_manifest: Json
           published_at: string | null
@@ -14350,11 +14354,15 @@ export type Database = {
           display_name?: string
           distribution_manifest?: Json
           entrypoint?: string | null
+          fork_source?: string | null
+          forked_at?: string | null
           icon?: string | null
           id?: string
           integration_manifest?: Json
           lifecycle_status?: string
           owner_user_id: string
+          parent_artifact_id?: string | null
+          parent_version_id?: string | null
           permission_manifest?: Json
           provenance_manifest?: Json
           published_at?: string | null
@@ -14378,11 +14386,15 @@ export type Database = {
           display_name?: string
           distribution_manifest?: Json
           entrypoint?: string | null
+          fork_source?: string | null
+          forked_at?: string | null
           icon?: string | null
           id?: string
           integration_manifest?: Json
           lifecycle_status?: string
           owner_user_id?: string
+          parent_artifact_id?: string | null
+          parent_version_id?: string | null
           permission_manifest?: Json
           provenance_manifest?: Json
           published_at?: string | null
@@ -14394,7 +14406,22 @@ export type Database = {
           updated_at?: string
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_parent_artifact_id_fkey"
+            columns: ["parent_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_artifact_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       software_artifact_check: {
         Row: {
@@ -14564,6 +14591,57 @@ export type Database = {
           },
         ]
       }
+      software_artifact_export: {
+        Row: {
+          actor_user_id: string
+          artifact_id: string
+          created_at: string
+          format: string
+          id: string
+          manifest: Json
+          scan: Json
+          status: string
+          version_id: string | null
+        }
+        Insert: {
+          actor_user_id: string
+          artifact_id: string
+          created_at?: string
+          format: string
+          id?: string
+          manifest?: Json
+          scan?: Json
+          status?: string
+          version_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string
+          artifact_id?: string
+          created_at?: string
+          format?: string
+          id?: string
+          manifest?: Json
+          scan?: Json
+          status?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_export_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_artifact_export_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       software_artifact_file: {
         Row: {
           artifact_id: string
@@ -14604,6 +14682,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "software_artifact_file_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_artifact_invitation: {
+        Row: {
+          accepted_at: string | null
+          artifact_id: string
+          created_at: string
+          delivery: string
+          expires_at: string
+          id: string
+          invitee_email: string
+          invitee_user_id: string | null
+          inviter_user_id: string
+          role: string
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          artifact_id: string
+          created_at?: string
+          delivery?: string
+          expires_at?: string
+          id?: string
+          invitee_email: string
+          invitee_user_id?: string | null
+          inviter_user_id: string
+          role?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          artifact_id?: string
+          created_at?: string
+          delivery?: string
+          expires_at?: string
+          id?: string
+          invitee_email?: string
+          invitee_user_id?: string | null
+          inviter_user_id?: string
+          role?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_invitation_artifact_id_fkey"
             columns: ["artifact_id"]
             isOneToOne: false
             referencedRelation: "software_artifact"
@@ -15116,6 +15250,50 @@ export type Database = {
             columns: ["installation_id"]
             isOneToOne: false
             referencedRelation: "software_installation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_share_link: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          revoked: boolean
+          role: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          revoked?: boolean
+          role?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          revoked?: boolean
+          role?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_share_link_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
             referencedColumns: ["id"]
           },
         ]
@@ -18124,6 +18302,7 @@ export type Database = {
         Args: { p_id: string; p_table: string }
         Returns: undefined
       }
+      software_accept_invitation: { Args: { _token: string }; Returns: string }
       software_artifact_role: {
         Args: { _artifact: string; _user: string }
         Returns: string
@@ -18136,6 +18315,7 @@ export type Database = {
         Args: { _artifact: string; _user: string }
         Returns: boolean
       }
+      software_redeem_share_link: { Args: { _token: string }; Returns: string }
       team_seat_usage: { Args: { _team_id: string }; Returns: number }
       try_acquire_intel_slot: {
         Args: { _job_id: string; _job_type: string; _max_concurrent?: number }

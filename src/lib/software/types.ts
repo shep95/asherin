@@ -34,7 +34,50 @@ export type ArtifactLifecycleStatus =
 
 export type ArtifactVisibility = "private" | "shared" | "unlisted" | "public";
 
-export type ArtifactRole = "owner" | "admin" | "collaborator" | "viewer";
+export type ArtifactRole =
+  | "owner"
+  | "admin"
+  | "editor"
+  | "commenter"
+  | "viewer"
+  | "installer"
+  /** legacy name for editor. kept so old rows keep working. */
+  | "collaborator";
+
+/** What a role is allowed to do. Capability first, never a name check. */
+export type ArtifactCapability =
+  | "read"
+  | "comment"
+  | "edit_files"
+  | "create_version"
+  | "install"
+  | "manage_members"
+  | "manage_distribution"
+  | "delete";
+
+export const ROLE_CAPABILITIES: Record<ArtifactRole, ArtifactCapability[]> = {
+  owner: [
+    "read",
+    "comment",
+    "edit_files",
+    "create_version",
+    "install",
+    "manage_members",
+    "manage_distribution",
+    "delete",
+  ],
+  admin: ["read", "comment", "edit_files", "create_version", "install", "manage_members"],
+  editor: ["read", "comment", "edit_files", "create_version"],
+  collaborator: ["read", "comment", "edit_files", "create_version"],
+  commenter: ["read", "comment"],
+  viewer: ["read"],
+  installer: ["read", "install"],
+};
+
+export function roleCan(role: ArtifactRole | null | undefined, capability: ArtifactCapability): boolean {
+  if (!role) return false;
+  return (ROLE_CAPABILITIES[role] ?? []).includes(capability);
+}
 
 export type VersionValidationStatus = "unvalidated" | "validating" | "validated" | "failed" | "quarantined";
 export type VersionReleaseStatus = "draft" | "checkpoint" | "released" | "rolled_back" | "superseded";
@@ -178,6 +221,54 @@ export interface SoftwareArtifact {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  /** lineage. a fork remembers where it came from; it never inherits identity. */
+  parentArtifactId: string | null;
+  parentVersionId: string | null;
+  forkedAt: string | null;
+  forkSource: string | null;
+}
+
+export type InvitationStatus = "pending" | "accepted" | "rejected" | "revoked" | "expired";
+export type InvitationDelivery = "pending" | "sent" | "unavailable";
+export type InvitableRole = Exclude<ArtifactRole, "owner" | "collaborator">;
+
+export interface ArtifactInvitation {
+  id: string;
+  artifactId: string;
+  inviterUserId: string;
+  inviteeEmail: string;
+  inviteeUserId: string | null;
+  role: InvitableRole;
+  status: InvitationStatus;
+  /** whether an invite email actually left the building. never assumed. */
+  delivery: InvitationDelivery;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+  acceptedAt: string | null;
+}
+
+export interface ShareLink {
+  id: string;
+  artifactId: string;
+  createdBy: string;
+  token: string;
+  role: "viewer" | "commenter" | "installer";
+  revoked: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export interface ExportRecord {
+  id: string;
+  artifactId: string;
+  versionId: string | null;
+  actorUserId: string;
+  format: string;
+  status: "created" | "blocked" | "unavailable";
+  manifest: Record<string, unknown>;
+  scan: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface SoftwareVersion {

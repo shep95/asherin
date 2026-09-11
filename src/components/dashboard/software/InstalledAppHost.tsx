@@ -47,6 +47,7 @@ import { providerForClass } from "@/lib/software/runtime";
 import type { ArtifactEvent, ArtifactFile, SoftwareVersion } from "@/lib/software/types";
 import { toast } from "sonner";
 import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
+import ArtifactUpdatePane from "./ArtifactUpdatePane";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
@@ -350,6 +351,16 @@ const InstalledAppHost = ({ artifactId, onBack }: { artifactId: string; onBack: 
                   <dd className="text-foreground/80">only its own rows</dd>
                 </div>
               </dl>
+            </section>
+
+            <section className={`${card} p-5`}>
+              <h2 className="mb-3 text-sm tracking-wide text-foreground">updates</h2>
+              <ArtifactUpdatePane
+                artifact={artifact}
+                installation={installation}
+                versions={versions}
+                onChanged={refresh}
+              />
             </section>
 
             <section className={`${card} p-5`}>
