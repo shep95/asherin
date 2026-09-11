@@ -4,11 +4,17 @@
 // can do, what happened to it, and which version is current. Panes that later
 // phases fill in say so plainly instead of drawing an empty imitation.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, RotateCcw, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactWorkspace, useSoftwareRegistry } from "@/contexts/SoftwareContext";
+import { useArtifactSandbox } from "@/hooks/useArtifactSandbox";
+import { listFiles } from "@/lib/software/files";
+import type { ArtifactFile } from "@/lib/software/types";
+import ArtifactCodePane from "./ArtifactCodePane";
+import ArtifactPreviewPane from "./ArtifactPreviewPane";
+import ArtifactTestPane from "./ArtifactTestPane";
 import {
   createVersion,
   deleteArtifact,
