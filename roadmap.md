@@ -73,3 +73,12 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] verified live: created artifact, edited files, ran sandbox, passed/failed real checks, checkpoint, compare, restore, delete
 - [ ] phase 3: installation/permissions, adversarial testing, rollback automation
 - [ ] project-wide database security-linter findings (109) still unresolved
+
+## Phase 3 — real software builder + runtime adapter (complete)
+- runtime providers: browser sandbox available; isolated server, full build and native declared unavailable with reasons.
+- dependency detection + honest verdict (no silent installs), install preflight gating the install button.
+- patch/merge model with stale-base detection; AI edits can be applied, kept, or merged with conflict markers, and are recorded as auditable actions with diff counts.
+- affected-test selection, run provider/scope/timings, run comparison, scoped repair plans that widen on repeat failure and are never applied automatically.
+- artifact-owned data store with contract validation; named checkpoints shown in history.
+- chat turns can be kept as a persistent application that opens in the same workspace.
+- verified live: sandbox rendered, checks passed and failed truthfully, repair widened, checkpoint stored, install blocked with reason. 63 software tests, typecheck and production build pass.
