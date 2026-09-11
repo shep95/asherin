@@ -184,3 +184,30 @@ export async function recordRun(input: {
   if (error) throw error;
   return mapRun(data as Loose);
 }
+
+/**
+ * Puts a checkpoint's files back. Files the checkpoint carried are written
+ * over the current ones; files it never held are left alone, so a restore
+ * cannot silently destroy work that has no counterpart in the past.
+ */
+export async function restoreFiles(input: {
+  artifactId: string;
+  userId: string;
+  sourceRef: Record<string, unknown>;
+}): Promise<ArtifactFile[]> {
+  const carried = Array.isArray((input.sourceRef as { files?: unknown }).files)
+    ? ((input.sourceRef as { files: Array<{ path?: unknown; content?: unknown }> }).files)
+    : [];
+  for (const f of carried) {
+    if (typeof f?.path !== "string") continue;
+    // sequential on purpose: paths are unique and order keeps failures legible.
+    // eslint-disable-next-line no-await-in-loop
+    await saveFile({
+      artifactId: input.artifactId,
+      userId: input.userId,
+      path: f.path,
+      content: typeof f.content === "string" ? f.content : "",
+    });
+  }
+  return listFiles(input.artifactId);
+}
