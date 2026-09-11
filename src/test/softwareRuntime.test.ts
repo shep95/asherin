@@ -130,3 +130,31 @@ describe("probe replies", () => {
     expect(r?.[0]).toEqual({ checkId: "c", ok: null, detail: undefined });
   });
 });
+
+describe("html artifacts in the sandbox", () => {
+  const page = file(
+    "index.html",
+    "<html><head><link rel='stylesheet' href='style.css'></head><body><div id='root'></div><script src='main.js'></script></body></html>",
+  );
+
+  it("inlines the artifact's own script and stylesheet, since the frame has no file server", () => {
+    const b = buildPreview([page, file("main.js", "console.log('ready')"), file("style.css", "body{color:red}")]);
+    expect(b.ok).toBe(true);
+    expect(b.srcDoc).toContain("console.log('ready')");
+    expect(b.srcDoc).toContain("body{color:red}");
+    expect(b.srcDoc).not.toContain('src=\'main.js\'');
+  });
+
+  it("carries the observation bridge and the render ping into a hand-written page", () => {
+    const b = buildPreview([page, file("main.js", "1")]);
+    expect(b.srcDoc).toContain("__artifact");
+    expect(b.srcDoc).toContain("first frame painted");
+    expect(b.srcDoc).toContain("__probe");
+  });
+
+  it("reports a reference it cannot load instead of showing a blank page", () => {
+    const b = buildPreview([page]);
+    expect(b.ok).toBe(false);
+    expect(b.unavailableReason).toContain("main.js");
+  });
+});
