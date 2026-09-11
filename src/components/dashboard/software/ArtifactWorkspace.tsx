@@ -4,11 +4,17 @@
 // can do, what happened to it, and which version is current. Panes that later
 // phases fill in say so plainly instead of drawing an empty imitation.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, RotateCcw, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactWorkspace, useSoftwareRegistry } from "@/contexts/SoftwareContext";
+import { useArtifactSandbox } from "@/hooks/useArtifactSandbox";
+import { listFiles, restoreFiles } from "@/lib/software/files";
+import type { ArtifactFile } from "@/lib/software/types";
+import ArtifactCodePane from "./ArtifactCodePane";
+import ArtifactPreviewPane from "./ArtifactPreviewPane";
+import ArtifactTestPane from "./ArtifactTestPane";
 import {
   createVersion,
   deleteArtifact,
@@ -26,11 +32,11 @@ const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 /** What each pane can honestly do today. No pane pretends. */
 const PANE_STATE: Record<WorkspacePane, string> = {
   build: "the model builds artifacts from chat today. this pane becomes the guided build surface in the next phase.",
-  code: "direct code editing arrives with the runtime phase. source is carried on each version record until then.",
-  preview: "artifact execution is not available in this phase. nothing is rendered rather than faking a running app.",
-  test: "the test model is captured on the artifact contract. running tests here arrives with the runtime phase.",
+  code: "",
+  preview: "",
+  test: "",
   data: "artifact-scoped storage is declared in the data manifest and is not provisioned in this phase.",
-  files: "files are carried on version records. a file browser arrives with the runtime phase.",
+  files: "",
   history: "",
   settings: "",
 };
@@ -42,8 +48,20 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
   const [pane, setPane] = useState<WorkspacePane>("build");
   const [name, setName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<ArtifactFile[]>([]);
+  const sandbox = useArtifactSandbox(files);
 
-  const { artifact, versions, currentVersion, events, installation, role, permissions, runtime } = ctx;
+  useEffect(() => {
+    let alive = true;
+    listFiles(artifactId)
+      .then((f) => alive && setFiles(f))
+      .catch(() => alive && setFiles([]));
+    return () => {
+      alive = false;
+    };
+  }, [artifactId]);
+
+  const { artifact, versions, currentVersion, events, installation, role, permissions } = ctx;
 
   const guard = useCallback(
     async (label: string, fn: () => Promise<void>) => {
@@ -152,6 +170,9 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
                     userId: user!.id,
                     changeSummary: "manual checkpoint",
                     checkpoint: true,
+                    // the checkpoint carries the files themselves, so a restore
+                    // brings the work back rather than a label of it.
+                    sourceRef: { files: files.map((f) => ({ path: f.path, content: f.content })) },
                   });
                   toast.success("checkpoint saved");
                 })
@@ -181,6 +202,12 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
                         onClick={() =>
                           guard("restore failed", async () => {
                             await restoreVersion({ artifactId: artifact.id, userId: user!.id, version: v });
+                            const restored = await restoreFiles({
+                              artifactId: artifact.id,
+                              userId: user!.id,
+                              sourceRef: v.sourceRef,
+                            });
+                            setFiles(restored);
                             toast.success(`restored v${v.displayVersion} as a new version`);
                           })
                         }
@@ -308,16 +335,31 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
             </button>
           </section>
         </div>
+      ) : pane === "code" || pane === "files" ? (
+        <ArtifactCodePane
+          artifactId={artifact.id}
+          files={files}
+          onFilesChanged={setFiles}
+          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
+        />
+      ) : pane === "preview" ? (
+        <ArtifactPreviewPane sandbox={sandbox} />
+      ) : pane === "test" ? (
+        <ArtifactTestPane
+          artifactId={artifact.id}
+          versionId={currentVersion?.id ?? null}
+          sandbox={sandbox}
+          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
+        />
       ) : (
         <section className={`${card} p-5`}>
           <h2 className="mb-2 text-sm tracking-wide text-foreground">{pane}</h2>
           <p className="text-xs text-muted-foreground">{PANE_STATE[pane]}</p>
-          {pane === "preview" && (
-            <p className="mt-3 text-[11px] text-muted-foreground">runtime: unavailable — {runtime.reason}</p>
-          )}
           {pane === "build" && (
             <div className="mt-4 space-y-2 text-[11px] text-muted-foreground">
               <p>type: {artifact.type}</p>
+              <p>files: {files.length}</p>
+              <p>runtime: {sandbox.build.ok ? "runnable in the sandbox" : `unavailable — ${sandbox.build.unavailableReason}`}</p>
               <p>integrations declared: {artifact.integrationManifest.length}</p>
               <p>dependencies declared: {artifact.dependencyManifest.length}</p>
               <p>{ctx.pendingChanges ? "no version has been captured yet" : `${versions.length} version(s) recorded`}</p>

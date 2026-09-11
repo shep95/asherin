@@ -14387,6 +14387,50 @@ export type Database = {
         }
         Relationships: []
       }
+      software_artifact_check: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          enabled: boolean
+          expectation: string
+          id: string
+          kind: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          enabled?: boolean
+          expectation?: string
+          id?: string
+          kind: string
+          name: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          enabled?: boolean
+          expectation?: string
+          id?: string
+          kind?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_check_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       software_artifact_event: {
         Row: {
           actor_user_id: string
@@ -14435,6 +14479,47 @@ export type Database = {
           },
         ]
       }
+      software_artifact_file: {
+        Row: {
+          artifact_id: string
+          content: string
+          created_at: string
+          id: string
+          mime: string
+          owner_user_id: string
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          artifact_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          mime?: string
+          owner_user_id: string
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          artifact_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          mime?: string
+          owner_user_id?: string
+          path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_file_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       software_artifact_member: {
         Row: {
           artifact_id: string
@@ -14463,6 +14548,60 @@ export type Database = {
             columns: ["artifact_id"]
             isOneToOne: false
             referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_artifact_run: {
+        Row: {
+          artifact_id: string
+          created_at: string
+          id: string
+          observations: Json
+          owner_user_id: string
+          results: Json
+          status: string
+          unavailable_reason: string | null
+          updated_at: string
+          version_id: string | null
+        }
+        Insert: {
+          artifact_id: string
+          created_at?: string
+          id?: string
+          observations?: Json
+          owner_user_id: string
+          results?: Json
+          status?: string
+          unavailable_reason?: string | null
+          updated_at?: string
+          version_id?: string | null
+        }
+        Update: {
+          artifact_id?: string
+          created_at?: string
+          id?: string
+          observations?: Json
+          owner_user_id?: string
+          results?: Json
+          status?: string
+          unavailable_reason?: string | null
+          updated_at?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_run_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_artifact_run_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact_version"
             referencedColumns: ["id"]
           },
         ]
