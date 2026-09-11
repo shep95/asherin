@@ -8,13 +8,13 @@ import { useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
 import type { PreflightReport } from "@/lib/software/install";
 import type {
-import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
   ArtifactType,
   ArtifactVisibility,
   Installation,
   SoftwareArtifact,
   SoftwareVersion,
 } from "@/lib/software/types";
+import ArtifactIntegrationsPane from "./ArtifactIntegrationsPane";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
