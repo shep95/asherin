@@ -89,6 +89,11 @@ export function planWorkspace(input: PlannerInput): WorkspacePlan {
     }
   } else if (lane === "spatial") {
     surfaces.push(surface("map", cap.geocoding, cap.geocodingReason));
+  } else if (lane === "artifact") {
+    // the artifact surface owns its own lifecycle: it models, builds, runs
+    // where it can, and validates. it is marked ready with the request it
+    // must satisfy, never with invented content.
+    surfaces.push({ kind: "artifact", state: "ready", payload: { kind: "artifact", request: input.message } });
   }
 
   return { lane, reasons, surfaces, degraded: [] };
