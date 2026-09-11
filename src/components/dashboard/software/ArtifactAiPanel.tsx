@@ -16,6 +16,9 @@ import {
   snapshot,
   type ProposedChange,
 } from "@/lib/software/workspace";
+import { diffStats, mergeText } from "@/lib/software/patch";
+import { recordAction } from "@/lib/software/actions";
+import { useAuth } from "@/contexts/AuthContext";
 import type { SoftwareArtifact } from "@/lib/software/types";
 import type { SoftwareWorkspace } from "@/hooks/useSoftwareWorkspace";
 import DiffView from "./DiffView";
@@ -45,9 +48,10 @@ const ArtifactAiPanel = ({
   const [thinking, setThinking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [choices, setChoices] = useState<Record<string, "apply" | "keep">>({});
+  const [choices, setChoices] = useState<Record<string, "apply" | "keep" | "merge">>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const { user } = useAuth();
 
   const errors = useMemo(
     () => ws.log.filter((l) => l.level === "error").slice(-5).map((l) => l.message),
@@ -111,11 +115,41 @@ const ArtifactAiPanel = ({
 
   const apply = async () => {
     if (!proposal) return;
-    const accepted = proposal.changes.filter((c) => choices[c.path] === "apply" && c.status !== "identical");
+    const accepted = proposal.changes.filter(
+      (c) => (choices[c.path] === "apply" || choices[c.path] === "merge") && c.status !== "identical",
+    );
     if (accepted.length === 0) return;
     setApplying(true);
     try {
-      await ws.applyAiContent(accepted.map((c) => ({ path: c.path, content: c.proposedContent })));
+      let conflictLines = 0;
+      const writes = accepted.map((c) => {
+        if (choices[c.path] !== "merge") return { path: c.path, content: c.proposedContent };
+        const merged = mergeText(c.baseContent, c.currentContent, c.proposedContent);
+        conflictLines += merged.conflictLines;
+        return { path: c.path, content: merged.text ?? c.currentContent };
+      });
+      await ws.applyAiContent(writes);
+      if (user) {
+        await Promise.all(
+          accepted.map((c) =>
+            recordAction({
+              action: c.status === "new" ? "create_file" : "edit_file",
+              actor: "ai",
+              artifactId: artifact.id,
+              actorUserId: user.id,
+              target: c.path,
+              detail: { resolution: choices[c.path], ...diffStats(c.currentContent, c.proposedContent) },
+            }).catch(() => undefined),
+          ),
+        );
+      }
+      if (conflictLines > 0) {
+        ws.note({
+          channel: "ai",
+          level: "warn",
+          message: `${conflictLines} line(s) could not be merged automatically and are marked in the file`,
+        });
+      }
       onApplied(accepted.map((c) => c.path));
       setProposal(null);
       setInstruction("");
@@ -207,6 +241,14 @@ const ArtifactAiPanel = ({
                     </span>
                   </div>
                   {c.rationale && <p className="mt-1 text-[11px] text-muted-foreground">{c.rationale}</p>}
+                  {(() => {
+                    const st = diffStats(c.currentContent, c.proposedContent);
+                    return (
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        +{st.additions} / −{st.removals} line{st.additions + st.removals === 1 ? "" : "s"}
+                      </p>
+                    );
+                  })()}
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                     <button
                       onClick={() => setExpanded(expanded === c.path ? null : c.path)}
@@ -232,6 +274,16 @@ const ArtifactAiPanel = ({
                         >
                           apply this
                         </button>
+                        {c.status === "conflict" && (
+                          <button
+                            onClick={() => setChoices((p) => ({ ...p, [c.path]: "merge" }))}
+                            className={`rounded border px-2 py-0.5 ${
+                              choices[c.path] === "merge" ? "border-primary/50 text-primary" : "border-border/30 text-muted-foreground"
+                            }`}
+                          >
+                            merge
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

@@ -46,6 +46,10 @@ function mapRun(row: Loose): ArtifactRun {
     results: Array.isArray(row.results) ? (row.results as unknown as CheckResult[]) : [],
     observations: Array.isArray(row.observations) ? (row.observations as unknown as RunObservation[]) : [],
     unavailableReason: (row.unavailable_reason as string) ?? null,
+    provider: String(row.provider ?? "browser_sandbox"),
+    scope: (row.scope as ArtifactRun["scope"]) ?? "all",
+    startedAt: (row.started_at as string) ?? null,
+    finishedAt: (row.finished_at as string) ?? null,
     createdAt: String(row.created_at),
   };
 }
@@ -275,6 +279,10 @@ export async function recordRun(input: {
   results: CheckResult[];
   observations: RunObservation[];
   unavailableReason?: string | null;
+  provider?: string;
+  scope?: ArtifactRun["scope"];
+  startedAt?: string | null;
+  finishedAt?: string | null;
 }): Promise<ArtifactRun> {
   const { data, error } = await supabase
     .from("software_artifact_run")
@@ -286,6 +294,10 @@ export async function recordRun(input: {
       results: j(input.results),
       observations: j(input.observations.slice(-200)),
       unavailable_reason: input.unavailableReason ?? null,
+      provider: input.provider ?? "browser_sandbox",
+      scope: input.scope ?? "all",
+      started_at: input.startedAt ?? null,
+      finished_at: input.finishedAt ?? new Date().toISOString(),
     })
     .select("*")
     .single();

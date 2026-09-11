@@ -6,7 +6,7 @@
 // passed or been saved unless it actually did.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Play, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactWorkspace, useSoftwareRegistry } from "@/contexts/SoftwareContext";
@@ -26,6 +26,7 @@ import {
 import { WORKSPACE_PANES, type ArtifactRun, type SoftwareVersion, type WorkspacePane } from "@/lib/software/types";
 import ArtifactStatusBadge from "./ArtifactStatusBadge";
 import ArtifactAiPanel from "./ArtifactAiPanel";
+import ArtifactBuildPane from "./ArtifactBuildPane";
 import ArtifactConsole, { mergeConsole } from "./ArtifactConsole";
 import ArtifactDataPane from "./ArtifactDataPane";
 import ArtifactEditor from "./ArtifactEditor";
@@ -113,7 +114,7 @@ const ArtifactWorkspace = ({
   // a checkpoint captures the files as saved, so a restore brings work back
   // rather than a label of it. unsaved edits are written first, deliberately.
   const checkpoint = useCallback(
-    (summary: string) =>
+    (summary: string, label?: string) =>
       guard("could not create a checkpoint", async () => {
         if (ws.dirtyPaths.length > 0) await ws.saveAll();
         const files = await (async () => {
@@ -124,6 +125,7 @@ const ArtifactWorkspace = ({
           artifactId,
           userId: user!.id,
           changeSummary: summary,
+          label,
           checkpoint: true,
           sourceRef: { files: files.map((f) => ({ path: f.path, content: f.content })) },
         });
@@ -285,22 +287,16 @@ const ArtifactWorkspace = ({
 
           <main className="min-h-0 flex-1 overflow-y-auto">
             {pane === "build" && (
-              <div className="p-4">
-                <div className={`${card} p-5`}>
-                  <h2 className="mb-1 flex items-center gap-2 text-sm tracking-wide text-foreground">
-                    <Sparkles className="h-4 w-4 text-primary" /> build
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    describe the change in the panel on the right. asherin reads this artifact — its files, what you have
-                    selected, what it last reported — and proposes the change before writing anything.
-                  </p>
-                  <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-                    <li>{ws.files.length} file(s) · {ws.dirtyPaths.length} unsaved</li>
-                    <li>runtime: browser sandbox only — no server, no package installation, no network</li>
-                    <li>{versions.length} version(s) captured</li>
-                  </ul>
-                </div>
-              </div>
+              <ArtifactBuildPane
+                artifact={artifact}
+                files={ws.workingFiles}
+                dirtyCount={ws.dirtyPaths.length}
+                versions={versions}
+                lastRun={runs[0] ?? null}
+                busy={busy}
+                canWrite={canWrite}
+                onCheckpoint={(label) => void checkpoint(label, label)}
+              />
             )}
 
             {(pane === "code" || pane === "files") && (
@@ -320,6 +316,8 @@ const ArtifactWorkspace = ({
                   versionId={currentVersion?.id ?? null}
                   sandbox={sandbox}
                   readOnly={!canWrite}
+                  files={ws.workingFiles}
+                  changedPaths={ws.dirtyPaths}
                   onRuns={setRuns}
                 />
               </div>
@@ -327,7 +325,7 @@ const ArtifactWorkspace = ({
 
             {pane === "data" && (
               <div className="p-4">
-                <ArtifactDataPane artifact={artifact} runs={runs} />
+                <ArtifactDataPane artifact={artifact} runs={runs} canWrite={canWrite} />
               </div>
             )}
 

@@ -160,6 +160,12 @@ export interface SoftwareArtifact {
   visibility: ArtifactVisibility;
   currentVersionId: string | null;
   runtimeSessionId: string | null;
+  /** the file the runtime starts from. null until one exists. */
+  entrypoint: string | null;
+  /** which class of runtime this artifact needs. never a claim that it exists. */
+  runtimeType: "client_browser" | "isolated_server" | "full_build" | "native" | "unavailable";
+  /** how far along distribution this artifact is. */
+  releaseStatus: "draft" | "preflight" | "installable" | "installed" | "published" | "blocked";
   runtimeRequirements: Record<string, unknown>;
   compatibilityRequirements: Record<string, unknown>;
   capabilities: CapabilityKey[];
@@ -183,6 +189,8 @@ export interface SoftwareVersion {
   sourceRef: Record<string, unknown>;
   stateRef: Record<string, unknown>;
   changeSummary: string | null;
+  /** a name a person can recognise, e.g. “working login”. */
+  label: string | null;
   createdBy: string;
   createdAt: string;
   validationStatus: VersionValidationStatus;
@@ -237,7 +245,8 @@ export type ArtifactEventType =
   | "artifact.rollback"
   | "artifact.integration_connected"
   | "artifact.integration_failed"
-  | "artifact.permission_changed";
+  | "artifact.permission_changed"
+  | "artifact.inspected";
 
 export interface ArtifactEvent {
   id: string;
@@ -319,6 +328,12 @@ export interface ArtifactRun {
   results: CheckResult[];
   observations: RunObservation[];
   unavailableReason: string | null;
+  /** which runtime produced this run. */
+  provider: string;
+  /** how much of the check set this run covered. */
+  scope: "focused" | "regression" | "all";
+  startedAt: string | null;
+  finishedAt: string | null;
   createdAt: string;
 }
 

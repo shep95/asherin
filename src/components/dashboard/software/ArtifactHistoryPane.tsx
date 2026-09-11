@@ -88,7 +88,7 @@ const ArtifactHistoryPane = ({
                       </span>
                     </p>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {v.changeSummary ?? "no summary"} · {v.validationStatus} · {v.releaseStatus} ·{" "}
+                      {v.label ? `“${v.label}” · ` : ""}{v.changeSummary ?? "no summary"} · {v.validationStatus} · {v.releaseStatus} ·{" "}
                       {filesOf(v).length} file(s)
                     </p>
                   </div>
