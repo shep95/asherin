@@ -13,7 +13,9 @@ import {
   type ArtifactEvent,
   type ArtifactEventType,
   type ArtifactLifecycleStatus,
+  type ArtifactRole,
   type ArtifactType,
+
   type ArtifactVisibility,
   type CapabilityKey,
   type Installation,
