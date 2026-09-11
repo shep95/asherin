@@ -2217,6 +2217,8 @@ const Dashboard = () => {
               {artifactIdParam ? (
                 <ArtifactWorkspace
                   artifactId={artifactIdParam}
+                  mode={workspaceModeParam}
+                  onMode={(m) => navigate(`/dashboard/software/${artifactIdParam}/${m}`, { replace: true })}
                   onBack={() => navigate("/dashboard/software")}
                 />
               ) : (
