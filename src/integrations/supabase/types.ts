@@ -868,6 +868,136 @@ export type Database = {
         }
         Relationships: []
       }
+      artifact_contract: {
+        Row: {
+          acceptance: Json
+          audit: Json
+          constraints: Json
+          created_at: string
+          expected_behavior: Json
+          goals: Json
+          id: string
+          interface: Json
+          invariants: Json
+          requirements: Json
+          session_id: string
+          test_model: Json
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          acceptance?: Json
+          audit?: Json
+          constraints?: Json
+          created_at?: string
+          expected_behavior?: Json
+          goals?: Json
+          id?: string
+          interface?: Json
+          invariants?: Json
+          requirements?: Json
+          session_id: string
+          test_model?: Json
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          acceptance?: Json
+          audit?: Json
+          constraints?: Json
+          created_at?: string
+          expected_behavior?: Json
+          goals?: Json
+          id?: string
+          interface?: Json
+          invariants?: Json
+          requirements?: Json
+          session_id?: string
+          test_model?: Json
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_contract_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifact_experience: {
+        Row: {
+          actions: Json
+          context: Json
+          created_at: string
+          defects: Json
+          id: string
+          initial_model: Json
+          learning_event_id: string | null
+          observations: Json
+          outcome: string
+          pattern_id: string | null
+          patterns_used: Json
+          repairs: Json
+          session_id: string
+          task: string
+          user_feedback: string | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          actions?: Json
+          context?: Json
+          created_at?: string
+          defects?: Json
+          id?: string
+          initial_model?: Json
+          learning_event_id?: string | null
+          observations?: Json
+          outcome?: string
+          pattern_id?: string | null
+          patterns_used?: Json
+          repairs?: Json
+          session_id: string
+          task?: string
+          user_feedback?: string | null
+          user_id: string
+          version?: number
+        }
+        Update: {
+          actions?: Json
+          context?: Json
+          created_at?: string
+          defects?: Json
+          id?: string
+          initial_model?: Json
+          learning_event_id?: string | null
+          observations?: Json
+          outcome?: string
+          pattern_id?: string | null
+          patterns_used?: Json
+          repairs?: Json
+          session_id?: string
+          task?: string
+          user_feedback?: string | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_experience_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artifact_ledger: {
         Row: {
           arch: string | null
@@ -939,6 +1069,248 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      artifact_observation: {
+        Row: {
+          channel: string
+          detail: Json
+          id: string
+          level: string
+          message: string
+          observed_at: string
+          session_id: string
+          source: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          channel: string
+          detail?: Json
+          id?: string
+          level?: string
+          message: string
+          observed_at?: string
+          session_id: string
+          source: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          channel?: string
+          detail?: Json
+          id?: string
+          level?: string
+          message?: string
+          observed_at?: string
+          session_id?: string
+          source?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_observation_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifact_repair: {
+        Row: {
+          change_set: Json
+          created_at: string
+          diagnosis: string
+          from_version: number
+          hypotheses: Json
+          id: string
+          rerun_result: string | null
+          scope: string
+          session_id: string
+          to_version: number | null
+          user_id: string
+        }
+        Insert: {
+          change_set?: Json
+          created_at?: string
+          diagnosis?: string
+          from_version?: number
+          hypotheses?: Json
+          id?: string
+          rerun_result?: string | null
+          scope?: string
+          session_id: string
+          to_version?: number | null
+          user_id: string
+        }
+        Update: {
+          change_set?: Json
+          created_at?: string
+          diagnosis?: string
+          from_version?: number
+          hypotheses?: Json
+          id?: string
+          rerun_result?: string | null
+          scope?: string
+          session_id?: string
+          to_version?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_repair_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifact_session: {
+        Row: {
+          active_version: number
+          capability: string
+          capability_reason: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          lifecycle: string
+          lifecycle_reason: string | null
+          modality: string
+          project_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_version?: number
+          capability?: string
+          capability_reason?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          lifecycle?: string
+          lifecycle_reason?: string | null
+          modality?: string
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_version?: number
+          capability?: string
+          capability_reason?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          lifecycle?: string
+          lifecycle_reason?: string | null
+          modality?: string
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      artifact_validation: {
+        Row: {
+          checks: Json
+          created_at: string
+          defects: Json
+          id: string
+          session_id: string
+          user_id: string
+          verdict: string
+          version: number
+        }
+        Insert: {
+          checks?: Json
+          created_at?: string
+          defects?: Json
+          id?: string
+          session_id: string
+          user_id: string
+          verdict?: string
+          version?: number
+        }
+        Update: {
+          checks?: Json
+          created_at?: string
+          defects?: Json
+          id?: string
+          session_id?: string
+          user_id?: string
+          verdict?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_validation_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artifact_version: {
+        Row: {
+          change_summary: string | null
+          created_at: string
+          dependencies: Json
+          feedback_source: string | null
+          files: Json
+          id: string
+          manifest: Json
+          parent_version: number | null
+          reason: string | null
+          runtime_meta: Json
+          session_id: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          created_at?: string
+          dependencies?: Json
+          feedback_source?: string | null
+          files?: Json
+          id?: string
+          manifest?: Json
+          parent_version?: number | null
+          reason?: string | null
+          runtime_meta?: Json
+          session_id: string
+          user_id: string
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          created_at?: string
+          dependencies?: Json
+          feedback_source?: string | null
+          files?: Json
+          id?: string
+          manifest?: Json
+          parent_version?: number | null
+          reason?: string | null
+          runtime_meta?: Json
+          session_id?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_version_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "artifact_session"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asha_alerts: {
         Row: {

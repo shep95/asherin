@@ -3,6 +3,7 @@
 
 import type { IntentRoute } from "@/lib/intelligence/intentRouter";
 import type { TaskFrame } from "@/lib/intelligence/types";
+import { wantsArtifact } from "@/lib/artifact/engine";
 import type { LaneKind, SurfaceKind, WorkspaceCapabilities, WorkspacePlan, WorkspaceSurface } from "./types";
 
 const SENSOR_WORDS =
@@ -33,6 +34,12 @@ export function chooseLane(input: PlannerInput): { lane: LaneKind; reasons: stri
   const { message } = input;
   const reasons: string[] = [];
   const sensor = SENSOR_WORDS.test(message);
+
+  // a request for a concrete, inspectable result leads with the artifact lane.
+  if (wantsArtifact(message) && !sensor) {
+    reasons.push("the request asks for a concrete artifact, so it is built, run where possible, and validated");
+    return { lane: "artifact", reasons };
+  }
   const research = RESEARCH_WORDS.test(message);
   const place = PLACE_WORDS.test(message);
 
@@ -82,6 +89,11 @@ export function planWorkspace(input: PlannerInput): WorkspacePlan {
     }
   } else if (lane === "spatial") {
     surfaces.push(surface("map", cap.geocoding, cap.geocodingReason));
+  } else if (lane === "artifact") {
+    // the artifact surface owns its own lifecycle: it models, builds, runs
+    // where it can, and validates. it is marked ready with the request it
+    // must satisfy, never with invented content.
+    surfaces.push({ kind: "artifact", state: "ready", payload: { kind: "artifact", request: input.message } });
   }
 
   return { lane, reasons, surfaces, degraded: [] };

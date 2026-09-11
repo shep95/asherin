@@ -16,9 +16,10 @@ export type SurfaceKind =
   | "graph"
   | "table"
   | "evidence"
-  | "cameras";
+  | "cameras"
+  | "artifact";
 
-export type LaneKind = "research" | "sensor" | "spatial" | "files" | "none";
+export type LaneKind = "research" | "sensor" | "spatial" | "files" | "artifact" | "none";
 
 export type CardKind =
   | "entity"
@@ -131,6 +132,7 @@ export interface TablePayload {
 
 export type SurfacePayload =
   | { kind: "answer" }
+  | { kind: "artifact"; request: string }
   | { kind: "cards"; cards: WorkspaceCard[] }
   | { kind: "map"; map: MapPayload }
   | { kind: "timeline"; items: TimelineItem[] }

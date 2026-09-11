@@ -8,6 +8,7 @@ import WorkspaceTimeline from "./WorkspaceTimeline";
 import WorkspaceGraph from "./WorkspaceGraph";
 import EvidencePanel from "./EvidencePanel";
 import WorkspaceMap from "./WorkspaceMap";
+import ArtifactSurface from "./artifact/ArtifactSurface";
 import type { SurfaceKind, WorkspacePlan, WorkspaceSurface } from "@/lib/workspace/types";
 
 const TITLE: Record<SurfaceKind, string> = {
@@ -19,11 +20,15 @@ const TITLE: Record<SurfaceKind, string> = {
   table: "table",
   evidence: "evidence",
   cameras: "cameras",
+  artifact: "artifact",
 };
 
 interface Props {
   plan: WorkspacePlan;
   visible?: SurfaceKind[];
+  /** the answer this workspace belongs to — the artifact surface builds from it. */
+  answer?: string;
+  conversationId?: string | null;
 }
 
 function SurfaceShell({
@@ -57,7 +62,7 @@ function SurfaceShell({
   );
 }
 
-const WorkspacePanel = ({ plan, visible }: Props) => {
+const WorkspacePanel = ({ plan, visible, answer = "", conversationId = null }: Props) => {
   const [selected, setSelected] = useState<string | undefined>();
 
   const surfaces = plan.surfaces.filter(
@@ -95,6 +100,9 @@ const WorkspacePanel = ({ plan, visible }: Props) => {
             {p?.kind === "graph" && <WorkspaceGraph graph={p.graph} selectedId={selected} onSelect={setSelected} />}
             {p?.kind === "evidence" && (
               <EvidencePanel items={p.items} selectedId={selected} onSelect={(i) => setSelected(i.id)} />
+            )}
+            {p?.kind === "artifact" && (
+              <ArtifactSurface request={p.request} answer={answer} conversationId={conversationId} />
             )}
           </SurfaceShell>
         );
