@@ -88,7 +88,7 @@ const ArtifactBuildPane = ({
         </p>
         {health && (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            {health.state} — {health.detail}
+            {health.detail}
           </p>
         )}
         <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">

@@ -33,7 +33,7 @@ const ArtifactPreviewPane = ({
           <h2 className="text-sm tracking-wide text-foreground">preview</h2>
           {health && (
             <span className="text-[11px] text-muted-foreground">
-              {health.state} — {health.detail}
+              {health.detail}
             </span>
           )}
           <div className="flex-1" />
