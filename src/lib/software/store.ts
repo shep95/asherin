@@ -5,6 +5,7 @@
 // browser can never take effect — the values sent here are for typing only.
 
 import { supabase } from "@/integrations/supabase/client";
+import { appRoute, nextPosition } from "./navigation";
 import type { Json } from "@/integrations/supabase/types";
 import {
   LEAST_PRIVILEGE,
@@ -102,7 +103,9 @@ function mapNav(row: Loose): NavigationItem {
     id: String(row.id),
     ownerUserId: String(row.owner_user_id),
     artifactId: (row.artifact_id as string) ?? null,
+    installationId: (row.installation_id as string) ?? null,
     source: row.source as NavigationItem["source"],
+    section: (row.section as NavigationItem["section"]) ?? "installed",
     displayName: String(row.display_name),
     icon: (row.icon as string) ?? null,
     route: String(row.route),
@@ -439,6 +442,8 @@ export async function upsertNavigationItem(input: {
   icon?: string | null;
   position?: number;
   enabled?: boolean;
+  section?: NavigationItem["section"];
+  installationId?: string | null;
 }): Promise<NavigationItem> {
   const { data, error } = await supabase
     .from("software_navigation_item")
@@ -451,6 +456,8 @@ export async function upsertNavigationItem(input: {
       icon: input.icon ?? null,
       position: input.position ?? 0,
       enabled: input.enabled ?? true,
+      section: input.section ?? "installed",
+      installation_id: input.installationId ?? null,
     })
     .select("*")
     .single();
@@ -461,6 +468,38 @@ export async function upsertNavigationItem(input: {
 export async function setNavigationEnabled(id: string, enabled: boolean): Promise<void> {
   const { error } = await supabase.from("software_navigation_item").update({ enabled }).eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * A rename touches the label and nothing else — not the route, not the
+ * artifact, not the installation. Identity is the id.
+ */
+export async function renameNavigationItem(id: string, displayName: string): Promise<void> {
+  const name = displayName.trim();
+  if (!name) throw new Error("a name cannot be empty");
+  const { error } = await supabase.from("software_navigation_item").update({ display_name: name }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setNavigationIcon(id: string, icon: string | null): Promise<void> {
+  const { error } = await supabase.from("software_navigation_item").update({ icon }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function setNavigationSection(id: string, section: NavigationItem["section"]): Promise<void> {
+  const { error } = await supabase.from("software_navigation_item").update({ section }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Persist a whole order in one pass so no row is left with a stale slot. */
+export async function persistNavigationOrder(items: NavigationItem[]): Promise<void> {
+  for (const [index, item] of items.entries()) {
+    const { error } = await supabase
+      .from("software_navigation_item")
+      .update({ position: index })
+      .eq("id", item.id);
+    if (error) throw error;
+  }
 }
 
 export async function deleteNavigationItem(id: string): Promise<void> {
@@ -483,16 +522,22 @@ export async function installArtifact(input: {
   installedName?: string;
   grants?: PermissionManifest;
   addToNavigation?: boolean;
+  section?: NavigationItem["section"];
+  icon?: string | null;
+  configuration?: Record<string, unknown>;
 }): Promise<Installation> {
   const name = input.installedName?.trim() || input.artifact.displayName;
   let navId: string | null = null;
   if (input.addToNavigation) {
+    const existing = await listNavigationItems();
     const nav = await upsertNavigationItem({
       userId: input.userId,
       artifactId: input.artifact.id,
       displayName: name,
-      route: `/dashboard/software/${input.artifact.id}`,
-      icon: input.artifact.icon,
+      route: appRoute(input.artifact.id),
+      icon: input.icon ?? input.artifact.icon,
+      section: input.section ?? "installed",
+      position: nextPosition(existing, input.section ?? "installed"),
     });
     navId = nav.id;
   }
@@ -504,11 +549,18 @@ export async function installArtifact(input: {
       artifact_version_id: input.versionId,
       navigation_item_id: navId,
       installed_name: name,
+      configuration: j(input.configuration ?? {}),
       permission_grants: j(input.grants ?? input.artifact.permissionManifest),
     })
     .select("*")
     .single();
   if (error) throw error;
+  if (navId) {
+    await supabase
+      .from("software_navigation_item")
+      .update({ installation_id: (data as Loose).id as string })
+      .eq("id", navId);
+  }
   await recordEvent({
     artifactId: input.artifact.id,
     type: "artifact.installed",
@@ -539,6 +591,63 @@ export async function setInstallationEnabled(installation: Installation, enabled
   const { error } = await supabase.from("software_installation").update({ enabled }).eq("id", installation.id);
   if (error) throw error;
   if (installation.navigationItemId) await setNavigationEnabled(installation.navigationItemId, enabled);
+}
+
+/** The label a person chose for their copy. Identity is untouched. */
+export async function renameInstallation(installation: Installation, name: string): Promise<void> {
+  const next = name.trim();
+  if (!next) throw new Error("a name cannot be empty");
+  const { error } = await supabase
+    .from("software_installation")
+    .update({ installed_name: next })
+    .eq("id", installation.id);
+  if (error) throw error;
+  if (installation.navigationItemId) await renameNavigationItem(installation.navigationItemId, next);
+}
+
+/** Installation-specific settings. Never a place for a credential. */
+export async function updateInstallationConfiguration(
+  installation: Installation,
+  configuration: Record<string, unknown>,
+): Promise<void> {
+  if (containsCredentialMaterial(configuration)) {
+    throw new Error("settings cannot hold a key or password — connect an integration instead");
+  }
+  const { error } = await supabase
+    .from("software_installation")
+    .update({ configuration: j(configuration) })
+    .eq("id", installation.id);
+  if (error) throw error;
+}
+
+/** A new capability is never granted quietly — the caller has already asked. */
+export async function grantInstallationPermissions(
+  installation: Installation,
+  grants: PermissionManifest,
+  actorUserId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("software_installation")
+    .update({ permission_grants: j(grants), update_state: "current" })
+    .eq("id", installation.id);
+  if (error) throw error;
+  await recordEvent({
+    artifactId: installation.artifactId,
+    type: "artifact.permission_changed",
+    actorUserId,
+    metadata: { granted: grants.granted },
+  });
+}
+
+/** Deletes every row an artifact stored for itself. Nothing outside it. */
+export async function deleteArtifactData(artifactId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("software_artifact_data")
+    .delete()
+    .eq("artifact_id", artifactId)
+    .select("id");
+  if (error) throw error;
+  return (data ?? []).length;
 }
 
 /**

@@ -28,6 +28,7 @@ import ArtifactStatusBadge from "./ArtifactStatusBadge";
 import ArtifactAiPanel from "./ArtifactAiPanel";
 import ArtifactBuildPane from "./ArtifactBuildPane";
 import { preflight } from "@/lib/software/install";
+import InstallDialog from "./InstallDialog";
 import { providerForClass, type RuntimeController, type RuntimeSession } from "@/lib/software/runtime";
 import { recordAction } from "@/lib/software/actions";
 import ArtifactConsole, { mergeConsole } from "./ArtifactConsole";
@@ -79,6 +80,7 @@ const ArtifactWorkspace = ({
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [runs, setRuns] = useState<ArtifactRun[]>([]);
   const [session, setSession] = useState<RuntimeSession | null>(null);
+  const [installOpen, setInstallOpen] = useState(false);
 
   // the runtime is reached through its provider, never by poking the frame.
   const runtime = useMemo(() => providerForClass(artifact?.runtimeType ?? "client_browser"), [artifact?.runtimeType]);
@@ -425,21 +427,7 @@ const ArtifactWorkspace = ({
                       toast.success("details saved");
                     })
                   }
-                  onInstall={() =>
-                    void guard("install failed", async () => {
-                      if (!installPreflight.eligible) {
-                        toast.error(installPreflight.summary);
-                        return;
-                      }
-                      await installArtifact({
-                        userId: user!.id,
-                        artifact,
-                        versionId: currentVersion?.id ?? null,
-                        addToNavigation: true,
-                      });
-                      toast.success("installed and added to your sidebar");
-                    })
-                  }
+                  onInstall={() => setInstallOpen(true)}
                   onToggleInstall={() =>
                     void guard("could not change this installation", async () => {
                       await setInstallationEnabled(installation!, !installation!.enabled);
@@ -448,6 +436,7 @@ const ArtifactWorkspace = ({
                   onUninstall={() =>
                     void guard("could not uninstall", async () => {
                       await uninstallArtifact({ installation: installation!, actorUserId: user!.id });
+                      await refreshRegistry();
                       toast.success("uninstalled — the artifact and its versions are kept");
                     })
                   }
@@ -463,6 +452,38 @@ const ArtifactWorkspace = ({
               </div>
             )}
           </main>
+
+          {installOpen && (
+            <InstallDialog
+              artifact={artifact}
+              version={currentVersion}
+              preflight={installPreflight}
+              busy={busy}
+              onCancel={() => setInstallOpen(false)}
+              onConfirm={(choice) =>
+                void guard("install failed", async () => {
+                  if (!installPreflight.eligible) {
+                    toast.error(installPreflight.summary);
+                    return;
+                  }
+                  await installArtifact({
+                    userId: user!.id,
+                    artifact,
+                    versionId: currentVersion?.id ?? null,
+                    addToNavigation: true,
+                    installedName: choice.installedName,
+                    icon: choice.icon,
+                    section: choice.section,
+                    grants: choice.grants,
+                    configuration: choice.configuration,
+                  });
+                  setInstallOpen(false);
+                  await refreshRegistry();
+                  toast.success("installed and added to your sidebar");
+                })
+              }
+            />
+          )}
 
           {(pane === "build" || pane === "code") && (
             <aside className="w-full shrink-0 border-t border-border/10 lg:w-[22rem] lg:border-l lg:border-t-0">

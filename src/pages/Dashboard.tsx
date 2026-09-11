@@ -31,6 +31,7 @@ import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
 const SoftwareView = lazyWithRetry(() => import("@/components/dashboard/software/SoftwareView"));
 const ArtifactWorkspace = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactWorkspace"));
+const InstalledAppHost = lazyWithRetry(() => import("@/components/dashboard/software/InstalledAppHost"));
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
@@ -258,6 +259,7 @@ const Dashboard = () => {
     if (!raw) return null;
     if ((VALID_VIEWS as string[]).includes(raw)) return raw as DashboardView;
     if (VIEW_ALIASES[raw]) return VIEW_ALIASES[raw];
+    if (raw === "app") return "app" as DashboardView;
     if (raw.startsWith("agent:")) return raw as DashboardView;
     return null;
   };
@@ -2207,6 +2209,18 @@ const Dashboard = () => {
               <div className="h-full w-full min-h-0">
                 <WhiteboardView />
               </div>
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "app" as DashboardView:
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              {artifactIdParam ? (
+                <InstalledAppHost artifactId={artifactIdParam} onBack={() => navigate("/dashboard/software")} />
+              ) : (
+                <SoftwareView onOpen={(id) => navigate(`/dashboard/software/${id}`)} />
+              )}
             </Suspense>
           </ErrorBoundary>
         );

@@ -14863,9 +14863,11 @@ export type Database = {
           enabled: boolean
           icon: string | null
           id: string
+          installation_id: string | null
           owner_user_id: string
           position: number
           route: string
+          section: string
           source: string
           updated_at: string
           visibility: string
@@ -14878,9 +14880,11 @@ export type Database = {
           enabled?: boolean
           icon?: string | null
           id?: string
+          installation_id?: string | null
           owner_user_id: string
           position?: number
           route: string
+          section?: string
           source?: string
           updated_at?: string
           visibility?: string
@@ -14893,9 +14897,11 @@ export type Database = {
           enabled?: boolean
           icon?: string | null
           id?: string
+          installation_id?: string | null
           owner_user_id?: string
           position?: number
           route?: string
+          section?: string
           source?: string
           updated_at?: string
           visibility?: string
@@ -14906,6 +14912,13 @@ export type Database = {
             columns: ["artifact_id"]
             isOneToOne: false
             referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "software_navigation_item_installation_id_fkey"
+            columns: ["installation_id"]
+            isOneToOne: false
+            referencedRelation: "software_installation"
             referencedColumns: ["id"]
           },
         ]
