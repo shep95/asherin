@@ -87,7 +87,7 @@ const ArtifactTestPane = ({
       which === "affected"
         ? planTests({ checks, changedPaths, files, previousFailures: failedCheckIds(runs[0]?.results ?? []) })
         : null;
-    const scoped = plan ? [...plan.focused, ...plan.regression] : scope(which);
+    const scoped = plan ? [...plan.focused, ...plan.regression] : scope(which as "all" | "failed" | "selected");
     const runScope: ArtifactRun["scope"] = plan ? plan.scope : which === "all" ? "all" : "focused";
     const startedAt = new Date().toISOString();
     setBusy(true);
