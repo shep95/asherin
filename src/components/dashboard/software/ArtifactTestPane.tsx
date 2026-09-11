@@ -85,20 +85,24 @@ const ArtifactTestPane = ({
           observations: [],
           unavailableReason: sandbox.build.unavailableReason ?? "the artifact could not be prepared to run",
         });
-        setRuns((prev) => [recorded, ...prev]);
+        setRuns((prev) => {
+          const next = [recorded, ...prev];
+          onRuns?.(next);
+          return next;
+        });
         toast.error("could not run", { description: recorded.unavailableReason ?? undefined });
         return;
       }
-      if (!checks.length) {
-        toast.error("add at least one check first");
+      if (!scoped.length) {
+        toast.error(which === "all" ? "add at least one check first" : "no checks match that selection");
         return;
       }
       sandbox.start();
       // let the frame load, execute and paint before it is questioned.
       await new Promise((r) => window.setTimeout(r, 1200));
-      const probes = await sandbox.probe(checks);
+      const probes = await sandbox.probe(scoped);
       const observations = sandbox.snapshot();
-      const results = evaluateChecks(checks, observations, probes);
+      const results = evaluateChecks(scoped, observations, probes);
       const recorded = await recordRun({
         artifactId,
         userId: user.id,
@@ -107,7 +111,11 @@ const ArtifactTestPane = ({
         results,
         observations,
       });
-      setRuns((prev) => [recorded, ...prev]);
+      setRuns((prev) => {
+        const next = [recorded, ...prev];
+        onRuns?.(next);
+        return next;
+      });
       toast[recorded.status === "passed" ? "success" : "error"](`run ${recorded.status}`);
     } catch (e) {
       toast.error("the run failed", { description: e instanceof Error ? e.message : "unknown failure" });
