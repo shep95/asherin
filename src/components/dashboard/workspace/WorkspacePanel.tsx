@@ -101,6 +101,9 @@ const WorkspacePanel = ({ plan, visible, answer = "", conversationId = null }: P
             {p?.kind === "evidence" && (
               <EvidencePanel items={p.items} selectedId={selected} onSelect={(i) => setSelected(i.id)} />
             )}
+            {p?.kind === "artifact" && (
+              <ArtifactSurface request={p.request} answer={answer} conversationId={conversationId} />
+            )}
           </SurfaceShell>
         );
       })}
