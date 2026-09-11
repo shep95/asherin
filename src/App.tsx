@@ -594,7 +594,7 @@ const AppShell = () => {
                         />
                       ))}
                       <Route
-                        path="/dashboard/:view?"
+                        path="/dashboard/:view?/:artifactId?"
                         element={
                           <ProtectedRoute>
                             <Dashboard />

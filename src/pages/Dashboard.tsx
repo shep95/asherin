@@ -29,6 +29,8 @@ import { DashboardUiProvider } from "@/lib/dashboardUiContext";
 import { getActiveScope } from "@/lib/projects/scope";
 import V2PageShell from "@/components/dashboard/v2/V2PageShell";
 import { v2TitleFor } from "@/lib/dashboard/v2Titles";
+const SoftwareView = lazyWithRetry(() => import("@/components/dashboard/software/SoftwareView"));
+const ArtifactWorkspace = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactWorkspace"));
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
@@ -184,7 +186,7 @@ const Dashboard = () => {
   });
   const asherEmbed =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
-  const { view: viewParam } = useParams<{ view?: string }>();
+  const { view: viewParam, artifactId: artifactIdParam } = useParams<{ view?: string; artifactId?: string }>();
   const navigate = useNavigate();
   const VALID_VIEWS: DashboardView[] = [
     "chat",
@@ -226,6 +228,7 @@ const Dashboard = () => {
     "asherin-sentinel",
     "asherin-health",
     "investigations",
+    "software",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -2200,6 +2203,21 @@ const Dashboard = () => {
               <div className="h-full w-full min-h-0">
                 <WhiteboardView />
               </div>
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "software":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              {artifactIdParam ? (
+                <ArtifactWorkspace
+                  artifactId={artifactIdParam}
+                  onBack={() => navigate("/dashboard/software")}
+                />
+              ) : (
+                <SoftwareView onOpen={(id) => navigate(`/dashboard/software/${id}`)} />
+              )}
             </Suspense>
           </ErrorBoundary>
         );
