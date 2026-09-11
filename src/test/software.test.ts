@@ -148,7 +148,7 @@ describe("navigation registry", () => {
         ownerUserId: "u1",
         artifactId: null,
         installationId: null,
-        section: "shortcuts",
+        section: "installed",
         source: "user",
         displayName: "a shortcut",
         icon: null,
