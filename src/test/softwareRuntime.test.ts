@@ -10,6 +10,8 @@ const file = (path: string, content: string): ArtifactFile => ({
   path,
   content,
   mime: mimeForPath(path),
+  origin: "user",
+  deletedAt: null,
   updatedAt: new Date().toISOString(),
 });
 
