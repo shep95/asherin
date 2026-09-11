@@ -10,6 +10,7 @@ import {
   getArtifact,
   listArtifacts,
   listEvents,
+  getMemberRole,
   listInstallations,
   listNavigationItems,
   listVersions,

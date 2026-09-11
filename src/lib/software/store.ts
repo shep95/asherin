@@ -524,3 +524,18 @@ export async function setInstallationEnabled(installation: Installation, enabled
   if (error) throw error;
   if (installation.navigationItemId) await setNavigationEnabled(installation.navigationItemId, enabled);
 }
+
+/**
+ * The caller's membership role on an artifact they do not own.
+ * Returns null when there is no membership row — visibility alone grants nothing.
+ */
+export async function getMemberRole(artifactId: string, userId: string): Promise<ArtifactRole | null> {
+  const { data, error } = await supabase
+    .from("software_artifact_member")
+    .select("role")
+    .eq("artifact_id", artifactId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.role as ArtifactRole;
+}
