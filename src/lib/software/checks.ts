@@ -96,5 +96,6 @@ export function runStatus(results: CheckResult[]): "passed" | "failed" | "unavai
   if (!results.length) return "unavailable";
   if (results.some((r) => r.status === "failed")) return "failed";
   if (results.every((r) => r.status === "passed")) return "passed";
-  return "failed";
+  // some question went unanswered: the run proved nothing either way.
+  return "unavailable";
 }
