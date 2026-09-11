@@ -143,27 +143,36 @@ export function useArtifactWorkspace(artifactId: string | null): ArtifactWorkspa
   const [loading, setLoading] = useState(!!artifactId);
   const [error, setError] = useState<string | null>(null);
 
+  const [memberRole, setMemberRole] = useState<ArtifactRole | null>(null);
+
   const reload = useCallback(async () => {
     if (!artifactId) {
       setArtifact(null);
       setVersions([]);
       setEvents([]);
+      setMemberRole(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const [a, v, e] = await Promise.all([getArtifact(artifactId), listVersions(artifactId), listEvents(artifactId)]);
+      const [a, v, e, m] = await Promise.all([
+        getArtifact(artifactId),
+        listVersions(artifactId),
+        listEvents(artifactId),
+        user ? getMemberRole(artifactId, user.id) : Promise.resolve(null),
+      ]);
       setArtifact(a);
       setVersions(v);
       setEvents(e);
+      setMemberRole(m);
       setError(a ? null : "this artifact does not exist, or you do not have access to it");
     } catch (err) {
       setError(err instanceof Error ? err.message : "could not load this artifact");
     } finally {
       setLoading(false);
     }
-  }, [artifactId]);
+  }, [artifactId, user]);
 
   useEffect(() => {
     void reload();
@@ -172,7 +181,13 @@ export function useArtifactWorkspace(artifactId: string | null): ArtifactWorkspa
   const installation = installations.find((i) => i.artifactId === artifactId) ?? null;
   const navigationItem = navigation.find((n) => n.artifactId === artifactId) ?? null;
   const currentVersion = versions.find((v) => v.id === artifact?.currentVersionId) ?? versions[0] ?? null;
-  const role: ArtifactRole | null = artifact ? (artifact.ownerUserId === user?.id ? "owner" : "collaborator") : null;
+  // Ownership wins; otherwise the role is whatever the membership record grants.
+  // A visible artifact with no membership row is read-only, never a collaborator.
+  const role: ArtifactRole | null = !artifact
+    ? null
+    : artifact.ownerUserId === user?.id
+      ? "owner"
+      : memberRole;
 
   return {
     artifact,
@@ -191,5 +206,7 @@ export function useArtifactWorkspace(artifactId: string | null): ArtifactWorkspa
     latestValidation: currentVersion?.validationStatus ?? null,
     loading,
     error,
+    reload,
   };
 }
+
