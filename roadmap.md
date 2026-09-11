@@ -82,3 +82,6 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - artifact-owned data store with contract validation; named checkpoints shown in history.
 - chat turns can be kept as a persistent application that opens in the same workspace.
 - verified live: sandbox rendered, checks passed and failed truthfully, repair widened, checkpoint stored, install blocked with reason. 63 software tests, typecheck and production build pass.
+- runtime provider lifecycle formalised: prepare/build/start/stop/collectObservations/getLogs/health, driven through a controller; the run button now goes through the provider and shows live health.
+- build provider boundary added (static assembly available; package/compile and server build declared configuration required) with a per-capability matrix in Build.
+- model changes can be undone one at a time from the asherin panel, recorded as the person's own action.
