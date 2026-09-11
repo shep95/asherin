@@ -51,6 +51,9 @@ const ArtifactAiPanel = ({
   const [choices, setChoices] = useState<Record<string, "apply" | "keep" | "merge">>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [undoStack, setUndoStack] = useState<
+    Array<{ intent: string; entries: Array<{ path: string; existed: boolean; content: string }> }>
+  >([]);
   const { user } = useAuth();
 
   const errors = useMemo(
@@ -113,6 +116,39 @@ const ArtifactAiPanel = ({
     }
   };
 
+  const undoLast = async () => {
+    const entry = undoStack[undoStack.length - 1];
+    if (!entry || !canWrite) return;
+    setApplying(true);
+    try {
+      for (const item of entry.entries) {
+        if (item.existed) {
+          ws.edit(item.path, item.content);
+          await ws.save(item.path);
+        } else {
+          const file = ws.files.find((f) => f.path === item.path);
+          if (file) await ws.remove(file);
+        }
+        if (user) {
+          await recordAction({
+            action: item.existed ? "edit_file" : "delete_file",
+            actor: "user",
+            artifactId: artifact.id,
+            actorUserId: user.id,
+            target: item.path,
+            detail: { undo: true, of: entry.intent },
+          }).catch(() => undefined);
+        }
+      }
+      setUndoStack((stack) => stack.slice(0, -1));
+      ws.note({ channel: "ai", level: "info", message: `undid: ${entry.intent}` });
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : "that change could not be undone");
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const apply = async () => {
     if (!proposal) return;
     const accepted = proposal.changes.filter(
@@ -128,7 +164,13 @@ const ArtifactAiPanel = ({
         conflictLines += merged.conflictLines;
         return { path: c.path, content: merged.text ?? c.currentContent };
       });
+      const before = accepted.map((c) => ({
+        path: c.path,
+        existed: c.status !== "new",
+        content: c.currentContent,
+      }));
       await ws.applyAiContent(writes);
+      setUndoStack((stack) => [...stack.slice(-9), { intent: proposal.intent, entries: before }]);
       if (user) {
         await Promise.all(
           accepted.map((c) =>
@@ -176,6 +218,17 @@ const ArtifactAiPanel = ({
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive/90">
             {failure}
           </div>
+        )}
+
+        {undoStack.length > 0 && canWrite && (
+          <button
+            onClick={() => void undoLast()}
+            disabled={applying}
+            className="w-full rounded-lg border border-border/30 px-2.5 py-1.5 text-left text-[11px] text-muted-foreground disabled:opacity-40 hover:text-foreground"
+          >
+            undo asherin's last change — “{undoStack[undoStack.length - 1].intent}”
+            {undoStack.length > 1 ? ` (${undoStack.length} can be undone in turn)` : ""}
+          </button>
         )}
 
         {!proposal && !thinking && (

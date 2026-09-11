@@ -7,30 +7,48 @@
 import { Play, RotateCcw, Square } from "lucide-react";
 import { SANDBOX_ATTR, SANDBOX_LIMITS } from "@/lib/software/preview";
 import type { ArtifactSandbox } from "@/hooks/useArtifactSandbox";
+import type { RuntimeHealth } from "@/lib/software/runtime";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 
-const ArtifactPreviewPane = ({ sandbox }: { sandbox: ArtifactSandbox }) => {
+const ArtifactPreviewPane = ({
+  sandbox,
+  health,
+  onStart,
+  onStop,
+}: {
+  sandbox: ArtifactSandbox;
+  health?: RuntimeHealth;
+  onStart?: () => void;
+  onStop?: () => void;
+}) => {
   const { build, observations, running, runKey, frameRef, start, stop } = sandbox;
+  const begin = onStart ?? start;
+  const end = onStop ?? stop;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       <section className={`${card} overflow-hidden`}>
         <div className="flex items-center gap-2 border-b border-border/15 px-4 py-2.5">
           <h2 className="text-sm tracking-wide text-foreground">preview</h2>
+          {health && (
+            <span className="text-[11px] text-muted-foreground">
+              {health.state} — {health.detail}
+            </span>
+          )}
           <div className="flex-1" />
           {running ? (
             <>
-              <button onClick={start} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
+              <button onClick={begin} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
                 <RotateCcw className="h-3.5 w-3.5" /> restart
               </button>
-              <button onClick={stop} className="ml-3 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
+              <button onClick={end} className="ml-3 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
                 <Square className="h-3.5 w-3.5" /> stop
               </button>
             </>
           ) : (
             <button
-              onClick={start}
+              onClick={begin}
               disabled={!build.ok}
               className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] text-primary disabled:border-border/30 disabled:text-muted-foreground hover:bg-primary/10"
             >

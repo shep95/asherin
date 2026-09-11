@@ -28,6 +28,8 @@ import ArtifactStatusBadge from "./ArtifactStatusBadge";
 import ArtifactAiPanel from "./ArtifactAiPanel";
 import ArtifactBuildPane from "./ArtifactBuildPane";
 import { preflight } from "@/lib/software/install";
+import { providerForClass, type RuntimeController, type RuntimeSession } from "@/lib/software/runtime";
+import { recordAction } from "@/lib/software/actions";
 import ArtifactConsole, { mergeConsole } from "./ArtifactConsole";
 import ArtifactDataPane from "./ArtifactDataPane";
 import ArtifactEditor from "./ArtifactEditor";
@@ -76,6 +78,25 @@ const ArtifactWorkspace = ({
   const [busy, setBusy] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [runs, setRuns] = useState<ArtifactRun[]>([]);
+  const [session, setSession] = useState<RuntimeSession | null>(null);
+
+  // the runtime is reached through its provider, never by poking the frame.
+  const runtime = useMemo(() => providerForClass(artifact?.runtimeType ?? "client_browser"), [artifact?.runtimeType]);
+  const controller: RuntimeController = useMemo(
+    () => ({
+      start: sandbox.start,
+      stop: sandbox.stop,
+      observations: sandbox.snapshot,
+      running: () => sandbox.running,
+    }),
+    [sandbox],
+  );
+  const health = useMemo(
+    () => runtime.health(session, controller),
+    // observations move as the artifact talks, so health is re-read with them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [runtime, session, controller, sandbox.observations, sandbox.running],
+  );
 
   useEffect(() => {
     let alive = true;
@@ -158,6 +179,36 @@ const ArtifactWorkspace = ({
         : null,
     [artifact, runs, ws.workingFiles],
   );
+
+  const startRuntime = useCallback(() => {
+    const prepared = runtime.build(ws.workingFiles);
+    const started = runtime.start(prepared, controller);
+    if (!started) {
+      ws.note({
+        channel: "build",
+        level: "error",
+        message: prepared.unavailableReason ?? prepared.errors[0] ?? "the artifact could not be prepared to run",
+      });
+      setConsoleOpen(true);
+      return;
+    }
+    setSession(started);
+    if (user) {
+      void recordAction({
+        action: "run_preview",
+        actor: "user",
+        artifactId,
+        versionId: currentVersion?.id ?? null,
+        actorUserId: user.id,
+        target: runtime.id,
+      }).catch(() => undefined);
+    }
+  }, [artifactId, controller, currentVersion?.id, runtime, user, ws]);
+
+  const stopRuntime = useCallback(() => {
+    if (!session) return;
+    setSession(runtime.stop(session, controller));
+  }, [controller, runtime, session]);
 
   const consoleLines = useMemo(() => mergeConsole(sandbox.observations, ws.log), [sandbox.observations, ws.log]);
   const implicated = useMemo(
@@ -264,7 +315,7 @@ const ArtifactWorkspace = ({
         <button
           onClick={() => {
             onMode("preview");
-            sandbox.start();
+            startRuntime();
           }}
           disabled={!sandbox.build.ok}
           className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-2.5 py-1 text-[11px] text-primary disabled:border-border/30 disabled:text-muted-foreground hover:bg-primary/10"
@@ -307,6 +358,7 @@ const ArtifactWorkspace = ({
                 dirtyCount={ws.dirtyPaths.length}
                 versions={versions}
                 lastRun={runs[0] ?? null}
+                health={health}
                 busy={busy}
                 canWrite={canWrite}
                 onCheckpoint={(label) => void checkpoint(label, label)}
@@ -319,7 +371,7 @@ const ArtifactWorkspace = ({
 
             {pane === "preview" && (
               <div className="p-4">
-                <ArtifactPreviewPane sandbox={sandbox} />
+                <ArtifactPreviewPane sandbox={sandbox} health={health} onStart={startRuntime} onStop={stopRuntime} />
               </div>
             )}
 
