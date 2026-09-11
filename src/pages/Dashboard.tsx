@@ -186,7 +186,11 @@ const Dashboard = () => {
   });
   const asherEmbed =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
-  const { view: viewParam, artifactId: artifactIdParam } = useParams<{ view?: string; artifactId?: string }>();
+  const {
+    view: viewParam,
+    artifactId: artifactIdParam,
+    mode: workspaceModeParam,
+  } = useParams<{ view?: string; artifactId?: string; mode?: string }>();
   const navigate = useNavigate();
   const VALID_VIEWS: DashboardView[] = [
     "chat",
