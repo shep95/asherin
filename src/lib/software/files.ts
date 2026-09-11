@@ -70,12 +70,26 @@ export function normalisePath(path: string): string {
   return clean;
 }
 
+/** Live files only. A recycled file is still stored but is not part of the artifact. */
 export async function listFiles(artifactId: string): Promise<ArtifactFile[]> {
   const { data, error } = await supabase
     .from("software_artifact_file")
     .select("*")
     .eq("artifact_id", artifactId)
+    .is("deleted_at", null)
     .order("path", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => mapFile(r as Loose));
+}
+
+/** Files someone deleted. Kept so a delete is reversible rather than final. */
+export async function listRecycledFiles(artifactId: string): Promise<ArtifactFile[]> {
+  const { data, error } = await supabase
+    .from("software_artifact_file")
+    .select("*")
+    .eq("artifact_id", artifactId)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((r) => mapFile(r as Loose));
 }
@@ -85,6 +99,8 @@ export async function saveFile(input: {
   userId: string;
   path: string;
   content: string;
+  /** who wrote this content. a manual edit is never recorded as the model's. */
+  origin?: ArtifactFile["origin"];
 }): Promise<ArtifactFile> {
   const path = normalisePath(input.path);
   const { data, error } = await supabase
@@ -96,6 +112,9 @@ export async function saveFile(input: {
         path,
         content: input.content,
         mime: mimeForPath(path),
+        origin: input.origin ?? "user",
+        // writing to a recycled path brings it back rather than colliding with it.
+        deleted_at: null,
       },
       { onConflict: "artifact_id,path" },
     )
@@ -105,10 +124,96 @@ export async function saveFile(input: {
   return mapFile(data as Loose);
 }
 
+/** Recycles a file. History keeps it; the artifact stops seeing it. */
 export async function deleteFile(id: string): Promise<void> {
-  const { error } = await supabase.from("software_artifact_file").delete().eq("id", id);
+  const { error } = await supabase
+    .from("software_artifact_file")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) throw error;
 }
+
+/**
+ * Brings a recycled file back. If a live file already holds the path, the
+ * restored copy lands beside it instead of overwriting present work.
+ */
+export async function restoreRecycledFile(input: {
+  file: ArtifactFile;
+  userId: string;
+  livePaths: string[];
+}): Promise<ArtifactFile> {
+  const target = input.livePaths.includes(input.file.path)
+    ? uniquePath(input.file.path, input.livePaths, "restored")
+    : input.file.path;
+  if (target !== input.file.path) {
+    return saveFile({
+      artifactId: input.file.artifactId,
+      userId: input.userId,
+      path: target,
+      content: input.file.content,
+      origin: input.file.origin,
+    });
+  }
+  const { data, error } = await supabase
+    .from("software_artifact_file")
+    .update({ deleted_at: null })
+    .eq("id", input.file.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapFile(data as Loose);
+}
+
+/** Renaming and moving are the same operation: the path is the location. */
+export async function moveFile(input: {
+  file: ArtifactFile;
+  toPath: string;
+  livePaths: string[];
+}): Promise<ArtifactFile> {
+  const path = normalisePath(input.toPath);
+  if (path !== input.file.path && input.livePaths.includes(path)) {
+    throw new Error(`${path} already exists in this artifact`);
+  }
+  const { data, error } = await supabase
+    .from("software_artifact_file")
+    .update({ path, mime: mimeForPath(path) })
+    .eq("id", input.file.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return mapFile(data as Loose);
+}
+
+export async function duplicateFile(input: {
+  file: ArtifactFile;
+  userId: string;
+  livePaths: string[];
+}): Promise<ArtifactFile> {
+  return saveFile({
+    artifactId: input.file.artifactId,
+    userId: input.userId,
+    path: uniquePath(input.file.path, input.livePaths, "copy"),
+    content: input.file.content,
+    origin: input.file.origin,
+  });
+}
+
+/** `src/app.ts` + `copy` → `src/app.copy.ts`, then `.copy-2.ts`, and so on. */
+export function uniquePath(path: string, taken: string[], suffix: string): string {
+  const dot = path.lastIndexOf(".");
+  const slash = path.lastIndexOf("/");
+  const hasExt = dot > slash + 1;
+  const stem = hasExt ? path.slice(0, dot) : path;
+  const ext = hasExt ? path.slice(dot) : "";
+  let candidate = `${stem}.${suffix}${ext}`;
+  let n = 2;
+  while (taken.includes(candidate)) {
+    candidate = `${stem}.${suffix}-${n}${ext}`;
+    n += 1;
+  }
+  return candidate;
+}
+
 
 /* ── checks ───────────────────────────────────────────────────────────── */
 
