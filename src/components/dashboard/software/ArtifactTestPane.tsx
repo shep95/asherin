@@ -78,7 +78,7 @@ const ArtifactTestPane = ({
       // let the frame load, execute and paint before it is questioned.
       await new Promise((r) => window.setTimeout(r, 1200));
       const probes = await sandbox.probe(checks);
-      const observations = sandbox.observations;
+      const observations = sandbox.snapshot();
       const results = evaluateChecks(checks, observations, probes);
       const recorded = await recordRun({
         artifactId,

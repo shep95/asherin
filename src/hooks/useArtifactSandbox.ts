@@ -18,6 +18,8 @@ export interface ArtifactSandbox {
   start: () => void;
   stop: () => void;
   clear: () => void;
+  /** the observations as they stand right now, free of render-time staleness. */
+  snapshot: () => RunObservation[];
   /** asks the running frame the dom questions a set of checks needs answered. */
   probe: (checks: ArtifactCheck[], timeoutMs?: number) => Promise<ProbeReply[]>;
 }
@@ -29,6 +31,7 @@ export function useArtifactSandbox(files: ArtifactFile[]): ArtifactSandbox {
   const [running, setRunning] = useState(false);
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const probeResolve = useRef<((r: ProbeReply[]) => void) | null>(null);
+  const observationsRef = useRef<RunObservation[]>([]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -43,11 +46,15 @@ export function useArtifactSandbox(files: ArtifactFile[]): ArtifactSandbox {
       }
       const msg = readSandboxMessage(event.data);
       if (!msg) return;
-      setObservations((prev) =>
-        prev.length > 300
-          ? prev
-          : [...prev, { channel: msg.channel as RunObservation["channel"], level: msg.level, message: msg.message, at: new Date().toISOString() }],
-      );
+      setObservations((prev) => {
+        if (prev.length > 300) return prev;
+        const next = [
+          ...prev,
+          { channel: msg.channel as RunObservation["channel"], level: msg.level, message: msg.message, at: new Date().toISOString() },
+        ];
+        observationsRef.current = next;
+        return next;
+      });
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -56,12 +63,17 @@ export function useArtifactSandbox(files: ArtifactFile[]): ArtifactSandbox {
   const start = useCallback(() => {
     if (!build.ok) return;
     setObservations([]);
+    observationsRef.current = [];
     setRunKey((k) => k + 1);
     setRunning(true);
   }, [build.ok]);
 
   const stop = useCallback(() => setRunning(false), []);
-  const clear = useCallback(() => setObservations([]), []);
+  const clear = useCallback(() => {
+    observationsRef.current = [];
+    setObservations([]);
+  }, []);
+  const snapshot = useCallback(() => observationsRef.current, []);
 
   const probe = useCallback(async (checks: ArtifactCheck[], timeoutMs = 2000): Promise<ProbeReply[]> => {
     const frame = frameRef.current;
@@ -85,5 +97,5 @@ export function useArtifactSandbox(files: ArtifactFile[]): ArtifactSandbox {
     });
   }, []);
 
-  return { build, observations, running, runKey, frameRef, start, stop, clear, probe };
+  return { build, observations, running, runKey, frameRef, start, stop, clear, snapshot, probe };
 }
