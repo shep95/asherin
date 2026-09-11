@@ -28,15 +28,19 @@ const ArtifactTestPane = ({
   versionId,
   sandbox,
   readOnly,
+  onRuns,
 }: {
   artifactId: string;
   versionId: string | null;
   sandbox: ArtifactSandbox;
   readOnly: boolean;
+  /** lets the workspace see what failed, so repairs can be scoped to it. */
+  onRuns?: (runs: ArtifactRun[]) => void;
 }) => {
   const { user } = useAuth();
   const [checks, setChecks] = useState<ArtifactCheck[]>([]);
   const [runs, setRuns] = useState<ArtifactRun[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ArtifactCheckKind>("no_runtime_error");
   const [expectation, setExpectation] = useState("");
@@ -46,14 +50,29 @@ const ArtifactTestPane = ({
     const [c, r] = await Promise.all([listChecks(artifactId), listRuns(artifactId)]);
     setChecks(c);
     setRuns(r);
-  }, [artifactId]);
+    onRuns?.(r);
+  }, [artifactId, onRuns]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const run = async () => {
+  /** which checks a run covers: everything, only the last failures, or a pick. */
+  const scope = useCallback(
+    (which: "all" | "failed" | "selected"): ArtifactCheck[] => {
+      if (which === "all") return checks;
+      if (which === "selected") return checks.filter((c) => selected.includes(c.id));
+      const lastFailed = new Set(
+        (runs[0]?.results ?? []).filter((r) => r.status !== "passed").map((r) => r.checkId),
+      );
+      return checks.filter((c) => lastFailed.has(c.id));
+    },
+    [checks, runs, selected],
+  );
+
+  const run = async (which: "all" | "failed" | "selected" = "all") => {
     if (!user) return;
+    const scoped = scope(which);
     setBusy(true);
     try {
       if (!sandbox.build.ok) {
