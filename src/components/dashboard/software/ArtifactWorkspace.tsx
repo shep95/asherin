@@ -32,11 +32,11 @@ const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
 /** What each pane can honestly do today. No pane pretends. */
 const PANE_STATE: Record<WorkspacePane, string> = {
   build: "the model builds artifacts from chat today. this pane becomes the guided build surface in the next phase.",
-  code: "direct code editing arrives with the runtime phase. source is carried on each version record until then.",
-  preview: "artifact execution is not available in this phase. nothing is rendered rather than faking a running app.",
-  test: "the test model is captured on the artifact contract. running tests here arrives with the runtime phase.",
+  code: "",
+  preview: "",
+  test: "",
   data: "artifact-scoped storage is declared in the data manifest and is not provisioned in this phase.",
-  files: "files are carried on version records. a file browser arrives with the runtime phase.",
+  files: "",
   history: "",
   settings: "",
 };
@@ -48,6 +48,18 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
   const [pane, setPane] = useState<WorkspacePane>("build");
   const [name, setName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<ArtifactFile[]>([]);
+  const sandbox = useArtifactSandbox(files);
+
+  useEffect(() => {
+    let alive = true;
+    listFiles(artifactId)
+      .then((f) => alive && setFiles(f))
+      .catch(() => alive && setFiles([]));
+    return () => {
+      alive = false;
+    };
+  }, [artifactId]);
 
   const { artifact, versions, currentVersion, events, installation, role, permissions, runtime } = ctx;
 
