@@ -264,6 +264,59 @@ export const WORKSPACE_PANES: WorkspacePane[] = [
   "settings",
 ];
 
+/* ── files, checks and runs ───────────────────────────────────────────── */
+
+export interface ArtifactFile {
+  id: string;
+  artifactId: string;
+  path: string;
+  content: string;
+  mime: string;
+  updatedAt: string;
+}
+
+export type ArtifactCheckKind =
+  | "no_runtime_error"
+  | "no_console_error"
+  | "console_contains"
+  | "dom_selector_exists"
+  | "dom_text_contains";
+
+export interface ArtifactCheck {
+  id: string;
+  artifactId: string;
+  name: string;
+  kind: ArtifactCheckKind;
+  expectation: string;
+  enabled: boolean;
+}
+
+/** Something the running artifact actually reported. Never synthesised. */
+export interface RunObservation {
+  channel: "runtime_error" | "console" | "render" | "performance" | "build";
+  level: "info" | "warn" | "error";
+  message: string;
+  at: string;
+}
+
+export interface CheckResult {
+  checkId: string;
+  name: string;
+  status: "passed" | "failed" | "inconclusive";
+  detail: string;
+}
+
+export interface ArtifactRun {
+  id: string;
+  artifactId: string;
+  versionId: string | null;
+  status: "running" | "passed" | "failed" | "unavailable";
+  results: CheckResult[];
+  observations: RunObservation[];
+  unavailableReason: string | null;
+  createdAt: string;
+}
+
 /** The route an installed artifact is reachable at. Derived from identity only. */
 export function artifactRoute(artifactId: string): string {
   return `/dashboard/software/${artifactId}`;
