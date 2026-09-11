@@ -85,3 +85,12 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - runtime provider lifecycle formalised: prepare/build/start/stop/collectObservations/getLogs/health, driven through a controller; the run button now goes through the provider and shows live health.
 - build provider boundary added (static assembly available; package/compile and server build declared configuration required) with a per-capability matrix in Build.
 - model changes can be undone one at a time from the asherin panel, recorded as the person's own action.
+
+## Phase 4 — installation + custom sidebar apps (complete)
+- navigation registry: `src/lib/software/navigation.ts` (identity routes, sections, ordering, launch state, permission delta, removal semantics, data namespaces)
+- schema: `software_navigation_item.installation_id` + `section`
+- staged "add to asherin" flow: `InstallDialog.tsx` (preflight → identity → permissions → data → location → confirm), blocked on any unmet preflight item
+- installed app host: `InstalledAppHost.tsx` — asherin shell, error boundary, runtime provider sandbox, health/activity, rename, sidebar controls, five removal actions with typed confirmation for destructive ones
+- sidebar consumes the registry ("your apps" / "shared with you"); route `/dashboard/app/:artifactId`
+- tests: `src/test/softwareInstallation.test.ts` (17). all software tests: 88 passing. typecheck + build clean.
+- verified live: create → files → check run passes → preflight eligible → staged install → app runs in sandbox ("hello") → rename to "Stock Room" keeps route/identity → delete app + data with typed confirmation.
