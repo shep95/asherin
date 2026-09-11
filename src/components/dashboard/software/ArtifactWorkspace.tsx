@@ -27,6 +27,7 @@ import { WORKSPACE_PANES, type ArtifactRun, type SoftwareVersion, type Workspace
 import ArtifactStatusBadge from "./ArtifactStatusBadge";
 import ArtifactAiPanel from "./ArtifactAiPanel";
 import ArtifactBuildPane from "./ArtifactBuildPane";
+import { preflight } from "@/lib/software/install";
 import ArtifactConsole, { mergeConsole } from "./ArtifactConsole";
 import ArtifactDataPane from "./ArtifactDataPane";
 import ArtifactEditor from "./ArtifactEditor";
@@ -346,6 +347,7 @@ const ArtifactWorkspace = ({
             {pane === "settings" && (
               <div className="p-4">
                 <ArtifactSettingsPane
+                  preflight={installPreflight}
                   artifact={artifact}
                   currentVersion={currentVersion}
                   installation={installation}
@@ -360,6 +362,10 @@ const ArtifactWorkspace = ({
                   }
                   onInstall={() =>
                     void guard("install failed", async () => {
+                      if (!installPreflight.eligible) {
+                        toast.error(installPreflight.summary);
+                        return;
+                      }
                       await installArtifact({
                         userId: user!.id,
                         artifact,
