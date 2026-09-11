@@ -11,7 +11,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CHECK_KIND_LABEL, evaluateChecks, runStatus } from "@/lib/software/checks";
 import { addCheck, deleteCheck, listChecks, listRuns, recordRun } from "@/lib/software/files";
 import { SANDBOX_ATTR } from "@/lib/software/preview";
-import type { ArtifactCheck, ArtifactCheckKind, ArtifactRun } from "@/lib/software/types";
+import { planTests, failedCheckIds, compareRuns } from "@/lib/software/testSelection";
+import { classifyDefect } from "@/lib/software/workspace";
+import { planRepair, type RepairPlan } from "@/lib/software/repair";
+import type { ArtifactCheck, ArtifactCheckKind, ArtifactFile, ArtifactRun } from "@/lib/software/types";
 import type { ArtifactSandbox } from "@/hooks/useArtifactSandbox";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
@@ -28,12 +31,18 @@ const ArtifactTestPane = ({
   versionId,
   sandbox,
   readOnly,
+  files,
+  changedPaths,
   onRuns,
 }: {
   artifactId: string;
   versionId: string | null;
   sandbox: ArtifactSandbox;
   readOnly: boolean;
+  /** the files as they stand, so a defect can be scoped to one of them. */
+  files: ArtifactFile[];
+  /** what changed since the last run, so a small change runs a small set. */
+  changedPaths: string[];
   /** lets the workspace see what failed, so repairs can be scoped to it. */
   onRuns?: (runs: ArtifactRun[]) => void;
 }) => {
@@ -45,6 +54,8 @@ const ArtifactTestPane = ({
   const [kind, setKind] = useState<ArtifactCheckKind>("no_runtime_error");
   const [expectation, setExpectation] = useState("");
   const [busy, setBusy] = useState(false);
+  const [repairs, setRepairs] = useState<RepairPlan[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     const [c, r] = await Promise.all([listChecks(artifactId), listRuns(artifactId)]);
@@ -70,9 +81,15 @@ const ArtifactTestPane = ({
     [checks, runs, selected],
   );
 
-  const run = async (which: "all" | "failed" | "selected" = "all") => {
+  const run = async (which: "all" | "failed" | "selected" | "affected" = "all") => {
     if (!user) return;
-    const scoped = scope(which);
+    const plan =
+      which === "affected"
+        ? planTests({ checks, changedPaths, files, previousFailures: failedCheckIds(runs[0]?.results ?? []) })
+        : null;
+    const scoped = plan ? [...plan.focused, ...plan.regression] : scope(which as "all" | "failed" | "selected");
+    const runScope: ArtifactRun["scope"] = plan ? plan.scope : which === "all" ? "all" : "focused";
+    const startedAt = new Date().toISOString();
     setBusy(true);
     try {
       if (!sandbox.build.ok) {
@@ -83,6 +100,8 @@ const ArtifactTestPane = ({
           status: "unavailable",
           results: [],
           observations: [],
+          scope: runScope,
+          startedAt,
           unavailableReason: sandbox.build.unavailableReason ?? "the artifact could not be prepared to run",
         });
         setRuns((prev) => {
@@ -110,7 +129,25 @@ const ArtifactTestPane = ({
         status: runStatus(results),
         results,
         observations,
+        scope: runScope,
+        startedAt,
       });
+      // a failure becomes a scoped repair plan, never a guess that it is fixed.
+      const nextAttempts = { ...attempts };
+      const plans: RepairPlan[] = [];
+      for (const res of results) {
+        if (res.status === "passed") continue;
+        const check = scoped.find((c) => c.id === res.checkId);
+        if (!check) continue;
+        const defect = classifyDefect({ check, result: res, observations, files });
+        if (!defect) continue;
+        const attempt = nextAttempts[check.id] ?? 0;
+        plans.push(planRepair({ defect, files, attempt, testsToRerun: [check.name] }));
+        nextAttempts[check.id] = attempt + 1;
+      }
+      for (const res of results) if (res.status === "passed") delete nextAttempts[res.checkId];
+      setAttempts(nextAttempts);
+      setRepairs(plans);
       setRuns((prev) => {
         const next = [recorded, ...prev];
         onRuns?.(next);
@@ -145,6 +182,13 @@ const ArtifactTestPane = ({
         <div className="mb-3 flex items-center gap-3">
           <h2 className="text-sm tracking-wide text-foreground">checks</h2>
           <div className="flex-1" />
+          <button
+            onClick={() => void run("affected")}
+            disabled={busy || checks.length === 0}
+            className="rounded-lg border border-border/30 px-2.5 py-1.5 text-[11px] disabled:opacity-40 hover:bg-card/40"
+          >
+            run affected
+          </button>
           <button
             onClick={() => void run("failed")}
             disabled={busy || !runs[0]}
@@ -256,6 +300,37 @@ const ArtifactTestPane = ({
       </section>
 
       <section className={`${card} p-5`}>
+        {repairs.length > 0 && (
+          <div className="mb-4 rounded-lg border border-destructive/25 px-3 py-2">
+            <h3 className="text-xs tracking-wide text-foreground">repair plan</h3>
+            <ul className="mt-1 space-y-1.5 text-[11px] text-muted-foreground">
+              {repairs.map((r) => (
+                <li key={r.defectId}>
+                  <span className={r.blocked ? "text-amber-400/90" : "text-destructive/90"}>
+                    {r.blocked ? "blocked" : `scope: ${r.scope}${r.escalated ? " (widened)" : ""}`}
+                  </span>{" "}
+                  {r.blocked ? r.blockedReason : r.instruction}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              nothing is repaired automatically — take a plan to the build panel to apply it.
+            </p>
+          </div>
+        )}
+        {runs.length > 1 && (
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            {(() => {
+              const c = compareRuns(runs[1].results, runs[0].results);
+              const parts = [
+                c.fixed.length ? `${c.fixed.length} fixed` : null,
+                c.broken.length ? `${c.broken.length} newly failing` : null,
+                c.unchanged.length ? `${c.unchanged.length} unchanged` : null,
+              ].filter(Boolean);
+              return `against the previous run: ${parts.join(", ") || "no comparable checks"}`;
+            })()}
+          </p>
+        )}
         <h2 className="mb-3 text-sm tracking-wide text-foreground">runs</h2>
         {runs.length === 0 ? (
           <p className="text-xs text-muted-foreground">nothing has been run yet.</p>
@@ -271,7 +346,9 @@ const ArtifactTestPane = ({
                   >
                     {r.status}
                   </span>
-                  <span className="ml-2 text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</span>
+                  <span className="ml-2 text-muted-foreground">
+                    {r.scope} · {r.provider.replace(/_/g, " ")} · {new Date(r.createdAt).toLocaleString()}
+                  </span>
                 </p>
                 {r.unavailableReason && <p className="mt-1 text-[11px] text-muted-foreground">{r.unavailableReason}</p>}
                 <ul className="mt-1 space-y-0.5">

@@ -60,6 +60,9 @@ function mapArtifact(row: Loose): SoftwareArtifact {
     visibility: row.visibility as ArtifactVisibility,
     currentVersionId: (row.current_version_id as string) ?? null,
     runtimeSessionId: (row.runtime_session_id as string) ?? null,
+    entrypoint: (row.entrypoint as string) ?? null,
+    runtimeType: (row.runtime_type as SoftwareArtifact["runtimeType"]) ?? "client_browser",
+    releaseStatus: (row.release_status as SoftwareArtifact["releaseStatus"]) ?? "draft",
     runtimeRequirements: obj(row.runtime_requirements),
     compatibilityRequirements: obj(row.compatibility_requirements),
     capabilities: arr<CapabilityKey>(row.capabilities),
@@ -85,6 +88,7 @@ function mapVersion(row: Loose): SoftwareVersion {
     sourceRef: obj(row.source_ref),
     stateRef: obj(row.state_ref),
     changeSummary: (row.change_summary as string) ?? null,
+    label: (row.label as string) ?? null,
     createdBy: String(row.created_by),
     createdAt: String(row.created_at),
     validationStatus: row.validation_status as SoftwareVersion["validationStatus"],
@@ -255,6 +259,10 @@ export async function updateArtifact(
     runtimeRequirements: Record<string, unknown>;
     currentVersionId: string | null;
     runtimeSessionId: string | null;
+    entrypoint: string | null;
+    runtimeType: SoftwareArtifact["runtimeType"];
+    releaseStatus: SoftwareArtifact["releaseStatus"];
+    dataManifest: Record<string, unknown>;
   }>,
   actorUserId: string,
 ): Promise<SoftwareArtifact> {
@@ -273,6 +281,10 @@ export async function updateArtifact(
   if (patch.runtimeRequirements) row.runtime_requirements = j(patch.runtimeRequirements);
   if ("currentVersionId" in patch) row.current_version_id = patch.currentVersionId;
   if ("runtimeSessionId" in patch) row.runtime_session_id = patch.runtimeSessionId;
+  if ("entrypoint" in patch) row.entrypoint = patch.entrypoint;
+  if (patch.runtimeType) row.runtime_type = patch.runtimeType;
+  if (patch.releaseStatus) row.release_status = patch.releaseStatus;
+  if (patch.dataManifest) row.data_manifest = j(patch.dataManifest);
 
   const { data, error } = await supabase.from("software_artifact").update(row).eq("id", id).select("*").single();
   if (error) throw error;
@@ -341,6 +353,7 @@ export async function createVersion(input: {
   artifactId: string;
   userId: string;
   changeSummary?: string;
+  label?: string;
   sourceRef?: Record<string, unknown>;
   stateRef?: Record<string, unknown>;
   checkpoint?: boolean;
@@ -360,6 +373,7 @@ export async function createVersion(input: {
       source_ref: j(input.sourceRef ?? {}),
       state_ref: j(input.stateRef ?? {}),
       change_summary: input.changeSummary ?? null,
+      label: input.label?.trim() || null,
       release_status: input.checkpoint ? "checkpoint" : "draft",
     })
     .select("*")

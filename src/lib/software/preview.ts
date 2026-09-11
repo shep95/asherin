@@ -18,10 +18,12 @@ window.addEventListener("message", function (ev) {
   (d.queries || []).forEach(function (q) {
     try {
       if (q.kind === "dom_selector_exists") {
-        out.push({ checkId: q.id, ok: !!document.querySelector(q.value), detail: q.value });
+        var n = document.querySelectorAll(q.value).length;
+        out.push({ checkId: q.id, ok: n > 0, detail: n > 0 ? n + " element(s) match " + q.value : "no element matches " + q.value });
       } else if (q.kind === "dom_text_contains") {
         var t = (document.body && (document.body.innerText || document.body.textContent)) || "";
-        out.push({ checkId: q.id, ok: t.indexOf(q.value) >= 0, detail: q.value });
+        var found = t.indexOf(q.value) >= 0;
+        out.push({ checkId: q.id, ok: found, detail: found ? "the text “" + q.value + "” is on the page" : "the text “" + q.value + "” is not on the page" });
       } else {
         out.push({ checkId: q.id, ok: null, detail: "this artifact cannot answer that kind of question" });
       }

@@ -14321,6 +14321,7 @@ export type Database = {
           description: string | null
           display_name: string
           distribution_manifest: Json
+          entrypoint: string | null
           icon: string | null
           id: string
           integration_manifest: Json
@@ -14329,8 +14330,10 @@ export type Database = {
           permission_manifest: Json
           provenance_manifest: Json
           published_at: string | null
+          release_status: string
           runtime_requirements: Json
           runtime_session_id: string | null
+          runtime_type: string
           slug: string | null
           updated_at: string
           visibility: string
@@ -14346,6 +14349,7 @@ export type Database = {
           description?: string | null
           display_name?: string
           distribution_manifest?: Json
+          entrypoint?: string | null
           icon?: string | null
           id?: string
           integration_manifest?: Json
@@ -14354,8 +14358,10 @@ export type Database = {
           permission_manifest?: Json
           provenance_manifest?: Json
           published_at?: string | null
+          release_status?: string
           runtime_requirements?: Json
           runtime_session_id?: string | null
+          runtime_type?: string
           slug?: string | null
           updated_at?: string
           visibility?: string
@@ -14371,6 +14377,7 @@ export type Database = {
           description?: string | null
           display_name?: string
           distribution_manifest?: Json
+          entrypoint?: string | null
           icon?: string | null
           id?: string
           integration_manifest?: Json
@@ -14379,8 +14386,10 @@ export type Database = {
           permission_manifest?: Json
           provenance_manifest?: Json
           published_at?: string | null
+          release_status?: string
           runtime_requirements?: Json
           runtime_session_id?: string | null
+          runtime_type?: string
           slug?: string | null
           updated_at?: string
           visibility?: string
@@ -14424,6 +14433,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "software_artifact_check_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "software_artifact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      software_artifact_data: {
+        Row: {
+          artifact_id: string
+          collection: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          record_key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          artifact_id: string
+          collection: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          record_key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          artifact_id?: string
+          collection?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          record_key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "software_artifact_data_artifact_id_fkey"
             columns: ["artifact_id"]
             isOneToOne: false
             referencedRelation: "software_artifact"
@@ -14597,10 +14647,14 @@ export type Database = {
         Row: {
           artifact_id: string
           created_at: string
+          finished_at: string | null
           id: string
           observations: Json
           owner_user_id: string
+          provider: string
           results: Json
+          scope: string
+          started_at: string | null
           status: string
           unavailable_reason: string | null
           updated_at: string
@@ -14609,10 +14663,14 @@ export type Database = {
         Insert: {
           artifact_id: string
           created_at?: string
+          finished_at?: string | null
           id?: string
           observations?: Json
           owner_user_id: string
+          provider?: string
           results?: Json
+          scope?: string
+          started_at?: string | null
           status?: string
           unavailable_reason?: string | null
           updated_at?: string
@@ -14621,10 +14679,14 @@ export type Database = {
         Update: {
           artifact_id?: string
           created_at?: string
+          finished_at?: string | null
           id?: string
           observations?: Json
           owner_user_id?: string
+          provider?: string
           results?: Json
+          scope?: string
+          started_at?: string | null
           status?: string
           unavailable_reason?: string | null
           updated_at?: string
@@ -14656,6 +14718,7 @@ export type Database = {
           created_by: string
           display_version: string
           id: string
+          label: string | null
           ordinal: number
           owner_user_id: string
           parent_version_id: string | null
@@ -14675,6 +14738,7 @@ export type Database = {
           created_by: string
           display_version?: string
           id?: string
+          label?: string | null
           ordinal: number
           owner_user_id: string
           parent_version_id?: string | null
@@ -14694,6 +14758,7 @@ export type Database = {
           created_by?: string
           display_version?: string
           id?: string
+          label?: string | null
           ordinal?: number
           owner_user_id?: string
           parent_version_id?: string | null

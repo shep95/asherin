@@ -106,6 +106,7 @@ describe("version lineage", () => {
       artifactId: "a1",
       ordinal: 1,
       displayVersion: "0.1.0",
+      label: null,
       parentVersionId: null,
       sourceRef: { files: 2 },
       stateRef: {},
