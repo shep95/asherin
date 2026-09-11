@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useArtifactWorkspace, useSoftwareRegistry } from "@/contexts/SoftwareContext";
 import { useArtifactSandbox } from "@/hooks/useArtifactSandbox";
-import { listFiles } from "@/lib/software/files";
+import { listFiles, restoreFiles } from "@/lib/software/files";
 import type { ArtifactFile } from "@/lib/software/types";
 import ArtifactCodePane from "./ArtifactCodePane";
 import ArtifactPreviewPane from "./ArtifactPreviewPane";
@@ -61,7 +61,7 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
     };
   }, [artifactId]);
 
-  const { artifact, versions, currentVersion, events, installation, role, permissions, runtime } = ctx;
+  const { artifact, versions, currentVersion, events, installation, role, permissions } = ctx;
 
   const guard = useCallback(
     async (label: string, fn: () => Promise<void>) => {
@@ -170,6 +170,9 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
                     userId: user!.id,
                     changeSummary: "manual checkpoint",
                     checkpoint: true,
+                    // the checkpoint carries the files themselves, so a restore
+                    // brings the work back rather than a label of it.
+                    sourceRef: { files: files.map((f) => ({ path: f.path, content: f.content })) },
                   });
                   toast.success("checkpoint saved");
                 })
@@ -199,6 +202,12 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
                         onClick={() =>
                           guard("restore failed", async () => {
                             await restoreVersion({ artifactId: artifact.id, userId: user!.id, version: v });
+                            const restored = await restoreFiles({
+                              artifactId: artifact.id,
+                              userId: user!.id,
+                              sourceRef: v.sourceRef,
+                            });
+                            setFiles(restored);
                             toast.success(`restored v${v.displayVersion} as a new version`);
                           })
                         }
