@@ -326,16 +326,31 @@ const ArtifactWorkspace = ({ artifactId, onBack }: { artifactId: string; onBack:
             </button>
           </section>
         </div>
+      ) : pane === "code" || pane === "files" ? (
+        <ArtifactCodePane
+          artifactId={artifact.id}
+          files={files}
+          onFilesChanged={setFiles}
+          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
+        />
+      ) : pane === "preview" ? (
+        <ArtifactPreviewPane sandbox={sandbox} />
+      ) : pane === "test" ? (
+        <ArtifactTestPane
+          artifactId={artifact.id}
+          versionId={currentVersion?.id ?? null}
+          sandbox={sandbox}
+          readOnly={role !== "owner" && role !== "admin" && role !== "collaborator"}
+        />
       ) : (
         <section className={`${card} p-5`}>
           <h2 className="mb-2 text-sm tracking-wide text-foreground">{pane}</h2>
           <p className="text-xs text-muted-foreground">{PANE_STATE[pane]}</p>
-          {pane === "preview" && (
-            <p className="mt-3 text-[11px] text-muted-foreground">runtime: unavailable — {runtime.reason}</p>
-          )}
           {pane === "build" && (
             <div className="mt-4 space-y-2 text-[11px] text-muted-foreground">
               <p>type: {artifact.type}</p>
+              <p>files: {files.length}</p>
+              <p>runtime: {sandbox.build.ok ? "runnable in the sandbox" : `unavailable — ${sandbox.build.unavailableReason}`}</p>
               <p>integrations declared: {artifact.integrationManifest.length}</p>
               <p>dependencies declared: {artifact.dependencyManifest.length}</p>
               <p>{ctx.pendingChanges ? "no version has been captured yet" : `${versions.length} version(s) recorded`}</p>
