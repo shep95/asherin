@@ -9,7 +9,8 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, CircleSlash, Loader2, Sparkles, XCircle } from "lucide-react";
 import { assessDependencies, detectDependencies } from "@/lib/software/dependencies";
 import { preflight } from "@/lib/software/install";
-import { providerForClass } from "@/lib/software/runtime";
+import { providerForClass, type RuntimeHealth } from "@/lib/software/runtime";
+import { selectBuildProvider, summarizeBuild } from "@/lib/software/build";
 import type { ArtifactFile, ArtifactRun, SoftwareArtifact, SoftwareVersion } from "@/lib/software/types";
 
 const card = "rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm";
@@ -26,6 +27,7 @@ const ArtifactBuildPane = ({
   dirtyCount,
   versions,
   lastRun,
+  health,
   busy,
   canWrite,
   onCheckpoint,
@@ -35,6 +37,7 @@ const ArtifactBuildPane = ({
   dirtyCount: number;
   versions: SoftwareVersion[];
   lastRun: ArtifactRun | null;
+  health?: RuntimeHealth;
   busy: boolean;
   canWrite: boolean;
   onCheckpoint: (label: string) => void;
@@ -50,6 +53,8 @@ const ArtifactBuildPane = ({
     () => assessDependencies(deps, artifact.permissionManifest.granted.includes("network")),
     [deps, artifact.permissionManifest.granted],
   );
+  const buildProvider = useMemo(() => selectBuildProvider(files), [files]);
+  const buildOutcome = useMemo(() => buildProvider.build(files), [buildProvider, files]);
   const report = useMemo(
     () => preflight({ artifact, files, lastRun, runtimeClass: artifact.runtimeType }),
     [artifact, files, lastRun],
@@ -81,9 +86,35 @@ const ArtifactBuildPane = ({
           </span>
           <span className="ml-2 text-muted-foreground">{provider.availability.replace(/_/g, " ")}</span>
         </p>
+        {health && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {health.detail}
+          </p>
+        )}
         <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
           {provider.limitations.map((l) => (
             <li key={l}>· {l}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={`${card} p-5`}>
+        <h2 className="mb-2 text-sm tracking-wide text-foreground">build</h2>
+        <p className="text-xs">
+          <span className={buildProvider.state === "available" ? "text-primary" : "text-amber-400/90"}>
+            {buildProvider.label}
+          </span>
+          <span className="ml-2 text-muted-foreground">{summarizeBuild(buildOutcome)}</span>
+        </p>
+        <ul className="mt-2 grid gap-1 text-[11px] sm:grid-cols-2">
+          {buildProvider.capabilities.map((c) => (
+            <li key={c.capability} className="flex items-start gap-2">
+              {STATE_ICON[c.state === "available" ? "pass" : "unavailable"]}
+              <span>
+                <span className="text-foreground/80">{c.capability.replace(/_/g, " ")}</span>
+                <span className="text-muted-foreground"> — {c.detail}</span>
+              </span>
+            </li>
           ))}
         </ul>
       </section>

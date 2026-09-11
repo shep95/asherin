@@ -32,6 +32,27 @@ export interface PreparedRuntime {
   unavailableReason: string | null;
 }
 
+/** A started artifact. The provider owns it; the caller only asks it things. */
+export interface RuntimeSession {
+  id: string;
+  providerId: string;
+  startedAt: string;
+  stoppedAt: string | null;
+}
+
+export type RuntimeHealth = { state: "running" | "stopped" | "failed" | "unavailable"; detail: string };
+
+/**
+ * What a runtime is driven by. The browser sandbox implements this with a real
+ * frame; every other provider answers honestly that it cannot.
+ */
+export interface RuntimeController {
+  start: () => void;
+  stop: () => void;
+  observations: () => RunObservation[];
+  running: () => boolean;
+}
+
 export interface RuntimeProvider {
   id: string;
   runtimeClass: RuntimeClass;
@@ -41,6 +62,13 @@ export interface RuntimeProvider {
   limitations: string[];
   capabilities: RuntimeCapabilities;
   prepare(files: ArtifactFile[]): PreparedRuntime;
+  /** the build step this runtime needs before it can start. */
+  build(files: ArtifactFile[]): PreparedRuntime;
+  start(prepared: PreparedRuntime, controller?: RuntimeController): RuntimeSession | null;
+  stop(session: RuntimeSession, controller?: RuntimeController): RuntimeSession;
+  collectObservations(session: RuntimeSession, controller?: RuntimeController): RunObservation[];
+  getLogs(session: RuntimeSession, controller?: RuntimeController): RunObservation[];
+  health(session: RuntimeSession | null, controller?: RuntimeController): RuntimeHealth;
 }
 
 const NO_CAPABILITIES: RuntimeCapabilities = {
@@ -66,6 +94,12 @@ function unavailable(
     limitations: [reason],
     capabilities: { ...NO_CAPABILITIES },
     prepare: () => ({ ok: false, srcDoc: "", errors: [], refusedDependencies: [], unavailableReason: reason }),
+    build: () => ({ ok: false, srcDoc: "", errors: [], refusedDependencies: [], unavailableReason: reason }),
+    start: () => null,
+    stop: (session) => ({ ...session, stoppedAt: new Date().toISOString() }),
+    collectObservations: () => [],
+    getLogs: () => [],
+    health: () => ({ state: "unavailable", detail: reason }),
   };
 }
 
@@ -96,6 +130,39 @@ export const browserSandboxProvider: RuntimeProvider = {
       refusedDependencies: built.refusedDependencies,
       unavailableReason: built.unavailableReason,
     };
+  },
+  build(files: ArtifactFile[]): PreparedRuntime {
+    // assembly is the build for this runtime; there is no separate compile.
+    return this.prepare(files);
+  },
+  start(prepared: PreparedRuntime, controller?: RuntimeController): RuntimeSession | null {
+    if (!prepared.ok) return null;
+    controller?.start();
+    return {
+      id: `run_${Date.now().toString(36)}`,
+      providerId: "browser_sandbox",
+      startedAt: new Date().toISOString(),
+      stoppedAt: null,
+    };
+  },
+  stop(session: RuntimeSession, controller?: RuntimeController): RuntimeSession {
+    controller?.stop();
+    return { ...session, stoppedAt: session.stoppedAt ?? new Date().toISOString() };
+  },
+  collectObservations(_session: RuntimeSession, controller?: RuntimeController): RunObservation[] {
+    return controller?.observations() ?? [];
+  },
+  getLogs(session: RuntimeSession, controller?: RuntimeController): RunObservation[] {
+    return this.collectObservations(session, controller).filter((o) => o.channel === "console");
+  },
+  health(session: RuntimeSession | null, controller?: RuntimeController): RuntimeHealth {
+    if (!session) return { state: "stopped", detail: "the artifact is not running" };
+    if (session.stoppedAt) return { state: "stopped", detail: `stopped at ${session.stoppedAt}` };
+    if (controller && !controller.running()) return { state: "failed", detail: "the frame is no longer reporting" };
+    const errs = (controller?.observations() ?? []).filter((o) => o.level === "error").length;
+    return errs > 0
+      ? { state: "running", detail: `running — ${errs} error(s) reported by the artifact` }
+      : { state: "running", detail: "running — no errors reported" };
   },
 };
 
