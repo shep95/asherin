@@ -32,6 +32,7 @@ import { v2TitleFor } from "@/lib/dashboard/v2Titles";
 const SoftwareView = lazyWithRetry(() => import("@/components/dashboard/software/SoftwareView"));
 const ArtifactWorkspace = lazyWithRetry(() => import("@/components/dashboard/software/ArtifactWorkspace"));
 const InstalledAppHost = lazyWithRetry(() => import("@/components/dashboard/software/InstalledAppHost"));
+const IntegrationsView = lazyWithRetry(() => import("@/components/dashboard/software/IntegrationsView"));
 const NewAccountWelcomeModal = lazyWithRetry(() => import("@/components/NewAccountWelcomeModal"));
 
 // Lazy-load heavy views
@@ -234,6 +235,7 @@ const Dashboard = () => {
     "asherin-health",
     "investigations",
     "software",
+    "integrations",
   ];
   // Deep-link aliases. A person types the product name they were told, not the
   // internal id, and a URL a human guessed correctly must never collapse to
@@ -2221,6 +2223,14 @@ const Dashboard = () => {
               ) : (
                 <SoftwareView onOpen={(id) => navigate(`/dashboard/software/${id}`)} />
               )}
+            </Suspense>
+          </ErrorBoundary>
+        );
+      case "integrations":
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <IntegrationsView />
             </Suspense>
           </ErrorBoundary>
         );

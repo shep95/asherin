@@ -436,7 +436,7 @@ const ArtifactWorkspace = ({
                   onUninstall={() =>
                     void guard("could not uninstall", async () => {
                       await uninstallArtifact({ installation: installation!, actorUserId: user!.id });
-                      await refreshRegistry();
+                      await refresh();
                       toast.success("uninstalled — the artifact and its versions are kept");
                     })
                   }
@@ -478,7 +478,7 @@ const ArtifactWorkspace = ({
                     configuration: choice.configuration,
                   });
                   setInstallOpen(false);
-                  await refreshRegistry();
+                  await refresh();
                   toast.success("installed and added to your sidebar");
                 })
               }
