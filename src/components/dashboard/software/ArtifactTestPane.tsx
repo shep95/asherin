@@ -146,13 +146,28 @@ const ArtifactTestPane = ({
           <h2 className="text-sm tracking-wide text-foreground">checks</h2>
           <div className="flex-1" />
           <button
-            onClick={run}
+            onClick={() => void run("failed")}
+            disabled={busy || !runs[0]}
+            className="rounded-lg border border-border/30 px-2.5 py-1.5 text-[11px] disabled:opacity-40 hover:bg-card/40"
+          >
+            rerun failed
+          </button>
+          <button
+            onClick={() => void run("selected")}
+            disabled={busy || selected.length === 0}
+            className="rounded-lg border border-border/30 px-2.5 py-1.5 text-[11px] disabled:opacity-40 hover:bg-card/40"
+          >
+            run selected
+          </button>
+          <button
+            onClick={() => void run("all")}
             disabled={busy}
             className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 px-3 py-1.5 text-[11px] text-primary disabled:opacity-50 hover:bg-primary/10"
           >
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} run checks
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />} run all
           </button>
         </div>
+
 
         {checks.length === 0 ? (
           <p className="text-xs text-muted-foreground">no checks yet — a run proves nothing until you state what should be true.</p>
