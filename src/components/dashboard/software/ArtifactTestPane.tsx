@@ -176,7 +176,18 @@ const ArtifactTestPane = ({
             {checks.map((c) => (
               <li key={c.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/15 px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-xs text-foreground">{c.name}</p>
+                  <label className="flex items-center gap-2 text-xs text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(c.id)}
+                      onChange={(e) =>
+                        setSelected((prev) => (e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)))
+                      }
+                      aria-label={`select check ${c.name}`}
+                      className="h-3 w-3 accent-primary"
+                    />
+                    {c.name}
+                  </label>
                   <p className="text-[11px] text-muted-foreground">
                     {CHECK_KIND_LABEL[c.kind]}
                     {c.expectation && ` — “${c.expectation}”`}
