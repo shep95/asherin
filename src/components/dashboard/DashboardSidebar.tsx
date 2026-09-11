@@ -109,6 +109,7 @@ import { NAV_INTENTS as ALL_INTENTS, INTENT_GROUPS, INTENT_GROUP_BLURB, type Nav
 
 const VIEW_ICON: Record<string, React.ElementType> = {
   chat: MessagesSquare,
+  software: Layers,
   zali: Zap,
   "pdf-generator": FileText,
   whiteboard: Layers,
