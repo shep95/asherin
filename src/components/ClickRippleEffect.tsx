@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { rippleEnabled, subscribeMotionPrefs } from "@/lib/motionPrefs";
 
 /**
  * WebGL-powered liquid ripple displacement overlay.
@@ -238,7 +239,13 @@ const ClickRippleEffect = () => {
     []
   );
 
+  // Motion preference: the operator can switch the ripple off, and "still"
+  // motion switches it off regardless.
+  const [enabled, setEnabled] = useState<boolean>(() => rippleEnabled());
+  useEffect(() => subscribeMotionPrefs((p) => setEnabled(rippleEnabled(p))), []);
+
   useEffect(() => {
+    if (!enabled) return;
     const ok = initGL();
     if (!ok) return;
 
@@ -251,8 +258,11 @@ const ClickRippleEffect = () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("click", handleClick);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      ripplesRef.current = [];
     };
-  }, [initGL, resize, render, handleClick]);
+  }, [enabled, initGL, resize, render, handleClick]);
+
+  if (!enabled) return null;
 
   return (
     <canvas
