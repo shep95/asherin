@@ -576,16 +576,11 @@ const SettingsView = () => {
               <div className="flex items-center gap-2">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-xs font-light text-foreground">Custom Wallpapers</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">$3.99 one-time</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-foreground/[0.06] text-muted-foreground/60 border border-border/20">included</span>
               </div>
-              {!hasWallpaperAddon && (
-                <Link to="/dashboard" onClick={() => {/* navigate to subscription */}} className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors flex items-center gap-1">
-                  <Lock className="h-3 w-3" /> Unlock
-                </Link>
-              )}
             </div>
 
-            {hasWallpaperAddon ? (
+            {(
               <>
                 <div className="grid grid-cols-3 gap-3">
                   {customWallpapers.map((wp) => {
