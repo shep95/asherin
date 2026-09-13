@@ -16,6 +16,7 @@ import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 import DashboardAppearanceControls from "./settings/DashboardAppearanceControls";
+import MotionControls from "./settings/MotionControls";
 import {
   DASHBOARD_UI_EVENT,
   readDashboardUi,
@@ -223,26 +224,18 @@ const SettingsView = () => {
   };
 
   const checkWallpaperAddon = async () => {
-    if (!user) return;
-    // For now, check if user has any active subscription — the addon checkout creates a separate Stripe subscription
-    // In production you'd check for the specific addon product. For simplicity, we check localStorage or a flag.
-    const stored = localStorage.getItem("aureon_wallpaper_addon");
-    if (stored === "active") {
-      setHasWallpaperAddon(true);
-      return;
-    }
-    // Also unlock for Pro tier users as a perk
-    if (tierKey === "pro") {
-      setHasWallpaperAddon(true);
+    // Custom wallpapers are free for every account. Kept as a no-op so the
+    // old browser flag (which was spoofable anyway) no longer decides anything.
+    setHasWallpaperAddon(true);
+    try {
+      localStorage.removeItem("aureon_wallpaper_addon");
+    } catch {
+      /* storage refusal must not break settings */
     }
   };
 
   const uploadCustomWallpaper = async (file: File) => {
     if (!user) return;
-    if (!hasWallpaperAddon) {
-      toast({ title: "Add-on required", description: "Unlock the Custom Wallpapers add-on ($3.99 one-time) to upload your own wallpapers.", variant: "destructive" });
-      return;
-    }
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "File too large", description: "Max 10MB", variant: "destructive" });
       return;
@@ -584,16 +577,11 @@ const SettingsView = () => {
               <div className="flex items-center gap-2">
                 <Upload className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-xs font-light text-foreground">Custom Wallpapers</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">$3.99 one-time</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-foreground/[0.06] text-muted-foreground/60 border border-border/20">included</span>
               </div>
-              {!hasWallpaperAddon && (
-                <Link to="/dashboard" onClick={() => {/* navigate to subscription */}} className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors flex items-center gap-1">
-                  <Lock className="h-3 w-3" /> Unlock
-                </Link>
-              )}
             </div>
 
-            {hasWallpaperAddon ? (
+            {(
               <>
                 <div className="grid grid-cols-3 gap-3">
                   {customWallpapers.map((wp) => {
@@ -652,16 +640,13 @@ const SettingsView = () => {
                 />
                 <p className="text-[9px] text-muted-foreground/40">Max 10MB · JPG, PNG, WebP</p>
               </>
-            ) : (
-              <div className="rounded-lg border border-border/10 bg-card/5 p-4 text-center space-y-2">
-                <Lock className="h-5 w-5 text-muted-foreground/30 mx-auto" />
-                <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                  Subscribe to the <strong className="text-foreground/70">Custom Wallpapers</strong> add-on to upload and use your own wallpapers.
-                </p>
-              </div>
             )}
           </div>
         </div>
+
+        {/* Motion */}
+        <MotionControls />
+
 
         {/* Send Button Border Color */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
