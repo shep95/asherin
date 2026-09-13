@@ -80,6 +80,10 @@ const PUBLIC_VIEWS: DashboardView[] = [
   "self-access",
   "bug-reports",
   "vedic-astrology",
+  // Truth pass: these rooms render with no plan check today. Rather than leave
+  // the gate silently absent, they are declared free on purpose.
+  "investigations",
+  "gematria",
 ];
 
 // ── KILL SWITCH ──────────────────────────────────────────────────────────────

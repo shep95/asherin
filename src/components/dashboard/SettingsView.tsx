@@ -16,6 +16,7 @@ import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
 import { ALL_WALLPAPERS } from "@/lib/wallpapers";
 import DashboardAppearanceControls from "./settings/DashboardAppearanceControls";
+import MotionControls from "./settings/MotionControls";
 import {
   DASHBOARD_UI_EVENT,
   readDashboardUi,
