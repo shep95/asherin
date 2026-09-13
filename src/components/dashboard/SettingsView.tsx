@@ -639,16 +639,13 @@ const SettingsView = () => {
                 />
                 <p className="text-[9px] text-muted-foreground/40">Max 10MB · JPG, PNG, WebP</p>
               </>
-            ) : (
-              <div className="rounded-lg border border-border/10 bg-card/5 p-4 text-center space-y-2">
-                <Lock className="h-5 w-5 text-muted-foreground/30 mx-auto" />
-                <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-                  Subscribe to the <strong className="text-foreground/70">Custom Wallpapers</strong> add-on to upload and use your own wallpapers.
-                </p>
-              </div>
             )}
           </div>
         </div>
+
+        {/* Motion */}
+        <MotionControls />
+
 
         {/* Send Button Border Color */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
