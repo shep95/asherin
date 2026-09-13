@@ -223,26 +223,18 @@ const SettingsView = () => {
   };
 
   const checkWallpaperAddon = async () => {
-    if (!user) return;
-    // For now, check if user has any active subscription — the addon checkout creates a separate Stripe subscription
-    // In production you'd check for the specific addon product. For simplicity, we check localStorage or a flag.
-    const stored = localStorage.getItem("aureon_wallpaper_addon");
-    if (stored === "active") {
-      setHasWallpaperAddon(true);
-      return;
-    }
-    // Also unlock for Pro tier users as a perk
-    if (tierKey === "pro") {
-      setHasWallpaperAddon(true);
+    // Custom wallpapers are free for every account. Kept as a no-op so the
+    // old browser flag (which was spoofable anyway) no longer decides anything.
+    setHasWallpaperAddon(true);
+    try {
+      localStorage.removeItem("aureon_wallpaper_addon");
+    } catch {
+      /* storage refusal must not break settings */
     }
   };
 
   const uploadCustomWallpaper = async (file: File) => {
     if (!user) return;
-    if (!hasWallpaperAddon) {
-      toast({ title: "Add-on required", description: "Unlock the Custom Wallpapers add-on ($3.99 one-time) to upload your own wallpapers.", variant: "destructive" });
-      return;
-    }
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "File too large", description: "Max 10MB", variant: "destructive" });
       return;
