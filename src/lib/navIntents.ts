@@ -5,7 +5,9 @@
 
 import type { DashboardView } from "@/components/dashboard/types";
 
-export type IntentGroup = "Create" | "Analyze" | "Investigate" | "Build" | "Workspace" | "Account";
+// Groups are named after the job the user came to do, not the department the
+// tool belongs to. Seven groups, every room one click inside one of them.
+export type IntentGroup = "talk" | "watch" | "find" | "understand" | "make" | "keep" | "account";
 
 export interface NavIntent {
   /** Dashboard view id (preferred). */
@@ -28,17 +30,44 @@ export interface NavIntent {
   adminOnly?: boolean;
 }
 
-// WAVE 1 — tight sidebar. pages is a keep-stack room (chat-class). Folded tools
-// still resolve as views so deep links keep working — they simply have no nav row.
+// Navigation is grouped by job. Folded tools (slides, ebooks) no longer own a
+// row — they are output types inside asherin.pages — but their views still
+// resolve so old deep links keep working.
 export const NAV_INTENTS: NavIntent[] = [
-  // WORKSPACE
+  // ── TALK ───────────────────────────────────────────────────────────────
   {
     view: "chat",
     label: "Chat",
     codename: "Asherin",
     blurb: "Ask for anything — search, maps, code, data, cyber all run from here",
     keywords: ["chat", "ask", "talk", "conversation", "prompt", "assistant"],
-    group: "Workspace",
+    group: "talk",
+  },
+
+  // ── WATCH ──────────────────────────────────────────────────────────────
+  {
+    view: "asherin-eye",
+    label: "asherin.eye",
+    codename: "asherin.eye",
+    blurb: "photoreal 3d globe with live public flights, ships, sats, quakes, radio and osm sites",
+    keywords: ["eye", "globe", "cesium", "flights", "ships", "satellites", "earthquakes", "cockpit", "hud", "3d"],
+    group: "watch",
+  },
+  {
+    view: "asherin-arvision",
+    label: "asherin.arvision",
+    codename: "asherin.arvision",
+    blurb: "Live camera HUD — frame intel, freeze, barcode, honest cannot-resolve",
+    keywords: ["arvision", "ar", "vision", "camera", "hud", "freeze", "lens", "look", "see"],
+    group: "watch",
+  },
+  {
+    view: "asherin-sentinel",
+    label: "asherin.sentinel",
+    codename: "asherin.sentinel",
+    blurb: "Ambient watch — voices separated and named from their own words, sounds tagged, one searchable timeline",
+    keywords: ["sentinel", "ambient", "listen", "audio", "microphone", "transcribe", "speaker", "voice", "diarization", "watch"],
+    group: "watch",
   },
   {
     view: "asherin-defender",
@@ -57,23 +86,75 @@ export const NAV_INTENTS: NavIntent[] = [
       "poison",
       "protect",
     ],
-    group: "Workspace",
+    group: "watch",
+  },
+
+  // ── FIND ───────────────────────────────────────────────────────────────
+  {
+    view: "search",
+    label: "asherin.search",
+    codename: "sourced search",
+    blurb: "sourced search with credibility tiers",
+    keywords: ["search", "zophiel", "osint", "web", "dark web", "leaks", "archives"],
+    group: "find",
   },
   {
-    view: "asherin-arvision",
-    label: "asherin.arvision",
-    codename: "asherin.arvision",
-    blurb: "Live camera HUD — frame intel, freeze, barcode, honest cannot-resolve",
-    keywords: ["arvision", "ar", "vision", "camera", "hud", "freeze", "lens", "look", "see"],
-    group: "Workspace",
+    view: "investigations",
+    label: "asherin.investigations",
+    codename: "multi-hop osint",
+    blurb: "multi-hop osint research with provenance, contradictions, gaps and next-best hops",
+    keywords: ["investigation", "investigations", "osint", "research", "due diligence", "background", "evidence", "provenance", "dossier", "trace"],
+    group: "find",
   },
   {
-    view: "asherin-eye",
-    label: "asherin.eye",
-    codename: "asherin.eye",
-    blurb: "photoreal 3d globe with live public flights, ships, sats, quakes, radio and osm sites",
-    keywords: ["eye", "globe", "cesium", "flights", "ships", "satellites", "earthquakes", "cockpit", "hud", "3d"],
-    group: "Workspace",
+    view: "zerlal",
+    label: "asherin.cyber",
+    codename: "domain + infra",
+    blurb: "domain and infrastructure recon",
+    keywords: ["cyber", "zerlal", "domain", "ports", "cve", "recon", "vulnerability"],
+    group: "find",
+  },
+  {
+    view: "google",
+    label: "asherin.google",
+    codename: "your accounts",
+    blurb: "your connected google accounts, read on request",
+    keywords: ["google", "gmail", "calendar", "drive", "accounts", "mesh"],
+    group: "find",
+  },
+  {
+    view: "file-scrapper",
+    label: "asherin.extract",
+    codename: "document text",
+    blurb: "pull text and tables out of documents",
+    keywords: ["extract", "scrapper", "scraper", "parse", "pdf", "ocr", "file"],
+    group: "find",
+  },
+  {
+    view: "briefing",
+    label: "asherin.briefing",
+    codename: "scheduled reading",
+    blurb: "scheduled reading, sourced",
+    keywords: ["briefing", "briefings", "daily", "digest", "news"],
+    group: "find",
+  },
+
+  // ── UNDERSTAND ─────────────────────────────────────────────────────────
+  {
+    view: "azplen",
+    label: "asherin.data",
+    codename: "datasets",
+    blurb: "datasets, analysis and charts",
+    keywords: ["data", "azplen", "dataset", "ontology", "chart", "table"],
+    group: "understand",
+  },
+  {
+    view: "knowledge-vault",
+    label: "asherin.knowledge",
+    codename: "private corpus",
+    blurb: "private files asherin can cite",
+    keywords: ["knowledge", "vault", "corpus", "rag", "documents", "cite"],
+    group: "understand",
   },
   {
     view: "asherin-health",
@@ -81,39 +162,90 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "asherin.health",
     blurb: "3d personal anatomy — bloodwork, medication, genes, exposures, pain and live sensors painted onto your own body",
     keywords: ["health", "anatomy", "body", "pain", "blood", "labs", "medication", "herbs", "genes", "hrv", "atlas", "organ"],
-    group: "Workspace",
+    group: "understand",
   },
   {
-    view: "investigations",
-    label: "investigations",
-    codename: "investigations",
-    blurb: "multi-hop osint research with provenance, contradictions, gaps and next-best hops",
-    keywords: ["investigation", "investigations", "osint", "research", "due diligence", "background", "evidence", "provenance", "dossier", "trace"],
-    group: "Workspace",
+    view: "gematria",
+    label: "asherin.gematria",
+    codename: "letter values",
+    blurb: "letter-value arithmetic and matches",
+    keywords: ["gematria", "numerology", "letters", "values"],
+    group: "understand",
   },
   {
-    view: "asherin-sentinel",
-    label: "asherin.sentinel",
-    codename: "asherin.sentinel",
-    blurb: "Ambient watch — voices separated and named from their own words, sounds tagged, one searchable timeline",
-    keywords: ["sentinel", "ambient", "listen", "audio", "microphone", "transcribe", "speaker", "voice", "diarization", "watch"],
-    group: "Workspace",
+    view: "vedic-astrology",
+    label: "asherin.vedic",
+    codename: "transits",
+    blurb: "moon-driven transits and timing",
+    keywords: ["vedic", "astrology", "transit", "dasha", "chart"],
+    group: "understand",
   },
+
+  // ── MAKE ───────────────────────────────────────────────────────────────
   {
     view: "pdf-generator",
-    label: "pages",
-    codename: "asherin.pages",
-    blurb: "prompt a page. quiet file. you keep the pdf.",
-    keywords: ["pages", "pdf", "typeset", "letter", "typst", "document", "pdf-generator"],
-    group: "Workspace",
+    label: "asherin.pages",
+    codename: "document studio",
+    blurb: "one prompt, one file — report, deck, book or pdf",
+    keywords: [
+      "pages",
+      "pdf",
+      "document",
+      "report",
+      "typeset",
+      "typst",
+      "slides",
+      "slideshow",
+      "deck",
+      "presentation",
+      "ebook",
+      "book",
+      "chapters",
+      "write",
+    ],
+    group: "make",
   },
+  {
+    view: "zali",
+    label: "asherin.design",
+    codename: "design lab",
+    blurb: "design exploration",
+    keywords: ["design", "zali", "ui", "lab", "sketch"],
+    group: "make",
+  },
+  {
+    view: "zahten",
+    label: "asherin.agents",
+    codename: "agent forge",
+    blurb: "build and publish an agent",
+    keywords: ["agent", "agents", "zahten", "forge", "workflow", "deploy"],
+    group: "make",
+  },
+  {
+    view: "whiteboard",
+    label: "asherin.whiteboard",
+    codename: "Canvas",
+    blurb: "Infinite canvas with layers, snap grids, and freeform sketching",
+    keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"],
+    group: "make",
+  },
+  {
+    view: "snippets",
+    label: "asherin.snippets",
+    codename: "saved code",
+    blurb: "saved code you reuse",
+    keywords: ["snippet", "snippets", "code", "reuse"],
+    group: "make",
+  },
+
+  // ── KEEP ───────────────────────────────────────────────────────────────
   {
     view: "library",
     label: "Library",
     codename: "Library",
     blurb: "Saved files and references",
     keywords: ["library", "files", "storage", "documents"],
-    group: "Workspace",
+    group: "keep",
   },
   {
     view: "projects",
@@ -121,7 +253,7 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "Projects",
     blurb: "Organize conversations into projects",
     keywords: ["project", "folder", "organize"],
-    group: "Workspace",
+    group: "keep",
   },
   {
     view: "memory",
@@ -129,7 +261,7 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "Vault",
     blurb: "Everything Asherin has learned about you, encrypted and yours to edit",
     keywords: ["memory", "remember", "context", "recall", "vault", "learned"],
-    group: "Workspace",
+    group: "keep",
   },
   {
     view: "guardian-vault",
@@ -137,15 +269,7 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "Vault",
     blurb: "Passwords, TOTP, sessions, and activity — contents never enter chat",
     keywords: ["vault", "password", "secret", "mfa", "totp", "sessions", "activity"],
-    group: "Workspace",
-  },
-  {
-    view: "whiteboard",
-    label: "Whiteboard",
-    codename: "Canvas",
-    blurb: "Infinite canvas with layers, snap grids, and freeform sketching",
-    keywords: ["whiteboard", "canvas", "draw", "sketch", "diagram", "board"],
-    group: "Workspace",
+    group: "keep",
   },
   {
     view: "teams",
@@ -153,23 +277,23 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "Team",
     blurb: "Your company workspace — members, roles, invites, shared projects",
     keywords: ["team", "teams", "workspace", "members", "invite", "roles", "company", "org", "seats", "colleagues"],
-    group: "Workspace",
+    group: "keep",
   },
 
-  // ACCOUNT
+  // ── ACCOUNT ────────────────────────────────────────────────────────────
   {
     view: "settings",
     label: "Settings",
     codename: "Settings",
     keywords: ["settings", "preferences", "config", "options"],
-    group: "Account",
+    group: "account",
   },
   {
     view: "subscription",
     label: "Subscribe or manage your plan",
     codename: "Subscription",
     keywords: ["billing", "subscription", "plan", "upgrade", "pricing", "manage"],
-    group: "Account",
+    group: "account",
   },
   {
     view: "api-keys",
@@ -191,98 +315,15 @@ export const NAV_INTENTS: NavIntent[] = [
       "gemini",
       "groq",
     ],
-    group: "Account",
-  },
-
-  // ── FOLDED SOFTWARE ────────────────────────────────────────────────────
-  // Rooms that already mount in the dashboard but had no row. Every one of
-  // them speaks under one family name: asherin.<thing it does>. Grouped in
-  // fours-to-eights so the eye never has to price a flat list of thirty.
-
-  // INVESTIGATE
-  {
-    view: "search",
-    label: "asherin.search",
-    codename: "sourced search",
-    blurb: "sourced search with credibility tiers",
-    keywords: ["search", "zophiel", "osint", "web", "dark web", "leaks", "archives"],
-    group: "Investigate",
+    group: "account",
   },
   {
-    view: "zerlal",
-    label: "asherin.cyber",
-    codename: "domain + infra",
-    blurb: "domain and infrastructure recon",
-    keywords: ["cyber", "zerlal", "domain", "ports", "cve", "recon", "vulnerability"],
-    group: "Investigate",
-  },
-  {
-    view: "google",
-    label: "asherin.google",
-    codename: "your accounts",
-    blurb: "your connected google accounts, read on request",
-    keywords: ["google", "gmail", "calendar", "drive", "accounts", "mesh"],
-    group: "Investigate",
-  },
-  {
-    view: "knowledge-vault",
-    label: "asherin.knowledge",
-    codename: "private corpus",
-    blurb: "private files asherin can cite",
-    keywords: ["knowledge", "vault", "corpus", "rag", "documents", "cite"],
-    group: "Investigate",
-  },
-  {
-    view: "file-scrapper",
-    label: "asherin.extract",
-    codename: "document text",
-    blurb: "pull text and tables out of documents",
-    keywords: ["extract", "scrapper", "scraper", "parse", "pdf", "ocr", "file"],
-    group: "Investigate",
-  },
-  {
-    view: "briefing",
-    label: "asherin.briefing",
-    codename: "scheduled reading",
-    blurb: "scheduled reading, sourced",
-    keywords: ["briefing", "briefings", "daily", "digest", "news"],
-    group: "Investigate",
-  },
-
-  // ANALYZE
-  {
-    view: "azplen",
-    label: "asherin.data",
-    codename: "datasets",
-    blurb: "datasets, analysis and charts",
-    keywords: ["data", "azplen", "dataset", "ontology", "chart", "table"],
-    group: "Analyze",
-  },
-
-  // BUILD
-  {
-    view: "zahten",
-    label: "asherin.agents",
-    codename: "agent forge",
-    blurb: "build and publish an agent",
-    keywords: ["agent", "agents", "zahten", "forge", "workflow", "deploy"],
-    group: "Build",
-  },
-  {
-    view: "snippets",
-    label: "asherin.snippets",
-    codename: "saved code",
-    blurb: "saved code you reuse",
-    keywords: ["snippet", "snippets", "code", "reuse"],
-    group: "Build",
-  },
-  {
-    view: "zali",
-    label: "asherin.design",
-    codename: "design lab",
-    blurb: "design exploration",
-    keywords: ["design", "zali", "ui", "lab", "sketch"],
-    group: "Build",
+    view: "stats",
+    label: "asherin.activity",
+    codename: "usage + trail",
+    blurb: "what you used, and every recorded action on your account",
+    keywords: ["activity", "usage", "stats", "audit", "trail", "log", "history", "streak"],
+    group: "account",
   },
   {
     view: "community",
@@ -290,7 +331,7 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "shared room",
     blurb: "shared prompts and rooms",
     keywords: ["community", "forum", "shared", "people"],
-    group: "Build",
+    group: "account",
   },
   {
     view: "bug-reports",
@@ -298,53 +339,20 @@ export const NAV_INTENTS: NavIntent[] = [
     codename: "your reports",
     blurb: "what you reported, and its state",
     keywords: ["bug", "bugs", "report", "issue", "broken"],
-    group: "Build",
-  },
-
-  // CREATE
-  {
-    view: "slideshow",
-    label: "asherin.slides",
-    codename: "decks",
-    blurb: "prompt a deck, keep the file",
-    keywords: ["slides", "slideshow", "deck", "presentation"],
-    group: "Create",
-  },
-  {
-    view: "ebook",
-    label: "asherin.ebooks",
-    codename: "long form",
-    blurb: "long-form writing to a finished file",
-    keywords: ["ebook", "book", "chapters", "write"],
-    group: "Create",
-  },
-  {
-    view: "gematria",
-    label: "asherin.gematria",
-    codename: "letter values",
-    blurb: "letter-value arithmetic and matches",
-    keywords: ["gematria", "numerology", "letters", "values"],
-    group: "Create",
-  },
-  {
-    view: "vedic-astrology",
-    label: "asherin.vedic",
-    codename: "transits",
-    blurb: "moon-driven transits and timing",
-    keywords: ["vedic", "astrology", "transit", "dasha", "chart"],
-    group: "Create",
+    group: "account",
   },
 ];
 
-export const INTENT_GROUPS: IntentGroup[] = ["Workspace", "Investigate", "Analyze", "Build", "Create", "Account"];
+export const INTENT_GROUPS: IntentGroup[] = ["talk", "watch", "find", "understand", "make", "keep", "account"];
 
 export const INTENT_GROUP_BLURB: Record<IntentGroup, string> = {
-  Create: "make a file you keep",
-  Analyze: "data, money, time, patterns",
-  Investigate: "search, recon, your own accounts",
-  Build: "code, agents, snippets",
-  Workspace: "chat, maps, library, memory, vault",
-  Account: "settings, billing, keys",
+  talk: "ask for anything",
+  watch: "live cameras, sound, device, globe",
+  find: "search, recon, your own accounts",
+  understand: "data, knowledge, body, timing",
+  make: "documents, design, agents, canvas",
+  keep: "library, projects, vault, team",
+  account: "settings, billing, keys, activity",
 };
 
 /* ───────────────────────── Recents ───────────────────────── */
