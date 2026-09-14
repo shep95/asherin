@@ -5,7 +5,9 @@
 
 import type { DashboardView } from "@/components/dashboard/types";
 
-export type IntentGroup = "Create" | "Analyze" | "Investigate" | "Build" | "Workspace" | "Account";
+// Groups are named after the job the user came to do, not the department the
+// tool belongs to. Seven groups, every room one click inside one of them.
+export type IntentGroup = "talk" | "watch" | "find" | "understand" | "make" | "keep" | "account";
 
 export interface NavIntent {
   /** Dashboard view id (preferred). */
