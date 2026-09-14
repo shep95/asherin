@@ -1,10 +1,10 @@
-import PdfGeneratorView from "./PdfGeneratorView";
+import DocumentStudioView from "./DocumentStudioView";
 
-/** asherin.pages — replaces the pdf / ebook / slideshow mall. */
+/** asherin.pages — one document studio: page, deck or book. */
 export default function DocumentExportLanding() {
   return (
     <div className="h-full min-h-0 w-full">
-      <PdfGeneratorView />
+      <DocumentStudioView initialKind="page" />
     </div>
   );
 }

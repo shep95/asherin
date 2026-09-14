@@ -76,7 +76,7 @@ export default function OnboardingModal({ forceOpen = false, onClose }: Props) {
             <h2 className="text-xl font-light text-foreground mb-1">What do you mostly want to do?</h2>
             <p className="text-sm text-muted-foreground mb-4">Pick one — we'll show you the right tools.</p>
             <div className="grid grid-cols-2 gap-2">
-              {INTENT_GROUPS.filter((g) => g !== "Account").map((g) => (
+              {INTENT_GROUPS.filter((g) => g !== "account").map((g) => (
                 <button
                   key={g}
                   onClick={() => { setPickedGroup(g); setStep(1); }}
