@@ -14,12 +14,13 @@ import {
 const FLAG = "aureon_onboarded_v1";
 
 const EXAMPLE_PROMPTS: Record<IntentGroup, string> = {
-  Create: "Write a 4-slide pitch deck for a coffee subscription startup.",
-  Analyze: "Look at the CSV I just uploaded and tell me which months drove revenue.",
-  Investigate: "Pull a 5-bullet OSINT brief on the company 'OpenAI'.",
-  Build: "Scaffold a Node script that watches a folder and uploads new files to S3.",
-  Workspace: "Save this conversation to a project called 'Q1 Research'.",
-  Account: "Show me what I have used this month.",
+  talk: "Ask me anything — start with what you are trying to work out.",
+  watch: "Show me what the camera is looking at right now.",
+  find: "Pull a 5-bullet OSINT brief on the company 'OpenAI'.",
+  understand: "Look at the CSV I just uploaded and tell me which months drove revenue.",
+  make: "Write a 4-slide pitch deck for a coffee subscription startup.",
+  keep: "Save this conversation to a project called 'Q1 Research'.",
+  account: "Show me what I have used this month.",
 };
 
 interface Props {
