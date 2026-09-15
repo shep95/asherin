@@ -46,7 +46,7 @@ const ActivityView = () => {
       supabase.from("usage_stats").select("*").eq("user_id", user.id).maybeSingle(),
       (supabase.from as any)("audit_log").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
-    setStats((usage.data as Record<string, number> | null) ?? null);
+    setStats((usage.data as unknown as Record<string, number> | null) ?? null);
     setEntries(((audit as { data: AuditEntry[] | null }).data ?? []) as AuditEntry[]);
     setLoading(false);
   }, [user]);

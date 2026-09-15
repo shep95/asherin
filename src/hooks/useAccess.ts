@@ -24,7 +24,6 @@ const PRO_VIEWS: DashboardView[] = [
   "azplen",
   "teams",
   "plugins",
-  "audit",
   "predictive",
   "security",
   "tracker",
@@ -84,6 +83,9 @@ const PUBLIC_VIEWS: DashboardView[] = [
   // the gate silently absent, they are declared free on purpose.
   "investigations",
   "gematria",
+  // asherin.activity — your own usage and your own recorded actions. Charging
+  // someone to read their own record was never defensible.
+  "audit",
 ];
 
 // ── KILL SWITCH ──────────────────────────────────────────────────────────────
