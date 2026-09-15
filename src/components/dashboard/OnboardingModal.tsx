@@ -135,7 +135,7 @@ export default function OnboardingModal({ forceOpen = false, onClose }: Props) {
               You can also press <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px]">/</kbd> any time to jump to any tool.
             </p>
             <div className="rounded-xl border border-border/40 bg-card/40 p-3 text-sm font-light text-foreground">
-              {EXAMPLE_PROMPTS[pickedGroup ?? "Create"]}
+              {EXAMPLE_PROMPTS[pickedGroup ?? "talk"]}
             </div>
             <button
               onClick={() => {
@@ -143,7 +143,7 @@ export default function OnboardingModal({ forceOpen = false, onClose }: Props) {
                 try {
                   sessionStorage.setItem(
                     "aureon_prefill_prompt",
-                    EXAMPLE_PROMPTS[pickedGroup ?? "Create"],
+                    EXAMPLE_PROMPTS[pickedGroup ?? "talk"],
                   );
                 } catch {}
                 try { localStorage.setItem(FLAG, "1"); } catch {}

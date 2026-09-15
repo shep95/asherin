@@ -36,7 +36,7 @@ const LibraryView = lazyWithRetry(() => import("@/components/dashboard/LibraryVi
 const CodeSnippetsView = lazyWithRetry(() => import("@/components/dashboard/CodeSnippetsView"));
 const ProjectsView = lazyWithRetry(() => import("@/components/dashboard/ProjectsView"));
 const OrganismVaultView = lazyWithRetry(() => import("@/components/dashboard/OrganismVaultView"));
-const StatsView = lazyWithRetry(() => import("@/components/dashboard/StatsView"));
+const ActivityView = lazyWithRetry(() => import("@/components/dashboard/ActivityView"));
 const VedicAstrologyView = lazyWithRetry(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = lazyWithRetry(() => import("@/components/dashboard/SettingsView"));
 const GoogleIntelligenceView = lazyWithRetry(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
@@ -50,18 +50,17 @@ const CommunityView = lazyWithRetry(() => import("@/components/dashboard/zali/Co
 const BriefingView = lazyWithRetry(() => import("@/components/dashboard/BriefingView"));
 const TeamsView = lazyWithRetry(() => import("@/components/dashboard/TeamsView"));
 const NotebooksView = lazyWithRetry(() => import("@/components/dashboard/NotebooksView"));
-const AuditLogView = lazyWithRetry(() => import("@/components/dashboard/AuditLogView"));
+
 
 const AureonIdeView = lazyWithRetry(() => import("@/components/dashboard/ide/AureonIdeView"));
 const WhiteboardView = lazyWithRetry(() => import("@/components/whiteboard/Whiteboard"));
-const PdfGeneratorView = lazyWithRetry(() => import("@/components/dashboard/PdfGeneratorView"));
-const DocumentExportLanding = lazyWithRetry(() => import("@/components/dashboard/DocumentExportLanding"));
+const DocumentStudioView = lazyWithRetry(() => import("@/components/dashboard/DocumentStudioView"));
 
 const PatternAnalysisView = lazyWithRetry(() => import("@/components/dashboard/PatternAnalysisView"));
-const SlideshowGeneratorView = lazyWithRetry(() => import("@/components/dashboard/SlideshowGeneratorView"));
+
 
 const BugReportsView = lazyWithRetry(() => import("@/components/dashboard/BugReportsView"));
-const EBookGeneratorView = lazyWithRetry(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
+
 const GuardianVaultView = lazyWithRetry(() => import("@/components/dashboard/GuardianVaultView"));
 const KnowledgeVaultView = lazyWithRetry(() => import("@/components/dashboard/KnowledgeVaultView"));
 const ZerlalView = lazyWithRetry(() => import("@/components/dashboard/zerlal/ZerlalView"));
@@ -2101,12 +2100,15 @@ const Dashboard = () => {
           "Intelligence Notebooks",
           "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro plans.",
         );
+      // The old stats page and audit page were each half a room. They are one
+      // activity panel now, free for everyone: it is your own record.
       case "audit":
-        return gatedView(
-          "audit",
-          AuditLogView,
-          "Audit Trail",
-          "Complete access and activity logging for compliance and security. Available on Pro plans.",
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<LazyFallback />}>
+              <ActivityView />
+            </Suspense>
+          </ErrorBoundary>
         );
       case "zahten":
         return gatedView(
@@ -2233,7 +2235,7 @@ const Dashboard = () => {
         return (
           <ErrorBoundary>
             <Suspense fallback={<LazyFallback />}>
-              <StatsView />
+              <ActivityView />
             </Suspense>
           </ErrorBoundary>
         );
@@ -2278,27 +2280,15 @@ const Dashboard = () => {
             </Suspense>
           </ErrorBoundary>
         );
+      // asherin.pages — one document studio. The old slides / ebook / pdf deep
+      // links still work: they simply open the studio on their own output type.
       case "pdf-generator":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              <DocumentExportLanding />
-            </Suspense>
-          </ErrorBoundary>
-        );
       case "ebook":
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<LazyFallback />}>
-              <EBookGeneratorView />
-            </Suspense>
-          </ErrorBoundary>
-        );
       case "slideshow":
         return (
           <ErrorBoundary>
             <Suspense fallback={<LazyFallback />}>
-              <SlideshowGeneratorView />
+              <DocumentStudioView initialKind={activeView === "ebook" ? "book" : activeView === "slideshow" ? "deck" : "page"} />
             </Suspense>
           </ErrorBoundary>
         );
