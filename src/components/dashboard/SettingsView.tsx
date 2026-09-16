@@ -112,8 +112,20 @@ const GitHubSettings = () => {
   );
 };
 
+const SETTINGS_TABS = [
+  { key: "you", label: "you" },
+  { key: "look", label: "look" },
+  { key: "intelligence", label: "intelligence" },
+  { key: "connections", label: "connections" },
+  { key: "privacy", label: "privacy & data" },
+] as const;
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];
+
 const SettingsView = () => {
+  const [tab, setTab] = useState<SettingsTab>("you");
   const v2 = useIsV2();
+
   const { user } = useAuth();
   const stepUp = useStepUp();
 
