@@ -189,6 +189,23 @@ export const NAV_INTENTS: NavIntent[] = [
     keywords: ["vedic", "astrology", "transit", "dasha", "chart"],
     group: "understand",
   },
+  {
+    view: "pattern-analysis",
+    label: "asherin.patterns",
+    codename: "trend shapes",
+    blurb: "find repeating shapes in your numbers and project them forward",
+    keywords: ["pattern", "patterns", "trend", "forecast", "graph", "series"],
+    group: "understand",
+  },
+  {
+    view: "notebooks",
+    label: "asherin.notebooks",
+    codename: "shared analysis",
+    blurb: "shared analysis sessions with versions",
+    keywords: ["notebook", "notebooks", "analysis", "session", "collaborate", "versions"],
+    group: "understand",
+  },
+
 
   // ── MAKE ───────────────────────────────────────────────────────────────
   {
