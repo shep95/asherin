@@ -12,16 +12,48 @@
 
 import { getModelCapability, tierPrompts, extractJson } from './modelCapability.ts';
 
+/**
+ * Every provider offered in src/lib/aiProviders.ts that exposes an
+ * OpenAI-compatible /chat/completions route. This table is the ONE place that
+ * decides whether a saved key can actually be called by the tool surfaces
+ * (Zophiel, Sentinel, Eye, Zerlal, Health, rideshare, resume, …). It mirrors
+ * PROVIDER_ENDPOINTS in supabase/functions/chat/index.ts — a provider wired for
+ * chat but missing here is exactly how a saved key ends up working in chat and
+ * failing everywhere else.
+ *
+ * `nativeJson: false` = the provider accepts response_format but does not
+ * reliably honor it, so JSON is enforced on our side via extractJson.
+ */
+export const OPENAI_COMPAT_BASE: Readonly<Record<string, { base: string; nativeJson?: false }>> = {
+  openai: { base: 'https://api.openai.com/v1' },
+  xai: { base: 'https://api.x.ai/v1' },
+  deepseek: { base: 'https://api.deepseek.com/v1' },
+  mistral: { base: 'https://api.mistral.ai/v1' },
+  openrouter: { base: 'https://openrouter.ai/api/v1' },
+  // Perplexity does not honor response_format=json_object; prompt discipline only.
+  perplexity: { base: 'https://api.perplexity.ai', nativeJson: false },
+  // Venice hosts open-weights models and honors response_format inconsistently.
+  venice: { base: 'https://api.venice.ai/api/v1', nativeJson: false },
+  meta: { base: 'https://api.together.xyz/v1', nativeJson: false },
+  cohere: { base: 'https://api.cohere.ai/compatibility/v1', nativeJson: false },
+  qwen: { base: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', nativeJson: false },
+  zhipu: { base: 'https://open.bigmodel.cn/api/paas/v4', nativeJson: false },
+  moonshot: { base: 'https://api.moonshot.cn/v1', nativeJson: false },
+  nvidia: { base: 'https://integrate.api.nvidia.com/v1', nativeJson: false },
+  reka: { base: 'https://api.reka.ai/v1', nativeJson: false },
+  sarvam: { base: 'https://api.sarvam.ai/v1', nativeJson: false },
+  twoai: { base: 'https://api.two.ai/v2', nativeJson: false },
+};
+
+/** Providers this router can actually reach: the two native shapes + the table. */
+export function isCallableByokProvider(provider: string): boolean {
+  return provider === 'google' || provider === 'anthropic' || !!OPENAI_COMPAT_BASE[provider];
+}
+
 export type ZophielByokProvider =
   | 'google'
-  | 'openai'
   | 'anthropic'
-  | 'xai'
-  | 'deepseek'
-  | 'mistral'
-  | 'perplexity'
-  | 'venice'
-  | 'openrouter';
+  | (string & {});
 
 export interface ZophielByokConfig {
   provider: ZophielByokProvider;
@@ -148,52 +180,29 @@ export async function callByokJson(
   const nativeJson = jsonMode && cap.nativeJsonMode;
 
   const raw = await (() => {
-    switch (cfg.provider) {
-      case 'google':
-        return callGemini(cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode: nativeJson,
-        });
-      case 'openai':
-        return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
-        });
-      case 'anthropic':
-        return callAnthropic(cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, maxOutputTokens, jsonMode,
-        });
-      case 'xai':
-        return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
-        });
-      case 'deepseek':
-        return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
-        });
-      case 'mistral':
-        return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
-        });
-      case 'perplexity':
-        // Perplexity does not honor response_format=json_object; prompt discipline only.
-        return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson: false,
-        });
-      case 'venice':
-        // Venice AI is OpenAI-compatible and hosts open-weights models. It
-        // accepts response_format but honors it inconsistently per model, so
-        // JSON is enforced on our side via extractJson below.
-        return callOpenAICompat('https://api.venice.ai/api/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson: false,
-        });
-      case 'openrouter':
-        // OpenRouter is OpenAI-compatible and fronts every routed vendor,
-        // including the stealth OX Alpha release (model id `stealth/ox-alpha`).
-        return callOpenAICompat('https://openrouter.ai/api/v1', cfg.apiKey, cfg.model, sys, usr, {
-          timeoutMs, temperature, maxOutputTokens, jsonMode, nativeJson,
-        });
-      default:
-        throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
+    if (cfg.provider === 'google') {
+      return callGemini(cfg.apiKey, cfg.model, sys, usr, {
+        timeoutMs, temperature, maxOutputTokens, jsonMode: nativeJson,
+      });
     }
+    if (cfg.provider === 'anthropic') {
+      return callAnthropic(cfg.apiKey, cfg.model, sys, usr, {
+        timeoutMs, maxOutputTokens, jsonMode,
+      });
+    }
+    const compat = OPENAI_COMPAT_BASE[cfg.provider];
+    if (compat) {
+      return callOpenAICompat(compat.base, cfg.apiKey, cfg.model, sys, usr, {
+        timeoutMs,
+        temperature,
+        maxOutputTokens,
+        jsonMode,
+        // Only providers that actually enforce response_format get native JSON;
+        // everywhere else extractJson does the enforcing below.
+        nativeJson: compat.nativeJson === false ? false : nativeJson,
+      });
+    }
+    throw new Error(`unsupported_byok_provider_${(cfg as { provider: string }).provider}`);
   })();
 
   if (!jsonMode) return raw;

@@ -28,6 +28,17 @@ export const PROVIDER_ENV: Readonly<Record<string, readonly string[]>> = {
   // venice is BYOK-only: the platform never holds a Venice key for users.
   venice: [],
   perplexity: ["PERPLEXITY_API_KEY"],
+  // BYOK-only providers: the platform holds no key for these, but a user key
+  // saved in Settings -> AI Keys must still resolve.
+  meta: [],
+  cohere: [],
+  qwen: [],
+  zhipu: [],
+  moonshot: [],
+  nvidia: [],
+  reka: [],
+  sarvam: [],
+  twoai: [],
 };
 
 /** Non-model secrets. Same order rule: absent name → keyless or offline. */
@@ -63,6 +74,15 @@ export const DEFAULT_MODEL: Readonly<Record<string, string>> = {
   deepseek: "deepseek-chat",
   venice: "mistral-31-24b",
   perplexity: "sonar",
+  meta: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  cohere: "command-r-plus",
+  qwen: "qwen-plus",
+  zhipu: "glm-4-plus",
+  moonshot: "moonshot-v1-8k",
+  nvidia: "meta/llama-3.3-70b-instruct",
+  reka: "reka-core",
+  sarvam: "sarvam-m",
+  twoai: "sutra-v2",
 };
 
 /** Order the model resolver walks when the user expressed no preference. */
@@ -76,6 +96,19 @@ export const MODEL_PRIORITY: readonly string[] = [
   "mistral",
   "together",
   "deepseek",
+  // BYOK-only tail. These were missing, so a user whose only saved key was one
+  // of them resolved to "no key bound" and every keyed surface reported offline.
+  "venice",
+  "perplexity",
+  "meta",
+  "cohere",
+  "qwen",
+  "zhipu",
+  "moonshot",
+  "nvidia",
+  "reka",
+  "sarvam",
+  "twoai",
 ];
 
 const env = (name: string): string => (Deno.env.get(name) || "").trim();
