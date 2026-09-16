@@ -50,9 +50,12 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 
 ## consumer dashboard audit — staged repair (2026-09-12)
 - [x] stage 1 truth pass: nav regrouped into 7 jobs, asherin.pages merged (page/deck/book), asherin.activity merged (usage + trail), activity free
-- [x] stage 3 nav rebuild: ghost-engine/pattern-analysis/notebooks now have rows; ghost-engine gate matches its $18 copy; v2 keep-list includes pages + activity
-- [x] stage 4 settings: five lazy tabs, wallpaper charge removed
+- [x] stage 3 nav rebuild: pattern-analysis/notebooks now have rows; asherinx.eng row removed (the engine is retired, so its row was a dead click); v2 keep-list includes pages + activity
+- [x] stage 4 settings: five lazy tabs (now six with spend), wallpaper charge removed
 - [x] subscription verified real (manage card: period end, cancel, resume, billing portal) — not a shell
-- [ ] stage 2 remainder: fold snippets into the artifact/library store (needs database)
-- [ ] stage 5 usage + cost ledger per provider/tool/day with per-tool off switches (blocked: hosted database paused)
-- [ ] stage 7 signed-in browser verification of every changed tool (blocked: no session while database is paused)
+- [x] stage 5 usage + cost ledger: ai_usage_events + tool_api_switches (owner-only), recorded at the single AI call gate, per-room off switch + monthly budget in settings > spend. money is always an estimate from published list prices, never a bill; tokens shown only when the provider reported them
+- [x] stage 6 weak-workflow repairs: /dashboard/stats was silently redirected to chat by an old retired-route list — activity now opens; activity/pages deep links (activity, asherin.activity, ebook, slideshow, pages) all resolve; no paid-copy leftovers remain
+- [x] stage 7 signed-in verification: live session, pages tabs (page/deck/book), activity room, settings tabs, spend panel, and a real write/read of the usage ledger + off switch against live data (test rows deleted after)
+- [x] database security pass: 111 -> 68 linter items. fixed function search paths, locked 3 internal tables, revoked call access on 30 internal helpers. the remaining 67 are helpers the access rules themselves must call plus pgvector living in public — moving it risks the stored vector columns, so it stays deliberately
+- [ ] stage 2 remainder: fold snippets into the artifact/library store
+- [ ] artifact gaps: follow-up session mutation, persistence of gated learning decisions
