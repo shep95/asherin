@@ -432,8 +432,26 @@ const SettingsView = () => {
           </div>
         )}
 
+        <nav className="flex flex-wrap gap-1.5 rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-1.5" aria-label="settings sections">
+          {SETTINGS_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-light lowercase transition-colors ${
+                tab === t.key
+                  ? "bg-foreground/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
         {/* Profile */}
+        {tab === "you" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <User className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Profile</h3>
