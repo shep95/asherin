@@ -41,6 +41,9 @@ const PRO_VIEWS: DashboardView[] = [
 // open at core height; retired products are never granted.
 const AUREON_VIEWS: DashboardView[] = [
   "nomad",
+  // asherinx.eng — its own copy says the $18 plan, so the gate says it too.
+  "ghost-engine",
+
   "briefing",
   "zali",
   "notebooks",

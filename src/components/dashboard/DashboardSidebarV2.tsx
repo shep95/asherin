@@ -48,16 +48,19 @@ const V2_ORDER: DashboardView[] = [
   "asherin-arvision",
   "asherin-eye",
   "asherin-sentinel",
+  "pdf-generator",
   "library",
   "projects",
   "memory",
   "guardian-vault",
   "whiteboard",
   "teams",
+  "stats",
   "settings",
   "subscription",
   "api-keys",
 ];
+
 
 function groupConversations(convs: Conversation[]) {
   const pinned = convs.filter((c) => c.pinned);
