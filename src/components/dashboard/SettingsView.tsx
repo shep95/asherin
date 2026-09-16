@@ -116,6 +116,7 @@ const SETTINGS_TABS = [
   { key: "you", label: "you" },
   { key: "look", label: "look" },
   { key: "intelligence", label: "intelligence" },
+  { key: "spend", label: "spend" },
   { key: "connections", label: "connections" },
   { key: "privacy", label: "privacy & data" },
 ] as const;
