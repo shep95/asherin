@@ -67,6 +67,14 @@ export async function invokeWithByokRetry<T = unknown>(
 ): Promise<T> {
   const max = opts.maxAutoResumes ?? 3;
   const tag = keyTag(opts.body);
+  const provider = (opts.body as any)?.byok?.provider ?? null;
+
+  // Owner's off switch is checked before anything leaves the browser, so a
+  // disabled tool genuinely stops spending instead of spending quietly.
+  if (opts.tool && !(await isToolApiEnabled(opts.tool))) {
+    void recordAiCall({ tool: opts.tool, provider, functionName, status: "blocked" });
+    throw new ToolApiDisabledError(opts.tool);
+  }
 
   for (let attempt = 0; attempt <= max; attempt++) {
     await respectClientCooldown(tag);
@@ -76,7 +84,21 @@ export async function invokeWithByokRetry<T = unknown>(
       headers: opts.headers,
     });
 
-    if (!error) return data as T;
+    if (!error) {
+      if (opts.tool) {
+        const u = readUsage(data);
+        void recordAiCall({
+          tool: opts.tool,
+          provider,
+          model: u.model,
+          functionName,
+          promptTokens: u.prompt,
+          completionTokens: u.completion,
+          status: "ok",
+        });
+      }
+      return data as T;
+    }
 
     // supabase-js v2 exposes the raw response on `error.context` for non-2xx.
     let status: number | undefined;
