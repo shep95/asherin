@@ -102,19 +102,44 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
 
   // persist once the run has settled. owner-scoped; nothing is written for a
   // signed-out session because the store returns null.
+  //
+  // a follow-up in the same conversation MUTATES the existing session: it
+  // appends a version to that lineage instead of starting a new artifact from
+  // zero. only a genuinely new conversation or modality opens a new session.
   useEffect(() => {
     if (!settled || persisted.current || !versions.length) return;
     persisted.current = true;
     void (async () => {
-      const session = await createSession({
-        conversationId,
-        title: stage.contract.goals[0] ?? request.slice(0, 80),
-        modality: stage.modality,
-        capability: stage.capability,
-        capabilityReason: stage.capabilityReason,
-      });
+      const title = stage.contract.goals[0] ?? request.slice(0, 80);
+      let session = conversationId
+        ? (await listSessions(conversationId)).find((s) => s.modality === stage.modality) ?? null
+        : null;
+      let base = 0;
+      if (session) {
+        const existing = await listVersions(session.id);
+        base = existing.reduce((m, v) => Math.max(m, v.version), 0);
+      } else {
+        session = await createSession({
+          conversationId,
+          title,
+          modality: stage.modality,
+          capability: stage.capability,
+          capabilityReason: stage.capabilityReason,
+        });
+      }
       if (!session) return;
-      const head = versions[versions.length - 1];
+
+      const local = versions[versions.length - 1];
+      const head: ArtifactVersion =
+        base > 0
+          ? {
+              ...local,
+              version: base + 1,
+              parentVersion: base,
+              changeSummary: `follow-up in the same conversation — ${local.changeSummary}`,
+            }
+          : local;
+
       await saveContract(session.id, head.version, stage.contract, stage.audit);
       await saveVersion(session.id, head);
       await saveObservations(session.id, head.version, observations.observations);
@@ -124,7 +149,14 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
         lifecycle: run.lifecycle,
         lifecycleReason: run.lifecycleReason,
         activeVersion: head.version,
+        title,
+        capability: stage.capability,
+        capabilityReason: stage.capabilityReason,
       });
+      if (base > 0) {
+        setVersions((prev) => prev.map((v) => (v.version === local.version ? head : v)));
+        setActiveVersion(head.version);
+      }
 
       const experience = recordExperience({
         sessionId: session.id,
@@ -140,9 +172,23 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
 
       const settings = await loadSettings();
       // learning always goes through the existing gate — never a direct write.
-      learnFromExperience(experience, stage.task.domains[0] ?? "general", settings);
+      const derived = learnFromExperience(experience, stage.task.domains[0] ?? "general", settings);
+      if (derived) {
+        // the gate's decision is recorded whatever it decided, so the reasoning
+        // stays auditable. only promoted or candidate patterns are stored.
+        let subjectId: string | undefined;
+        if (
+          (derived.gate.outcome === "promoted" || derived.gate.outcome === "candidate") &&
+          derived.gate.value
+        ) {
+          const stored = await upsertPattern(derived.gate.value);
+          subjectId = stored?.id || undefined;
+        }
+        await recordLearningDecisions(conversationId, derived.gate.decisions, subjectId);
+      }
     })();
   }, [settled, versions, observations, run, stage, conversationId, request]);
+
 
   const lifecycle: ArtifactLifecycle = !settled && stage.capability !== "unavailable" ? "validating" : run.lifecycle;
 
