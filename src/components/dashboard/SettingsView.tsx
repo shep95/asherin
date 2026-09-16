@@ -841,6 +841,8 @@ const SettingsView = () => {
             </label>
           </div>
         </div>
+        )}
+
 
         {/* Keyboard Shortcuts */}
         {tab === "you" && (
