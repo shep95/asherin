@@ -935,6 +935,17 @@ function defaultModelForStoredProvider(provider: string): string | null {
     meta: "llama-4-maverick",
     mistral: "pixtral-large-latest",
     perplexity: "sonar-pro",
+    venice: "venice-uncensored",
+    deepseek: "deepseek-chat",
+    openrouter: "openai/gpt-4o-mini",
+    cohere: "command-r-plus",
+    qwen: "qwen-plus",
+    zhipu: "glm-4-plus",
+    moonshot: "moonshot-v1-8k",
+    nvidia: "meta/llama-3.3-70b-instruct",
+    reka: "reka-core",
+    sarvam: "sarvam-m",
+    twoai: "sutra-v2",
   };
   return defaults[provider] || null;
 }
@@ -987,7 +998,11 @@ async function resolveStoredByok(
       .eq("is_active", true);
     const priority = requireVision
       ? ["google", "openai", "anthropic", "xai"]
-      : ["google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity"];
+      : [
+          "google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity",
+          "venice", "deepseek", "openrouter", "cohere", "qwen", "zhipu",
+          "moonshot", "nvidia", "reka", "sarvam", "twoai",
+        ];
     const row = (keyRows || [])
       .filter((r: any) => priority.includes(r.provider))
       .sort((a: any, b: any) => priority.indexOf(a.provider) - priority.indexOf(b.provider))[0];
