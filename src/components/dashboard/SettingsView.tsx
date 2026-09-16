@@ -871,7 +871,9 @@ const SettingsView = () => {
         </div>
 
         {/* GDPR / Data Rights */}
+        {tab === "privacy" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-5">
+
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Your Data Rights</h3>
