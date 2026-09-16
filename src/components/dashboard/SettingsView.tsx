@@ -869,6 +869,8 @@ const SettingsView = () => {
             ))}
           </div>
         </div>
+        )}
+
 
         {/* GDPR / Data Rights */}
         {tab === "privacy" && (
