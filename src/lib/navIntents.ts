@@ -138,14 +138,6 @@ export const NAV_INTENTS: NavIntent[] = [
     keywords: ["briefing", "briefings", "daily", "digest", "news"],
     group: "find",
   },
-  {
-    view: "ghost-engine",
-    label: "asherinx.eng",
-    codename: "open indexes",
-    blurb: "search across eighteen open public indexes",
-    keywords: ["ghost", "engine", "asherinx", "index", "indexes", "public", "records"],
-    group: "find",
-  },
 
   // ── UNDERSTAND ─────────────────────────────────────────────────────────
 
