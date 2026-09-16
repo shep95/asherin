@@ -18,6 +18,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isToolApiEnabled, recordAiCall, readUsage } from "@/lib/usage/ledger";
 
 export interface InvokeOpts {
   body?: unknown;
@@ -26,6 +27,19 @@ export interface InvokeOpts {
   maxAutoResumes?: number;
   /** Whether to show a toast on the first auto-resume. Default true. */
   silent?: boolean;
+  /** Which room/tool this call belongs to — used for the usage ledger and for
+   *  the owner's per-tool off switch. When omitted the call is neither gated
+   *  nor recorded (we never guess which tool spent the money). */
+  tool?: string;
+}
+
+export class ToolApiDisabledError extends Error {
+  tool: string;
+  code = "TOOL_API_DISABLED";
+  constructor(tool: string) {
+    super(`${tool} has its API turned off in settings`);
+    this.tool = tool;
+  }
 }
 
 // Per-key cooldown mirror: if one call for a key just got rate-limited, any
