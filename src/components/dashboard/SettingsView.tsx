@@ -936,6 +936,8 @@ const SettingsView = () => {
             )}
           </div>
         </div>
+        )}
+
       </div>
     </div>
   );
