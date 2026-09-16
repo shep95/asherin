@@ -799,6 +799,8 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+        )}
+
 
         {/* AI Model Keys (BYOK) */}
         {tab === "intelligence" && <AIKeysSettings />}
