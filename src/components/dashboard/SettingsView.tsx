@@ -11,6 +11,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
 import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
 import IntelligenceSettings from "./settings/IntelligenceSettings";
+import UsageSettings from "./settings/UsageSettings";
 
 import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
