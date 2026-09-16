@@ -124,6 +124,7 @@ export async function invokeModel(binding: ModelBinding, req: GatewayRequest): P
         ...(req.extra ?? {}),
       },
       silent: true,
+      tool: (req as { tool?: string }).tool ?? "chat",
     });
     const text =
       (typeof data?.text === "string" && data.text) ||
