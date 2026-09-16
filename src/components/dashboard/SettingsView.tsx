@@ -849,6 +849,9 @@ const SettingsView = () => {
         {/* Memory & learning */}
         {tab === "intelligence" && <IntelligenceSettings />}
 
+        {/* Recorded AI spend + per-room off switches */}
+        {tab === "spend" && <UsageSettings />}
+
         {/* GitHub Integration */}
         {tab === "connections" && <GitHubSettings />}
 
