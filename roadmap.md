@@ -47,3 +47,12 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [ ] advanced SEO, automated tests, and live desktop/mobile workflow verification
 
 - [x] Fix all current preview typecheck errors from observability log
+
+## consumer dashboard audit — staged repair (2026-09-12)
+- [x] stage 1 truth pass: nav regrouped into 7 jobs, asherin.pages merged (page/deck/book), asherin.activity merged (usage + trail), activity free
+- [x] stage 3 nav rebuild: ghost-engine/pattern-analysis/notebooks now have rows; ghost-engine gate matches its $18 copy; v2 keep-list includes pages + activity
+- [x] stage 4 settings: five lazy tabs, wallpaper charge removed
+- [x] subscription verified real (manage card: period end, cancel, resume, billing portal) — not a shell
+- [ ] stage 2 remainder: fold snippets into the artifact/library store (needs database)
+- [ ] stage 5 usage + cost ledger per provider/tool/day with per-tool off switches (blocked: hosted database paused)
+- [ ] stage 7 signed-in browser verification of every changed tool (blocked: no session while database is paused)
