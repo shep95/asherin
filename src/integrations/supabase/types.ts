@@ -787,6 +787,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage_events: {
+        Row: {
+          completion_tokens: number | null
+          created_at: string
+          estimated_cost_usd: number | null
+          function_name: string | null
+          id: string
+          model: string | null
+          prompt_tokens: number | null
+          provider: string | null
+          status: string
+          tool: string
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          completion_tokens?: number | null
+          created_at?: string
+          estimated_cost_usd?: number | null
+          function_name?: string | null
+          id?: string
+          model?: string | null
+          prompt_tokens?: number | null
+          provider?: string | null
+          status?: string
+          tool: string
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          completion_tokens?: number | null
+          created_at?: string
+          estimated_cost_usd?: number | null
+          function_name?: string | null
+          id?: string
+          model?: string | null
+          prompt_tokens?: number | null
+          provider?: string | null
+          status?: string
+          tool?: string
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_user_memory: {
         Row: {
           confidence: number
@@ -15505,6 +15550,30 @@ export type Database = {
           metadata?: Json
           source?: string
           threat_category?: string
+        }
+        Relationships: []
+      }
+      tool_api_switches: {
+        Row: {
+          enabled: boolean
+          monthly_budget_usd: number | null
+          tool: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          monthly_budget_usd?: number | null
+          tool: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          monthly_budget_usd?: number | null
+          tool?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
