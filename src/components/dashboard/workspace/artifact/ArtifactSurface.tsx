@@ -17,8 +17,12 @@ import { nextVersion, rollbackTo } from "@/lib/artifact/versioning";
 import { normalise } from "@/lib/artifact/observer";
 import { learnFromExperience } from "@/lib/artifact/experience";
 import { loadSettings } from "@/lib/intelligence/store";
+import { recordLearningDecisions, upsertPattern } from "@/lib/intelligence/store";
+import { saveFilesAsSnippets } from "@/lib/library/snippets";
 import {
   createSession,
+  listSessions,
+  listVersions,
   saveContract,
   saveExperience,
   saveObservations,
@@ -28,6 +32,7 @@ import {
   updateSession,
 } from "@/lib/artifact/store";
 import type { ArtifactLifecycle, ArtifactVersion, Observation } from "@/lib/artifact/types";
+
 
 interface Props {
   request: string;
