@@ -420,6 +420,7 @@ export async function flushSentinel(silent = true): Promise<void> {
         ...(byok ? { byok } : {}),
       },
       silent: true,
+      tool: "asherin-sentinel",
     });
     for (const al of data?.alerts || []) {
       onDeckAlerts += 1;
@@ -452,6 +453,7 @@ export async function checkAreaNow(silent = true, opts?: { arrival?: boolean }):
         ...(byok ? { byok } : {}),
       },
       silent: true,
+      tool: "asherin-sentinel",
     });
     const a = data?.assessment;
     if (a) {
