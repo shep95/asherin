@@ -31,7 +31,6 @@ const AI_TOOLS: string[] = [
   "asherin-arvision",
   "asherin-health",
   "zerlal",
-  "ghost-engine",
   "investigations",
   "briefing",
   "pdf-generator",
