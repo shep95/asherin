@@ -67,7 +67,9 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
   const [open, setOpen] = useState<"stage" | "validation" | "versions" | "inspector">("stage");
   const [versions, setVersions] = useState<ArtifactVersion[]>([]);
   const [activeVersion, setActiveVersion] = useState(0);
+  const [saveState, setSaveState] = useState<string | null>(null);
   const persisted = useRef(false);
+
 
   const onObservation = useCallback((o: Omit<Observation, "observedAt"> & { observedAt?: string }) => {
     setRaw((prev) => (prev.length > 200 ? prev : [...prev, { channel: o.channel, message: o.message, source: o.source, level: o.level }]));
