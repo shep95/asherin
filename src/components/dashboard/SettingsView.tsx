@@ -731,6 +731,8 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+        )}
+
 
         {/* Appearance */}
         {tab === "look" && (
