@@ -38,6 +38,7 @@ export default function HealthAssistant({ context, trigger, onTriggerHandled, re
       const byok = await resolveByok();
       const data = await invokeWithByokRetry<{ reply?: string; error?: string }>("asherin-health-ai", {
         body: { action: "assist", question, context: contextRef.current, ...(byok ? { byok } : {}) },
+        tool: "asherin-health",
       });
       if (data?.error) throw new Error(data.error);
       setTurns((t) => [...t, { id: `${id}-a`, role: "asherin", text: data?.reply?.trim() || "no answer came back." }]);

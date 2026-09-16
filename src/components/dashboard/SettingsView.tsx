@@ -11,6 +11,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import AIKeysSettings from "./AIKeysSettings";
 import GoogleAccountsSettings from "./settings/GoogleAccountsSettings";
 import IntelligenceSettings from "./settings/IntelligenceSettings";
+import UsageSettings from "./settings/UsageSettings";
 
 import { isAdminEmail } from "@/lib/adminEmail";
 import { validateDisplayName } from "@/lib/auth/blockedNames";
@@ -116,6 +117,7 @@ const SETTINGS_TABS = [
   { key: "you", label: "you" },
   { key: "look", label: "look" },
   { key: "intelligence", label: "intelligence" },
+  { key: "spend", label: "spend" },
   { key: "connections", label: "connections" },
   { key: "privacy", label: "privacy & data" },
 ] as const;
@@ -847,6 +849,9 @@ const SettingsView = () => {
 
         {/* Memory & learning */}
         {tab === "intelligence" && <IntelligenceSettings />}
+
+        {/* Recorded AI spend + per-room off switches */}
+        {tab === "spend" && <UsageSettings />}
 
         {/* GitHub Integration */}
         {tab === "connections" && <GitHubSettings />}

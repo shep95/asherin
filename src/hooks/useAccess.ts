@@ -42,7 +42,6 @@ const PRO_VIEWS: DashboardView[] = [
 const AUREON_VIEWS: DashboardView[] = [
   "nomad",
   // asherinx.eng — its own copy says the $18 plan, so the gate says it too.
-  "ghost-engine",
 
   "briefing",
   "zali",

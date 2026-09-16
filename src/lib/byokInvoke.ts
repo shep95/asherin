@@ -18,6 +18,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isToolApiEnabled, recordAiCall, readUsage } from "@/lib/usage/ledger";
 
 export interface InvokeOpts {
   body?: unknown;
@@ -26,6 +27,19 @@ export interface InvokeOpts {
   maxAutoResumes?: number;
   /** Whether to show a toast on the first auto-resume. Default true. */
   silent?: boolean;
+  /** Which room/tool this call belongs to — used for the usage ledger and for
+   *  the owner's per-tool off switch. When omitted the call is neither gated
+   *  nor recorded (we never guess which tool spent the money). */
+  tool?: string;
+}
+
+export class ToolApiDisabledError extends Error {
+  tool: string;
+  code = "TOOL_API_DISABLED";
+  constructor(tool: string) {
+    super(`${tool} has its API turned off in settings`);
+    this.tool = tool;
+  }
 }
 
 // Per-key cooldown mirror: if one call for a key just got rate-limited, any
@@ -53,6 +67,14 @@ export async function invokeWithByokRetry<T = unknown>(
 ): Promise<T> {
   const max = opts.maxAutoResumes ?? 3;
   const tag = keyTag(opts.body);
+  const provider = (opts.body as any)?.byok?.provider ?? null;
+
+  // Owner's off switch is checked before anything leaves the browser, so a
+  // disabled tool genuinely stops spending instead of spending quietly.
+  if (opts.tool && !(await isToolApiEnabled(opts.tool))) {
+    void recordAiCall({ tool: opts.tool, provider, functionName, status: "blocked" });
+    throw new ToolApiDisabledError(opts.tool);
+  }
 
   for (let attempt = 0; attempt <= max; attempt++) {
     await respectClientCooldown(tag);
@@ -62,7 +84,21 @@ export async function invokeWithByokRetry<T = unknown>(
       headers: opts.headers,
     });
 
-    if (!error) return data as T;
+    if (!error) {
+      if (opts.tool) {
+        const u = readUsage(data);
+        void recordAiCall({
+          tool: opts.tool,
+          provider,
+          model: u.model,
+          functionName,
+          promptTokens: u.prompt,
+          completionTokens: u.completion,
+          status: "ok",
+        });
+      }
+      return data as T;
+    }
 
     // supabase-js v2 exposes the raw response on `error.context` for non-2xx.
     let status: number | undefined;
@@ -106,6 +142,9 @@ export async function invokeWithByokRetry<T = unknown>(
     err.status = status;
     err.code = payload?.error;
     err.payload = payload;
+    if (opts.tool) {
+      void recordAiCall({ tool: opts.tool, provider, functionName, status: "error" });
+    }
     throw err;
   }
 

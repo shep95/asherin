@@ -201,6 +201,7 @@ const Dashboard = () => {
     "teams",
     "notebooks",
     "audit",
+    "stats",
     "zali",
     "community",
     "google",
@@ -243,6 +244,9 @@ const Dashboard = () => {
     "asherinx-eng": "ghost-engine",
     investigation: "investigations",
     osint: "investigations",
+    activity: "stats",
+    "asherin-activity": "stats",
+    "asherin.activity": "stats",
     pages: "pdf-generator",
     "asherin-pages": "pdf-generator",
   };

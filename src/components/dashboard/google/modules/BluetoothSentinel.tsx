@@ -269,7 +269,7 @@ const BluetoothSentinel = () => {
     setDossierFor(id);
     try {
       const byok = await resolveByok();
-      await invokeWithByokRetry("sentinel-ble", { body: { action: "ble.dossier", deviceId: id, ...(byok ? { byok } : {}) } });
+      await invokeWithByokRetry("sentinel-ble", { body: { action: "ble.dossier", deviceId: id, ...(byok ? { byok } : {}) }, tool: "asherin-sentinel" });
       toast.success("Dossier built");
       await load();
     } catch (e) {
