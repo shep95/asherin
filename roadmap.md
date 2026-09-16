@@ -57,5 +57,6 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] stage 6 weak-workflow repairs: /dashboard/stats was silently redirected to chat by an old retired-route list — activity now opens; activity/pages deep links (activity, asherin.activity, ebook, slideshow, pages) all resolve; no paid-copy leftovers remain
 - [x] stage 7 signed-in verification: live session, pages tabs (page/deck/book), activity room, settings tabs, spend panel, and a real write/read of the usage ledger + off switch against live data (test rows deleted after)
 - [x] database security pass: 111 -> 68 linter items. fixed function search paths, locked 3 internal tables, revoked call access on 30 internal helpers. the remaining 67 are helpers the access rules themselves must call plus pgvector living in public — moving it risks the stored vector columns, so it stays deliberately
-- [ ] stage 2 remainder: fold snippets into the artifact/library store
-- [ ] artifact gaps: follow-up session mutation, persistence of gated learning decisions
+- [x] stage 2 remainder: saved code has one home — artifact files save into the same code library the snippets room reads (src/lib/library/snippets.ts, "save to code library" on the artifact surface)
+- [x] artifact gaps closed: a follow-up in the same conversation appends a version to the existing session instead of opening a new artifact; gate decisions are now recorded and promoted/candidate patterns stored (verified live: snippet write, two-version lineage, learning event — test rows deleted)
+
