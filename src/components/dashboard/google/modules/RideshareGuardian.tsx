@@ -161,6 +161,7 @@ const RideshareGuardian = () => {
       const byok = await resolveByok();
       await invokeWithByokRetry("rideshare-guardian", {
         body: { action: "ride.sweep", ride_id: rideId, ...(byok ? { byok } : {}) },
+        tool: "asherin-sentinel",
       });
       toast.success("Deep assessment complete");
       await load();
@@ -204,6 +205,7 @@ const RideshareGuardian = () => {
       const byok = await resolveByok();
       await invokeWithByokRetry("rideshare-guardian", {
         body: { action: "message.ingest", raw: thread, channel: "sms_paste", ...(byok ? { byok } : {}) },
+        tool: "asherin-sentinel",
       });
       toast.success("Thread analysed");
       setThread("");
