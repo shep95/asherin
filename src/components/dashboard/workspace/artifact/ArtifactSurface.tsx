@@ -206,7 +206,28 @@ const ArtifactSurface = ({ request, answer, conversationId }: Props) => {
           {stage.modality} · {STAGE_LABEL[lifecycle]}
         </span>
         <span className="text-[10px] font-light text-muted-foreground/60">{run.lifecycleReason || stage.capabilityReason}</span>
+        {files.length > 0 && (
+          <button
+            type="button"
+            disabled={saveState === "saving"}
+            onClick={async () => {
+              setSaveState("saving");
+              const res = await saveFilesAsSnippets(files, {
+                title: stage.contract.goals[0] ?? request.slice(0, 60),
+                tags: [stage.modality],
+              });
+              setSaveState(res.error ? res.error : `saved ${res.saved} file(s) to your code library`);
+            }}
+            className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60 hover:text-foreground/80 disabled:opacity-50"
+          >
+            save to code library
+          </button>
+        )}
       </div>
+      {saveState && saveState !== "saving" && (
+        <p className="text-[10px] font-light text-muted-foreground/60">{saveState}</p>
+      )}
+
 
       <div className="flex gap-3 border-b border-border/15 pb-1">
         {tabs.map(([id, label]) => (
