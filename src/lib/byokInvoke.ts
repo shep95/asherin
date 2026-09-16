@@ -142,6 +142,9 @@ export async function invokeWithByokRetry<T = unknown>(
     err.status = status;
     err.code = payload?.error;
     err.payload = payload;
+    if (opts.tool) {
+      void recordAiCall({ tool: opts.tool, provider, functionName, status: "error" });
+    }
     throw err;
   }
 
