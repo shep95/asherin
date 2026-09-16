@@ -112,8 +112,20 @@ const GitHubSettings = () => {
   );
 };
 
+const SETTINGS_TABS = [
+  { key: "you", label: "you" },
+  { key: "look", label: "look" },
+  { key: "intelligence", label: "intelligence" },
+  { key: "connections", label: "connections" },
+  { key: "privacy", label: "privacy & data" },
+] as const;
+
+type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];
+
 const SettingsView = () => {
+  const [tab, setTab] = useState<SettingsTab>("you");
   const v2 = useIsV2();
+
   const { user } = useAuth();
   const stepUp = useStepUp();
 
@@ -432,8 +444,26 @@ const SettingsView = () => {
           </div>
         )}
 
+        <nav className="flex flex-wrap gap-1.5 rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-1.5" aria-label="settings sections">
+          {SETTINGS_TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-light lowercase transition-colors ${
+                tab === t.key
+                  ? "bg-foreground/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.04]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
         {/* Profile */}
+        {tab === "you" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <User className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Profile</h3>
@@ -520,10 +550,13 @@ const SettingsView = () => {
             )}
           </div>
         </div>
+        )}
 
 
         {/* Wallpaper */}
+        {tab === "look" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Dashboard appearance</h3>
@@ -643,13 +676,16 @@ const SettingsView = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Motion */}
-        <MotionControls />
+        {tab === "look" && <MotionControls />}
 
 
         {/* Send Button Border Color */}
+        {tab === "look" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <Palette className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Send Button Border</h3>
@@ -731,9 +767,13 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+        )}
+
 
         {/* Appearance */}
+        {tab === "look" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <Palette className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Response Preferences</h3>
@@ -799,21 +839,25 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+        )}
+
 
         {/* AI Model Keys (BYOK) */}
-        <AIKeysSettings />
+        {tab === "intelligence" && <AIKeysSettings />}
 
         {/* Memory & learning */}
-        <IntelligenceSettings />
+        {tab === "intelligence" && <IntelligenceSettings />}
 
         {/* GitHub Integration */}
-        <GitHubSettings />
+        {tab === "connections" && <GitHubSettings />}
 
         {/* Google — multi-account cloud intelligence */}
-        <GoogleAccountsSettings />
+        {tab === "connections" && <GoogleAccountsSettings />}
 
         {/* Privacy */}
+        {tab === "privacy" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <Shield className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Privacy</h3>
@@ -839,9 +883,13 @@ const SettingsView = () => {
             </label>
           </div>
         </div>
+        )}
+
 
         {/* Keyboard Shortcuts */}
+        {tab === "you" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <Keyboard className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Keyboard Shortcuts</h3>
@@ -867,9 +915,13 @@ const SettingsView = () => {
             ))}
           </div>
         </div>
+        )}
+
 
         {/* GDPR / Data Rights */}
+        {tab === "privacy" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-5">
+
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Your Data Rights</h3>
@@ -934,6 +986,8 @@ const SettingsView = () => {
             )}
           </div>
         </div>
+        )}
+
       </div>
     </div>
   );
