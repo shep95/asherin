@@ -520,10 +520,13 @@ const SettingsView = () => {
             )}
           </div>
         </div>
+        )}
 
 
         {/* Wallpaper */}
+        {tab === "look" && (
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+
           <div className="flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Dashboard appearance</h3>
