@@ -585,7 +585,6 @@ const AppShell = () => {
                         "imagine-intelligence",
                         "security",
                         "persona-store",
-                        "stats",
                       ].map((retired) => (
                         <Route
                           key={retired}
