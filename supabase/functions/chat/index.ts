@@ -8,6 +8,7 @@ import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptG
 
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { GENERAL_IMAGE_VISION_BRAIN } from "../_shared/generalImageVisionBrain.ts";
+import { isVeniceVisionModel, VENICE_DEFAULT_VISION_MODEL } from "../_shared/veniceVisionModels.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
