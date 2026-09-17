@@ -178,8 +178,17 @@ const DashboardSidebarV2 = ({
   } | null>(null);
 
   const RAIL_WIDTH = 288;
-  const drawerWidth = () => Math.min(RAIL_WIDTH, window.innerWidth - 48);
+  const drawerWidth = () => Math.min(352, window.innerWidth - 16);
   const isMobileViewport = () => window.matchMedia("(max-width: 1023px)").matches;
+
+  useEffect(() => {
+    if (!sidebarOpen || !isMobileViewport()) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
 
   const beginGesture = (from: "edge" | "drawer") => (e: React.TouchEvent) => {
     if (!isMobileViewport()) return;
@@ -267,7 +276,7 @@ const DashboardSidebarV2 = ({
           top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
           left: "calc(env(safe-area-inset-left, 0px) + 0.75rem)",
         }}
-        className="fixed z-50 h-11 w-11 flex items-center justify-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md lg:hidden transition-colors"
+        className="fixed z-50 h-11 w-11 flex items-center justify-center rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl lg:hidden transition-colors"
       >
         {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
       </button>
@@ -286,7 +295,7 @@ const DashboardSidebarV2 = ({
 
       {(sidebarOpen || dragging) && (
         <div
-          className="fixed inset-0 z-30 bg-background/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-[2px] lg:hidden"
           style={
             dragging
               ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" }
@@ -303,16 +312,15 @@ const DashboardSidebarV2 = ({
         onTouchEnd={sidebarOpen ? endGesture : undefined}
         onTouchCancel={sidebarOpen ? endGesture : undefined}
         style={{
-          width: `${RAIL_WIDTH}px`,
           paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           ...(dragging ? { transform: `translateX(${(dragPx ?? 0) - drawerWidth()}px)`, transition: "none" } : {}),
         }}
-        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 lg:relative lg:translate-x-0 lg:transform-none flex-shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-[min(22rem,calc(100vw-1rem))] transform transition-transform duration-300 lg:relative lg:w-72 lg:translate-x-0 lg:transform-none flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
+        <div className="flex h-full flex-col m-2 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-xl overflow-hidden lg:m-3 lg:border-border/30 lg:bg-card/40">
           {/* wordmark + new chat */}
           <div className="flex-shrink-0 flex items-center justify-between gap-2 p-4 border-b border-border/20">
             <span className="text-sm font-extralight tracking-[0.06em] text-foreground/90">asherin</span>

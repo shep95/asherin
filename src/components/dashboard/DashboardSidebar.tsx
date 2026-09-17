@@ -1,5 +1,5 @@
 import { isOwnerEmail } from "@/lib/adminEmail";
-import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
+import { useState, useCallback, useRef, useEffect, createContext, useContext, type CSSProperties } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess, hasAureonAccess } from "@/contexts/SubscriptionContext";
 import { CONNECTED_ACCOUNT_VIEWS } from "@/hooks/useAccess";
@@ -459,8 +459,17 @@ const DashboardSidebar = ({
     from: "edge" | "drawer";
   } | null>(null);
 
-  const drawerWidth = () => Math.min(collapsed ? 68 : sidebarWidth, window.innerWidth - 48);
+  const drawerWidth = () => Math.min(352, window.innerWidth - 16);
   const isMobileViewport = () => window.matchMedia("(max-width: 1023px)").matches;
+
+  useEffect(() => {
+    if (!sidebarOpen || !isMobileViewport()) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
 
   const beginGesture = (from: "edge" | "drawer") => (e: React.TouchEvent) => {
     if (!isMobileViewport()) return;
@@ -549,7 +558,7 @@ const DashboardSidebar = ({
           top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
           left: "calc(env(safe-area-inset-left, 0px) + 0.75rem)",
         }}
-        className="fixed z-50 h-11 w-11 flex items-center justify-center rounded-xl border border-border/30 bg-card/60 backdrop-blur-md lg:hidden transition-colors"
+        className="fixed z-50 h-11 w-11 flex items-center justify-center rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl lg:hidden transition-colors"
       >
         {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
       </button>
@@ -570,7 +579,7 @@ const DashboardSidebar = ({
 
       {(sidebarOpen || dragging) && (
         <div
-          className="fixed inset-0 z-30 bg-background/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-[2px] lg:hidden"
           style={
             dragging
               ? { opacity: Math.min(1, (dragPx ?? 0) / Math.max(1, drawerWidth())), transition: "none" }
@@ -586,16 +595,16 @@ const DashboardSidebar = ({
         onTouchEnd={sidebarOpen ? endGesture : undefined}
         onTouchCancel={sidebarOpen ? endGesture : undefined}
         style={{
-          width: collapsed ? "68px" : `${sidebarWidth}px`,
+          "--dashboard-sidebar-width": `${collapsed ? 68 : sidebarWidth}px`,
           paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           ...(dragging ? { transform: `translateX(${(dragPx ?? 0) - drawerWidth()}px)`, transition: "none" } : {}),
-        }}
-        className={`fixed inset-y-0 left-0 z-40 transform transition-[transform,width] duration-300 lg:relative lg:translate-x-0 lg:transform-none flex-shrink-0 ${
+        } as CSSProperties}
+        className={`fixed inset-y-0 left-0 z-40 w-[min(22rem,calc(100vw-1rem))] transform transition-[transform,width] duration-300 lg:relative lg:w-[var(--dashboard-sidebar-width)] lg:translate-x-0 lg:transform-none flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
+        <div className="flex h-full flex-col m-2 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-xl overflow-hidden lg:m-3 lg:border-border/30 lg:bg-card/40">
           {!collapsed && (
             <div
               onMouseDown={handleMouseDown}
