@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   listProjects, setProjectMode, loadScopeCounts, getActiveScope, setActiveScope, onScopeChange,
-  saveProjectInstructions, MAX_PROJECT_INSTRUCTIONS,
+  saveProjectInstructions,
   type Project, type ProjectMode, type ProjectScope, type ScopeCounts,
 } from "@/lib/projects/scope";
 import { listLibrary, ingestFile, deleteLibraryFile, type LibraryFile } from "@/lib/library/library";
@@ -332,7 +332,7 @@ const ProjectWorkspace = ({
     setSaving(true);
     try {
       await saveProjectInstructions(project.id, directions);
-      onInstructionsSaved(directions.slice(0, MAX_PROJECT_INSTRUCTIONS));
+      onInstructionsSaved(directions);
       toast.success("Directions saved. Every conversation in this project follows them.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save the directions.");
@@ -343,7 +343,6 @@ const ProjectWorkspace = ({
 
   const mode = MODE_COPY[project.mode];
   const dirty = (project.instructions ?? "") !== directions;
-  const over = directions.length > MAX_PROJECT_INSTRUCTIONS;
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "conversations", label: "Conversations", count: threads.length },
@@ -473,18 +472,18 @@ const ProjectWorkspace = ({
               </p>
               <textarea
                 value={directions}
-                onChange={(e) => setDirections(e.target.value.slice(0, MAX_PROJECT_INSTRUCTIONS + 1))}
+                onChange={(e) => setDirections(e.target.value)}
                 rows={14}
                 placeholder="Operate as… Keep answers… Never…"
                 className="w-full resize-y rounded-lg border border-border/20 bg-background/20 p-3 text-xs font-extralight leading-relaxed text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border/40"
               />
               <div className="flex items-center justify-between gap-3">
-                <span className={`text-[10px] font-extralight ${over ? "text-destructive" : "text-muted-foreground/60"}`}>
-                  {directions.length.toLocaleString()} / {MAX_PROJECT_INSTRUCTIONS.toLocaleString()} characters
+                <span className="text-[10px] font-extralight text-muted-foreground/60">
+                  {directions.length.toLocaleString()} characters · no limit
                 </span>
                 <button
                   onClick={() => void saveDirections()}
-                  disabled={!dirty || saving || over}
+                  disabled={!dirty || saving}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border/20 bg-card/30 px-3 py-1.5 text-[11px] font-light text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-40"
                 >
                   {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}

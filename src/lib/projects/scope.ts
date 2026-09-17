@@ -21,8 +21,8 @@ export interface Project {
   created_at: string;
 }
 
-/** Server-side constraint mirror — keep in step with projects_instructions_len_chk. */
-export const MAX_PROJECT_INSTRUCTIONS = 12000;
+/** Standing directions are unlimited — no client or server length cap. */
+export const MAX_PROJECT_INSTRUCTIONS = null;
 
 export interface ProjectScope {
   projectId: string;
@@ -92,7 +92,7 @@ export async function setProjectMode(projectId: string, mode: ProjectMode): Prom
  * model, so a tampered local copy cannot change how a project behaves.
  */
 export async function saveProjectInstructions(projectId: string, instructions: string): Promise<void> {
-  const trimmed = instructions.slice(0, MAX_PROJECT_INSTRUCTIONS);
+  const trimmed = instructions;
   const { error } = await supabase
     .from("projects")
     .update({ instructions: trimmed } as never)
