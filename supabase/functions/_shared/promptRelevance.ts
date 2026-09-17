@@ -102,7 +102,6 @@ export interface RelevanceSignals {
   mode?: string;
   responseDepth?: string;
   hasImageAttachment?: boolean;
-  hasChartAttachment?: boolean;
   hasCodeAttachment?: boolean;
   /** Retrieval layers that already fired — a turn with evidence is not trivial. */
   hasEvidence?: boolean;
@@ -205,7 +204,7 @@ export function classifyMessageKind(sig: RelevanceSignals): MessageKind {
   const text = String(sig.text ?? "").trim().slice(0, 4000);
   const words = text.split(/\s+/).filter(Boolean).length;
   const hasAttachment =
-    Boolean(sig.hasImageAttachment) || Boolean(sig.hasChartAttachment) || Boolean(sig.hasCodeAttachment);
+    Boolean(sig.hasImageAttachment) || Boolean(sig.hasCodeAttachment);
 
   if (KIND_RE.injection.test(text)) return "injection";
   if (!text || (EMOJI_ONLY.test(text) && !hasAttachment)) return "empty";
@@ -271,7 +270,6 @@ export function classifyTurnRelevance(sig: RelevanceSignals): TurnRelevance {
   const trivial =
     !sig.hasEvidence &&
     !sig.hasImageAttachment &&
-    !sig.hasChartAttachment &&
     !sig.isIntelTurn &&
     (kind === "greeting" || kind === "ack" || kind === "smalltalk" || kind === "empty");
 
@@ -312,8 +310,8 @@ export function classifyTurnRelevance(sig: RelevanceSignals): TurnRelevance {
     // turn is exactly the noise this router exists to remove.
     vedic: !trivial && on(RE.vedic),
     gematria: !trivial && on(RE.gematria),
-    market: !trivial && (Boolean(sig.hasChartAttachment) || on(RE.market)),
-    visual: !trivial && (Boolean(sig.hasImageAttachment) || Boolean(sig.hasChartAttachment) || on(RE.visual)),
+    market: !trivial && on(RE.market),
+    visual: !trivial && (Boolean(sig.hasImageAttachment) || on(RE.visual)),
     social: !trivial && on(RE.social),
     geo: !trivial && on(RE.geo),
     psychology: !trivial && (on(RE.psychology) || deep),
