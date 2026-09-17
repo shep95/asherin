@@ -17,7 +17,6 @@ import { PROMPT_INTELLIGENCE_PROTOCOL } from "../_shared/promptIntelligenceProto
 import { ASHERIN_IDENTITY, buildAsherinProcedures } from "../_shared/asherinPatternIndex.ts";
 import { SYNTHESIS_ENGINE_BRAIN } from "../_shared/synthesisEngineBrain.ts";
 import { VISUAL_INTELLIGENCE_BRAIN } from "../_shared/visualIntelligenceBrain.ts";
-import { MARKET_STRUCTURE_VISION_BRAIN, detectChartVisionIntent } from "../_shared/marketStructureVisionBrain.ts";
 import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
@@ -622,11 +621,6 @@ serve(async (req) => {
     const { HYPOTHETICAL_REALISM_DOCTRINE } = await import("../_shared/hypotheticalRealismDoctrine.ts");
     // Doctrine wraps the stack: FIRST (identity anchor) + LAST (recency anchor)
     // so it dominates every hedge/refusal brain between them.
-    // Fires only when a chart image is attached (or trading keywords + image).
-    const lastUserText = [...cleaned].reverse().find((m) => m.role === "user")?.content || "";
-    const chartVisionBlock = detectChartVisionIntent(lastUserText, hasAttachments)
-      ? "\n\n" + MARKET_STRUCTURE_VISION_BRAIN
-      : "";
     // Cognitive personality matrix — resident roster + gated dossiers for the
     // analytic logics this message actually demands.
     const { THINKING_PATTERN_DATABASE: _ALM, buildThinkingPatternDossiers: _bALE } =
