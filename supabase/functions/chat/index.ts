@@ -2347,9 +2347,25 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       .filter((m: any) => m.role === "user")
       .map((m: any) => m.content?.toLowerCase() || "")
       .join(" ");
-    const hasChartAttachment = (messages || []).some((m: any) =>
-      m.attachments?.some((a: any) => a.type?.startsWith("image/")),
+    // A chart is an image PLUS a reason to read it as a market chart. Treating
+    // every image as a chart made the market-structure brain answer receipts,
+    // screenshots and photos in candles and liquidity language.
+    const CHART_WORDS =
+      /\b(chart|candle|candlestick|ticker|market|price|trade|trading|entry|exit|stop ?loss|take ?profit|support|resistance|liquidity|bull|bear|long|short|stock|crypto|forex|btc|eth|usd|rsi|macd|timeframe|volume profile|order ?block)\w*/i;
+    const chartFileName =
+      /(chart|candle|tradingview|ticker|btc|eth|usd|forex|rsi|macd)/i;
+    const hasImageAttachmentEarly = (messages || []).some((m: any) =>
+      m.attachments?.some((a: any) => String(a?.type || "").startsWith("image/")),
     );
+    const namedLikeChart = (messages || []).some((m: any) =>
+      m.attachments?.some(
+        (a: any) =>
+          String(a?.type || "").startsWith("image/") && chartFileName.test(String(a?.name || "")),
+      ),
+    );
+    const hasChartAttachment =
+      hasImageAttachmentEarly &&
+      (namedLikeChart || CHART_WORDS.test(lastUserMsgLower) || CHART_WORDS.test(allUserContent.slice(-2000)));
 
     // ── WAR STRATEGY & LOGISTICS BRAIN AUTO-INJECTION ─────────────────────
     // Detect war, military, strategy, logistics, empire, conquest queries and auto-load Rome brain
