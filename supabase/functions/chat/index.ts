@@ -8,6 +8,7 @@ import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptG
 
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { GENERAL_IMAGE_VISION_BRAIN } from "../_shared/generalImageVisionBrain.ts";
+import { isVeniceVisionModel, VENICE_DEFAULT_VISION_MODEL } from "../_shared/veniceVisionModels.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
@@ -972,7 +973,9 @@ async function resolveStoredByok(
       .select("active_provider, active_model")
       .eq("user_id", user.id)
       .maybeSingle();
-    const visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
+    // Venice serves images too, but only on its vision-capable models, so it is
+    // vision-eligible with a model swap rather than excluded outright.
+    const visionProviders = new Set(["google", "openai", "anthropic", "xai", "venice"]);
     const preferredProvider =
       pref?.active_provider && !["default", "aureon"].includes(pref.active_provider)
         ? String(pref.active_provider)
@@ -985,12 +988,13 @@ async function resolveStoredByok(
         .eq("provider", preferredProvider)
         .eq("is_active", true)
         .maybeSingle();
-      if (keyRow?.api_key)
-        return {
-          provider: preferredProvider,
-          model: String(pref?.active_model || defaultModelForStoredProvider(preferredProvider) || ""),
-          apiKey: keyRow.api_key,
-        };
+      if (keyRow?.api_key) {
+        let model = String(pref?.active_model || defaultModelForStoredProvider(preferredProvider) || "");
+        if (requireVision && preferredProvider === "venice" && !isVeniceVisionModel(model)) {
+          model = VENICE_DEFAULT_VISION_MODEL;
+        }
+        return { provider: preferredProvider, model, apiKey: keyRow.api_key };
+      }
     }
     const { data: keyRows } = await adminSb
       .from("user_api_keys")
@@ -998,7 +1002,7 @@ async function resolveStoredByok(
       .eq("user_id", user.id)
       .eq("is_active", true);
     const priority = requireVision
-      ? ["google", "openai", "anthropic", "xai"]
+      ? ["google", "openai", "anthropic", "xai", "venice"]
       : [
           "google", "openai", "anthropic", "xai", "meta", "mistral", "perplexity",
           "venice", "deepseek", "openrouter", "cohere", "qwen", "zhipu",
@@ -1007,7 +1011,10 @@ async function resolveStoredByok(
     const row = (keyRows || [])
       .filter((r: any) => priority.includes(r.provider))
       .sort((a: any, b: any) => priority.indexOf(a.provider) - priority.indexOf(b.provider))[0];
-    const model = row?.provider ? defaultModelForStoredProvider(row.provider) : null;
+    let model = row?.provider ? defaultModelForStoredProvider(row.provider) : null;
+    if (requireVision && row?.provider === "venice" && !isVeniceVisionModel(model)) {
+      model = VENICE_DEFAULT_VISION_MODEL;
+    }
     return row?.api_key && model ? { provider: row.provider, model, apiKey: row.api_key } : null;
   } catch (e) {
     console.error("Stored BYOK lookup failed:", e);
@@ -1053,9 +1060,13 @@ serve(async (req) => {
     const _hasAttachments =
       Array.isArray(_parsedBody?.messages) &&
       _parsedBody.messages.some((m: any) => Array.isArray(m?.attachments) && m.attachments.length > 0);
-    const _visionProviders = new Set(["google", "openai", "anthropic", "xai"]);
+    const _visionProviders = new Set(["google", "openai", "anthropic", "xai", "venice"]);
+    const _incomingServesVision =
+      !!incomingByok &&
+      _visionProviders.has(incomingByok.provider) &&
+      (incomingByok.provider !== "venice" || isVeniceVisionModel(incomingByok.model));
 
-    if (incomingByok && _hasAttachments && !_visionProviders.has(incomingByok.provider)) {
+    if (incomingByok && _hasAttachments && !_incomingServesVision) {
       const storedVisionByok = await resolveStoredByok(req, true);
       if (storedVisionByok) {
         _parsedBody.byokProvider = storedVisionByok.provider;
@@ -1065,7 +1076,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             error:
-              "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+              "Image, file, and media uploads need a model that reads images. Save or select Google, OpenAI, Anthropic, xAI, or a Venice model marked \"reads images\" in Settings → AI Keys, then retry.",
             code: "BYOK_REQUIRED",
             reason: "vision_requires_byok",
           }),
@@ -1088,7 +1099,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             error:
-              "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+              "Image, file, and media uploads need a model that reads images. Save or select Google, OpenAI, Anthropic, xAI, or a Venice model marked \"reads images\" in Settings → AI Keys, then retry.",
             code: "BYOK_REQUIRED",
             reason: "vision_requires_byok",
           }),
