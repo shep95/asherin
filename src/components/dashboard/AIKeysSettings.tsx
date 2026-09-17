@@ -425,27 +425,46 @@ const AIKeysSettings = () => {
                   {stored && (
                     <div className="space-y-1.5 mt-2">
                       <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Select Model</p>
-                      {provider.models.map(model => {
-                        const isModelActive = isActive && preferences.active_model === model.id;
-                        return (
-                          <button
-                            key={model.id}
-                            onClick={() => updatePreference(provider.id, model.id)}
-                            className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all ${
-                              isModelActive
-                                ? "bg-foreground/10 border border-foreground/20"
-                                : "border border-transparent hover:bg-foreground/5"
-                            }`}
-                          >
-                            <Brain className={`h-3 w-3 shrink-0 ${isModelActive ? "text-foreground" : "text-muted-foreground/30"}`} />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-[11px] ${isModelActive ? "text-foreground" : "text-muted-foreground/60"}`}>{model.name}</p>
-                              <p className="text-[9px] text-muted-foreground/30">{model.description}</p>
-                            </div>
-                            {isModelActive && <Check className="h-3 w-3 text-emerald-500/70 shrink-0" />}
-                          </button>
-                        );
-                      })}
+                      {(() => {
+                        const withVision = provider.models.filter(m => m.vision);
+                        const textOnly = provider.models.filter(m => !m.vision);
+                        const groups = withVision.length && textOnly.length
+                          ? [
+                              { label: "Text + vision — reads images", models: withVision },
+                              { label: "Text only", models: textOnly },
+                            ]
+                          : [{ label: null as string | null, models: provider.models }];
+                        return groups.map(group => (
+                          <div key={group.label ?? "all"} className="space-y-1.5">
+                            {group.label && (
+                              <p className="pt-2 text-[9px] uppercase tracking-wider text-muted-foreground/35">
+                                {group.label} · {group.models.length}
+                              </p>
+                            )}
+                            {group.models.map(model => {
+                              const isModelActive = isActive && preferences.active_model === model.id;
+                              return (
+                                <button
+                                  key={model.id}
+                                  onClick={() => updatePreference(provider.id, model.id)}
+                                  className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all ${
+                                    isModelActive
+                                      ? "bg-foreground/10 border border-foreground/20"
+                                      : "border border-transparent hover:bg-foreground/5"
+                                  }`}
+                                >
+                                  <Brain className={`h-3 w-3 shrink-0 ${isModelActive ? "text-foreground" : "text-muted-foreground/30"}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-[11px] ${isModelActive ? "text-foreground" : "text-muted-foreground/60"}`}>{model.name}</p>
+                                    <p className="text-[9px] text-muted-foreground/30">{model.description}</p>
+                                  </div>
+                                  {isModelActive && <Check className="h-3 w-3 text-emerald-500/70 shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
                     </div>
                   )}
                 </div>
