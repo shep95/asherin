@@ -6,7 +6,6 @@ import { OUTPUT_CONDUCT_DOCTRINE, OUTPUT_CONDUCT_ANCHOR } from "../_shared/outpu
 import { AXIOMATIC_GROUNDING_DOCTRINE, AXIOMATIC_GROUNDING_ANCHOR } from "../_shared/axiomaticGroundingDoctrine.ts";
 import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptGuardLayers.ts";
 
-import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
 import { GENERAL_IMAGE_VISION_BRAIN } from "../_shared/generalImageVisionBrain.ts";
 import { isVeniceVisionModel, VENICE_DEFAULT_VISION_MODEL } from "../_shared/veniceVisionModels.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
@@ -587,13 +586,6 @@ const AUREON_IMAGE_INTELLIGENCE = `
 
 ### CRITICAL: WHEN A USER ATTACHES AN IMAGE, YOU CAN SEE IT
 You have full multimodal vision. When a user uploads an image, you RECEIVE it and can analyze every pixel. NEVER say "I can't see the image" or "I need more context." You CAN see it. Describe what you see and answer the question directly.
-
-### TRADING CHART ANALYSIS — see MARKET_STRUCTURE_VISION_BRAIN
-When a chart image is attached, follow the MARKET STRUCTURE VISION BRAIN
-(measured-move cognition) injected below. Decompose price into repeating
-structures, find the historical analog, project a MEASURED MOVE with a
-probability band, and set a STRUCTURAL stop. Never refuse a directional
-bias — one-line disclaimer at the END is optional.
 
 ### Aesthetic Optimization Principles
 - Optimize for visual IMPACT, not just accuracy
@@ -2359,26 +2351,6 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       .filter((m: any) => m.role === "user")
       .map((m: any) => m.content?.toLowerCase() || "")
       .join(" ");
-    // A chart is an image PLUS a reason to read it as a market chart. Treating
-    // every image as a chart made the market-structure brain answer receipts,
-    // screenshots and photos in candles and liquidity language.
-    const CHART_WORDS =
-      /\b(chart|candle|candlestick|ticker|market|price|trade|trading|entry|exit|stop ?loss|take ?profit|support|resistance|liquidity|bull|bear|long|short|stock|crypto|forex|btc|eth|usd|rsi|macd|timeframe|volume profile|order ?block)\w*/i;
-    const chartFileName =
-      /(chart|candle|tradingview|ticker|btc|eth|usd|forex|rsi|macd)/i;
-    const hasImageAttachmentEarly = (messages || []).some((m: any) =>
-      m.attachments?.some((a: any) => String(a?.type || "").startsWith("image/")),
-    );
-    const namedLikeChart = (messages || []).some((m: any) =>
-      m.attachments?.some(
-        (a: any) =>
-          String(a?.type || "").startsWith("image/") && chartFileName.test(String(a?.name || "")),
-      ),
-    );
-    const hasChartAttachment =
-      hasImageAttachmentEarly &&
-      (namedLikeChart || CHART_WORDS.test(lastUserMsgLower) || CHART_WORDS.test(allUserContent.slice(-2000)));
-
     // ── WAR STRATEGY & LOGISTICS BRAIN AUTO-INJECTION ─────────────────────
     // Detect war, military, strategy, logistics, empire, conquest queries and auto-load Rome brain
     let warStrategyBrainContent = "";
@@ -2909,7 +2881,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       mode,
       responseDepth,
       hasImageAttachment: _hasImageAttachment,
-      hasChartAttachment,
       hasCodeAttachment: Boolean(zophielCodingBrainContent),
       hasEvidence: Boolean(
         (webSearchContext && webSearchContext.trim()) ||
@@ -2983,12 +2954,10 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
       _R.visual || _hasImageAttachment ? AUREON_IMAGE_INTELLIGENCE : "",
-      // Every attached image gets the general vision brain. Charts additionally
-      // get the market-structure brain on top of it — never instead of it.
+      // Every attached image gets the general vision brain.
       _hasImageAttachment ? GENERAL_IMAGE_VISION_BRAIN : "",
-      hasChartAttachment || _R.market ? MARKET_STRUCTURE_VISION_BRAIN : "",
       // Grounding: any attached image is answered from cited observables, not impressions.
-      hasChartAttachment || _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
+      _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
       _R.visual ? AUREON_VISUAL_DOMINANCE : "",
       _B.contextIntelligence ? CONTEXT_INTELLIGENCE_PROMPT : "",
