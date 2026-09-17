@@ -2971,12 +2971,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.strategic ? warStrategyBrainContent : "",
       _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
-      _R.visual ? AUREON_IMAGE_INTELLIGENCE : "",
-      hasChartAttachment || _R.market
-        ? MARKET_STRUCTURE_VISION_BRAIN
-        : _hasImageAttachment
-          ? GENERAL_IMAGE_VISION_BRAIN
-          : "",
+      _R.visual || _hasImageAttachment ? AUREON_IMAGE_INTELLIGENCE : "",
+      // Every attached image gets the general vision brain. Charts additionally
+      // get the market-structure brain on top of it — never instead of it.
+      _hasImageAttachment ? GENERAL_IMAGE_VISION_BRAIN : "",
+      hasChartAttachment || _R.market ? MARKET_STRUCTURE_VISION_BRAIN : "",
       // Grounding: any attached image is answered from cited observables, not impressions.
       hasChartAttachment || _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
