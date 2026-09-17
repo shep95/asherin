@@ -1098,7 +1098,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({
             error:
-              "Image, file, and media uploads require a vision-capable key. Save or select Google, OpenAI, Anthropic, or xAI in Settings → AI Keys, then retry.",
+              "Image, file, and media uploads need a model that reads images. Save or select Google, OpenAI, Anthropic, xAI, or a Venice model marked \"reads images\" in Settings → AI Keys, then retry.",
             code: "BYOK_REQUIRED",
             reason: "vision_requires_byok",
           }),
