@@ -7,6 +7,7 @@ import { AXIOMATIC_GROUNDING_DOCTRINE, AXIOMATIC_GROUNDING_ANCHOR } from "../_sh
 import { preInferenceGate, createPostInferenceScanner } from "../_shared/promptGuardLayers.ts";
 
 import { MARKET_STRUCTURE_VISION_BRAIN } from "../_shared/marketStructureVisionBrain.ts";
+import { GENERAL_IMAGE_VISION_BRAIN } from "../_shared/generalImageVisionBrain.ts";
 import { NARRATIVE_FORGE_BRAIN } from "../_shared/narrativeForgeBrain.ts";
 import { QUANTUM_ORCHESTRATION_BRAIN } from "../_shared/quantumOrchestrationBrain.ts";
 import { BUTTERFLY_PROTOCOL_BRAIN } from "../_shared/butterflyProtocolBrain.ts";
@@ -2971,7 +2972,11 @@ The operator is requesting a defensive security audit / flaw check of their own 
       _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
       _R.visual ? AUREON_IMAGE_INTELLIGENCE : "",
-      hasChartAttachment || _R.market ? MARKET_STRUCTURE_VISION_BRAIN : "",
+      hasChartAttachment || _R.market
+        ? MARKET_STRUCTURE_VISION_BRAIN
+        : _hasImageAttachment
+          ? GENERAL_IMAGE_VISION_BRAIN
+          : "",
       // Grounding: any attached image is answered from cited observables, not impressions.
       hasChartAttachment || _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
       AUREON_ADVANCED_PROTOCOLS,
