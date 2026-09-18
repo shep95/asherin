@@ -1,10 +1,57 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap");
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/work-sans/300.css";
+@import "@fontsource/work-sans/400.css";
+@import "@fontsource/work-sans/500.css";
 
 /* Editorial display font — use for headlines that should feel powerful & cinematic */
 .font-display {
-  font-family: "Cormorant Garamond", "Inter", serif;
+  font-family: "Instrument Serif", Georgia, serif;
   font-feature-settings: "liga", "dlig", "kern";
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+}
+
+.font-editorial-sans { font-family: "Work Sans", system-ui, sans-serif; }
+.journal-surface {
+  --journal-ink: 0 0% 4%;
+  --journal-copy: 0 0% 14%;
+  --journal-paper: 40 36% 95%;
+  --journal-rule: 38 12% 72%;
+  background: hsl(var(--journal-paper));
+  color: hsl(var(--journal-ink));
+  font-family: "Work Sans", system-ui, sans-serif;
+}
+.journal-rule { border-color: hsl(var(--journal-rule)); }
+.journal-muted { color: hsl(var(--journal-copy) / 0.68); }
+.journal-body h2, .journal-body h3 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: hsl(var(--journal-ink));
+  scroll-margin-top: 8rem;
+}
+.journal-body h2 {
+  margin-top: 4rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--journal-rule));
+  font-size: 2.25rem;
+  line-height: 1.05;
+}
+.journal-body h3 { margin-top: 2rem; font-size: 1.55rem; line-height: 1.15; }
+.journal-body p, .journal-body li { color: hsl(var(--journal-copy) / 0.88); }
+.journal-body a { color: hsl(var(--journal-ink)); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.journal-body strong { color: hsl(var(--journal-ink)); font-weight: 500; }
+.journal-body pre { border-color: hsl(var(--journal-rule)); background: hsl(var(--journal-ink)); color: hsl(var(--journal-paper)); }
+@media (max-width: 640px) {
+  .journal-body h2 { font-size: 1.85rem; }
+  .journal-body pre { font-size: 0.68rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-surface *, .journal-surface *::before, .journal-surface *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @tailwind base;

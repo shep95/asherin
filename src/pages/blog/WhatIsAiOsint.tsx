@@ -110,15 +110,12 @@ const WhatIsAiOsint = () => (
       </li>
     </ul>
 
-    <h2>Asherin's Zophiel engine, AI OSINT in production</h2>
+    <h2>asherin.search, public-source research in production</h2>
     <p>
-      Asherin&apos;s{" "}
-      <a href="/feature/zophiel">Zophiel OSINT engine</a> implements all four
-      pipeline stages on the sources that actually return for a query. Each surfaced claim
-      carries a veracity score, a per-source breakdown, and a contradiction
-      flag where sources disagree. Operators can drill from the synthesized
-      brief down to the raw document in two clicks. Cross-validation depth
-      is the architecture, not a marketing line.
+      <a href="/dashboard/asherin.search">asherin.search</a> runs available
+      public-source retrieval for an active query. Evidence retains source
+      links and contradiction states where possible; unavailable sources are
+      reported rather than treated as corroboration.
     </p>
 
     <FaqJsonLd
@@ -130,7 +127,7 @@ const WhatIsAiOsint = () => (
         },
         {
           q: "Can AI OSINT replace human analysts?",
-          a: "For the collection, normalization, and initial cross-validation stages, yes. For the judgment calls about what the intelligence means for a specific operator's situation, no. The combination, AI OSINT for the pipeline, human analyst for the interpretation, is the working model in 2026.",
+          a: "No. AI can assist with collection, normalization, and initial comparison, but source selection, interpretation, legality, and consequential decisions still require human review.",
         },
         {
           q: "Is AI OSINT legal?",
@@ -138,7 +135,7 @@ const WhatIsAiOsint = () => (
         },
         {
           q: "How fast is AI OSINT compared to manual analysis?",
-          a: "A workflow that takes a human analyst two to three working days routinely completes in 30-90 seconds on a production AI OSINT engine. The constraint shifts from collection speed to analyst interpretation bandwidth.",
+          a: "Timing varies with query scope, provider latency, source availability, and rate limits. The interface should report progress and partial results rather than promise a fixed duration.",
         },
       ]}
     />
@@ -146,14 +143,14 @@ const WhatIsAiOsint = () => (
     <RelatedLinks
       links={[
         {
-          to: "/feature/zophiel",
-          label: "Zophiel OSINT, multi-engine intelligence engine",
-          description: "The Asherin implementation of the four-stage AI OSINT pipeline.",
+          to: "/dashboard/asherin.search",
+          label: "asherin.search",
+          description: "the current public-source research room.",
         },
         {
-          to: "/feature/nomad",
-          label: "NOMAD, persistent dossier intelligence",
-          description: "Long-running OSINT dossiers with 14-pass deep-analysis trees.",
+          to: "/dashboard/asherin.investigations",
+          label: "asherin.investigations",
+          description: "saved investigations, evidence, and follow-up state.",
         },
         {
           to: "/glossary/sovereign-ai",

@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/transit-guardian";
 const TITLE =
-  "Transit Guardian, rideshare driver checks, trip telemetry, and multi-modal travel safety";
+  "Trip safety research, what browser telemetry can and cannot establish";
 const DEK =
-  "Transit Guardian anchors a rideshare trip to a licence plate and a driver name, produces a safety dossier before you get in, records the whole drive as telemetry, speed, swerve, harsh braking, route deviation, and extends the same guarantees from cars to trains, buses, aircraft, and ferries.";
+  "An archived research note on plate checks, phone motion signals, route deviation, and evidence preservation. It is not a current Asherin room, a driver identity service, or a safety guarantee.";
 const PUBLISHED = "2026-08-05T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -33,7 +33,7 @@ const TransitGuardian = () => {
     applySeoHead({
       title: TITLE,
       description:
-        "Transit Guardian briefing: plate-anchored rideshare driver dossiers, full-trip telemetry with speeding and swerve detection, route-deviation alerts, and multi-modal coverage across rail, air, bus, and sea.",
+        "Archived trip-safety research on user-recorded ride details, browser telemetry, route deviation, and evidence limits.",
       path: "/blog/transit-guardian",
     });
   }, []);
@@ -71,26 +71,26 @@ const TransitGuardian = () => {
         items={[
           {
             q: "What does Transit Guardian do before a ride starts?",
-            a: "You enter the plate and the driver name shown in your rideshare app. Guardian anchors on those two hard identifiers, checks that the vehicle description matches, and returns a pre-ride dossier with a confidence band and any mismatch flags.",
+            a: "The retired concept proposed recording the plate, displayed driver name, and visible vehicle description. Those observations could flag a mismatch but could not certify identity or safety.",
           },
           {
             q: "What telemetry does it capture during the trip?",
-            a: "Position, speed against the posted limit for the segment, harsh acceleration and braking events, lateral swerve, stop duration, and deviation from the expected route corridor, the same class of signal rideshare platforms collect on their own drivers.",
+            a: "A compatible browser may expose location and motion signals after permission. Posted speed limits, lateral movement, and transport data require separate sources and may be unavailable or imprecise.",
           },
           {
             q: "Does it work for anything other than cars?",
-            a: "Yes. The same trip model covers rail, coach and bus, scheduled flights, and ferries. Each mode has its own expected-corridor definition and its own anomaly rules.",
+            a: "The research considered other transport modes, but this archived concept is not a current tracking service and makes no coverage promise.",
           },
           {
             q: "Who can see my trip record?",
-            a: "Only you, and anyone you explicitly share a live trip link with. Trip records are bound to your user ID under row-level security.",
+            a: "The proposed design isolated records to the signed-in owner and explicit shares. Transit Guardian itself is not a current Asherin room.",
           },
         ]}
       />
 
       <ArticleShell
-        eyebrow="Product Briefing · Transit Guardian"
-        title="Transit Guardian, the ride is the evidence"
+        eyebrow="Archived Research · Trip Safety"
+        title="The ride can leave evidence, not certainty"
         dek={DEK}
         publishedLabel="Aug 5 2026"
         readTime="11 min"
@@ -108,12 +108,11 @@ const TransitGuardian = () => {
 
         <h2>2. Pre-ride, plate-anchored identity</h2>
         <p>
-          Two hard identifiers go in: the plate and the driver name. The
-          plate is the stronger of the pair because it is physical,
-          visible, and jurisdictionally registered. Guardian anchors its
-          collection on the plate, pivots to the name, and returns a
-          dossier with an explicit confidence band and, more importantly,
-          an explicit list of mismatches.
+          A plate and the driver name shown by a rideshare service can be
+          recorded as observations. Public registration access varies by
+          jurisdiction, so those observations cannot certify an identity.
+          A useful check reports visible mismatches and the source of every
+          corroborating record instead of presenting a safety verdict.
         </p>
         <Box>{`PRE-RIDE CHECK
   plate         7XYZ123        app-stated vehicle: silver sedan
@@ -169,9 +168,10 @@ const TransitGuardian = () => {
 
         <h2>5. From cars to everything else</h2>
         <p>
-          The trip model is mode-agnostic: an identity anchor, an expected
-          corridor, a telemetry stream, and a set of anomaly rules. Only
-          the definitions change per mode.
+          The research model is mode-agnostic: an observed identifier, an
+          expected corridor, a telemetry stream, and stated anomaly rules.
+          Real coverage depends on the transport operator and public data
+          available for that mode.
         </p>
         <Box>{`MODE COVERAGE
   ROAD   car / rideshare   anchor: plate + driver name
@@ -204,11 +204,11 @@ const TransitGuardian = () => {
 
         <h2>7. Privacy posture</h2>
         <p>
-          Trip records belong to the passenger. They are written under the
-          passenger's user ID with row-level security, shared only through
-          an explicit live-trip link that the passenger issues and can
-          revoke, and never pooled into a cross-user profile of any driver.
-          Guardian is a personal evidence tool, not a rating platform.
+          A privacy-preserving implementation keeps each trip private to
+          its owner, requires an explicit choice before sharing, and avoids
+          pooling observations into profiles of drivers. This archived
+          article describes that design standard, not a currently available
+          sharing service.
         </p>
 
         <h2>8. FAQ</h2>

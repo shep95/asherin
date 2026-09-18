@@ -60,3 +60,9 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] stage 2 remainder: saved code has one home — artifact files save into the same code library the snippets room reads (src/lib/library/snippets.ts, "save to code library" on the artifact surface)
 - [x] artifact gaps closed: a follow-up in the same conversation appends a version to the existing session instead of opening a new artifact; gate decisions are now recorded and promoted/candidate patterns stored (verified live: snippet write, two-version lineage, learning event — test rows deleted)
 
+
+## public blog refresh — 2026-09-18
+- [x] centralize public article status and capability boundaries
+- [x] apply the selected radical editorial journal design across the index and all articles
+- [x] correct stale product names, retired surfaces, private implementation details, and unsupported claims
+- [x] verify the shared index/article layouts and representative current, pricing, and archived routes on desktop and mobile; all 24 catalog routes remain registered

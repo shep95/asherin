@@ -81,7 +81,7 @@ const PersonalitiesToThinkingPatterns = () => (
     image={
       <img
         src={comparisonAsset.url}
-        alt="side-by-side table converting aureon personality framing into thinking-pattern framing across nine pieces"
+        alt="side-by-side table converting legacy personality framing into thinking-pattern framing across nine pieces"
         loading="lazy"
         width={1568}
         height={1010}
@@ -134,7 +134,7 @@ const PersonalitiesToThinkingPatterns = () => (
         honest thing: not known, not retrieved, not enough evidence.
       </li>
       <li>
-        <strong>self-reference leakage.</strong> "as aureon, i…" is pure
+        <strong>self-reference leakage.</strong> "as the assistant, i…" is pure
         overhead. it announces identity instead of delivering a finding.
       </li>
       <li>
@@ -176,7 +176,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>1. the identity line</h3>
     <p>
-      <em>before:</em> "you are aureon…", an instruction to inhabit.{" "}
+      <em>before:</em> "you are this persona…", an instruction to inhabit.{" "}
       <em>after:</em> the same paragraph loaded as capability text: what this
       system can see, retrieve, and prove. the model reads it as inventory, not
       as costume.
@@ -264,7 +264,7 @@ const PersonalitiesToThinkingPatterns = () => (
 
     <h3>9. self-talk</h3>
     <p>
-      <em>before:</em> "as aureon i…" <em>after:</em> never announce identity.
+      <em>before:</em> "as the persona i…" <em>after:</em> never announce identity.
       the answer arrives as work. the system is legible through what it
       produces, not through what it calls itself.
     </p>

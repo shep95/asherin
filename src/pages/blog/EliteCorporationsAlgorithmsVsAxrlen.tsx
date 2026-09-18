@@ -88,8 +88,8 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
       id="elite-corporations-algorithms-vs-axrlen"
       items={[
         {
-          q: "what does axrlen actually produce?",
-          a: "a probability, a time window, and the source that will settle the question later. forecasts are scored after the window closes, including the misses.",
+          q: "what did the retired forecasting method produce?",
+          a: "a probability, a time window, and the source intended to settle the question later. the former standalone axrlen surface is retired.",
         },
         {
           q: "is the symbolic reading evidence?",
@@ -106,9 +106,9 @@ const EliteCorporationsAlgorithmsVsAxrlen = () => (
       heading="read next"
       links={[
         {
-          to: "/feature/axrlen",
-          label: "axrlen, the forecasting surface",
-          description: "how forecasts are written, scored, and revisited.",
+          to: "/software",
+          label: "current asherin software",
+          description: "the current public catalogue and availability.",
         },
         {
           to: "/blog/how-ai-predictive-forecasting-works",

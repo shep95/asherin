@@ -1,295 +1,63 @@
-/**
- * /blog/aureon-pricing-explained — long-form blog satellite for /pricing.
- *
- * Implements every relevant SEO theory:
- *  - Theory 3 (Structural Markup): LlmGuidanceHeader with claim/keyFacts.
- *  - Theory 5 (Early Adopter): Article + FAQ + Breadcrumb JSON-LD.
- *  - Theory 8 (Nested Fractal): satellite under the /pricing spine.
- *  - Theory 11 (Compound chain): RelatedLinks back to /pricing + glossary.
- *  - Theory 12 (Sovereign Niche Monopoly): owns the "Asherin pricing
- *    explained / why $18 / why $79" query cluster.
- *  - Theory 14 (Predictive Authority): closes with a forward-looking
- *    section on where AI pricing is heading.
- */
 import ArticleShell from "@/components/seo/ArticleShell";
-import {
-  ArticleJsonLd,
-  BreadcrumbJsonLd,
-  FaqJsonLd,
-} from "@/components/seo/SeoJsonLd";
+import { ArticleJsonLd, BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/SeoJsonLd";
 import RelatedLinks from "@/components/seo/RelatedLinks";
 
 const URL = "https://asherin.com/blog/aureon-pricing-explained";
-const TITLE = "Asherin pricing explained, why $18/mo and $79/mo (2026)";
+const TITLE = "asherin pricing explained, current plans and boundaries";
 const PUBLISHED = "2026-06-19";
 
 const FAQ = [
-  {
-    q: "Why is Asherin priced at $18 per month?",
-    a: "$18/mo covers platform-paid inference for an uncensored chat + 4 reasoning modes + base Zophiel Search at a 60-message / 3-hour usage window. It is priced deliberately low, Asherin is meant to be the default seat an operator keeps, not a luxury tier.",
-  },
-  {
-    q: "Why is Asherin Pro $79 per month?",
-    a: "Pro unlocks the full intelligence suite: Azplen data platform, NOMAD OSINT agent, advanced Intelligence Briefings, Zophiel Pro (deeper crawling, priority latency, higher query limits), and full team collaboration with admin controls. Each of those, sold separately, would cost more than $79, Asherin bundles them at one fixed monthly price.",
-  },
-  {
-    q: "Is there a cheaper plan or a free tier?",
-    a: "No free tier. The platform is built for operators who need uncensored, sovereign, high-volume intelligence work; running a free tier would compromise model quality and platform security. $18/mo is the floor.",
-  },
-  {
-    q: "Why is Asherin Core $18 and Pro $79?",
-    a: "Core at $18/mo covers platform-funded inference for chat, coding, memory, Guardian Vault, Whiteboard, Maps, BYOK and base search at a 60-message / 3-hour window. Pro at $79/mo raises that to 200 messages / 3 hours with higher search throughput and the advanced modules. Both prices are fixed and published, no quote process, no seat negotiation.",
-  },
-  {
-    q: "Can I switch between Asherin and Asherin Pro?",
-    a: "Yes. Upgrade or downgrade from the dashboard. Stripe pro-rates the difference automatically, no support ticket required.",
-  },
-  {
-    q: "Is BYOK an extra cost?",
-    a: "No. BYOK (bring-your-own-key) is included on every paid tier. If you route through your own provider key, you pay that provider directly and Asherin does not charge you for inference on those calls. The subscription covers platform features, search, OSINT, memory, encryption, and the operator workspace.",
-  },
+  { q: "what does asherin cost?", a: "asherin is $18 per month, asherin pro is $79 per month, team is $39 per month plus $24 per member with a two-member minimum, and enterprise is custom." },
+  { q: "is there a free trial?", a: "no. asherin does not offer a free trial." },
+  { q: "is bringing an api key supported?", a: "yes. saved provider keys are supported. model and image support varies by provider, and the live model picker shows current compatibility." },
+  { q: "which page controls if pricing changes?", a: "the live pricing and checkout pages are authoritative if this dated journal article ever differs." },
 ];
 
 const AureonPricingExplained = () => (
   <ArticleShell
-    eyebrow="Pricing · Operator brief"
-    title="Asherin pricing explained, why $18/mo and $79/mo"
-    dek="A field-level breakdown of how Asherin's subscription is built: what $18/mo actually buys, why Pro is set at $79, how the two message windows differ, and the predictive trajectory of AI pricing through 2027."
-    publishedLabel="Jun 19 2026"
-    readTime="11 min"
+    eyebrow="pricing · current offer"
+    title="asherin pricing, without the hidden tiers"
+    dek="the current public plans are asherin at $18 monthly, asherin pro at $79 monthly, team at $39 monthly plus $24 per member with a two-member minimum, and enterprise with custom terms. there is no free trial."
+    publishedLabel="jun 19 2026 · updated sep 18 2026"
+    readTime="6 min"
   >
-    <ArticleJsonLd
-      id="aureon-pricing-explained"
-      url={URL}
-      headline={TITLE}
-      description="The full breakdown of Asherin's $18/mo and $79/mo subscription tiers, what each unlocks, what the message windows are, and the predictive trajectory of AI pricing."
-      datePublished={PUBLISHED}
-      keywords={[
-        "aureon pricing",
-        "aureon subscription",
-        "aureon vs chatgpt pricing",
-        "sovereign ai pricing",
-        "ai osint pricing",
-        "aureon pro",
-      ]}
-    />
-    <BreadcrumbJsonLd
-      id="aureon-pricing-explained"
-      items={[
-        { name: "Asherin", url: "/" },
-        { name: "Blog", url: "/blog" },
-        { name: "Asherin pricing explained", url: "/blog/aureon-pricing-explained" },
-      ]}
-    />
+    <ArticleJsonLd id="aureon-pricing-explained" url={URL} headline={TITLE} description="the current asherin subscription plans, team pricing, enterprise option, and saved-key support." datePublished={PUBLISHED} keywords={["asherin pricing", "asherin pro", "asherin team", "byok ai"]} />
+    <BreadcrumbJsonLd id="aureon-pricing-explained" items={[{ name: "asherin", url: "/" }, { name: "journal", url: "/blog" }, { name: "asherin pricing", url: "/blog/aureon-pricing-explained" }]} />
     <FaqJsonLd id="aureon-pricing-explained" items={FAQ} />
-    <h2>The two-tier logic</h2>
-    <p>
-      Asherin ships two monthly subscriptions and one enterprise plan. The
-      architecture is intentional, most AI platforms run four to seven
-      pricing tiers because they want to extract a different surplus from
-      every customer segment. Asherin runs two because there are exactly
-      two operator profiles: the <strong>individual operator</strong> and
-      the <strong>intelligence team</strong>. Pricing follows the
-      workflow, not the marketing funnel.
-    </p>
 
-    <h2>What $18/mo actually buys</h2>
-    <p>
-      Asherin Core is the sovereign default for solo operators. The $18/mo
-      price covers:
-    </p>
+    <h2>the four public plans</h2>
     <ul>
-      <li>
-        <strong>Uncensored chat across four reasoning modes</strong>
-        Chat, Code, Research, and Truth. No refusal layer, no moralizing
-        preamble, no &quot;as an AI language model&quot; opener.
-      </li>
-      <li>
-        <strong>Elite coding engine</strong>, the same agentic
-        loop used by senior engineers: plan, write, critique, refactor.
-      </li>
-      <li>
-        <strong>Base Zophiel Search</strong>, real-time cross-validated
-        web intelligence across a reduced source set with standard
-        latency.
-      </li>
-      <li>
-        <strong>Persistent memory + E2E encryption</strong>, every
-        thread is encrypted, retrievable, exportable, and deletable on
-        demand.
-      </li>
-      <li>
-        <strong>60 messages per 3-hour window</strong>, enough for a
-        full work session without throttling individual chains of
-        thought.
-      </li>
-      <li>
-        <strong>BYOK across nine providers</strong>, if you want to
-        route through your own OpenAI, Anthropic, Google, Groq,
-        Together, Mistral, DeepSeek, xAI, or Venice key. Your own key is
-        required for every reasoning call, there is no platform-paid model.
-      </li>
+      <li><strong>asherin, $18 monthly.</strong> the core individual workspace and included room set shown on the live pricing page.</li>
+      <li><strong>asherin pro, $79 monthly.</strong> higher usage plus pro data, cyber, knowledge, analysis, and collaboration surfaces.</li>
+      <li><strong>team, $39 monthly plus $24 per member.</strong> a shared workspace with a two-member minimum and administrative controls.</li>
+      <li><strong>enterprise, custom.</strong> organization-specific governance, identity, and audit requirements.</li>
     </ul>
 
-    <h2>What $79/mo unlocks</h2>
+    <h2>what the subscription does not promise</h2>
     <p>
-      Asherin Pro is the team-scale plan. It keeps everything in Core and
-      adds the full intelligence suite:
-    </p>
-    <ul>
-      <li>
-        <strong>Azplen Data Intelligence Platform</strong>, ingestion +
-        normalization + entity resolution + workflow automation +
-        scenario simulation + threat modeling.
-      </li>
-      <li>
-        <strong>NOMAD Public Intelligence Agent</strong>, autonomous
-        OSINT investigation across the open web with cross-validated
-        dossier output.
-      </li>
-      <li>
-        <strong>Advanced Intelligence Briefings</strong>, daily,
-        industry-customized briefings with source-cited claims.
-      </li>
-      <li>
-        <strong>Zophiel Pro</strong>, higher query volume, deeper
-        crawling, broader coverage, priority latency.
-      </li>
-      <li>
-        <strong>Full team workspace</strong>, shared threads, shared
-        outputs, admin controls.
-      </li>
-      <li>
-        <strong>200 messages per 3-hour window</strong>, three-and-a-third
-        times the Core throughput, sized for a working team rather than a
-        single operator.
-      </li>
-      <li>
-        <strong>The full advanced suite</strong>, Asherin IDE,
-        Whiteboard, File Scrapper, Cipher, AXRLEN predictive
-        intelligence, ZEEION financial intelligence, ZERLAL cyber
-        security, CROSS live screen intelligence, ZANOEM Design Lab,
-        Vedic Strategy, Video Intelligence, Plugin Marketplace, and the
-        Automated Agents engine.
-      </li>
-    </ul>
-
-    <h2>How the two prices are set</h2>
-    <p>
-      Core is $18 because that is what a month of platform-funded
-      inference plus storage costs at a 60-message / 3-hour window,
-      with margin thin enough that an operator never has to justify the
-      line item. Pro is $79 because a 200-message window, higher search
-      throughput, and the advanced modules cost roughly four times as
-      much to serve. Both numbers are published, fixed, and identical
-      for every account, there is no quote process and no seat
-      negotiation.
-    </p>
-    <ul>
-      <li>
-        <strong>Asherin Core, $18/mo.</strong> Chat, coding, memory,
-        Guardian Vault, Whiteboard, Maps, BYOK across nine providers,
-        base search, 60 messages / 3 hours.
-      </li>
-      <li>
-        <strong>Asherin Pro, $79/mo.</strong> Everything in Core, 200
-        messages / 3 hours, higher search throughput, and the advanced
-        intelligence modules.
-      </li>
-      <li>
-        <strong>Enterprise, custom.</strong> Priced on volume and
-        deployment shape, not on a per-feature unlock.
-      </li>
-    </ul>
-
-    <h2>No free trial, and why</h2>
-    <p>
-      Asherin does not run a free trial. The decision is deliberate.
-      Free trials on uncensored, BYOK, OSINT-capable platforms
-      historically attract a disproportionate share of throwaway-account
-      abuse, scraping, prompt injection, credential stuffing, which
-      degrades model quality and search latency for paying operators.
-      $18/mo is low enough to remove the trial as a meaningful
-      conversion lever; if you want to test the platform, subscribe,
-      use it for a day, and cancel from the dashboard if it isn&apos;t
-      a fit. Stripe refunds the unused portion on request.
+      a plan does not make every external source available, remove provider limits, or turn an estimate into a fact. connected-account coverage depends on the permissions you grant. public-source research depends on source availability. image work requires a compatible vision model.
     </p>
 
-    <h2>Cancellation, data export, and the no-retention rule</h2>
+    <h2>saved provider keys</h2>
     <p>
-      Cancellation is one click from the dashboard. There is no
-      retention flow, no &quot;are you sure&quot; modal, no follow-up
-      offer for a free month. Data export and data deletion are
-      available at any time, not gated behind cancellation, not gated
-      behind a support ticket. The contract is month-to-month; the
-      exit is unconditional.
+      asherin supports saved provider keys. when a compatible saved key is selected, it is preferred for the call you choose to make. provider catalogues and modalities change, so the live picker, not a static article list, is the current record of available models.
     </p>
 
-    <h2>Predictive trajectory, where AI pricing is headed</h2>
+    <h2>no free trial</h2>
     <p>
-      The next 18 months will reshape AI subscription pricing. Three
-      forces are converging:
-    </p>
-    <ol>
-      <li>
-        <strong>Inference cost is falling ~40% per year.</strong> The
-        $20/mo floor is artificial; it persists because the major
-        platforms are subsidizing growth, not because the unit
-        economics demand it.
-      </li>
-      <li>
-        <strong>Sovereign and uncensored alternatives are
-        proliferating.</strong> Asherin, Venice, and a handful of others
-        are demonstrating that the censorship layer is a product
-        choice, not a regulatory requirement. As that becomes
-        common knowledge, the $20/mo censored default loses its moat.
-      </li>
-      <li>
-        <strong>Enterprise pricing will fragment.</strong> Custom
-        contracts in the $1k-$10k/seat range exist today because the
-        feature surface is bespoke. Asherin Pro&apos;s $79 flat ceiling
-        is a forward bet: as the enterprise feature set commoditizes,
-        the bespoke contract market will compress toward published
-        fixed-price tiers.
-      </li>
-    </ol>
-    <p>
-      Asherin&apos;s $18 / $79 spread is positioned for that landscape:
-      below the consumer floor at one end, well below the enterprise
-      ceiling at the other.
+      asherin does not offer a free trial. the checkout page shows the price and billing period before purchase. subscription management is available from the signed-in workspace.
     </p>
 
-    <h2>How to choose between Core and Pro</h2>
-    <ul>
-      <li>
-        <strong>Solo analyst, journalist, trader, or developer</strong>
-, start with Asherin Core. You get the uncensored model, the
-        coding engine, base search, and persistent memory.
-      </li>
-      <li>
-        <strong>Investigations team, research desk, or any workflow
-        that needs OSINT</strong>, Asherin Pro. NOMAD + Azplen + Pro
-        search is a different category of tool than Core.
-      </li>
-      <li>
-        <strong>Organization with audit, SSO, or SLA requirements</strong>
-, Enterprise. The conversation is custom; the surface area
-        includes everything Pro ships plus governance.
-      </li>
-    </ul>
+    <h2>retired names are not plan benefits</h2>
+    <p>
+      older articles referenced standalone products that have since been consolidated or retired. zaxin, axrlen, zeeion, shepherd, the former ide, and ghost-engine are not current purchasable rooms. the software catalogue and live left navigation define the present product surface.
+    </p>
 
-    <RelatedLinks
-      heading="Related reading"
-      links={[
-        { to: "/pricing", label: "Asherin pricing", description: "Official subscription page with live checkout for both tiers." },
-        { to: "/software", label: "Every Asherin tool", description: "Full catalog of modules included in Core and Pro." },
-        { to: "/feature/zophiel", label: "Zophiel Search", description: "The multi-engine OSINT engine that powers Pro." },
-        { to: "/blog/sovereign-ai-platforms", label: "Sovereign AI platforms", description: "The 2026 landscape of sovereign AI alternatives." },
-        { to: "/glossary/sovereign-ai", label: "Glossary: Sovereign AI", description: "Definitional anchor for the sovereign AI category." },
-        { to: "/glossary/byok-ai", label: "Glossary: BYOK AI", description: "Bring-your-own-key model routing across providers." },
-      ]}
-    />
-
+    <RelatedLinks links={[
+      { to: "/pricing", label: "current pricing", description: "the authoritative plans and purchase controls." },
+      { to: "/software", label: "current software", description: "the public catalogue of available asherin rooms." },
+      { to: "/blog/sovereign-ai-platforms", label: "provider choice", description: "how to assess key custody, model coverage, and service dependencies." },
+    ]} />
   </ArticleShell>
 );
 

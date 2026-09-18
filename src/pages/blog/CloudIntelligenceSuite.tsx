@@ -20,7 +20,7 @@ const URL = "https://asherin.com/blog/cloud-intelligence-suite";
 const TITLE =
   "Cloud Intelligence, turning your inbox, messages and calls into graded intelligence";
 const DEK =
-  "Cloud Intelligence connects your Google accounts and converts mail headers, Voice metadata, SMS threads, calendar history, and contact records into structured dossiers graded against professional analytic standards, BLUF, confidence matrix, alternative hypotheses, and ranked collection requirements.";
+  "Cloud Intelligence works with Google data you explicitly authorize, including supported mail, calendar, contact, and file records. Coverage depends on the permissions and records the connected account exposes.";
 const PUBLISHED = "2026-08-03T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -80,7 +80,7 @@ const CloudIntelligenceSuite = () => {
           },
           {
             q: "Does it read the content of my messages?",
-            a: "Comprehension modules operate on threads you already own in your own connected accounts, to summarise correspondents and topics. Metadata modules deliberately work on envelope data only. Everything is scoped to your authenticated session and protected by row-level security.",
+            a: "Comprehension works only on records exposed by an account you authorize. Your connected-account results are isolated to your signed-in account, and access can be revoked.",
           },
           {
             q: "What analytic standards does the report follow?",
@@ -212,19 +212,17 @@ const CloudIntelligenceSuite = () => {
 
         <h2>7. Automation posture</h2>
         <p>
-          Nothing here requires clicking. A server-side scheduler performs
-          the periodic sweeps, a service worker keeps the picture warm when
-          the tab is closed, and a foreground daemon handles anything that
-          needs the live session. New correspondents are dossiered as they
-          appear; you read the output, you do not operate the machine.
+          Analysis runs when you request it from an authorized connection.
+          The interface reports unavailable permissions, empty sources, and
+          provider failures instead of implying that collection continued
+          while the application was closed.
         </p>
 
         <h2>8. Consent, scope, and revocation</h2>
         <p>
           Every account is authorised by you and can be disconnected on its
-          own without disturbing the others. All derived records are bound
-          to your user ID with row-level security, so no other operator can
-          read your ledger. Metadata modules are deliberately envelope-only
+          own without disturbing the others. Derived records remain isolated
+          to your signed-in account. Metadata modules are deliberately envelope-only
 , they do not need bodies to do their work, so they do not take
           them.
         </p>

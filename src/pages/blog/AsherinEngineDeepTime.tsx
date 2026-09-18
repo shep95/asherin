@@ -84,7 +84,7 @@ const AsherinEngineDeepTime = () => {
           },
           {
             q: "Does the engine store the identities I search?",
-            a: "Queries are scoped to the authenticated operator's session and row-level-secured. Results are cached against the operator's own ledger so a repeat sweep is fast, and each cache entry is bound to that operator's user ID.",
+            a: "Queries and saved results are isolated to the signed-in owner. Cached records keep their provenance so repeated work can reuse evidence without exposing another user's searches.",
           },
         ]}
       />
@@ -240,7 +240,7 @@ const AsherinEngineDeepTime = () => {
         <Box>{`ASHERIN
   ├── Asherin Chat        ── conversational operator surface
   ├── Cloud Intelligence  ── email / message / contact dossiers
-  ├── Asherin Maps        ── geospatial + camera + routing
+  ├── Asherin Eye         ── maps + public cameras + routing
   └── ASHERIN ENGINE ($79 Pro)
         ├── GHOST HARVEST        16-leg fan-out
         ├── DEEP TIME            era buckets + host lifespan

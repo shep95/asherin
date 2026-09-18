@@ -14,7 +14,7 @@ const HowAiPredictiveForecastingWorks = () => (
   <ArticleShell
     eyebrow="Guide · Predictive Intelligence"
     title="How AI Predictive Forecasting Actually Works"
-    dek="Most 'AI prediction' content is vibes with a number bolted on. Real predictive forecasting has four ingredients: probability, window, signal fusion, and a public verification plan. This is how AXRLEN does it, and how to evaluate any AI forecasting platform."
+    dek="Most 'AI prediction' content is a narrative with a number bolted on. A testable forecast needs probability, a resolution window, independent signals, and a verification plan. This archived method note explains how to evaluate one."
     publishedLabel="Jun 19 2026"
     readTime="9 min"
   >
@@ -22,7 +22,7 @@ const HowAiPredictiveForecastingWorks = () => (
       id="how-ai-predictive-forecasting-works"
       url={URL}
       headline={TITLE}
-      description="The four ingredients of real AI predictive forecasting, probability, resolution window, multi-signal fusion, verification plan. How AXRLEN implements them and how to evaluate competing platforms."
+      description="The four ingredients of testable forecasting: probability, a resolution window, independent signals, and a verification plan."
       datePublished={PUBLISHED}
       keywords={[
         "ai predictive forecasting",
@@ -56,8 +56,8 @@ const HowAiPredictiveForecastingWorks = () => (
       </li>
       <li>
         <strong>Signal fusion.</strong> At minimum five independent
-        signal classes, weighted by base rate and corroboration. A
-        single-source forecast is a guess.
+        signal classes when the question supports them, weighted by base
+        rate and corroboration. A single-source forecast is fragile.
       </li>
       <li>
         <strong>Verification plan.</strong> The exact observable
@@ -93,8 +93,8 @@ const HowAiPredictiveForecastingWorks = () => (
       A single signal, a regulator's speech, a market move, an
       OSINT data point, is a noisy estimate of the underlying
       probability. Fusion across five or more independent signal
-      classes is the floor for non-trivial calibration. AXRLEN's
-      five required classes are:
+      classes can improve calibration when those sources are genuinely
+      independent. A useful working set is:
     </p>
     <ul>
       <li>
@@ -107,11 +107,8 @@ const HowAiPredictiveForecastingWorks = () => (
         prediction-market venues, equity moves in affected sectors.
       </li>
       <li>
-        <strong>OSINT corroboration</strong> via{" "}
-        <a href="/feature/zophiel" className="text-accent hover:underline">
-          Zophiel
-        </a>{" "}
-, multi-engine cross-validation of the underlying claims.
+        <strong>Public-source corroboration</strong> across available,
+        independent sources, with contradiction and missing-source states.
       </li>
       <li>
         <strong>Base-rate priors</strong>, historical frequency of
@@ -130,9 +127,8 @@ const HowAiPredictiveForecastingWorks = () => (
       single most important honesty signal a forecasting platform
       can ship. It names the observable conditions, the resolution
       date, and the rule for marking the forecast hit or miss. It
-      prevents retroactive goalpost movement. It makes the platform's
-      track record auditable in public. AXRLEN's published forecasts
-      ship this plan in the body of the article, not in a footnote.
+      prevents retroactive goalpost movement. It makes a forecaster's
+      track record auditable in public.
     </p>
 
     <h2>How to evaluate any AI forecasting platform</h2>
@@ -153,26 +149,17 @@ const HowAiPredictiveForecastingWorks = () => (
       </li>
     </ol>
     <p>
-      Four yeses = real predictive forecasting. Anything less is
-      editorial content with a number bolted on. AXRLEN's first
-      formally tracked forecast (Q4 2026 AI regulation) is in the
-      window now; the resolution post lands January 2027.
+      Four yeses indicate a forecast that can be reviewed later. Anything
+      less is difficult to distinguish from editorial content. Model output
+      timing is non-deterministic, and no workflow guarantees accuracy.
     </p>
 
-    <h2>How Asherin implements this</h2>
+    <h2>How to apply the method</h2>
     <p>
-      <a href="/feature/axrlen" className="text-accent hover:underline">
-        AXRLEN
-      </a>{" "}
-, the Nexus Prime engine, is Asherin's implementation. It binds
-      probability to language with the calibration bands above, fuses
-      five required signal classes per forecast, and ships verification
-      plans with every published prediction. The World Cup 2026, 22
-      June slate is the live worked example. Read it at{" "}
-      <a href="/blog/predictions/world-cup-2026-group-matches-0622" className="text-accent hover:underline">
-        the published forecast
-      </a>
-      .
+      The former standalone forecasting room is retired. The reusable
+      method remains: define the event, assign a probability, state the
+      window, list the independent evidence classes, publish a resolution
+      rule, and score the result after the window closes.
     </p>
 
     <FaqJsonLd
@@ -188,7 +175,7 @@ const HowAiPredictiveForecastingWorks = () => (
         },
         {
           q: "Can AI predict stock prices?",
-          a: "AI can produce probabilistic forecasts of well-defined events with rich signal histories. Long-horizon multi-year price targets for specific securities do not have those properties and cannot be honestly calibrated. AXRLEN declines forecasts it cannot defend rather than publish a number.",
+          a: "AI can assist with probabilistic forecasts of well-defined events with rich signal histories. Long-horizon price targets often lack the conditions for honest calibration and should not be presented as guaranteed outcomes.",
         },
       ]}
     />
@@ -196,14 +183,14 @@ const HowAiPredictiveForecastingWorks = () => (
     <RelatedLinks
       links={[
         {
-          to: "/feature/axrlen",
-          label: "AXRLEN, the Nexus Prime engine",
-          description: "Asherin's implementation of the four-ingredient forecasting method.",
+          to: "/software",
+          label: "current asherin software",
+          description: "the current public catalogue and availability.",
         },
         {
           to: "/blog/predictions/world-cup-2026-group-matches-0622",
-          label: "AXRLEN forecast, World Cup 22 June slate",
-          description: "The live worked example: four picks with confidence weights and verification plan.",
+          label: "Archived World Cup forecast",
+          description: "A dated worked example preserved for later verification.",
         },
         {
           to: "/glossary/predictive-intelligence-ai",
@@ -211,9 +198,9 @@ const HowAiPredictiveForecastingWorks = () => (
           description: "The category, written for citation.",
         },
         {
-          to: "/feature/zophiel",
-          label: "Zophiel OSINT, the corroboration layer",
-          description: "multi-engine cross-validation feeds AXRLEN's signal fusion.",
+          to: "/dashboard/asherin.search",
+          label: "asherin.search",
+          description: "current public-source research with evidence and degraded states.",
         },
       ]}
     />
