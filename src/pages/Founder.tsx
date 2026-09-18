@@ -67,7 +67,7 @@ const Founder = () => {
 
           <div className="mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-12 lg:gap-16 items-center">
             <div className="order-2 lg:order-1">
-              <div className="relative aspect-[4/5] w-full max-w-[460px] mx-auto rounded-[2rem] overflow-hidden border border-border/30">
+              <div className="relative aspect-video w-full max-w-[640px] mx-auto rounded-[2rem] overflow-hidden border border-border/30">
                 <FounderPhotoCarousel />
                 <div className="absolute inset-0 bg-background/20 pointer-events-none" />
               </div>

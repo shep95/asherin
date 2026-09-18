@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import portrait1 from "@/assets/founder-portrait-1.png.asset.json";
-import portrait2 from "@/assets/founder-portrait-2.png.asset.json";
+import portrait1 from "@/assets/founder-asher-newton-1.png.asset.json";
+import portrait2 from "@/assets/founder-asher-newton-2.png.asset.json";
 
 const photos = [portrait1.url, portrait2.url];
 
