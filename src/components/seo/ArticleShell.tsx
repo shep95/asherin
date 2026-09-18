@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
+import LandingBackground from "@/components/LandingBackground";
 import { ArrowLeft } from "lucide-react";
 import { getArticleDisclosure } from "@/data/blogCatalog";
 
@@ -52,8 +53,9 @@ const ArticleShell = ({
   }, []);
 
   return (
-    <div className="journal-surface min-h-screen">
-      <Header />
+    <LandingBackground overlayOpacity="bg-background/20">
+      <div className="journal-surface min-h-screen">
+        <Header />
 
       <div className="fixed inset-x-0 top-0 z-[60] h-px bg-foreground/10" aria-hidden>
         <div className="h-full bg-accent transition-[width] duration-150" style={{ width: `${progress}%` }} />
@@ -120,8 +122,9 @@ const ArticleShell = ({
         </div>
       </article>
 
-      <SiteFooter />
-    </div>
+        <SiteFooter />
+      </div>
+    </LandingBackground>
   );
 };
 

@@ -17,7 +17,8 @@
   --journal-copy: 0 0% 14%;
   --journal-paper: 40 36% 95%;
   --journal-rule: 38 12% 72%;
-  background: hsl(var(--journal-paper));
+  background: hsl(var(--journal-paper) / 0.68);
+  backdrop-filter: blur(9px) saturate(0.78);
   color: hsl(var(--journal-ink));
   font-family: "Work Sans", system-ui, sans-serif;
 }
