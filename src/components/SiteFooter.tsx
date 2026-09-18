@@ -18,10 +18,9 @@ const LINKS = [
 ];
 
 const SOCIALS = [
-  { href: "https://x.com/shep_newton", label: "x" },
   { href: "https://www.instagram.com/asher_united", label: "instagram" },
-  { href: "https://www.linkedin.com/in/asher-newton", label: "linkedin" },
-  { href: "https://discord.gg/M9hnebRwvk", label: "discord" },
+  { href: "https://www.linkedin.com/in/shepnewton/", label: "linkedin" },
+  { href: "https://discord.gg/TzTdY8BfMx", label: "discord" },
 ];
 
 const SiteFooter = ({ variant = "full" }: SiteFooterProps) => {
