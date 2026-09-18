@@ -251,9 +251,9 @@ const TheTruthAndRealityOfWars = () => (
     <RelatedLinks
       heading="Related intelligence"
       links={[
-        { to: "/blog/predictions/russia-ukraine-war-2026-endgame", label: "AXRLEN Prediction, Russia-Ukraine 2026 endgame", description: "Frozen front, Korean-style armistice, and the financial settlement behind the front line." },
-        { to: "/blog/predictions/china-taiwan-2026-flashpoint", label: "AXRLEN Prediction, China-Taiwan 2026 flashpoint", description: "Blockade-first escalation path and the Thucydides-Mahan Convergence behind the strait." },
-        { to: "/blog/predictions/israel-iran-2026-shadow-war", label: "AXRLEN Prediction, Israel-Iran 2026 shadow war", description: "Proxy spike, Hezbollah-first sequencing, and the singular nuclear 'Hard Test'." },
+        { to: "/blog/predictions/russia-ukraine-war-2026-endgame", label: "Archived forecast, Russia-Ukraine", description: "A dated scenario preserved for verification, not a current product output." },
+        { to: "/blog/predictions/china-taiwan-2026-flashpoint", label: "Archived forecast, China-Taiwan", description: "A dated scenario preserved for verification, not a certainty." },
+        { to: "/blog/predictions/israel-iran-2026-shadow-war", label: "Archived forecast, Israel-Iran", description: "A dated scenario preserved for verification, not a certainty." },
         { to: "/blog/the-crypto-dump-october-2026", label: "The Crypto Dump, Oct 2026 liquidity event", description: "The BlackRock/Vanguard trap-door mechanism and the 92:8 loser-to-winner ratio." },
       ]}
     />

@@ -55,7 +55,7 @@ const AsherinMapsFindMy = () => {
           "OSRM fastest route",
           "find my bluetooth device",
           "opt-in device reporting",
-          "geospatial intelligence",
+          "map intelligence",
         ]}
       />
       <BreadcrumbJsonLd
@@ -71,7 +71,7 @@ const AsherinMapsFindMy = () => {
         items={[
           {
             q: "What is Asherin Maps?",
-            a: "The geospatial surface of the Asherin dashboard, formerly the intelligence property map. It defaults to satellite imagery, carries a resizable and scalable layer tree, streams live public DOT traffic cameras, and computes fastest-path routes.",
+            a: "The map surface of the Asherin dashboard. It defaults to satellite imagery, supports a layer tree, displays available public roadway camera feeds, and computes routes when the routing service responds.",
           },
           {
             q: "Where do the traffic cameras come from?",
@@ -161,8 +161,8 @@ const AsherinMapsFindMy = () => {
 
         <h2>5. Device roster, the browsers that report in</h2>
         <p>
-          A device joins the roster when you open Asherin on it, sign in and
-          grant location and battery permission in that browser. It then
+          A compatible device joins the roster when you open Asherin on it,
+          sign in, and grant available permissions in that browser. It then
           reports its own position and battery on an interval, and the map
           renders each reporter with its last-report timestamp so a stale
           position is visibly stale rather than quietly wrong. This is

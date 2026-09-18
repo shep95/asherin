@@ -14,7 +14,7 @@ const SovereignAiPlatforms = () => (
   <ArticleShell
     eyebrow="Field Report · Landscape"
     title="The 2026 Sovereign AI Landscape"
-    dek="Sovereign AI is no longer a niche category, it's a coherent tooling layer with at least eight serious platforms, four distinct architecture patterns, and a clear set of evaluation criteria. This is the full landscape map for operators choosing where to commit."
+    dek="A dated framework for evaluating AI tools by key custody, provider choice, data control, export, and deletion, without treating marketing language as proof."
     publishedLabel="Jun 19 2026"
     readTime="11 min"
   >
@@ -55,12 +55,11 @@ const SovereignAiPlatforms = () => (
       have to commit to a vendor account before they can evaluate the
       platform.
     </p>
-    <h3>2. BYOK-only</h3>
+    <h3>2. Managed access</h3>
     <p>
-      No platform-paid model at all: every reasoning call runs on a key the
-      operator brought, billed to the operator&apos;s own vendor account. This
-      is the pattern Asherin ships. It costs a setup step on the first visit
-      and buys a fully sovereign path with nothing to revoke.
+      The platform supplies model access within the subscription. This
+      lowers setup cost, while provider availability, usage ceilings, and
+      model behavior remain service dependencies.
     </p>
     <h3>3. Self-hosted</h3>
     <p>
@@ -85,18 +84,16 @@ const SovereignAiPlatforms = () => (
         <a href="/glossary/sovereign-ai">see the definition</a>).
       </li>
       <li>
-        <strong>Vendor count for BYOK.</strong> One or two vendors is a
-        thin sovereign claim. Asherin supports nine.
+        <strong>Provider breadth.</strong> Count only providers and model
+        families that can actually be selected for the required modality.
       </li>
       <li>
-        <strong>Refusal layer transparency.</strong> Does the platform
-        publish a clear statement that it adds no refusal layer? Or does
-        it dodge the question?
+        <strong>Policy transparency.</strong> Does the platform explain
+        its own safeguards and the provider rules that still apply?
       </li>
       <li>
-        <strong>Data export and deletion guarantees.</strong> Cryptographic
-        proof of deletion is the gold standard. Click-and-trust is not
-        sovereignty.
+        <strong>Data export and deletion controls.</strong> Confirm what can
+        be exported, what can be deleted, and which processors retain data.
       </li>
       <li>
         <strong>Lock-in resistance.</strong> If the platform shut down
@@ -107,25 +104,19 @@ const SovereignAiPlatforms = () => (
 
     <h2>Where Asherin sits on the map</h2>
     <p>
-      Asherin is the canonical BYOK-only platform. Nine BYOK
-      providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI,
-      OpenRouter, Venice). No platform-paid model for operators who
-      haven&apos;t added a key. Zero platform-side refusal layer. End-to-end encrypted operator data with
-      key-revocation guarantees. The intelligence stack on top, Zophiel
-      OSINT, NOMAD dossiers, AXRLEN predictive engine, ZERLAL vulnerability
-      analysis, runs on the sovereign substrate, not as a layer that
-      degrades it.
+      Asherin supports saved provider keys and managed model access under
+      product rules. A saved compatible key is preferred for the calls the
+      operator chooses to make. Coverage varies by provider and modality;
+      the live model picker is the source of truth. Users can remove saved
+      keys and disable individual tools from settings.
     </p>
 
     <h2>What to expect by Q4 2026</h2>
     <p>
-      Three predictions worth holding accountable: first, the BYOK provider
-      count per platform will keep rising as more uncensored open-weight
-      models reach production quality. Second, &ldquo;refusal layer
-      transparency statements&rdquo; will become a standard publish-or-be-suspect
-      requirement. Third, at least one major consumer-AI vendor will ship a
-      &ldquo;sovereign tier&rdquo; that is sovereign in marketing only, the
-      four-layer test will eliminate it on first inspection.
+      Three questions are worth revisiting as the market changes: whether
+      provider portability improves, whether platforms publish clearer policy
+      and retention boundaries, and whether exported work remains usable when
+      a vendor or platform changes.
     </p>
 
     <FaqJsonLd
@@ -133,15 +124,15 @@ const SovereignAiPlatforms = () => (
       items={[
         {
           q: "How many sovereign AI platforms exist in 2026?",
-          a: "Roughly eight serious implementations across the four architecture patterns (BYOK-only, BYOK + uncensored fallback, self-hosted, hybrid sovereign). The number is growing month over month as the category formalizes.",
+          a: "There is no stable count. Products, hosting models, and key-custody claims change frequently, so evaluate the current architecture and terms rather than relying on a dated list.",
         },
         {
           q: "Is Asherin a sovereign AI platform?",
-          a: "Yes. Asherin ships the BYOK-only pattern: nine BYOK providers (Gemini, OpenAI, Claude, Groq, DeepSeek, Mistral, xAI, OpenRouter, Venice) and no platform-paid model. Zero platform-side refusal layer.",
+          a: "Asherin supports user-supplied provider keys and managed access. The live model picker shows current provider and modality coverage; users can remove keys and disable individual tools.",
         },
         {
           q: "What's the cheapest way to get started with a sovereign AI platform?",
-          a: "Pick a BYOK + uncensored fallback platform and use the platform-paid default while you evaluate which BYOK vendor you want to commit to. This gives you the full UX with zero vendor account overhead until you're ready to graduate.",
+          a: "Compare current subscription cost, saved-key support, export controls, provider terms, and hardware needs. A low entry price does not establish data sovereignty or model portability.",
         },
       ]}
     />

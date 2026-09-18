@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/bulwark-counter-surveillance";
 const TITLE =
-  "BULWARK, Bluetooth stalker detection, Wi-Fi sentinel & account-compromise forensics";
+  "Counter-surveillance research, Bluetooth persistence and browser limits";
 const DEK =
-  "BULWARK is the counter-surveillance layer of Asherin: it logs every Bluetooth identifier that travels with you and flags persistent followers, audits the Wi-Fi networks you join and everything else attached to them, and reconstructs exactly how an account credential was changed, method, origin, and infrastructure.";
+  "An archived research note on Bluetooth persistence, network visibility, account evidence, and device legibility. Browser signals can indicate anomalies; they cannot identify a person or continuously monitor a closed device.";
 const PUBLISHED = "2026-08-06T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -88,8 +88,8 @@ const BulwarkCounterSurveillance = () => {
       />
 
       <ArticleShell
-        eyebrow="Product Briefing · BULWARK"
-        title="BULWARK, counter-surveillance for people who are actually watched"
+        eyebrow="Archived Research · Counter-Surveillance"
+        title="Counter-surveillance starts with limits"
         dek={DEK}
         publishedLabel="Aug 6 2026"
         readTime="11 min"
@@ -222,12 +222,12 @@ const BulwarkCounterSurveillance = () => {
 
         <h2>8. Operating posture</h2>
         <p>
-          BULWARK runs continuously without operator action. A server-side
-          scheduler handles periodic analysis, a service worker maintains
-          the picture with the dashboard closed, and a foreground daemon
-          takes over anything requiring live device permissions. There is
-          no scan button because a counter-surveillance tool you have to
-          remember to run is a counter-surveillance tool that is off.
+          Browser visibility stops when permissions, operating-system
+          policy, or the page lifecycle stops it. Bluetooth discovery and
+          network inspection must be initiated where the device requires
+          consent. This archived design therefore treats every inactive or
+          unavailable sensor as an explicit gap rather than pretending that
+          monitoring continues in the background.
         </p>
 
         <h2>9. FAQ</h2>
@@ -240,9 +240,10 @@ const BulwarkCounterSurveillance = () => {
         </p>
         <h3>Does it store the identifiers of strangers?</h3>
         <p>
-          Observations are held under your user ID, row-level secured,
-          scoped to your own detection, and aged out. They are never pooled
-          across users or used to build a directory of devices.
+          A privacy-preserving implementation scopes observations to the
+          signed-in owner, ages them out, and avoids any cross-user device
+          directory. This note does not claim that a public device registry
+          exists.
         </p>
         <h3>Can it tell me who is following me?</h3>
         <p>

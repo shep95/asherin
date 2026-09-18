@@ -12,237 +12,12 @@ import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
  * As new /blog/<slug> pages are added, register them here so this page,
  * the header dropdown, and the sitemap stay in sync.
  *
- * `published` is a full ISO-8601 datetime (UTC) for AXRLEN-engine posts so
+ * `published` is a full ISO-8601 datetime (UTC) for time-stamped posts so
  * the exact generation hour/min/sec is visible. Date-only strings are
  * still supported for legacy posts.
  */
 
-type Post = {
-  slug: string;
-  title: string;
-  dek: string;
-  tag: string;
-  published: string; // ISO-8601: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
-  readTime: string;
-  featured?: boolean;
-  pinned?: boolean;
-};
-
-export const BLOG_POSTS: Post[] = [
-  {
-    slug: "/blog/asher-fold-memory",
-    title: "asher.fold-memory, leftover memory, stored once",
-    dek: "identical copies stored once. unique files stay their size. unfold returns the exact bits or refuses. $99 one-time pack, no account.",
-    tag: "Release",
-    published: "2026-08-16T06:00:00.000Z",
-    readTime: "6 min",
-    featured: true,
-    pinned: true,
-  },
-  {
-    slug: "/blog/paid-seat-free-door",
-    title: "paid seat. free door.",
-    dek: "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
-    tag: "Product",
-    published: "2026-08-15T21:45:00.000Z",
-    readTime: "4 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/personalities-are-not-thinking-patterns",
-    title: "personalities are not thinking patterns",
-    dek: "the exact conversion, piece by piece: identity lines become capability text, domain lists become recognition lenses, tier ladders become reasoning budgets, and conduct moves from character morality to forbidden reasoning patterns. with diagrams of both loops.",
-    tag: "Method",
-    published: "2026-08-11T00:00:00.000Z",
-    readTime: "9 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/ai-stack-for-indian-startups",
-    title: "The AI stack for Indian startups that can't afford to fail",
-    dek: "How early-stage founders in India use AI to compete with funded companies at 1/10th the cost. The real bottleneck is not compute or budget, it is instruction overhead.",
-    tag: "Founder Notes",
-    published: "2026-08-10T00:00:00.000Z",
-    readTime: "7 min",
-    featured: true,
-    pinned: true,
-  },
-  {
-    slug: "/blog/autonomous-intelligence-loop",
-    title: "the research loop, how asherin decides to go look things up",
-    dek: "Asherin no longer waits for a tool selection. The loop detects research intent, recalls the memory graph, fans out across collection surfaces, cross-verifies, persists what it proves, and shows the reasoning chain while it works.",
-    tag: "Product",
-    published: "2026-08-07T00:00:00.000Z",
-    readTime: "12 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/bulwark-counter-surveillance",
-    title: "notes on counter-surveillance, what a browser can and cannot see",
-    dek: "an archived write-up. this is not a live dashboard tab, it is a note on what follower detection and network audits can honestly claim from inside a browser.",
-    tag: "Security",
-    published: "2026-08-06T00:00:00.000Z",
-    readTime: "11 min",
-  },
-  {
-    slug: "/blog/transit-guardian",
-    title: "notes on trip safety, driver checks and telemetry, and their limits",
-    dek: "an archived write-up on what plate-anchored checks and ride telemetry can show, and what public records do not give you. not a shipped dashboard tab.",
-    tag: "Product",
-    published: "2026-08-05T00:00:00.000Z",
-    readTime: "11 min",
-  },
-  {
-    slug: "/blog/asherin-maps-find-my",
-    title: "asherin maps, satellite by default, and what it does not locate",
-    dek: "satellite imagery by default, public dot camera feeds, osrm routing, and coarse bluetooth proximity rings. it does not locate a phone.",
-    tag: "Product",
-    published: "2026-08-04T00:00:00.000Z",
-    readTime: "10 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/cloud-intelligence-suite",
-    title: "cloud intelligence, reading what google actually hands over",
-    dek: "mail headers, calendar, drive, summarised and drafted with your consent, inside signed-in connect. it does not locate phones.",
-    tag: "Product",
-    published: "2026-08-03T00:00:00.000Z",
-    readTime: "13 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/asherin-engine-deep-time",
-    title: "asherin engine, metadata-first search and deep-time retrieval",
-    dek: "how one query becomes several retrieval legs across time: host lifespan, pdf metadata, redirect-chain origins, and a deduped exposure map.",
-    tag: "Product",
-    published: "2026-08-02T00:00:00.000Z",
-    readTime: "12 min",
-    featured: true,
-  },
-
-  {
-    slug: "/blog/aureon-legal-advisor-multi-jurisdictional",
-    title: "asherin legal mode, multi-jurisdictional legal research",
-    dek: "The July 8, 2026 ship: a per-message LAW toggle in Asherin and Asher that wraps prompts in a strict legal-research directive, hunts modern statutes, colonial carryovers, uncodified common law, and binding precedent across any country, state, or province, and refuses to fabricate citations.",
-    tag: "Product",
-    published: "2026-07-08T00:00:00.000Z",
-    readTime: "8 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/code-narrative-quantum-collapse",
-    title: "code-as-narrative × candidate collapse, how we patch bugs",
-    dek: "two methods, reading code as narrative, and collapsing candidate fixes, and why they make small models patch logical and ui bugs faster than raw prompting.",
-    tag: "Engineering",
-    published: "2026-07-01T00:00:00.000Z",
-    readTime: "12 min",
-    featured: true,
-  },
-  {
-    slug: "/blog/the-truth-and-reality-of-wars",
-    title: "the truth and reality of wars, an essay",
-    dek: "Wars are scripted. The Bible calls it scripture for a reason. The field manual on how the elite use occultism to direct conflict, why fiat currency is the slave-collar you're conscripted to defend, and why every world war is an elite civil war dressed in flags.",
-    tag: "Geopolitics",
-    published: "2026-06-24T00:00:00.000Z",
-    readTime: "14 min",
-    featured: true,
-    pinned: true,
-  },
-
-  {
-    slug: "/blog/zaxin-tactical-ble-intelligence",
-    title: "zaxin, what web bluetooth actually gives you",
-    dek: "the browser ble scout: the device picker, requestLEScan advertisements, and coarse rssi proximity, a log-distance estimate with metres of error, not trilateration.",
-    tag: "Product",
-    published: "2026-06-26T00:00:00.000Z",
-    readTime: "11 min",
-    featured: true,
-  },
-
-  {
-    slug: "/blog/elite-corporations-algorithms-vs-axrlen",
-    title: "notes on axrlen forecasting, symbolism and probability",
-    dek: "an archival note on how asherin frames forecasts as probability with a window, and where the symbolic reading sits alongside it. no rival scoreboard.",
-    tag: "Analysis",
-    published: "2026-06-24T14:00:00.000Z",
-    readTime: "5 min",
-    featured: true,
-  },
-
-  {
-    slug: "/blog/aureon-pricing-explained",
-    title: "Asherin pricing explained, why $18/mo and $79/mo",
-    dek: "A field-level breakdown of how Asherin's subscription is built, what each message window buys, and where AI pricing is headed through 2027.",
-    tag: "Pricing",
-    published: "2026-06-19",
-    readTime: "11 min",
-  },
-
-  {
-    slug: "/blog/ai-vulnerability-scanning-explained",
-    title: "AI vulnerability scanning, explained, beyond legacy SAST/DAST",
-    dek: "What AI-powered vulnerability scanning actually means, how it differs from legacy SAST/DAST, where it adds real signal, and the named limitations to know before deploying.",
-    tag: "Security",
-    published: "2026-06-19",
-    readTime: "9 min",
-  },
-  {
-    slug: "/blog/vulnerability-chaining-explained",
-    title: "Vulnerability chaining, explained, when 3 mediums equal 1 critical",
-    dek: "Most critical real-world exploits are 2-4 low or medium findings combined. The anatomy of a chain, why isolated findings miss it, and how AI scanners surface it.",
-    tag: "Security",
-    published: "2026-06-19",
-    readTime: "8 min",
-  },
-  {
-    slug: "/blog/how-ai-predictive-forecasting-works",
-    title: "How AI predictive forecasting actually works",
-    dek: "Probability, window, signal fusion, verification plan, the four ingredients real forecasts need, and how to evaluate any AI forecasting platform against them.",
-    tag: "Predictive",
-    published: "2026-06-19",
-    readTime: "9 min",
-  },
-  {
-    slug: "/blog/how-we-make-aureon-sound-human",
-    title: "How we make Asherin sound so human, the voice stack",
-    dek: "A behind-the-scenes look at the layered persona architecture, appraisal, restraint, timing, leakage, that turns a generic model into a voice with weight.",
-    tag: "Voice Design",
-    published: "2026-07-01",
-    readTime: "9 min",
-  },
-  {
-    slug: "/blog/how-aureon-uses-c-seo-research",
-    title: "How Asherin uses C-SEO research, practicing what the paper recommends",
-    dek: "The C-SEO Bench paper formalized the discipline of ranking inside AI search engines. This is how Asherin's llms.txt, structural markup, and crawler policy implement its findings.",
-    tag: "AI Search",
-    published: "2026-06-19",
-    readTime: "10 min",
-  },
-  {
-    slug: "/blog/sovereign-ai-platforms",
-    title: "The 2026 sovereign AI platform landscape",
-    dek: "Eight serious platforms, four architecture patterns, and the four-layer test that eliminates 60% of sovereignty claims on first inspection.",
-    tag: "Landscape",
-    published: "2026-06-19",
-    readTime: "11 min",
-  },
-  {
-    slug: "/blog/what-is-ai-osint",
-    title: "What is AI OSINT? The analyst's complete guide",
-    dek: "The four-stage pipeline, the cross-validation requirement, and how to spot a search wrapper pretending to be AI OSINT.",
-    tag: "Guide",
-    published: "2026-06-19",
-    readTime: "9 min",
-  },
-  {
-    slug: "/blog/ai-without-restrictions",
-    title: "AI without restrictions, the operator workflow",
-    dek: "Model choice, prompt discipline, refusal-detection, and the three workflow patterns that survive long sessions.",
-    tag: "Operator Guide",
-    published: "2026-06-19",
-    readTime: "8 min",
-  },
-];
+import { BLOG_POSTS, type BlogPost, getArticleDisclosure } from "@/data/blogCatalog";
 
 // Normalize any published string to a full ISO timestamp.
 const toIso = (s: string) => (s.includes("T") ? s : `${s}T00:00:00Z`);
@@ -267,7 +42,7 @@ const fmtTime = (iso: string) => {
   return `${hh}:${mm}:${ss} UTC`;
 };
 
-const ALL_TAGS = (posts: Post[]) => Array.from(new Set(posts.map((p) => p.tag))).sort();
+const ALL_TAGS = (posts: BlogPost[]) => Array.from(new Set(posts.map((p) => p.tag))).sort();
 
 /** Month-year bucket key, e.g. "August 2026" — used to group the reading feed. */
 const fmtBucket = (iso: string) =>
@@ -323,7 +98,7 @@ const Blog = () => {
         const t = Date.parse(toIso(p.published));
         return t >= fromMs && t <= toMs;
       })
-      .filter((p) => (q ? `${p.title} ${p.dek} ${p.tag}`.toLowerCase().includes(q) : true))
+      .filter((p) => (q ? `${p.title} ${p.dek} ${p.tag} ${getArticleDisclosure(p.slug).statusLabel}`.toLowerCase().includes(q) : true))
       .sort((a, b) => {
         const ta = Date.parse(toIso(a.published));
         const tb = Date.parse(toIso(b.published));
@@ -346,7 +121,7 @@ const Blog = () => {
   // Group the feed into month buckets so a 30-item list reads as a timeline
   // rather than an undifferentiated wall.
   const buckets = useMemo(() => {
-    const map = new Map<string, Post[]>();
+    const map = new Map<string, BlogPost[]>();
     for (const p of listed) {
       const k = fmtBucket(p.published);
       const arr = map.get(k);
@@ -365,20 +140,21 @@ const Blog = () => {
   };
 
   return (
-    <div className="landing-perf min-h-screen bg-background text-foreground">
+    <div className="journal-surface landing-perf min-h-screen">
       <Header />
 
-      <main className="max-w-5xl mx-auto px-5 sm:px-6 pt-28 pb-24">
+      <main className="mx-auto max-w-7xl px-5 pb-24 pt-28 sm:px-8 lg:px-12">
         {/* MASTHEAD */}
-        <header className="border-b border-border/25 pb-10">
-          <p className="text-[10px] font-light tracking-[0.4em] uppercase text-muted-foreground/70">asherin journal</p>
-          <h1 className="mt-5 font-display text-5xl sm:text-6xl md:text-7xl font-light tracking-[-0.03em] leading-[0.95] max-w-3xl">
-            notes from
-            <span className="block italic text-muted-foreground/60">asherin.</span>
-          </h1>
-          <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
-            <p className="max-w-xl text-sm sm:text-base font-extralight text-muted-foreground leading-[1.75]">
-              how the thing is built, what it gets wrong, and sources next to answers. no fake ranks.
+        <header className="grid gap-8 border-b journal-rule pb-10 lg:grid-cols-[1fr_22rem] lg:items-end">
+          <div>
+            <p className="journal-muted text-[10px] font-medium uppercase tracking-[0.4em]">asherin journal</p>
+            <h1 className="mt-5 max-w-5xl font-display text-6xl font-normal leading-[0.9] sm:text-7xl lg:text-9xl">
+              public notes,<span className="block italic">with boundaries.</span>
+            </h1>
+          </div>
+          <div className="border-l-2 border-foreground pl-5">
+            <p className="journal-muted text-sm font-light leading-[1.75]">
+              current functions, archived concepts, method notes, and the limits that keep each claim honest.
             </p>
             <span className="text-[10px] font-light tracking-[0.28em] uppercase text-muted-foreground/60 tabular-nums">
               {BLOG_POSTS.length} entries
@@ -391,10 +167,10 @@ const Blog = () => {
           <section aria-label="Lead article" className="mt-12">
             <Link
               to={lead.slug}
-              className="group block focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40 rounded-2xl"
+              className="group grid gap-6 border-b journal-rule pb-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/40 lg:grid-cols-[12rem_1fr]"
             >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-light tracking-[0.26em] uppercase text-muted-foreground">
-                <span className="text-accent">Pinned</span>
+              <div className="flex flex-wrap content-start items-center gap-x-3 gap-y-2 text-[10px] font-medium uppercase tracking-[0.26em] journal-muted">
+                <span>Lead record</span>
                 <span aria-hidden className="text-border">
                   /
                 </span>
@@ -407,18 +183,13 @@ const Blog = () => {
                   /
                 </span>
                 <span>{lead.readTime}</span>
+                <span className="w-full pt-4 text-foreground">{getArticleDisclosure(lead.slug).statusLabel}</span>
               </div>
-              <h2 className="mt-5 font-display text-3xl sm:text-4xl md:text-5xl font-light tracking-[-0.025em] leading-[1.08] text-foreground">
-                {lead.title}
-              </h2>
-              <p className="mt-5 max-w-2xl text-base font-extralight text-muted-foreground leading-[1.8]">{lead.dek}</p>
-              <span className="mt-6 inline-flex items-center gap-2 text-[11px] font-light tracking-[0.24em] uppercase text-foreground/80">
-                Read the report
-                <ArrowUpRight
-                  className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                  strokeWidth={1.5}
-                />
-              </span>
+              <div>
+                <h2 className="font-display text-4xl font-normal leading-[1.02] sm:text-5xl lg:text-6xl">{lead.title}</h2>
+                <p className="journal-muted mt-5 max-w-2xl text-base font-light leading-[1.8]">{lead.dek}</p>
+                <span className="mt-6 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.24em]">read the record <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" strokeWidth={1.5} /></span>
+              </div>
             </Link>
           </section>
         )}
@@ -593,10 +364,10 @@ const Blog = () => {
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <h3 className="text-lg font-light tracking-[-0.01em] leading-snug text-foreground/95 transition-colors group-hover:text-foreground sm:text-xl">
+                  <h3 className="font-display text-2xl font-normal leading-tight sm:text-3xl">
                               {p.title}
                             </h3>
-                            <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground line-clamp-2">
+                            <p className="journal-muted mt-2 text-sm font-light leading-relaxed line-clamp-2">
                               {p.dek}
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-x-2.5 text-[9px] font-light tracking-[0.24em] uppercase text-muted-foreground/60">
@@ -605,6 +376,8 @@ const Blog = () => {
                                 /
                               </span>
                               <span>{p.readTime}</span>
+                              <span aria-hidden className="text-border">/</span>
+                              <span className="text-foreground">{getArticleDisclosure(p.slug).statusLabel}</span>
                               <span className="sm:hidden" aria-hidden>
                                 /
                               </span>
@@ -653,22 +426,22 @@ export default Blog;
 
 export function PaidSeatFreeDoor() {
   const URL = "https://asherin.com/blog/paid-seat-free-door";
-  const TITLE = "paid seat. free door.";
+  const TITLE = "the current asherin plans";
   const DEK =
-    "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.";
+    "asherin is $18 monthly, pro is $79 monthly, team is $39 monthly plus $24 per member with a two-member minimum, and enterprise is custom. saved provider keys are supported; there is no free trial.";
   const PUBLISHED = "2026-08-15";
   const FAQ = [
     {
       q: "is asherin free if i bring my own key?",
-      a: "yes. bring your own api key and the software is free. you pay that vendor for inference. forever-free burns are yours.",
+      a: "no. saved provider keys are supported, but the current public plans are paid subscriptions and there is no free trial.",
     },
     {
-      q: "what is the paid seat?",
-      a: "the paid seat is asherin.com's hosted uncensored model. two seats stay $18 / month and $79 / month pro. this note is the offer, it does not claim a named hosted model is already live on asherin.com today.",
+      q: "what are the current individual plans?",
+      a: "asherin is $18 per month and asherin pro is $79 per month. the live pricing and checkout pages are authoritative if this dated article differs.",
     },
     {
-      q: "do you buy ads to get found?",
-      a: "no. $0 goes to being findable: sitemap, llms.txt, this journal, and the forums. not to ads.",
+      q: "what does team cost?",
+      a: "team is $39 per month plus $24 per member, with a two-member minimum. enterprise terms are custom.",
     },
   ];
   return (
@@ -679,7 +452,7 @@ export function PaidSeatFreeDoor() {
         headline={TITLE}
         description={DEK}
         datePublished={PUBLISHED}
-        keywords={["asherin pricing", "bring your own key", "byok free", "hosted uncensored model", "$18", "$79"]}
+        keywords={["asherin pricing", "bring your own key", "byok", "asherin team", "$18", "$79"]}
       />
       <BreadcrumbJsonLd
         id="paid-seat-free-door"
@@ -689,23 +462,17 @@ export function PaidSeatFreeDoor() {
           { name: TITLE, url: "/blog/paid-seat-free-door" },
         ]}
       />
-      <p>personas don&apos;t make the model smarter. thinking patterns do.</p>
-      <p>~ asherin.com</p>
+      <h2>the plans</h2>
       <p>
-        if you already pay a vendor, bring that key. the software stays free. forever-free burns are yours, you pay
-        default-model inference yourself.
+        asherin is $18 per month. asherin pro is $79 per month. team is $39 per month plus $24 per member, with a two-member minimum. enterprise terms are custom.
       </p>
+      <h2>saved provider keys</h2>
       <p>
-        if you want asherin.com&apos;s hosted uncensored model, that is the paid seat. $18 / month. $79 / month pro.
-        byok stays free. this page is the offer. it does not claim a named hosted model is already live on asherin.com
-        today.
+        you can save compatible provider keys and select supported models. provider availability, modality support, and policy can change, so the live model picker is the current source of truth.
       </p>
+      <h2>the boundary</h2>
       <p>
-        two seats stay $18 / month and $79 / month pro. we do not buy ads to fix a search miss. the sitemap, llms.txt,
-        the journal, and the forums are the $0 door.
-      </p>
-      <p>
-        the first click on a public page is not a paywall. one public-index look, wayback or wiki, works logged out.
+        there is no free trial. a subscription does not override provider limits or make every external source available. the live pricing and checkout pages control if this dated article ever differs.
       </p>
       <FaqJsonLd id="paid-seat-free-door" items={FAQ} />
       <RelatedLinks
@@ -716,8 +483,8 @@ export function PaidSeatFreeDoor() {
             label: "who asherin is for",
             description: "five desks. one public-index look. first click is look.",
           },
-          { to: "/pricing", label: "pricing", description: "$18 / month. $79 / month pro." },
-          { to: "/forums", label: "forums", description: "the $0 door next to this journal note." },
+          { to: "/pricing", label: "pricing", description: "individual, team, and enterprise plans." },
+          { to: "/software", label: "software", description: "the current public room catalogue." },
         ]}
       />
     </ArticleShell>

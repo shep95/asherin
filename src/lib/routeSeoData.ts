@@ -104,7 +104,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   "/forums": {
     title: "notes from the work line | asherin",
     description:
-      "paid seat. free door. bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
+      "public product notes, current plans, research records, and dated engineering updates from asherin.",
   },
 
   // --- Legal ---
@@ -147,14 +147,14 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-06-19",
   },
   "/blog/elite-corporations-algorithms-vs-axrlen": {
-    title: "Institutional algorithms and AXRLEN",
-    description: "how large allocation engines model the present, and where a forecasting engine differs.",
+    title: "Forecasting, symbolism, and probability",
+    description: "an archived method note on probability, windows, symbolic candidate generation, and honest verification.",
     ogType: "article",
     datePublished: "2026-06-24",
   },
   "/blog/aureon-pricing-explained": {
     title: "Why asherin costs $18 and $79",
-    description: "the reasoning behind the two subscription tiers, and what each one actually pays for.",
+    description: "current $18 and $79 plans, team pricing, enterprise terms, saved-key support, and no free trial.",
     ogType: "article",
     datePublished: "2026-06-19",
   },
@@ -207,8 +207,8 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-06-24",
   },
   "/blog/zaxin-tactical-ble-intelligence": {
-    title: "Zaxin and bluetooth signal intelligence",
-    description: "what bluetooth low energy noise can and cannot tell you about what is nearby.",
+    title: "Archived bluetooth signal research",
+    description: "a retired concept and the limits of what browser bluetooth signals can show.",
     ogType: "article",
     datePublished: "2026-06-26",
   },
@@ -220,7 +220,7 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
   },
   "/blog/cloud-intelligence-suite": {
     title: "Cloud intelligence in asherin",
-    description: "connecting a google account, and what asherin does with the mail, files and calendar it reads.",
+    description: "what asherin can read from a google account you authorize, with permission and coverage limits.",
     ogType: "article",
     datePublished: "2026-08-03",
   },
@@ -231,8 +231,8 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-08-04",
   },
   "/blog/transit-guardian": {
-    title: "Transit guardian",
-    description: "watching a route while it is being travelled, and what happens when it deviates.",
+    title: "Archived trip-safety research",
+    description: "what phone telemetry and public records can show about a trip, without claiming identity or safety certainty.",
     ogType: "article",
     datePublished: "2026-08-05",
   },
@@ -245,14 +245,14 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     excludeFromSitemap: true,
   },
   "/blog/autonomous-intelligence-loop": {
-    title: "The autonomous intelligence loop",
-    description: "a loop that collects, checks and revises itself, and where a human still has to sit.",
+    title: "The supervised intelligence loop",
+    description: "how an active request is routed through collection, verification, memory, and visible degraded states.",
     ogType: "article",
     datePublished: "2026-08-07",
   },
   "/blog/aureon-legal-advisor-multi-jurisdictional": {
     title: "Multi-jurisdictional legal research in asherin",
-    description: "researching statute across jurisdictions without inventing citations.",
+    description: "jurisdiction-specific research with source verification and uncertainty; not legal advice.",
     ogType: "article",
     datePublished: "2026-07-08",
   },
@@ -263,9 +263,9 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
     datePublished: "2026-08-12",
   },
   "/blog/paid-seat-free-door": {
-    title: "paid seat. free door.",
+    title: "the current asherin plans",
     description:
-      "bring your own api key and asherin is free. the paid seat is the hosted uncensored model. $18 / $79. $0 goes to being findable, not to ads.",
+      "asherin is $18 monthly, pro is $79 monthly, team is $39 plus $24 per member, and enterprise is custom. no free trial.",
     ogType: "article",
     datePublished: "2026-08-15",
   },
@@ -334,8 +334,8 @@ export const ROUTE_SEO: Record<string, SeoEntry> = {
 
   // --- Feature pages ---
   "/feature/zophiel": {
-    title: "Zophiel | asherin",
-    description: "zophiel cross-checks live sources, scores what it finds, and shows the citations.",
+    title: "asherin.search | asherin",
+    description: "the current public-source research room preserves evidence, uncertainty, and unavailable states.",
   },
   "/feature/zerlal": {
     title: "ZERLAL | asherin",

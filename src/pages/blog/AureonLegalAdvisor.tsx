@@ -22,7 +22,7 @@ const PUBLISHED = "2026-07-08";
 const FAQ = [
   {
     q: "What is LAW mode in Asherin and Asher?",
-    a: "LAW mode is a per-message toggle that wraps every prompt in a strict multi-jurisdictional legal-research directive. The model researches every applicable law in the country, state, or province you named, including older statutes and precedent that can supersede newer law, and returns a structured answer with jurisdiction, controlling authority, conflicts, and a mandatory disclaimer.",
+    a: "LAW mode is a per-message legal-research setting. It structures a search around the jurisdiction you name, asks for primary authority and conflicts, and requires uncertainty and a not-legal-advice notice. Coverage depends on the sources available and must be verified.",
   },
   {
     q: "Does LAW mode replace a lawyer?",
@@ -30,7 +30,7 @@ const FAQ = [
   },
   {
     q: "How does LAW mode handle older laws that override newer ones?",
-    a: "The directive forces the model to check colonial statutes, uncodified common law, constitutional carve-outs, and binding precedent before quoting a modern statute. Where an older instrument controls, the answer names both, cites the conflict, and flags which one is currently enforceable.",
+    a: "Legal mode asks for older and newer controlling authority and for conflicts to be named. It cannot guarantee complete coverage or enforceability; verify current primary sources and consult licensed counsel.",
   },
   {
     q: "Can LAW mode fabricate case citations?",
@@ -44,7 +44,7 @@ const AureonLegalAdvisor = () => {
       title:
         "Asherin Legal Advisor (LAW Mode), Multi-Jurisdictional AI Legal Research | Asherin",
       description:
-        "Asherin and Asher now ship LAW mode: a per-message toggle that runs deep multi-jurisdictional legal research across any country, state, or province, including older statutes that supersede newer law.",
+        "Asherin legal mode structures jurisdiction-specific research with source requests, uncertainty, and a clear not-legal-advice boundary.",
       path: "/blog/aureon-legal-advisor-multi-jurisdictional",
     });
   }, []);
@@ -55,14 +55,14 @@ const AureonLegalAdvisor = () => {
         id="legal-advisor"
         url={URL}
         headline="Asherin Legal Advisor (LAW Mode), Multi-Jurisdictional AI Legal Research"
-        description="A field report on the July 8, 2026 launch of LAW mode across Asherin and Asher, how it researches every applicable law in a jurisdiction, surfaces older statutes that supersede newer ones, and enforces a no-fabrication rule on citations."
+        description="A field report on Asherin legal mode: jurisdiction-specific research, source verification, uncertainty, and the boundary between research support and legal advice."
         datePublished={PUBLISHED}
         keywords={[
-          "aureon legal advisor",
+          "asherin legal advisor",
           "ai legal research",
           "multi-jurisdictional law ai",
           "older laws superseding newer",
-          "law mode aureon",
+          "law mode asherin",
           "asher legal ai",
         ]}
       />
@@ -81,7 +81,7 @@ const AureonLegalAdvisor = () => {
         publishedLabel="July 8, 2026"
         readTime="8 min read"
         title="Asherin Legal Advisor, LAW mode ships multi-jurisdictional research to every operator"
-        dek="Asherin and Asher now run a dedicated legal-research reflex on demand. Toggle the LAW pill in the composer and every prompt is wrapped in a strict directive that hunts the entire body of applicable law, modern statutes, colonial-era carryovers, uncodified common law, and binding precedent, across any country, state, or province you name."
+        dek="Asherin legal mode structures a request around the named jurisdiction, asks for primary authority and conflicts, preserves uncertainty, and requires a not-legal-advice notice. Source coverage varies and important citations must be checked."
       >
         <h2>Why LAW mode exists</h2>
         <p>
@@ -92,8 +92,8 @@ const AureonLegalAdvisor = () => {
           Commonwealth jurisdictions. Uncodified common law overrides
           statute in narrow but decisive slices. Constitutional
           carve-outs can strip a modern law of effect the moment it is
-          challenged. LAW mode is the reflex that forces the model to
-          walk that whole stack before it speaks.
+          challenged. Legal mode asks the model to inspect that hierarchy
+          and state what it could not verify before it answers.
         </p>
 
         <h2>How the reflex works</h2>
@@ -101,10 +101,9 @@ const AureonLegalAdvisor = () => {
           A single toggle in the composer, the <strong>LAW</strong>{" "}
           pill, sitting next to <strong>NAR</strong>, flips the send
           path. When it is on, your prompt is wrapped in a legal-research
-          directive before it reaches the model. The directive is
-          deterministic and lives in <code>src/lib/legalAdvisor.ts</code>{" "}
-          so every surface (Asherin Chat, Asher Chat) speaks the exact
-          same protocol.
+          research frame before it reaches the selected model. The frame is
+          consistent across supported chat surfaces, while retrieval quality
+          still depends on the model and sources available for the request.
         </p>
         <ol>
           <li>
@@ -121,10 +120,10 @@ const AureonLegalAdvisor = () => {
             African Union, OAS, etc.) that bind the jurisdiction.
           </li>
           <li>
-            <strong>Detect conflicts.</strong> When two instruments
-            speak to the same question, LAW mode names both, states
-            which controls, and explains why (lex posterior, lex
-            superior, lex specialis, or a constitutional carve-out).
+            <strong>Detect possible conflicts.</strong> When retrieved
+            instruments speak to the same question, legal mode asks the
+            model to name both and explain the possible hierarchy while
+            marking anything it could not verify.
           </li>
           <li>
             <strong>Refuse fabricated citations.</strong> The directive
@@ -244,10 +243,9 @@ const AureonLegalAdvisor = () => {
           heading="Related in the operator stack"
           links={[
             {
-              to: "/hosrad",
-              label: "HOSRAD, House of Asher Research & Developers",
-              description:
-                "The R&D division that funded the legal reflex, alongside quantum, AI, and defense work.",
+              to: "/software",
+              label: "asherin software",
+              description: "the current public software catalogue and availability.",
             },
             {
               to: "/updates",

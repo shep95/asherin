@@ -23,10 +23,10 @@ const RelatedLinks = ({ heading = "read next", links }: Props) => {
   return (
     <section
       aria-label="Related Asherin resources"
-      className="mt-20 border-t border-border/20 pt-12"
+      className="mt-20 border-t journal-rule pt-12"
     >
       <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-lg font-light tracking-tight text-foreground">{heading}</h2>
+        <h2 className="font-display text-3xl font-normal">{heading}</h2>
         <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-muted-foreground/60">
           {links.length}
         </span>
@@ -36,10 +36,10 @@ const RelatedLinks = ({ heading = "read next", links }: Props) => {
           <Link
             key={l.to}
             to={l.to}
-            className="group flex flex-col gap-2 rounded-2xl border border-border/30 bg-card/20 p-5 transition-all hover:border-foreground/40 hover:bg-card/40"
+            className="group flex flex-col gap-2 border-l-2 border-foreground p-5 transition-opacity hover:opacity-60"
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-sm font-light text-foreground leading-snug">{l.label}</h3>
+              <h3 className="text-sm font-medium leading-snug">{l.label}</h3>
               <ArrowUpRight
                 className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:text-foreground group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                 strokeWidth={1.5}

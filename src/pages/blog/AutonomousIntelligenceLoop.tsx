@@ -17,9 +17,9 @@ import { applySeoHead } from "@/lib/seoHead";
 
 const URL = "https://asherin.com/blog/autonomous-intelligence-loop";
 const TITLE =
-  "The Autonomous Intelligence Loop, how Asherin researches without being told to";
+  "The supervised intelligence loop, how Asherin routes research requests";
 const DEK =
-  "Asherin no longer waits for a tool selection. The Autonomous Intelligence Loop detects research intent, recalls what it already knows, fans out across collection surfaces, cross-verifies, writes the result into a persistent memory graph, and returns a sourced product, with the reasoning chain shown while it works.";
+  "During an active request, Asherin can detect research intent, recall owner-scoped context, query available sources, preserve citations, and show degraded states. It does not run as an unsupervised background agent.";
 const PUBLISHED = "2026-08-07T00:00:00.000Z";
 
 const Box = ({ children }: { children: React.ReactNode }) => (
@@ -91,8 +91,8 @@ const AutonomousIntelligenceLoop = () => {
       />
 
       <ArticleShell
-        eyebrow="Product Briefing · Autonomous Intelligence Loop"
-        title="The Autonomous Intelligence Loop"
+         eyebrow="Product Briefing · Supervised Research"
+         title="The supervised intelligence loop"
         dek={DEK}
         publishedLabel="Aug 7 2026"
         readTime="12 min"
@@ -219,7 +219,7 @@ const AutonomousIntelligenceLoop = () => {
           A correct answer in the wrong register is a failed answer. The
           adaptive router reads what the operator is actually doing
           quick factual check, deep investigation, legal research, code
-          work, geospatial task, and shapes the response accordingly:
+          work, map task, and shapes the response accordingly:
           terse and direct where speed is the point, structured and cited
           where rigour is the point, and jurisdiction-strict when legal
           mode is engaged. The router also decides how much of the loop to
@@ -228,8 +228,8 @@ const AutonomousIntelligenceLoop = () => {
 
         <h2>10. Speed</h2>
         <p>
-          Autonomy that costs thirty seconds per message is not autonomy,
-          it is a tax. Three mechanisms hold the latency down: relevance
+          A research loop that adds unnecessary delay is not useful. Three
+          mechanisms hold the latency down: relevance
           gating prunes surfaces that cannot contribute before they are
           queried, a warm brain cache keeps assembled context resident
           across turns, and recall removes work entirely when the graph

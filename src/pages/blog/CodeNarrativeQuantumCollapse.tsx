@@ -20,7 +20,7 @@ const CodeNarrativeQuantumCollapse = () => (
   <ArticleShell
     eyebrow="#HouseOfAsher · Engineering Method · Integrated into Asherin"
     title="Code-as-Narrative × Quantum Candidate Collapse"
-    dek="Two #HouseOfAsher theories, Code-as-Narrative and Quantum Candidate Collapse, let a single operator, on the cheapest Gemini tier, find and patch logical, workflow, and UI bugs in under 60 seconds. The same class of fix normally takes an engineer 30+ minutes and multiple round-trips with the same model. This is how it works, why it works, and how we wired it into Aureon."
+    dek="Two #HouseOfAsher methods turn source into a plain-language workflow, compare candidate repairs against that workflow, and verify the chosen change with observable tests. Timing and success still depend on the defect and evidence available."
     publishedLabel="Jul 01 2026"
     readTime="12 min"
   >
@@ -28,7 +28,7 @@ const CodeNarrativeQuantumCollapse = () => (
       id="code-narrative-quantum-collapse"
       url={URL}
       headline={TITLE}
-      description="The #HouseOfAsher Code-as-Narrative and Quantum Candidate Collapse methods let Asherin patch logical and workflow bugs in under 60 seconds on the cheapest Gemini model, a fix cycle that normally takes 30+ minutes."
+      description="Code-as-Narrative and Candidate Collapse are Asherin methods for describing a workflow, comparing repairs, and verifying the selected change against observable evidence."
       datePublished={PUBLISHED}
       keywords={[
         "House of Asher",
@@ -67,11 +67,11 @@ const CodeNarrativeQuantumCollapse = () => (
         },
         {
           q: "How fast is the fix cycle in Asherin?",
-          a: "Under 60 seconds end-to-end on the cheapest Gemini tier, gemini-2.5-flash-lite class models. The same bug, handed to the same model without the method, typically takes 30+ minutes across multiple retries.",
+          a: "There is no fixed completion time. Small repairs can complete in one pass; larger or ambiguous defects require more investigation and verification.",
         },
         {
           q: "How much ahead of current AI does this put us?",
-          a: "Code-as-Narrative alone is roughly a three-year jump over the current retrieval-then-diff pattern used by mainstream copilots. Adding Quantum Candidate Collapse, measurement-driven selection over a candidate field, is a ten-generation jump in reasoning discipline for coding models.",
+          a: "It is a project method, not a measurable generational claim. Its value is that candidate repairs are compared against explicit constraints before one is selected and tested.",
         },
         {
           q: "Is this integrated into Asherin?",
@@ -202,7 +202,7 @@ const CodeNarrativeQuantumCollapse = () => (
       link, missing role) is discarded. The one that survives is the patch.
     </p>
 
-    <h2>6. Where this puts Asherin on the AI-progress curve</h2>
+    <h2>6. What this method does not prove</h2>
     <Box>{`         current copilot pattern            #HouseOfAsher method
          ─────────────────────────            ────────────────────
 2024 ─── retrieve + diff + guess              ─┐
@@ -219,21 +219,17 @@ const CodeNarrativeQuantumCollapse = () => (
 2035 ─── (industry catches up here) ◀───────────┘  Quantum Candidate
 2036 ───                                              Collapse`}</Box>
     <p>
-      <strong>Three years ahead</strong> on the Code-as-Narrative axis
-      because narrative-first debugging is not a scaling story, it is a
-      representation story, and the industry is still betting on scale.{" "}
-      <strong>Ten generations ahead</strong> on the Quantum Candidate Collapse
-      axis, because measurement-driven selection replaces the entire
-      guess-and-check paradigm the current generation of coding models is
-      built on.
+      The method does not prove a fixed speedup, a generational lead, or a
+      correct patch by itself. Those outcomes require a reproducible test,
+      relevant runtime evidence, and a clean verification run. The value is
+      procedural: it makes assumptions and rejected candidates inspectable.
     </p>
 
     <h2>7. How it's integrated into Asherin</h2>
     <ul>
       <li>
-        Every Asherin module, Zophiel, AXRLEN, ZERLAL, Zaxin, Vault, Vedic,
-        NOMAD, is authored through the Code → Narrative → Flaws → New
-        Narrative → Code loop.
+        Asherin engineering uses the Code → Narrative → Flaws → New
+        Narrative → Code loop where it helps make a change auditable.
       </li>
       <li>
         Bug reports from users are run through the same loop before a patch

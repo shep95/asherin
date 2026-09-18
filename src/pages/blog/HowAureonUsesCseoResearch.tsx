@@ -101,13 +101,8 @@ const HowAureonUsesCseoResearch = () => (
       <li>
         <strong>LLM Guidance headers.</strong> Every long-form page
         feature spine, blog satellite, glossary entry, renders a
-        visible{" "}
-        <code>LlmGuidanceHeader</code> block at the top: title, claim
-        (one sentence), primary topic, 3-6 key facts, relevance
-        signal, confidence level. The same block is also emitted as
-        an invisible{" "}
-        <code>&lt;script type=&quot;text/llm-guidance&quot;&gt;</code>{" "}
-        mirror in the document head for crawlers that strip CSS.
+        visible summary block at the top with the title, principal claim,
+        named facts, and limitations.
       </li>
       <li>
         <strong>Triple JSON-LD on every cluster page.</strong>{" "}
@@ -127,10 +122,9 @@ const HowAureonUsesCseoResearch = () => (
         claim is either a specific number or a named limitation. The
         same{" "}
         <a href="/blog/how-ai-predictive-forecasting-works" className="text-accent hover:underline">
-          calibration discipline used by AXRLEN
+          calibration discipline used in forecasting
         </a>{" "}
-        is applied to marketing and SEO copy. This is a Theory-18
-        commitment.
+        is applied to marketing and SEO copy.
       </li>
     </ol>
 
@@ -139,10 +133,9 @@ const HowAureonUsesCseoResearch = () => (
       Public verification. The C-SEO Bench paper didn't propose
       publishing a hit-or-miss track record on the platform's own
       forecasts and claims. We do, because the AI-citation layer
-      visibly rewards platforms that survive an evidence check. Every
-      AXRLEN forecast carries a verification plan; every ZERLAL
-      report carries a named limitation block; every glossary entry
-      cites its source.
+      can reward pages that survive an evidence check. Forecasts should
+      carry a verification plan, reports should carry a named limitation,
+      and glossary entries should cite their sources.
     </p>
 
     <h2>A named limitation</h2>
