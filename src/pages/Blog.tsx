@@ -5,6 +5,7 @@ import { ArticleJsonLd, BreadcrumbJsonLd, FaqJsonLd } from "@/components/seo/Seo
 import RelatedLinks from "@/components/seo/RelatedLinks";
 import Header from "@/components/Header";
 import SiteFooter from "@/components/SiteFooter";
+import LandingBackground from "@/components/LandingBackground";
 import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 
 /**
@@ -140,8 +141,9 @@ const Blog = () => {
   };
 
   return (
-    <div className="journal-surface landing-perf min-h-screen">
-      <Header />
+    <LandingBackground overlayOpacity="bg-background/45">
+      <div className="journal-surface landing-perf min-h-screen">
+        <Header />
 
       <main className="mx-auto max-w-7xl px-5 pb-24 pt-28 sm:px-8 lg:px-12">
         {/* MASTHEAD */}
@@ -417,8 +419,9 @@ const Blog = () => {
         )}
       </main>
 
-      <SiteFooter />
-    </div>
+        <SiteFooter />
+      </div>
+    </LandingBackground>
   );
 };
 
