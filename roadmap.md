@@ -66,4 +66,4 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] apply the selected radical editorial journal design across the index and all articles
 - [x] correct stale product names, retired surfaces, private implementation details, and unsupported claims
 - [x] verify the shared index/article layouts and representative current, pricing, and archived routes on desktop and mobile; all 24 catalog routes remain registered
-- [ ] carry the main asherin wallpaper through the blog index and every article without reducing readability
+- [x] carry the main asherin wallpaper through the blog index and every article without reducing readability

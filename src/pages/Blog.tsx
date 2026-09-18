@@ -141,7 +141,7 @@ const Blog = () => {
   };
 
   return (
-    <LandingBackground overlayOpacity="bg-background/45">
+    <LandingBackground overlayOpacity="bg-background/20">
       <div className="journal-surface landing-perf min-h-screen">
         <Header />
 

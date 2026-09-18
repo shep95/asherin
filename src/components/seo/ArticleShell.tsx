@@ -53,7 +53,7 @@ const ArticleShell = ({
   }, []);
 
   return (
-    <LandingBackground overlayOpacity="bg-background/45">
+    <LandingBackground overlayOpacity="bg-background/20">
       <div className="journal-surface min-h-screen">
         <Header />
 
