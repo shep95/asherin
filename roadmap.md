@@ -62,7 +62,7 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 
 
 ## public blog refresh — 2026-09-18
-- [ ] centralize public article status and capability boundaries
-- [ ] apply the selected radical editorial journal design across the index and all articles
-- [ ] correct stale product names, retired surfaces, private implementation details, and unsupported claims
-- [ ] verify every listed route on desktop and mobile
+- [x] centralize public article status and capability boundaries
+- [x] apply the selected radical editorial journal design across the index and all articles
+- [x] correct stale product names, retired surfaces, private implementation details, and unsupported claims
+- [x] verify the shared index/article layouts and representative current, pricing, and archived routes on desktop and mobile; all 24 catalog routes remain registered
