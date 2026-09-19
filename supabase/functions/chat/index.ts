@@ -22,6 +22,7 @@ import { SOCIAL_AWARENESS_BRAIN } from "../_shared/socialAwarenessBrain.ts";
 import { DEEP_TRAINING_ARCHITECTURE_BRAIN } from "../_shared/deepTrainingArchitectureBrain.ts";
 import { GEOLOCATION_BRAIN } from "../_shared/geolocationBrain.ts";
 import { SILENT_OBSERVABLE_DIRECTIVE } from "../_shared/imagineEvidence.ts";
+import { SHEPHERD_ARCHITECTURE, SHEPHERD_ANCHOR } from "../_shared/shepherdArchitecture.ts";
 import { SYSTEM_TWO_FORCING_BRAIN } from "../_shared/systemTwoForcingBrain.ts";
 import { HYPOTHETICAL_REALISM_DOCTRINE } from "../_shared/hypotheticalRealismDoctrine.ts";
 import {
@@ -2895,13 +2896,9 @@ The operator is requesting a defensive security audit / flaw check of their own 
     );
 
     const NUMBERED_OFF_OVERRIDE = `\n\n## NUMBERED-LIST BRAIN: DISABLED FOR THIS CONVERSATION\nThe operator has explicitly turned OFF the numbered-list answer brain for this thread. This override has the HIGHEST priority and replaces any rule above that mandates \`1.\`, \`2.\`, \`3.\` formatting.\n- Do NOT default every structured answer to a numbered list.\n- Write in natural prose, paragraphs, headers, tables, or bullet points — whatever fits the question best.\n- Numbered lists are allowed ONLY when the content is genuinely ordinal (steps in a procedure, ranked items the user asked for).\n- All other rules (secrecy, tone, formatting richness, mode classifier) still apply.\n`;
-    // PROMPT ASSEMBLY ORDER (recency-weighted):
-    //   1. Core identity + static doctrine brains (foundation)
-    //   2. Heavy reference transcripts (Rome/Doctrine — context, not commands)
-    //   3. Mode/depth/persona (per-request shape)
-    //   4. USER-CONTROLLED OVERRIDES LAST (custom Brain, vault, swarm, numbered-off)
-    //      → models attend most to nearby/recent tokens; user signals MUST dominate
-    //      static brains, otherwise their custom Brain silently gets ignored.
+    // Shepherd is the behavioral foundation. Everything after it is scoped
+    // operational context, evidence, a user-selected task shape, or a real tool
+    // contract — never a competing persona.
     const { getTemporalContext: _getTemporalContext } = await import("../_shared/systemContext.ts");
     const _temporalBlock = _getTemporalContext({ timezone, locale });
     // Caller-supplied task directive (a task shape, never an identity). Bounded
@@ -2911,55 +2908,24 @@ The operator is requesting a defensive security audit / flaw check of their own 
         ? `## TASK DIRECTIVE (from the calling surface — a task shape, not a character)\n${taskDirective.trim().slice(0, 12000)}`
         : "";
     const systemParts = [
-      // FIRST anchor — doctrine dominates every downstream brain
-      HYPOTHETICAL_REALISM_DOCTRINE,
+      SHEPHERD_ARCHITECTURE,
       _temporalBlock,
-      ASHERIN_IDENTITY,
-      _R.trivial ? "" : _asherinProcedures,
       _taskDirective,
-      _B.operatingNotes ? ASHERIN_OPERATING_NOTES : "",
-
-      // Form-level law. Ships on EVERY turn including trivial ones — casing and
-      // the seven patterns govern a one-line greeting as much as a dossier.
       OUTPUT_CONDUCT_DOCTRINE,
-      // Grounding + stance law. Skipped on greetings (a trivial turn has no
-      // evidence to ground and no verdict to lead with); binding everywhere else.
       _R.trivial ? "" : AXIOMATIC_GROUNDING_DOCTRINE,
-
-      // about — a greeting does not need System-2 forcing.
-      _R.trivial ? "" : SYSTEM_TWO_FORCING_BRAIN,
       _R.coding || _R.deep ? CODE_NARRATIVE_PROTOCOL : "",
-      // (brain orchestrator retired — the organism sequences the turn now)
       WORKFLOW_SECRECY_DIRECTIVE,
       cognitiveWorkflowDirective,
-      _R.strategic || _R.intel || _R.deep ? AUREON_SCENARIO_MATRIX : "",
       _R.coding ? AUREON_DEBUGGING_PROTOCOLS : "",
       _R.coding ? AUREON_CODING_MASTERY : "",
-      _R.creative ? NARRATIVE_FORGE_BRAIN : "",
-      _R.deep || _R.strategic || _R.analytics ? QUANTUM_ORCHESTRATION_BRAIN : "",
-      _R.deep || _R.strategic ? BUTTERFLY_PROTOCOL_BRAIN : "",
-      // Humor is a register, not a capability the model lacks: it only needs
-      // the brain when the turn is actually asking to be funny.
-      _R.humor ? COMEDY_BRAIN : "",
-      _R.trivial ? "" : ASHER_LOGIC_BRAIN,
-      _B.promptIntelligence ? PROMPT_INTELLIGENCE_PROTOCOL : "",
-      _R.deep || _R.analytics || _R.intel ? SYNTHESIS_ENGINE_BRAIN : "",
       _R.visual ? VISUAL_INTELLIGENCE_BRAIN : "",
-      _R.social ? SOCIAL_AWARENESS_BRAIN : "",
-      _R.deep || _R.coding ? DEEP_TRAINING_ARCHITECTURE_BRAIN : "",
       _B.geolocation ? GEOLOCATION_BRAIN : "",
-      _R.psychology || _R.intel ? AUREON_PSYCHOLOGY_ENGINE : "",
-      _R.linguistics || _R.intel ? AUREON_FORENSIC_LINGUISTICS : "",
-      _R.strategic ? warStrategyBrainContent : "",
-      _R.strategic || _R.intel ? strategicDoctrineBrainContent : "",
       zophielCodingBrainContent,
       _R.visual || _hasImageAttachment ? AUREON_IMAGE_INTELLIGENCE : "",
       // Every attached image gets the general vision brain.
       _hasImageAttachment ? GENERAL_IMAGE_VISION_BRAIN : "",
       // Grounding: any attached image is answered from cited observables, not impressions.
       _hasImageAttachment ? SILENT_OBSERVABLE_DIRECTIVE : "",
-      AUREON_ADVANCED_PROTOCOLS,
-      _R.visual ? AUREON_VISUAL_DOMINANCE : "",
       _B.contextIntelligence ? CONTEXT_INTELLIGENCE_PROMPT : "",
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
@@ -3026,18 +2992,6 @@ The operator is requesting a defensive security audit / flaw check of their own 
       // block in the prompt. The per-message emphasis (which names the two or
       // three logics this turn demands) always ships; the full roster only
       // when the turn is genuinely analytical.
-      // THE ORGANISM — the resident reasoning layer. The static brain pile that
-      // used to sit here (engine kernel, operator roster, domain atlas, forge
-      // doctrine) has been retired: a wall of generic doctrine made every user's
-      // asherin identical. What replaces it is small and per-person — the loop,
-      // the silence law, and the pattern library this organism minted from real
-      // sessions with THIS operator.
-      // ALWAYS-ON CONTRACT: the organism, the way of thinking, and this
-      // operator's vault ride EVERY request — no activation, no mode, no
-      // trivial-turn exemption. Only the heavy doctrine is depth-gated.
-      ORGANISM_CORE,
-      forgeBlock,
-      (_R.deep || _R.analytics || _R.intel || _R.strategic || _R.coding) ? forgeDoctrineBlock : "",
       organismInjection,
       // Late placement is deliberate: the verdict tail must survive the mode
       // and depth prompts above, which otherwise shape the answer into prose.
@@ -3045,19 +2999,14 @@ The operator is requesting a defensive security audit / flaw check of their own 
 
       // NUMBERED-OFF OVERRIDE MUST BE LAST so it dominates any MODE_PROMPT that re-asserts numbered output.
       ...(NUMBERED_BRAIN_ON ? [] : [NUMBERED_OFF_OVERRIDE]),
-      // RECENCY anchor — doctrine repeated last so nearby-token attention obeys it
-      HYPOTHETICAL_REALISM_DOCTRINE,
-      // Grounding anchor sits just before the conduct anchor: stance decays
-      // faster than form, and conduct must still be the final word.
       _R.trivial ? "" : AXIOMATIC_GROUNDING_ANCHOR,
-      // Casing + seven-pattern law is the LAST thing the model reads: it is a
-      // form rule, and form rules only hold when they are the nearest tokens.
       OUTPUT_CONDUCT_ANCHOR,
       // SPEAKER BOUNDARY — every turn, near the end so proximity keeps it
       // binding on long sourced answers as well as on a one-line hello.
       SPEAKER_BOUNDARY_CONTRACT,
       VOICE_CONTRACT,
       FACE_CONTRACT,
+      SHEPHERD_ANCHOR,
       // TRIVIAL TURN CONTRACT — dead last so proximity makes it the governing
       // rule for a ping. A greeting is a person saying hello, not a subject
       // arriving for analysis; everything that would turn it into a packet was
