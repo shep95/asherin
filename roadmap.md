@@ -19,6 +19,7 @@ all twelve panels mounted and verified live: layers, anatomy, body model, record
 - [x] headphone contact quality / baseline / longitudinal patterns: wired into the live panel, tested (86 cases), build ok
 
 ## Open
+- [x] replace the active asherin chat and map-assistant persona/brain stacks with the uploaded shepherd reasoning architecture; preserve real tools, evidence, security, privacy, saved procedures, and truthful unavailable states
 - [x] unify asherin.cyber, extract, briefing, data, snippets, design, slides and ebooks under the cold cinematic room system
 - [ ] asherin.arvision thermal camera view: infrared-style heat visualization from camera, honest RGB-derived labeling (not true LWIR; no through-wall/through-glass claims)
 
